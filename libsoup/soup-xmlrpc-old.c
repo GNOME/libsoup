@@ -291,84 +291,6 @@ soup_xmlrpc_build_method_response (GValue *value)
 	return body;
 }
 
-static char *
-soup_xmlrpc_build_faultv (int         fault_code,
-                          const char *fault_format,
-                          va_list     args) G_GNUC_PRINTF (2, 0);
-
-static char *
-soup_xmlrpc_build_faultv (int fault_code, const char *fault_format, va_list args)
-{
-	xmlDoc *doc;
-	xmlNode *node, *member;
-	GValue value;
-	xmlChar *xmlbody;
-	char *fault_string, *body;
-	int len;
-
-	fault_string = g_strdup_vprintf (fault_format, args);
-
-	doc = xmlNewDoc ((const xmlChar *)"1.0");
-	doc->standalone = FALSE;
-	doc->encoding = xmlCharStrdup ("UTF-8");
-
-	node = xmlNewDocNode (doc, NULL,
-			      (const xmlChar *)"methodResponse", NULL);
-	xmlDocSetRootElement (doc, node);
-	node = xmlNewChild (node, NULL, (const xmlChar *)"fault", NULL);
-	node = xmlNewChild (node, NULL, (const xmlChar *)"value", NULL);
-	node = xmlNewChild (node, NULL, (const xmlChar *)"struct", NULL);
-
-	memset (&value, 0, sizeof (value));
-
-	member = xmlNewChild (node, NULL, (const xmlChar *)"member", NULL);
-	xmlNewChild (member, NULL,
-		     (const xmlChar *)"name", (const xmlChar *)"faultCode");
-	g_value_init (&value, G_TYPE_INT);
-	g_value_set_int (&value, fault_code);
-	insert_value (member, &value);
-	g_value_unset (&value);
-
-	member = xmlNewChild (node, NULL, (const xmlChar *)"member", NULL);
-	xmlNewChild (member, NULL,
-		     (const xmlChar *)"name", (const xmlChar *)"faultString");
-	g_value_init (&value, G_TYPE_STRING);
-	g_value_take_string (&value, fault_string);
-	insert_value (member, &value);
-	g_value_unset (&value);
-
-	xmlDocDumpMemory (doc, &xmlbody, &len);
-	body = g_strndup ((char *)xmlbody, len);
-	xmlFree (xmlbody);
-	xmlFreeDoc (doc);
-
-	return body;
-}
-
-/**
- * soup_xmlrpc_build_fault:
- * @fault_code: the fault code
- * @fault_format: a printf()-style format string
- * @...: the parameters to @fault_format
- *
- * This creates an XML-RPC fault response and returns it as a string.
- * (To create a successful response, use
- * soup_xmlrpc_build_method_response().)
- *
- * Return value: the text of the fault
- **/
-char *
-soup_xmlrpc_build_fault (int fault_code, const char *fault_format, ...)
-{
-	va_list args;
-	char *body;
-
-	va_start (args, fault_format);
-	body = soup_xmlrpc_build_faultv (fault_code, fault_format, args);
-	va_end (args);
-	return body;
-}
-
 /**
  * soup_xmlrpc_set_response:
  * @msg: an XML-RPC request
@@ -396,6 +318,10 @@ soup_xmlrpc_set_response (SoupMessage *msg, GType type, ...)
 	soup_message_set_response (msg, "text/xml", SOUP_MEMORY_TAKE,
 				   body, strlen (body));
 }
+
+char *soup_xmlrpc_build_faultv (int         fault_code,
+				const char *fault_format,
+				va_list     args) G_GNUC_PRINTF (2, 0);
 
 /**
  * soup_xmlrpc_set_fault:
@@ -805,62 +731,6 @@ soup_xmlrpc_extract_method_response (const char *method_response, int length,
 	va_end (args);
 
 	return TRUE;
-}
-
-
-GQuark
-soup_xmlrpc_error_quark (void)
-{
-	static GQuark error;
-	if (!error)
-		error = g_quark_from_static_string ("soup_xmlrpc_error_quark");
-	return error;
-}
-
-/**
- * SOUP_XMLRPC_FAULT:
- *
- * A #GError domain representing an XML-RPC fault code. Used with
- * #SoupXMLRPCFault (although servers may also return fault codes not
- * in that enumeration).
- */
-
-/**
- * SoupXMLRPCFault:
- * @SOUP_XMLRPC_FAULT_PARSE_ERROR_NOT_WELL_FORMED: request was not
- *   well-formed
- * @SOUP_XMLRPC_FAULT_PARSE_ERROR_UNSUPPORTED_ENCODING: request was in
- *   an unsupported encoding
- * @SOUP_XMLRPC_FAULT_PARSE_ERROR_INVALID_CHARACTER_FOR_ENCODING:
- *   request contained an invalid character
- * @SOUP_XMLRPC_FAULT_SERVER_ERROR_INVALID_XML_RPC: request was not
- *   valid XML-RPC
- * @SOUP_XMLRPC_FAULT_SERVER_ERROR_REQUESTED_METHOD_NOT_FOUND: method
- *   not found
- * @SOUP_XMLRPC_FAULT_SERVER_ERROR_INVALID_METHOD_PARAMETERS: invalid
- *   parameters
- * @SOUP_XMLRPC_FAULT_SERVER_ERROR_INTERNAL_XML_RPC_ERROR: internal
- *   error
- * @SOUP_XMLRPC_FAULT_APPLICATION_ERROR: start of reserved range for
- *   application error codes
- * @SOUP_XMLRPC_FAULT_SYSTEM_ERROR: start of reserved range for
- *   system error codes
- * @SOUP_XMLRPC_FAULT_TRANSPORT_ERROR: start of reserved range for
- *   transport error codes
- *
- * Pre-defined XML-RPC fault codes from <ulink
- * url="http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php">http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php</ulink>.
- * These are an extension, not part of the XML-RPC spec; you can't
- * assume servers will use them.
- */
-
-GQuark
-soup_xmlrpc_fault_quark (void)
-{
-	static GQuark error;
-	if (!error)
-		error = g_quark_from_static_string ("soup_xmlrpc_fault_quark");
-	return error;
 }
 
 static xmlNode *

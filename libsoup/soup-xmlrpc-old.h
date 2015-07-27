@@ -37,9 +37,6 @@ gboolean     soup_xmlrpc_extract_method_call     (const char   *method_call,
 						  char        **method_name,
 						  ...);
 char        *soup_xmlrpc_build_method_response   (GValue       *value);
-char        *soup_xmlrpc_build_fault             (int           fault_code,
-						  const char   *fault_format,
-						  ...) G_GNUC_PRINTF (2, 3);
 void         soup_xmlrpc_set_response            (SoupMessage  *msg,
 						  GType         type,
 						  ...);
@@ -47,32 +44,6 @@ void         soup_xmlrpc_set_fault               (SoupMessage  *msg,
 						  int           fault_code,
 						  const char   *fault_format,
 						  ...) G_GNUC_PRINTF (3, 4);
-
-
-/* Errors */
-#define SOUP_XMLRPC_ERROR soup_xmlrpc_error_quark()
-GQuark soup_xmlrpc_error_quark (void);
-
-typedef enum {
-	SOUP_XMLRPC_ERROR_ARGUMENTS,
-	SOUP_XMLRPC_ERROR_RETVAL
-} SoupXMLRPCError;
-
-#define SOUP_XMLRPC_FAULT soup_xmlrpc_fault_quark()
-GQuark soup_xmlrpc_fault_quark (void);
-
-typedef enum {
-	SOUP_XMLRPC_FAULT_PARSE_ERROR_NOT_WELL_FORMED = -32700,
-	SOUP_XMLRPC_FAULT_PARSE_ERROR_UNSUPPORTED_ENCODING = -32701,
-	SOUP_XMLRPC_FAULT_PARSE_ERROR_INVALID_CHARACTER_FOR_ENCODING = -32702,
-	SOUP_XMLRPC_FAULT_SERVER_ERROR_INVALID_XML_RPC = -32600,
-	SOUP_XMLRPC_FAULT_SERVER_ERROR_REQUESTED_METHOD_NOT_FOUND = -32601,
-	SOUP_XMLRPC_FAULT_SERVER_ERROR_INVALID_METHOD_PARAMETERS = -32602,
-	SOUP_XMLRPC_FAULT_SERVER_ERROR_INTERNAL_XML_RPC_ERROR = -32603,
-	SOUP_XMLRPC_FAULT_APPLICATION_ERROR = -32500,
-	SOUP_XMLRPC_FAULT_SYSTEM_ERROR = -32400,
-	SOUP_XMLRPC_FAULT_TRANSPORT_ERROR = -32300
-} SoupXMLRPCFault;
 
 G_END_DECLS
 
