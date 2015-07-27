@@ -43,7 +43,9 @@ test_programs =			\
 	uri-parsing		\
 	websocket-test		\
 	xmlrpc-gvalue-server-test \
-	xmlrpc-gvalue-test
+	xmlrpc-gvalue-test	\
+	xmlrpc-server-test	\
+	xmlrpc-test
 
 test_extra_programs =		\
 	ntlm-test-helper	\
