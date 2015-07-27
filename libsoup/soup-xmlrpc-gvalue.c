@@ -22,6 +22,9 @@
  *
  **/
 
+/* This whole file is deprecated and replaced by soup-xmlrpc.c */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+
 static xmlNode *find_real_node (xmlNode *node);
 
 static gboolean insert_value (xmlNode *parent, GValue *value);
@@ -96,13 +99,7 @@ insert_value (xmlNode *parent, GValue *value)
 
 		if (!struct_node)
 			return FALSE;
-#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
 	} else if (type == G_TYPE_VALUE_ARRAY) {
-#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
-G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
 		GValueArray *va = g_value_get_boxed (value);
 		xmlNode *node;
 		int i;
@@ -150,6 +147,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
  * For structs, use a #GHashTable that maps strings to #GValue;
  * soup_value_hash_new() and related methods can help with this.
  *
+ * Deprecated: Use soup_xmlrpc_build_request() instead.
  * Return value: (nullable): the text of the methodCall, or %NULL on
  * error
  **/
@@ -202,13 +200,8 @@ soup_xmlrpc_request_newv (const char *uri, const char *method_name, va_list args
 
 	body = soup_xmlrpc_build_method_call (method_name, params->values,
 					      params->n_values);
-#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
 	g_value_array_free (params);
-#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
-G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
+
 	if (!body)
 		return NULL;
 
@@ -231,6 +224,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
  * and then a value of the appropriate type, finally terminated by
  * %G_TYPE_INVALID.
  *
+ * Deprecated: Use soup_xmlrpc_message_new() instead.
  * Return value: (transfer full): a #SoupMessage encoding the
  * indicated XML-RPC request.
  **/
@@ -257,6 +251,7 @@ soup_xmlrpc_request_new (const char *uri, const char *method_name, ...)
  * The glib type to XML-RPC type mapping is as with
  * soup_xmlrpc_build_method_call(), qv.
  *
+ * Deprecated: Use soup_xmlrpc_build_response() instead.
  * Return value: (nullable): the text of the methodResponse, or %NULL
  * on error
  **/
@@ -300,6 +295,8 @@ soup_xmlrpc_build_method_response (GValue *value)
  * Sets the status code and response body of @msg to indicate a
  * successful XML-RPC call, with a return value given by @type and the
  * following varargs argument, of the type indicated by @type.
+ *
+ * Deprecated: Use soup_xmlrpc_message_set_response() instead.
  **/
 void
 soup_xmlrpc_set_response (SoupMessage *msg, GType type, ...)
@@ -426,9 +423,6 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 		if (!data || strcmp ((const char *)data->name, "data") != 0)
 			return FALSE;
 
-#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
 		array = g_value_array_new (1);
 		for (xval = find_real_node (data->children);
 		     xval;
@@ -445,9 +439,6 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 		}
 		g_value_init (value, G_TYPE_VALUE_ARRAY);
 		g_value_take_boxed (value, array);
-#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
-G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
 	} else
 		return FALSE;
 
@@ -466,6 +457,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
  * soup_xmlrpc_extract_method_call(), which is more convenient if you
  * know in advance what the types of the parameters will be.
  *
+ * Deprecated: Use soup_xmlrpc_parse_request_full() instead.
  * Return value: success or failure.
  **/
 gboolean
@@ -497,9 +489,6 @@ soup_xmlrpc_parse_method_call (const char *method_call, int length,
 		if (strcmp ((const char *)node->name, "params") != 0)
 			goto fail;
 
-#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
 		*params = soup_value_array_new ();
 		param = find_real_node (node->children);
 		while (param && !strcmp ((const char *)param->name, "param")) {
@@ -514,9 +503,6 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 
 			param = find_real_node (param->next);
 		}
-#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
-G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
 	} else
 		*params = soup_value_array_new ();
 
@@ -548,6 +534,7 @@ fail:
  * See also soup_xmlrpc_parse_method_call(), which can be used if
  * you don't know the types of the parameters.
  *
+ * Deprecated: Use soup_xmlrpc_parse_request_full() instead.
  * Return value: success or failure.
  **/
 gboolean
@@ -566,13 +553,8 @@ soup_xmlrpc_extract_method_call (const char *method_call, int length,
 	success = soup_value_array_to_args (params, args);
 	va_end (args);
 
-#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
 	g_value_array_free (params);
-#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
-G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
+
 	return success;
 }
 
@@ -591,6 +573,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
  * soup_xmlrpc_parse_method_response() will return %FALSE, but @error
  * will be unset.)
  *
+ * Deprecated: Use soup_xmlrpc_parse_response() instead.
  * Return value: %TRUE if a return value was parsed, %FALSE if the
  * response could not be parsed, or contained a fault.
  **/
@@ -677,6 +660,7 @@ fail:
  * at all, soup_xmlrpc_extract_method_response() will return %FALSE,
  * but @error will be unset.)
  *
+ * Deprecated: Use soup_xmlrpc_parse_response() instead.
  * Return value: %TRUE if a return value was parsed, %FALSE if the
  * response was of the wrong type, or contained a fault.
  **/
@@ -708,3 +692,5 @@ find_real_node (xmlNode *node)
 		node = node->next;
 	return node;
 }
+
+G_GNUC_END_IGNORE_DEPRECATIONS

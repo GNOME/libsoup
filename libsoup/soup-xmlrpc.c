@@ -528,6 +528,8 @@ soup_xmlrpc_message_set_fault (SoupMessage *msg, int fault_code,
  * Sets the status code and response body of @msg to indicate an
  * unsuccessful XML-RPC call, with the error described by @fault_code
  * and @fault_format.
+ *
+ * Deprecated: Use soup_xmlrpc_message_set_fault() instead.
  **/
 void
 soup_xmlrpc_set_fault (SoupMessage *msg, int fault_code,
