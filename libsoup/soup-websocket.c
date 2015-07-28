@@ -28,6 +28,8 @@
 #include "soup-headers.h"
 #include "soup-message.h"
 
+#define FIXED_DIGEST_LEN 20
+
 /**
  * SECTION:soup-websocket
  * @short_description: The WebSocket Protocol
@@ -177,8 +179,8 @@ validate_key (const char *key)
 static char *
 compute_accept_key (const char *key)
 {
-	gsize digest_len = 20;
-	guchar digest[digest_len];
+	gsize digest_len = FIXED_DIGEST_LEN;
+	guchar digest[FIXED_DIGEST_LEN];
 	GChecksum *checksum;
 
 	if (!key)
@@ -195,7 +197,7 @@ compute_accept_key (const char *key)
 	g_checksum_get_digest (checksum, digest, &digest_len);
 	g_checksum_free (checksum);
 
-	g_assert (digest_len == 20);
+	g_assert (digest_len == FIXED_DIGEST_LEN);
 
 	return g_base64_encode (digest, digest_len);
 }
