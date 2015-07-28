@@ -36,12 +36,12 @@ insert_value (xmlNode *parent, GValue *value)
 	xvalue = xmlNewChild (parent, NULL, (const xmlChar *)"value", NULL);
 
 	if (type == G_TYPE_INT) {
-		snprintf (buf, sizeof (buf), "%d", g_value_get_int (value));
+		g_snprintf (buf, sizeof (buf), "%d", g_value_get_int (value));
 		xmlNewChild (xvalue, NULL,
 			     (const xmlChar *)"int",
 			     (const xmlChar *)buf);
 	} else if (type == G_TYPE_BOOLEAN) {
-		snprintf (buf, sizeof (buf), "%d", g_value_get_boolean (value));
+		g_snprintf (buf, sizeof (buf), "%d", g_value_get_boolean (value));
 		xmlNewChild (xvalue, NULL,
 			     (const xmlChar *)"boolean",
 			     (const xmlChar *)buf);
