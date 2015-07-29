@@ -3,32 +3,37 @@
 # This file is distributed under the same license as the libsoup package.
 # Duarte Loreto <happyguy_pt@hotmail.com>, 2012, 2013.
 # 
+# Pedro Albuquerque <palbuquerque73@gmail.com>, 2015.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: 3.8\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-03-11 22:54+0000\n"
-"PO-Revision-Date: 2013-03-11 23:00+0100\n"
-"Last-Translator: Duarte Loreto <happyguy_pt@hotmail.com>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2015-06-07 22:39+0000\n"
+"PO-Revision-Date: 2015-06-24 09:25+0100\n"
+"Last-Translator: Pedro Albuquerque <palbuquerque73@gmail.com>\n"
 "Language-Team: Portuguese <gnome_pt@yahoogroups.com>\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Gtranslator 2.91.6\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Ligação terminou inesperadamente"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "Pedido de procura inválido"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Incapaz de truncar SoupBodyInputStream"
+msgstr "Impossível truncar SoupBodyInputStream"
 
 #: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
@@ -45,23 +50,23 @@ msgstr "Buffer de resultado é demasiado pequeno"
 
 #: ../libsoup/soup-message-client-io.c:41
 msgid "Could not parse HTTP response"
-msgstr "Incapaz de processar a resposta HTTP"
+msgstr "Impossível processar a resposta HTTP"
 
 #: ../libsoup/soup-message-client-io.c:66
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codificação de resposta HTTP desconhecida"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
-msgid "Operation was cancelled"
-msgstr "A operação foi cancelada"
-
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "A operação iria bloquear"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "A operação foi cancelada"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
-msgstr "Incapaz de processar o pedido HTTP"
+msgstr "Impossível processar o pedido HTTP"
 
 #: ../libsoup/soup-request.c:140
 #, c-format
@@ -71,35 +76,102 @@ msgstr "Nenhum URI especificado"
 #: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
-msgstr "URI '%s' inválido: %s"
+msgstr "URI \"%s\" inválido: %s"
 
-#: ../libsoup/soup-session.c:4252
+#: ../libsoup/soup-server.c:1711
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "Impossível criar um servidor TLS sem um certificado TLS"
+
+#: ../libsoup/soup-server.c:1730
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "Impossível ouvir no endereço %s, porta %d"
+
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
-msgstr "Incapaz de processar o URI '%s'"
+msgstr "Impossível processar o URI \"%s\""
 
-#: ../libsoup/soup-session.c:4289
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
-msgstr "Esquema de URI '%s' não suportado"
+msgstr "Esquema de URI \"%s\" não suportado"
 
-#: ../libsoup/soup-session.c:4311
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Não é um URI HTTP"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr "O servidor não aceitou o handshake WebSocket."
+
+#: ../libsoup/soup-socket.c:148
+msgid "Can't import non-socket as SoupSocket"
+msgstr "Impossível importar não socket como SoupSocket"
+
+#: ../libsoup/soup-socket.c:166
+msgid "Could not import existing socket: "
+msgstr "Impossível importar socket existente: "
+
+#: ../libsoup/soup-socket.c:175
+msgid "Can't import unconnected socket"
+msgstr "Impossível importar socket desligado"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "Esperado handshake WebSocket"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "Versão WebSocket não suportada"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "Chave WebSocket inválida"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Cabeçalho WebSocket \"%s\" incorreto"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Subprotocolo WebSocket não suportado"
+
+#: ../libsoup/soup-websocket.c:508
+msgid "Server rejected WebSocket handshake"
+msgstr "O servidor rejeitou o handshake WebSocket"
+
+#: ../libsoup/soup-websocket.c:516 ../libsoup/soup-websocket.c:525
+msgid "Server ignored WebSocket handshake"
+msgstr "O servidor ignorou o handshake WebSocket"
+
+#: ../libsoup/soup-websocket.c:537
+msgid "Server requested unsupported protocol"
+msgstr "O servidor pediu um protocolo não suportado"
+
+#: ../libsoup/soup-websocket.c:547
+msgid "Server requested unsupported extension"
+msgstr "O servidor pediu uma extensão não suportada"
+
+#: ../libsoup/soup-websocket.c:560
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "O servidor devolveu uma chave \"%s\" incorreta"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "Nome da máquina é um endereço IP"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "Nome de máquina inválido"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "Nome de máquina não possui domínio base"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Domínios insuficientes"
