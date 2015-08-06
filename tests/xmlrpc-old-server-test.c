@@ -355,7 +355,7 @@ main (int argc, char **argv)
 	} else {
 		GMainLoop *loop;
 
-		g_print ("Listening on port %d\n", soup_server_get_port (server));
+		g_print ("Listening on port %d\n", server_uri->port);
 
 		loop = g_main_loop_new (NULL, TRUE);
 		g_main_loop_run (loop);
