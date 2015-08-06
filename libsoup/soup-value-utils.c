@@ -23,6 +23,8 @@
  *
  * They are written for use with soup-xmlrpc, but they also work with
  * types not used by XML-RPC.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 
 /**
@@ -34,6 +36,8 @@
  * Copies an argument of type @type from @args into @val. @val will
  * point directly to the value in @args rather than copying it, so you
  * must g_value_copy() it if you want it to remain valid.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 
 /**
@@ -45,7 +49,12 @@
  * Extracts a value of type @type from @val into @args. The return
  * value will point to the same data as @val rather than being a copy
  * of it.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
+
+/* This whole file is deprecated and replaced by GVariant API */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 
 static void
 soup_value_hash_value_free (gpointer val)
@@ -62,6 +71,8 @@ soup_value_hash_value_free (gpointer val)
  *
  * Return value: (element-type utf8 GValue) (transfer full): a new
  * empty #GHashTable
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 GHashTable *
 soup_value_hash_new (void)
@@ -101,6 +112,8 @@ soup_value_hash_insert_valist (GHashTable *hash, const char *first_key,
  *
  * Return value: (element-type utf8 GValue) (transfer full): a new
  * #GHashTable, initialized with the given values
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 GHashTable *
 soup_value_hash_new_with_vals (const char *first_key, ...)
@@ -123,6 +136,8 @@ soup_value_hash_new_with_vals (const char *first_key, ...)
  *
  * Inserts @value into @hash. (Unlike with g_hash_table_insert(), both
  * the key and the value are copied).
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 void
 soup_value_hash_insert_value (GHashTable *hash, const char *key, GValue *value)
@@ -143,6 +158,8 @@ soup_value_hash_insert_value (GHashTable *hash, const char *key, GValue *value)
  *
  * Inserts the provided value of type @type into @hash. (Unlike with
  * g_hash_table_insert(), both the key and the value are copied).
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 void
 soup_value_hash_insert (GHashTable *hash, const char *key, GType type, ...)
@@ -166,6 +183,8 @@ soup_value_hash_insert (GHashTable *hash, const char *key, GType type, ...)
  * Inserts the given data into @hash. As with
  * soup_value_hash_insert(), the keys and values are copied rather
  * than being inserted directly.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 void
 soup_value_hash_insert_vals (GHashTable *hash, const char *first_key, ...)
@@ -189,6 +208,8 @@ soup_value_hash_insert_vals (GHashTable *hash, const char *first_key, ...)
  *
  * Return value: %TRUE if @hash contained a value with key @key and
  * type @type, %FALSE if not.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 gboolean
 soup_value_hash_lookup (GHashTable *hash, const char *key, GType type, ...)
@@ -222,6 +243,8 @@ soup_value_hash_lookup (GHashTable *hash, const char *key, GType type, ...)
  * initialize each destination variable to a reasonable default
  * value, since there is no way to tell which keys were found
  * and which were not.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 gboolean
 soup_value_hash_lookup_vals (GHashTable *hash, const char *first_key, ...)
@@ -253,10 +276,6 @@ soup_value_hash_lookup_vals (GHashTable *hash, const char *first_key, ...)
 }
 
 
-#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
-
 /**
  * soup_value_array_from_args:
  * @args: arguments to create a #GValueArray from
@@ -268,6 +287,8 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
  *
  * Return value: (nullable): a new #GValueArray, or %NULL if an error
  * occurred.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 GValueArray *
 soup_value_array_from_args (va_list args)
@@ -295,6 +316,8 @@ soup_value_array_from_args (va_list args)
  * same memory as the values in the array.
  *
  * Return value: success or failure
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 gboolean
 soup_value_array_to_args (GValueArray *array, va_list args)
@@ -322,6 +345,8 @@ soup_value_array_to_args (GValueArray *array, va_list args)
  * g_value_array_new(), for naming consistency purposes.)
  *
  * Return value: a new %GValueArray
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 GValueArray *
 soup_value_array_new (void)
@@ -355,6 +380,8 @@ soup_value_array_append_valist (GValueArray *array,
  * into it.
  *
  * Return value: a new %GValueArray
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 GValueArray *
 soup_value_array_new_with_vals (GType first_type, ...)
@@ -379,6 +406,8 @@ soup_value_array_new_with_vals (GType first_type, ...)
  * Inserts the provided value of type @type into @array as with
  * g_value_array_insert(). (The provided data is copied rather than
  * being inserted directly.)
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 void
 soup_value_array_insert (GValueArray *array, guint index_, GType type, ...)
@@ -401,6 +430,8 @@ soup_value_array_insert (GValueArray *array, guint index_, GType type, ...)
  * Appends the provided value of type @type to @array as with
  * g_value_array_append(). (The provided data is copied rather than
  * being inserted directly.)
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 void
 soup_value_array_append (GValueArray *array, GType type, ...)
@@ -424,6 +455,8 @@ soup_value_array_append (GValueArray *array, GType type, ...)
  * Appends the provided values into @array as with
  * g_value_array_append(). (The provided data is copied rather than
  * being inserted directly.)
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 void
 soup_value_array_append_vals (GValueArray *array, GType first_type, ...)
@@ -447,6 +480,8 @@ soup_value_array_append_vals (GValueArray *array, GType first_type, ...)
  *
  * Return value: %TRUE if @array contained a value with index @index_
  * and type @type, %FALSE if not.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 gboolean
 soup_value_array_get_nth (GValueArray *array, guint index_, GType type, ...)
@@ -463,10 +498,6 @@ soup_value_array_get_nth (GValueArray *array, guint index_, GType type, ...)
 	va_end (args);
 	return TRUE;
 }
-
-#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
-G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
 
 static GByteArray *
 soup_byte_array_copy (GByteArray *ba)
@@ -489,6 +520,10 @@ soup_byte_array_free (GByteArray *ba)
  *
  * glib did not used to define a #GType for #GByteArray, so libsoup
  * defines this one itself.
+ *
+ * Deprecated: Use #GVariant API instead.
  **/
 typedef GByteArray SoupByteArray;
 G_DEFINE_BOXED_TYPE (SoupByteArray, soup_byte_array, soup_byte_array_copy, soup_byte_array_free)
+
+G_GNUC_END_IGNORE_DEPRECATIONS
