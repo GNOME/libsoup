@@ -64,7 +64,7 @@ void         soup_xmlrpc_message_set_fault    (SoupMessage       *msg,
 
 /* Utils */
 SOUP_AVAILABLE_IN_2_52
-GVariant *soup_xmlrpc_new_datetime (time_t       timestamp);
+GVariant *soup_xmlrpc_variant_new_datetime (time_t       timestamp);
 
 /* Errors */
 #define SOUP_XMLRPC_ERROR soup_xmlrpc_error_quark()

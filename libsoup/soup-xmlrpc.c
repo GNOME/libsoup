@@ -258,7 +258,7 @@ fail:
  *  - doubles are serialized as &lt;double&gt;
  *  - Strings (including object-paths and signatures) are serialized as &lt;string&gt;
  *  - Variants (i.e. "v" type) are unwrapped and their child is serialized.
- *  - #GVariants created by soup_xmlrpc_new_datetime() are serialized as
+ *  - #GVariants created by soup_xmlrpc_variant_new_datetime() are serialized as
  *    &lt;dateTime.iso8601&gt;
  *  - Other types are not supported and will return %NULL and set @error.
  *    This notably includes: uint64, maybes and dictionaries with non-string
@@ -1409,7 +1409,7 @@ fail:
 }
 
 /**
- * soup_xmlrpc_new_datetime:
+ * soup_xmlrpc_variant_new_datetime:
  * @timestamp: a unix timestamp
  *
  * Construct a special #GVariant used to serialize a &lt;dateTime.iso8601&gt;
@@ -1420,7 +1420,7 @@ fail:
  * Since: 2.52
  */
 GVariant *
-soup_xmlrpc_new_datetime (time_t timestamp)
+soup_xmlrpc_variant_new_datetime (time_t timestamp)
 {
 	SoupDate *date;
 	GVariant *variant;

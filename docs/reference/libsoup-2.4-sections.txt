@@ -838,7 +838,7 @@ SoupXMLRPCFault
 soup_xmlrpc_build_request
 soup_xmlrpc_message_new
 soup_xmlrpc_parse_response
-soup_xmlrpc_new_datetime
+soup_xmlrpc_variant_new_datetime
 <SUBSECTION>
 SoupXMLRPCParams
 soup_xmlrpc_params_free

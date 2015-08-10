@@ -145,7 +145,7 @@ do_dateChange (SoupMessage *msg, SoupXMLRPCParams *params)
 		date->second = val;
 
 	soup_xmlrpc_message_set_response (msg,
-					  soup_xmlrpc_new_datetime (soup_date_to_time_t (date)),
+					  soup_xmlrpc_variant_new_datetime (soup_date_to_time_t (date)),
 					  NULL);
 
 	soup_date_free (date);

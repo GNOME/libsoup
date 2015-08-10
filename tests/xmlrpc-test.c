@@ -273,7 +273,7 @@ test_dateChange (void)
 
 	ok = do_xmlrpc ("dateChange",
 			g_variant_new ("(vv)",
-				       soup_xmlrpc_new_datetime (timestamp),
+				       soup_xmlrpc_variant_new_datetime (timestamp),
 				       g_variant_dict_end (&structval)),
 			"x", &retval);
 	if (!ok)
@@ -503,7 +503,7 @@ test_serializer (void)
 		"<params>"
 		"<param><value><int>42</int></value></param>"
 		"</params>");
-	verify_serialization (g_variant_new ("(@*)", soup_xmlrpc_new_datetime (1434161309)),
+	verify_serialization (g_variant_new ("(@*)", soup_xmlrpc_variant_new_datetime (1434161309)),
 		"<params>"
 		"<param><value><dateTime.iso8601>20150613T02:08:29</dateTime.iso8601></value></param>"
 		"</params>");
