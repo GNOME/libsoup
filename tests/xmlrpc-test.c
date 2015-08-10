@@ -516,7 +516,6 @@ test_serializer (void)
 		"<param><value><i8>0</i8></value></param>"
 		"</params>");
 
-	verify_serialization_fail (g_variant_new_parsed ("1"));
 	verify_serialization_fail (g_variant_new_parsed ("({1, 2},)"));
 	verify_serialization_fail (g_variant_new ("(mi)", NULL));
 	verify_serialization_fail (g_variant_new ("(t)", 0));
