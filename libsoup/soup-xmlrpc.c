@@ -146,8 +146,6 @@ insert_value (xmlNode *parent, GVariant *value, GError **error)
 		type_str = "double";
 		break;
 	case G_VARIANT_CLASS_STRING:
-	case G_VARIANT_CLASS_OBJECT_PATH:
-	case G_VARIANT_CLASS_SIGNATURE:
 		xmlNewTextChild (xvalue, NULL,
 		                 (const xmlChar *)"string",
 		                 (const xmlChar *)g_variant_get_string (value, NULL));
@@ -218,6 +216,8 @@ insert_value (xmlNode *parent, GVariant *value, GError **error)
 	case G_VARIANT_CLASS_HANDLE:
 	case G_VARIANT_CLASS_MAYBE:
 	case G_VARIANT_CLASS_UINT64:
+	case G_VARIANT_CLASS_OBJECT_PATH:
+	case G_VARIANT_CLASS_SIGNATURE:
 	default:
 		g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
 			     "Unsupported type: %s", g_variant_get_type_string (value));
@@ -256,13 +256,13 @@ fail:
  *  - byte, int16, uint16 and int32 are serialized as &lt;int&gt;
  *  - uint32 and int64 are serialized as the nonstandard &lt;i8&gt; type
  *  - doubles are serialized as &lt;double&gt;
- *  - Strings (including object-paths and signatures) are serialized as &lt;string&gt;
+ *  - Strings are serialized as &lt;string&gt;
  *  - Variants (i.e. "v" type) are unwrapped and their child is serialized.
  *  - #GVariants created by soup_xmlrpc_variant_new_datetime() are serialized as
  *    &lt;dateTime.iso8601&gt;
  *  - Other types are not supported and will return %NULL and set @error.
- *    This notably includes: uint64, maybes and dictionaries with non-string
- *    keys.
+ *    This notably includes: object-paths, signatures, uint64, handles, maybes
+ *    and dictionaries with non-string keys.
  *
  * If @params is floating, it is consumed.
  *
@@ -1010,12 +1010,6 @@ parse_value (xmlNode *node, const char **signature, GError **error)
 		content = xmlNodeGetContent (typenode);
 		if (class == G_VARIANT_CLASS_VARIANT || class == G_VARIANT_CLASS_STRING)
 			variant = g_variant_new_string ((const char *)content);
-		else if (class == G_VARIANT_CLASS_OBJECT_PATH &&
-			 g_variant_is_object_path ((const char *)content))
-			variant = g_variant_new_object_path ((const char *)content);
-		else if (class == G_VARIANT_CLASS_SIGNATURE &&
-			 g_variant_is_signature ((const char *)content))
-			variant = g_variant_new_signature ((const char *)content);
 		else {
 			g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
 				     "<string> node does not match signature");
@@ -1268,8 +1262,7 @@ fail:
  *  - &lt;array&gt; will be deserialized to "av". @signature could define
  *    another element type (e.g. "as") or could be a tuple (e.g. "(ss)").
  *  - &lt;base64&gt; will be deserialized to "ay".
- *  - &lt;string&gt; will be deserialized to "s". @signature could define
- *    another type ("o" or "g").
+ *  - &lt;string&gt; will be deserialized to "s".
  *  - &lt;dateTime.iso8601&gt; will be deserialized to int64 unix timestamp.
  *  - @signature must not have maybes, otherwise an error is returned.
  *  - Dictionaries must have string keys, otherwise an error is returned.

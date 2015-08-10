@@ -617,11 +617,6 @@ test_deserializer (void)
 		"<params>"
 		"<param><value><base64>Ynl0ZXN0cmluZwA=</base64></value></param>"
 		"</params>");
-	verify_deserialization (g_variant_new_parsed ("(@o '/path',)"),
-		"(o)",
-		"<params>"
-		"<param><value><string>/path</string></value></param>"
-		"</params>");
 	verify_deserialization (g_variant_new_parsed ("[<1>]"),
 		"av",
 		"<params><param><value><int>1</int></value></param></params>");
@@ -643,10 +638,6 @@ test_deserializer (void)
 		"(t)", tmp);
 	g_free (tmp);
 
-	verify_deserialization_fail ("(o)",
-		"<params>"
-		"<param><value><string>not/a/path</string></value></param>"
-		"</params>");
 	verify_deserialization_fail (NULL,
 		"<params>"
 		"<param><value><boolean>2</boolean></value></param>"
