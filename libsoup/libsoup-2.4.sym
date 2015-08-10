@@ -559,7 +559,6 @@ soup_xmlrpc_params_parse
 soup_xmlrpc_parse_method_call
 soup_xmlrpc_parse_method_response
 soup_xmlrpc_parse_request
-soup_xmlrpc_parse_request_full
 soup_xmlrpc_parse_response
 soup_xmlrpc_request_new
 soup_xmlrpc_set_fault

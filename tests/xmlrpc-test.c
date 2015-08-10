@@ -528,16 +528,19 @@ verify_deserialization (GVariant *expected_variant,
 {
 	char *body;
 	char *method_name;
+	SoupXMLRPCParams *out_params = NULL;
 	GVariant *variant;
 	GError *error = NULL;
 
 	body = g_strconcat (BODY_PREFIX, params, BODY_SUFFIX, NULL);
-	method_name = soup_xmlrpc_parse_request_full (body, strlen (body),
-						      signature,
-						      &variant,
-						      &error);
+	method_name = soup_xmlrpc_parse_request (body, strlen (body),
+						 &out_params,
+						 &error);
 	g_assert_no_error (error);
 	g_assert_cmpstr (method_name, ==, "MyMethod");
+
+	variant = soup_xmlrpc_params_parse (out_params, signature, &error);
+	g_assert_no_error (error);
 
 	if (!g_variant_equal (variant, expected_variant)) {
 		char *str1, *str2;
@@ -552,6 +555,7 @@ verify_deserialization (GVariant *expected_variant,
 		g_free (str2);
 	}
 
+	soup_xmlrpc_params_free (out_params);
 	g_variant_unref (variant);
 	g_free (method_name);
 	g_free (body);
@@ -563,18 +567,23 @@ verify_deserialization_fail (const char *signature,
 {
 	char *body;
 	char *method_name;
+	SoupXMLRPCParams *out_params = NULL;
 	GVariant *variant;
 	GError *error = NULL;
 
 	body = g_strconcat (BODY_PREFIX, params, BODY_SUFFIX, NULL);
-	method_name = soup_xmlrpc_parse_request_full (body, strlen (body),
-						      signature,
-						      &variant,
-						      &error);
+	method_name = soup_xmlrpc_parse_request (body, strlen (body),
+						 &out_params,
+						 &error);
+	g_assert_no_error (error);
+	g_assert_cmpstr (method_name, ==, "MyMethod");
+
+	variant = soup_xmlrpc_params_parse (out_params, signature, &error);
 	g_assert_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS);
-	g_assert (method_name == NULL);
+	g_assert (variant == NULL);
 
 	g_free (body);
+	soup_xmlrpc_params_free (out_params);
 }
 
 static void

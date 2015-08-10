@@ -41,12 +41,6 @@ char       *soup_xmlrpc_parse_request        (const char       *method_call,
 					       SoupXMLRPCParams **params,
 					       GError           **error);
 SOUP_AVAILABLE_IN_2_52
-char       *soup_xmlrpc_parse_request_full   (const char       *method_call,
-					       int               length,
-					       const char       *signature,
-					       GVariant         **parameters,
-					       GError           **error);
-SOUP_AVAILABLE_IN_2_52
 char       *soup_xmlrpc_build_response       (GVariant          *value,
 					       GError           **error);
 char       *soup_xmlrpc_build_fault          (int               fault_code,

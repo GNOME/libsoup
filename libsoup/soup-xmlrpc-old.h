@@ -32,12 +32,12 @@ gboolean     soup_xmlrpc_extract_method_response (const char   *method_response,
 						  ...);
 
 /* XML-RPC server */
-SOUP_DEPRECATED_IN_2_52_FOR(soup_xmlrpc_parse_request_full)
+SOUP_DEPRECATED_IN_2_52_FOR(soup_xmlrpc_parse_request)
 gboolean     soup_xmlrpc_parse_method_call       (const char   *method_call,
 						  int           length,
 						  char        **method_name,
 						  GValueArray **params);
-SOUP_DEPRECATED_IN_2_52_FOR(soup_xmlrpc_parse_request_full)
+SOUP_DEPRECATED_IN_2_52_FOR(soup_xmlrpc_parse_request)
 gboolean     soup_xmlrpc_extract_method_call     (const char   *method_call,
 						  int           length,
 						  char        **method_name,

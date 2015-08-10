@@ -497,7 +497,7 @@ parse_value (xmlNode *xmlvalue, GValue *value)
  *
  * Return value: success or failure.
  *
- * Deprecated: Use soup_xmlrpc_parse_request_full() instead.
+ * Deprecated: Use soup_xmlrpc_parse_request() instead.
  **/
 gboolean
 soup_xmlrpc_parse_method_call (const char *method_call, int length,
@@ -575,7 +575,7 @@ fail:
  *
  * Return value: success or failure.
  *
- * Deprecated: Use soup_xmlrpc_parse_request_full() instead.
+ * Deprecated: Use soup_xmlrpc_parse_request() instead.
  **/
 gboolean
 soup_xmlrpc_extract_method_call (const char *method_call, int length,

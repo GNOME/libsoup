@@ -1132,9 +1132,22 @@ soup_xmlrpc_params_new (xmlNode *node)
  *
  * Parse method parameters returned by soup_xmlrpc_parse_request().
  *
- * See soup_xmlrpc_parse_request_full() for deserialization details.
+ * Deserialization details:
+ *  - If @signature is provided, &lt;int&gt and &lt;i4&gt can be deserialized
+ *    to byte, int16, uint16, int32, uint32, int64, uint64 or handle. Otherwise
+ *    it will be deserialized to int32. If the value is out of range
+ *    for the target type it will return an error.
+ *  - &lt;struct&gt; will be deserialized to "a{sv}". @signature could define
+ *    another value type (e.g. "a{ss}").
+ *  - &lt;array&gt; will be deserialized to "av". @signature could define
+ *    another element type (e.g. "as") or could be a tuple (e.g. "(ss)").
+ *  - &lt;base64&gt; will be deserialized to "ay".
+ *  - &lt;string&gt; will be deserialized to "s".
+ *  - &lt;dateTime.iso8601&gt; will be deserialized to int64 unix timestamp.
+ *  - @signature must not have maybes, otherwise an error is returned.
+ *  - Dictionaries must have string keys, otherwise an error is returned.
  *
- * Returns: (transfer full): a new #GVariant, or %NULL
+ * Returns: (transfer full): a new (non-floating) #GVariant, or %NULL
  *
  * Since: 2.52
  */
@@ -1174,9 +1187,7 @@ fail:
  * @error: a #GError, or %NULL
  *
  * Parses @method_call and return the method name. Method parameters can be
- * parsed later using soup_xmlrpc_params_parse(). If the signature of parameters
- * is known in advance then soup_xmlrpc_parse_request_full() can be used
- * instead.
+ * parsed later using soup_xmlrpc_params_parse().
  *
  * Returns: (transfer full): method's name, or %NULL on error.
  * Since: 2.52
@@ -1241,65 +1252,6 @@ fail:
 }
 
 /**
- * soup_xmlrpc_parse_request_full:
- * @method_call: the XML-RPC methodCall string
- * @length: the length of @method_call, or -1 if it is NUL-terminated
- * @signature: (allow-none): A valid #GVariant type string, or %NULL
- * @parameters: (out): on success, a new #GVariant
- * @error: a #GError, or %NULL
- *
- * Parses @method_call and return the method name and set @parameters.
- * soup_xmlrpc_parse_request() should be used instead if the method name must be
- * known to determine @parameters' signature.
- *
- * Deserialization details:
- *  - If @signature is provided, &lt;int&gt and &lt;i4&gt can be deserialized
- *    to byte, int16, uint16, int32, uint32, int64, uint64 or handle. Otherwise
- *    it will be deserialized to int32. If the value is out of range
- *    for the target type it will return an error.
- *  - &lt;struct&gt; will be deserialized to "a{sv}". @signature could define
- *    another value type (e.g. "a{ss}").
- *  - &lt;array&gt; will be deserialized to "av". @signature could define
- *    another element type (e.g. "as") or could be a tuple (e.g. "(ss)").
- *  - &lt;base64&gt; will be deserialized to "ay".
- *  - &lt;string&gt; will be deserialized to "s".
- *  - &lt;dateTime.iso8601&gt; will be deserialized to int64 unix timestamp.
- *  - @signature must not have maybes, otherwise an error is returned.
- *  - Dictionaries must have string keys, otherwise an error is returned.
- *
- * Returns: (transfer full): method's name, or %NULL on error.
- *
- * Since: 2.52
- **/
-char *
-soup_xmlrpc_parse_request_full (const char  *method_call,
-				int          length,
-				const char  *signature,
-				GVariant   **parameters,
-				GError     **error)
-{
-	char *method_name;
-	SoupXMLRPCParams *params;
-
-	method_name = soup_xmlrpc_parse_request (method_call,
-						 length,
-						 parameters ? &params : NULL,
-						 error);
-	if (!method_name)
-		return NULL;
-
-	if (parameters) {
-		*parameters = soup_xmlrpc_params_parse (params, signature, error);
-		if (*parameters == NULL) {
-			g_free (method_name);
-			return NULL;
-		}
-	}
-
-	return method_name;
-}
-
-/**
  * soup_xmlrpc_parse_response:
  * @method_response: the XML-RPC methodResponse string
  * @length: the length of @method_response, or -1 if it is NUL-terminated
@@ -1313,7 +1265,7 @@ soup_xmlrpc_parse_request_full (const char  *method_call,
  * the fault string. If @method_response cannot be parsed, %NULL is returned,
  * and @error will be set to an error in the %SOUP_XMLRPC_ERROR domain.
  *
- * See soup_xmlrpc_parse_request_full() for deserialization details.
+ * See soup_xmlrpc_params_parse() for deserialization details.
  *
  * Returns: (transfer full): a new (non-floating) #GVariant, or %NULL
  *

@@ -844,7 +844,6 @@ SoupXMLRPCParams
 soup_xmlrpc_params_free
 soup_xmlrpc_params_parse
 soup_xmlrpc_parse_request
-soup_xmlrpc_parse_request_full
 soup_xmlrpc_build_response
 soup_xmlrpc_build_fault
 soup_xmlrpc_message_set_response
