@@ -655,6 +655,15 @@ test_deserializer (void)
 		"<params>"
 		"<param><value><int>256</int></value></param>"
 		"</params>");
+	verify_deserialization_fail ("(ii)",
+		"<params>"
+		"<param><value><int>1</int></value></param>"
+		"</params>");
+	verify_deserialization_fail ("(i)",
+		"<params>"
+		"<param><value><int>1</int></value></param>"
+		"<param><value><int>2</int></value></param>"
+		"</params>");
 }
 
 static void
