@@ -64,9 +64,6 @@ void         soup_xmlrpc_message_set_fault    (SoupMessage       *msg,
 
 /* Utils */
 SOUP_AVAILABLE_IN_2_52
-GVariant *soup_xmlrpc_new_custom   (const char *type,
-				    const char *value);
-SOUP_AVAILABLE_IN_2_52
 GVariant *soup_xmlrpc_new_datetime (time_t       timestamp);
 
 /* Errors */

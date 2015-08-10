@@ -1409,25 +1409,6 @@ fail:
 }
 
 /**
- * soup_xmlrpc_new_custom:
- * @type: name for the type node
- * @value: value for the type node
- *
- * Construct a special #GVariant used to serialize a &lt;@type&gt;
- * node containing @value. See soup_xmlrpc_build_request().
- *
- * Returns: a floating #GVariant.
- *
- * Since: 2.52
- */
-GVariant *
-soup_xmlrpc_new_custom (const char *type, const char *value)
-{
-	return g_variant_new ("(oss)", "/org/gnome/libsoup/ExtensionType",
-			      type, value);
-}
-
-/**
  * soup_xmlrpc_new_datetime:
  * @timestamp: a unix timestamp
  *
@@ -1447,7 +1428,10 @@ soup_xmlrpc_new_datetime (time_t timestamp)
 
 	date = soup_date_new_from_time_t (timestamp);
 	str = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
-	variant = soup_xmlrpc_new_custom ("dateTime.iso8601", str);
+	variant = g_variant_new ("(oss)",
+				 "/org/gnome/libsoup/ExtensionType",
+				 "dateTime.iso8601",
+				 str);
 	soup_date_free (date);
 	g_free (str);
 

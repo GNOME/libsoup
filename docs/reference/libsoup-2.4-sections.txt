@@ -838,7 +838,6 @@ SoupXMLRPCFault
 soup_xmlrpc_build_request
 soup_xmlrpc_message_new
 soup_xmlrpc_parse_response
-soup_xmlrpc_new_custom
 soup_xmlrpc_new_datetime
 <SUBSECTION>
 SoupXMLRPCParams

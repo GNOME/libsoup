@@ -554,7 +554,6 @@ soup_xmlrpc_fault_quark
 soup_xmlrpc_message_new
 soup_xmlrpc_message_set_fault
 soup_xmlrpc_message_set_response
-soup_xmlrpc_new_custom
 soup_xmlrpc_new_datetime
 soup_xmlrpc_params_free
 soup_xmlrpc_params_parse
