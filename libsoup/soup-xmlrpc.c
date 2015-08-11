@@ -1133,8 +1133,8 @@ soup_xmlrpc_params_new (xmlNode *node)
  * Parse method parameters returned by soup_xmlrpc_parse_request().
  *
  * Deserialization details:
- *  - If @signature is provided, &lt;int&gt and &lt;i4&gt can be deserialized
- *    to byte, int16, uint16, int32, uint32, int64, uint64 or handle. Otherwise
+ *  - If @signature is provided, &lt;int&gt; and &lt;i4&gt; can be deserialized
+ *    to byte, int16, uint16, int32, uint32, int64 or uint64. Otherwise
  *    it will be deserialized to int32. If the value is out of range
  *    for the target type it will return an error.
  *  - &lt;struct&gt; will be deserialized to "a{sv}". @signature could define
