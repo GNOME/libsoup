@@ -1,14 +1,14 @@
 # Norwegian bokmål translation of libsoup.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# Kjartan Maraas <kmaraas@gnome.org>, 2012-2014.
+# Kjartan Maraas <kmaraas@gnome.org>, 2012-2015.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: libsoup 3.13.x\n"
+"Project-Id-Version: libsoup 3.17.x\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-03-19 21:16+0100\n"
-"PO-Revision-Date: 2015-03-19 21:17+0100\n"
+"POT-Creation-Date: 2015-08-11 19:28+0200\n"
+"PO-Revision-Date: 2015-08-11 19:29+0200\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian bokmål <i18n-nb@lister.ping.uio.no>\n"
 "Language: \n"
@@ -82,24 +82,24 @@ msgstr "Kan ikke lage en TLS-tjener uten et TLS-sertifikat"
 msgid "Could not listen on address %s, port %d"
 msgstr "Kunne ikke lytte på adresse %s, port %d"
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4587
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Kunne ikke tolke URI «%s»"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4624
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "URI-skjema «%s» er ikke støttet"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4646
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ikke en HTTP URI"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4830
 msgid "The server did not accept the WebSocket handshake."
-msgstr ""
+msgstr "Tjeneren godtok ikke WebSocket-håndtrykk."
 
 #: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
@@ -113,24 +113,24 @@ msgstr "Kunne ikke importere eksisterende socket: "
 msgid "Can't import unconnected socket"
 msgstr "Kan ikke importere ikke-tilkoblet socket"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
-msgstr ""
+msgstr "WebSocket-håndtrykk forventet"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
-msgstr ""
+msgstr "WebSocket-versjon ikke støttet"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Ugyldig WebSocket-nøkkel"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
 msgid "Incorrect WebSocket \"%s\" header"
-msgstr ""
+msgstr "Ugyldig «%s»-hode for WebSocket"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr ""
 
@@ -153,7 +153,7 @@ msgstr ""
 #: ../libsoup/soup-websocket.c:562
 #, c-format
 msgid "Server returned incorrect \"%s\" key"
-msgstr ""
+msgstr "Tjener returnerte feil «%s»-nøkkel"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
