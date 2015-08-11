@@ -202,10 +202,11 @@ static void
 test_dateChange (void)
 {
 	GVariantDict structval;
-	SoupDate *date;
-	time_t timestamp;
+	SoupDate *date, *result;
+	char *timestamp;
 	GVariant *retval;
 	gboolean ok;
+	GError *error = NULL;
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
@@ -266,22 +267,36 @@ test_dateChange (void)
 					"i", date->second);
 	}
 
-	timestamp = soup_date_to_time_t (date);
-	soup_date_free (date);
-
 	debug_printf (2, "} -> ");
 
 	ok = do_xmlrpc ("dateChange",
 			g_variant_new ("(vv)",
-				       soup_xmlrpc_variant_new_datetime (timestamp),
+				       soup_xmlrpc_variant_new_datetime (date),
 				       g_variant_dict_end (&structval)),
-			"x", &retval);
-	if (!ok)
+			NULL, &retval);
+	if (!ok) {
+		soup_date_free (date);
 		return;
+	}
 
-	debug_printf (2, "%"G_GINT64_FORMAT"\n", g_variant_get_int64 (retval));
+	result = soup_xmlrpc_variant_get_datetime (retval, &error);
+	g_assert_no_error (error);
 
-	g_assert_cmpint (timestamp, ==, g_variant_get_int64 (retval));
+	if (debug_level >= 2) {
+		timestamp = soup_date_to_string (result, SOUP_DATE_ISO8601_XMLRPC);
+		debug_printf (2, "%s\n", timestamp);
+		g_free (timestamp);
+	}
+
+	g_assert_cmpint (date->year,   ==, result->year);
+	g_assert_cmpint (date->month,  ==, result->month);
+	g_assert_cmpint (date->day,    ==, result->day);
+	g_assert_cmpint (date->hour,   ==, result->hour);
+	g_assert_cmpint (date->minute, ==, result->minute);
+	g_assert_cmpint (date->second, ==, result->second);
+
+	soup_date_free (date);
+	soup_date_free (result);
 	g_variant_unref (retval);
 }
 
@@ -474,6 +489,8 @@ verify_serialization_fail (GVariant *value)
 static void
 test_serializer (void)
 {
+	SoupDate *date;
+
 	verify_serialization (g_variant_new_parsed ("()"),
 		"<params/>");
 	verify_serialization (g_variant_new_parsed ("(1, 2)"),
@@ -503,10 +520,12 @@ test_serializer (void)
 		"<params>"
 		"<param><value><int>42</int></value></param>"
 		"</params>");
-	verify_serialization (g_variant_new ("(@*)", soup_xmlrpc_variant_new_datetime (1434161309)),
+	date = soup_date_new_from_time_t (1434161309);
+	verify_serialization (g_variant_new ("(v)", soup_xmlrpc_variant_new_datetime (date)),
 		"<params>"
 		"<param><value><dateTime.iso8601>20150613T02:08:29</dateTime.iso8601></value></param>"
 		"</params>");
+	soup_date_free (date);
 	verify_serialization (g_variant_new ("(s)", "<>&"),
 		"<params>"
 		"<param><value><string>&lt;&gt;&amp;</string></value></param>"
@@ -590,6 +609,7 @@ static void
 test_deserializer (void)
 {
 	char *tmp;
+	SoupDate *date;
 
 	verify_deserialization (g_variant_new_parsed ("@av []"),
 		NULL,
@@ -615,11 +635,13 @@ test_deserializer (void)
 		"<member><name>one</name><value><int>1</int></value></member>"
 		"<member><name>two</name><value><int>2</int></value></member>"
 		"</struct></value></param></params>");
-	verify_deserialization (g_variant_new_parsed ("[<int64 1434146909>]"),
+	date = soup_date_new_from_time_t (1434146909);
+	verify_deserialization (g_variant_new_parsed ("[%v]", soup_xmlrpc_variant_new_datetime (date)),
 		NULL,
 		"<params>"
 		"<param><value><dateTime.iso8601>20150612T22:08:29</dateTime.iso8601></value></param>"
 		"</params>");
+	soup_date_free (date);
 	verify_deserialization (g_variant_new_parsed ("[<b'bytestring'>]"),
 		NULL,
 		"<params>"

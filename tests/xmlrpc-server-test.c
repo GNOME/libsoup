@@ -119,17 +119,25 @@ static void
 do_dateChange (SoupMessage *msg, SoupXMLRPCParams *params)
 {
 	GVariant *args;
-	time_t timestamp;
+	GVariant *timestamp;
 	SoupDate *date;
 	GVariant *arg;
 	int val;
+	GError *error = NULL;
 
-	if (!(args = parse_params (msg, params, "(xa{si})")))
+	if (!(args = parse_params (msg, params, "(va{si})")))
 		return;
 
-	g_variant_get (args, "(x@a{si})", &timestamp, &arg);
+	g_variant_get (args, "(v@a{si})", &timestamp, &arg);
 
-	date = soup_date_new_from_time_t (timestamp);
+	date = soup_xmlrpc_variant_get_datetime (timestamp, &error);
+	if (!date) {
+		soup_xmlrpc_message_set_fault (msg,
+					       SOUP_XMLRPC_FAULT_SERVER_ERROR_INVALID_METHOD_PARAMETERS,
+					       "%s", error->message);
+		g_clear_error (&error);
+		goto fail;
+	}
 
 	if (g_variant_lookup (arg, "tm_year", "i", &val))
 		date->year = val + 1900;
@@ -145,12 +153,15 @@ do_dateChange (SoupMessage *msg, SoupXMLRPCParams *params)
 		date->second = val;
 
 	soup_xmlrpc_message_set_response (msg,
-					  soup_xmlrpc_variant_new_datetime (soup_date_to_time_t (date)),
+					  soup_xmlrpc_variant_new_datetime (date),
 					  NULL);
 
 	soup_date_free (date);
+
+fail:
 	g_variant_unref (args);
 	g_variant_unref (arg);
+	g_variant_unref (timestamp);
 }
 
 static void

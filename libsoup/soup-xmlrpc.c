@@ -955,6 +955,13 @@ parse_base64 (xmlNode *typenode, GError **error)
 }
 
 static GVariant *
+soup_xmlrpc_variant_new_custom (const char *type, const char *v)
+{
+	return g_variant_new ("(oss)", "/org/gnome/libsoup/ExtensionType",
+			      type, v);
+}
+
+static GVariant *
 parse_value (xmlNode *node, const char **signature, GError **error)
 {
 	xmlNode *typenode;
@@ -1043,25 +1050,15 @@ parse_value (xmlNode *node, const char **signature, GError **error)
 		}
 		variant = parse_array (typenode, signature, error);
 	} else if (g_str_equal (typename, "dateTime.iso8601")) {
-		SoupDate *date;
-
-		if (class != G_VARIANT_CLASS_VARIANT &&
-		    class != G_VARIANT_CLASS_INT64) {
+		if (class != G_VARIANT_CLASS_VARIANT) {
 			g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
 				     "<dateTime.iso8601> node does not match signature");
 			goto fail;
 		}
 
 		content = xmlNodeGetContent (typenode);
-		date = soup_date_new_from_string ((char *)content);
-		if (!date) {
-			g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
-				     "Couldn't parse date: %s", content);
-			goto fail;
-		}
-
-		variant = g_variant_new_int64 (soup_date_to_time_t (date));
-		soup_date_free (date);
+		variant = soup_xmlrpc_variant_new_custom ("dateTime.iso8601",
+							  (const char *)content);
 	} else {
 		g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
 			     "Unknown node name %s", typename);
@@ -1143,7 +1140,11 @@ soup_xmlrpc_params_new (xmlNode *node)
  *    another element type (e.g. "as") or could be a tuple (e.g. "(ss)").
  *  - &lt;base64&gt; will be deserialized to "ay".
  *  - &lt;string&gt; will be deserialized to "s".
- *  - &lt;dateTime.iso8601&gt; will be deserialized to int64 unix timestamp.
+ *  - &lt;dateTime.iso8601&gt; will be deserialized to an unspecified variant
+ *    type. If @signature is provided it must have the generic "v" type, which
+ *    means there is no guarantee that it's actually a datetime that has been
+ *    received. soup_xmlrpc_variant_get_datetime() must be used to parse and
+ *    type check this special variant.
  *  - @signature must not have maybes, otherwise an error is returned.
  *  - Dictionaries must have string keys, otherwise an error is returned.
  *
@@ -1355,32 +1356,86 @@ fail:
 
 /**
  * soup_xmlrpc_variant_new_datetime:
- * @timestamp: a unix timestamp
+ * @date: a #SoupDate
  *
  * Construct a special #GVariant used to serialize a &lt;dateTime.iso8601&gt;
  * node. See soup_xmlrpc_build_request().
+ *
+ * The actual type of the returned #GVariant is unspecified and "v" or "*"
+ * should be used in variant format strings. For example:
+ * <informalexample><programlisting>
+ *	args = g_variant_new ("(v)", soup_xmlrpc_variant_new_datetime (date));
+ * </programlisting></informalexample>
  *
  * Returns: a floating #GVariant.
  *
  * Since: 2.52
  */
 GVariant *
-soup_xmlrpc_variant_new_datetime (time_t timestamp)
+soup_xmlrpc_variant_new_datetime (SoupDate *date)
 {
-	SoupDate *date;
 	GVariant *variant;
 	char *str;
 
-	date = soup_date_new_from_time_t (timestamp);
 	str = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
-	variant = g_variant_new ("(oss)",
-				 "/org/gnome/libsoup/ExtensionType",
-				 "dateTime.iso8601",
-				 str);
-	soup_date_free (date);
+	variant = soup_xmlrpc_variant_new_custom ("dateTime.iso8601", str);
 	g_free (str);
 
 	return variant;
+}
+
+/**
+ * soup_xmlrpc_variant_get_datetime:
+ * @variant: a #GVariant
+ * @error: a #GError, or %NULL
+ *
+ * Get the #SoupDate from special #GVariant created by
+ * soup_xmlrpc_variant_new_datetime() or by parsing a &lt;dateTime.iso8601&gt;
+ * node. See soup_xmlrpc_params_parse().
+ *
+ * If @variant does not contain a datetime it will return an error but it is not
+ * considered a programmer error because it generally means parameters received
+ * are not in the expected type.
+ *
+ * Returns: a new #SoupDate, or %NULL on error.
+ *
+ * Since: 2.52
+ */
+SoupDate *
+soup_xmlrpc_variant_get_datetime (GVariant *variant, GError **error)
+{
+	SoupDate *date = NULL;
+	const char *path;
+	const char *type;
+	const char *v;
+
+	if (!g_variant_is_of_type (variant, G_VARIANT_TYPE ("(oss)"))) {
+		g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
+			     "Variant is of type '%s' which is not expected for a datetime",
+			     g_variant_get_type_string (variant));
+		return NULL;
+	}
+
+	g_variant_get (variant, "(&o&s&s)", &path, &type, &v);
+
+	if (!g_str_equal (path, "/org/gnome/libsoup/ExtensionType") ||
+	    !g_str_equal (type, "dateTime.iso8601")) {
+		g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
+			     "Variant doesn't represent a datetime: %s",
+			     g_variant_get_type_string (variant));
+		return NULL;
+	}
+
+	date = soup_date_new_from_string (v);
+
+	if (date == NULL) {
+		g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
+			     "Can't parse datetime string: %s", v);
+		return NULL;
+	}
+
+	return date;
+
 }
 
 /**
