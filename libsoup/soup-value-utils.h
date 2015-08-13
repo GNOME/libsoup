@@ -29,51 +29,67 @@ G_STMT_START {								\
 	g_free (getv_error);						\
 } G_STMT_END
 
+SOUP_DEPRECATED_IN_2_52
 GHashTable  *soup_value_hash_new            (void);
+SOUP_DEPRECATED_IN_2_52
 GHashTable  *soup_value_hash_new_with_vals  (const char  *first_key,
 					     ...) G_GNUC_NULL_TERMINATED;
+SOUP_DEPRECATED_IN_2_52
 void         soup_value_hash_insert_value   (GHashTable  *hash,
 					     const char  *key,
 					     GValue      *value);
+SOUP_DEPRECATED_IN_2_52
 void         soup_value_hash_insert         (GHashTable  *hash,
 					     const char  *key,
 					     GType        type,
 					     ...);
+SOUP_DEPRECATED_IN_2_52
 void         soup_value_hash_insert_vals    (GHashTable  *hash,
 					     const char  *first_key,
 					     ...) G_GNUC_NULL_TERMINATED;
+SOUP_DEPRECATED_IN_2_52
 gboolean     soup_value_hash_lookup         (GHashTable  *hash,
 					     const char  *key,
 					     GType        type,
 					     ...);
+SOUP_DEPRECATED_IN_2_52
 gboolean     soup_value_hash_lookup_vals    (GHashTable  *hash,
 					     const char  *first_key,
 					     ...) G_GNUC_NULL_TERMINATED;
 
+SOUP_DEPRECATED_IN_2_52
 GValueArray *soup_value_array_from_args     (va_list      args);
+SOUP_DEPRECATED_IN_2_52
 gboolean     soup_value_array_to_args       (GValueArray *array,
 					     va_list      args);
 
+SOUP_DEPRECATED_IN_2_52
 GValueArray *soup_value_array_new           (void);
+SOUP_DEPRECATED_IN_2_52
 GValueArray *soup_value_array_new_with_vals (GType        first_type,
 					     ...) G_GNUC_NULL_TERMINATED;
 
+SOUP_DEPRECATED_IN_2_52
 void         soup_value_array_insert        (GValueArray *array,
 					     guint        index_,
 					     GType        type,
 					     ...);
+SOUP_DEPRECATED_IN_2_52
 void         soup_value_array_append        (GValueArray *array,
 					     GType        type,
 					     ...);
+SOUP_DEPRECATED_IN_2_52
 void         soup_value_array_append_vals   (GValueArray *array,
 					     GType        first_type,
 					     ...) G_GNUC_NULL_TERMINATED;
+SOUP_DEPRECATED_IN_2_52
 gboolean     soup_value_array_get_nth       (GValueArray *array,
 					     guint        index_,
 					     GType        type,
 					     ...);
 
 
+SOUP_DEPRECATED_IN_2_52
 GType        soup_byte_array_get_type       (void);
 #define SOUP_TYPE_BYTE_ARRAY (soup_byte_array_get_type ())
 
