@@ -286,6 +286,8 @@ vapi_DATA=libsoup-2.4.vapi
 CLEANFILES += $(vapi_DATA)
 endif
 
+EXTRA_DIST += Soup-2.4.metadata Soup-2.4-custom.vala
+
 if BUILD_LIBSOUP_GNOME
 
 # GNOME extensions
