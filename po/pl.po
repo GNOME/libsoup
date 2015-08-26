@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-03-05 00:19+0100\n"
-"PO-Revision-Date: 2015-03-05 00:20+0100\n"
+"POT-Creation-Date: 2015-08-26 18:44+0200\n"
+"PO-Revision-Date: 2015-08-26 18:45+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "Language: pl\n"
@@ -78,7 +78,7 @@ msgstr "Nie podano adresu URI"
 #: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
-msgstr "Nieprawidłowy adres URI \"%s\": %s"
+msgstr "Nieprawidłowy adres URI „%s”: %s"
 
 #: ../libsoup/soup-server.c:1711
 msgid "Can't create a TLS server without a TLS certificate"
@@ -89,22 +89,22 @@ msgstr "Nie można utworzyć serwera TLS bez certyfikatu TLS"
 msgid "Could not listen on address %s, port %d"
 msgstr "Nie można nasłuchiwać na adresie %s, porcie %d"
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4587
 #, c-format
 msgid "Could not parse URI '%s'"
-msgstr "Nie można przetworzyć adresu URI \"%s\""
+msgstr "Nie można przetworzyć adresu URI „%s”"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4624
 #, c-format
 msgid "Unsupported URI scheme '%s'"
-msgstr "Nieobsługiwany schemat adresu URI \"%s\""
+msgstr "Nieobsługiwany schemat adresu URI „%s”"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4646
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nie jest adresem URI protokołu HTTP"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4830
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serwer nie przyjął powitania WebSocket."
 
@@ -120,24 +120,24 @@ msgstr "Nie można zaimportować istniejącego gniazda: "
 msgid "Can't import unconnected socket"
 msgstr "Nie można zaimportować niepołączonego gniazda"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Oczekiwano powitania WebSocket"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Nieobsługiwana wersja WebSocket"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Nieprawidłowy klucz WebSocket"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
 msgid "Incorrect WebSocket \"%s\" header"
-msgstr "Niepoprawny nagłówek \"%s\" WebSocket"
+msgstr "Niepoprawny nagłówek „%s” WebSocket"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nieobsługiwany podprotokół WebSocket"
 
@@ -160,7 +160,7 @@ msgstr "Serwer zażądał nieobsługiwanego rozszerzenia"
 #: ../libsoup/soup-websocket.c:562
 #, c-format
 msgid "Server returned incorrect \"%s\" key"
-msgstr "Serwer zwrócił niepoprawny klucz \"%s\""
+msgstr "Serwer zwrócił niepoprawny klucz „%s”"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
