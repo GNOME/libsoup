@@ -155,7 +155,11 @@ AC_SUBST(HAVE_GNOME)
 dnl ***************
 dnl *** gtk-doc ***
 dnl ***************
-GTK_DOC_CHECK([1.10])
+# gtkdocize greps for ^GTK_DOC_CHECK and parses it, so you need to have
+# it on it's own line.
+m4_ifdef([GTK_DOC_CHECK], [
+GTK_DOC_CHECK([1.20], [--flavour no-tmpl])
+],[])
 
 dnl *****************************
 dnl *** gobject-introspection ***
