@@ -31,6 +31,7 @@ soup_headers =			\
 	soup-auth-domain-basic.h  \
 	soup-auth-domain-digest.h \
 	soup-auth-manager.h	\
+	soup-autocleanups.h	\
 	soup-cache.h		\
 	soup-content-decoder.h	\
 	soup-content-sniffer.h	\
