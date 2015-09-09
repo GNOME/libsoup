@@ -861,7 +861,7 @@ uri_normalized_copy (const char *part, int length,
 /**
  * soup_uri_normalize:
  * @part: a URI part
- * @unescape_extra: reserved characters to unescape (or %NULL)
+ * @unescape_extra: (allow-none): reserved characters to unescape (or %NULL)
  *
  * %<!-- -->-decodes any "unreserved" characters (or characters in
  * @unescape_extra) in @part.
