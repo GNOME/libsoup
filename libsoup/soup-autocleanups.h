@@ -24,6 +24,7 @@
 #include <libsoup/soup-uri.h>
 
 #if SOUP_VERSION_MAX_ALLOWED >= SOUP_VERSION_2_52
+#ifndef __GI_SCANNER__
 #ifdef G_DEFINE_AUTOPTR_CLEANUP_FUNC
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupAddress, g_object_unref)
@@ -44,6 +45,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupSocket, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupURI, soup_uri_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupWebsocketConnection, g_object_unref)
 
+#endif
 #endif
 #endif
 
