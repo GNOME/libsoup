@@ -12,6 +12,7 @@ endif
 
 AM_CPPFLAGS = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
+	-DLIBSOUP_COMPILATION		\
 	-DLOCALEDIR=\"$(localedir)\"	\
 	-I$(top_srcdir)			\
 	-I$(top_builddir)		\

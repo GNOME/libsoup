@@ -15,27 +15,12 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__SOUP_H_INSIDE__) && !defined (LIBSOUP_COMPILATION)
+#error "Only <libsoup/soup.h> can be included directly."
+#endif
+
 #ifndef SOUP_AUTOCLEANUPS_H
 #define SOUP_AUTOCLEANUPS_H
-
-#include <libsoup/soup-auth-domain-basic.h>
-#include <libsoup/soup-auth-domain-digest.h>
-#include <libsoup/soup-auth-manager.h>
-#include <libsoup/soup-cache.h>
-#include <libsoup/soup-content-decoder.h>
-#include <libsoup/soup-content-sniffer.h>
-#include <libsoup/soup-cookie.h>
-#include <libsoup/soup-cookie-jar-db.h>
-#include <libsoup/soup-cookie-jar-text.h>
-#include <libsoup/soup-date.h>
-#include <libsoup/soup-logger.h>
-#include <libsoup/soup-multipart.h>
-#include <libsoup/soup-multipart-input-stream.h>
-#include <libsoup/soup-request-data.h>
-#include <libsoup/soup-request-file.h>
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-uri.h>
-#include <libsoup/soup-xmlrpc.h>
 
 #if SOUP_VERSION_MAX_ALLOWED >= SOUP_VERSION_2_52
 #ifndef __GI_SCANNER__
