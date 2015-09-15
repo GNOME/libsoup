@@ -1,3 +1,14 @@
+Changes in libsoup from 2.51.90 to 2.51.92:
+
+	* Added g_autoptr() support for all libsoup types. [#754721,
+          Kalev Lember]
+
+	* Added a missing (allow-none) annotation to
+          soup_uri_normalize() [#754776, Jens Georg]
+
+	* Updated translations:
+	  Polish
+
 Changes in libsoup from 2.51.3 to 2.51.90:
 
 	* Added a new GVariant-based XMLRPC API, and deprecated the
