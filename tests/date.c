@@ -102,6 +102,9 @@ static const OkDate ok_dates[] = {
 	{ "Saturday, 6-Nov-04 08:09:07 GMT", NULL },
 	{ "Saturday,  6-Nov-04 08:09:07 GMT", NULL },
 	{ "Saturday, 06-Nov-104 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-2004 08:09:07 GMT", NULL },
+	{ "Saturday, 6-Nov-2004 08:09:07 GMT", NULL },
+	{ "Saturday,  6-Nov-2004 08:09:07 GMT", NULL },
 	{ "Saturday, 06-Nov-04 08:09:07", NULL },
 	{ "06-Nov-04 08:09:07 GMT", NULL },
 
@@ -129,16 +132,6 @@ static const OkDate ok_dates[] = {
 	{ "Sat,  6-Nov-04 08:09:07 GMT", NULL },
 	{ "Sat, 06-Nov-104 08:09:07 GMT", NULL },
 	{ "Sat, 06-Nov-04 08:09:07", NULL },
-
-	/* Netscape cookie spec example syntax, and broken variants */
-	{ "Saturday, 06-Nov-04 08:09:07 GMT", NULL },
-	{ "Saturday, 6-Nov-04 08:09:07 GMT", NULL },
-	{ "Saturday,  6-Nov-04 08:09:07 GMT", NULL },
-	{ "Saturday, 06-Nov-104 08:09:07 GMT", NULL },
-	{ "Saturday, 06-Nov-2004 08:09:07 GMT", NULL },
-	{ "Saturday, 6-Nov-2004 08:09:07 GMT", NULL },
-	{ "Saturday,  6-Nov-2004 08:09:07 GMT", NULL },
-	{ "Saturday, 06-Nov-04 08:09:07", NULL },
 
 	/* Miscellaneous broken formats seen on the web */
 	{ "Sat 06-Nov-2004  08:9:07", NULL },
