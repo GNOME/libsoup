@@ -1,3 +1,8 @@
+Changes in libsoup from 2.51.92 to 2.52.0:
+
+	* Removed duplicate test paths from tests/date so it will pass
+          with glib 2.46.0
+
 Changes in libsoup from 2.51.90 to 2.51.92:
 
 	* Added g_autoptr() support for all libsoup types. [#754721,
