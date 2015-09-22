@@ -162,9 +162,7 @@ dnl *** gobject-introspection ***
 dnl *****************************
 GOBJECT_INTROSPECTION_CHECK([0.9.5])
 
-if test "x$found_introspection" = "xyes"; then
-  VAPIGEN_CHECK()
-fi
+VAPIGEN_CHECK()
 
 AC_MSG_CHECKING([for glib-networking (glib TLS implementation)])
 save_CFLAGS="$CFLAGS"
