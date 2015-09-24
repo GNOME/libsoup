@@ -101,6 +101,7 @@ libsoup_2_4_la_LIBADD =			\
 	$(SQLITE_LIBS)
 
 libsoup_2_4_la_SOURCES =		\
+	gconstructor.h			\
 	soup-address.c			\
 	soup-auth.c			\
 	soup-auth-basic.h		\
@@ -150,6 +151,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
+	soup-init.c			\
 	soup-io-stream.h		\
 	soup-io-stream.c		\
 	soup-logger.c			\
