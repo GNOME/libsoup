@@ -1183,6 +1183,17 @@ static SoupAuthTest relogin_tests[] = {
 	{ NULL }
 };
 
+/* https://bugzilla.gnome.org/show_bug.cgi?id=755617 */
+static SoupAuthTest basic_root_pspace_test[] = {
+	{ "Auth provided via URL, should succeed",
+	  "BasicRoot", "1", TRUE, "01", SOUP_STATUS_OK },
+
+	{ "Parent dir should automatically reuse auth",
+	  "/", "1", FALSE, "1", SOUP_STATUS_OK },
+
+	{ NULL }
+};
+
 static void
 do_batch_tests (gconstpointer data)
 {
@@ -1265,6 +1276,7 @@ main (int argc, char **argv)
 
 	g_test_add_data_func ("/auth/main-tests", main_tests, do_batch_tests);
 	g_test_add_data_func ("/auth/relogin-tests", relogin_tests, do_batch_tests);
+	g_test_add_data_func ("/auth/basic-root-pspec-test", basic_root_pspace_test, do_batch_tests);
 	g_test_add_func ("/auth/pipelined-auth", do_pipelined_auth_test);
 	g_test_add_func ("/auth/digest-expiration", do_digest_expiration_test);
 	g_test_add_func ("/auth/async-auth/good-password", do_async_auth_good_password_test);

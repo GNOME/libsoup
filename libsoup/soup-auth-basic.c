@@ -75,7 +75,9 @@ soup_auth_basic_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 
 	/* Strip filename component */
 	p = strrchr (space, '/');
-	if (p && p != space && p[1])
+	if (p == space && p[1])
+		p[1] = '\0';
+	else if (p && p[1])
 		*p = '\0';
 
 	return g_slist_prepend (NULL, space);

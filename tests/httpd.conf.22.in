@@ -171,6 +171,7 @@ Alias /Basic/realm12 .
 Alias /Basic/realm2 .
 Alias /Basic/realm3 .
 Alias /Basic .
+Alias /BasicRoot .
 
 <Location /Basic/realm1>
   AuthType Basic
@@ -219,6 +220,13 @@ Alias /Basic .
   AuthName realm3
   AuthUserFile ./htpasswd
   Require user user3
+</Location>
+
+<Location /BasicRoot>
+  AuthType Basic
+  AuthName realm1
+  AuthUserFile ./htpasswd
+  Require user user1
 </Location>
 
 # Digest auth tests
