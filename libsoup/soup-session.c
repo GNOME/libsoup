@@ -4779,7 +4779,9 @@ websocket_connect_async_complete (SoupSession *session, SoupMessage *msg, gpoint
 {
 	GTask *task = user_data;
 
-	g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (websocket_connect_async_stop), task);
+	/* Disconnect websocket_connect_async_stop() handler. */
+	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
+					      0, 0, NULL, NULL, task);
 
 	g_task_return_new_error (task,
 				 SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
@@ -4796,7 +4798,9 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 	SoupWebsocketConnection *client;
 	GError *error = NULL;
 
-	g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (websocket_connect_async_stop), task);
+	/* Disconnect websocket_connect_async_stop() handler. */
+	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
+					      0, 0, NULL, NULL, task);
 
 	if (soup_websocket_client_verify_handshake (item->msg, &error)){
 		stream = soup_session_steal_connection (item->session, item->msg);
