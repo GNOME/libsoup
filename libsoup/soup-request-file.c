@@ -223,6 +223,7 @@ soup_request_file_send_async (SoupRequest          *request,
 	GTask *task;
 
 	task = g_task_new (request, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_request_file_send_async);
 	g_task_run_in_thread (task, soup_request_file_send_async_thread);
 	g_object_unref (task);
 }

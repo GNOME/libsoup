@@ -1203,6 +1203,7 @@ soup_address_address_enumerator_next_async (GSocketAddressEnumerator  *enumerato
 	GTask *task;
 
 	task = g_task_new (enumerator, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_address_address_enumerator_next_async);
 	if (!priv->sockaddr) {
 		soup_address_resolve_async (addr_enum->addr,
 					    g_main_context_get_thread_default (),

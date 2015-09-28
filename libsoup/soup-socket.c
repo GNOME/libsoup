@@ -952,6 +952,7 @@ soup_socket_connect_async_internal (SoupSocket          *sock,
 
 	priv->connect_cancel = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 	task = g_task_new (sock, priv->connect_cancel, callback, user_data);
+	g_task_set_source_tag (task, soup_socket_connect_async_internal);
 
 	client = new_socket_client (sock);
 	g_socket_client_connect_async (client,
@@ -1529,6 +1530,7 @@ soup_socket_handshake_async (SoupSocket          *sock,
 	GError *error = NULL;
 
 	task = g_task_new (sock, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_socket_handshake_async);
 
 	if (!soup_socket_setup_ssl (sock, ssl_host, cancellable, &error)) {
 		g_task_return_error (task, error);

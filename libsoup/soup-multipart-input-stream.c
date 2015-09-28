@@ -527,6 +527,7 @@ soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart
 	g_return_if_fail (SOUP_IS_MULTIPART_INPUT_STREAM (multipart));
 
 	task = g_task_new (multipart, cancellable, callback, data);
+	g_task_set_source_tag (task, soup_multipart_input_stream_next_part_async);
 	g_task_set_priority (task, io_priority);
 
 	if (!g_input_stream_set_pending (stream, &error)) {

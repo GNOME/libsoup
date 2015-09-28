@@ -92,6 +92,7 @@ soup_proxy_resolver_wrapper_lookup_async (GProxyResolver       *resolver,
 	SoupURI *source_uri;
 
 	task = g_task_new (resolver, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_proxy_resolver_wrapper_lookup_async);
 	source_uri = soup_uri_new (uri);
 	g_task_set_task_data (task, source_uri, (GDestroyNotify) soup_uri_free);
 

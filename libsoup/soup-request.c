@@ -177,6 +177,7 @@ soup_request_default_send_async (SoupRequest          *request,
 	GError *error = NULL;
 
 	task = g_task_new (request, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_request_default_send_async);
 
 	stream = soup_request_send (request, cancellable, &error);
 	if (stream)
