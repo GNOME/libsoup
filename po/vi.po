@@ -1,44 +1,47 @@
 # Vietnamese translation for libsoup.
-# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# Bản dịch tiếng Việt dành cho libsoup.
+# Copyright © 2015 GNOME i18n Project for Vietnamese.
 # This file is distributed under the same license as the libsoup package.
 # Nguyễn Thái Ngọc Duy <pclouds@gmail.com>, 2012-2013.
+# Trần Ngọc Quân <vnwildman@gmail.com>, 2015.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-03-02 20:44+0700\n"
-"Last-Translator: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>\n"
-"Language-Team: Vietnamese <gnomevi-list@lists.sourceforge.net>\n"
+"POT-Creation-Date: 2015-09-28 23:41+0000\n"
+"PO-Revision-Date: 2015-09-29 07:41+0700\n"
+"Last-Translator: Trần Ngọc Quân <vnwildman@gmail.com>\n"
+"Language-Team: Vietnamese <gnome-vi-list@gnome.org>\n"
 "Language: vi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Gtranslator 2.91.7\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Kết nối ngắt bất ngờ"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
-msgstr "Yêu cầu di chuyển (seek) không hợp lệ"
+msgstr "Yêu cầu di chuyển vị trí đọc (seek) không hợp lệ"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Không thể cắt SoupBodyInputStream"
+msgstr "Không thể cắt ngắn SoupBodyInputStream"
 
 #: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
-msgstr "Luồng mạng đóng bất ngờ"
+msgstr "Luồng dữ liệu mạng đã đóng bất ngờ"
 
 #: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
-msgstr "Lỗi lưu tạm (cache) toàn bộ tài nguyên"
+msgstr "Gặp lỗi khi lưu tạm (cache) toàn bộ tài nguyên"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -53,15 +56,15 @@ msgstr "Không thể phân tích phản hồi HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Không nhận ra bảng mã phản hồi HTTP"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
-msgid "Operation was cancelled"
-msgstr "Thao tác bị huỷ"
-
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "Thao tác có thể treo"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "Thao tác bị hủy"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Không thể phân tích phản hồi HTTP"
 
@@ -73,35 +76,102 @@ msgstr "Chưa có URI"
 #: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
-msgstr "URI '%s' không hợp lệ: %s"
+msgstr "URI “%s” không hợp lệ: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1711
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "Không thể tạo máy phục vụ TLS mà không có giấy chứng thực điện tử TLS"
+
+#: ../libsoup/soup-server.c:1730
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "Không thể lắng nghe trên địa chỉ %s, cổng %d"
+
+#: ../libsoup/soup-session.c:4543
 #, c-format
 msgid "Could not parse URI '%s'"
-msgstr "Không thể phân tích URI '%s'"
+msgstr "Không thể phân tích URI “%s”"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4580
 #, c-format
 msgid "Unsupported URI scheme '%s'"
-msgstr "Không hỗ trợ kiểu URI '%s'"
+msgstr "Không hỗ trợ kiểu URI “%s”"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4602
 #, c-format
 msgid "Not an HTTP URI"
-msgstr "Không phải HTTP URI"
+msgstr "Không phải URI của HTTP"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-session.c:4788
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Máy chủ đã không chấp nhận bắt tay WebSocket"
+
+#: ../libsoup/soup-socket.c:148
+msgid "Can't import non-socket as SoupSocket"
+msgstr "Không thể nhập vào SoupSocket một non-socket"
+
+#: ../libsoup/soup-socket.c:166
+msgid "Could not import existing socket: "
+msgstr "Không thể nhập vào ổ cắm mạng đã có: "
+
+#: ../libsoup/soup-socket.c:175
+msgid "Can't import unconnected socket"
+msgstr "Không thể nhập vào một ổ cắm mạng mà nó chưa kết nối"
+
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
+msgid "WebSocket handshake expected"
+msgstr "Cần bắt tay WebSocket"
+
+#: ../libsoup/soup-websocket.c:355
+msgid "Unsupported WebSocket version"
+msgstr "Phiên bản WebSocket không được hỗ trợ"
+
+#: ../libsoup/soup-websocket.c:364
+msgid "Invalid WebSocket key"
+msgstr "Khóa WebSocket không hợp lệ"
+
+#: ../libsoup/soup-websocket.c:374
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Phần đầu WebSocket \"%s\" không hợp lệ"
+
+#: ../libsoup/soup-websocket.c:383
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Không hỗ trợ giao thức phụ WebSocket"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "Máy phục vụ từ chối bắt tay WebSocket"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "Máy phục vụ bỏ qua bắt tay WebSocket"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "Máy phục vụ đã yêu cầu giao thức không được hỗ trợ"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "Máy phục vụ đã yêu cầu phần mở rộng không được hỗ trợ"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "Máy phục vụ trả về khóa \"%s\" không hợp lệ"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "Tên máy là địa chỉ IP"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "Tên máy không hợp lệ"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
-msgstr "Tên máy không có miền cơ bản"
+msgstr "Tên máy không có miền cơ sở"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Không đủ miền"
