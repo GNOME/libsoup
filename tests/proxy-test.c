@@ -322,6 +322,84 @@ do_proxy_redirect_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_proxy_auth_request (const char *url, SoupSession *session, gboolean do_read)
+{
+	SoupRequest *request;
+	SoupMessage *msg;
+	GInputStream *stream;
+	GError *error = NULL;
+
+	request = soup_session_request (session, url, NULL);
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
+
+	stream = soup_test_request_send (request, NULL, 0, &error);
+	g_assert_no_error (error);
+	g_clear_error (&error);
+
+	if (do_read) {
+		char buffer[256];
+		gsize nread;
+
+		do {
+			g_input_stream_read_all (stream, buffer, sizeof (buffer), &nread,
+						 NULL, &error);
+			g_assert_no_error (error);
+			g_clear_error (&error);
+		} while (nread > 0);
+	}
+
+	soup_test_request_close_stream (request, stream, NULL, &error);
+	g_assert_no_error (error);
+	g_clear_error (&error);
+	g_object_unref (stream);
+
+	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+	g_object_unref (msg);
+	g_object_unref (request);
+}
+
+static void
+do_proxy_auth_cache_test (void)
+{
+	SoupSession *session;
+	char *cache_dir;
+	SoupCache *cache;
+	char *url;
+
+	g_test_bug ("756076");
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
+	debug_printf (2, "  Caching to %s\n", cache_dir);
+	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+	g_free (cache_dir);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[AUTH_PROXY],
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_ADD_FEATURE, cache,
+					 NULL);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (authenticate), NULL);
+
+	url = g_strconcat (HTTP_SERVER, "/Basic/realm1/", NULL);
+
+	debug_printf (1, "  GET %s via %s (from network)\n", url, proxy_names[AUTH_PROXY]);
+	do_proxy_auth_request (url, session, TRUE);
+	soup_cache_flush (cache);
+
+	debug_printf (1, "  GET %s via %s (from cache)\n", url, proxy_names[AUTH_PROXY]);
+	do_proxy_auth_request (url, session, FALSE);
+
+	g_free (url);
+	soup_test_session_abort_unref (session);
+	g_object_unref (cache);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -355,6 +433,7 @@ main (int argc, char **argv)
 
 	g_test_add_data_func ("/proxy/fragment", base_uri, do_proxy_fragment_test);
 	g_test_add_func ("/proxy/redirect", do_proxy_redirect_test);
+	g_test_add_func ("/proxy/auth-cache", do_proxy_auth_cache_test);
 
 	ret = g_test_run ();
 

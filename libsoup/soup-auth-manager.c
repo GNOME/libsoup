@@ -474,12 +474,12 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 
 		queue = soup_session_get_queue (priv->session);
 		item = soup_message_queue_lookup (queue, msg);
-		if (item) {
-			uri = soup_connection_get_proxy_uri (item->conn);
-			soup_message_queue_item_unref (item);
-		} else
-			uri = NULL;
+		if (!item)
+			return;
 
+		/* When loaded from the disk cache, the connection is NULL. */
+		uri = item->conn ? soup_connection_get_proxy_uri (item->conn) : NULL;
+		soup_message_queue_item_unref (item);
 		if (!uri)
 			return;
 	} else
