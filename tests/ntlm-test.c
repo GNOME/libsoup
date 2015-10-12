@@ -379,7 +379,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	 * asking.
 	 */
 	authenticated_ntlm = FALSE;
-	do_message (session, base_uri, "/noauth",
+	do_message (session, base_uri, "/noauth/",
 		    FALSE, use_ntlm,
 		    FALSE, FALSE,
 		    SOUP_STATUS_OK);
@@ -395,7 +395,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	 * previous step, then we'll just immediately get a 401 here.
 	 * So in no case will we see the client try to do_ntlm.
 	 */
-	do_message (session, base_uri, "/alice",
+	do_message (session, base_uri, "/alice/",
 		    !alice_via_ntlm, FALSE,
 		    !alice_via_ntlm, alice_via_basic,
 		    alice ? SOUP_STATUS_OK :
@@ -415,7 +415,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 		    SOUP_STATUS_UNAUTHORIZED);
 
 	/* 4. Should be exactly the same as #3, except the status code */
-	do_message (session, base_uri, "/alice",
+	do_message (session, base_uri, "/alice/",
 		    !alice, bob_via_ntlm,
 		    !alice, alice_via_basic,
 		    alice ? SOUP_STATUS_OK :
@@ -427,7 +427,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	 * (and fail). Bob-via-NTLM will try to do NTLM right away and
 	 * succeed.
 	 */
-	do_message (session, base_uri, "/bob",
+	do_message (session, base_uri, "/bob/",
 		    !bob_via_ntlm, bob_via_ntlm,
 		    !bob_via_ntlm, alice_via_basic,
 		    bob ? SOUP_STATUS_OK :
@@ -439,7 +439,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	 * still knows about this path, so will try Basic right away
 	 * and succeed.
 	 */
-	do_message (session, base_uri, "/alice",
+	do_message (session, base_uri, "/alice/",
 		    !alice_via_ntlm, alice_via_ntlm,
 		    !alice_via_ntlm, alice_via_basic,
 		    alice ? SOUP_STATUS_OK :
@@ -449,7 +449,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	 * Since Bob-via-NTLM is unauthenticated at this point, he'll try
 	 * NTLM before realizing that the server doesn't support it.
 	 */
-	do_message (session, base_uri, "/basic",
+	do_message (session, base_uri, "/basic/",
 		    FALSE, bob_via_ntlm,
 		    TRUE, user != NULL,
 		    user != NULL ? SOUP_STATUS_OK :
@@ -460,7 +460,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	 * previous NTLM connections will have been closed by the 401
 	 * from /basic). Non-NTLM users will be prompted for either.
 	 */
-	do_message (session, base_uri, "/either",
+	do_message (session, base_uri, "/either/",
 		    !use_ntlm, use_ntlm,
 		    !use_ntlm, !use_ntlm && user != NULL,
 		    user != NULL ? SOUP_STATUS_OK :
