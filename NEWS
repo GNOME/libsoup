@@ -1,3 +1,20 @@
+Changes in libsoup from 2.52.0 to 2.52.1:
+
+	* Fixed build under MinGW [Chun-wei Fan]
+
+	* Fixed build with --disable-introspection [#755389, Quentin
+          Glidic]
+
+	* Fixed HTTP authentication protection space handling for
+          files directly under the root directory. [#755617, Carlos
+          Garcia Campos]
+
+	* Fixed a warning when loading data from SoupCache while using
+          an authenticated proxy. [#756076, Carlos Garcia Campos]
+
+	* Updated translations:
+	  German, Vietnamese
+
 Changes in libsoup from 2.51.92 to 2.52.0:
 
 	* Removed duplicate test paths from tests/date so it will pass
