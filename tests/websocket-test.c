@@ -783,6 +783,54 @@ test_receive_fragmented (Test *test,
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 }
 
+static void
+test_client_context_got_server_connection (SoupServer              *server,
+					   SoupWebsocketConnection *connection,
+					   const char              *path,
+					   SoupClientContext       *client,
+					   gpointer                 user_data)
+{
+	Test *test = user_data;
+	GSocketAddress *addr;
+	GInetAddress *iaddr;
+	char *str;
+	const char *remote_ip;
+
+	addr = soup_client_context_get_local_address (client);
+	iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
+	str = g_inet_address_to_string (iaddr);
+	if (g_inet_address_get_family (iaddr) == G_SOCKET_FAMILY_IPV4)
+		g_assert_cmpstr (str, ==, "127.0.0.1");
+	else
+		g_assert_cmpstr (str, ==, "::1");
+	g_free (str);
+
+	addr = soup_client_context_get_remote_address (client);
+	iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
+	str = g_inet_address_to_string (iaddr);
+	if (g_inet_address_get_family (iaddr) == G_SOCKET_FAMILY_IPV4)
+		g_assert_cmpstr (str, ==, "127.0.0.1");
+	else
+		g_assert_cmpstr (str, ==, "::1");
+
+	remote_ip = soup_client_context_get_host (client);
+	g_assert_cmpstr (remote_ip, ==, str);
+	g_free (str);
+
+	test->server = g_object_ref (connection);
+}
+
+static void
+test_client_context (Test *test,
+		     gconstpointer unused)
+{
+	setup_soup_server (test, NULL, NULL, test_client_context_got_server_connection, test);
+	client_connect (test, NULL, NULL, got_client_connection, test);
+	WAIT_UNTIL (test->server != NULL);
+	WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+	g_assert_no_error (test->client_error);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -900,6 +948,10 @@ main (int argc,
 			    test_close_after_timeout,
 			    teardown_direct_connection);
 	}
+
+	g_test_add ("/websocket/soup/client-context", Test, NULL, NULL,
+		    test_client_context,
+		    teardown_soup_connection);
 
 	ret = g_test_run ();
 
