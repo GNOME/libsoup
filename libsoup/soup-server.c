@@ -133,11 +133,13 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct SoupClientContext {
 	SoupServer     *server;
 	SoupSocket     *sock;
+	GSocket        *gsock;
 	SoupMessage    *msg;
 	SoupAuthDomain *auth_domain;
 	char           *auth_user;
 
 	GSocketAddress *remote_addr;
+	const char     *remote_ip;
 	GSocketAddress *local_addr;
 
 	int             ref_count;
@@ -1125,6 +1127,9 @@ soup_client_context_new (SoupServer *server, SoupSocket *sock)
 
 	client->server = server;
 	client->sock = g_object_ref (sock);
+	client->gsock = soup_socket_get_gsocket (sock);
+	if (client->gsock)
+		g_object_ref (client->gsock);
 	g_signal_connect (sock, "disconnected",
 			  G_CALLBACK (socket_disconnected), client);
 	client->ref_count = 1;
@@ -1160,6 +1165,8 @@ soup_client_context_unref (SoupClientContext *client)
 
 	g_signal_handlers_disconnect_by_func (client->sock, socket_disconnected, client);
 	g_object_unref (client->sock);
+	g_clear_object (&client->gsock);
+	g_clear_pointer (&client->remote_ip, g_free);
 	g_slice_free (SoupClientContext, client);
 }
 
@@ -1353,6 +1360,7 @@ complete_websocket_upgrade (SoupMessage *msg, gpointer user_data)
 	if (!handler || !handler->websocket_callback)
 		return;
 
+	soup_client_context_ref (client);
 	stream = soup_client_context_steal_connection (client);
 	conn = soup_websocket_connection_new (stream, uri,
 					      SOUP_WEBSOCKET_CONNECTION_SERVER,
@@ -1364,6 +1372,7 @@ complete_websocket_upgrade (SoupMessage *msg, gpointer user_data)
 	(*handler->websocket_callback) (server, conn, uri->path, client,
 					handler->websocket_user_data);
 	g_object_unref (conn);
+	soup_client_context_unref (client);
 }
 
 static void
@@ -2231,7 +2240,7 @@ soup_client_context_get_gsocket (SoupClientContext *client)
 {
 	g_return_val_if_fail (client != NULL, NULL);
 
-	return soup_socket_get_gsocket (client->sock);
+	return client->gsock;
 }
 
 /**
@@ -2272,16 +2281,13 @@ soup_client_context_get_address (SoupClientContext *client)
 GSocketAddress *
 soup_client_context_get_remote_address (SoupClientContext *client)
 {
-	GSocket *sock;
-
 	g_return_val_if_fail (client != NULL, NULL);
 
 	if (client->remote_addr)
 		return client->remote_addr;
 
-	sock = soup_client_context_get_gsocket (client);
-	client->remote_addr = sock ?
-		g_socket_get_remote_address (sock, NULL) :
+	client->remote_addr = client->gsock ?
+		g_socket_get_remote_address (client->gsock, NULL) :
 		soup_address_get_gsockaddr (soup_socket_get_remote_address (client->sock));
 
 	return client->remote_addr;
@@ -2303,16 +2309,13 @@ soup_client_context_get_remote_address (SoupClientContext *client)
 GSocketAddress *
 soup_client_context_get_local_address (SoupClientContext *client)
 {
-	GSocket *sock;
-
 	g_return_val_if_fail (client != NULL, NULL);
 
 	if (client->local_addr)
 		return client->local_addr;
 
-	sock = soup_client_context_get_gsocket (client);
-	client->local_addr = sock ?
-		g_socket_get_local_address (sock, NULL) :
+	client->local_addr = client->gsock ?
+		g_socket_get_local_address (client->gsock, NULL) :
 		soup_address_get_gsockaddr (soup_socket_get_local_address (client->sock));
 
 	return client->local_addr;
@@ -2332,12 +2335,29 @@ soup_client_context_get_local_address (SoupClientContext *client)
 const char *
 soup_client_context_get_host (SoupClientContext *client)
 {
-	SoupAddress *address;
+	g_return_val_if_fail (client != NULL, NULL);
 
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	address = soup_client_context_get_address (client);
-	G_GNUC_END_IGNORE_DEPRECATIONS;
-	return soup_address_get_physical (address);
+	if (client->remote_ip)
+		return client->remote_ip;
+
+	if (client->gsock) {
+		GSocketAddress *addr = soup_client_context_get_remote_address (client);
+		GInetAddress *iaddr;
+
+		if (!addr || !G_IS_INET_SOCKET_ADDRESS (addr))
+			return NULL;
+		iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
+		client->remote_ip = g_inet_address_to_string (iaddr);
+	} else {
+		SoupAddress *addr;
+
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+		addr = soup_client_context_get_address (client);
+		G_GNUC_END_IGNORE_DEPRECATIONS;
+		client->remote_ip = g_strdup (soup_address_get_physical (addr));
+	}
+
+	return client->remote_ip;
 }
 
 /**
