@@ -1,3 +1,13 @@
+Changes in libsoup from 2.52.1 to 2.53.1:
+
+	* Really fixed build under MinGW for sure this time [Ignacio
+          Casal Quinteiro]
+
+        * Fixed SoupServer Web Sockets code so that the
+	  SoupClientContext passed to a SoupServerWebsocketCallback is
+	  fully usable (rather than crashing when you try to do most
+	  things).
+
 Changes in libsoup from 2.52.0 to 2.52.1:
 
 	* Fixed build under MinGW [Chun-wei Fan]
