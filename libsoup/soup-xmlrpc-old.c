@@ -102,7 +102,7 @@ insert_value (xmlNode *parent, GValue *value)
 	} else if (type == G_TYPE_VALUE_ARRAY) {
 		GValueArray *va = g_value_get_boxed (value);
 		xmlNode *node;
-		int i;
+		guint i;
 
 		node = xmlNewChild (xvalue, NULL,
 				    (const xmlChar *)"array", NULL);

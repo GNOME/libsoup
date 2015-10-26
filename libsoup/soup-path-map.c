@@ -58,7 +58,7 @@ void
 soup_path_map_free (SoupPathMap *map)
 {
 	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
-	int i;
+	guint i;
 
 	for (i = 0; i < map->mappings->len; i++) {
 		g_free (mappings[i].path);
@@ -79,7 +79,8 @@ static gboolean
 mapping_lookup (SoupPathMap *map, const char *path, int *match, int *insert)
 {
 	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
-	int i, path_len;
+	guint i;
+	int path_len;
 	gboolean exact = FALSE;
 
 	*match = -1;

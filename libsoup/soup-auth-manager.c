@@ -190,7 +190,7 @@ soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
 	SoupAuthClass *auth_class;
-	int i;
+	guint i;
 
 	if (!g_type_is_a (type, SOUP_TYPE_AUTH))
 		return FALSE;
@@ -215,7 +215,7 @@ soup_auth_manager_has_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
 	SoupAuthClass *auth_class;
-	int i;
+	guint i;
 
 	if (!g_type_is_a (type, SOUP_TYPE_AUTH))
 		return FALSE;

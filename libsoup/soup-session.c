@@ -445,7 +445,7 @@ accept_languages_from_system (void)
 	GPtrArray *langs = NULL;
 	char *lang, *langs_str;
 	int delta;
-	int i;
+	guint i;
 
 	lang_names = g_get_language_names ();
 	g_return_val_if_fail (lang_names != NULL, NULL);
@@ -1818,7 +1818,7 @@ get_connection_for_host (SoupSession *session,
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupConnection *conn;
 	GSList *conns;
-	int num_pending = 0;
+	guint num_pending = 0;
 
 	if (priv->disposed)
 		return FALSE;

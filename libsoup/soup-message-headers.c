@@ -135,7 +135,7 @@ void
 soup_message_headers_clear (SoupMessageHeaders *hdrs)
 {
 	SoupHeader *hdr_array = (SoupHeader *)hdrs->array->data;
-	int i;
+	guint i;
 
 	for (i = 0; i < hdrs->array->len; i++)
 		g_free (hdr_array[i].value);
@@ -575,7 +575,7 @@ soup_message_headers_foreach (SoupMessageHeaders *hdrs,
 			      gpointer            user_data)
 {
 	SoupHeader *hdr_array = (SoupHeader *)hdrs->array->data;
-	int i;
+	guint i;
 
 	for (i = 0; i < hdrs->array->len; i++)
 		func (hdr_array[i].name, hdr_array[i].value, user_data);
@@ -945,7 +945,6 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 	GSList *range_list, *r;
 	GArray *array;
 	char *spec, *end;
-	int i;
 	guint status = SOUP_STATUS_OK;
 
 	if (!range || strncmp (range, "bytes", 5) != 0)
@@ -1004,6 +1003,8 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 	}
 
 	if (total_length) {
+		guint i;
+
 		g_array_sort (array, sort_ranges);
 		for (i = 1; i < array->len; i++) {
 			SoupRange *cur = &((SoupRange *)array->data)[i];

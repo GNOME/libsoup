@@ -324,7 +324,7 @@ soup_value_array_to_args (GValueArray *array, va_list args)
 {
 	GType type;
 	GValue *value;
-	int i;
+	guint i;
 
 	for (i = 0; i < array->n_values; i++) {
 		type = va_arg (args, GType);

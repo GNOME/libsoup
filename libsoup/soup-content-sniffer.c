@@ -91,12 +91,12 @@ sniff_media (SoupContentSniffer *sniffer,
 	     int table_length)
 {
 	const guchar *resource = (const guchar *)buffer->data;
-	int resource_length = MIN (512, buffer->length);
+	guint resource_length = MIN (512, buffer->length);
 	int i;
 
 	for (i = 0; i < table_length; i++) {
 		SoupContentSnifferMediaPattern *type_row = &(table[i]);
-		int j;
+		guint j;
 
 		if (resource_length < type_row->pattern_length)
 			continue;
@@ -226,9 +226,9 @@ static gboolean
 sniff_mp4 (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
 	const char *resource = (const char *)buffer->data;
-	int resource_length = MIN (512, buffer->length);
+	guint resource_length = MIN (512, buffer->length);
 	guint32 box_size = *((guint32*)resource);
-	int i;
+	guint i;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	box_size = ((box_size >> 24) |
@@ -490,8 +490,8 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 {
 	char *sniffed_type = NULL;
 	const guchar *resource = (const guchar *)buffer->data;
-	int resource_length = MIN (512, buffer->length);
-	int i;
+	guint resource_length = MIN (512, buffer->length);
+	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
 		SoupContentSnifferPattern *type_row = &(types_table[i]);
@@ -500,8 +500,8 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 			continue;
 
 		if (type_row->has_ws) {
-			int index_stream = 0;
-			int index_pattern = 0;
+			guint index_stream = 0;
+			guint index_pattern = 0;
 			gboolean skip_row = FALSE;
 
 			while ((index_stream < resource_length) &&
@@ -538,7 +538,7 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 				return g_strdup (type_row->sniffed_type);
 			}
 		} else {
-			int j;
+			guint j;
 
 			if (resource_length < type_row->pattern_length)
 				continue;
