@@ -11,11 +11,13 @@
 G_BEGIN_DECLS
 
 /* Non-default-GMainContext operations */
+SOUP_AVAILABLE_IN_2_4
 GSource           *soup_add_io_watch         (GMainContext *async_context,
 					      GIOChannel   *chan,
 					      GIOCondition  condition,
 					      GIOFunc       function,
 					      gpointer      data);
+SOUP_AVAILABLE_IN_2_4
 GSource           *soup_add_idle             (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
@@ -23,6 +25,7 @@ SOUP_AVAILABLE_IN_2_24
 GSource           *soup_add_completion	     (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
+SOUP_AVAILABLE_IN_2_4
 GSource           *soup_add_timeout          (GMainContext *async_context,
 					      guint         interval,
 					      GSourceFunc   function,
@@ -30,7 +33,9 @@ GSource           *soup_add_timeout          (GMainContext *async_context,
 
 /* Misc utils */
 
+SOUP_AVAILABLE_IN_2_4
 guint              soup_str_case_hash        (gconstpointer key);
+SOUP_AVAILABLE_IN_2_4
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
 
@@ -38,7 +43,8 @@ gboolean           soup_str_case_equal       (gconstpointer v1,
 
 /* character classes */
 
-extern const char soup_char_attributes[];
+SOUP_AVAILABLE_IN_2_4
+const char soup_char_attributes[];
 #define SOUP_CHAR_URI_PERCENT_ENCODED 0x01
 #define SOUP_CHAR_URI_GEN_DELIMS      0x02
 #define SOUP_CHAR_URI_SUB_DELIMS      0x04
@@ -52,8 +58,8 @@ extern const char soup_char_attributes[];
 #define soup_char_is_token(ch)               (!(soup_char_attributes[(guchar)ch] & (SOUP_CHAR_HTTP_SEPARATOR | SOUP_CHAR_HTTP_CTL)))
 
 /* SSL stuff */
-
-extern const gboolean soup_ssl_supported;
+SOUP_AVAILABLE_IN_2_4
+const gboolean soup_ssl_supported;
 
 /* Part of a debugging API */
 

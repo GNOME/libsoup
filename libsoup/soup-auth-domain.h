@@ -59,37 +59,48 @@ typedef gboolean (*SoupAuthDomainGenericAuthCallback) (SoupAuthDomain *domain,
 						       const char     *username,
 						       gpointer        user_data);
 
+SOUP_AVAILABLE_IN_2_4
 GType       soup_auth_domain_get_type    (void);
 
+SOUP_AVAILABLE_IN_2_4
 void        soup_auth_domain_add_path    (SoupAuthDomain       *domain,
 					  const char           *path);
+SOUP_AVAILABLE_IN_2_4
 void        soup_auth_domain_remove_path (SoupAuthDomain       *domain,
 					  const char           *path);
 
+SOUP_AVAILABLE_IN_2_4
 void        soup_auth_domain_set_filter  (SoupAuthDomain       *domain,
 					  SoupAuthDomainFilter  filter,
 					  gpointer              filter_data,
 					  GDestroyNotify        dnotify);
 
+SOUP_AVAILABLE_IN_2_4
 const char *soup_auth_domain_get_realm   (SoupAuthDomain       *domain);
 
+SOUP_AVAILABLE_IN_2_4
 void        soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
 							SoupAuthDomainGenericAuthCallback auth_callback,
 							gpointer        auth_data,
 							GDestroyNotify  dnotify);
+SOUP_AVAILABLE_IN_2_4
 gboolean    soup_auth_domain_check_password (SoupAuthDomain    *domain,
 					     SoupMessage       *msg,
 					     const char        *username,
 					     const char        *password);
 
+SOUP_AVAILABLE_IN_2_4
 gboolean    soup_auth_domain_covers      (SoupAuthDomain       *domain,
 					  SoupMessage          *msg);
+SOUP_AVAILABLE_IN_2_4
 char       *soup_auth_domain_accepts     (SoupAuthDomain       *domain,
 					  SoupMessage          *msg);
+SOUP_AVAILABLE_IN_2_4
 void        soup_auth_domain_challenge   (SoupAuthDomain       *domain,
 					  SoupMessage          *msg);
 
 /* protected */
+SOUP_AVAILABLE_IN_2_4
 gboolean    soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
 							SoupMessage    *msg,
 							const char     *username);

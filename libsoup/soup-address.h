@@ -56,30 +56,41 @@ typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
 						  guint                status,
 						  gpointer             user_data);
 
+SOUP_AVAILABLE_IN_2_4
 GType soup_address_get_type (void);
 
+SOUP_AVAILABLE_IN_2_4
 SoupAddress     *soup_address_new                (const char          *name,
 						  guint                port);
+SOUP_AVAILABLE_IN_2_4
 SoupAddress     *soup_address_new_from_sockaddr  (struct sockaddr     *sa,
 						  int                  len);
+SOUP_AVAILABLE_IN_2_4
 SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 						  guint                port);
 
+SOUP_AVAILABLE_IN_2_4
 void             soup_address_resolve_async      (SoupAddress         *addr,
 						  GMainContext        *async_context,
 						  GCancellable        *cancellable,
 						  SoupAddressCallback  callback,
 						  gpointer             user_data);
+SOUP_AVAILABLE_IN_2_4
 guint            soup_address_resolve_sync       (SoupAddress         *addr,
 						  GCancellable        *cancellable);
 
+SOUP_AVAILABLE_IN_2_4
 const char      *soup_address_get_name           (SoupAddress         *addr);
+SOUP_AVAILABLE_IN_2_4
 const char      *soup_address_get_physical       (SoupAddress         *addr);
+SOUP_AVAILABLE_IN_2_4
 guint            soup_address_get_port           (SoupAddress         *addr);
+SOUP_AVAILABLE_IN_2_4
 struct sockaddr *soup_address_get_sockaddr       (SoupAddress         *addr,
 						  int                 *len);
 SOUP_AVAILABLE_IN_2_32
 GSocketAddress  *soup_address_get_gsockaddr      (SoupAddress         *addr);
+SOUP_AVAILABLE_IN_2_4
 gboolean         soup_address_is_resolved        (SoupAddress         *addr);
 
 SOUP_AVAILABLE_IN_2_26

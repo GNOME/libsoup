@@ -49,29 +49,36 @@ typedef void               (*SoupLoggerPrinter) (SoupLogger         *logger,
 						 const char         *data,
 						 gpointer            user_data);
 
+SOUP_AVAILABLE_IN_2_4
 GType       soup_logger_get_type    (void);
 
+SOUP_AVAILABLE_IN_2_4
 SoupLogger *soup_logger_new         (SoupLoggerLogLevel  level,
 				     int                 max_body_size);
 
 #ifndef SOUP_DISABLE_DEPRECATED
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_24_FOR(soup_session_add_feature)
 void        soup_logger_attach      (SoupLogger         *logger,
 				     SoupSession        *session);
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_24_FOR(soup_session_remove_feature)
 void        soup_logger_detach      (SoupLogger         *logger,
 				     SoupSession        *session);
 #endif
 
+SOUP_AVAILABLE_IN_2_4
 void        soup_logger_set_request_filter  (SoupLogger        *logger,
 					     SoupLoggerFilter   request_filter,
 					     gpointer           filter_data,
 					     GDestroyNotify     destroy);
+SOUP_AVAILABLE_IN_2_4
 void        soup_logger_set_response_filter (SoupLogger        *logger,
 					     SoupLoggerFilter   response_filter,
 					     gpointer           filter_data,
 					     GDestroyNotify     destroy);
 
+SOUP_AVAILABLE_IN_2_4
 void        soup_logger_set_printer         (SoupLogger        *logger,
 					     SoupLoggerPrinter  printer,
 					     gpointer           printer_data,

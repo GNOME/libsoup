@@ -14,6 +14,7 @@ G_BEGIN_DECLS
 #define SOUP_FORM_MIME_TYPE_URLENCODED "application/x-www-form-urlencoded"
 #define SOUP_FORM_MIME_TYPE_MULTIPART  "multipart/form-data"
 
+SOUP_AVAILABLE_IN_2_4
 GHashTable  *soup_form_decode           (const char   *encoded_form);
 SOUP_AVAILABLE_IN_2_26
 GHashTable  *soup_form_decode_multipart (SoupMessage  *msg,
@@ -22,10 +23,14 @@ GHashTable  *soup_form_decode_multipart (SoupMessage  *msg,
 					 char        **content_type,
 					 SoupBuffer  **file);
 
+SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode           (const char   *first_field,
 					 ...) G_GNUC_NULL_TERMINATED;
+SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode_hash      (GHashTable   *form_data_set);
+SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode_datalist  (GData       **form_data_set);
+SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode_valist    (const char   *first_field,
 					 va_list       args);
 
@@ -36,13 +41,16 @@ char        *soup_form_encode_valist    (const char   *first_field,
 #define soup_form_encode_urlencoded_list soup_form_encode_datalist
 #endif
 
+SOUP_AVAILABLE_IN_2_4
 SoupMessage *soup_form_request_new                (const char     *method,
 						   const char     *uri,
 						   const char     *first_field,
 						   ...) G_GNUC_NULL_TERMINATED;
+SOUP_AVAILABLE_IN_2_4
 SoupMessage *soup_form_request_new_from_hash      (const char     *method,
 						   const char     *uri,
 						   GHashTable     *form_data_set);
+SOUP_AVAILABLE_IN_2_4
 SoupMessage *soup_form_request_new_from_datalist  (const char     *method,
 						   const char     *uri,
 						   GData         **form_data_set);

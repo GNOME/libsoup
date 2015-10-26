@@ -6,7 +6,7 @@
 #ifndef SOUP_PROXY_RESOLVER_DEFAULT_H
 #define SOUP_PROXY_RESOLVER_DEFAULT_H 1
 
-#include <glib-object.h>
+#include <libsoup/soup-types.h>
 
 #define SOUP_PROXY_RESOLVER_DEFAULT(object)	    (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_PROXY_RESOLVER_DEFAULT, SoupProxyResolverDefault))
 #define SOUP_PROXY_RESOLVER_DEFAULT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_PROXY_RESOLVER_DEFAULT, SoupProxyResolverDefaultClass))
@@ -24,6 +24,7 @@ typedef struct {
 
 } SoupProxyResolverDefaultClass;
 
+SOUP_AVAILABLE_IN_2_4
 GType soup_proxy_resolver_default_get_type (void);
 #define SOUP_TYPE_PROXY_RESOLVER_DEFAULT (soup_proxy_resolver_default_get_type ())
 

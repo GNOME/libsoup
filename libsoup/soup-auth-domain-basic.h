@@ -35,8 +35,10 @@ typedef struct {
 #define SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK "auth-callback"
 #define SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA     "auth-data"
 
+SOUP_AVAILABLE_IN_2_4
 GType soup_auth_domain_basic_get_type (void);
 
+SOUP_AVAILABLE_IN_2_4
 SoupAuthDomain *soup_auth_domain_basic_new (const char *optname1,
 					    ...) G_GNUC_NULL_TERMINATED;
 
@@ -46,6 +48,7 @@ typedef	gboolean (*SoupAuthDomainBasicAuthCallback) (SoupAuthDomain *domain,
 						     const char     *password,
 						     gpointer        user_data);
 
+SOUP_AVAILABLE_IN_2_4
 void      soup_auth_domain_basic_set_auth_callback  (SoupAuthDomain *domain,
 						     SoupAuthDomainBasicAuthCallback callback,
 						     gpointer        user_data,

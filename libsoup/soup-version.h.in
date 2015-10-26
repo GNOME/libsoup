@@ -324,6 +324,20 @@ gboolean soup_check_version     (guint major,
 # define SOUP_AVAILABLE_IN_2_52                 _SOUP_EXTERN
 #endif
 
+SOUP_AVAILABLE_IN_2_42
+guint    soup_get_major_version (void);
+
+SOUP_AVAILABLE_IN_2_42
+guint    soup_get_minor_version (void);
+
+SOUP_AVAILABLE_IN_2_42
+guint    soup_get_micro_version (void);
+
+SOUP_AVAILABLE_IN_2_42
+gboolean soup_check_version     (guint major,
+				 guint minor,
+				 guint micro);
+
 G_END_DECLS
 
 #endif /* SOUP_VERSION_H */

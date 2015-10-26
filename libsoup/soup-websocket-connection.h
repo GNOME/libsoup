@@ -61,6 +61,7 @@ typedef struct {
 SOUP_AVAILABLE_IN_2_50
 GType soup_websocket_connection_get_type (void) G_GNUC_CONST;
 
+SOUP_AVAILABLE_IN_2_50
 SoupWebsocketConnection *soup_websocket_connection_new (GIOStream                    *stream,
 							SoupURI                      *uri,
 							SoupWebsocketConnectionType   type,

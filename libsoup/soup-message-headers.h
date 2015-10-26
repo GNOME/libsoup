@@ -11,6 +11,7 @@
 G_BEGIN_DECLS
 
 typedef struct SoupMessageHeaders SoupMessageHeaders;
+SOUP_AVAILABLE_IN_2_4
 GType soup_message_headers_get_type (void);
 #define SOUP_TYPE_MESSAGE_HEADERS (soup_message_headers_get_type ())
 
@@ -20,25 +21,32 @@ typedef enum {
 	SOUP_MESSAGE_HEADERS_MULTIPART
 } SoupMessageHeadersType;
 
+SOUP_AVAILABLE_IN_2_4
 SoupMessageHeaders *soup_message_headers_new      (SoupMessageHeadersType type);
 
+SOUP_AVAILABLE_IN_2_4
 void                soup_message_headers_free     (SoupMessageHeaders *hdrs);
 
+SOUP_AVAILABLE_IN_2_4
 void                soup_message_headers_append   (SoupMessageHeaders *hdrs,
 						   const char         *name,
 						   const char         *value);
+SOUP_AVAILABLE_IN_2_4
 void                soup_message_headers_replace  (SoupMessageHeaders *hdrs,
 						   const char         *name,
 						   const char         *value);
 
+SOUP_AVAILABLE_IN_2_4
 void                soup_message_headers_remove   (SoupMessageHeaders *hdrs,
 						   const char         *name);
+SOUP_AVAILABLE_IN_2_4
 void                soup_message_headers_clear    (SoupMessageHeaders *hdrs);
 
 SOUP_AVAILABLE_IN_2_36
 void                soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs);
 
 #ifndef SOUP_DISABLE_DEPRECATED
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_28_FOR ("soup_message_headers_get_one or soup_message_headers_get_list")
 const char         *soup_message_headers_get      (SoupMessageHeaders *hdrs,
 						   const char         *name);
@@ -62,6 +70,7 @@ typedef void      (*SoupMessageHeadersForeachFunc)(const char         *name,
 						   const char         *value,
 						   gpointer            user_data);
 
+SOUP_AVAILABLE_IN_2_4
 void                soup_message_headers_foreach  (SoupMessageHeaders *hdrs,
 						   SoupMessageHeadersForeachFunc func,
 						   gpointer            user_data);
@@ -74,8 +83,10 @@ typedef struct {
 	gpointer dummy[3];
 } SoupMessageHeadersIter;
 
+SOUP_AVAILABLE_IN_2_4
 void                soup_message_headers_iter_init (SoupMessageHeadersIter  *iter,
 						    SoupMessageHeaders      *hdrs);
+SOUP_AVAILABLE_IN_2_4
 gboolean            soup_message_headers_iter_next (SoupMessageHeadersIter  *iter,
 						    const char             **name,
 						    const char             **value);
@@ -91,11 +102,15 @@ typedef enum {
 	SOUP_ENCODING_BYTERANGES
 } SoupEncoding;
 
+SOUP_AVAILABLE_IN_2_4
 SoupEncoding    soup_message_headers_get_encoding        (SoupMessageHeaders *hdrs);
+SOUP_AVAILABLE_IN_2_4
 void            soup_message_headers_set_encoding        (SoupMessageHeaders *hdrs,
 							  SoupEncoding        encoding);
 
+SOUP_AVAILABLE_IN_2_4
 goffset         soup_message_headers_get_content_length  (SoupMessageHeaders *hdrs);
+SOUP_AVAILABLE_IN_2_4
 void            soup_message_headers_set_content_length  (SoupMessageHeaders *hdrs,
 							  goffset             content_length);
 
@@ -104,7 +119,9 @@ typedef enum {
 	SOUP_EXPECTATION_CONTINUE     = (1 << 1)
 } SoupExpectation;
 
+SOUP_AVAILABLE_IN_2_4
 SoupExpectation soup_message_headers_get_expectations    (SoupMessageHeaders *hdrs);
+SOUP_AVAILABLE_IN_2_4
 void            soup_message_headers_set_expectations    (SoupMessageHeaders *hdrs,
 							  SoupExpectation     expectations);
 

@@ -28,6 +28,7 @@ struct _SoupURI {
 	char       *fragment;
 };
 
+SOUP_AVAILABLE_IN_2_4
 GType       soup_uri_get_type              (void);
 #define SOUP_TYPE_URI (soup_uri_get_type ())
 
@@ -45,63 +46,83 @@ SOUP_VAR gpointer _SOUP_URI_SCHEME_FTP;
 SOUP_VAR gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA, _SOUP_URI_SCHEME_RESOURCE;
 SOUP_VAR gpointer _SOUP_URI_SCHEME_WS, _SOUP_URI_SCHEME_WSS;
 
+SOUP_AVAILABLE_IN_2_4
 SoupURI	   *soup_uri_new_with_base         (SoupURI    *base,
 					    const char *uri_string);
+SOUP_AVAILABLE_IN_2_4
 SoupURI	   *soup_uri_new                   (const char *uri_string);
 
+SOUP_AVAILABLE_IN_2_4
 char   	   *soup_uri_to_string             (SoupURI    *uri,
 					    gboolean    just_path_and_query);
 
+SOUP_AVAILABLE_IN_2_4
 SoupURI	   *soup_uri_copy                  (SoupURI    *uri);
 
+SOUP_AVAILABLE_IN_2_4
 gboolean    soup_uri_equal                 (SoupURI    *uri1,
 					    SoupURI    *uri2);
 
+SOUP_AVAILABLE_IN_2_4
 void  	    soup_uri_free                  (SoupURI    *uri);
 
+SOUP_AVAILABLE_IN_2_4
 char  	   *soup_uri_encode                (const char *part,
 					    const char *escape_extra);
+SOUP_AVAILABLE_IN_2_4
 char  	   *soup_uri_decode                (const char *part);
+SOUP_AVAILABLE_IN_2_4
 char  	   *soup_uri_normalize             (const char *part,
 					    const char *unescape_extra);
 
+SOUP_AVAILABLE_IN_2_4
 gboolean    soup_uri_uses_default_port     (SoupURI    *uri);
 
 SOUP_AVAILABLE_IN_2_32
 const char *soup_uri_get_scheme            (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_scheme            (SoupURI    *uri,
 					    const char *scheme);
 SOUP_AVAILABLE_IN_2_32
 const char *soup_uri_get_user              (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_user              (SoupURI    *uri,
 					    const char *user);
 SOUP_AVAILABLE_IN_2_32
 const char *soup_uri_get_password          (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_password          (SoupURI    *uri,
 					    const char *password);
 SOUP_AVAILABLE_IN_2_32
 const char *soup_uri_get_host              (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_host              (SoupURI    *uri,
 					    const char *host);
 SOUP_AVAILABLE_IN_2_32
 guint       soup_uri_get_port              (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_port              (SoupURI    *uri,
 					    guint       port);
 SOUP_AVAILABLE_IN_2_32
 const char *soup_uri_get_path              (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_path              (SoupURI    *uri,
 					    const char *path);
 SOUP_AVAILABLE_IN_2_32
 const char *soup_uri_get_query             (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_query             (SoupURI    *uri,
 					    const char *query);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_query_from_form   (SoupURI    *uri,
 					    GHashTable *form);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_query_from_fields (SoupURI    *uri,
 					    const char *first_field,
 					    ...) G_GNUC_NULL_TERMINATED;
 SOUP_AVAILABLE_IN_2_32
 const char *soup_uri_get_fragment          (SoupURI    *uri);
+SOUP_AVAILABLE_IN_2_4
 void        soup_uri_set_fragment          (SoupURI    *uri,
 					    const char *fragment);
 

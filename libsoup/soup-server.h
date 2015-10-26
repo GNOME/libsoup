@@ -20,6 +20,7 @@ G_BEGIN_DECLS
 #define SOUP_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SERVER, SoupServerClass))
 
 typedef struct SoupClientContext SoupClientContext;
+SOUP_AVAILABLE_IN_2_4
 GType soup_client_context_get_type (void);
 #define SOUP_TYPE_CLIENT_CONTEXT (soup_client_context_get_type ())
 
@@ -54,6 +55,7 @@ typedef struct {
 	void (*_libsoup_reserved4) (void);
 } SoupServerClass;
 
+SOUP_AVAILABLE_IN_2_4
 GType soup_server_get_type (void);
 
 #define SOUP_SERVER_TLS_CERTIFICATE "tls-certificate"
@@ -62,6 +64,7 @@ GType soup_server_get_type (void);
 #define SOUP_SERVER_HTTP_ALIASES    "http-aliases"
 #define SOUP_SERVER_HTTPS_ALIASES   "https-aliases"
 
+SOUP_AVAILABLE_IN_2_4
 SoupServer     *soup_server_new                (const char               *optname1,
 					        ...) G_GNUC_NULL_TERMINATED;
 
@@ -70,6 +73,7 @@ gboolean        soup_server_set_ssl_cert_file  (SoupServer               *server
 					        const char               *ssl_cert_file,
 					        const char               *ssl_key_file,
 					        GError                  **error);
+SOUP_AVAILABLE_IN_2_4
 gboolean        soup_server_is_https           (SoupServer               *server);
 
 SOUP_AVAILABLE_IN_2_48
@@ -102,6 +106,7 @@ GSList         *soup_server_get_uris           (SoupServer               *server
 SOUP_AVAILABLE_IN_2_48
 GSList         *soup_server_get_listeners      (SoupServer               *server);
 
+SOUP_AVAILABLE_IN_2_4
 void            soup_server_disconnect         (SoupServer               *server);
 
 SOUP_AVAILABLE_IN_2_50
@@ -120,6 +125,7 @@ typedef void  (*SoupServerCallback)            (SoupServer         *server,
 						SoupClientContext  *client,
 						gpointer            user_data);
 
+SOUP_AVAILABLE_IN_2_4
 void            soup_server_add_handler        (SoupServer         *server,
 					        const char         *path,
 					        SoupServerCallback  callback,
@@ -146,18 +152,22 @@ void            soup_server_add_websocket_handler (SoupServer                   
 						   gpointer                      user_data,
 						   GDestroyNotify                destroy);
 
+SOUP_AVAILABLE_IN_2_4
 void            soup_server_remove_handler     (SoupServer         *server,
 					        const char         *path);
 
+SOUP_AVAILABLE_IN_2_4
 void            soup_server_add_auth_domain    (SoupServer         *server,
 					        SoupAuthDomain     *auth_domain);
+SOUP_AVAILABLE_IN_2_4
 void            soup_server_remove_auth_domain (SoupServer         *server,
 					        SoupAuthDomain     *auth_domain);
 
 /* I/O */
-
+SOUP_AVAILABLE_IN_2_4
 void            soup_server_pause_message   (SoupServer  *server,
 					     SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void            soup_server_unpause_message (SoupServer  *server,
 					     SoupMessage *msg);
 
@@ -169,8 +179,11 @@ SOUP_AVAILABLE_IN_2_48
 GSocketAddress *soup_client_context_get_local_address  (SoupClientContext *client);
 SOUP_AVAILABLE_IN_2_48
 GSocketAddress *soup_client_context_get_remote_address (SoupClientContext *client);
+SOUP_AVAILABLE_IN_2_4
 const char     *soup_client_context_get_host           (SoupClientContext *client);
+SOUP_AVAILABLE_IN_2_4
 SoupAuthDomain *soup_client_context_get_auth_domain    (SoupClientContext *client);
+SOUP_AVAILABLE_IN_2_4
 const char     *soup_client_context_get_auth_user      (SoupClientContext *client);
 
 SOUP_AVAILABLE_IN_2_50
@@ -184,24 +197,32 @@ GIOStream      *soup_client_context_steal_connection   (SoupClientContext *clien
 #define SOUP_SERVER_SSL_CERT_FILE "ssl-cert-file"
 #define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
 
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 guint         soup_server_get_port            (SoupServer        *server);
 
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 SoupSocket   *soup_server_get_listener        (SoupServer        *server);
 
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 GMainContext *soup_server_get_async_context   (SoupServer        *server);
 
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 void          soup_server_run                 (SoupServer        *server);
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 void          soup_server_run_async           (SoupServer        *server);
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 void          soup_server_quit                (SoupServer        *server);
 
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 SoupAddress  *soup_client_context_get_address (SoupClientContext *client);
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_48
 SoupSocket   *soup_client_context_get_socket  (SoupClientContext *client);
 

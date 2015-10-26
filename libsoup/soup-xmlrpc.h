@@ -43,6 +43,7 @@ char       *soup_xmlrpc_parse_request         (const char        *method_call,
 SOUP_AVAILABLE_IN_2_52
 char       *soup_xmlrpc_build_response        (GVariant          *value,
 					       GError           **error);
+SOUP_AVAILABLE_IN_2_4
 char       *soup_xmlrpc_build_fault           (int                fault_code,
 					       const char        *fault_format,
 					       ...) G_GNUC_PRINTF (2, 3);
@@ -66,6 +67,7 @@ SoupDate *soup_xmlrpc_variant_get_datetime (GVariant *variant,
 
 /* Errors */
 #define SOUP_XMLRPC_ERROR soup_xmlrpc_error_quark()
+SOUP_AVAILABLE_IN_2_4
 GQuark soup_xmlrpc_error_quark (void);
 
 typedef enum {
@@ -74,6 +76,7 @@ typedef enum {
 } SoupXMLRPCError;
 
 #define SOUP_XMLRPC_FAULT soup_xmlrpc_fault_quark()
+SOUP_AVAILABLE_IN_2_4
 GQuark soup_xmlrpc_fault_quark (void);
 
 typedef enum {

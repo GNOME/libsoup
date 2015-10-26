@@ -249,6 +249,7 @@ BUILT_SOURCES = \
 
 soup_enum_types_sources = $(libsoupinclude_HEADERS) $(libsoupgnomeinclude_HEADERS)
 soup_enum_types_MKENUMS_C_FLAGS = --fhead "\#define LIBSOUP_USE_UNSTABLE_REQUEST_API"
+soup_enum_types_MKENUMS_H_FLAGS = --fhead "\#include <libsoup/soup-version.h>\n\#define GLIB_MKENUMS_EXTERN _SOUP_EXTERN\n"
 
 #
 # Introspection support

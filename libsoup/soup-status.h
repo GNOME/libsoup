@@ -93,11 +93,13 @@ typedef enum {
 	SOUP_STATUS_NOT_EXTENDED                    = 510  /* RFC 2774 */
 } SoupStatus;
 
+SOUP_AVAILABLE_IN_2_4
 const char *soup_status_get_phrase (guint status_code);
 SOUP_AVAILABLE_IN_2_26
 guint       soup_status_proxify    (guint status_code);
 
 #define SOUP_HTTP_ERROR soup_http_error_quark()
+SOUP_AVAILABLE_IN_2_4
 GQuark soup_http_error_quark (void);
 
 #ifndef SOUP_DISABLE_DEPRECATED

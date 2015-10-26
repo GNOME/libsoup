@@ -58,6 +58,7 @@ typedef struct {
 	void (*_libsoup_reserved3) (void);
 } SoupMessageClass;
 
+SOUP_AVAILABLE_IN_2_4
 GType soup_message_get_type (void);
 
 #define SOUP_MESSAGE_METHOD             "method"
@@ -78,16 +79,20 @@ GType soup_message_get_type (void);
 #define SOUP_MESSAGE_TLS_ERRORS         "tls-errors"
 #define SOUP_MESSAGE_PRIORITY           "priority"
 
+SOUP_AVAILABLE_IN_2_4
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri_string);
+SOUP_AVAILABLE_IN_2_4
 SoupMessage   *soup_message_new_from_uri        (const char        *method,
 						 SoupURI           *uri);
 
+SOUP_AVAILABLE_IN_2_4
 void           soup_message_set_request         (SoupMessage       *msg,
 						 const char        *content_type,
 						 SoupMemoryUse      req_use,
 						 const char        *req_body,
 						 gsize              req_length);
+SOUP_AVAILABLE_IN_2_4
 void           soup_message_set_response        (SoupMessage       *msg,
 						 const char        *content_type,
 						 SoupMemoryUse      resp_use,
@@ -99,13 +104,18 @@ typedef enum {
 	SOUP_HTTP_1_1 = 1  /*< nick=http-1-1 >*/
 } SoupHTTPVersion;
 
+SOUP_AVAILABLE_IN_2_4
 void             soup_message_set_http_version    (SoupMessage       *msg,
 						   SoupHTTPVersion    version);
+SOUP_AVAILABLE_IN_2_4
 SoupHTTPVersion  soup_message_get_http_version    (SoupMessage       *msg);
 
+SOUP_AVAILABLE_IN_2_4
 gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 
+SOUP_AVAILABLE_IN_2_4
 SoupURI         *soup_message_get_uri             (SoupMessage       *msg);
+SOUP_AVAILABLE_IN_2_4
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   SoupURI           *uri);
 SOUP_AVAILABLE_IN_2_26
@@ -130,9 +140,11 @@ typedef enum {
 	SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS = (1 << 8)
 } SoupMessageFlags;
 
+SOUP_AVAILABLE_IN_2_4
 void             soup_message_set_flags           (SoupMessage           *msg,
 						   SoupMessageFlags       flags);
 
+SOUP_AVAILABLE_IN_2_4
 SoupMessageFlags soup_message_get_flags           (SoupMessage           *msg);
 
 SOUP_AVAILABLE_IN_2_34
@@ -142,12 +154,14 @@ gboolean         soup_message_get_https_status    (SoupMessage           *msg,
 
 
 /* Specialized signal handlers */
+SOUP_AVAILABLE_IN_2_4
 guint          soup_message_add_header_handler  (SoupMessage       *msg,
 						 const char        *signal,
 						 const char        *header,
 						 GCallback          callback,
 						 gpointer           user_data);
 
+SOUP_AVAILABLE_IN_2_4
 guint          soup_message_add_status_code_handler (
 						 SoupMessage       *msg,
 						 const char        *signal,
@@ -158,9 +172,11 @@ guint          soup_message_add_status_code_handler (
 /*
  * Status Setting
  */
+SOUP_AVAILABLE_IN_2_4
 void           soup_message_set_status          (SoupMessage       *msg, 
 						 guint              status_code);
 
+SOUP_AVAILABLE_IN_2_4
 void           soup_message_set_status_full     (SoupMessage       *msg, 
 						 guint              status_code, 
 						 const char        *reason_phrase);
@@ -176,6 +192,7 @@ typedef SoupBuffer * (*SoupChunkAllocator)      (SoupMessage       *msg,
 						 gsize              max_len,
 						 gpointer           user_data);
 
+SOUP_AVAILABLE_IN_2_4
 SOUP_DEPRECATED_IN_2_42_FOR(SoupRequest)
 void           soup_message_set_chunk_allocator (SoupMessage       *msg,
 						 SoupChunkAllocator allocator,
@@ -207,21 +224,33 @@ void                soup_message_set_priority   (SoupMessage        *msg,
 SOUP_AVAILABLE_IN_2_44
 SoupMessagePriority soup_message_get_priority   (SoupMessage        *msg);
 
+SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_informational (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_headers       (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_chunk         (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_body_data     (SoupMessage *msg, SoupBuffer *chunk);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_body          (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_got_informational   (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_got_headers         (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_got_chunk           (SoupMessage *msg, SoupBuffer *chunk);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_got_body            (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_content_sniffed     (SoupMessage *msg, const char *content_type, GHashTable *params);
 
 SOUP_AVAILABLE_IN_2_50
 void soup_message_starting            (SoupMessage *msg);
 
+SOUP_AVAILABLE_IN_2_4
 void soup_message_restarted           (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_4
 void soup_message_finished            (SoupMessage *msg);
 
 G_END_DECLS
