@@ -22,6 +22,10 @@ G_BEGIN_DECLS
     (SOUP_MAJOR_VERSION == (major) && SOUP_MINOR_VERSION == (minor) && \
      SOUP_MICRO_VERSION >= (micro)))
 
+#ifndef _SOUP_EXTERN
+#define _SOUP_EXTERN extern
+#endif
+
 guint    soup_get_major_version (void);
 
 guint    soup_get_minor_version (void);
@@ -89,6 +93,8 @@ gboolean soup_check_version     (guint major,
 #error "SOUP_VERSION_MIN_REQUIRED must be >= SOUP_VERSION_2_24"
 #endif
 
+#define SOUP_AVAILABLE_IN_2_4                   _SOUP_EXTERN
+
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_24
 # define SOUP_DEPRECATED_IN_2_24                G_DEPRECATED
 # define SOUP_DEPRECATED_IN_2_24_FOR(f)         G_DEPRECATED_FOR(f)
@@ -98,9 +104,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_24
-# define SOUP_AVAILABLE_IN_2_24                 GLIB_UNAVAILABLE(2, 24)
+# define SOUP_AVAILABLE_IN_2_24                 G_UNAVAILABLE(2, 24) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_24
+# define SOUP_AVAILABLE_IN_2_24                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_26
@@ -112,9 +118,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_26
-# define SOUP_AVAILABLE_IN_2_26                 GLIB_UNAVAILABLE(2, 26)
+# define SOUP_AVAILABLE_IN_2_26                 G_UNAVAILABLE(2, 26) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_26
+# define SOUP_AVAILABLE_IN_2_26                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_28
@@ -126,9 +132,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_28
-# define SOUP_AVAILABLE_IN_2_28                 GLIB_UNAVAILABLE(2, 28)
+# define SOUP_AVAILABLE_IN_2_28                 G_UNAVAILABLE(2, 28) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_28
+# define SOUP_AVAILABLE_IN_2_28                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_30
@@ -140,9 +146,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_30
-# define SOUP_AVAILABLE_IN_2_30                 GLIB_UNAVAILABLE(2, 30)
+# define SOUP_AVAILABLE_IN_2_30                 G_UNAVAILABLE(2, 30) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_30
+# define SOUP_AVAILABLE_IN_2_30                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_32
@@ -154,9 +160,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_32
-# define SOUP_AVAILABLE_IN_2_32                 GLIB_UNAVAILABLE(2, 32)
+# define SOUP_AVAILABLE_IN_2_32                 G_UNAVAILABLE(2, 32) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_32
+# define SOUP_AVAILABLE_IN_2_32                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_34
@@ -168,9 +174,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_34
-# define SOUP_AVAILABLE_IN_2_34                 GLIB_UNAVAILABLE(2, 34)
+# define SOUP_AVAILABLE_IN_2_34                 G_UNAVAILABLE(2, 34) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_34
+# define SOUP_AVAILABLE_IN_2_34                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_36
@@ -182,9 +188,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_36
-# define SOUP_AVAILABLE_IN_2_36                 GLIB_UNAVAILABLE(2, 36)
+# define SOUP_AVAILABLE_IN_2_36                 G_UNAVAILABLE(2, 36) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_36
+# define SOUP_AVAILABLE_IN_2_36                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_38
@@ -196,9 +202,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_38
-# define SOUP_AVAILABLE_IN_2_38                 GLIB_UNAVAILABLE(2, 38)
+# define SOUP_AVAILABLE_IN_2_38                 G_UNAVAILABLE(2, 38) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_38
+# define SOUP_AVAILABLE_IN_2_38                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_40
@@ -210,9 +216,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_40
-# define SOUP_AVAILABLE_IN_2_40                 GLIB_UNAVAILABLE(2, 40)
+# define SOUP_AVAILABLE_IN_2_40                 G_UNAVAILABLE(2, 40) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_40
+# define SOUP_AVAILABLE_IN_2_40                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_42
@@ -224,9 +230,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_42
-# define SOUP_AVAILABLE_IN_2_42                 GLIB_UNAVAILABLE(2, 42)
+# define SOUP_AVAILABLE_IN_2_42                 G_UNAVAILABLE(2, 42) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_42
+# define SOUP_AVAILABLE_IN_2_42                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_44
@@ -238,9 +244,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_44
-# define SOUP_AVAILABLE_IN_2_44                 GLIB_UNAVAILABLE(2, 44)
+# define SOUP_AVAILABLE_IN_2_44                 G_UNAVAILABLE(2, 44) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_44
+# define SOUP_AVAILABLE_IN_2_44                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_46
@@ -252,9 +258,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_46
-# define SOUP_AVAILABLE_IN_2_46                 GLIB_UNAVAILABLE(2, 46)
+# define SOUP_AVAILABLE_IN_2_46                 G_UNAVAILABLE(2, 46) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_46
+# define SOUP_AVAILABLE_IN_2_46                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_48
@@ -266,9 +272,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_48
-# define SOUP_AVAILABLE_IN_2_48                 GLIB_UNAVAILABLE(2, 48)
+# define SOUP_AVAILABLE_IN_2_48                 G_UNAVAILABLE(2, 48) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_48
+# define SOUP_AVAILABLE_IN_2_48                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_50
@@ -280,9 +286,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_50
-# define SOUP_AVAILABLE_IN_2_50                 GLIB_UNAVAILABLE(2, 50)
+# define SOUP_AVAILABLE_IN_2_50                 G_UNAVAILABLE(2, 50) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_50
+# define SOUP_AVAILABLE_IN_2_50                 _SOUP_EXTERN
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_52
@@ -294,9 +300,9 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_52
-# define SOUP_AVAILABLE_IN_2_52                 GLIB_UNAVAILABLE(2, 52)
+# define SOUP_AVAILABLE_IN_2_52                 G_UNAVAILABLE(2, 52) _SOUP_EXTERN
 #else
-# define SOUP_AVAILABLE_IN_2_52
+# define SOUP_AVAILABLE_IN_2_52                 _SOUP_EXTERN
 #endif
 
 G_END_DECLS
