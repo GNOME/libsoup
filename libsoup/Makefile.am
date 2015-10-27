@@ -86,13 +86,13 @@ nodist_libsoupinclude_HEADERS =	\
 
 lib_LTLIBRARIES = libsoup-2.4.la
 
+libsoup_2_4_la_CFLAGS = $(AM_CFLAGS) $(SOUP_HIDDEN_VISIBILITY_CFLAGS)
+
 libsoup_2_4_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) \
 	-no-undefined \
-	-export-symbols $(srcdir)/libsoup-2.4.sym \
+	-export-dynamic \
 	$(CODE_COVERAGE_LDFLAGS)
-
-EXTRA_DIST += libsoup-2.4.sym
 
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
@@ -221,12 +221,12 @@ libsoupgnomeinclude_HEADERS =	\
 
 lib_LTLIBRARIES += libsoup-gnome-2.4.la
 
+libsoup_gnome_2_4_la_CFLAGS = $(AM_CFLAGS) $(SOUP_HIDDEN_VISIBILITY_CFLAGS)
+
 libsoup_gnome_2_4_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) \
 	-no-undefined \
-	-export-symbols $(srcdir)/libsoup-gnome-2.4.sym
-
-EXTRA_DIST += libsoup-gnome-2.4.sym
+	-export-dynamic
 
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
@@ -321,16 +321,4 @@ typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES+= $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
 
-endif
-
-# We only do this check on Linux, so we don't have to worry about
-# different "nm" output on other platforms
-if OS_LINUX
-check-local:
-	@echo Checking libsoup-2.4.so symbols
-	@nm $(builddir)/.libs/libsoup-2.4.so | \
-		grep "^[[:xdigit:]]\+ [BGTRS] " | \
-		sed "s/^[[:xdigit:]]\+ [BGTRS] //" | \
-		env LC_ALL=C sort -u | \
-		diff -U0 $(srcdir)/libsoup-2.4.sym - >&2
 endif
