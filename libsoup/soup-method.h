@@ -58,22 +58,22 @@ G_BEGIN_DECLS
 /* Do not use these variables directly; use the macros above, which
  * ensure that they get initialized properly.
  */
-extern gpointer _SOUP_METHOD_OPTIONS;
-extern gpointer _SOUP_METHOD_GET;
-extern gpointer _SOUP_METHOD_HEAD;
-extern gpointer _SOUP_METHOD_POST;
-extern gpointer _SOUP_METHOD_PUT;
-extern gpointer _SOUP_METHOD_DELETE;
-extern gpointer _SOUP_METHOD_TRACE;
-extern gpointer _SOUP_METHOD_CONNECT;
+SOUP_VAR gpointer _SOUP_METHOD_OPTIONS;
+SOUP_VAR gpointer _SOUP_METHOD_GET;
+SOUP_VAR gpointer _SOUP_METHOD_HEAD;
+SOUP_VAR gpointer _SOUP_METHOD_POST;
+SOUP_VAR gpointer _SOUP_METHOD_PUT;
+SOUP_VAR gpointer _SOUP_METHOD_DELETE;
+SOUP_VAR gpointer _SOUP_METHOD_TRACE;
+SOUP_VAR gpointer _SOUP_METHOD_CONNECT;
 
-extern gpointer _SOUP_METHOD_PROPFIND;
-extern gpointer _SOUP_METHOD_PROPPATCH;
-extern gpointer _SOUP_METHOD_MKCOL;
-extern gpointer _SOUP_METHOD_COPY;
-extern gpointer _SOUP_METHOD_MOVE;
-extern gpointer _SOUP_METHOD_LOCK;
-extern gpointer _SOUP_METHOD_UNLOCK;
+SOUP_VAR gpointer _SOUP_METHOD_PROPFIND;
+SOUP_VAR gpointer _SOUP_METHOD_PROPPATCH;
+SOUP_VAR gpointer _SOUP_METHOD_MKCOL;
+SOUP_VAR gpointer _SOUP_METHOD_COPY;
+SOUP_VAR gpointer _SOUP_METHOD_MOVE;
+SOUP_VAR gpointer _SOUP_METHOD_LOCK;
+SOUP_VAR gpointer _SOUP_METHOD_UNLOCK;
 
 G_END_DECLS
 
