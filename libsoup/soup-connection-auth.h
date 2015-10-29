@@ -44,7 +44,6 @@ typedef struct {
 						   gpointer            conn);
 } SoupConnectionAuthClass;
 
-SOUP_AVAILABLE_IN_2_42
 GType soup_connection_auth_get_type (void);
 
 G_END_DECLS
