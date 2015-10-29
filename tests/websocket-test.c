@@ -20,8 +20,6 @@
 
 #include "test-utils.h"
 
-#include <sys/socket.h>
-
 typedef struct {
 	GSocket *listener;
 	gushort port;
