@@ -34,38 +34,36 @@ gboolean soup_check_version     (guint major,
 
 /* Deprecation / Availability macros */
 
-#define SOUP_ENCODE_VERSION(major,minor) ((major) << 16 | (minor) << 8)
-
-#define SOUP_VERSION_2_24 (SOUP_ENCODE_VERSION (2, 24))
-#define SOUP_VERSION_2_26 (SOUP_ENCODE_VERSION (2, 26))
-#define SOUP_VERSION_2_28 (SOUP_ENCODE_VERSION (2, 28))
-#define SOUP_VERSION_2_30 (SOUP_ENCODE_VERSION (2, 30))
-#define SOUP_VERSION_2_32 (SOUP_ENCODE_VERSION (2, 32))
-#define SOUP_VERSION_2_34 (SOUP_ENCODE_VERSION (2, 34))
-#define SOUP_VERSION_2_36 (SOUP_ENCODE_VERSION (2, 36))
-#define SOUP_VERSION_2_38 (SOUP_ENCODE_VERSION (2, 38))
-#define SOUP_VERSION_2_40 (SOUP_ENCODE_VERSION (2, 40))
-#define SOUP_VERSION_2_42 (SOUP_ENCODE_VERSION (2, 42))
-#define SOUP_VERSION_2_44 (SOUP_ENCODE_VERSION (2, 44))
-#define SOUP_VERSION_2_46 (SOUP_ENCODE_VERSION (2, 46))
-#define SOUP_VERSION_2_48 (SOUP_ENCODE_VERSION (2, 48))
-#define SOUP_VERSION_2_50 (SOUP_ENCODE_VERSION (2, 50))
-#define SOUP_VERSION_2_52 (SOUP_ENCODE_VERSION (2, 52))
+#define SOUP_VERSION_2_24 (G_ENCODE_VERSION (2, 24))
+#define SOUP_VERSION_2_26 (G_ENCODE_VERSION (2, 26))
+#define SOUP_VERSION_2_28 (G_ENCODE_VERSION (2, 28))
+#define SOUP_VERSION_2_30 (G_ENCODE_VERSION (2, 30))
+#define SOUP_VERSION_2_32 (G_ENCODE_VERSION (2, 32))
+#define SOUP_VERSION_2_34 (G_ENCODE_VERSION (2, 34))
+#define SOUP_VERSION_2_36 (G_ENCODE_VERSION (2, 36))
+#define SOUP_VERSION_2_38 (G_ENCODE_VERSION (2, 38))
+#define SOUP_VERSION_2_40 (G_ENCODE_VERSION (2, 40))
+#define SOUP_VERSION_2_42 (G_ENCODE_VERSION (2, 42))
+#define SOUP_VERSION_2_44 (G_ENCODE_VERSION (2, 44))
+#define SOUP_VERSION_2_46 (G_ENCODE_VERSION (2, 46))
+#define SOUP_VERSION_2_48 (G_ENCODE_VERSION (2, 48))
+#define SOUP_VERSION_2_50 (G_ENCODE_VERSION (2, 50))
+#define SOUP_VERSION_2_52 (G_ENCODE_VERSION (2, 52))
 
 /* evaluates to the current stable version; for development cycles,
  * this means the next stable target
  */
 #if (SOUP_MINOR_VERSION % 2)
-#define SOUP_VERSION_CUR_STABLE (SOUP_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION + 1))
+#define SOUP_VERSION_CUR_STABLE (G_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION + 1))
 #else
-#define SOUP_VERSION_CUR_STABLE (SOUP_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION))
+#define SOUP_VERSION_CUR_STABLE (G_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION))
 #endif
 
 /* evaluates to the previous stable version */
 #if (SOUP_MINOR_VERSION % 2)
-#define SOUP_VERSION_PREV_STABLE (SOUP_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION - 1))
+#define SOUP_VERSION_PREV_STABLE (G_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION - 1))
 #else
-#define SOUP_VERSION_PREV_STABLE (SOUP_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION - 2))
+#define SOUP_VERSION_PREV_STABLE (G_ENCODE_VERSION (SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION - 2))
 #endif
 
 #ifndef SOUP_VERSION_MIN_REQUIRED
@@ -92,8 +90,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_24
-# define SOUP_DEPRECATED_IN_2_24                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_24_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_24                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_24_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_24
 # define SOUP_DEPRECATED_IN_2_24_FOR(f)
@@ -106,8 +104,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_26
-# define SOUP_DEPRECATED_IN_2_26                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_26_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_26                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_26_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_26
 # define SOUP_DEPRECATED_IN_2_26_FOR(f)
@@ -120,8 +118,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_28
-# define SOUP_DEPRECATED_IN_2_28                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_28_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_28                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_28_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_28
 # define SOUP_DEPRECATED_IN_2_28_FOR(f)
@@ -134,8 +132,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_30
-# define SOUP_DEPRECATED_IN_2_30                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_30_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_30                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_30_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_30
 # define SOUP_DEPRECATED_IN_2_30_FOR(f)
@@ -148,8 +146,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_32
-# define SOUP_DEPRECATED_IN_2_32                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_32_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_32                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_32_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_32
 # define SOUP_DEPRECATED_IN_2_32_FOR(f)
@@ -162,8 +160,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_34
-# define SOUP_DEPRECATED_IN_2_34                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_34_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_34                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_34_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_34
 # define SOUP_DEPRECATED_IN_2_34_FOR(f)
@@ -176,8 +174,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_36
-# define SOUP_DEPRECATED_IN_2_36                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_36_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_36                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_36_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_36
 # define SOUP_DEPRECATED_IN_2_36_FOR(f)
@@ -190,8 +188,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_38
-# define SOUP_DEPRECATED_IN_2_38                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_38_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_38                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_38_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_38
 # define SOUP_DEPRECATED_IN_2_38_FOR(f)
@@ -204,8 +202,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_40
-# define SOUP_DEPRECATED_IN_2_40                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_40_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_40                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_40_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_40
 # define SOUP_DEPRECATED_IN_2_40_FOR(f)
@@ -218,8 +216,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_42
-# define SOUP_DEPRECATED_IN_2_42                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_42_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_42                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_42_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_42
 # define SOUP_DEPRECATED_IN_2_42_FOR(f)
@@ -232,8 +230,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_44
-# define SOUP_DEPRECATED_IN_2_44                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_44_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_44                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_44_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_44
 # define SOUP_DEPRECATED_IN_2_44_FOR(f)
@@ -246,8 +244,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_46
-# define SOUP_DEPRECATED_IN_2_46                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_46_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_46                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_46_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_46
 # define SOUP_DEPRECATED_IN_2_46_FOR(f)
@@ -260,8 +258,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_48
-# define SOUP_DEPRECATED_IN_2_48                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_48_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_48                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_48_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_48
 # define SOUP_DEPRECATED_IN_2_48_FOR(f)
@@ -274,8 +272,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_50
-# define SOUP_DEPRECATED_IN_2_50                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_50_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_50                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_50_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_50
 # define SOUP_DEPRECATED_IN_2_50_FOR(f)
@@ -288,8 +286,8 @@ gboolean soup_check_version     (guint major,
 #endif
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_52
-# define SOUP_DEPRECATED_IN_2_52                GLIB_DEPRECATED
-# define SOUP_DEPRECATED_IN_2_52_FOR(f)         GLIB_DEPRECATED_FOR(f)
+# define SOUP_DEPRECATED_IN_2_52                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_52_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_52
 # define SOUP_DEPRECATED_IN_2_52_FOR(f)
