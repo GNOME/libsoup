@@ -3,6 +3,10 @@
  * Copyright 2013 Red Hat, Inc.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "soup-socket-private.h"
 #include "soup.h"
 

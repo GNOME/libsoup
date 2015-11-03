@@ -5,6 +5,10 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <string.h>
 
 #include "soup-multipart.h"
