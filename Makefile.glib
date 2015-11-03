@@ -206,7 +206,8 @@ $(1).h.stamp: $(_glib_enum_types_h_sources) Makefile
 		$$(GLIB_MKENUMS_H_FLAGS) \
 		$$($(_glib_enum_types_prefix)_MKENUMS_H_FLAGS) \
 		--fhead "#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
-		--vhead "GType @enum_name@_get_type (void) G_GNUC_CONST;\n#define @ENUMPREFIX@_TYPE_@ENUMSHORT@ (@enum_name@_get_type ())\n" \
+		--fhead "#ifndef GLIB_MKENUMS_EXTERN\n#define GLIB_MKENUMS_EXTERN\n#endif\n" \
+		--vhead "GLIB_MKENUMS_EXTERN GType @enum_name@_get_type (void) G_GNUC_CONST;\n#define @ENUMPREFIX@_TYPE_@ENUMSHORT@ (@enum_name@_get_type ())\n" \
 		--ftail "G_END_DECLS\n\n#endif /* $(_glib_enum_types_guard) */" \
 		$$(filter-out Makefile, $$^) > $(1).h.tmp && \
 	(cmp -s $(1).h.tmp $(1).h || cp $(1).h.tmp $(1).h) && \
