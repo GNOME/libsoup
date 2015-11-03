@@ -405,7 +405,7 @@ main (int argc, char **argv)
 	}
 	g_slist_free (uris);
 
-	session = soup_session_async_new ();
+	session = soup_session_new ();
 
 	g_print ("\nWaiting for requests...\n");
 

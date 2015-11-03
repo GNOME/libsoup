@@ -14,7 +14,7 @@ G_BEGIN_DECLS
 #define SOUP_TYPE_SESSION_ASYNC            (soup_session_async_get_type ())
 #define SOUP_SESSION_ASYNC(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SESSION_ASYNC, SoupSessionAsync))
 #define SOUP_SESSION_ASYNC_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SESSION_ASYNC, SoupSessionAsyncClass))
-#define SOUP_IS_SESSION_ASYNC(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SESSION_ASYNC))
+#define SOUP_IS_SESSION_ASYNC(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), _soup_session_async_get_type_undeprecated ()))
 #define SOUP_IS_SESSION_ASYNC_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SESSION_ASYNC))
 #define SOUP_SESSION_ASYNC_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SESSION_ASYNC, SoupSessionAsyncClass))
 
@@ -34,12 +34,23 @@ typedef struct {
 } SoupSessionAsyncClass;
 
 SOUP_AVAILABLE_IN_2_4
+SOUP_DEPRECATED_IN_2_54
 GType soup_session_async_get_type (void);
+
+static inline GType
+_soup_session_async_get_type_undeprecated (void)
+{
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+	return soup_session_async_get_type ();
+	G_GNUC_END_IGNORE_DEPRECATIONS;
+}
 
 #ifndef SOUP_DISABLE_DEPRECATED
 SOUP_AVAILABLE_IN_2_4
+SOUP_DEPRECATED_IN_2_54_FOR(soup_session_new)
 SoupSession *soup_session_async_new              (void);
 SOUP_AVAILABLE_IN_2_4
+SOUP_DEPRECATED_IN_2_54_FOR(soup_session_new)
 SoupSession *soup_session_async_new_with_options (const char *optname1,
 						  ...) G_GNUC_NULL_TERMINATED;
 #endif

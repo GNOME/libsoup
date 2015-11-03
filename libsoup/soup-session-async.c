@@ -30,6 +30,8 @@
  * linkend="libsoup-session-porting">porting guide</link>.
  **/
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
 static void
@@ -141,3 +143,5 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	session_class->send_message = soup_session_async_send_message;
 	session_class->cancel_message = soup_session_async_cancel_message;
 }
+
+G_GNUC_END_IGNORE_DEPRECATIONS;

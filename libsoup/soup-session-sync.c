@@ -29,6 +29,8 @@
  * linkend="libsoup-session-porting">porting guide</link>.
  **/
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
 static void
@@ -127,3 +129,5 @@ soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 	/* virtual method override */
 	session_class->queue_message = soup_session_sync_queue_message;
 }
+
+G_GNUC_END_IGNORE_DEPRECATIONS;

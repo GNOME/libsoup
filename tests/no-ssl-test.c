@@ -58,7 +58,9 @@ do_session_property_tests (void)
 
 	g_test_bug ("700518");
 
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	session = soup_session_async_new ();
+	G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	/* Temporarily undeprecate SOUP_SESSION_SSL_CA_FILE to avoid warnings. */
 	pspec = g_object_class_find_property (g_type_class_peek (SOUP_TYPE_SESSION),
