@@ -286,11 +286,11 @@ libsoup-2.4.vapi: Soup-2.4.gir Soup-2.4.metadata Soup-2.4-custom.vala
 	$(VAPIGEN) --metadatadir=$(top_srcdir)/libsoup --pkg gio-2.0 --library=libsoup-2.4 $^
 
 vapidir=$(VAPIDIR)
-vapi_DATA=libsoup-2.4.vapi
-CLEANFILES += $(vapi_DATA)
+vapi_DATA=libsoup-2.4.vapi libsoup-2.4.deps
+CLEANFILES += libsoup-2.4.vapi
 endif
 
-EXTRA_DIST += Soup-2.4.metadata Soup-2.4-custom.vala
+EXTRA_DIST += Soup-2.4.metadata Soup-2.4-custom.vala libsoup-2.4.deps
 
 if BUILD_LIBSOUP_GNOME
 
