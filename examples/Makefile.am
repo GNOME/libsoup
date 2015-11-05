@@ -6,6 +6,7 @@ AM_CPPFLAGS =		\
 
 LIBS =			\
 	$(top_builddir)/libsoup/libsoup-2.4.la \
+	$(top_builddir)/tests/libtest.la \
 	$(GLIB_LIBS)
 
 EXTRA_DIST = meson.build
@@ -13,4 +14,5 @@ EXTRA_DIST = meson.build
 noinst_PROGRAMS =		\
 	get			\
 	simple-httpd		\
-	simple-proxy
+	simple-proxy		\
+	reverse-http-test
