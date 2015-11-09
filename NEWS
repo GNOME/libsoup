@@ -1,3 +1,13 @@
+Changes in libsoup from 2.52.1 to 2.52.2:
+
+	* Fixed build under MinGW [Ignacio Casal Quintero]
+
+	* Fix SoupServerWebsocketCallback handling so that the
+          SoupClientContext passed to it is still valid.
+
+	* Added a .deps file to define dependencies for valac
+	  [Rico Tzschichholz]
+
 Changes in libsoup from 2.52.0 to 2.52.1:
 
 	* Fixed build under MinGW [Chun-wei Fan]
