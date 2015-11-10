@@ -1,17 +1,15 @@
 # Occitan translation for libsoup.
 # Copyright (C) 2012-2015 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# 
-# 
-# Cédric Valmary (Tot en Òc) <cvalmary@yahoo.fr>, 2015.
+# Cédric Valmary <cvalmary@yahoo.fr>, 2015.
 # Cédric Valmary (Tot en òc) <cvalmary@yahoo.fr>, 2015.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup"
 "&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-05-27 10:37+0000\n"
-"PO-Revision-Date: 2015-05-27 18:51+0200\n"
+"POT-Creation-Date: 2015-10-12 21:41+0000\n"
+"PO-Revision-Date: 2015-10-31 08:12+0200\n"
 "Last-Translator: Cédric Valmary (Tot en òc) <cvalmary@yahoo.fr>\n"
 "Language-Team: Tot en òc (totenoc.eu)\n"
 "Language: oc\n"
@@ -26,7 +24,7 @@ msgstr ""
 #: ../libsoup/soup-body-input-stream.c:171
 #: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
-msgstr "La connexion es estada interrompuda d'un biais inesperat"
+msgstr "La connexion es estada interrompuda d'un biais imprevist"
 
 #: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
@@ -88,22 +86,22 @@ msgstr "Impossible de crear un servidor TLS sens un certificat TLS"
 msgid "Could not listen on address %s, port %d"
 msgstr "Impossible d'escotar l'adreça %s sul pòrt %d"
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4543
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Impossible d'analisar l'URI « %s »"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4580
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "L'esquèma d'URI « %s » es pas pres en carga"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4602
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Es pas un URI HTTP"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4788
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Lo servidor a pas acceptat la negociacion WebSocket."
 
@@ -119,44 +117,44 @@ msgstr "Impossible d'importar lo connectador ret existent : "
 msgid "Can't import unconnected socket"
 msgstr "Impossible d'importar lo connectador ret non connectat"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Negociacion WebSocket esperada"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Version de WebSocket pas presa en carga"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Clau WebSocket pas valabla"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
 msgid "Incorrect WebSocket \"%s\" header"
 msgstr "Entèsta WebSocket « %s » incorrècta"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Sosprotocòl de WebSocket pas pres en carga"
 
-#: ../libsoup/soup-websocket.c:508
+#: ../libsoup/soup-websocket.c:510
 msgid "Server rejected WebSocket handshake"
 msgstr "Lo servidor a regetat la negociacion WebSocket"
 
-#: ../libsoup/soup-websocket.c:516 ../libsoup/soup-websocket.c:525
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
 msgid "Server ignored WebSocket handshake"
 msgstr "Lo servidor a ignorat la negociacion WebSocket"
 
-#: ../libsoup/soup-websocket.c:537
+#: ../libsoup/soup-websocket.c:539
 msgid "Server requested unsupported protocol"
 msgstr "Lo servidor a demandat un protocòl pas pres en carga"
 
-#: ../libsoup/soup-websocket.c:547
+#: ../libsoup/soup-websocket.c:549
 msgid "Server requested unsupported extension"
 msgstr "Lo servidor a demandat una extension pas presa en carga"
 
-#: ../libsoup/soup-websocket.c:560
+#: ../libsoup/soup-websocket.c:562
 #, c-format
 msgid "Server returned incorrect \"%s\" key"
 msgstr "Lo servidor a renviat una clau « %s » incorrècta"
