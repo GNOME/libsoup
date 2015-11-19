@@ -45,16 +45,6 @@ G_BEGIN_DECLS
 #  endif /* !G_PLATFORM_WIN32 */
 #endif /* SOUP_VAR */
 
-guint    soup_get_major_version (void);
-
-guint    soup_get_minor_version (void);
-
-guint    soup_get_micro_version (void);
-
-gboolean soup_check_version     (guint major,
-				 guint minor,
-				 guint micro);
-
 /* Deprecation / Availability macros */
 
 #define SOUP_VERSION_2_24 (G_ENCODE_VERSION (2, 24))
