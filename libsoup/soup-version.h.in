@@ -62,6 +62,7 @@ G_BEGIN_DECLS
 #define SOUP_VERSION_2_48 (G_ENCODE_VERSION (2, 48))
 #define SOUP_VERSION_2_50 (G_ENCODE_VERSION (2, 50))
 #define SOUP_VERSION_2_52 (G_ENCODE_VERSION (2, 52))
+#define SOUP_VERSION_2_54 (G_ENCODE_VERSION (2, 54))
 
 /* evaluates to the current stable version; for development cycles,
  * this means the next stable target
@@ -312,6 +313,20 @@ G_BEGIN_DECLS
 # define SOUP_AVAILABLE_IN_2_52                 G_UNAVAILABLE(2, 52) _SOUP_EXTERN
 #else
 # define SOUP_AVAILABLE_IN_2_52                 _SOUP_EXTERN
+#endif
+
+#if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_54
+# define SOUP_DEPRECATED_IN_2_54                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_54_FOR(f)         G_DEPRECATED_FOR(f)
+#else
+# define SOUP_DEPRECATED_IN_2_54
+# define SOUP_DEPRECATED_IN_2_54_FOR(f)
+#endif
+
+#if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_54
+# define SOUP_AVAILABLE_IN_2_54                 G_UNAVAILABLE(2, 54) _SOUP_EXTERN
+#else
+# define SOUP_AVAILABLE_IN_2_54                 _SOUP_EXTERN
 #endif
 
 SOUP_AVAILABLE_IN_2_42
