@@ -1,3 +1,20 @@
+Changes in libsoup from 2.53.1 to 2.53.2:
+
+	* Fixed up symbol visibility handling for mingw by copying
+          GLib's system [Ignacio Casal Quinteiro, #757146]
+
+	* Finally marked the old SoupSessionAsync and SoupSessionSync
+          methods as deprecated [Ignacio Casal Quinteiro, Dan Winship,
+          #757146]
+
+	* Added libsoup-2.4.deps for valac [Rico Tzschichholz]
+
+	* Make it possible to build from git without gtk-doc being
+          installed [Ignacio Casal Quinteiro]
+
+	* Updated translations:
+	  Norwegian bokmål, Occitan
+
 Changes in libsoup from 2.52.1 to 2.53.1:
 
 	* Really fixed build under MinGW for sure this time [Ignacio
