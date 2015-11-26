@@ -323,3 +323,28 @@ typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 CLEANFILES+= $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
 
 endif
+
+# ------ MSVC Project File Generation ------
+MSVCPROJS = soup soup-gnome
+
+soup_FILES = $(libsoup_2_4_la_SOURCES)
+soup_EXCLUDES = dummy
+
+soup_HEADERS_DIR = $(libsoupincludedir)
+soup_HEADERS_INST = $(libsoupinclude_HEADERS) $(nodist_libsoupinclude_HEADERS)
+soup_HEADERS_EXCLUDES = dummy
+
+soup_gnome_FILES = $(libsoup_gnome_2_4_la_SOURCES)
+soup_gnome_EXCLUDES = dummy
+
+soup_gnome_HEADERS_DIR = $(libsoupgnomeincludedir)
+soup_gnome_HEADERS_INST = $(libsoupgnomeinclude_HEADERS)
+soup_gnome_HEADERS_EXCLUDES = dummy
+
+include $(top_srcdir)/build/Makefile.msvcproj
+
+dist-hook: \
+	$(top_builddir)/build/win32/vs9/soup.vcproj	\
+	$(top_builddir)/build/win32/vs9/soup.headers	\
+	$(top_builddir)/build/win32/vs9/soup-gnome.vcproj	\
+	$(top_builddir)/build/win32/vs9/soup-gnome.headers

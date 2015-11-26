@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioPropertySheet
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="soupgensrcsprops"
+	InheritedPropertySheets=".\soup-build-defines.vsprops"
+	>
+	<UserMacro
+		Name="CopyConfigH"
+		Value="copy ..\..\..\config.h.win32 ..\..\..\config.h"
+	/>
+	<UserMacro
+		Name="GenSoupVersionH"
+		Value="
+$(PythonPath)\python.exe ..\replace.py --action=replace-var --input=..\..\..\libsoup\soup-version.h.in --output=..\..\..\libsoup\soup-version.h.tmp1 --var=SOUP_MAJOR_VERSION --outstring=@SOUP_MAJOR_VERSION@&#x0D;&#x0A;
+$(PythonPath)\python.exe ..\replace.py --action=replace-var --input=..\..\..\libsoup\soup-version.h.tmp1 --output=..\..\..\libsoup\soup-version.h.tmp2 --var=SOUP_MINOR_VERSION --outstring=@SOUP_MINOR_VERSION@&#x0D;&#x0A;
+$(PythonPath)\python.exe ..\replace.py --action=replace-var --input=..\..\..\libsoup\soup-version.h.tmp2 --output=..\..\..\libsoup\soup-version.h --var=SOUP_MICRO_VERSION --outstring=@SOUP_MICRO_VERSION@&#x0D;&#x0A;
+del ..\..\..\libsoup\soup-version.h.tmp1 ..\..\..\libsoup\soup-version.h.tmp2&#x0D;&#x0A;
+		      "
+	/>
+	<UserMacro
+		Name="GenTldDataInc"
+		Value="$(PythonPath)\python.exe ..\..\..\libsoup\tld-parser.py ..\..\..\data\effective_tld_names.dat ..\..\..\libsoup\tld_data.inc"
+	/>
+</VisualStudioPropertySheet>

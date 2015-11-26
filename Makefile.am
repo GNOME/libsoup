@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-SUBDIRS = libsoup po tests examples docs
+SUBDIRS = libsoup po tests examples docs build/win32
 
 EXTRA_DIST =				\
 	data/effective_tld_names.dat	\
@@ -12,7 +12,8 @@ EXTRA_DIST =				\
 	glib-tap.mk			\
 	tap-driver.sh			\
 	tap-test			\
-	Makefile.glib
+	Makefile.glib			\
+	config.h.win32
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection
 

@@ -391,5 +391,14 @@ AC_CONFIG_FILES([
 	docs/Makefile
 	docs/reference/Makefile
 	libsoup/soup-version.h
+	config.h.win32
+	build/win32/Makefile
+	build/win32/vs9/Makefile
+	build/win32/vs9/soup-gen-srcs.vsprops
+	build/win32/vs10/Makefile
+	build/win32/vs10/soup-gen-srcs.props
+	build/win32/vs11/Makefile
+	build/win32/vs12/Makefile
+	build/win32/vs14/Makefile
 	])
 AC_OUTPUT
