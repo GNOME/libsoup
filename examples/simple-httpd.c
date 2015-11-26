@@ -3,7 +3,6 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +10,7 @@
 #include <sys/stat.h>
 
 #include <libsoup/soup.h>
+#include <glib/gstdio.h>
 
 static int
 compare_strings (gconstpointer a, gconstpointer b)
@@ -27,22 +27,22 @@ get_directory_listing (const char *path)
 	GPtrArray *entries;
 	GString *listing;
 	char *escaped;
-	DIR *dir;
-	struct dirent *dent;
+	GDir *dir;
+	const gchar *d_name;
 	int i;
 
 	entries = g_ptr_array_new ();
-	dir = opendir (path);
+	dir = g_dir_open (path, 0, NULL);
 	if (dir) {
-		while ((dent = readdir (dir))) {
-			if (!strcmp (dent->d_name, ".") ||
-			    (!strcmp (dent->d_name, "..") &&
+		while ((d_name = g_dir_read_name (dir))) {
+			if (!strcmp (d_name, ".") ||
+			    (!strcmp (d_name, "..") &&
 			     !strcmp (path, "./")))
 				continue;
-			escaped = g_markup_escape_text (dent->d_name, -1);
+			escaped = g_markup_escape_text (d_name, -1);
 			g_ptr_array_add (entries, escaped);
 		}
-		closedir (dir);
+		g_dir_close (dir);
 	}
 
 	g_ptr_array_sort (entries, (GCompareFunc)compare_strings);
@@ -68,9 +68,9 @@ static void
 do_get (SoupServer *server, SoupMessage *msg, const char *path)
 {
 	char *slash;
-	struct stat st;
+	GStatBuf st;
 
-	if (stat (path, &st) == -1) {
+	if (g_stat (path, &st) == -1) {
 		if (errno == EPERM)
 			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
 		else if (errno == ENOENT)
@@ -80,7 +80,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		return;
 	}
 
-	if (S_ISDIR (st.st_mode)) {
+	if (g_file_test (path, G_FILE_TEST_IS_DIR)) {
 		GString *listing;
 		char *index_path;
 
@@ -96,7 +96,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		}
 
 		index_path = g_strdup_printf ("%s/index.html", path);
-		if (stat (index_path, &st) != -1) {
+		if (g_stat (path, &st) != -1) {
 			do_get (server, msg, index_path);
 			g_free (index_path);
 			return;
@@ -146,18 +146,18 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 static void
 do_put (SoupServer *server, SoupMessage *msg, const char *path)
 {
-	struct stat st;
+	GStatBuf st;
 	FILE *f;
 	gboolean created = TRUE;
 
-	if (stat (path, &st) != -1) {
+	if (g_stat (path, &st) != -1) {
 		const char *match = soup_message_headers_get_one (msg->request_headers, "If-None-Match");
 		if (match && !strcmp (match, "*")) {
 			soup_message_set_status (msg, SOUP_STATUS_CONFLICT);
 			return;
 		}
 
-		if (!S_ISREG (st.st_mode)) {
+		if (!g_file_test (path, G_FILE_TEST_IS_REGULAR)) {
 			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
 			return;
 		}
