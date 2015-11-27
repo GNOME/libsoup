@@ -10,9 +10,12 @@ if OS_WIN32
 LIBWS2_32 = -lws2_32
 endif
 
+SOUP_COMMON_CPPFLAGS =			\
+	-DG_LOG_DOMAIN=\"libsoup\"	\
+	-DLIBSOUP_COMPILATION
+
 AM_CPPFLAGS = 				\
-	-DG_LOG_DOMAIN=\"libsoup\" 	\
-	-DLIBSOUP_COMPILATION		\
+	$(SOUP_COMMON_CPPFLAGS)		\
 	-DLOCALEDIR=\"$(localedir)\"	\
 	-I$(top_srcdir)			\
 	-I$(top_builddir)		\
@@ -261,6 +264,8 @@ INTROSPECTION_COMPILER_ARGS = --includedir=.
 
 if HAVE_INTROSPECTION
 
+SOUP_UNSTABLE_REQUEST_CFLAG = -DLIBSOUP_USE_UNSTABLE_REQUEST_API
+
 # Core library
 gi_soup_files = \
 	$(filter-out soup.h soup-enum-types.% soup-proxy-resolver.h,\
@@ -269,7 +274,7 @@ gi_built_soup_files = soup-enum-types.h
 
 Soup-2.4.gir: libsoup-2.4.la
 Soup_2_4_gir_INCLUDES = Gio-2.0
-Soup_2_4_gir_CFLAGS = $(AM_CPPFLAGS) -DLIBSOUP_USE_UNSTABLE_REQUEST_API
+Soup_2_4_gir_CFLAGS = $(AM_CPPFLAGS) $(SOUP_UNSTABLE_REQUEST_CFLAG)
 Soup_2_4_gir_LIBS = libsoup-2.4.la
 Soup_2_4_gir_EXPORT_PACKAGES = libsoup-2.4
 Soup_2_4_gir_SCANNERFLAGS = --c-include "libsoup/soup.h"
@@ -295,14 +300,17 @@ EXTRA_DIST += Soup-2.4.metadata Soup-2.4-custom.vala libsoup-2.4.deps
 
 if BUILD_LIBSOUP_GNOME
 
+SOUPGNOME_GIR_SCANNER_BASE_FLAGS =	\
+	--identifier-prefix=Soup	\
+	--symbol-prefix=soup
+
 # GNOME extensions
 gi_soup_gnome_files = $(filter-out soup-gnome.h,\
 		          $(libsoupgnomeinclude_HEADERS) \
 	                  $(filter-out %.h, $(libsoup_gnome_2_4_la_SOURCES)))
 SoupGNOME-2.4.gir: libsoup-gnome-2.4.la Soup-2.4.gir
 SoupGNOME_2_4_gir_SCANNERFLAGS =			\
-	--identifier-prefix=Soup			\
-	--symbol-prefix=soup				\
+	$(SOUPGNOME_GIR_SCANNER_BASE_FLAGS)		\
 	--c-include "libsoup/soup-gnome.h"		\
 	--include-uninstalled=$(builddir)/Soup-2.4.gir
 SoupGNOME_2_4_gir_CFLAGS = $(AM_CPPFLAGS)
@@ -343,8 +351,47 @@ soup_gnome_HEADERS_EXCLUDES = dummy
 
 include $(top_srcdir)/build/Makefile.msvcproj
 
+if HAVE_INTROSPECTION
+# Introspection Items for MSVC
+MSVC_INTROSPECT_GIRS = Soup-2.4.gir SoupGNOME-2.4.gir
+
+BASE_MSVC_GIR_CFLAGS =		\
+	$(SOUP_COMMON_CPPFLAGS)	\
+	-I../..
+
+INTROSPECTION_INTERMEDIATE_ITEMS = 					\
+	$(top_builddir)/build/win32/Soup-2.4.gir.msvc.introspect	\
+	$(top_builddir)/build/win32/Soup_2_4_gir_list			\
+	$(top_builddir)/build/win32/SoupGNOME-2.4.gir.msvc.introspect	\
+	$(top_builddir)/build/win32/SoupGNOME_2_4_gir_list
+
+# libsoup
+Soup_2_4_gir_MSVC_FILES = $(gi_soup_files) $(gi_built_soup_files)
+Soup_2_4_gir_MSVC_EXPORT_PACKAGES = $(Soup_2_4_gir_EXPORT_PACKAGES)
+Soup_2_4_gir_MSVC_INCLUDE_GIRS = $(Soup_2_4_gir_INCLUDES)
+Soup_2_4_gir_MSVC_LIBS = soup-2.4
+Soup_2_4_gir_MSVC_CFLAGS =  $(BASE_MSVC_GIR_CFLAGS) $(SOUP_UNSTABLE_REQUEST_CFLAG)
+Soup_2_4_gir_MSVC_SCANNERFLAGS = --c-include \"libsoup/soup.h\"
+
+# libsoup-gnome
+SoupGNOME_2_4_gir_MSVC_FILES = $(gi_soup_gnome_files)
+SoupGNOME_2_4_gir_MSVC_GIR_DEPS = Soup-2.4.gir
+SoupGNOME_2_4_gir_MSVC_EXPORT_PACKAGES = $(SoupGNOME_2_4_gir_EXPORT_PACKAGES)
+SoupGNOME_2_4_gir_MSVC_LIBS = soup-gnome-2.4 soup-2.4
+SoupGNOME_2_4_gir_MSVC_CFLAGS = $(BASE_MSVC_GIR_CFLAGS)
+SoupGNOME_2_4_gir_MSVC_SCANNERFLAGS =	i	\
+	$(SOUPGNOME_GIR_SCANNER_BASE_FLAGS)	\
+	 --c-include \"libsoup/soup-gnome.h\"	\
+	--include-uninstalled=./Soup-2.4.gir
+
+include $(top_srcdir)/build/Makefile.msvc-introspection
+else
+INTROSPECTION_INTERMEDIATE_ITEMS =
+endif
+
 dist-hook: \
-	$(top_builddir)/build/win32/vs9/soup.vcproj	\
-	$(top_builddir)/build/win32/vs9/soup.headers	\
+	$(top_builddir)/build/win32/vs9/soup.vcproj		\
+	$(top_builddir)/build/win32/vs9/soup.headers		\
 	$(top_builddir)/build/win32/vs9/soup-gnome.vcproj	\
-	$(top_builddir)/build/win32/vs9/soup-gnome.headers
+	$(top_builddir)/build/win32/vs9/soup-gnome.headers	\
+	$(INTROSPECTION_INTERMEDIATE_ITEMS)
