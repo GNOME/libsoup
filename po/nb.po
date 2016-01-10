@@ -1,14 +1,14 @@
 # Norwegian bokmål translation of libsoup.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# Kjartan Maraas <kmaraas@gnome.org>, 2012-2015.
+# Kjartan Maraas <kmaraas@gnome.org>, 2012-2016.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup 3.19.x\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-16 00:16+0100\n"
-"PO-Revision-Date: 2015-11-16 00:17+0100\n"
+"POT-Creation-Date: 2016-01-10 20:09+0100\n"
+"PO-Revision-Date: 2016-01-10 20:09+0100\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian bokmål <i18n-nb@lister.ping.uio.no>\n"
 "Language: \n"
