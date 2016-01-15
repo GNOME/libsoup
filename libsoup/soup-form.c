@@ -77,7 +77,7 @@ form_decode (char *part)
  * Decodes @form, which is an urlencoded dataset as defined in the
  * HTML 4.01 spec.
  *
- * Return value: (element-type utf8 utf8) (transfer full): a hash
+ * Return value: (element-type utf8 utf8) (transfer container): a hash
  * table containing the name/value pairs from @encoded_form, which you
  * can free with g_hash_table_destroy().
  **/
@@ -139,7 +139,7 @@ soup_form_decode (const char *encoded_form)
  * need to decode it manually, using soup_multipart_new_from_message()
  * and soup_multipart_get_part().
  *
- * Return value: (nullable) (element-type utf8 utf8) (transfer full):
+ * Return value: (nullable) (element-type utf8 utf8) (transfer container):
  * a hash table containing the name/value pairs (other than
  * @file_control_name) from @msg, which you can free with
  * g_hash_table_destroy(). On error, it will return %NULL.
