@@ -39,16 +39,11 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 	const char *headers_start;
 	char *headers_copy, *name, *name_end, *value, *value_end;
 	char *eol, *sol, *p;
+	gsize copy_len;
 	gboolean success = FALSE;
 
 	g_return_val_if_fail (str != NULL, FALSE);
 	g_return_val_if_fail (dest != NULL, FALSE);
-
-	/* RFC 2616 does allow NUL bytes in the headers, but httpbis
-	 * is changing that, and we can't deal with them anyway.
-	 */
-	if (memchr (str, '\0', len))
-		return FALSE;
 
 	/* As per RFC 2616 section 19.3, we treat '\n' as the
 	 * line terminator, and '\r', if it appears, merely as
@@ -59,13 +54,27 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 	headers_start = memchr (str, '\n', len);
 	if (!headers_start)
 		return FALSE;
+	/* No '\0's in the Request-Line / Status-Line */
+	if (memchr (str, '\0', headers_start - str))
+		return FALSE;
 
 	/* We work on a copy of the headers, which we can write '\0's
 	 * into, so that we don't have to individually g_strndup and
 	 * then g_free each header name and value.
 	 */
-	headers_copy = g_strndup (headers_start, len - (headers_start - str));
+	copy_len = len - (headers_start - str);
+	headers_copy = g_malloc (copy_len + 1);
+	memcpy (headers_copy, headers_start, copy_len);
+	headers_copy[copy_len] = '\0';
 	value_end = headers_copy;
+
+	/* There shouldn't be any '\0's in the headers already, but
+	 * this is the web we're talking about.
+	 */
+	while ((p = memchr (headers_copy, '\0', copy_len))) {
+		memmove (p, p + 1, copy_len - (p - headers_copy));
+		copy_len--;
+	}
 
 	while (*(value_end + 1)) {
 		name = value_end + 1;
