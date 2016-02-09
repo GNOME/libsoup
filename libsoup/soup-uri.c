@@ -868,7 +868,8 @@ uri_normalized_copy (const char *part, int length,
  * @unescape_extra: (allow-none): reserved characters to unescape (or %NULL)
  *
  * %<!-- -->-decodes any "unreserved" characters (or characters in
- * @unescape_extra) in @part.
+ * @unescape_extra) in @part, and %<!-- -->-encodes any non-ASCII
+ * characters, spaces, and non-printing characters in @part.
  *
  * "Unreserved" characters are those that are not allowed to be used
  * for punctuation according to the URI spec. For example, letters are
