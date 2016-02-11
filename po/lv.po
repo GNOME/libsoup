@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Tranzistors <rudolfs.mazurs@gmail.com>, 2012.
-# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014.
+# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014, 2016.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-10-06 21:59+0000\n"
-"PO-Revision-Date: 2014-10-07 21:08+0300\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&"
+"keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2016-02-08 13:23+0000\n"
+"PO-Revision-Date: 2016-02-11 23:21+0200\n"
 "Last-Translator: Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>\n"
 "Language-Team: Latvian <lata-l10n@googlegroups.com>\n"
 "Language: lv\n"
@@ -19,11 +19,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : "
 "2);\n"
-"X-Generator: Lokalize 1.5\n"
+"X-Generator: Lokalize 2.0\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Savienojums tika negaidīti pārtraukts"
 
@@ -35,11 +35,11 @@ msgstr "Nederīgs meklēšanas pieprasījums"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Nevar apraut SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Tīkla straume negaidīti aizvērās"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Neizdevās resursu pilnībā noglabāt kešatmiņā"
 
@@ -56,15 +56,15 @@ msgstr "Nevarēja parsēt HTTP atbildi"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neatpazīts HTTP atbildes kodējums"
 
-#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
-msgid "Operation was cancelled"
-msgstr "Darbība tika atcelta"
-
-#: ../libsoup/soup-message-io.c:901
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "Darbība bloķētu"
 
-#: ../libsoup/soup-message-server-io.c:41
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "Darbība tika atcelta"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Nevarēja parsēt HTTP pieprasījumu"
 
@@ -78,41 +78,87 @@ msgstr "Nav sniegts URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "Nederīgs “%s” URI — %s"
 
-#: ../libsoup/soup-server.c:1528
+#: ../libsoup/soup-server.c:1720
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Bez TLS sertifikāta nevar izveidot TLS serveri"
 
-#: ../libsoup/soup-server.c:1547
+#: ../libsoup/soup-server.c:1739
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "Nevarēja sākt klausīties adresi %s, portu %d"
 
-#: ../libsoup/soup-session.c:4466
+#: ../libsoup/soup-session.c:4543
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Nevarēja parsēt URI “%s”"
 
-#: ../libsoup/soup-session.c:4503
+#: ../libsoup/soup-session.c:4580
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Neatbalstīta URI shēma “%s”"
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4602
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nav HTTP URI"
 
-#: ../libsoup/soup-socket.c:142
+#: ../libsoup/soup-session.c:4788
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Serveris nepieņēma WebSocket rokasspiedienu."
+
+#: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
 msgstr "Nevar importēt ne-ligzdu kā SoupSocket"
 
-#: ../libsoup/soup-socket.c:160
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Nevarēja importēt esošu ligzdu: "
 
-#: ../libsoup/soup-socket.c:169
+#: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"
 msgstr "Nevar importēt nesavienotu ligzdu"
+
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
+msgid "WebSocket handshake expected"
+msgstr "WebSocket rokasspiedienam beidzās termiņš"
+
+#: ../libsoup/soup-websocket.c:355
+msgid "Unsupported WebSocket version"
+msgstr "Neatbalstīta WebSocket versija"
+
+#: ../libsoup/soup-websocket.c:364
+msgid "Invalid WebSocket key"
+msgstr "Nederīga WebSocket atslēga"
+
+#: ../libsoup/soup-websocket.c:374
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Nederīga WebSocket “%s” galvene"
+
+#: ../libsoup/soup-websocket.c:383
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Neatbalstīts WebSocket apakšprotokols"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "Serveris noraidīja WebSocket rokasspiedienu"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "Serveris ignorēja WebSocket rokasspiedienu"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "Serveris pieprasīja neatbalstītu protokolu"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "Serveris pieprasīja neatbalstītu paplašinājumu"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "Serveris atgrieza nederīgu “%s” atslēgu"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
@@ -129,5 +175,4 @@ msgstr "Datora nosaukumam nav bāzes domēna"
 #: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Nepietiekami daudz domēnu"
-
 
