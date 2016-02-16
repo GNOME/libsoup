@@ -1,3 +1,13 @@
+Changes in libsoup from 2.53.2 to 2.53.90:
+
+	* NUL bytes in headers are now ignored [#760832, Dan Winship]
+
+	* Fixed transfer annotation of soup_form_decode* functions
+          [#743966, Lionel Landwerlin]
+
+	* Updated translations:
+	  Bulgarian, Latvian, Norwegian bokmål
+
 Changes in libsoup from 2.53.1 to 2.53.2:
 
 	* Fixed up symbol visibility handling for mingw by copying
