@@ -6,9 +6,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup"
-"&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-10-12 21:41+0000\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2016-02-18 13:26+0000\n"
 "PO-Revision-Date: 2015-10-31 08:12+0200\n"
 "Last-Translator: Cédric Valmary (Tot en òc) <cvalmary@yahoo.fr>\n"
 "Language-Team: Tot en òc (totenoc.eu)\n"
@@ -40,7 +40,7 @@ msgstr "Lo flux ret s'es arrestat inopinèament"
 
 #: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
-msgstr "Impossible de metre la ressorsa totalament en escondedor"
+msgstr "Impossible de metre la ressorsa totalament en cache"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -77,11 +77,11 @@ msgstr "Cap d'URI pas provesit"
 msgid "Invalid '%s' URI: %s"
 msgstr "URI « %s » invalid : %s"
 
-#: ../libsoup/soup-server.c:1711
+#: ../libsoup/soup-server.c:1720
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Impossible de crear un servidor TLS sens un certificat TLS"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1739
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "Impossible d'escotar l'adreça %s sul pòrt %d"
