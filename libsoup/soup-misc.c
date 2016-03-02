@@ -241,3 +241,38 @@ const char soup_char_attributes[] = {
 	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
 };
+
+/**
+ * soup_host_matches_host
+ * @host: a URI
+ * @compare_with: a URI
+ *
+ * Checks if the @host and @compare_with exactly match or prefixed with a dot.
+ *
+ * Return value: %TRUE if the hosts match, %FALSE otherwise
+ *
+ * Since: 2.54
+ **/
+gboolean
+soup_host_matches_host (const gchar *host, const gchar *compare_with)
+{
+	char *match;
+	int dlen;
+
+	g_return_val_if_fail (host != NULL, FALSE);
+	g_return_val_if_fail (compare_with != NULL, FALSE);
+
+	if (!g_ascii_strcasecmp (host, compare_with))
+		return TRUE;
+	if (*host != '.')
+		return FALSE;
+	if (!g_ascii_strcasecmp (host + 1, compare_with))
+		return TRUE;
+	dlen = strlen (host);
+	while ((match = strstr (compare_with, host))) {
+		if (!match[dlen])
+			return TRUE;
+		compare_with = match + 1;
+	}
+	return FALSE;
+}

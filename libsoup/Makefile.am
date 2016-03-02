@@ -23,7 +23,8 @@ AM_CPPFLAGS = 				\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
 	$(SQLITE_CFLAGS)		\
-	$(CODE_COVERAGE_CFLAGS)
+	$(CODE_COVERAGE_CFLAGS)		\
+	$(KRB5_CFLAGS)
 
 libsoupincludedir = $(includedir)/libsoup-2.4/libsoup
 
@@ -101,7 +102,8 @@ libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(LIBWS2_32)			\
 	$(XML_LIBS)			\
-	$(SQLITE_LIBS)
+	$(SQLITE_LIBS)			\
+	$(KRB5_LIBS)
 
 libsoup_2_4_la_SOURCES =		\
 	gconstructor.h			\
@@ -113,6 +115,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-digest.c		\
 	soup-auth-ntlm.h		\
 	soup-auth-ntlm.c		\
+	soup-auth-negotiate.h		\
+	soup-auth-negotiate.c		\
 	soup-auth-domain.c		\
 	soup-auth-domain-basic.c	\
 	soup-auth-domain-digest.c	\

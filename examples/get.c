@@ -4,6 +4,10 @@
  * Copyright (C) 2013 Igalia, S.L.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -90,6 +94,7 @@ get_url (const char *url)
 
 static const char *ca_file, *proxy;
 static gboolean synchronous, ntlm;
+static gboolean negotiate;
 
 static GOptionEntry entries[] = {
 	{ "ca-file", 'c', 0,
@@ -119,6 +124,13 @@ static GOptionEntry entries[] = {
 	{ NULL }
 };
 
+static GOptionEntry negotiate_entries[] = {
+	{ "negotiate", 'N', 0,
+	  G_OPTION_ARG_NONE, &negotiate,
+	  "Use Negotiate authentication", NULL },
+	{ NULL }
+};
+
 int
 main (int argc, char **argv)
 {
@@ -130,6 +142,8 @@ main (int argc, char **argv)
 
 	opts = g_option_context_new (NULL);
 	g_option_context_add_main_entries (opts, entries, NULL);
+	if (soup_auth_negotiate_supported())
+		g_option_context_add_main_entries (opts, negotiate_entries, NULL);
 	if (!g_option_context_parse (opts, &argc, &argv, &error)) {
 		g_printerr ("Could not parse arguments: %s\n",
 			    error->message);
@@ -182,6 +196,13 @@ main (int argc, char **argv)
 			      NULL);
 		soup_uri_free (proxy_uri);
 	}
+
+#ifdef LIBSOUP_HAVE_GSSAPI
+	if (negotiate) {
+		soup_session_add_feature_by_type (session,
+						  SOUP_TYPE_AUTH_NEGOTIATE);
+	}
+#endif /* LIBSOUP_HAVE_GSSAPI */
 
 	if (!synchronous)
 		loop = g_main_loop_new (NULL, TRUE);

@@ -129,6 +129,11 @@ soup_auth_get_property (GObject *object, guint prop_id,
 	}
 }
 
+static gboolean
+auth_can_authenticate (SoupAuth *auth)
+{
+	return TRUE;
+}
 
 static void
 soup_auth_class_init (SoupAuthClass *auth_class)
@@ -136,6 +141,8 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_class);
 
 	g_type_class_add_private (auth_class, sizeof (SoupAuthPrivate));
+
+	auth_class->can_authenticate = auth_can_authenticate;
 
 	object_class->finalize     = soup_auth_finalize;
 	object_class->set_property = soup_auth_set_property;
@@ -488,6 +495,25 @@ soup_auth_is_ready (SoupAuth    *auth,
 		return SOUP_AUTH_GET_CLASS (auth)->is_ready (auth, msg);
 	else
 		return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
+}
+
+/**
+ * soup_auth_can_authenticate:
+ * @auth: a #SoupAuth
+ *
+ * Tests if @auth is able to authenticate by providing credentials to the
+ * soup_auth_authenticate().
+ *
+ * Return value: %TRUE if @auth is able to accept credentials.
+ *
+ * Since: 2.54
+ **/
+gboolean
+soup_auth_can_authenticate (SoupAuth *auth)
+{
+	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
+
+	return SOUP_AUTH_GET_CLASS (auth)->can_authenticate (auth);
 }
 
 /**

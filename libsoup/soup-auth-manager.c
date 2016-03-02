@@ -468,6 +468,9 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	SoupAuthManagerPrivate *priv = manager->priv;
 	SoupURI *uri;
 
+	if (!soup_auth_can_authenticate (auth))
+		return;
+
 	if (proxy) {
 		SoupMessageQueue *queue;
 		SoupMessageQueueItem *item;

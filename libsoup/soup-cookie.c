@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "soup-cookie.h"
+#include "soup-misc-private.h"
 #include "soup.h"
 
 /**
@@ -107,28 +108,10 @@ soup_cookie_copy (SoupCookie *cookie)
 gboolean
 soup_cookie_domain_matches (SoupCookie *cookie, const char *host)
 {
-	char *match;
-	int dlen;
-	const char *domain;
-
 	g_return_val_if_fail (cookie != NULL, FALSE);
 	g_return_val_if_fail (host != NULL, FALSE);
 
-	domain = cookie->domain;
-
-	if (!g_ascii_strcasecmp (domain, host))
-		return TRUE;
-	if (*domain != '.')
-		return FALSE;
-	if (!g_ascii_strcasecmp (domain + 1, host))
-		return TRUE;
-	dlen = strlen (domain);
-	while ((match = strstr (host, domain))) {
-		if (!match[dlen])
-			return TRUE;
-		host = match + 1;
-	}
-	return FALSE;
+	return soup_host_matches_host (cookie->domain, host);
 }
 
 static inline const char *

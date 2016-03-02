@@ -31,7 +31,7 @@ CFILE_GLOB=
 # Header files to ignore when scanning.
 IGNORE_HFILES= soup.h soup-autocleanups.h soup-enum-types.h \
 	soup-message-private.h soup-session-private.h \
-	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h \
+	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h soup-auth-negotiate.h \
 	soup-connection.h soup-connection-auth.h \
 	soup-message-queue.h soup-path-map.h soup-gnome-features.h \
 	soup-proxy-resolver.h soup-proxy-resolver-gnome.h \

@@ -580,6 +580,8 @@ soup_auth_update
 SOUP_TYPE_AUTH_BASIC
 SOUP_TYPE_AUTH_DIGEST
 SOUP_TYPE_AUTH_NTLM
+SOUP_TYPE_AUTH_NEGOTIATE
+soup_auth_negotiate_supported
 <SUBSECTION>
 soup_auth_is_for_proxy
 soup_auth_get_scheme_name
@@ -588,6 +590,7 @@ soup_auth_get_realm
 soup_auth_get_info
 <SUBSECTION>
 soup_auth_authenticate
+soup_auth_can_authenticate
 soup_auth_is_authenticated
 soup_auth_is_ready
 <SUBSECTION>
@@ -612,6 +615,7 @@ SoupAuthClass
 soup_auth_basic_get_type
 soup_auth_digest_get_type
 soup_auth_ntlm_get_type
+soup_auth_negotiate_get_type
 <SUBSECTION Private>
 soup_auth_get_saved_password
 soup_auth_get_saved_users

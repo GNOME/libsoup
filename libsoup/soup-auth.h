@@ -48,6 +48,8 @@ typedef struct {
 	gboolean     (*is_ready)             (SoupAuth      *auth,
 					      SoupMessage   *msg);
 
+	gboolean     (*can_authenticate)     (SoupAuth      *auth);
+
 	/* Padding for future expansion */
 	void (*_libsoup_reserved2) (void);
 	void (*_libsoup_reserved3) (void);
@@ -92,6 +94,8 @@ gboolean    soup_auth_is_authenticated      (SoupAuth      *auth);
 SOUP_AVAILABLE_IN_2_42
 gboolean    soup_auth_is_ready              (SoupAuth      *auth,
 					     SoupMessage   *msg);
+SOUP_AVAILABLE_IN_2_54
+gboolean    soup_auth_can_authenticate      (SoupAuth      *auth);
 
 SOUP_AVAILABLE_IN_2_4
 char       *soup_auth_get_authorization     (SoupAuth      *auth, 
@@ -115,6 +119,9 @@ GType soup_auth_digest_get_type (void);
 #define SOUP_TYPE_AUTH_NTLM   (soup_auth_ntlm_get_type ())
 SOUP_AVAILABLE_IN_2_4
 GType soup_auth_ntlm_get_type   (void);
+#define SOUP_TYPE_AUTH_NEGOTIATE  (soup_auth_negotiate_get_type ())
+SOUP_AVAILABLE_IN_2_54
+GType soup_auth_negotiate_get_type   (void);
 
 /* Deprecated SoupPasswordManager-related APIs: all are now no-ops */
 SOUP_AVAILABLE_IN_2_28
@@ -134,6 +141,9 @@ SOUP_DEPRECATED_IN_2_28
 void        soup_auth_has_saved_password (SoupAuth   *auth,
 					  const char *username,
 					  const char *password);
+
+SOUP_AVAILABLE_IN_2_54
+gboolean    soup_auth_negotiate_supported   (void);
 
 G_END_DECLS
 
