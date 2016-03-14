@@ -1,3 +1,21 @@
+Changes in libsoup from 2.53.90 to 2.53.92:
+
+	* libsoup now supports HTTP "Negotiate"/GSSAPI/Kerberos
+          authentication. It must be enabled specifically by the
+          application and is also subject to certain other
+          restrictions, some of which are not yet controllable through
+          the API. [#587145, Guido Guenther, Tomas Popela, David
+          Woodhouse, Dan Winship]
+
+	* Added support for building under MSVC [#758759, Chun-wei
+          Fan]
+
+	* Fixed a problem with the 2.53.90 tarball that caused
+          translations to be mis-installed.
+
+	* Updated translations:
+	  Occitan
+
 Changes in libsoup from 2.53.2 to 2.53.90:
 
 	* NUL bytes in headers are now ignored [#760832, Dan Winship]
