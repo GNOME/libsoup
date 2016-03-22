@@ -357,7 +357,10 @@ include $(top_srcdir)/build/Makefile.msvcproj
 
 if HAVE_INTROSPECTION
 # Introspection Items for MSVC
-MSVC_INTROSPECT_GIRS = Soup-2.4.gir SoupGNOME-2.4.gir
+MSVC_INTROSPECT_GIRS = Soup-2.4.gir
+if BUILD_LIBSOUP_GNOME
+MSVC_INTROSPECT_GIRS += SoupGNOME-2.4.gir
+endif
 
 BASE_MSVC_GIR_CFLAGS =		\
 	$(SOUP_COMMON_CPPFLAGS)	\
@@ -377,6 +380,7 @@ Soup_2_4_gir_MSVC_LIBS = soup-2.4
 Soup_2_4_gir_MSVC_CFLAGS =  $(BASE_MSVC_GIR_CFLAGS) $(SOUP_UNSTABLE_REQUEST_CFLAG)
 Soup_2_4_gir_MSVC_SCANNERFLAGS = --c-include \"libsoup/soup.h\"
 
+if BUILD_LIBSOUP_GNOME
 # libsoup-gnome
 SoupGNOME_2_4_gir_MSVC_FILES = $(gi_soup_gnome_files)
 SoupGNOME_2_4_gir_MSVC_GIR_DEPS = Soup-2.4.gir
@@ -387,6 +391,7 @@ SoupGNOME_2_4_gir_MSVC_SCANNERFLAGS =	i	\
 	$(SOUPGNOME_GIR_SCANNER_BASE_FLAGS)	\
 	 --c-include \"libsoup/soup-gnome.h\"	\
 	--include-uninstalled=./Soup-2.4.gir
+endif
 
 include $(top_srcdir)/build/Makefile.msvc-introspection
 else
