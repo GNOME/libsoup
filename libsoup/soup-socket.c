@@ -1246,6 +1246,23 @@ finish_listener_setup (SoupSocket *sock)
  **/
 gboolean
 soup_socket_listen (SoupSocket *sock)
+{
+	return soup_socket_listen_full (sock, NULL);
+}
+
+/**
+ * soup_socket_listen_full:
+ * @sock: a server #SoupSocket (which must not already be connected or listening)
+ * @error: error pointer
+ *
+ * Makes @sock start listening on its local address. When connections
+ * come in, @sock will emit #SoupSocket::new_connection.
+ *
+ * Return value: whether or not @sock is now listening.
+ **/
+gboolean
+soup_socket_listen_full (SoupSocket *sock,
+                         GError **error)
 
 {
 	SoupSocketPrivate *priv;
@@ -1268,7 +1285,7 @@ soup_socket_listen (SoupSocket *sock)
 	priv->gsock = g_socket_new (g_socket_address_get_family (addr),
 				    G_SOCKET_TYPE_STREAM,
 				    G_SOCKET_PROTOCOL_DEFAULT,
-				    NULL);
+				    error);
 	if (!priv->gsock)
 		goto cant_listen;
 	finish_socket_setup (sock);
@@ -1285,14 +1302,14 @@ soup_socket_listen (SoupSocket *sock)
 #endif
 
 	/* Bind */
-	if (!g_socket_bind (priv->gsock, addr, TRUE, NULL))
+	if (!g_socket_bind (priv->gsock, addr, TRUE, error))
 		goto cant_listen;
 	/* Force local_addr to be re-resolved now */
 	g_object_unref (priv->local_addr);
 	priv->local_addr = NULL;
 
 	/* Listen */
-	if (!g_socket_listen (priv->gsock, NULL))
+	if (!g_socket_listen (priv->gsock, error))
 		goto cant_listen;
 	finish_listener_setup (sock);
 

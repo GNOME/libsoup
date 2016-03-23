@@ -46,6 +46,10 @@ GIOStream *soup_socket_get_iostream            (SoupSocket           *sock);
 
 SoupURI   *soup_socket_get_http_proxy_uri      (SoupSocket           *sock);
 
+gboolean   soup_socket_listen_full             (SoupSocket           *sock,
+                                                GError              **error);
+
+
 
 typedef struct {
 	GMainContext *async_context;
