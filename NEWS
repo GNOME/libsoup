@@ -1,4 +1,9 @@
-Changes in libsoup from 2.53.92 to 2.54.0:
+Changes in libsoup from 2.53.92 to 2.54.0.1:
+
+	* (2.54.0.1 fixes a build problem with the 2.54.0 tarball,
+          which would not build if you configured with
+          "--without-gnome". There are no other changes between 2.54.0
+          and 2.54.0.1.)
 
 	* Fixed examples/simple-httpd on Windows [#758759, Chun-wei
           Fan]
