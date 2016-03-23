@@ -1730,15 +1730,13 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 		      SOUP_SOCKET_IS_SERVER, &is_listening,
 		      NULL);
 	if (!is_listening) {
-		if (!soup_socket_listen (listener)) {
+		if (!soup_socket_listen_full (listener, error)) {
 			SoupAddress *saddr = soup_socket_get_local_address (listener);
 
-			g_set_error (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_FAILED,
-				     _("Could not listen on address %s, port %d"),
-				     soup_address_get_physical (saddr),
-				     soup_address_get_port (saddr));
+			g_prefix_error (error,
+					_("Could not listen on address %s, port %d: "),
+					soup_address_get_physical (saddr),
+					soup_address_get_port (saddr));
 			return FALSE;
 		}
 	}
