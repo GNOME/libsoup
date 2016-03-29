@@ -29,6 +29,9 @@ extern "C" {
 #include <libsoup/soup-enum-types.h>
 #include <libsoup/soup-form.h>
 #include <libsoup/soup-headers.h>
+#include <libsoup/soup-hsts-enforcer.h>
+#include <libsoup/soup-hsts-enforcer-db.h>
+#include <libsoup/soup-hsts-policy.h>
 #include <libsoup/soup-logger.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-method.h>
