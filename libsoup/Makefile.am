@@ -48,6 +48,9 @@ soup_headers =			\
 	soup-date.h		\
 	soup-form.h		\
 	soup-headers.h		\
+	soup-hsts-enforcer.h	\
+	soup-hsts-enforcer-db.h	\
+	soup-hsts-policy.h	\
 	soup-logger.h		\
 	soup-message.h		\
 	soup-message-body.h	\
@@ -160,6 +163,10 @@ libsoup_2_4_la_SOURCES =		\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
+	soup-hsts-enforcer.c		\
+	soup-hsts-enforcer-db.c		\
+	soup-hsts-enforcer-private.h	\
+	soup-hsts-policy.c		\
 	soup-init.c			\
 	soup-io-stream.h		\
 	soup-io-stream.c		\
