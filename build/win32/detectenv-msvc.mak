@@ -1,3 +1,8 @@
+# Common NMake Makefile module for checking the build environment
+# This can be copied from $(glib_srcroot)\build\win32 for GNOME items
+# that support MSVC builds and introspection under MSVC, and can be used
+# for building test programs as well.
+
 # Check to see we are configured to build with MSVC (MSDEVDIR, MSVCDIR or
 # VCINSTALLDIR) or with the MS Platform SDK (MSSDK or WindowsSDKDir)
 !if !defined(VCINSTALLDIR) && !defined(WINDOWSSDKDIR)
@@ -50,14 +55,18 @@ version is not supported.
 !endif
 
 VALID_CFGSET = FALSE
-!if "$(CFG)" == "release" || "$(CFG)" == "debug"
+!if "$(CFG)" == "release" || "$(CFG)" == "debug" || "$(CFG)" == "Release" || "$(CFG)" == "Debug"
 VALID_CFGSET = TRUE
 !endif
 
-!if "$(CFG)" == "release"
-CFLAGS_ADD = /MD /O2
+# We want debugging symbols logged for all builds,
+# using .pdb files for release builds
+CFLAGS_BASE = /Zi
+
+!if "$(CFG)" == "release" || "$(CFG)" == "Release"
+CFLAGS_ADD = /MD /O2 $(CFLAGS_BASE)
 !else
-CFLAGS_ADD = /MDd /Od /Zi
+CFLAGS_ADD = /MDd /Od $(CFLAGS_BASE)
 !endif
 
 !if "$(PLAT)" == "x64"
