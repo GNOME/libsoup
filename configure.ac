@@ -344,7 +344,7 @@ if test "$with_gssapi" != "no"; then
 	    AC_DEFINE(LIBSOUP_HAVE_GSSAPI, 1, [Whether or not GSSAPI libs are available])
 	fi
     else
-	if test "$with_gssapi" == "yes"; then
+	if test "$with_gssapi" = "yes"; then
 	    AC_MSG_ERROR([GSSAPI support requested but failed to found krb5-config. Try to set KRB5_CONFIG.])
 	fi
     fi
