@@ -5,7 +5,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
     <SoupBuildDefines>LIBSOUP_COMPILATION;DLL_EXPORT;G_LOG_DOMAIN="libsoup"</SoupBuildDefines>
+    <SoupMITGSSAPIBuildDefines>LIBSOUP_HAVE_GSSAPI</SoupMITGSSAPIBuildDefines>
     <SoupExtraDepLibs>libxml2.lib;sqlite3.lib;intl.lib;ws2_32.lib</SoupExtraDepLibs>
+    <MITGSSAPILibBaseName>gssapi</MITGSSAPILibBaseName>
+    <MITGSSAPILibNameSuffixX86>32.lib</MITGSSAPILibNameSuffixX86>
+    <MITGSSAPILibNameSuffixX64>64.lib</MITGSSAPILibNameSuffixX64>
   </PropertyGroup>
   <PropertyGroup>
     <_PropertySheetDisplayName>soupdllbuilddefinesprops</_PropertySheetDisplayName>

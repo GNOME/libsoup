@@ -19,4 +19,20 @@
 		Name="SoupExtraDepLibs"
 		Value="libxml2.lib sqlite3.lib intl.lib ws2_32.lib"
 	/>
+	<UserMacro
+		Name="SoupMITGSSAPIBuildDefines"
+		Value="LIBSOUP_HAVE_GSSAPI"
+	/>
+	<UserMacro
+		Name="MITGSSAPILibBaseName"
+		Value="gssapi"
+	/>
+	<UserMacro
+		Name="MITGSSAPILibNameSuffixX86"
+		Value="32.lib"
+	/>
+	<UserMacro
+		Name="MITGSSAPILibNameSuffixX64"
+		Value="64.lib"
+	/>
 </VisualStudioPropertySheet>

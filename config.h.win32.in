@@ -65,6 +65,10 @@
 #defin HAVE_UNISTD_H 1
 #endif
 
+/* Whether or not GSSAPI libs are available */
+/* Note: This is activated in the projects when the appropriate config is selected */
+/* #undef LIBSOUP_HAVE_GSSAPI */
+
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #define LT_OBJDIR ".libs/"
