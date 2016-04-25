@@ -14,7 +14,6 @@
 
 #ifdef LIBSOUP_HAVE_GSSAPI
 #include <gssapi/gssapi.h>
-#include <gssapi/gssapi_krb5.h>
 #endif /* LIBSOUP_HAVE_GSSAPI */
 
 #include "soup-auth-negotiate.h"
