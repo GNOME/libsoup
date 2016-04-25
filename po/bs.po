@@ -77,8 +77,8 @@ msgstr "Ne mogu stvoriti TLS poslužitelja bez TLS certifikat"
 
 #: ../libsoup/soup-server.c:1604
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Ne mogu slušati na adresi %s,%d port"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Ne mogu slušati na adresi %s,%d port: "
 
 #: ../libsoup/soup-session.c:4485
 #, c-format

@@ -81,8 +81,8 @@ msgstr "TLS ପ୍ରମାଣପତ୍ର ବିନା TLS ସର୍ଭର ସ�
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "ଠିକଣା %s, ପୋର୍ଟ %d ରେ ଶୁଣିପାରିବେ ନାହିଁ"
+msgid "Could not listen on address %s, port %d: "
+msgstr "ଠିକଣା %s, ପୋର୍ଟ %d ରେ ଶୁଣିପାରିବେ ନାହିଁ: "
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

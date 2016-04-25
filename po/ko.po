@@ -84,8 +84,8 @@ msgstr "TLS 인증서 없이 TLS 서버를 만들 수 없습니다"
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "주소 %s, 포트 %d번에 연결을 받을 수 없습니다"
+msgid "Could not listen on address %s, port %d: "
+msgstr "주소 %s, 포트 %d번에 연결을 받을 수 없습니다: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format

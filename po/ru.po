@@ -85,8 +85,8 @@ msgstr "Невозможно создать TLS-сервер  без TLS-сер�
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Не удалось начать прослушивание по адресу %s (порт — %d)"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Не удалось начать прослушивание по адресу %s (порт — %d): "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format
@@ -114,7 +114,7 @@ msgstr ""
 
 #: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr "Не удалось импортировать существующий сокет:"
+msgstr "Не удалось импортировать существующий сокет: "
 
 #: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"

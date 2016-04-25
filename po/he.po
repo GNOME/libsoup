@@ -85,8 +85,8 @@ msgstr "לא ניתן ליצור שרות TLS ללא תעודת TLS"
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "לא ניתן להאזין לכתובת %s, פתחה %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "לא ניתן להאזין לכתובת %s, פתחה %d:"
 
 #: ../libsoup/soup-session.c:4554
 #, c-format

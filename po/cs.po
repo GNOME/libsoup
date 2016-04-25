@@ -82,8 +82,8 @@ msgstr "Nelze vytvořit server TLS bez certifikátu TLS"
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Nelze naslouchat na adrese %s, portu %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Nelze naslouchat na adrese %s, portu %d: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format
@@ -110,7 +110,7 @@ msgstr "Nelze naimportovat ne-soket jako SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr "Nelze naimportovat stávající soket:"
+msgstr "Nelze naimportovat stávající soket: "
 
 #: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"

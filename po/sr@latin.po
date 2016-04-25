@@ -82,8 +82,8 @@ msgstr "Ne mogu da napravim TLS server bez TLS uverenja"
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Ne mogu da osluškujem na adresi „%s“, priključnik %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Ne mogu da osluškujem na adresi „%s“, priključnik %d: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format

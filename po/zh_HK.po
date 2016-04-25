@@ -81,8 +81,8 @@ msgstr "沒有 TLS 證書不能建立 TLS 伺服器"
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "無法聽取位址 %s，連接埠 %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "無法聽取位址 %s，連接埠 %d："
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

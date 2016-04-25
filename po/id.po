@@ -84,8 +84,8 @@ msgstr "Tak bisa membuat sebuah server TLS tanpa suatu sertifikat TLS"
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Tak bisa mendengar pada alamat %s, port %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Tak bisa mendengar pada alamat %s, port %d: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format
@@ -112,7 +112,7 @@ msgstr "Tak bisa mengimpor non-soket sebagai SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr "Tak dapat mengimpor soket yang telah ada:"
+msgstr "Tak dapat mengimpor soket yang telah ada: "
 
 #: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"

@@ -85,8 +85,8 @@ msgstr "Ni mogoče ustvariti strežnika TLS brez ustreznega potrdila TLS."
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Ni mogoče prisluhniti naslovu %s, vrata %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Ni mogoče prisluhniti naslovu %s, vrata %d: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format
@@ -113,7 +113,7 @@ msgstr "Ni mogoče uvoziti predmeta, ki ni vtič, kot SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr "Ni mogoče uvoziti obstoječega vtiča:"
+msgstr "Ni mogoče uvoziti obstoječega vtiča: "
 
 #: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"

@@ -80,8 +80,8 @@ msgstr "No es pot crear un servidor de TLS sense un certificat TLS"
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "No es pot escoltar a l'adreça %s, port %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "No es pot escoltar a l'adreça %s, port %d: "
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

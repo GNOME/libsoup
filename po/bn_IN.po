@@ -83,8 +83,8 @@ msgstr "একটি TLS সার্টিফিকেট ছাড়া এক�
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "ঠিকানা %s, পোর্ট %d এ শোনা যায়নি"
+msgid "Could not listen on address %s, port %d: "
+msgstr "ঠিকানা %s, পোর্ট %d এ শোনা যায়নি: "
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

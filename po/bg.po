@@ -80,8 +80,8 @@ msgstr "Не може да се създаде сървър с TLS без съо
 
 #: ../libsoup/soup-server.c:1739
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Не може да се слуша на адрес „%s“, порт %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Не може да се слуша на адрес „%s“, порт %d: "
 
 #: ../libsoup/soup-session.c:4543
 #, c-format

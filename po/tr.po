@@ -87,8 +87,8 @@ msgstr "Bir TLS sertifikası olmadan TLS sunucusu oluşturulamaz"
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "%s adresinin %d bağlantı noktası dinlenemedi"
+msgid "Could not listen on address %s, port %d: "
+msgstr "%s adresinin %d bağlantı noktası dinlenemedi: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format

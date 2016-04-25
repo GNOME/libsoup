@@ -82,8 +82,8 @@ msgstr "Impussibil creâ un servidôr TLS cence un certificât TLS"
 
 #: ../libsoup/soup-server.c:1739
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Impussibil scoltâ te direzion %s, puarte %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Impussibil scoltâ te direzion %s, puarte %d: "
 
 #: ../libsoup/soup-session.c:4543
 #, c-format

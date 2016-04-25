@@ -81,8 +81,8 @@ msgstr "Non é posíbel crear un servidor TLS sen un certificado TLS"
 
 #: ../libsoup/soup-server.c:1736
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Non é posíbel escoitar no enderezo %s, porto %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Non é posíbel escoitar no enderezo %s, porto %d: "
 
 #: ../libsoup/soup-session.c:4500
 #, c-format
@@ -109,7 +109,7 @@ msgstr "Non é posíbel importar un non socket como SoupSocket"
 
 #: ../libsoup/soup-socket.c:168
 msgid "Could not import existing socket: "
-msgstr "Non é posíbel importar un socket existente:"
+msgstr "Non é posíbel importar un socket existente: "
 
 #: ../libsoup/soup-socket.c:177
 msgid "Can't import unconnected socket"

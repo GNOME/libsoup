@@ -82,8 +82,8 @@ msgstr "এটা TLS প্ৰমাণপত্ৰ নহোৱাকৈ এ�
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "ঠিকনা %s, পৰ্ট %d ত শুনিব নোৱাৰি"
+msgid "Could not listen on address %s, port %d: "
+msgstr "ঠিকনা %s, পৰ্ট %d ত শুনিব নোৱাৰি: "
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

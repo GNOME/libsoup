@@ -83,8 +83,8 @@ msgstr "Nem lehet TLS kiszolgálót létrehozni TLS tanúsítvány nélkül"
 
 #: ../libsoup/soup-server.c:1736
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Nem sikerült figyelni a(z) %s címen a(z) %d. porton"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Nem sikerült figyelni a(z) %s címen a(z) %d. porton: "
 
 #: ../libsoup/soup-session.c:4500
 #, c-format

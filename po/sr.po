@@ -82,8 +82,8 @@ msgstr "Не могу да направим ТЛС сервер без ТЛС у
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Не могу да ослушкујем на адреси „%s“, прикључник %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Не могу да ослушкујем на адреси „%s“, прикључник %d: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format

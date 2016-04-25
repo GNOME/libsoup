@@ -79,8 +79,8 @@ msgstr "Kan ikke lage en TLS-tjener uten et TLS-sertifikat"
 
 #: ../libsoup/soup-server.c:1739
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Kunne ikke lytte på adresse %s, port %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Kunne ikke lytte på adresse %s, port %d: "
 
 #: ../libsoup/soup-session.c:4543
 #, c-format

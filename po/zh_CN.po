@@ -85,8 +85,8 @@ msgstr "没有 TLS 证书不能创建一个 TLS 服务器"
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "不能监听 %s 地址的 %d 端口"
+msgid "Could not listen on address %s, port %d: "
+msgstr "不能监听 %s 地址的 %d 端口:"
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

@@ -85,8 +85,8 @@ msgstr "TLS सर्वर को बिना TLS प्रमाणपत्�
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "पता %s, पोर्ट %d पर सुन नहीं सकता है"
+msgid "Could not listen on address %s, port %d: "
+msgstr "पता %s, पोर्ट %d पर सुन नहीं सकता है: "
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

@@ -84,8 +84,8 @@ msgstr "Bez TLS sertifikāta nevar izveidot TLS serveri"
 
 #: ../libsoup/soup-server.c:1739
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Nevarēja sākt klausīties adresi %s, portu %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Nevarēja sākt klausīties adresi %s, portu %d: "
 
 #: ../libsoup/soup-session.c:4543
 #, c-format

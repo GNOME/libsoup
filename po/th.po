@@ -83,8 +83,8 @@ msgstr "ไม่สามารถสร้างเซิร์ฟเวอร
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "ไม่สามารถรอรับการเชื่อมต่อที่ที่อยู่ %s, พอร์ต %d ได้"
+msgid "Could not listen on address %s, port %d: "
+msgstr "ไม่สามารถรอรับการเชื่อมต่อที่ที่อยู่ %s, พอร์ต %d ได้: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format

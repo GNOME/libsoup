@@ -88,8 +88,8 @@ msgstr "Nedá sa vytvoriť TLS server bez TLS certifikátu"
 
 #: ../libsoup/soup-server.c:1730
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Nepodarilo sa počúvať na adrese %s, porte %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Nepodarilo sa počúvať na adrese %s, porte %d: "
 
 #: ../libsoup/soup-session.c:4554
 #, c-format

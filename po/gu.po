@@ -82,8 +82,8 @@ msgstr "TLS પ્રમાણપત્ર વગર TLS સર્વરને �
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "સરનામાં %s પર સાંભળી શક્યા નહિં, પોર્ટ %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "સરનામાં %s પર સાંભળી શક્યા નહિં, પોર્ટ %d: "
 
 #: ../libsoup/soup-session.c:4466
 #, c-format

@@ -83,8 +83,8 @@ msgstr "TLS ధృవీకరణపత్రం లేకుండా TLS స�
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "చిరునామా %s పైన వినలేదు, పోర్ట్ %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "చిరునామా %s పైన వినలేదు, పోర్ట్ %d: "
 
 #: ../libsoup/soup-session.c:4466
 #, c-format
@@ -107,7 +107,7 @@ msgstr "నాన్-సాకెట్‌ను సూప్‌సాకెట�
 
 #: ../libsoup/soup-socket.c:160
 msgid "Could not import existing socket: "
-msgstr "ఉన్న సాకెట్‌ను దిగుమతిచేయలేదు:"
+msgstr "ఉన్న సాకెట్‌ను దిగుమతిచేయలేదు: "
 
 #: ../libsoup/soup-socket.c:169
 msgid "Can't import unconnected socket"

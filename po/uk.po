@@ -83,8 +83,8 @@ msgstr "Неможливо створити сервер TLS без сертиф
 
 #: ../libsoup/soup-server.c:1547
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Не вдалося почати прослуховування за адресою %s (порт — %d)"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Не вдалося почати прослуховування за адресою %s (порт — %d): "
 
 #: ../libsoup/soup-session.c:4424
 #, c-format
@@ -107,7 +107,7 @@ msgstr "Неможливо імпортувати об'єкт, що відріз
 
 #: ../libsoup/soup-socket.c:159
 msgid "Could not import existing socket: "
-msgstr "Не вдалося імпортувати наявний сокет:"
+msgstr "Не вдалося імпортувати наявний сокет: "
 
 #: ../libsoup/soup-socket.c:168
 msgid "Can't import unconnected socket"
