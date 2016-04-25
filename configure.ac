@@ -29,10 +29,10 @@ SOUP_API_VERSION=2.4
 AC_SUBST(SOUP_API_VERSION)
 
 # Increment on interface addition. Reset on removal.
-SOUP_AGE=7
+SOUP_AGE=8
 
 # Increment on interface add, remove, or change.
-SOUP_CURRENT=8
+SOUP_CURRENT=9
 
 # Increment on source change. Reset when CURRENT changes.
 SOUP_REVISION=0

@@ -51,7 +51,6 @@ typedef struct {
 	gboolean     (*can_authenticate)     (SoupAuth      *auth);
 
 	/* Padding for future expansion */
-	void (*_libsoup_reserved2) (void);
 	void (*_libsoup_reserved3) (void);
 	void (*_libsoup_reserved4) (void);
 } SoupAuthClass;
