@@ -167,6 +167,9 @@ dnl *** gobject-introspection ***
 dnl *****************************
 GOBJECT_INTROSPECTION_CHECK([0.9.5])
 
+if test "$found_introspection" != "yes" -a "$enable_vala" = ""; then
+	enable_vala=no
+fi
 VAPIGEN_CHECK()
 
 AC_MSG_CHECKING([for glib-networking (glib TLS implementation)])
