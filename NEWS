@@ -1,3 +1,21 @@
+Changes in libsoup from 2.54.0.1 to 2.54.1:
+
+	* *** IMPORTANT ***
+          Fixed an ABI break in 2.54.0 caused by adding a member to
+          SoupAuthClass; 2.54.1 is ABI-compatible with 2.53.92 and
+          earlier, but NOT with the anomalous 2.54.0. If you built
+          packages against 2.54.0, you will need to rebuild them
+          against 2.54.1.
+
+	* Fixed NTLM authentication when ntlm_auth from the latest
+          version of Samba is present. [#765106, Milan Crha]
+
+	* Updates to MSVC build, including for GSS-API support
+          [Chun-wei Fan]
+
+	* Updated translations:
+	  Friulian
+
 Changes in libsoup from 2.53.92 to 2.54.0.1:
 
 	* (2.54.0.1 fixes a build problem with the 2.54.0 tarball,
