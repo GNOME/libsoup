@@ -19,7 +19,7 @@ typedef struct {
 	SoupSocketProperties *socket_props;
 
 	SoupURI *remote_uri, *proxy_uri;
-	gboolean ssl, ssl_fallback;
+	gboolean ssl;
 
 	SoupMessage *current_msg;
 	SoupConnectionState state;
@@ -43,7 +43,6 @@ enum {
 	PROP_0,
 
 	PROP_REMOTE_URI,
-	PROP_SSL_FALLBACK,
 	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
 
@@ -105,9 +104,6 @@ soup_connection_set_property (GObject *object, guint prop_id,
 		else
 			priv->ssl = FALSE;
 		break;
-	case PROP_SSL_FALLBACK:
-		priv->ssl_fallback = g_value_get_boolean (value);
-		break;
 	case PROP_SOCKET_PROPERTIES:
 		priv->socket_props = g_value_dup_boxed (value);
 		break;
@@ -129,9 +125,6 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_REMOTE_URI:
 		g_value_set_boxed (value, priv->remote_uri);
-		break;
-	case PROP_SSL_FALLBACK:
-		g_value_set_boolean (value, priv->ssl_fallback);
 		break;
 	case PROP_SOCKET_PROPERTIES:
 		g_value_set_boxed (value, priv->socket_props);
@@ -186,13 +179,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				    "The URI of the HTTP server",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_SSL_FALLBACK,
-		g_param_spec_boolean (SOUP_CONNECTION_SSL_FALLBACK,
-				      "SSLv3 fallback",
-				      "Use SSLv3 instead of TLS",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_SOCKET_PROPERTIES,
 		g_param_spec_boxed (SOUP_CONNECTION_SOCKET_PROPERTIES,
@@ -412,7 +398,6 @@ soup_connection_connect_async (SoupConnection      *conn,
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
-				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
 				 NULL);
 	g_object_unref (remote_addr);
@@ -460,7 +445,6 @@ soup_connection_connect_sync (SoupConnection  *conn,
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
-				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 NULL);
@@ -693,12 +677,6 @@ soup_connection_get_ever_used (SoupConnection *conn)
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
 	return SOUP_CONNECTION_GET_PRIVATE (conn)->unused_timeout == 0;
-}
-
-gboolean
-soup_connection_get_ssl_fallback (SoupConnection *conn)
-{
-	return SOUP_CONNECTION_GET_PRIVATE (conn)->ssl_fallback;
 }
 
 void

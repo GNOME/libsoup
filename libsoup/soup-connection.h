@@ -36,7 +36,6 @@ GType soup_connection_get_type (void);
 
 
 #define SOUP_CONNECTION_REMOTE_URI        "remote-uri"
-#define SOUP_CONNECTION_SSL_FALLBACK      "ssl-fallback"
 #define SOUP_CONNECTION_SOCKET_PROPERTIES "socket-properties"
 #define SOUP_CONNECTION_STATE             "state"
 
@@ -79,8 +78,6 @@ void            soup_connection_send_request   (SoupConnection          *conn,
 						SoupMessageQueueItem    *item,
 						SoupMessageCompletionFn  completion_cb,
 						gpointer                 user_data);
-
-gboolean        soup_connection_get_ssl_fallback (SoupConnection   *conn);
 
 G_END_DECLS
 

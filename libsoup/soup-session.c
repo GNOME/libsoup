@@ -86,8 +86,6 @@ typedef struct {
 
 	guint        num_messages;
 
-	gboolean     ssl_fallback;
-
 	GSource     *keep_alive_src;
 	SoupSession *session;
 } SoupSessionHost;
@@ -1431,9 +1429,6 @@ drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *co
 								 host);
 			host->keep_alive_src = g_source_ref (host->keep_alive_src);
 		}
-
-		if (soup_connection_get_ssl_fallback (conn))
-			host->ssl_fallback = TRUE;
 	}
 
 	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
@@ -1607,19 +1602,7 @@ status_from_connect_error (SoupMessageQueueItem *item, GError *error)
 	if (!error)
 		return SOUP_STATUS_OK;
 
-	if (g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS)) {
-		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (item->session);
-		SoupSessionHost *host;
-
-		g_mutex_lock (&priv->conn_lock);
-		host = get_host_for_message (item->session, item->msg);
-		if (!host->ssl_fallback) {
-			host->ssl_fallback = TRUE;
-			status = SOUP_STATUS_TRY_AGAIN;
-		} else
-			status = SOUP_STATUS_SSL_FAILED;
-		g_mutex_unlock (&priv->conn_lock);
-	} else if (error->domain == G_TLS_ERROR)
+	if (error->domain == G_TLS_ERROR)
 		status = SOUP_STATUS_SSL_FAILED;
 	else if (error->domain == G_RESOLVER_ERROR)
 		status = SOUP_STATUS_CANT_RESOLVE;
@@ -1870,7 +1853,6 @@ get_connection_for_host (SoupSession *session,
 	ensure_socket_props (session);
 	conn = g_object_new (SOUP_TYPE_CONNECTION,
 			     SOUP_CONNECTION_REMOTE_URI, host->uri,
-			     SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
 			     SOUP_CONNECTION_SOCKET_PROPERTIES, priv->socket_props,
 			     NULL);
 
