@@ -7,9 +7,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup"
-"&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-04-29 13:04+0000\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2016-05-05 20:07+0000\n"
 "PO-Revision-Date: 2016-05-05 21:46+0200\n"
 "Last-Translator: Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>\n"
 "Language-Team: Tot En Òc\n"
@@ -87,22 +87,22 @@ msgstr "Impossible de crear un servidor TLS sens un certificat TLS"
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impossible d'escotar l'adreça %s sul pòrt %d: "
 
-#: ../libsoup/soup-session.c:4543
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Impossible d'analisar l'URI « %s »"
 
-#: ../libsoup/soup-session.c:4580
+#: ../libsoup/soup-session.c:4562
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "L'esquèma d'URI « %s » es pas pres en carga"
 
-#: ../libsoup/soup-session.c:4602
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Es pas un URI HTTP"
 
-#: ../libsoup/soup-session.c:4788
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Lo servidor a pas acceptat la negociacion WebSocket."
 
