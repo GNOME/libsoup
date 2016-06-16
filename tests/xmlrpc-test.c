@@ -86,33 +86,34 @@ static void
 test_sum (void)
 {
 	GVariantBuilder builder;
-	int i, val, sum, result;
+	int i;
+	double val, sum, result;
 	GVariant *retval;
 	gboolean ok;
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (2, "sum (array of int -> int): ");
+	debug_printf (2, "sum (array of double -> double): ");
 
-	g_variant_builder_init (&builder, G_VARIANT_TYPE ("ai"));
+	g_variant_builder_init (&builder, G_VARIANT_TYPE ("ad"));
 	for (i = sum = 0; i < 10; i++) {
-		val = g_random_int_range (0, 100);
-		debug_printf (2, "%s%d", i == 0 ? "[" : ", ", val);
-		g_variant_builder_add (&builder, "i", val);
+		val = g_random_int_range (0, 400) / 4.0;
+		debug_printf (2, "%s%.2f", i == 0 ? "[" : ", ", val);
+		g_variant_builder_add (&builder, "d", val);
 		sum += val;
 	}
 	debug_printf (2, "] -> ");
 
 	ok = do_xmlrpc ("sum",
-			g_variant_new ("(@ai)", g_variant_builder_end (&builder)),
-			"i", &retval);
+			g_variant_new ("(@ad)", g_variant_builder_end (&builder)),
+			"d", &retval);
 
 	if (!ok)
 		return;
 
-	result = g_variant_get_int32 (retval);
-	debug_printf (2, "%d\n", result);
-	g_assert_cmpint (result, ==, sum);
+	result = g_variant_get_double (retval);
+	debug_printf (2, "%.2f\n", result);
+	g_assert_cmpfloat (result, ==, sum);
 
 	g_variant_unref (retval);
 }

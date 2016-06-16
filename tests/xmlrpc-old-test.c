@@ -110,35 +110,36 @@ check_xmlrpc (GValue *value, GType type, ...)
 static void
 test_sum (void)
 {
-	GValueArray *ints;
-	int i, val, sum, result;
+	GValueArray *dbls;
+	int i;
+	double val, sum, result;
 	GValue retval;
 	gboolean ok;
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (2, "sum (array of int -> int): ");
+	debug_printf (2, "sum (array of double -> double): ");
 
-	ints = g_value_array_new (10);
+	dbls = g_value_array_new (10);
 	for (i = sum = 0; i < 10; i++) {
-		val = g_random_int_range (0, 100);
-		debug_printf (2, "%s%d", i == 0 ? "[" : ", ", val);
-		soup_value_array_append (ints, G_TYPE_INT, val);
+		val = g_random_int_range (0, 400) / 4.0;
+		debug_printf (2, "%s%.2f", i == 0 ? "[" : ", ", val);
+		soup_value_array_append (dbls, G_TYPE_DOUBLE, val);
 		sum += val;
 	}
 	debug_printf (2, "] -> ");
 
 	ok = (do_xmlrpc ("sum", &retval,
-			G_TYPE_VALUE_ARRAY, ints,
+			G_TYPE_VALUE_ARRAY, dbls,
 			G_TYPE_INVALID) &&
-	      check_xmlrpc (&retval, G_TYPE_INT, &result));
-	g_value_array_free (ints);
+	      check_xmlrpc (&retval, G_TYPE_DOUBLE, &result));
+	g_value_array_free (dbls);
 
 	if (!ok)
 		return;
 
-	debug_printf (2, "%d\n", result);
-	g_assert_cmpint (result, ==, sum);
+	debug_printf (2, "%.2f\n", result);
+	g_assert_cmpfloat (result, ==, sum);
 }
 
 static void

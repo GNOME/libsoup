@@ -31,18 +31,18 @@ do_sum (SoupMessage *msg, SoupXMLRPCParams *params)
 	GVariant *args;
 	GVariant *child;
 	GVariantIter iter;
-	int sum = 0, val;
+	double sum = 0.0, val;
 
-	if (!(args = parse_params (msg, params, "(ai)")))
+	if (!(args = parse_params (msg, params, "(ad)")))
 		return;
 
 	child = g_variant_get_child_value (args, 0);
 
 	g_variant_iter_init (&iter, child);
-	while (g_variant_iter_loop (&iter, "i", &val))
+	while (g_variant_iter_loop (&iter, "d", &val))
 		sum += val;
 
-	soup_xmlrpc_message_set_response (msg, g_variant_new_int32 (sum), NULL);
+	soup_xmlrpc_message_set_response (msg, g_variant_new_double (sum), NULL);
 
 	g_variant_unref (args);
 	g_variant_unref (child);

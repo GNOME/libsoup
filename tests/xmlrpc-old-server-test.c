@@ -33,7 +33,8 @@ args_error (SoupMessage *msg, GValueArray *params, int expected)
 static void
 do_sum (SoupMessage *msg, GValueArray *params)
 {
-	int sum = 0, i, val;
+	int i;
+	double sum = 0.0, val;
 	GValueArray *nums;
 
 	if (params->n_values != 1) {
@@ -46,14 +47,14 @@ do_sum (SoupMessage *msg, GValueArray *params)
 	}
 
 	for (i = 0; i < nums->n_values; i++) {
-		if (!soup_value_array_get_nth (nums, i, G_TYPE_INT, &val)) {
-			type_error (msg, G_TYPE_INT, nums, i);
+		if (!soup_value_array_get_nth (nums, i, G_TYPE_DOUBLE, &val)) {
+			type_error (msg, G_TYPE_DOUBLE, nums, i);
 			return;
 		}
 		sum += val;
 	}
 
-	soup_xmlrpc_set_response (msg, G_TYPE_INT, sum);
+	soup_xmlrpc_set_response (msg, G_TYPE_DOUBLE, sum);
 
 }
 

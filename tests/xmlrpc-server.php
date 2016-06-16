@@ -18,7 +18,7 @@ function sum ($method_name, $params, $app_data)
 
 	$sum = 0;
 	foreach ($params[0] as $val) {
-		if (xmlrpc_get_type ($val) != "int")
+		if (xmlrpc_get_type ($val) != "double")
 			return paramfault();
 			
 		$sum = $sum + $val;

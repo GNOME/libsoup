@@ -1007,21 +1007,20 @@ parse_value (xmlNode *node, const char **signature, GError **error)
 		else
 			variant = parse_number (typenode, class, error);
 	} else  if (g_str_equal (typename, "double")) {
-		if (class == G_VARIANT_CLASS_VARIANT || class == G_VARIANT_CLASS_DOUBLE) {
+		if (class != G_VARIANT_CLASS_VARIANT && class != G_VARIANT_CLASS_DOUBLE) {
 			g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
 				     "<double> node does not match signature");
 			goto fail;
 		}
 		variant = parse_double (typenode, error);
 	} else  if (g_str_equal (typename, "string")) {
-		content = xmlNodeGetContent (typenode);
-		if (class == G_VARIANT_CLASS_VARIANT || class == G_VARIANT_CLASS_STRING)
-			variant = g_variant_new_string ((const char *)content);
-		else {
+		if (class != G_VARIANT_CLASS_VARIANT && class != G_VARIANT_CLASS_STRING) {
 			g_set_error (error, SOUP_XMLRPC_ERROR, SOUP_XMLRPC_ERROR_ARGUMENTS,
 				     "<string> node does not match signature");
 			goto fail;
 		}
+		content = xmlNodeGetContent (typenode);
+		variant = g_variant_new_string ((const char *)content);
 	} else if (g_str_equal (typename, "base64")) {
 		if (class != G_VARIANT_CLASS_VARIANT) {
 			if (!g_str_has_prefix (*signature, "ay")) {
