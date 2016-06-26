@@ -1015,6 +1015,13 @@ soup_server_set_ssl_cert_file  (SoupServer  *server,
 
 	if (priv->tls_cert)
 		g_object_unref (priv->tls_cert);
+
+	g_free (priv->ssl_cert_file);
+	priv->ssl_cert_file = g_strdup (ssl_cert_file);
+
+	g_free (priv->ssl_key_file);
+	priv->ssl_key_file = g_strdup (ssl_key_file);
+
 	priv->tls_cert = g_tls_certificate_new_from_files (priv->ssl_cert_file,
 							   priv->ssl_key_file,
 							   error);
