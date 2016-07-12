@@ -18,7 +18,7 @@ struct _SoupClientInputStreamPrivate {
 };
 
 enum {
-	EOF,
+	SIGNAL_EOF,
 	LAST_SIGNAL
 };
 
@@ -100,7 +100,7 @@ soup_client_input_stream_read_fn (GInputStream  *stream,
 		read_fn (stream, buffer, count, cancellable, error);
 
 	if (nread == 0)
-		g_signal_emit (stream, signals[EOF], 0);
+		g_signal_emit (stream, signals[SIGNAL_EOF], 0);
 
 	return nread;
 }
@@ -117,7 +117,7 @@ soup_client_input_stream_read_nonblocking (GPollableInputStream  *stream,
 		read_nonblocking (stream, buffer, count, error);
 
 	if (nread == 0)
-		g_signal_emit (stream, signals[EOF], 0);
+		g_signal_emit (stream, signals[SIGNAL_EOF], 0);
 
 	return nread;
 }
@@ -226,7 +226,7 @@ soup_client_input_stream_class_init (SoupClientInputStreamClass *stream_class)
 	input_stream_class->close_async = soup_client_input_stream_close_async;
 	input_stream_class->close_finish = soup_client_input_stream_close_finish;
 
-	signals[EOF] =
+	signals[SIGNAL_EOF] =
 		g_signal_new ("eof",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
