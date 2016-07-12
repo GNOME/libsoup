@@ -14,8 +14,8 @@
 #include "soup-message-private.h"
 
 enum {
-	EOF,
-	CLOSED,
+	SIGNAL_EOF,
+	SIGNAL_CLOSED,
 	LAST_SIGNAL
 };
 
@@ -41,7 +41,7 @@ soup_cache_client_input_stream_read_fn (GInputStream  *stream,
 		read_fn (stream, buffer, count, cancellable, error);
 
 	if (nread == 0)
-		g_signal_emit (stream, signals[EOF], 0);
+		g_signal_emit (stream, signals[SIGNAL_EOF], 0);
 
 	return nread;
 }
@@ -57,7 +57,7 @@ soup_cache_client_input_stream_close_fn (GInputStream  *stream,
 	success = G_INPUT_STREAM_CLASS (soup_cache_client_input_stream_parent_class)->
 		close_fn (stream, cancellable, error);
 
-	g_signal_emit (stream, signals[CLOSED], 0);
+	g_signal_emit (stream, signals[SIGNAL_CLOSED], 0);
 
 	return success;
 }
@@ -71,7 +71,7 @@ soup_cache_client_input_stream_class_init (SoupCacheClientInputStreamClass *stre
 	input_stream_class->read_fn = soup_cache_client_input_stream_read_fn;
 	input_stream_class->close_fn = soup_cache_client_input_stream_close_fn;
 
-	signals[EOF] =
+	signals[SIGNAL_EOF] =
 		g_signal_new ("eof",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
@@ -79,7 +79,7 @@ soup_cache_client_input_stream_class_init (SoupCacheClientInputStreamClass *stre
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
-	signals[CLOSED] =
+	signals[SIGNAL_CLOSED] =
 		g_signal_new ("closed",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
