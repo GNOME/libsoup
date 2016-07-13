@@ -52,6 +52,9 @@ typedef void               (*SoupLoggerPrinter) (SoupLogger         *logger,
 SOUP_AVAILABLE_IN_2_4
 GType       soup_logger_get_type    (void);
 
+#define SOUP_LOGGER_LEVEL         "level"
+#define SOUP_LOGGER_MAX_BODY_SIZE "max-body-size"
+
 SOUP_AVAILABLE_IN_2_4
 SoupLogger *soup_logger_new         (SoupLoggerLogLevel  level,
 				     int                 max_body_size);

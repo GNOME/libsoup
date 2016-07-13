@@ -122,6 +122,15 @@ typedef struct {
 } SoupLoggerPrivate;
 #define SOUP_LOGGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_LOGGER, SoupLoggerPrivate))
 
+enum {
+	PROP_0,
+
+	PROP_LEVEL,
+	PROP_MAX_BODY_SIZE,
+
+	LAST_PROP
+};
+
 static void
 soup_logger_init (SoupLogger *logger)
 {
@@ -152,6 +161,46 @@ soup_logger_finalize (GObject *object)
 }
 
 static void
+soup_logger_set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec)
+{
+	SoupLogger *logger = SOUP_LOGGER (object);
+	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
+
+	switch (prop_id) {
+	case PROP_LEVEL:
+		priv->level = g_value_get_enum (value);
+		break;
+	case PROP_MAX_BODY_SIZE:
+		priv->max_body_size = g_value_get_int (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_logger_get_property (GObject *object, guint prop_id,
+			   GValue *value, GParamSpec *pspec)
+{
+	SoupLogger *logger = SOUP_LOGGER (object);
+	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
+
+	switch (prop_id) {
+	case PROP_LEVEL:
+		g_value_set_enum (value, priv->level);
+		break;
+	case PROP_MAX_BODY_SIZE:
+		g_value_set_int (value, priv->max_body_size);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
 soup_logger_class_init (SoupLoggerClass *logger_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (logger_class);
@@ -159,6 +208,58 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	g_type_class_add_private (logger_class, sizeof (SoupLoggerPrivate));
 
 	object_class->finalize = soup_logger_finalize;
+	object_class->set_property = soup_logger_set_property;
+	object_class->get_property = soup_logger_get_property;
+
+	/* properties */
+	/**
+	 * SoupLogger:level:
+	 *
+	 * The level of logging output
+	 *
+	 * Since: 2.56
+	 */
+	/**
+	 * SOUP_LOGGER_LEVEL:
+	 *
+	 * Alias for the #SoupLogger:level property, qv.
+	 *
+	 * Since: 2.56
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_LEVEL,
+		g_param_spec_enum (SOUP_LOGGER_LEVEL,
+				    "Level",
+				    "The level of logging output",
+				    SOUP_TYPE_LOGGER_LOG_LEVEL,
+				    SOUP_LOGGER_LOG_MINIMAL,
+				    G_PARAM_READWRITE));
+
+	/**
+	 * SoupLogger:max-body-size:
+	 *
+	 * If #SoupLogger:level is %SOUP_LOGGER_LOG_BODY, this gives
+	 * the maximum number of bytes of the body that will be logged.
+	 * (-1 means "no limit".)
+	 *
+	 * Since: 2.56
+	 */
+	/**
+	 * SOUP_LOGGER_MAX_BODY_SIZE:
+	 *
+	 * Alias for the #SoupLogger:max-body-size property, qv.
+	 *
+	 * Since: 2.56
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_MAX_BODY_SIZE,
+		g_param_spec_int (SOUP_LOGGER_MAX_BODY_SIZE,
+				    "Max Body Size",
+				    "The maximum body size to output",
+				    -1,
+				    G_MAXINT,
+				    -1,
+				    G_PARAM_READWRITE));
 }
 
 /**
@@ -191,16 +292,10 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 SoupLogger *
 soup_logger_new (SoupLoggerLogLevel level, int max_body_size) 
 {
-	SoupLogger *logger;
-	SoupLoggerPrivate *priv;
-
-	logger = g_object_new (SOUP_TYPE_LOGGER, NULL);
-
-	priv = SOUP_LOGGER_GET_PRIVATE (logger);
-	priv->level = level;
-	priv->max_body_size = max_body_size;
-
-	return logger;
+	return g_object_new (SOUP_TYPE_LOGGER,
+			     SOUP_LOGGER_LEVEL, level,
+			     SOUP_LOGGER_MAX_BODY_SIZE, max_body_size,
+			     NULL);
 }
 
 /**
