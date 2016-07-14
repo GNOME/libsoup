@@ -93,7 +93,6 @@ static guint soup_host_uri_hash (gconstpointer key);
 static gboolean soup_host_uri_equal (gconstpointer v1, gconstpointer v2);
 
 typedef struct {
-	SoupSession *session;
 	gboolean disposed;
 
 	GTlsDatabase *tlsdb;
@@ -138,7 +137,6 @@ typedef struct {
 
 	GMainContext *async_context;
 	gboolean use_thread_context;
-	GSList *run_queue_sources;
 
 	char **http_aliases, **https_aliases;
 
@@ -219,8 +217,6 @@ soup_session_init (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupAuthManager *auth_manager;
-
-	priv->session = session;
 
 	priv->queue = soup_message_queue_new (session);
 
@@ -309,15 +305,6 @@ soup_session_dispose (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	GSList *iter;
-
-	priv->disposed = TRUE;
-
-	for (iter = priv->run_queue_sources; iter; iter = iter->next) {
-		g_source_destroy (iter->data);
-		g_source_unref (iter->data);
-	}
-	g_clear_pointer (&priv->run_queue_sources, g_slist_free);
 
 	priv->disposed = TRUE;
 	soup_session_abort (session);
@@ -388,7 +375,7 @@ ensure_socket_props (SoupSession *session)
 	}
 
 	ssl_strict = priv->ssl_strict && (priv->tlsdb != NULL ||
-					  SOUP_IS_PLAIN_SESSION (priv->session));
+					  SOUP_IS_PLAIN_SESSION (session));
 
 	priv->socket_props = soup_socket_properties_new (priv->async_context,
 							 priv->use_thread_context,
@@ -2074,6 +2061,7 @@ async_run_queue (SoupSession *session)
 		    item->async_context != soup_session_get_async_context (session))
 			continue;
 
+		item->async_pending = FALSE;
 		soup_session_process_queue_item (session, item, &should_cleanup, TRUE);
 	}
 
@@ -2094,22 +2082,25 @@ async_run_queue (SoupSession *session)
 static gboolean
 idle_run_queue (gpointer user_data)
 {
-	SoupSessionPrivate *priv = user_data;
-	GSource *source;
+	GWeakRef *wref = user_data;
+	SoupSession *session;
 
-	if (priv->disposed)
+	session = g_weak_ref_get (wref);
+	if (!session)
 		return FALSE;
 
-	source = g_main_current_source ();
-	priv->run_queue_sources = g_slist_remove (priv->run_queue_sources, source);
-
-	/* Ensure that the source is destroyed before running the queue */
-	g_source_destroy (source);
-	g_source_unref (source);
-
-	g_assert (priv->session);
-	async_run_queue (priv->session);
+	async_run_queue (session);
+	g_object_unref (session);
 	return FALSE;
+}
+
+static void
+idle_run_queue_dnotify (gpointer user_data)
+{
+	GWeakRef *wref = user_data;
+
+	g_weak_ref_clear (wref);
+	g_slice_free (GWeakRef, wref);
 }
 
 /**
@@ -2302,32 +2293,35 @@ soup_session_real_kick_queue (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupMessageQueueItem *item;
+	GHashTable *async_pending;
 	gboolean have_sync_items = FALSE;
 
 	if (priv->disposed)
 		return;
 
+	async_pending = g_hash_table_new (NULL, NULL);
 	for (item = soup_message_queue_first (priv->queue);
 	     item;
 	     item = soup_message_queue_next (priv->queue, item)) {
 		if (item->async) {
-			GSource *source;
+			GMainContext *context = item->async_context ? item->async_context : g_main_context_default ();
 
-			/* We use priv rather than session as the
-			 * source data, because other parts of libsoup
-			 * (or the calling app) may have sources using
-			 * the session as the source data.
-			 */
-			source = g_main_context_find_source_by_user_data (item->async_context, priv);
-			if (!source) {
-				source = soup_add_completion_reffed (item->async_context,
-								     idle_run_queue, priv, NULL);
-				priv->run_queue_sources = g_slist_prepend (priv->run_queue_sources,
-									   source);
+			if (!g_hash_table_contains (async_pending, context)) {
+				if (!item->async_pending) {
+					GWeakRef *wref = g_slice_new (GWeakRef);
+					GSource *source;
+
+					g_weak_ref_init (wref, session);
+					source = soup_add_completion_reffed (context, idle_run_queue, wref, idle_run_queue_dnotify);
+					g_source_unref (source);
+				}
+				g_hash_table_add (async_pending, context);
 			}
+			item->async_pending = TRUE;
 		} else
 			have_sync_items = TRUE;
 	}
+	g_hash_table_unref (async_pending);
 
 	if (have_sync_items) {
 		g_mutex_lock (&priv->conn_lock);

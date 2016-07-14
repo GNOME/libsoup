@@ -48,9 +48,10 @@ struct _SoupMessageQueueItem {
 	guint new_api           : 1;
 	guint io_started        : 1;
 	guint async             : 1;
+	guint async_pending     : 1;
 	guint conn_is_dedicated : 1;
 	guint priority          : 3;
-	guint resend_count      : 25;
+	guint resend_count      : 5;
 
 	SoupMessageQueueItemState state;
 
