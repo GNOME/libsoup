@@ -118,14 +118,15 @@ soup_add_idle (GMainContext *async_context,
 }
 
 GSource *
-soup_add_completion_reffed (GMainContext *async_context,
-			    GSourceFunc   function,
-			    gpointer      data)
+soup_add_completion_reffed (GMainContext   *async_context,
+			    GSourceFunc     function,
+			    gpointer        data,
+			    GDestroyNotify  dnotify)
 {
 	GSource *source = g_idle_source_new ();
 
 	g_source_set_priority (source, G_PRIORITY_DEFAULT);
-	g_source_set_callback (source, function, data, NULL);
+	g_source_set_callback (source, function, data, dnotify);
 	g_source_attach (source, async_context);
 	return source;
 }
@@ -152,7 +153,7 @@ soup_add_completion (GMainContext *async_context,
 {
 	GSource *source;
 
-	source = soup_add_completion_reffed (async_context, function, data);
+	source = soup_add_completion_reffed (async_context, function, data, NULL);
 	g_source_unref (source);
 	return source;
 }

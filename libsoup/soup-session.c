@@ -2321,7 +2321,7 @@ soup_session_real_kick_queue (SoupSession *session)
 			source = g_main_context_find_source_by_user_data (item->async_context, priv);
 			if (!source) {
 				source = soup_add_completion_reffed (item->async_context,
-								     idle_run_queue, priv);
+								     idle_run_queue, priv, NULL);
 				priv->run_queue_sources = g_slist_prepend (priv->run_queue_sources,
 									   source);
 			}
