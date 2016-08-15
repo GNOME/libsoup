@@ -1,3 +1,33 @@
+Changes in libsoup from 2.54.1 to 2.55.90:
+
+	* Removed support for SSLv3 fallback; sites that reject TLS
+          1.x handshakes will now just fail with an error. (Firefox
+          and Chrome have both already switched to this behavior.)
+          [#765940, Dan Winship]
+
+	* Fixed the parsing of <double>s in the new GVariant-based
+          XMLRPC code. [#767707, Dan Winship]
+
+	* Fixed soup_server_set_ssl_cert_file(), which was added in
+          2.48 but didn't actually work... [patch on libsoup-list from
+          Sean DuBois]
+
+	* Added GObject properties to SoupLogger to make it
+          bindings-friendly. [#768053, Jonh Wendell]
+
+	* Fixed build error on FreeBSD [#765376, Ting-Wei Lan]
+
+	* Fixed build with certain new versions of glibc that define
+          "EOF" as a macro. [#768731, Philip Withnall]
+
+	* Updated m4/ax_code_coverage.m4 with support for lcov 1.12
+          [Philip Withnall]
+
+	* Updated po files for future gettext versions [Piotr Drąg]
+
+	* New/updated translations:
+	  Occitan, Scottish Gaelic
+
 Changes in libsoup from 2.54.0.1 to 2.54.1:
 
 	* *** IMPORTANT ***
