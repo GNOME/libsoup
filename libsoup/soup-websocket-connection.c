@@ -80,6 +80,7 @@ enum {
 	PROP_ORIGIN,
 	PROP_PROTOCOL,
 	PROP_STATE,
+	PROP_MAX_INCOMING_PAYLOAD_SIZE,
 };
 
 enum {
@@ -105,6 +106,7 @@ struct _SoupWebsocketConnectionPrivate {
 	SoupURI *uri;
 	char *origin;
 	char *protocol;
+	guint64 max_incoming_payload_size;
 
 	gushort peer_close_code;
 	char *peer_close_data;
@@ -131,7 +133,7 @@ struct _SoupWebsocketConnectionPrivate {
 	GByteArray *message_data;
 };
 
-#define MAX_PAYLOAD   128 * 1024
+#define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
 
 G_DEFINE_TYPE (SoupWebsocketConnection, soup_websocket_connection, G_TYPE_OBJECT)
 
@@ -500,9 +502,9 @@ too_big_error_and_close (SoupWebsocketConnection *self,
 				     self->pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER ?
 				     "Received extremely large WebSocket data from the client" :
 				     "Received extremely large WebSocket data from the server");
-	g_debug ("%s is trying to frame of size %" G_GUINT64_FORMAT " or greater, but max supported size is 128KiB",
+	g_debug ("%s is trying to frame of size %" G_GUINT64_FORMAT " or greater, but max supported size is %" G_GUINT64_FORMAT,
 		 self->pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER ? "server" : "client",
-		 payload_len);
+	         payload_len, self->pv->max_incoming_payload_size);
 	emit_error_and_close (self, error, TRUE);
 
 	/* The input is in an invalid state now */
@@ -728,7 +730,8 @@ process_frame (SoupWebsocketConnection *self)
 	}
 
 	/* Safety valve */
-	if (payload_len >= MAX_PAYLOAD) {
+	if (self->pv->max_incoming_payload_size > 0 &&
+	    payload_len >= self->pv->max_incoming_payload_size) {
 		too_big_error_and_close (self, payload_len);
 		return FALSE;
 	}
@@ -963,6 +966,7 @@ soup_websocket_connection_get_property (GObject *object,
 					GParamSpec *pspec)
 {
 	SoupWebsocketConnection *self = SOUP_WEBSOCKET_CONNECTION (object);
+	SoupWebsocketConnectionPrivate *pv = self->pv;
 
 	switch (prop_id) {
 	case PROP_IO_STREAM:
@@ -987,6 +991,10 @@ soup_websocket_connection_get_property (GObject *object,
 
 	case PROP_STATE:
 		g_value_set_enum (value, soup_websocket_connection_get_state (self));
+		break;
+
+	case PROP_MAX_INCOMING_PAYLOAD_SIZE:
+		g_value_set_uint64 (value, pv->max_incoming_payload_size);
 		break;
 
 	default:
@@ -1027,6 +1035,10 @@ soup_websocket_connection_set_property (GObject *object,
 	case PROP_PROTOCOL:
 		g_return_if_fail (pv->protocol == NULL);
 		pv->protocol = g_value_dup_string (value);
+		break;
+
+	case PROP_MAX_INCOMING_PAYLOAD_SIZE:
+		pv->max_incoming_payload_size = g_value_get_uint64 (value);
 		break;
 
 	default:
@@ -1195,6 +1207,25 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 							    SOUP_WEBSOCKET_STATE_OPEN,
 							    G_PARAM_READABLE |
 							    G_PARAM_STATIC_STRINGS));
+
+	/**
+	 * SoupWebsocketConnection:max-incoming-payload-size:
+	 *
+	 * The maximum payload size for incoming packets the protocol expects
+	 * or 0 to not limit it.
+	 *
+	 * Since: 2.56
+	 */
+	g_object_class_install_property (gobject_class, PROP_MAX_INCOMING_PAYLOAD_SIZE,
+					 g_param_spec_uint64 ("max-incoming-payload-size",
+							      "Max incoming payload size",
+							      "Max incoming payload size ",
+							      0,
+							      G_MAXUINT64,
+							      MAX_INCOMING_PAYLOAD_SIZE_DEFAULT,
+							      G_PARAM_READWRITE |
+							      G_PARAM_CONSTRUCT |
+							      G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupWebsocketConnection::message:
@@ -1568,4 +1599,50 @@ soup_websocket_connection_close (SoupWebsocketConnection *self,
 		flags |= SOUP_WEBSOCKET_QUEUE_LAST;
 	send_close (self, flags, code, data);
 	close_io_after_timeout (self);
+}
+
+/**
+ * soup_websocket_connection_get_max_incoming_payload_size:
+ * @self: the WebSocket
+ *
+ * Gets the maximum payload size allowed for incoming packets.
+ *
+ * Returns: the maximum payload size.
+ *
+ * Since: 2.56
+ */
+guint64
+soup_websocket_connection_get_max_incoming_payload_size (SoupWebsocketConnection *self)
+{
+	SoupWebsocketConnectionPrivate *pv;
+
+	g_return_val_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self), MAX_INCOMING_PAYLOAD_SIZE_DEFAULT);
+	pv = self->pv;
+
+	return pv->max_incoming_payload_size;
+}
+
+/**
+ * soup_websocket_connection_set_max_incoming_payload_size:
+ * @self: the WebSocket
+ * @max_incoming_payload_size: the maximum payload size
+ *
+ * Sets the maximum payload size allowed for incoming packets. It
+ * does not limit the outgoing packet size.
+ *
+ * Since: 2.56
+ */
+void
+soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection *self,
+                                                         guint64                  max_incoming_payload_size)
+{
+	SoupWebsocketConnectionPrivate *pv;
+
+	g_return_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self));
+	pv = self->pv;
+
+	if (pv->max_incoming_payload_size != max_incoming_payload_size) {
+		pv->max_incoming_payload_size = max_incoming_payload_size;
+		g_object_notify (G_OBJECT (self), "max-incoming-payload-size");
+	}
 }

@@ -105,6 +105,13 @@ void                soup_websocket_connection_close          (SoupWebsocketConne
 							      gushort code,
 							      const char *data);
 
+SOUP_AVAILABLE_IN_2_56
+guint64             soup_websocket_connection_get_max_incoming_payload_size (SoupWebsocketConnection *self);
+
+SOUP_AVAILABLE_IN_2_56
+void                soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection *self,
+                                                                             guint64                  max_incoming_payload_size);
+
 G_END_DECLS
 
 #endif /* __SOUP_WEBSOCKET_CONNECTION_H__ */

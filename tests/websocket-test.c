@@ -380,6 +380,19 @@ test_send_big_packets (Test *test,
 	g_assert (g_bytes_equal (sent, received));
 	g_bytes_unref (sent);
 	g_bytes_unref (received);
+	received = NULL;
+
+	soup_websocket_connection_set_max_incoming_payload_size (test->client, 1000 * 1000 + 1);
+	g_assert (soup_websocket_connection_get_max_incoming_payload_size (test->client) == (1000 * 1000 + 1));
+	soup_websocket_connection_set_max_incoming_payload_size (test->server, 1000 * 1000 + 1);
+	g_assert (soup_websocket_connection_get_max_incoming_payload_size (test->server) == (1000 * 1000 + 1));
+
+	sent = g_bytes_new_take (g_strnfill (1000 * 1000, '?'), 1000 * 1000);
+	soup_websocket_connection_send_text (test->server, g_bytes_get_data (sent, NULL));
+	WAIT_UNTIL (received != NULL);
+	g_assert (g_bytes_equal (sent, received));
+	g_bytes_unref (sent);
+	g_bytes_unref (received);
 }
 
 static void
