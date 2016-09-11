@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-03-12 11:04+0000\n"
-"PO-Revision-Date: 2015-03-12 20:00+0200\n"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2016-08-15 22:06+0000\n"
+"PO-Revision-Date: 2016-09-07 00:38+0300\n"
 "Last-Translator: Tom Tryfonidis <tomtryf@gmail.com>\n"
 "Language-Team: team@gnome.gr\n"
 "Language: el\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.7.4\n"
+"X-Generator: Poedit 1.8.8\n"
 "X-Project-Style: gnome\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
@@ -77,31 +77,31 @@ msgstr "Δεν έχει δοθεί URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "Μη έγκυρο '%s' URI: %s"
 
-#: ../libsoup/soup-server.c:1711
+#: ../libsoup/soup-server.c:1727
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Αδύνατη η δημιουργία ενός διακομιστή TLS χωρίς πιστοποιητικό TLS"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1744
 #, c-format
-msgid "Could not listen on address %s, port %d"
-msgstr "Αδυναμία ακρόασης στη διεύθυνση %s, θύρα %d"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Αδυναμία ακρόασης στη διεύθυνση %s, θύρα %d: "
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Αδυναμία ανάλυσης URI '%s'"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4562
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Μη υποστηριζόμενο σχήμα URI '%s'"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Δεν είναι ένα HTTP URI"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Ο διακομιστής δεν αποδέχεται τη χειραψία WebSocket"
 
@@ -117,24 +117,24 @@ msgstr "Αδυναμία εισαγωγής υπάρχουσας υποδοχή�
 msgid "Can't import unconnected socket"
 msgstr "Αδύνατη η εισαγωγή μιας μη συνδεμένης υποδοχής"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Αναμένεται χειραψία WebSocket"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Η έκδοση WebSocket δεν υποστηρίζεται"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Μη έγκυρο κλειδί κρυπτογράφησης WebSocket"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
 msgid "Incorrect WebSocket \"%s\" header"
 msgstr "Εσφαλμένη κεφαλίδα WebSocket \"%s\""
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Το υποπρωτόκολλο WebSocket δεν υποστηρίζεται"
 
