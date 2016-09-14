@@ -274,7 +274,7 @@ SOUP_UNSTABLE_REQUEST_CFLAG = -DLIBSOUP_USE_UNSTABLE_REQUEST_API
 gi_soup_files = \
 	$(filter-out soup.h soup-enum-types.% soup-proxy-resolver.h,\
 	   $(soup_headers) $(filter-out %.h, $(libsoup_2_4_la_SOURCES)))
-gi_built_soup_files = soup-enum-types.h
+gi_built_soup_files = soup-enum-types.h soup-version.h
 
 Soup-2.4.gir: libsoup-2.4.la
 Soup_2_4_gir_INCLUDES = Gio-2.0
