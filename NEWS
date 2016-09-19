@@ -1,3 +1,19 @@
+Changes in libsoup from 2.55.90 to 2.56.0:
+
+	* Added SoupWebsocketConnection:max-incoming-payload-size
+          property, to override the default maximum incoming payload
+          size. [#770022, Ignacio Casal Quinteiro]
+
+	* Added soup-version.h symbols (in particular
+          soup_check_version()) to introspection. [#771439, Rico
+          Tzschichholz]
+
+	* Updated the copy of the public suffix list used by SoupTLD
+	  [#769650, Michael Catanzaro]
+
+	* Updated translations:
+	  British English, Greek, Polish
+
 Changes in libsoup from 2.54.1 to 2.55.90:
 
 	* Removed support for SSLv3 fallback; sites that reject TLS
