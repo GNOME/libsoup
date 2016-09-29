@@ -145,7 +145,7 @@ soup_socket_initable_init (GInitable     *initable,
 		if (getsockopt (priv->fd, SOL_SOCKET, SO_TYPE,
 				(gpointer)&type, (gpointer)&len) == -1) {
 			g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-					     _("Can't import non-socket as SoupSocket"));
+					     _("Can’t import non-socket as SoupSocket"));
 			return FALSE;
 		}
 
@@ -172,7 +172,7 @@ soup_socket_initable_init (GInitable     *initable,
 			finish_listener_setup (sock);
 		else if (!g_socket_is_connected (priv->gsock)) {
 			g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-					     _("Can't import unconnected socket"));
+					     _("Can’t import unconnected socket"));
 			return FALSE;
 		}
 	}

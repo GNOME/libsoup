@@ -1724,7 +1724,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 			g_set_error_literal (error,
 					     G_IO_ERROR,
 					     G_IO_ERROR_INVALID_ARGUMENT,
-					     _("Can't create a TLS server without a TLS certificate"));
+					     _("Can’t create a TLS server without a TLS certificate"));
 			return FALSE;
 		}
 

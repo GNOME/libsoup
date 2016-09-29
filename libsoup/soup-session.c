@@ -4522,7 +4522,7 @@ soup_session_request (SoupSession *session, const char *uri_string,
 	if (!uri) {
 		g_set_error (error, SOUP_REQUEST_ERROR,
 			     SOUP_REQUEST_ERROR_BAD_URI,
-			     _("Could not parse URI '%s'"), uri_string);
+			     _("Could not parse URI “%s”"), uri_string);
 		return NULL;
 	}
 
@@ -4559,7 +4559,7 @@ soup_session_request_uri (SoupSession *session, SoupURI *uri,
 	if (!request_type) {
 		g_set_error (error, SOUP_REQUEST_ERROR,
 			     SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME,
-			     _("Unsupported URI scheme '%s'"), uri->scheme);
+			     _("Unsupported URI scheme “%s”"), uri->scheme);
 		return NULL;
 	}
 

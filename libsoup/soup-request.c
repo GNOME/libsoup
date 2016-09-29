@@ -147,7 +147,7 @@ soup_request_initable_init (GInitable     *initable,
 	if (!ok && error && !*error) {
 		char *uri_string = soup_uri_to_string (request->priv->uri, FALSE);
 		g_set_error (error, SOUP_REQUEST_ERROR, SOUP_REQUEST_ERROR_BAD_URI,
-			     _("Invalid '%s' URI: %s"),
+			     _("Invalid “%s” URI: %s"),
 			     request->priv->uri->scheme,
 			     uri_string);
 		g_free (uri_string);

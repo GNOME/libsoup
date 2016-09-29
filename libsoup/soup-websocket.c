@@ -371,7 +371,7 @@ soup_websocket_server_check_handshake (SoupMessage  *msg,
 			g_set_error (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_BAD_ORIGIN,
-				     _("Incorrect WebSocket \"%s\" header"), "Origin");
+				     _("Incorrect WebSocket “%s” header"), "Origin");
 			return FALSE;
 		}
 	}
@@ -559,7 +559,7 @@ soup_websocket_client_verify_handshake (SoupMessage  *msg,
 		g_set_error (error,
 			     SOUP_WEBSOCKET_ERROR,
 			     SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
-			     _("Server returned incorrect \"%s\" key"),
+			     _("Server returned incorrect “%s” key"),
 			     "Sec-WebSocket-Accept");
 		return FALSE;
 	}
