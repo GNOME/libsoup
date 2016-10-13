@@ -33,7 +33,7 @@
  * @scheme: the URI scheme (eg, "http")
  * @user: a username, or %NULL
  * @password: a password, or %NULL
- * @host: the hostname or IP address
+ * @host: the hostname or IP address, or %NULL
  * @port: the port number on @host
  * @path: the path on @host
  * @query: a query for @path, or %NULL
