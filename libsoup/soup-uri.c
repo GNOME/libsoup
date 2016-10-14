@@ -530,7 +530,7 @@ soup_uri_new (const char *uri_string)
 
 char *
 soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
-			     gboolean force_port)
+			     gboolean include_password, gboolean force_port)
 {
 	GString *str;
 	char *return_result;
@@ -546,6 +546,10 @@ soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
 		g_string_append (str, "//");
 		if (uri->user) {
 			append_uri_encoded (str, uri->user, ":;@?/");
+			if (uri->password && include_password) {
+				g_string_append_c (str, ':');
+				append_uri_encoded (str, uri->password, ";@?/");
+			}
 			g_string_append_c (str, '@');
 		}
 		if (strchr (uri->host, ':')) {
@@ -611,7 +615,7 @@ soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
 char *
 soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 {
-	return soup_uri_to_string_internal (uri, just_path_and_query, FALSE);
+	return soup_uri_to_string_internal (uri, just_path_and_query, FALSE, FALSE);
 }
 
 /**

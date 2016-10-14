@@ -1267,7 +1267,7 @@ soup_address_connectable_proxy_enumerate (GSocketConnectable *connectable)
 	soup_uri_set_host (uri, priv->name ? priv->name : soup_address_get_physical (addr));
 	soup_uri_set_port (uri, priv->port);
 	soup_uri_set_path (uri, "");
-	uri_string = soup_uri_to_string_internal (uri, FALSE, TRUE);
+	uri_string = soup_uri_to_string_internal (uri, FALSE, FALSE, TRUE);
 
 	proxy_enum = g_object_new (G_TYPE_PROXY_ADDRESS_ENUMERATOR,
 				   "connectable", connectable,
