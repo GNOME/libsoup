@@ -5,10 +5,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: libsoup 3.19.x\n"
+"Project-Id-Version: libsoup 3.22.x\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-10 20:09+0100\n"
-"PO-Revision-Date: 2016-01-10 20:09+0100\n"
+"POT-Creation-Date: 2016-10-15 17:09+0200\n"
+"PO-Revision-Date: 2016-10-15 17:10+0200\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian bokmål <i18n-nb@lister.ping.uio.no>\n"
 "Language: nb\n"
@@ -73,31 +73,31 @@ msgstr "Ingen URI ble oppgitt"
 msgid "Invalid '%s' URI: %s"
 msgstr "Ugyldig «%s» URI: %s"
 
-#: ../libsoup/soup-server.c:1720
+#: ../libsoup/soup-server.c:1727
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Kan ikke lage en TLS-tjener uten et TLS-sertifikat"
 
-#: ../libsoup/soup-server.c:1739
+#: ../libsoup/soup-server.c:1744
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Kunne ikke lytte på adresse %s, port %d: "
 
-#: ../libsoup/soup-session.c:4543
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Kunne ikke tolke URI «%s»"
 
-#: ../libsoup/soup-session.c:4580
+#: ../libsoup/soup-session.c:4562
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "URI-skjema «%s» er ikke støttet"
 
-#: ../libsoup/soup-session.c:4602
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ikke en HTTP URI"
 
-#: ../libsoup/soup-session.c:4788
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Tjeneren godtok ikke WebSocket-håndtrykk."
 
@@ -132,23 +132,23 @@ msgstr "Ugyldig «%s»-hode for WebSocket"
 
 #: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
-msgstr ""
+msgstr "Ikke støttet underprotokoll av WebSocket"
 
 #: ../libsoup/soup-websocket.c:510
 msgid "Server rejected WebSocket handshake"
-msgstr ""
+msgstr "Tjener avviste håndtrykk for WebSocket"
 
 #: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
 msgid "Server ignored WebSocket handshake"
-msgstr ""
+msgstr "Tjener overså håndtrykk fra WebSocket"
 
 #: ../libsoup/soup-websocket.c:539
 msgid "Server requested unsupported protocol"
-msgstr ""
+msgstr "Tjener forespurte protokoll som ikke støttes"
 
 #: ../libsoup/soup-websocket.c:549
 msgid "Server requested unsupported extension"
-msgstr ""
+msgstr "Tjener forespurte utvidelse som ikke støttes"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
