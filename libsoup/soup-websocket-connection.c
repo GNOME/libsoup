@@ -586,6 +586,7 @@ process_contents (SoupWebsocketConnection *self,
 			receive_ping (self, payload, payload_len);
 			break;
 		case 0x0A:
+			g_debug ("received pong message");
 			break;
 		default:
 			g_debug ("received unsupported control frame: %d", (int)opcode);
