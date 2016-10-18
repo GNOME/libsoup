@@ -112,6 +112,13 @@ SOUP_AVAILABLE_IN_2_56
 void                soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection *self,
                                                                              guint64                  max_incoming_payload_size);
 
+SOUP_AVAILABLE_IN_2_58
+guint               soup_websocket_connection_get_keepalive_interval (SoupWebsocketConnection *self);
+
+SOUP_AVAILABLE_IN_2_58
+void                soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,
+                                                                      guint                    interval);
+
 G_END_DECLS
 
 #endif /* __SOUP_WEBSOCKET_CONNECTION_H__ */
