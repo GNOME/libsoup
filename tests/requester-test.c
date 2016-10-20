@@ -17,6 +17,12 @@ SoupBuffer *response, *auth_response;
 #define REDIRECT_HTML_BODY "<html><body>Try again</body></html>\r\n"
 #define AUTH_HTML_BODY "<html><body>Unauthorized</body></html>\r\n"
 
+typedef enum {
+	NO_CANCEL,
+	SYNC_CANCEL,
+	PAUSE_AND_CANCEL_ON_IDLE
+} CancelPolicy;
+
 static gboolean
 slow_finish_message (gpointer msg)
 {
@@ -205,6 +211,32 @@ cancel_message (SoupMessage *msg, gpointer session)
 	soup_session_cancel_message (session, msg, SOUP_STATUS_FORBIDDEN);
 }
 
+typedef struct {
+	SoupMessage *msg;
+	SoupSession *session;
+} CancelData;
+
+static gboolean
+cancel_message_idle (CancelData *data)
+{
+	cancel_message (data->msg, data->session);
+	return FALSE;
+}
+
+static void
+pause_and_cancel_message (SoupMessage *msg, gpointer session)
+{
+	CancelData *data = g_new (CancelData, 1);
+	GSource *source = g_idle_source_new ();
+
+	soup_session_pause_message (session, msg);
+	data->msg = msg;
+	data->session = session;
+	g_source_set_callback (source, (GSourceFunc)cancel_message_idle, data, g_free);
+	g_source_attach (source, soup_session_get_async_context (session));
+	g_source_unref (source);
+}
+
 static void
 request_started (SoupSession *session, SoupMessage *msg,
 		 SoupSocket *socket, gpointer user_data)
@@ -219,7 +251,7 @@ static void
 do_async_test (SoupSession *session, SoupURI *uri,
 	       GAsyncReadyCallback callback, guint expected_status,
 	       SoupBuffer *expected_response,
-	       gboolean persistent, gboolean cancel)
+	       gboolean persistent, CancelPolicy cancel_policy)
 {
 	SoupRequester *requester;
 	SoupRequest *request;
@@ -234,16 +266,24 @@ do_async_test (SoupSession *session, SoupURI *uri,
 		requester = NULL;
 
 	data.body = g_string_new (NULL);
-	data.cancel = cancel;
+	data.cancel = cancel_policy != NO_CANCEL;
 	if (requester)
 		request = soup_requester_request_uri (requester, uri, NULL);
 	else
 		request = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
-	if (cancel) {
+	switch (cancel_policy) {
+	case SYNC_CANCEL:
 		g_signal_connect (msg, "got-headers",
 				  G_CALLBACK (cancel_message), session);
+		break;
+	case PAUSE_AND_CANCEL_ON_IDLE:
+		g_signal_connect (msg, "got-headers",
+				  G_CALLBACK (pause_and_cancel_message), session);
+		break;
+	case NO_CANCEL:
+		break;
 	}
 
 	started_id = g_signal_connect (session, "request-started",
@@ -294,34 +334,41 @@ do_test_for_thread_and_context (SoupSession *session, SoupURI *base_uri)
 	debug_printf (1, "    basic test\n");
 	do_async_test (session, base_uri, test_sent,
 		       SOUP_STATUS_OK, response,
-		       TRUE, FALSE);
+		       TRUE, NO_CANCEL);
 
 	debug_printf (1, "    chunked test\n");
 	uri = soup_uri_new_with_base (base_uri, "/chunked");
 	do_async_test (session, uri, test_sent,
 		       SOUP_STATUS_OK, response,
-		       TRUE, FALSE);
+		       TRUE, NO_CANCEL);
 	soup_uri_free (uri);
 
 	debug_printf (1, "    auth test\n");
 	uri = soup_uri_new_with_base (base_uri, "/auth");
 	do_async_test (session, uri, auth_test_sent,
 		       SOUP_STATUS_UNAUTHORIZED, auth_response,
-		       TRUE, FALSE);
+		       TRUE, NO_CANCEL);
 	soup_uri_free (uri);
 
 	debug_printf (1, "    non-persistent test\n");
 	uri = soup_uri_new_with_base (base_uri, "/non-persistent");
 	do_async_test (session, uri, test_sent,
 		       SOUP_STATUS_OK, response,
-		       FALSE, FALSE);
+		       FALSE, NO_CANCEL);
 	soup_uri_free (uri);
 
 	debug_printf (1, "    cancellation test\n");
 	uri = soup_uri_new_with_base (base_uri, "/");
 	do_async_test (session, uri, test_sent,
 		       SOUP_STATUS_FORBIDDEN, NULL,
-		       FALSE, TRUE);
+		       FALSE, SYNC_CANCEL);
+	soup_uri_free (uri);
+
+	debug_printf (1, "    cancellation after paused test\n");
+	uri = soup_uri_new_with_base (base_uri, "/");
+	do_async_test (session, uri, test_sent,
+		       SOUP_STATUS_FORBIDDEN, NULL,
+		       FALSE, PAUSE_AND_CANCEL_ON_IDLE);
 	soup_uri_free (uri);
 }
 
@@ -433,7 +480,7 @@ do_plain_test_in_thread (gconstpointer data)
 static void
 do_sync_request (SoupSession *session, SoupRequest *request,
 		 guint expected_status, SoupBuffer *expected_response,
-		 gboolean persistent, gboolean cancel)
+		 gboolean persistent, CancelPolicy cancel_policy)
 {
 	GInputStream *in;
 	SoupMessage *msg;
@@ -445,7 +492,7 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 	SoupSocket *socket = NULL;
 
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
-	if (cancel) {
+	if (cancel_policy == SYNC_CANCEL) {
 		g_signal_connect (msg, "got-headers",
 				  G_CALLBACK (cancel_message), session);
 	}
@@ -456,7 +503,7 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 
 	in = soup_request_send (request, NULL, &error);
 	g_signal_handler_disconnect (session, started_id);
-	if (cancel) {
+	if (cancel_policy == SYNC_CANCEL) {
 		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 		g_clear_error (&error);
 		g_object_unref (msg);
@@ -523,7 +570,7 @@ do_sync_tests_for_session (SoupSession *session, SoupURI *base_uri)
 		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
-			 TRUE, FALSE);
+			 TRUE, NO_CANCEL);
 	g_object_unref (request);
 
 	debug_printf (1, "    chunked test\n");
@@ -534,7 +581,7 @@ do_sync_tests_for_session (SoupSession *session, SoupURI *base_uri)
 		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
-			 TRUE, FALSE);
+			 TRUE, NO_CANCEL);
 	g_object_unref (request);
 
 	debug_printf (1, "    auth test\n");
@@ -545,7 +592,7 @@ do_sync_tests_for_session (SoupSession *session, SoupURI *base_uri)
 		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_UNAUTHORIZED, auth_response,
-			 TRUE, FALSE);
+			 TRUE, NO_CANCEL);
 	g_object_unref (request);
 
 	debug_printf (1, "    non-persistent test\n");
@@ -556,7 +603,7 @@ do_sync_tests_for_session (SoupSession *session, SoupURI *base_uri)
 		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
-			 FALSE, FALSE);
+			 FALSE, NO_CANCEL);
 	g_object_unref (request);
 
 	debug_printf (1, "    cancel test\n");
@@ -567,7 +614,7 @@ do_sync_tests_for_session (SoupSession *session, SoupURI *base_uri)
 		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_FORBIDDEN, NULL,
-			 TRUE, TRUE);
+			 TRUE, SYNC_CANCEL);
 	g_object_unref (request);
 
 	soup_uri_free (uri);

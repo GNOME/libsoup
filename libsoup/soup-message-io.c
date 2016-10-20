@@ -817,7 +817,7 @@ message_source_check (GSource *source)
 		SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (message_source->msg);
 		SoupMessageIOData *io = priv->io_data;
 
-		if (!io || io->paused)
+		if (io && io->paused)
 			return FALSE;
 		else
 			return TRUE;
