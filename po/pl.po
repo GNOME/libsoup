@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-08-16 10:44+0200\n"
-"PO-Revision-Date: 2016-08-16 10:45+0200\n"
+"POT-Creation-Date: 2016-10-27 16:14+0200\n"
+"PO-Revision-Date: 2016-10-27 16:15+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <community-poland@mozilla.org>\n"
 "Language: pl\n"
@@ -73,11 +73,11 @@ msgstr "Nie podano adresu URI"
 
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Nieprawidłowy adres URI „%s”: %s"
 
 #: ../libsoup/soup-server.c:1727
-msgid "Can't create a TLS server without a TLS certificate"
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nie można utworzyć serwera TLS bez certyfikatu TLS"
 
 #: ../libsoup/soup-server.c:1744
@@ -87,12 +87,12 @@ msgstr "Nie można nasłuchiwać na adresie %s, porcie %d: "
 
 #: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
 msgstr "Nie można przetworzyć adresu URI „%s”"
 
 #: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "Nieobsługiwany schemat adresu URI „%s”"
 
 #: ../libsoup/soup-session.c:4584
@@ -105,7 +105,7 @@ msgid "The server did not accept the WebSocket handshake."
 msgstr "Serwer nie przyjął powitania WebSocket."
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Nie można zaimportować niegniazda jako SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
@@ -113,7 +113,7 @@ msgid "Could not import existing socket: "
 msgstr "Nie można zaimportować istniejącego gniazda: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Nie można zaimportować niepołączonego gniazda"
 
 #: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
@@ -130,7 +130,7 @@ msgstr "Nieprawidłowy klucz WebSocket"
 
 #: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
 msgstr "Niepoprawny nagłówek „%s” WebSocket"
 
 #: ../libsoup/soup-websocket.c:383
@@ -155,7 +155,7 @@ msgstr "Serwer zażądał nieobsługiwanego rozszerzenia"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "Serwer zwrócił niepoprawny klucz „%s”"
 
 #: ../libsoup/soup-tld.c:188
