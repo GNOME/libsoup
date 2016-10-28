@@ -1,15 +1,16 @@
 # Czech translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Marek Černocký <marek@manet.cz>, 2012, 2013, 2014, 2015.
+#
+# Marek Černocký <marek@manet.cz>, 2012, 2013, 2014, 2015, 2016.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-03-04 11:04+0000\n"
-"PO-Revision-Date: 2015-03-04 15:37+0100\n"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2016-10-27 12:38+0000\n"
+"PO-Revision-Date: 2016-10-28 11:12+0200\n"
 "Last-Translator: Marek Černocký <marek@manet.cz>\n"
 "Language-Team: Czech <gnome-cs-list@gnome.org>\n"
 "Language: cs\n"
@@ -73,39 +74,39 @@ msgstr "Není poskytnuta žádná adresa URI"
 
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Neplatná adresa URI „%s“: %s"
 
-#: ../libsoup/soup-server.c:1711
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1727
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nelze vytvořit server TLS bez certifikátu TLS"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1744
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nelze naslouchat na adrese %s, portu %d: "
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
 msgstr "Nelze zpracovat adresu URI „%s“"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "Nepodporované schéma URI „%s“"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nejedná se o adresu HTTP URI"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Server nepřijímá vyjednávání WebSocket."
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Nelze naimportovat ne-soket jako SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
@@ -113,27 +114,27 @@ msgid "Could not import existing socket: "
 msgstr "Nelze naimportovat stávající soket: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Nelze naimportovat nepřipojený soket"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Očekáváno vyjednávání WebSocket"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Nepodporovaná verze protokolu WebSocket"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Neplatný klíč WebSocket"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
 msgstr "Nesprávná hlavička „%s“ protokolu WebSocket"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nepodporovaný podprotokol protokolu WebSocket"
 
@@ -155,7 +156,7 @@ msgstr "Server požaduje nepodporované rozšíření"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "Server vrátil nesprávný klíč „%s“"
 
 #: ../libsoup/soup-tld.c:188
@@ -173,3 +174,4 @@ msgstr "Název počítače nemá základní doménu"
 #: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Nedostatek domén"
+
