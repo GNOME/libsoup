@@ -2,27 +2,27 @@
 # Copyright (C) 2012. Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
 #
-# Gabor Kelemen <kelemeng at gnome dot hu>, 2012.
+# Gabor Kelemen <kelemeng at gnome dot hu>, 2012, 2016.
 # Balázs Úr <urbalazs at gmail dot com>, 2013, 2014, 2015.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-03-01 15:38+0000\n"
-"PO-Revision-Date: 2015-03-01 18:27+0100\n"
-"Last-Translator: Balázs Úr <urbalazs@gmail.com>\n"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2016-10-27 12:38+0000\n"
+"PO-Revision-Date: 2016-10-30 18:31+0100\n"
+"Last-Translator: Gabor Kelemen <kelemeng at ubuntu dot com>\n"
 "Language-Team: Hungarian <openscope at googlegroups dot com>\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms:  nplurals=2; plural=(n != 1);\n"
-"X-Generator: Lokalize 1.2\n"
+"X-Generator: Lokalize 1.5\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:228
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Kapcsolat váratlanul megszakítva"
 
@@ -34,11 +34,11 @@ msgstr "Érvénytelen pozicionálási kérés"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "A SoupBodyInputStream nem csonkítható"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Az hálózati adatfolyam váratlanul lezárult"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Nem sikerült teljesen gyorsítótárazni az erőforrást"
 
@@ -55,11 +55,11 @@ msgstr "Nem dolgozható fel a HTTP válasz"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Ismeretlen HTTP válasz kódolás"
 
-#: ../libsoup/soup-message-io.c:385 ../libsoup/soup-message-io.c:1011
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "A művelet blokkoló lenne"
 
-#: ../libsoup/soup-message-io.c:963 ../libsoup/soup-message-io.c:1000
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
 msgid "Operation was cancelled"
 msgstr "A művelet megszakítva"
 
@@ -74,67 +74,74 @@ msgstr "Nincs megadva URI"
 
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
+#| msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Érvénytelen „%s” URI: „%s”"
 
-#: ../libsoup/soup-server.c:1717
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1727
+#| msgid "Can't create a TLS server without a TLS certificate"
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nem lehet TLS kiszolgálót létrehozni TLS tanúsítvány nélkül"
 
-#: ../libsoup/soup-server.c:1736
+#: ../libsoup/soup-server.c:1744
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nem sikerült figyelni a(z) %s címen a(z) %d. porton: "
 
-#: ../libsoup/soup-session.c:4500
+#: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
 msgstr "Nem dolgozható fel a(z) „%s” URI"
 
-#: ../libsoup/soup-session.c:4537
+#: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
+#| msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "Nem támogatott URI séma: „%s”"
 
-#: ../libsoup/soup-session.c:4559
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ez nem HTTP URI"
 
-#: ../libsoup/soup-session.c:4741
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "A kiszolgáló nem fogadta el a WebSocket kézfogást."
 
-#: ../libsoup/soup-socket.c:150
-msgid "Can't import non-socket as SoupSocket"
+#: ../libsoup/soup-socket.c:148
+#| msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Nem lehet egy foglalattól eltérőt SoupSocket-ként importálni"
 
-#: ../libsoup/soup-socket.c:168
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Nem sikerült a meglévő foglalat importálása: "
 
-#: ../libsoup/soup-socket.c:177
-msgid "Can't import unconnected socket"
+#: ../libsoup/soup-socket.c:175
+#| msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Nem lehet importálni a nem csatlakoztatott foglalatot"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "WebSocket kézfogást várt"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Nem támogatott WebSocket verzió"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Érvénytelen WebSocket kulcs"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
+#| msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
 msgstr "Helytelen „%s” WebSocket fejléc"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nem támogatott WebSocket alprotokoll"
 
@@ -156,7 +163,8 @@ msgstr "A kiszolgáló nem támogatott kiterjesztést kért"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+#| msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "A kiszolgáló helytelen „%s” kulccsal tért vissza"
 
 #: ../libsoup/soup-tld.c:188
