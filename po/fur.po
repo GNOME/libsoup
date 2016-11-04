@@ -7,21 +7,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome-3-6\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-04-08 01:00+0000\n"
-"PO-Revision-Date: 2016-04-08 10:06+0200\n"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2016-10-27 12:38+0000\n"
+"PO-Revision-Date: 2016-11-04 15:44+0100\n"
 "Last-Translator: Fabio Tomat <f.t.public@gmail.com>\n"
 "Language-Team: Friulian <fur@li.org>\n"
 "Language: fur\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.5\n"
+"X-Generator: Poedit 1.8.8\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204
-#: ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "No si spietave il termin de conession"
 
@@ -73,39 +72,39 @@ msgstr "No'l è stât furnît un URI"
 
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
-msgstr "URI '%s' no valit: %s"
+msgid "Invalid “%s” URI: %s"
+msgstr "URI “%s”no valit: %s"
 
-#: ../libsoup/soup-server.c:1720
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1727
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impussibil creâ un servidôr TLS cence un certificât TLS"
 
-#: ../libsoup/soup-server.c:1739
+#: ../libsoup/soup-server.c:1744
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impussibil scoltâ te direzion %s, puarte %d: "
 
-#: ../libsoup/soup-session.c:4543
+#: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
-msgstr "No puès analizâ l'URI '%s'"
+msgid "Could not parse URI “%s”"
+msgstr "No puès analizâ il URI “%s”"
 
-#: ../libsoup/soup-session.c:4580
+#: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
-msgstr "Scheme URI '%s' no supuartât"
+msgid "Unsupported URI scheme “%s”"
+msgstr "Scheme URI “%s” no supuartât"
 
-#: ../libsoup/soup-session.c:4602
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No un URI HTTP"
 
-#: ../libsoup/soup-session.c:4788
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Il servidôr nol acete il handshake WebSocket"
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Impussibil impuartâ non-socket come SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
@@ -113,7 +112,7 @@ msgid "Could not import existing socket: "
 msgstr "Impussibil impuartâ socket esistent: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Impussibil impuartâ socket no conetût"
 
 #: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
@@ -130,8 +129,8 @@ msgstr "Clâf WebSocket no valide"
 
 #: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
-msgstr "Intestazion WebSocket \"%s\" no valide"
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Intestazion WebSocket “%s” no valide"
 
 #: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
@@ -155,8 +154,8 @@ msgstr "Il servidôr al à domandât une estension no supuartade"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
-msgstr "Il servidôr al à tornât la clâf \"%s\" sbaliade"
+msgid "Server returned incorrect “%s” key"
+msgstr "Il servidôr al à tornât la clâf “%s” sbaliade"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
