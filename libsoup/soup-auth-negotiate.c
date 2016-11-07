@@ -24,22 +24,6 @@
 #include "soup-uri.h"
 
 /**
- * SOUP_TYPE_AUTH_NEGOTIATE:
- *
- * A #GType corresponding to HTTP-based GSS-Negotiate authentication.
- * #SoupSessions do not support this type by default; if you want to
- * enable support for it, call soup_session_add_feature_by_type(),
- * passing %SOUP_TYPE_AUTH_NEGOTIATE.
- *
- * This auth type will only work if libsoup was compiled with GSSAPI
- * support; you can check soup_auth_negotiate_supported() to see if it
- * was.
- *
- * Since: 2.54
- */
-G_DEFINE_TYPE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CONNECTION_AUTH)
-
-/**
  * soup_auth_negotiate_supported:
  *
  * Indicates whether libsoup was built with GSSAPI support. If this is
@@ -90,7 +74,21 @@ typedef struct {
 	SoupNegotiateConnectionState *conn_state;
 } SoupAuthNegotiatePrivate;
 
-#define SOUP_AUTH_NEGOTIATE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_NEGOTIATE, SoupAuthNegotiatePrivate))
+/**
+ * SOUP_TYPE_AUTH_NEGOTIATE:
+ *
+ * A #GType corresponding to HTTP-based GSS-Negotiate authentication.
+ * #SoupSessions do not support this type by default; if you want to
+ * enable support for it, call soup_session_add_feature_by_type(),
+ * passing %SOUP_TYPE_AUTH_NEGOTIATE.
+ *
+ * This auth type will only work if libsoup was compiled with GSSAPI
+ * support; you can check soup_auth_negotiate_supported() to see if it
+ * was.
+ *
+ * Since: 2.54
+ */
+G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CONNECTION_AUTH)
 
 static gboolean check_auth_trusted_uri (SoupConnectionAuth *auth,
 					SoupMessage *msg);
@@ -116,7 +114,7 @@ static const gss_OID_desc gss_mech_spnego = { sizeof (spnego_OID) - 1, (void *) 
 static gpointer
 soup_auth_negotiate_create_connection_state (SoupConnectionAuth *auth)
 {
-	SoupAuthNegotiatePrivate *priv = SOUP_AUTH_NEGOTIATE_GET_PRIVATE (auth);
+	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (SOUP_AUTH_NEGOTIATE (auth));
 	SoupNegotiateConnectionState *conn;
 
 	conn = g_slice_new0 (SoupNegotiateConnectionState);
@@ -138,7 +136,7 @@ soup_auth_negotiate_free_connection_state (SoupConnectionAuth *auth,
 					   gpointer state)
 {
 	SoupAuthNegotiate *negotiate = SOUP_AUTH_NEGOTIATE (auth);
-	SoupAuthNegotiatePrivate *priv = SOUP_AUTH_NEGOTIATE_GET_PRIVATE (negotiate);
+	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
 	SoupNegotiateConnectionState *conn = state;
 
 	free_connection_state_data (conn);
@@ -169,7 +167,7 @@ soup_auth_negotiate_authenticate (SoupAuth *auth, const char *username,
 				  const char *password)
 {
 	SoupAuthNegotiate *negotiate = SOUP_AUTH_NEGOTIATE (auth);
-	SoupAuthNegotiatePrivate *priv = SOUP_AUTH_NEGOTIATE_GET_PRIVATE (negotiate);
+	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
 
 	/* It is not possible to authenticate with username and password. */
 	priv->is_authenticated = FALSE;
@@ -179,7 +177,7 @@ static gboolean
 soup_auth_negotiate_is_authenticated (SoupAuth *auth)
 {
 	SoupAuthNegotiate *negotiate = SOUP_AUTH_NEGOTIATE (auth);
-	SoupAuthNegotiatePrivate *priv = SOUP_AUTH_NEGOTIATE_GET_PRIVATE (negotiate);
+	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
 
 	/* We are authenticated just in case we received the GSS_S_COMPLETE. */
 	return priv->is_authenticated;
@@ -226,7 +224,7 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 #ifdef LIBSOUP_HAVE_GSSAPI
 	gboolean success = TRUE;
 	SoupNegotiateConnectionState *conn = state;
-	SoupAuthNegotiatePrivate *priv = SOUP_AUTH_NEGOTIATE_GET_PRIVATE (auth);
+	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (SOUP_AUTH_NEGOTIATE (auth));
 	GError *err = NULL;
 
 	if (!check_auth_trusted_uri (auth, msg)) {
@@ -317,8 +315,6 @@ soup_auth_negotiate_class_init (SoupAuthNegotiateClass *auth_negotiate_class)
 	auth_class->is_authenticated = soup_auth_negotiate_is_authenticated;
 	auth_class->can_authenticate = soup_auth_negotiate_can_authenticate;
 
-	g_type_class_add_private (auth_negotiate_class, sizeof (SoupAuthNegotiatePrivate));
-
 	parse_uris_from_env_variable ("SOUP_GSSAPI_TRUSTED_URIS", &trusted_uris);
 	parse_uris_from_env_variable ("SOUP_GSSAPI_BLACKLISTED_URIS", &blacklisted_uris);
 #endif /* LIBSOUP_HAVE_GSSAPI */
@@ -332,7 +328,7 @@ check_server_response (SoupMessage *msg, gpointer auth)
 	const char *auth_headers;
 	GError *err = NULL;
 	SoupAuthNegotiate *negotiate = auth;
-	SoupAuthNegotiatePrivate *priv = SOUP_AUTH_NEGOTIATE_GET_PRIVATE (negotiate);
+	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
 	SoupNegotiateConnectionState *conn = priv->conn_state;
 
 	if (auth != soup_message_get_auth (msg))
@@ -369,7 +365,7 @@ static void
 remove_server_response_handler (SoupMessage *msg, gpointer auth)
 {
 	SoupAuthNegotiate *negotiate = auth;
-	SoupAuthNegotiatePrivate *priv = SOUP_AUTH_NEGOTIATE_GET_PRIVATE (negotiate);
+	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
 
 	g_signal_handler_disconnect (msg, priv->message_got_headers_signal_id);
 	priv->message_got_headers_signal_id = 0;

@@ -29,15 +29,14 @@ struct _SoupFilterInputStreamPrivate {
 static void soup_filter_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SoupFilterInputStream, soup_filter_input_stream, G_TYPE_FILTER_INPUT_STREAM,
+                         G_ADD_PRIVATE (SoupFilterInputStream)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
 						soup_filter_input_stream_pollable_init))
 
 static void
 soup_filter_input_stream_init (SoupFilterInputStream *stream)
 {
-	stream->priv = G_TYPE_INSTANCE_GET_PRIVATE (stream,
-						    SOUP_TYPE_FILTER_INPUT_STREAM,
-						    SoupFilterInputStreamPrivate);
+	stream->priv = soup_filter_input_stream_get_instance_private (stream);
 }
 
 static void
@@ -148,8 +147,6 @@ soup_filter_input_stream_class_init (SoupFilterInputStreamClass *stream_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (stream_class);
 	GInputStreamClass *input_stream_class = G_INPUT_STREAM_CLASS (stream_class);
-
-	g_type_class_add_private (stream_class, sizeof (SoupFilterInputStreamPrivate));
 
 	object_class->finalize = soup_filter_input_stream_finalize;
 

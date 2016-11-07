@@ -54,6 +54,7 @@ static void soup_body_input_stream_pollable_init (GPollableInputStreamInterface 
 static void soup_body_input_stream_seekable_init (GSeekableIface *seekable_interface);
 
 G_DEFINE_TYPE_WITH_CODE (SoupBodyInputStream, soup_body_input_stream, G_TYPE_FILTER_INPUT_STREAM,
+                         G_ADD_PRIVATE (SoupBodyInputStream)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
 						soup_body_input_stream_pollable_init)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_SEEKABLE,
@@ -62,9 +63,7 @@ G_DEFINE_TYPE_WITH_CODE (SoupBodyInputStream, soup_body_input_stream, G_TYPE_FIL
 static void
 soup_body_input_stream_init (SoupBodyInputStream *bistream)
 {
-	bistream->priv = G_TYPE_INSTANCE_GET_PRIVATE (bistream,
-						      SOUP_TYPE_BODY_INPUT_STREAM,
-						      SoupBodyInputStreamPrivate);
+	bistream->priv = soup_body_input_stream_get_instance_private (bistream);
 	bistream->priv->encoding = SOUP_ENCODING_NONE;
 }
 
@@ -367,8 +366,6 @@ soup_body_input_stream_class_init (SoupBodyInputStreamClass *stream_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (stream_class);
 	GInputStreamClass *input_stream_class = G_INPUT_STREAM_CLASS (stream_class);
-
-	g_type_class_add_private (stream_class, sizeof (SoupBodyInputStreamPrivate));
 
 	object_class->constructed = soup_body_input_stream_constructed;
 	object_class->set_property = soup_body_input_stream_set_property;

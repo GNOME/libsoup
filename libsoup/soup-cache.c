@@ -127,9 +127,8 @@ enum {
 	PROP_CACHE_TYPE
 };
 
-#define SOUP_CACHE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_CACHE, SoupCachePrivate))
-
 G_DEFINE_TYPE_WITH_CODE (SoupCache, soup_cache, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (SoupCache)
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_cache_session_feature_init)
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
@@ -174,7 +173,7 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 	cache_control = soup_message_headers_get_list (msg->response_headers, "Cache-Control");
 	if (cache_control && *cache_control) {
 		GHashTable *hash;
-		SoupCachePrivate *priv = SOUP_CACHE_GET_PRIVATE (cache);
+		SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 
 		hash = soup_header_parse_param_list (cache_control);
 
@@ -348,7 +347,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 		const char *max_age, *s_maxage;
 		gint64 freshness_lifetime = 0;
 		GHashTable *hash;
-		SoupCachePrivate *priv = SOUP_CACHE_GET_PRIVATE (cache);
+		SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 
 		hash = soup_header_parse_param_list (cache_control);
 
@@ -899,7 +898,7 @@ soup_cache_init (SoupCache *cache)
 {
 	SoupCachePrivate *priv;
 
-	priv = cache->priv = SOUP_CACHE_GET_PRIVATE (cache);
+	priv = cache->priv = soup_cache_get_instance_private (cache);
 
 	priv->cache = g_hash_table_new (g_direct_hash, g_direct_equal);
 	/* LRU */
@@ -1030,8 +1029,6 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 							    SOUP_TYPE_CACHE_TYPE,
 							    SOUP_CACHE_SINGLE_USER,
 							    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-
-	g_type_class_add_private (cache_class, sizeof (SoupCachePrivate));
 }
 
 /**
@@ -1494,7 +1491,7 @@ pack_entry (gpointer data,
 void
 soup_cache_dump (SoupCache *cache)
 {
-	SoupCachePrivate *priv = SOUP_CACHE_GET_PRIVATE (cache);
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	char *filename;
 	GVariantBuilder entries_builder;
 	GVariant *cache_variant;

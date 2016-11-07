@@ -69,14 +69,12 @@ typedef struct {
 
 } SoupAuthDomainPrivate;
 
-#define SOUP_AUTH_DOMAIN_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomainPrivate))
-
-G_DEFINE_ABSTRACT_TYPE (SoupAuthDomain, soup_auth_domain, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupAuthDomain, soup_auth_domain, G_TYPE_OBJECT)
 
 static void
 soup_auth_domain_init (SoupAuthDomain *domain)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
 	priv->paths = soup_path_map_new (NULL);
 }
@@ -84,7 +82,7 @@ soup_auth_domain_init (SoupAuthDomain *domain)
 static void
 soup_auth_domain_finalize (GObject *object)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (SOUP_AUTH_DOMAIN (object));
 
 	g_free (priv->realm);
 	soup_path_map_free (priv->paths);
@@ -102,7 +100,7 @@ soup_auth_domain_set_property (GObject *object, guint prop_id,
 			       const GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomain *auth_domain = SOUP_AUTH_DOMAIN (object);
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (auth_domain);
 
 	switch (prop_id) {
 	case PROP_REALM:
@@ -150,7 +148,7 @@ static void
 soup_auth_domain_get_property (GObject *object, guint prop_id,
 			       GValue *value, GParamSpec *pspec)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (SOUP_AUTH_DOMAIN (object));
 
 	switch (prop_id) {
 	case PROP_REALM:
@@ -181,8 +179,6 @@ static void
 soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_domain_class);
-
-	g_type_class_add_private (auth_domain_class, sizeof (SoupAuthDomainPrivate));
 
 	object_class->finalize = soup_auth_domain_finalize;
 	object_class->set_property = soup_auth_domain_set_property;
@@ -306,7 +302,7 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 void
 soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
 	/* "" should not match "*" */
 	if (!*path)
@@ -338,7 +334,7 @@ soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
 void
 soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
 	/* "" should not match "*" */
 	if (!*path)
@@ -398,7 +394,7 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
 			     gpointer        filter_data,
 			     GDestroyNotify  dnotify)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
 	if (priv->filter_dnotify)
 		priv->filter_dnotify (priv->filter_data);
@@ -422,7 +418,7 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
 const char *
 soup_auth_domain_get_realm (SoupAuthDomain *domain)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
 	return priv->realm;
 }
@@ -476,7 +472,7 @@ soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
 					    gpointer        auth_data,
 					    GDestroyNotify  dnotify)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
@@ -494,7 +490,7 @@ soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
 					    SoupMessage    *msg,
 					    const char     *username)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
 	if (priv->auth_callback)
 		return priv->auth_callback (domain, msg, username, priv->auth_data);
@@ -544,7 +540,7 @@ soup_auth_domain_check_password (SoupAuthDomain *domain,
 gboolean
 soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 	const char *path;
 
 	if (!priv->proxy) {
@@ -578,7 +574,7 @@ soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 char *
 soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 	const char *header;
 
 	header = soup_message_headers_get_one (msg->request_headers,
@@ -605,7 +601,7 @@ soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
 void
 soup_auth_domain_challenge (SoupAuthDomain *domain, SoupMessage *msg)
 {
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 	char *challenge;
 
 	challenge = SOUP_AUTH_DOMAIN_GET_CLASS (domain)->challenge (domain, msg);

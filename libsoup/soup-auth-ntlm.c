@@ -76,7 +76,6 @@ typedef struct {
 	int fd_out;
 #endif
 } SoupAuthNTLMPrivate;
-#define SOUP_AUTH_NTLM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_NTLM, SoupAuthNTLMPrivate))
 
 #ifdef USE_NTLM_AUTH
 static gboolean ntlm_auth_available, ntlm_auth_debug;
@@ -94,13 +93,13 @@ static void sso_ntlm_close (SoupAuthNTLMPrivate *priv);
  * Since: 2.34
  */
 
-G_DEFINE_TYPE (SoupAuthNTLM, soup_auth_ntlm, SOUP_TYPE_CONNECTION_AUTH)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthNTLM, soup_auth_ntlm, SOUP_TYPE_CONNECTION_AUTH)
 
 static void
 soup_auth_ntlm_init (SoupAuthNTLM *ntlm)
 {
 #ifdef USE_NTLM_AUTH
-	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (ntlm);
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (ntlm);
 	const char *username = NULL, *slash;
 
 	priv->sso_available = TRUE;
@@ -125,7 +124,7 @@ soup_auth_ntlm_init (SoupAuthNTLM *ntlm)
 static void
 soup_auth_ntlm_finalize (GObject *object)
 {
-	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (object);
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (SOUP_AUTH_NTLM (object));
 
 	g_free (priv->username);
 	g_free (priv->domain);
@@ -288,7 +287,8 @@ static gboolean
 soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 				  const char *auth_header, gpointer state)
 {
-	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
+	SoupAuthNTLM *auth_ntlm = SOUP_AUTH_NTLM (auth);
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (auth_ntlm);
 	SoupNTLMConnectionState *conn = state;
 	gboolean success = TRUE;
 
@@ -400,7 +400,8 @@ static void
 soup_auth_ntlm_authenticate (SoupAuth *auth, const char *username,
 			     const char *password)
 {
-	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
+	SoupAuthNTLM *auth_ntlm = SOUP_AUTH_NTLM (auth);
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (auth_ntlm);
 	const char *slash;
 
 	g_return_if_fail (username != NULL);
@@ -429,7 +430,8 @@ soup_auth_ntlm_authenticate (SoupAuth *auth, const char *username,
 static gboolean
 soup_auth_ntlm_is_authenticated (SoupAuth *auth)
 {
-	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
+	SoupAuthNTLM *auth_ntlm = SOUP_AUTH_NTLM (auth);
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (auth_ntlm);
 
 	return (priv->password_state != SOUP_NTLM_PASSWORD_NONE &&
 		priv->password_state != SOUP_NTLM_PASSWORD_REJECTED);
@@ -440,7 +442,8 @@ soup_auth_ntlm_is_connection_ready (SoupConnectionAuth *auth,
 				    SoupMessage        *msg,
 				    gpointer            state)
 {
-	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
+	SoupAuthNTLM *auth_ntlm = SOUP_AUTH_NTLM (auth);
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (auth_ntlm);
 	SoupNTLMConnectionState *conn = state;
 
 	if (priv->password_state == SOUP_NTLM_PASSWORD_REJECTED)
@@ -456,6 +459,7 @@ static void
 got_final_auth_result (SoupMessage *msg, gpointer data)
 {
 	SoupAuth *auth = data;
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (SOUP_AUTH_NTLM (auth));
 
 	g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (got_final_auth_result), auth);
 
@@ -463,7 +467,7 @@ got_final_auth_result (SoupMessage *msg, gpointer data)
 		return;
 
 	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED)
-		SOUP_AUTH_NTLM_GET_PRIVATE (auth)->password_state = SOUP_NTLM_PASSWORD_ACCEPTED;
+		priv->password_state = SOUP_NTLM_PASSWORD_ACCEPTED;
 }
 
 static char *
@@ -471,7 +475,8 @@ soup_auth_ntlm_get_connection_authorization (SoupConnectionAuth *auth,
 					     SoupMessage        *msg,
 					     gpointer            state)
 {
-	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
+	SoupAuthNTLM *auth_ntlm = SOUP_AUTH_NTLM (auth);
+	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (auth_ntlm);
 	SoupNTLMConnectionState *conn = state;
 	char *header = NULL;
 
@@ -545,8 +550,6 @@ soup_auth_ntlm_class_init (SoupAuthNTLMClass *auth_ntlm_class)
 	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_ntlm_class);
 	SoupConnectionAuthClass *connauth_class = SOUP_CONNECTION_AUTH_CLASS (auth_ntlm_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_ntlm_class);
-
-	g_type_class_add_private (auth_ntlm_class, sizeof (SoupAuthNTLMPrivate));
 
 	auth_class->scheme_name = "NTLM";
 	auth_class->strength = 3;

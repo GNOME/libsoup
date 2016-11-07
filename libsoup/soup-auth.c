@@ -38,9 +38,8 @@ typedef struct {
 	gboolean proxy;
 	char *host;
 } SoupAuthPrivate;
-#define SOUP_AUTH_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH, SoupAuthPrivate))
 
-G_DEFINE_ABSTRACT_TYPE (SoupAuth, soup_auth, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupAuth, soup_auth, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,
@@ -63,7 +62,7 @@ static void
 soup_auth_finalize (GObject *object)
 {
 	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (auth);
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	g_free (auth->realm);
 	g_free (priv->host);
@@ -76,7 +75,7 @@ soup_auth_set_property (GObject *object, guint prop_id,
 			const GValue *value, GParamSpec *pspec)
 {
 	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	switch (prop_id) {
 	case PROP_REALM:
@@ -101,7 +100,7 @@ soup_auth_get_property (GObject *object, guint prop_id,
 			GValue *value, GParamSpec *pspec)
 {
 	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	switch (prop_id) {
 	case PROP_SCHEME_NAME:
@@ -139,8 +138,6 @@ static void
 soup_auth_class_init (SoupAuthClass *auth_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_class);
-
-	g_type_class_add_private (auth_class, sizeof (SoupAuthPrivate));
 
 	auth_class->can_authenticate = auth_can_authenticate;
 
@@ -352,9 +349,11 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
 gboolean
 soup_auth_is_for_proxy (SoupAuth *auth)
 {
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
 
-	return SOUP_AUTH_GET_PRIVATE (auth)->proxy;
+	return priv->proxy;
 }
 
 /**
@@ -384,11 +383,12 @@ soup_auth_get_scheme_name (SoupAuth *auth)
 const char *
 soup_auth_get_host (SoupAuth *auth)
 {
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return SOUP_AUTH_GET_PRIVATE (auth)->host;
+	return priv->host;
 }
-
 
 /**
  * soup_auth_get_realm:

@@ -27,9 +27,8 @@ typedef struct {
 	GSource     *idle_timeout_src;
 	gboolean     reusable;
 } SoupConnectionPrivate;
-#define SOUP_CONNECTION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_CONNECTION, SoupConnectionPrivate))
 
-G_DEFINE_TYPE (SoupConnection, soup_connection, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 
 enum {
 	EVENT,
@@ -64,7 +63,7 @@ soup_connection_init (SoupConnection *conn)
 static void
 soup_connection_finalize (GObject *object)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
 	g_clear_pointer (&priv->remote_uri, soup_uri_free);
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
@@ -83,7 +82,7 @@ static void
 soup_connection_dispose (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	stop_idle_timer (priv);
 
@@ -94,7 +93,7 @@ static void
 soup_connection_set_property (GObject *object, guint prop_id,
 			      const GValue *value, GParamSpec *pspec)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
 	switch (prop_id) {
 	case PROP_REMOTE_URI:
@@ -120,7 +119,7 @@ static void
 soup_connection_get_property (GObject *object, guint prop_id,
 			      GValue *value, GParamSpec *pspec)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
 	switch (prop_id) {
 	case PROP_REMOTE_URI:
@@ -142,8 +141,6 @@ static void
 soup_connection_class_init (SoupConnectionClass *connection_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (connection_class);
-
-	g_type_class_add_private (connection_class, sizeof (SoupConnectionPrivate));
 
 	/* virtual method override */
 	object_class->dispose = soup_connection_dispose;
@@ -200,7 +197,7 @@ soup_connection_event (SoupConnection      *conn,
 		       GSocketClientEvent   event,
 		       GIOStream           *connection)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	if (!connection && priv->socket)
 		connection = soup_socket_get_connection (priv->socket);
@@ -219,7 +216,7 @@ idle_timeout (gpointer conn)
 static void
 start_idle_timer (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	if (priv->socket_props->idle_timeout > 0 && !priv->idle_timeout_src) {
 		priv->idle_timeout_src =
@@ -242,7 +239,7 @@ static void
 current_msg_got_body (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	priv->unused_timeout = 0;
 
@@ -261,7 +258,7 @@ current_msg_got_body (SoupMessage *msg, gpointer user_data)
 static void
 clear_current_msg (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 	SoupMessage *msg;
 
 	msg = priv->current_msg;
@@ -274,7 +271,7 @@ clear_current_msg (SoupConnection *conn)
 static void
 set_current_msg (SoupConnection *conn, SoupMessage *msg)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	g_return_if_fail (priv->state == SOUP_CONNECTION_IN_USE);
 
@@ -316,7 +313,7 @@ static void
 socket_connect_finished (GTask *task, SoupSocket *sock, GError *error)
 {
 	SoupConnection *conn = g_task_get_source_object (task);
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	if (!error) {
 		if (!priv->ssl || !priv->proxy_uri) {
@@ -352,7 +349,7 @@ socket_connect_complete (GObject *object, GAsyncResult *result, gpointer user_da
 	SoupSocket *sock = SOUP_SOCKET (object);
 	GTask *task = user_data;
 	SoupConnection *conn = g_task_get_source_object (task);
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 	GError *error = NULL;
 
 	if (!soup_socket_connect_finish_internal (sock, result, &error)) {
@@ -383,7 +380,7 @@ soup_connection_connect_async (SoupConnection      *conn,
 	GTask *task;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 	g_return_if_fail (priv->socket == NULL);
 
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
@@ -430,7 +427,7 @@ soup_connection_connect_sync (SoupConnection  *conn,
 	SoupAddress *remote_addr;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 	g_return_val_if_fail (priv->socket == NULL, FALSE);
 
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
@@ -482,7 +479,7 @@ soup_connection_is_tunnelled (SoupConnection *conn)
 	SoupConnectionPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 
 	return priv->ssl && priv->proxy_uri != NULL;
 }
@@ -495,7 +492,7 @@ soup_connection_start_ssl_sync (SoupConnection  *conn,
 	SoupConnectionPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 
 	if (soup_socket_handshake_sync (priv->socket, priv->remote_uri->host,
 					cancellable, error)) {
@@ -510,7 +507,7 @@ start_ssl_completed (GObject *object, GAsyncResult *result, gpointer user_data)
 {
 	GTask *task = user_data;
 	SoupConnection *conn = g_task_get_source_object (task);
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 	GError *error = NULL;
 
 	if (soup_socket_handshake_finish (priv->socket, result, &error)) {
@@ -531,7 +528,7 @@ soup_connection_start_ssl_async (SoupConnection      *conn,
 	GTask *task;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 
 	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
@@ -564,7 +561,7 @@ soup_connection_disconnect (SoupConnection *conn)
 	SoupConnectionState old_state;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 
 	old_state = priv->state;
 	if (old_state != SOUP_CONNECTION_DISCONNECTED)
@@ -587,33 +584,41 @@ soup_connection_disconnect (SoupConnection *conn)
 SoupSocket *
 soup_connection_get_socket (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
 
-	return SOUP_CONNECTION_GET_PRIVATE (conn)->socket;
+	return priv->socket;
 }
 
 SoupURI *
 soup_connection_get_remote_uri (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
 
-	return SOUP_CONNECTION_GET_PRIVATE (conn)->remote_uri;
+	return priv->remote_uri;
 }
 
 SoupURI *
 soup_connection_get_proxy_uri (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
 
-	return SOUP_CONNECTION_GET_PRIVATE (conn)->proxy_uri;
+	return priv->proxy_uri;
 }
 
 gboolean
 soup_connection_is_via_proxy (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return SOUP_CONNECTION_GET_PRIVATE (conn)->proxy_uri != NULL;
+	return priv->proxy_uri != NULL;
 }
 
 SoupConnectionState
@@ -623,7 +628,7 @@ soup_connection_get_state (SoupConnection *conn)
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn),
 			      SOUP_CONNECTION_DISCONNECTED);
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 
 	if (priv->state == SOUP_CONNECTION_IDLE &&
 	    (!soup_socket_is_connected (priv->socket) ||
@@ -648,7 +653,7 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 
 	g_object_freeze_notify (G_OBJECT (conn));
 
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 
 	if (priv->current_msg) {
 		g_warn_if_fail (state == SOUP_CONNECTION_IDLE ||
@@ -674,9 +679,11 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 gboolean
 soup_connection_get_ever_used (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return SOUP_CONNECTION_GET_PRIVATE (conn)->unused_timeout == 0;
+	return priv->unused_timeout == 0;
 }
 
 void
@@ -689,7 +696,7 @@ soup_connection_send_request (SoupConnection          *conn,
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (item != NULL);
-	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv = soup_connection_get_instance_private (conn);
 	g_return_if_fail (priv->state != SOUP_CONNECTION_NEW &&
 			  priv->state != SOUP_CONNECTION_DISCONNECTED);
 

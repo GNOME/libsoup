@@ -36,9 +36,8 @@ typedef struct {
 	char *filename;
 
 } SoupCookieJarTextPrivate;
-#define SOUP_COOKIE_JAR_TEXT_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_COOKIE_JAR_TEXT, SoupCookieJarTextPrivate))
 
-G_DEFINE_TYPE (SoupCookieJarText, soup_cookie_jar_text, SOUP_TYPE_COOKIE_JAR)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupCookieJarText, soup_cookie_jar_text, SOUP_TYPE_COOKIE_JAR)
 
 static void load (SoupCookieJar *jar);
 
@@ -51,7 +50,7 @@ static void
 soup_cookie_jar_text_finalize (GObject *object)
 {
 	SoupCookieJarTextPrivate *priv =
-		SOUP_COOKIE_JAR_TEXT_GET_PRIVATE (object);
+		soup_cookie_jar_text_get_instance_private (SOUP_COOKIE_JAR_TEXT (object));
 
 	g_free (priv->filename);
 
@@ -63,7 +62,7 @@ soup_cookie_jar_text_set_property (GObject *object, guint prop_id,
 				   const GValue *value, GParamSpec *pspec)
 {
 	SoupCookieJarTextPrivate *priv =
-		SOUP_COOKIE_JAR_TEXT_GET_PRIVATE (object);
+		soup_cookie_jar_text_get_instance_private (SOUP_COOKIE_JAR_TEXT (object));
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -81,7 +80,7 @@ soup_cookie_jar_text_get_property (GObject *object, guint prop_id,
 				   GValue *value, GParamSpec *pspec)
 {
 	SoupCookieJarTextPrivate *priv =
-		SOUP_COOKIE_JAR_TEXT_GET_PRIVATE (object);
+		soup_cookie_jar_text_get_instance_private (SOUP_COOKIE_JAR_TEXT (object));
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -192,7 +191,7 @@ static void
 load (SoupCookieJar *jar)
 {
 	SoupCookieJarTextPrivate *priv =
-		SOUP_COOKIE_JAR_TEXT_GET_PRIVATE (jar);
+		soup_cookie_jar_text_get_instance_private (SOUP_COOKIE_JAR_TEXT (jar));
 	char *contents = NULL, *line, *p;
 	gsize length = 0;
 	time_t now = time (NULL);
@@ -281,7 +280,7 @@ soup_cookie_jar_text_changed (SoupCookieJar *jar,
 {
 	FILE *out;
 	SoupCookieJarTextPrivate *priv =
-		SOUP_COOKIE_JAR_TEXT_GET_PRIVATE (jar);
+		soup_cookie_jar_text_get_instance_private (SOUP_COOKIE_JAR_TEXT (jar));
 
 	/* We can sort of ignore the semantics of the 'changed'
 	 * signal here and simply delete the old cookie if present
@@ -337,8 +336,6 @@ soup_cookie_jar_text_class_init (SoupCookieJarTextClass *text_class)
 	SoupCookieJarClass *cookie_jar_class =
 		SOUP_COOKIE_JAR_CLASS (text_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (text_class);
-
-	g_type_class_add_private (text_class, sizeof (SoupCookieJarTextPrivate));
 
 	cookie_jar_class->is_persistent = soup_cookie_jar_text_is_persistent;
 	cookie_jar_class->changed       = soup_cookie_jar_text_changed;

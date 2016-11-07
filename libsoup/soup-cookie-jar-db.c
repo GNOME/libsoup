@@ -43,9 +43,7 @@ typedef struct {
 	sqlite3 *db;
 } SoupCookieJarDBPrivate;
 
-#define SOUP_COOKIE_JAR_DB_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_COOKIE_JAR_DB, SoupCookieJarDBPrivate))
-
-G_DEFINE_TYPE (SoupCookieJarDB, soup_cookie_jar_db, SOUP_TYPE_COOKIE_JAR)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupCookieJarDB, soup_cookie_jar_db, SOUP_TYPE_COOKIE_JAR)
 
 static void load (SoupCookieJar *jar);
 
@@ -58,7 +56,7 @@ static void
 soup_cookie_jar_db_finalize (GObject *object)
 {
 	SoupCookieJarDBPrivate *priv =
-		SOUP_COOKIE_JAR_DB_GET_PRIVATE (object);
+		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (object));
 
 	g_free (priv->filename);
 	g_clear_pointer (&priv->db, sqlite3_close);
@@ -71,7 +69,7 @@ soup_cookie_jar_db_set_property (GObject *object, guint prop_id,
 				 const GValue *value, GParamSpec *pspec)
 {
 	SoupCookieJarDBPrivate *priv =
-		SOUP_COOKIE_JAR_DB_GET_PRIVATE (object);
+		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (object));
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -89,7 +87,7 @@ soup_cookie_jar_db_get_property (GObject *object, guint prop_id,
 				 GValue *value, GParamSpec *pspec)
 {
 	SoupCookieJarDBPrivate *priv =
-		SOUP_COOKIE_JAR_DB_GET_PRIVATE (object);
+		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (object));
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -227,7 +225,7 @@ static gboolean
 open_db (SoupCookieJar *jar)
 {
 	SoupCookieJarDBPrivate *priv =
-		SOUP_COOKIE_JAR_DB_GET_PRIVATE (jar);
+		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
 
 	char *error = NULL;
 
@@ -250,7 +248,7 @@ static void
 load (SoupCookieJar *jar)
 {
 	SoupCookieJarDBPrivate *priv =
-		SOUP_COOKIE_JAR_DB_GET_PRIVATE (jar);
+		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
 
 	if (priv->db == NULL) {
 		if (open_db (jar))
@@ -266,7 +264,7 @@ soup_cookie_jar_db_changed (SoupCookieJar *jar,
 			    SoupCookie    *new_cookie)
 {
 	SoupCookieJarDBPrivate *priv =
-		SOUP_COOKIE_JAR_DB_GET_PRIVATE (jar);
+		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
 	char *query;
 
 	if (priv->db == NULL) {
@@ -311,8 +309,6 @@ soup_cookie_jar_db_class_init (SoupCookieJarDBClass *db_class)
 	SoupCookieJarClass *cookie_jar_class =
 		SOUP_COOKIE_JAR_CLASS (db_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (db_class);
-
-	g_type_class_add_private (db_class, sizeof (SoupCookieJarDBPrivate));
 
 	cookie_jar_class->is_persistent = soup_cookie_jar_db_is_persistent;
 	cookie_jar_class->changed       = soup_cookie_jar_db_changed;

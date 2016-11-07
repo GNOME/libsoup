@@ -17,7 +17,6 @@
 typedef struct {
 	char *token;
 } SoupAuthBasicPrivate;
-#define SOUP_AUTH_BASIC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicPrivate))
 
 /**
  * SOUP_TYPE_AUTH_BASIC:
@@ -30,7 +29,7 @@ typedef struct {
  * Since: 2.34
  */
 
-G_DEFINE_TYPE (SoupAuthBasic, soup_auth_basic, SOUP_TYPE_AUTH)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthBasic, soup_auth_basic, SOUP_TYPE_AUTH)
 
 static void
 soup_auth_basic_init (SoupAuthBasic *basic)
@@ -40,7 +39,7 @@ soup_auth_basic_init (SoupAuthBasic *basic)
 static void
 soup_auth_basic_finalize (GObject *object)
 {
-	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (object);
+	SoupAuthBasicPrivate *priv = soup_auth_basic_get_instance_private (SOUP_AUTH_BASIC (object));
 
 	g_free (priv->token);
 
@@ -51,7 +50,7 @@ static gboolean
 soup_auth_basic_update (SoupAuth *auth, SoupMessage *msg,
 			GHashTable *auth_params)
 {
-	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
+	SoupAuthBasicPrivate *priv = soup_auth_basic_get_instance_private (SOUP_AUTH_BASIC (auth));
 
 	/* If we're updating a pre-existing auth, the
 	 * username/password must be bad now, so forget it.
@@ -87,7 +86,7 @@ static void
 soup_auth_basic_authenticate (SoupAuth *auth, const char *username,
 			      const char *password)
 {
-	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
+	SoupAuthBasicPrivate *priv = soup_auth_basic_get_instance_private (SOUP_AUTH_BASIC (auth));
 	char *user_pass, *user_pass_latin1;
 	int len;
 
@@ -114,13 +113,15 @@ soup_auth_basic_authenticate (SoupAuth *auth, const char *username,
 static gboolean
 soup_auth_basic_is_authenticated (SoupAuth *auth)
 {
-	return SOUP_AUTH_BASIC_GET_PRIVATE (auth)->token != NULL;
+	SoupAuthBasicPrivate *priv = soup_auth_basic_get_instance_private (SOUP_AUTH_BASIC (auth));
+
+	return priv->token != NULL;
 }
 
 static char *
 soup_auth_basic_get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
-	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
+	SoupAuthBasicPrivate *priv = soup_auth_basic_get_instance_private (SOUP_AUTH_BASIC (auth));
 
 	return g_strdup_printf ("Basic %s", priv->token);
 }
@@ -130,8 +131,6 @@ soup_auth_basic_class_init (SoupAuthBasicClass *auth_basic_class)
 {
 	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_basic_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_basic_class);
-
-	g_type_class_add_private (auth_basic_class, sizeof (SoupAuthBasicPrivate));
 
 	auth_class->scheme_name = "Basic";
 	auth_class->strength = 1;

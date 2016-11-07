@@ -14,12 +14,6 @@
 #include "soup-content-sniffer-stream.h"
 #include "soup.h"
 
-static void soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
-
-G_DEFINE_TYPE_WITH_CODE (SoupContentSnifferStream, soup_content_sniffer_stream, G_TYPE_FILTER_INPUT_STREAM,
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_content_sniffer_stream_pollable_init))
-
 enum {
 	PROP_0,
 
@@ -39,6 +33,13 @@ struct _SoupContentSnifferStreamPrivate {
 	char *sniffed_type;
 	GHashTable *sniffed_params;
 };
+
+static void soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
+
+G_DEFINE_TYPE_WITH_CODE (SoupContentSnifferStream, soup_content_sniffer_stream, G_TYPE_FILTER_INPUT_STREAM,
+                         G_ADD_PRIVATE (SoupContentSnifferStream)
+			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+						soup_content_sniffer_stream_pollable_init))
 
 static void
 soup_content_sniffer_stream_finalize (GObject *object)
@@ -288,9 +289,7 @@ soup_content_sniffer_stream_create_source (GPollableInputStream *stream,
 static void
 soup_content_sniffer_stream_init (SoupContentSnifferStream *sniffer)
 {
-	sniffer->priv = G_TYPE_INSTANCE_GET_PRIVATE (sniffer,
-						     SOUP_TYPE_CONTENT_SNIFFER_STREAM,
-						     SoupContentSnifferStreamPrivate);
+	sniffer->priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 	sniffer->priv->sniffing = TRUE;
 }
 
@@ -301,8 +300,6 @@ soup_content_sniffer_stream_class_init (SoupContentSnifferStreamClass *sniffer_c
 	GInputStreamClass *input_stream_class =
 		G_INPUT_STREAM_CLASS (sniffer_class);
  
-	g_type_class_add_private (sniffer_class, sizeof (SoupContentSnifferStreamPrivate));
-
 	object_class->finalize = soup_content_sniffer_stream_finalize;
 	object_class->set_property = soup_content_sniffer_stream_set_property;
 	object_class->get_property = soup_content_sniffer_stream_get_property;

@@ -11,12 +11,6 @@
 #include "soup-cache-input-stream.h"
 #include "soup-message-body.h"
 
-static void soup_cache_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
-
-G_DEFINE_TYPE_WITH_CODE (SoupCacheInputStream, soup_cache_input_stream, SOUP_TYPE_FILTER_INPUT_STREAM,
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_cache_input_stream_pollable_init))
-
 /* properties */
 enum {
 	PROP_0,
@@ -44,6 +38,14 @@ struct _SoupCacheInputStreamPrivate
 	SoupBuffer *current_writing_buffer;
 	GQueue *buffer_queue;
 };
+
+static void soup_cache_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
+
+G_DEFINE_TYPE_WITH_CODE (SoupCacheInputStream, soup_cache_input_stream, SOUP_TYPE_FILTER_INPUT_STREAM,
+                         G_ADD_PRIVATE (SoupCacheInputStream)
+			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+						soup_cache_input_stream_pollable_init))
+
 
 static void soup_cache_input_stream_write_next_buffer (SoupCacheInputStream *istream);
 
@@ -98,9 +100,7 @@ file_replaced_cb (GObject      *source,
 static void
 soup_cache_input_stream_init (SoupCacheInputStream *self)
 {
-	SoupCacheInputStreamPrivate *priv =
-		G_TYPE_INSTANCE_GET_PRIVATE (self, SOUP_TYPE_CACHE_INPUT_STREAM,
-					     SoupCacheInputStreamPrivate);
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
 
 	priv->buffer_queue = g_queue_new ();
 	self->priv = priv;
@@ -304,8 +304,6 @@ soup_cache_input_stream_class_init (SoupCacheInputStreamClass *klass)
 {
 	GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 	GInputStreamClass *istream_class = G_INPUT_STREAM_CLASS (klass);
-
-	g_type_class_add_private (klass, sizeof (SoupCacheInputStreamPrivate));
 
 	gobject_class->get_property = soup_cache_input_stream_get_property;
 	gobject_class->set_property = soup_cache_input_stream_set_property;

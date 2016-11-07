@@ -53,7 +53,6 @@ typedef struct {
 
 	GMutex lock;
 } SoupAddressPrivate;
-#define SOUP_ADDRESS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_ADDRESS, SoupAddressPrivate))
 
 /* sockaddr generic macros */
 #define SOUP_SIN(priv) ((struct sockaddr_in *)priv->sockaddr)
@@ -98,13 +97,14 @@ typedef struct {
 static void soup_address_connectable_iface_init (GSocketConnectableIface *connectable_iface);
 
 G_DEFINE_TYPE_WITH_CODE (SoupAddress, soup_address, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (SoupAddress)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_SOCKET_CONNECTABLE,
 						soup_address_connectable_iface_init))
 
 static void
 soup_address_init (SoupAddress *addr)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 
 	g_mutex_init (&priv->lock);
 }
@@ -113,7 +113,7 @@ static void
 soup_address_finalize (GObject *object)
 {
 	SoupAddress *addr = SOUP_ADDRESS (object);
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 
 	g_free (priv->sockaddr);
 	g_free (priv->name);
@@ -136,7 +136,7 @@ soup_address_constructor (GType                  type,
 		type, n_construct_properties, construct_properties);
 	if (!addr)
 		return NULL;
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv = soup_address_get_instance_private (SOUP_ADDRESS (addr));
 
 	if (!priv->name && !priv->sockaddr) {
 		g_object_unref (addr);
@@ -150,7 +150,7 @@ static void
 soup_address_set_property (GObject *object, guint prop_id,
 			   const GValue *value, GParamSpec *pspec)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (SOUP_ADDRESS (object));
 	SoupAddressFamily family;
 	struct sockaddr *sa;
 	int len, port;
@@ -214,7 +214,7 @@ static void
 soup_address_get_property (GObject *object, guint prop_id,
 			   GValue *value, GParamSpec *pspec)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (SOUP_ADDRESS (object));
 
 	switch (prop_id) {
 	case PROP_NAME:
@@ -248,8 +248,6 @@ static void
 soup_address_class_init (SoupAddressClass *address_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (address_class);
-
-	g_type_class_add_private (address_class, sizeof (SoupAddressPrivate));
 
 	/* virtual method override */
 	object_class->constructor  = soup_address_constructor;
@@ -450,9 +448,12 @@ soup_address_new_any (SoupAddressFamily family, guint port)
 const char *
 soup_address_get_name (SoupAddress *addr)
 {
-	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
+	SoupAddressPrivate *priv;
 
-	return SOUP_ADDRESS_GET_PRIVATE (addr)->name;
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
+	priv = soup_address_get_instance_private (addr);
+
+	return priv->name;
 }
 
 /**
@@ -476,7 +477,7 @@ soup_address_get_sockaddr (SoupAddress *addr, int *len)
 	SoupAddressPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv = soup_address_get_instance_private (addr);
 
 	if (priv->sockaddr && len)
 		*len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_GET_FAMILY (priv));
@@ -497,7 +498,7 @@ soup_address_get_sockaddr (SoupAddress *addr, int *len)
 GSocketAddress *
 soup_address_get_gsockaddr (SoupAddress *addr)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 
 	return g_socket_address_new_from_native (priv->sockaddr,
 						 SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_GET_FAMILY (priv)));
@@ -506,7 +507,7 @@ soup_address_get_gsockaddr (SoupAddress *addr)
 static GInetAddress *
 soup_address_make_inet_address (SoupAddress *addr)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 	GSocketAddress *gsa;
 	GInetAddress *gia;
 
@@ -538,7 +539,7 @@ soup_address_get_physical (SoupAddress *addr)
 	SoupAddressPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv = soup_address_get_instance_private (addr);
 
 	if (!priv->sockaddr)
 		return NULL;
@@ -565,9 +566,12 @@ soup_address_get_physical (SoupAddress *addr)
 guint
 soup_address_get_port (SoupAddress *addr)
 {
-	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), 0);
+	SoupAddressPrivate *priv;
 
-	return SOUP_ADDRESS_GET_PRIVATE (addr)->port;
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), 0);
+	priv = soup_address_get_instance_private (addr);
+
+	return priv->port;
 }
 
 
@@ -577,7 +581,7 @@ soup_address_get_port (SoupAddress *addr)
 static void
 maybe_resolve_ip (SoupAddress *addr)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 	const char *pct, *ip;
 	char *tmp = NULL;
 	GSocketConnectable *gaddr;
@@ -627,7 +631,7 @@ maybe_resolve_ip (SoupAddress *addr)
 static guint
 update_addrs (SoupAddress *addr, GList *addrs, GError *error)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 	GInetAddress *gia;
 	GSocketAddress *gsa;
 	int i;
@@ -666,7 +670,7 @@ update_addrs (SoupAddress *addr, GList *addrs, GError *error)
 static guint
 update_name (SoupAddress *addr, const char *name, GError *error)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 
 	if (error) {
 		if (error->domain == G_IO_ERROR &&
@@ -725,7 +729,7 @@ lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
 	GResolver *resolver = G_RESOLVER (source);
 	SoupAddressResolveAsyncData *res_data = user_data;
 	SoupAddress *addr = res_data->addr;
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 	GError *error = NULL;
 	guint status;
 
@@ -809,7 +813,7 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 	GResolver *resolver;
 
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv = soup_address_get_instance_private (addr);
 	g_return_if_fail (priv->name || priv->sockaddr);
 
 	/* We don't need to do locking here because the async case is
@@ -858,7 +862,7 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 static guint
 resolve_sync_internal (SoupAddress *addr, GCancellable *cancellable, GError **error)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 	GResolver *resolver;
 	guint status;
 	GError *my_err = NULL;
@@ -937,7 +941,7 @@ soup_address_resolve_sync (SoupAddress *addr, GCancellable *cancellable)
 	SoupAddressPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), SOUP_STATUS_MALFORMED);
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv = soup_address_get_instance_private (addr);
 	g_return_val_if_fail (priv->name || priv->sockaddr, SOUP_STATUS_MALFORMED);
 
 	return resolve_sync_internal (addr, cancellable, NULL);
@@ -960,7 +964,7 @@ soup_address_is_resolved (SoupAddress *addr)
 	gboolean resolved;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), FALSE);
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv = soup_address_get_instance_private (addr);
 
 	g_mutex_lock (&priv->lock);
 	resolved = priv->sockaddr && priv->name;
@@ -983,7 +987,7 @@ soup_address_is_resolved (SoupAddress *addr)
 guint
 soup_address_hash_by_name (gconstpointer addr)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (SOUP_ADDRESS (addr));
 
 	g_return_val_if_fail (priv->name != NULL, 0);
 	return g_str_hash (priv->name);
@@ -1024,8 +1028,8 @@ soup_address_hash_by_name (gconstpointer addr)
 gboolean
 soup_address_equal_by_name (gconstpointer addr1, gconstpointer addr2)
 {
-	SoupAddressPrivate *priv1 = SOUP_ADDRESS_GET_PRIVATE (addr1);
-	SoupAddressPrivate *priv2 = SOUP_ADDRESS_GET_PRIVATE (addr2);
+	SoupAddressPrivate *priv1 = soup_address_get_instance_private (SOUP_ADDRESS (addr1));
+	SoupAddressPrivate *priv2 = soup_address_get_instance_private (SOUP_ADDRESS (addr2));
 
 	g_return_val_if_fail (priv1->name != NULL, FALSE);
 	g_return_val_if_fail (priv2->name != NULL, FALSE);
@@ -1046,7 +1050,7 @@ soup_address_equal_by_name (gconstpointer addr1, gconstpointer addr2)
 guint
 soup_address_hash_by_ip (gconstpointer addr)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (SOUP_ADDRESS (addr));
 	guint hash;
 
 	g_return_val_if_fail (priv->sockaddr != NULL, 0);
@@ -1084,8 +1088,8 @@ soup_address_hash_by_ip (gconstpointer addr)
 gboolean
 soup_address_equal_by_ip (gconstpointer addr1, gconstpointer addr2)
 {
-	SoupAddressPrivate *priv1 = SOUP_ADDRESS_GET_PRIVATE (addr1);
-	SoupAddressPrivate *priv2 = SOUP_ADDRESS_GET_PRIVATE (addr2);
+	SoupAddressPrivate *priv1 = soup_address_get_instance_private (SOUP_ADDRESS (addr1));
+	SoupAddressPrivate *priv2 = soup_address_get_instance_private (SOUP_ADDRESS (addr2));
 	int size;
 
 	g_return_val_if_fail (priv1->sockaddr != NULL, FALSE);
@@ -1131,7 +1135,7 @@ soup_address_address_enumerator_finalize (GObject *object)
 static GSocketAddress *
 next_address (SoupAddressAddressEnumerator *addr_enum)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr_enum->addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr_enum->addr);
 	struct sockaddr_storage *ss;
 	int next_addr;
 
@@ -1159,7 +1163,7 @@ soup_address_address_enumerator_next (GSocketAddressEnumerator  *enumerator,
 {
 	SoupAddressAddressEnumerator *addr_enum =
 		SOUP_ADDRESS_ADDRESS_ENUMERATOR (enumerator);
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr_enum->addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr_enum->addr);
 
 	if (!priv->sockaddr) {
 		if (resolve_sync_internal (addr_enum->addr, cancellable, error) != SOUP_STATUS_OK)
@@ -1195,7 +1199,7 @@ soup_address_address_enumerator_next_async (GSocketAddressEnumerator  *enumerato
 {
 	SoupAddressAddressEnumerator *addr_enum =
 		SOUP_ADDRESS_ADDRESS_ENUMERATOR (enumerator);
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr_enum->addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr_enum->addr);
 	GTask *task;
 
 	task = g_task_new (enumerator, cancellable, callback, user_data);
@@ -1244,7 +1248,7 @@ soup_address_connectable_enumerate (GSocketConnectable *connectable)
 	addr_enum = g_object_new (SOUP_TYPE_ADDRESS_ADDRESS_ENUMERATOR, NULL);
 	addr_enum->addr = g_object_ref (connectable);
 
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr_enum->addr);
+	priv = soup_address_get_instance_private (addr_enum->addr);
 	addr_enum->orig_offset = priv->offset;
 
 	return (GSocketAddressEnumerator *)addr_enum;
@@ -1254,7 +1258,7 @@ static GSocketAddressEnumerator *
 soup_address_connectable_proxy_enumerate (GSocketConnectable *connectable)
 {
 	SoupAddress *addr = SOUP_ADDRESS (connectable);
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressPrivate *priv = soup_address_get_instance_private (addr);
 	GSocketAddressEnumerator *proxy_enum;
 	SoupURI *uri;
 	char *uri_string;

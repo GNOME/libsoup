@@ -29,14 +29,12 @@ enum {
 	PROP_CLOSE_ON_DISPOSE
 };
 
-G_DEFINE_TYPE (SoupIOStream, soup_io_stream, G_TYPE_IO_STREAM)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupIOStream, soup_io_stream, G_TYPE_IO_STREAM)
 
 static void
 soup_io_stream_init (SoupIOStream *stream)
 {
-	stream->priv = G_TYPE_INSTANCE_GET_PRIVATE (stream,
-						    SOUP_TYPE_IO_STREAM,
-						    SoupIOStreamPrivate);
+	stream->priv = soup_io_stream_get_instance_private (stream);
 }
 
 static void
@@ -180,8 +178,6 @@ soup_io_stream_class_init (SoupIOStreamClass *stream_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (stream_class);
 	GIOStreamClass *io_stream_class = G_IO_STREAM_CLASS (stream_class);
-
-	g_type_class_add_private (stream_class, sizeof (SoupIOStreamPrivate));
 
 	object_class->set_property = soup_io_stream_set_property;
 	object_class->get_property = soup_io_stream_get_property;

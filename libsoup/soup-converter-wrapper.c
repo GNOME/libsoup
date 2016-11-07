@@ -34,12 +34,6 @@ enum {
 	PROP_MESSAGE
 };
 
-static void soup_converter_wrapper_iface_init (GConverterIface *iface);
-
-G_DEFINE_TYPE_WITH_CODE (SoupConverterWrapper, soup_converter_wrapper, G_TYPE_OBJECT,
-			 G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER,
-						soup_converter_wrapper_iface_init))
-
 struct _SoupConverterWrapperPrivate
 {
 	GConverter *base_converter;
@@ -49,12 +43,17 @@ struct _SoupConverterWrapperPrivate
 	gboolean discarding;
 };
 
+static void soup_converter_wrapper_iface_init (GConverterIface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (SoupConverterWrapper, soup_converter_wrapper, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (SoupConverterWrapper)
+			 G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER,
+						soup_converter_wrapper_iface_init))
+
 static void
 soup_converter_wrapper_init (SoupConverterWrapper *converter)
 {
-	converter->priv = G_TYPE_INSTANCE_GET_PRIVATE (converter,
-						       SOUP_TYPE_CONVERTER_WRAPPER,
-						       SoupConverterWrapperPrivate);
+	converter->priv = soup_converter_wrapper_get_instance_private (converter);
 }
 
 static void
@@ -128,8 +127,6 @@ static void
 soup_converter_wrapper_class_init (SoupConverterWrapperClass *klass)
 {
 	GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-
-	g_type_class_add_private (klass, sizeof (SoupConverterWrapperPrivate));
 
 	gobject_class->finalize = soup_converter_wrapper_finalize;
 	gobject_class->get_property = soup_converter_wrapper_get_property;

@@ -43,6 +43,7 @@ enum {
 static void soup_body_output_stream_pollable_init (GPollableOutputStreamInterface *pollable_interface, gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SoupBodyOutputStream, soup_body_output_stream, G_TYPE_FILTER_OUTPUT_STREAM,
+                         G_ADD_PRIVATE (SoupBodyOutputStream)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_OUTPUT_STREAM,
 						soup_body_output_stream_pollable_init))
 
@@ -50,9 +51,7 @@ G_DEFINE_TYPE_WITH_CODE (SoupBodyOutputStream, soup_body_output_stream, G_TYPE_F
 static void
 soup_body_output_stream_init (SoupBodyOutputStream *stream)
 {
-	stream->priv = G_TYPE_INSTANCE_GET_PRIVATE (stream,
-						    SOUP_TYPE_BODY_OUTPUT_STREAM,
-						    SoupBodyOutputStreamPrivate);
+	stream->priv = soup_body_output_stream_get_instance_private (stream);
 }
 
 static void
@@ -296,8 +295,6 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (stream_class);
 	GOutputStreamClass *output_stream_class = G_OUTPUT_STREAM_CLASS (stream_class);
-
-	g_type_class_add_private (stream_class, sizeof (SoupBodyOutputStreamPrivate));
 
 	object_class->constructed = soup_body_output_stream_constructed;
 	object_class->set_property = soup_body_output_stream_set_property;

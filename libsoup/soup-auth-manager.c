@@ -60,9 +60,6 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-G_DEFINE_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_auth_manager_session_feature_init))
 
 struct SoupAuthManagerPrivate {
 	SoupSession *session;
@@ -80,6 +77,11 @@ typedef struct {
 	GHashTable  *auths;            /* scheme:realm -> SoupAuth */
 } SoupAuthHost;
 
+G_DEFINE_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (SoupAuthManager)
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						soup_auth_manager_session_feature_init))
+
 static void soup_auth_host_free (SoupAuthHost *host);
 static SoupAuth *record_auth_for_uri (SoupAuthManagerPrivate *priv,
 				      SoupURI *uri, SoupAuth *auth,
@@ -90,7 +92,7 @@ soup_auth_manager_init (SoupAuthManager *manager)
 {
 	SoupAuthManagerPrivate *priv;
 
-	priv = manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, SOUP_TYPE_AUTH_MANAGER, SoupAuthManagerPrivate);
+	priv = manager->priv = soup_auth_manager_get_instance_private (manager);
 
 	priv->auth_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
 	priv->auth_hosts = g_hash_table_new_full (soup_uri_host_hash,
@@ -120,8 +122,6 @@ static void
 soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_manager_class);
-
-	g_type_class_add_private (auth_manager_class, sizeof (SoupAuthManagerPrivate));
 
 	object_class->finalize = soup_auth_manager_finalize;
 

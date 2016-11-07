@@ -63,6 +63,7 @@ static void soup_content_decoder_content_processor_init (SoupContentProcessorInt
 
 
 G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (SoupContentDecoder)
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_content_decoder_session_feature_init)
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
@@ -185,9 +186,7 @@ zlib_decoder_creator (void)
 static void
 soup_content_decoder_init (SoupContentDecoder *decoder)
 {
-	decoder->priv = G_TYPE_INSTANCE_GET_PRIVATE (decoder,
-						     SOUP_TYPE_CONTENT_DECODER,
-						     SoupContentDecoderPrivate);
+	decoder->priv = soup_content_decoder_get_instance_private (decoder);
 
 	decoder->priv->decoders = g_hash_table_new (g_str_hash, g_str_equal);
 	/* Hardcoded for now */
@@ -213,8 +212,6 @@ static void
 soup_content_decoder_class_init (SoupContentDecoderClass *decoder_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (decoder_class);
-
-	g_type_class_add_private (decoder_class, sizeof (SoupContentDecoderPrivate));
 
 	object_class->finalize = soup_content_decoder_finalize;
 }

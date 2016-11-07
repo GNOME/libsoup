@@ -40,9 +40,7 @@ typedef struct {
 
 } SoupAuthDomainDigestPrivate;
 
-#define SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DOMAIN_DIGEST, SoupAuthDomainDigestPrivate))
-
-G_DEFINE_TYPE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
 
 static void
 soup_auth_domain_digest_init (SoupAuthDomainDigest *digest)
@@ -53,7 +51,7 @@ static void
 soup_auth_domain_digest_finalize (GObject *object)
 {
 	SoupAuthDomainDigestPrivate *priv =
-		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
+		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (object));
 
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
@@ -66,7 +64,7 @@ soup_auth_domain_digest_set_property (GObject *object, guint prop_id,
 				      const GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainDigestPrivate *priv =
-		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
+		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (object));
 
 	switch (prop_id) {
 	case PROP_AUTH_CALLBACK:
@@ -90,7 +88,7 @@ soup_auth_domain_digest_get_property (GObject *object, guint prop_id,
 				      GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainDigestPrivate *priv =
-		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
+		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (object));
 
 	switch (prop_id) {
 	case PROP_AUTH_CALLBACK:
@@ -175,7 +173,7 @@ soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
 					   GDestroyNotify  dnotify)
 {
 	SoupAuthDomainDigestPrivate *priv =
-		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
+		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (domain));
 
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
@@ -269,7 +267,7 @@ soup_auth_domain_digest_accepts (SoupAuthDomain *domain, SoupMessage *msg,
 				 const char *header)
 {
 	SoupAuthDomainDigestPrivate *priv =
-		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
+		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (domain));
 	GHashTable *params;
 	const char *username;
 	gboolean accept = FALSE;
@@ -399,8 +397,6 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	SoupAuthDomainClass *auth_domain_class =
 		SOUP_AUTH_DOMAIN_CLASS (digest_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (digest_class);
-
-	g_type_class_add_private (digest_class, sizeof (SoupAuthDomainDigestPrivate));
 
 	auth_domain_class->accepts        = soup_auth_domain_digest_accepts;
 	auth_domain_class->challenge      = soup_auth_domain_digest_challenge;

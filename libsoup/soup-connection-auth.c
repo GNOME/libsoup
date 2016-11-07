@@ -18,16 +18,16 @@
 #include "soup-connection.h"
 #include "soup-message-private.h"
 
-G_DEFINE_ABSTRACT_TYPE (SoupConnectionAuth, soup_connection_auth, SOUP_TYPE_AUTH)
-
 struct SoupConnectionAuthPrivate {
 	GHashTable *conns;
 };
 
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupConnectionAuth, soup_connection_auth, SOUP_TYPE_AUTH)
+
 static void
 soup_connection_auth_init (SoupConnectionAuth *auth)
 {
-	auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, SOUP_TYPE_CONNECTION_AUTH, SoupConnectionAuthPrivate);
+	auth->priv = soup_connection_auth_get_instance_private (auth);
 
 	auth->priv->conns = g_hash_table_new (NULL, NULL);
 }
@@ -162,8 +162,6 @@ soup_connection_auth_class_init (SoupConnectionAuthClass *connauth_class)
 {
 	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (connauth_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (connauth_class);
-
-	g_type_class_add_private (connauth_class, sizeof (SoupConnectionAuthPrivate));
 
 	auth_class->update = soup_connection_auth_update;
 	auth_class->get_authorization = soup_connection_auth_get_authorization;

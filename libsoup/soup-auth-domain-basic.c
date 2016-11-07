@@ -37,9 +37,7 @@ typedef struct {
 	GDestroyNotify auth_dnotify;
 } SoupAuthDomainBasicPrivate;
 
-#define SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DOMAIN_BASIC, SoupAuthDomainBasicPrivate))
-
-G_DEFINE_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
 
 static void
 soup_auth_domain_basic_init (SoupAuthDomainBasic *basic)
@@ -50,7 +48,7 @@ static void
 soup_auth_domain_basic_finalize (GObject *object)
 {
 	SoupAuthDomainBasicPrivate *priv =
-		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
+		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
 
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
@@ -63,7 +61,7 @@ soup_auth_domain_basic_set_property (GObject *object, guint prop_id,
 				     const GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainBasicPrivate *priv =
-		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
+		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
 
 	switch (prop_id) {
 	case PROP_AUTH_CALLBACK:
@@ -87,7 +85,7 @@ soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
 				     GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainBasicPrivate *priv =
-		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
+		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
 
 	switch (prop_id) {
 	case PROP_AUTH_CALLBACK:
@@ -181,7 +179,7 @@ soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
 					  GDestroyNotify  dnotify)
 {
 	SoupAuthDomainBasicPrivate *priv =
-		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (domain);
+		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (domain));
 
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
@@ -234,7 +232,7 @@ soup_auth_domain_basic_accepts (SoupAuthDomain *domain, SoupMessage *msg,
 				const char *header)
 {
 	SoupAuthDomainBasicPrivate *priv =
-		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (domain);
+		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (domain));
 	char *username, *password;
 	gboolean ok = FALSE;
 
@@ -298,8 +296,6 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	SoupAuthDomainClass *auth_domain_class =
 		SOUP_AUTH_DOMAIN_CLASS (basic_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (basic_class);
-
-	g_type_class_add_private (basic_class, sizeof (SoupAuthDomainBasicPrivate));
 
 	auth_domain_class->accepts        = soup_auth_domain_basic_accepts;
 	auth_domain_class->challenge      = soup_auth_domain_basic_challenge;
