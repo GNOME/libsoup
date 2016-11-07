@@ -740,6 +740,27 @@ soup_auth_manager_use_auth (SoupAuthManager *manager,
 	g_mutex_unlock (&priv->lock);
 }
 
+/**
+ * soup_auth_manager_clear_cached_credentials:
+ * @manager: a #SoupAuthManager
+ *
+ * Clear all credentials cached by @manager
+ *
+ * Since: 2.58
+ */
+void
+soup_auth_manager_clear_cached_credentials (SoupAuthManager *manager)
+{
+	SoupAuthManagerPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_AUTH_MANAGER (manager));
+
+	priv = manager->priv;
+	g_mutex_lock (&priv->lock);
+	g_hash_table_remove_all (priv->auth_hosts);
+	g_mutex_unlock (&priv->lock);
+}
+
 static void
 soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 					gpointer interface_data)

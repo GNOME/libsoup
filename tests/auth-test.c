@@ -1264,6 +1264,29 @@ do_batch_tests (gconstpointer data)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_clear_credentials_test (void)
+{
+	SoupSession *session;
+	SoupAuthManager *manager;
+	char *uri;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+
+	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
+	do_digest_nonce_test (session, "First", uri, TRUE, TRUE);
+
+	manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
+	soup_auth_manager_clear_cached_credentials (manager);
+
+	do_digest_nonce_test (session, "Second", uri, TRUE, TRUE);
+	g_free (uri);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1286,6 +1309,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/auth-close", do_auth_close_test);
 	g_test_add_func ("/auth/infinite-auth", do_infinite_auth_test);
 	g_test_add_func ("/auth/disappearing-auth", do_disappearing_auth_test);
+	g_test_add_func ("/auth/clear-credentials", do_clear_credentials_test);
 
 	ret = g_test_run ();
 

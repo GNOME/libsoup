@@ -41,6 +41,9 @@ void  soup_auth_manager_use_auth (SoupAuthManager *manager,
 				  SoupURI         *uri,
 				  SoupAuth        *auth);
 
+SOUP_AVAILABLE_IN_2_58
+void soup_auth_manager_clear_cached_credentials (SoupAuthManager *manager);
+
 G_END_DECLS
 
 #endif /* SOUP_AUTH_MANAGER_H */

@@ -629,6 +629,7 @@ soup_auth_save_password
 SoupAuthManager
 SOUP_TYPE_AUTH_MANAGER
 soup_auth_manager_use_auth
+soup_auth_manager_clear_cached_credentials
 <SUBSECTION Standard>
 SoupAuthManagerPrivate
 SoupAuthManagerClass
