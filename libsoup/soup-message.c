@@ -1304,29 +1304,18 @@ void
 soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 {
 	SoupMessagePrivate *priv;
-	char *token;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (auth == NULL || SOUP_IS_AUTH (auth));
 
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	if (priv->auth) {
-		g_object_unref (priv->auth);
-		soup_message_headers_remove (msg->request_headers,
-					     "Authorization");
-	}
-	priv->auth = auth;
-	if (!priv->auth)
+	if (priv->auth == auth)
 		return;
 
-	g_object_ref (priv->auth);
-	token = soup_auth_get_authorization (auth, msg);
-	if (token) {
-		soup_message_headers_replace (msg->request_headers,
-					      "Authorization", token);
-		g_free (token);
-	}
+	if (priv->auth)
+		g_object_unref (priv->auth);
+	priv->auth = auth ? g_object_ref (auth) : NULL;
 }
 
 SoupAuth *
@@ -1341,27 +1330,18 @@ void
 soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 {
 	SoupMessagePrivate *priv;
-	char *token;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (auth == NULL || SOUP_IS_AUTH (auth));
 
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	if (priv->proxy_auth) {
-		g_object_unref (priv->proxy_auth);
-		soup_message_headers_remove (msg->request_headers,
-					     "Proxy-Authorization");
-	}
-	priv->proxy_auth = auth;
-	if (!priv->proxy_auth)
+	if (priv->proxy_auth == auth)
 		return;
 
-	g_object_ref (priv->proxy_auth);
-	token = soup_auth_get_authorization (auth, msg);
-	soup_message_headers_replace (msg->request_headers,
-				      "Proxy-Authorization", token);
-	g_free (token);
+	if (priv->proxy_auth)
+		g_object_unref (priv->proxy_auth);
+	priv->proxy_auth = auth ? g_object_ref (auth) : NULL;
 }
 
 SoupAuth *
@@ -1455,6 +1435,13 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   connection limits has been reached. If a dedicated connection is
  *   eventually created for this message, it will be dropped when the
  *   message finishes. Since 2.50
+ * @SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE: The #SoupAuthManager should not use
+ *   the credentials cache for this message, neither to use cached credentials
+ *   to automatically authenticate this message nor to cache the credentials
+ *   after the message is successfully authenticated. This applies to both server
+ *   and proxy authentication. Note that #SoupSession::authenticate signal will
+ *   be emitted, if you want to disable authentication for a message use
+ *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead. Since 2.58
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.

@@ -414,13 +414,18 @@ digest_nonce_unauthorized (SoupMessage *msg, gpointer data)
 
 static void
 do_digest_nonce_test (SoupSession *session,
-		      const char *nth, const char *uri,
+		      const char *nth, const char *uri, gboolean use_auth_cache,
 		      gboolean expect_401, gboolean expect_signal)
 {
 	SoupMessage *msg;
 	gboolean got_401;
 
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
+	if (!use_auth_cache) {
+		SoupMessageFlags flags = soup_message_get_flags (msg);
+
+		soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	}
 	if (expect_signal) {
 		g_signal_connect (session, "authenticate",
 				  G_CALLBACK (digest_nonce_authenticate),
@@ -451,15 +456,15 @@ do_digest_expiration_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
-	do_digest_nonce_test (session, "First", uri, TRUE, TRUE);
+	do_digest_nonce_test (session, "First", uri, TRUE, TRUE, TRUE);
 	g_free (uri);
 	sleep (2);
 	uri = g_strconcat (base_uri, "Digest/realm1/expire/", NULL);
-	do_digest_nonce_test (session, "Second", uri, TRUE, FALSE);
+	do_digest_nonce_test (session, "Second", uri, TRUE, TRUE, FALSE);
 	sleep (1);
-	do_digest_nonce_test (session, "Third", uri, FALSE, FALSE);
+	do_digest_nonce_test (session, "Third", uri, TRUE, FALSE, FALSE);
 	sleep (1);
-	do_digest_nonce_test (session, "Fourth", uri, FALSE, FALSE);
+	do_digest_nonce_test (session, "Fourth", uri, TRUE, FALSE, FALSE);
 	g_free (uri);
 
 	soup_test_session_abort_unref (session);
@@ -1276,12 +1281,55 @@ do_clear_credentials_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
-	do_digest_nonce_test (session, "First", uri, TRUE, TRUE);
+	do_digest_nonce_test (session, "First", uri, TRUE, TRUE, TRUE);
 
 	manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
 	soup_auth_manager_clear_cached_credentials (manager);
 
-	do_digest_nonce_test (session, "Second", uri, TRUE, TRUE);
+	do_digest_nonce_test (session, "Second", uri, TRUE, TRUE, TRUE);
+	g_free (uri);
+
+	soup_test_session_abort_unref (session);
+}
+
+static void
+do_message_do_not_use_auth_cache_test (void)
+{
+	SoupSession *session;
+	SoupAuthManager *manager;
+	SoupURI *soup_uri;
+	char *uri;
+	char *uri_with_credentials;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+
+	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
+
+	/* First check that cached credentials are not used */
+	do_digest_nonce_test (session, "First", uri, TRUE, TRUE, TRUE);
+	do_digest_nonce_test (session, "Second", uri, TRUE, FALSE, FALSE);
+	do_digest_nonce_test (session, "Third", uri, FALSE, TRUE, TRUE);
+
+	/* Passing credentials in the URI should always authenticate
+	 * no matter whether the cache is used or not
+	 */
+	soup_uri = soup_uri_new (uri);
+	soup_uri_set_user (soup_uri, "user1");
+	soup_uri_set_password (soup_uri, "realm1");
+	uri_with_credentials = soup_uri_to_string (soup_uri, FALSE);
+	soup_uri_free (soup_uri);
+	do_digest_nonce_test (session, "Fourth", uri_with_credentials, FALSE, TRUE, FALSE);
+	g_free (uri_with_credentials);
+
+	manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
+	soup_auth_manager_clear_cached_credentials (manager);
+
+	/* Now check that credentials are not stored */
+	do_digest_nonce_test (session, "First", uri, FALSE, TRUE, TRUE);
+	do_digest_nonce_test (session, "Second", uri, TRUE, TRUE, TRUE);
+	do_digest_nonce_test (session, "Third", uri, TRUE, FALSE, FALSE);
 	g_free (uri);
 
 	soup_test_session_abort_unref (session);
@@ -1310,6 +1358,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/infinite-auth", do_infinite_auth_test);
 	g_test_add_func ("/auth/disappearing-auth", do_disappearing_auth_test);
 	g_test_add_func ("/auth/clear-credentials", do_clear_credentials_test);
+	g_test_add_func ("/auth/message-do-not-use-auth-cache", do_message_do_not_use_auth_cache_test);
 
 	ret = g_test_run ();
 
