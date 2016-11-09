@@ -106,7 +106,7 @@ soup_form_decode (const char *encoded_form)
 
 		g_hash_table_replace (form_data_set, name, value);
 	}
-	g_free (pairs);
+	g_strfreev (pairs);
 
 	return form_data_set;
 }
