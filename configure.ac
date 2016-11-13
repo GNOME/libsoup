@@ -3,7 +3,7 @@ dnl *** Initialize automake and set version ***
 dnl *******************************************
 
 m4_define([soup_major_version], [2])
-m4_define([soup_minor_version], [56])
+m4_define([soup_minor_version], [57])
 m4_define([soup_micro_version], [0])
 
 AC_PREREQ(2.63)
