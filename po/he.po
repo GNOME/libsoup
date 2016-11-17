@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-03-17 12:33+0200\n"
-"PO-Revision-Date: 2015-03-17 12:39+0200\n"
+"POT-Creation-Date: 2016-11-17 22:36+0200\n"
+"PO-Revision-Date: 2016-11-17 22:38+0200\n"
 "Last-Translator: Yosef Or Boczko <yoseforb@gmail.com>\n"
 "Language-Team: עברית <>\n"
 "Language: he\n"
@@ -22,21 +22,21 @@ msgstr ""
 "X-Poedit-SourceCharset: utf-8\n"
 "X-Generator: Gtranslator 2.91.6\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "החיבור הופסק באופן בלתי צפוי"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "בקשת חיפוש שגויה"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "לא ניתן לקצץ את SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "תזרים הרשת נסגר בפתאומיות"
 
@@ -44,7 +44,7 @@ msgstr "תזרים הרשת נסגר בפתאומיות"
 msgid "Failed to completely cache the resource"
 msgstr "שמירת המשאב במלואו במטמון נכשלה"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "אוגר הפלט קטן מדי"
@@ -76,39 +76,39 @@ msgstr "לא סופקה כתובת"
 
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
-msgstr "כתובת '%s' שגויה: %s"
+msgid "Invalid “%s” URI: %s"
+msgstr "כתובת „%s” שגויה: %s"
 
-#: ../libsoup/soup-server.c:1711
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1727
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "לא ניתן ליצור שרות TLS ללא תעודת TLS"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1744
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "לא ניתן להאזין לכתובת %s, פתחה %d:"
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
-msgstr "לא ניתן לנתח את הכתובת '%s'"
+msgid "Could not parse URI “%s”"
+msgstr "לא ניתן לנתח את הכתובת „%s”"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
-msgstr "תבנית הכתובת אינה נתמכת '%s'"
+msgid "Unsupported URI scheme “%s”"
+msgstr "תבנית הכתובת אינה נתמכת „%s”"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "כתובת שאינה HTTP"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "השרת לא קיבל את לחיצת היד של ה־WebSocket"
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "לא ניתן לייבא לא-שקע כ־SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
@@ -116,27 +116,27 @@ msgid "Could not import existing socket: "
 msgstr "לא ניתן לייבא שקע קיים:"
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "לא ניתן לייבא שקע לא מחובר"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "צפויה לחיצת יד מה־WebSocket"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "גרסת WebSocket לא נתמכת"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "מפתח WebSocket לא חוקי"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
 msgstr "כותר WebSocket ‏„%s” שגוי"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "פרוטוקול WebSocket לא נתמך"
 
@@ -158,7 +158,7 @@ msgstr "השרת דורש הרחבה לא נתמכת"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "השרת מחזיר מפתח „%s” שגוי"
 
 #: ../libsoup/soup-tld.c:188
