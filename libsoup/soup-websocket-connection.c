@@ -348,6 +348,11 @@ send_message (SoupWebsocketConnection *self,
 	guint8 *mask = 0;
 	guint8 *at;
 
+	if (!(soup_websocket_connection_get_state (self) == SOUP_WEBSOCKET_STATE_OPEN)) {
+		g_debug ("Ignoring message since the connection is closed or is closing");
+		return;
+	}
+
 	bytes = g_byte_array_sized_new (14 + length);
 	outer = bytes->data;
 	outer[0] = 0x80 | opcode;
@@ -850,6 +855,12 @@ on_web_socket_output (GObject *pollable_stream,
 	Frame *frame;
 	gssize count;
 	gsize len;
+
+	if (soup_websocket_connection_get_state (self) == SOUP_WEBSOCKET_STATE_CLOSED) {
+		g_debug ("Ignoring message since the connection is closed");
+		stop_output (self);
+		return TRUE;
+	}
 
 	frame = g_queue_peek_head (&pv->outgoing);
 
