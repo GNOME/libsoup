@@ -34,12 +34,6 @@
  * Deprecated: Use #SoupSession:proxy-resolver
  */
 
-static void soup_proxy_resolver_default_interface_init (SoupProxyURIResolverInterface *proxy_resolver_interface);
-
-G_DEFINE_TYPE_EXTENDED (SoupProxyResolverDefault, soup_proxy_resolver_default, G_TYPE_OBJECT, 0,
-			G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE, NULL)
-			G_IMPLEMENT_INTERFACE (SOUP_TYPE_PROXY_URI_RESOLVER, soup_proxy_resolver_default_interface_init))
-
 enum {
 	PROP_0,
 	PROP_GPROXY_RESOLVER
@@ -48,7 +42,13 @@ enum {
 typedef struct {
 	GProxyResolver *gproxy_resolver;
 } SoupProxyResolverDefaultPrivate;
-#define SOUP_PROXY_RESOLVER_DEFAULT_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_PROXY_RESOLVER_DEFAULT, SoupProxyResolverDefaultPrivate))
+
+static void soup_proxy_resolver_default_interface_init (SoupProxyURIResolverInterface *proxy_resolver_interface);
+
+G_DEFINE_TYPE_EXTENDED (SoupProxyResolverDefault, soup_proxy_resolver_default, G_TYPE_OBJECT, 0,
+                        G_ADD_PRIVATE (SoupProxyResolverDefault)
+			G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE, NULL)
+			G_IMPLEMENT_INTERFACE (SOUP_TYPE_PROXY_URI_RESOLVER, soup_proxy_resolver_default_interface_init))
 
 static void
 soup_proxy_resolver_default_init (SoupProxyResolverDefault *resolver)
@@ -59,7 +59,8 @@ static void
 soup_proxy_resolver_default_set_property (GObject *object, guint prop_id,
 					  const GValue *value, GParamSpec *pspec)
 {
-	SoupProxyResolverDefaultPrivate *priv = SOUP_PROXY_RESOLVER_DEFAULT_GET_PRIVATE (object);
+	SoupProxyResolverDefault *resolver = SOUP_PROXY_RESOLVER_DEFAULT (object);
+	SoupProxyResolverDefaultPrivate *priv = soup_proxy_resolver_default_get_instance_private (resolver);
 
 	switch (prop_id) {
 	case PROP_GPROXY_RESOLVER:
@@ -76,7 +77,8 @@ soup_proxy_resolver_default_set_property (GObject *object, guint prop_id,
 static void
 soup_proxy_resolver_default_constructed (GObject *object)
 {
-	SoupProxyResolverDefaultPrivate *priv = SOUP_PROXY_RESOLVER_DEFAULT_GET_PRIVATE (object);
+	SoupProxyResolverDefault *resolver = SOUP_PROXY_RESOLVER_DEFAULT (object);
+	SoupProxyResolverDefaultPrivate *priv = soup_proxy_resolver_default_get_instance_private (resolver);
 
 	if (!priv->gproxy_resolver) {
 		priv->gproxy_resolver = g_proxy_resolver_get_default ();
@@ -89,7 +91,8 @@ soup_proxy_resolver_default_constructed (GObject *object)
 static void
 soup_proxy_resolver_default_finalize (GObject *object)
 {
-	SoupProxyResolverDefaultPrivate *priv = SOUP_PROXY_RESOLVER_DEFAULT_GET_PRIVATE (object);
+	SoupProxyResolverDefault *resolver = SOUP_PROXY_RESOLVER_DEFAULT (object);
+	SoupProxyResolverDefaultPrivate *priv = soup_proxy_resolver_default_get_instance_private (resolver);
 
 	g_clear_object (&priv->gproxy_resolver);
 
@@ -100,8 +103,6 @@ static void
 soup_proxy_resolver_default_class_init (SoupProxyResolverDefaultClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-	g_type_class_add_private (klass, sizeof (SoupProxyResolverDefaultPrivate));
 
 	object_class->set_property = soup_proxy_resolver_default_set_property;
 	object_class->constructed = soup_proxy_resolver_default_constructed;
@@ -178,7 +179,8 @@ get_proxy_uri_async (SoupProxyURIResolver  *resolver,
 		     SoupProxyURIResolverCallback callback,
 		     gpointer		    user_data)
 {
-	SoupProxyResolverDefaultPrivate *priv = SOUP_PROXY_RESOLVER_DEFAULT_GET_PRIVATE (resolver);
+	SoupProxyResolverDefault *resolver_default = SOUP_PROXY_RESOLVER_DEFAULT (resolver);
+	SoupProxyResolverDefaultPrivate *priv = soup_proxy_resolver_default_get_instance_private (resolver_default);
 	SoupAsyncData *async_data;
 	char *uri_string;
 
@@ -211,7 +213,8 @@ get_proxy_uri_sync (SoupProxyURIResolver  *resolver,
 		    GCancellable	  *cancellable,
 		    SoupURI		 **proxy_uri)
 {
-	SoupProxyResolverDefaultPrivate *priv = SOUP_PROXY_RESOLVER_DEFAULT_GET_PRIVATE (resolver);
+	SoupProxyResolverDefault *resolver_default = SOUP_PROXY_RESOLVER_DEFAULT (resolver);
+	SoupProxyResolverDefaultPrivate *priv = soup_proxy_resolver_default_get_instance_private (resolver_default);
 	GError *error = NULL;
 	char** proxy_uris = NULL;
 	char *uri_string;

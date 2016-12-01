@@ -142,7 +142,6 @@ typedef struct {
 
 	GHashTable *request_types;
 } SoupSessionPrivate;
-#define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
 #define SOUP_IS_PLAIN_SESSION(o) (G_TYPE_FROM_INSTANCE (o) == SOUP_TYPE_SESSION)
 
@@ -168,7 +167,7 @@ static void async_send_request_running (SoupSession *session, SoupMessageQueueIt
 
 #define SOUP_SESSION_USER_AGENT_BASE "libsoup/" PACKAGE_VERSION
 
-G_DEFINE_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupSession, soup_session, G_TYPE_OBJECT)
 
 enum {
 	REQUEST_QUEUED,
@@ -215,7 +214,7 @@ enum {
 static void
 soup_session_init (SoupSession *session)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupAuthManager *auth_manager;
 
 	priv->queue = soup_message_queue_new (session);
@@ -277,7 +276,7 @@ soup_session_constructor (GType                  type,
 	 */
 	if (type == SOUP_TYPE_SESSION) {
 		SoupSession *session = SOUP_SESSION (object);
-		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+		SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 		g_clear_pointer (&priv->async_context, g_main_context_unref);
 		priv->async_context = g_main_context_ref_thread_default ();
@@ -304,7 +303,7 @@ static void
 soup_session_dispose (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	priv->disposed = TRUE;
 	soup_session_abort (session);
@@ -320,7 +319,7 @@ static void
 soup_session_finalize (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	soup_message_queue_destroy (priv->queue);
 
@@ -359,7 +358,7 @@ soup_session_finalize (GObject *object)
 static void
 ensure_socket_props (SoupSession *session)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	gboolean ssl_strict;
 
 	if (priv->socket_props)
@@ -471,7 +470,7 @@ accept_languages_from_system (void)
 static void
 set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	GTlsDatabase *system_default;
 
 	priv->tlsdb_use_default = FALSE;
@@ -507,7 +506,7 @@ set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
 static void
 set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	GTlsDatabase *system_default;
 
 	priv->tlsdb_use_default = FALSE;
@@ -525,7 +524,7 @@ set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
 static void
 set_ssl_ca_file (SoupSession *session, const char *ssl_ca_file)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	GTlsDatabase *tlsdb;
 	GError *error = NULL;
 
@@ -599,7 +598,7 @@ set_proxy_resolver (SoupSession *session, SoupURI *uri,
 		    SoupProxyURIResolver *soup_resolver,
 		    GProxyResolver *g_resolver)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_URI_RESOLVER);
@@ -631,7 +630,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 			   const GValue *value, GParamSpec *pspec)
 {
 	SoupSession *session = SOUP_SESSION (object);
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	const char *user_agent;
 	SoupSessionFeature *feature;
 	GMainContext *async_context;
@@ -783,7 +782,7 @@ soup_session_get_property (GObject *object, guint prop_id,
 			   GValue *value, GParamSpec *pspec)
 {
 	SoupSession *session = SOUP_SESSION (object);
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionFeature *feature;
 	GTlsDatabase *tlsdb;
 
@@ -924,7 +923,7 @@ soup_session_get_async_context (SoupSession *session)
 	SoupSessionPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	if (priv->use_thread_context)
 		return g_main_context_get_thread_default ();
@@ -973,7 +972,7 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 	host->uri = soup_uri_copy_host (uri);
 	if (host->uri->scheme != SOUP_URI_SCHEME_HTTP &&
 	    host->uri->scheme != SOUP_URI_SCHEME_HTTPS) {
-		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+		SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 		if (soup_uri_is_https (host->uri, priv->https_aliases))
 			host->uri->scheme = SOUP_URI_SCHEME_HTTPS;
@@ -996,7 +995,7 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 static SoupSessionHost *
 get_host_for_uri (SoupSession *session, SoupURI *uri)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 	gboolean https;
 	SoupURI *uri_tmp = NULL;
@@ -1105,7 +1104,7 @@ redirection_uri (SoupMessage *msg)
 gboolean
 soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupURI *new_uri;
 
 	/* It must have an appropriate status code and method */
@@ -1258,7 +1257,7 @@ soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
 				gboolean async, gboolean new_api,
 				SoupSessionCallback callback, gpointer user_data)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	SoupSessionHost *host;
 
@@ -1292,7 +1291,7 @@ soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageQueueItem *item,
 			      SoupMessageCompletionFn completion_cb)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	if (priv->user_agent) {
 		soup_message_headers_replace (item->msg->request_headers,
@@ -1331,7 +1330,7 @@ static gboolean
 soup_session_cleanup_connections (SoupSession *session,
 				  gboolean     cleanup_idle)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	GSList *conns = NULL, *c;
 	GHashTableIter iter;
 	gpointer conn, host;
@@ -1367,7 +1366,7 @@ static gboolean
 free_unused_host (gpointer user_data)
 {
 	SoupSessionHost *host = (SoupSessionHost *) user_data;
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (host->session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (host->session);
 
 	g_mutex_lock (&priv->conn_lock);
 
@@ -1394,7 +1393,7 @@ free_unused_host (gpointer user_data)
 static void
 drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *conn)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	/* Note: caller must hold conn_lock, and must remove @conn
 	 * from priv->conns itself.
@@ -1429,7 +1428,7 @@ static void
 connection_disconnected (SoupConnection *conn, gpointer user_data)
 {
 	SoupSession *session = user_data;
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 
 	g_mutex_lock (&priv->conn_lock);
@@ -1457,7 +1456,7 @@ connection_state_changed (GObject *object, GParamSpec *param, gpointer user_data
 SoupMessageQueue *
 soup_session_get_queue (SoupSession *session)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	return priv->queue;
 }
@@ -1466,7 +1465,7 @@ static void
 soup_session_unqueue_item (SoupSession          *session,
 			   SoupMessageQueueItem *item)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 	SoupConnection *dedicated_conn = NULL;
 
@@ -1785,7 +1784,7 @@ get_connection_for_host (SoupSession *session,
 			 gboolean *try_cleanup,
 			 gboolean *is_dedicated_connection)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupConnection *conn;
 	GSList *conns;
 	guint num_pending = 0;
@@ -1875,7 +1874,7 @@ static gboolean
 get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 {
 	SoupSession *session = item->session;
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 	SoupConnection *conn = NULL;
 	gboolean my_should_cleanup = FALSE;
@@ -2039,7 +2038,7 @@ soup_session_process_queue_item (SoupSession          *session,
 static void
 async_run_queue (SoupSession *session)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	SoupMessage *msg;
 	gboolean try_cleanup = TRUE, should_cleanup = FALSE;
@@ -2172,7 +2171,7 @@ soup_session_queue_message (SoupSession *session, SoupMessage *msg,
 static void
 soup_session_real_requeue_message (SoupSession *session, SoupMessage *msg)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 
 	item = soup_message_queue_lookup (priv->queue, msg);
@@ -2277,7 +2276,7 @@ soup_session_pause_message (SoupSession *session,
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
 	g_return_if_fail (item->async);
@@ -2291,7 +2290,7 @@ soup_session_pause_message (SoupSession *session,
 static void
 soup_session_real_kick_queue (SoupSession *session)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	GHashTable *async_pending;
 	gboolean have_sync_items = FALSE;
@@ -2361,7 +2360,7 @@ soup_session_unpause_message (SoupSession *session,
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
 	g_return_if_fail (item->async);
@@ -2378,7 +2377,7 @@ soup_session_unpause_message (SoupSession *session,
 static void
 soup_session_real_cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 
 	item = soup_message_queue_lookup (priv->queue, msg);
@@ -2438,7 +2437,7 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg,
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	/* If the message is already ending, don't do anything */
 	if (!item)
@@ -2455,7 +2454,7 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg,
 static void
 soup_session_real_flush_queue (SoupSession *session)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	GHashTable *current = NULL;
 	gboolean done = FALSE;
@@ -2527,7 +2526,7 @@ soup_session_abort (SoupSession *session)
 	gpointer conn, host;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	SOUP_SESSION_GET_CLASS (session)->flush_queue (session);
 
@@ -2565,7 +2564,7 @@ prefetch_uri (SoupSession *session, SoupURI *uri,
 	SoupSessionHost *host;
 	SoupAddress *addr;
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_uri (session, uri);
@@ -2666,7 +2665,7 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	if (SOUP_IS_PROXY_URI_RESOLVER (feature)) {
@@ -2711,7 +2710,7 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
 		SoupSessionFeature *feature;
@@ -2756,7 +2755,7 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 	if (g_slist_find (priv->features, feature)) {
 		priv->features = g_slist_remove (priv->features, feature);
 		g_hash_table_remove_all (priv->features_cache);
@@ -2794,7 +2793,7 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
 	restart:
@@ -2851,7 +2850,7 @@ soup_session_has_feature (SoupSession *session,
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
 		for (f = priv->features; f; f = f->next) {
@@ -2893,7 +2892,7 @@ soup_session_get_features (SoupSession *session, GType feature_type)
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 	for (f = priv->features, ret = NULL; f; f = f->next) {
 		if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type))
 			ret = g_slist_prepend (ret, f->data);
@@ -2924,7 +2923,7 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	feature = g_hash_table_lookup (priv->features_cache,
 				       GSIZE_TO_POINTER (feature_type));
@@ -2978,8 +2977,6 @@ static void
 soup_session_class_init (SoupSessionClass *session_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (session_class);
-
-	g_type_class_add_private (session_class, sizeof (SoupSessionPrivate));
 
 	/* virtual method definition */
 	session_class->queue_message = soup_session_real_queue_message;
@@ -4547,7 +4544,7 @@ soup_session_request_uri (SoupSession *session, SoupURI *uri,
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv = soup_session_get_instance_private (session);
 
 	request_type = (GType)GPOINTER_TO_SIZE (g_hash_table_lookup (priv->request_types, uri->scheme));
 	if (!request_type) {
@@ -4708,7 +4705,7 @@ GIOStream *
 soup_session_steal_connection (SoupSession *session,
 			       SoupMessage *msg)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	SoupConnection *conn;
 	SoupSocket *sock;
@@ -4834,11 +4831,12 @@ soup_session_websocket_connect_async (SoupSession          *session,
 				      GAsyncReadyCallback   callback,
 				      gpointer              user_data)
 {
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	GTask *task;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_SESSION_GET_PRIVATE (session)->use_thread_context);
+	g_return_if_fail (priv->use_thread_context);
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	soup_websocket_client_prepare_handshake (msg, origin, protocols);

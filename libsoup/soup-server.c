@@ -118,8 +118,6 @@
  * #GMainContext.
  */
 
-G_DEFINE_TYPE (SoupServer, soup_server, G_TYPE_OBJECT)
-
 enum {
 	REQUEST_STARTED,
 	REQUEST_READ,
@@ -188,7 +186,6 @@ typedef struct {
 	gboolean           disposed;
 
 } SoupServerPrivate;
-#define SOUP_SERVER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SERVER, SoupServerPrivate))
 
 #define SOUP_SERVER_SERVER_HEADER_BASE "libsoup/" PACKAGE_VERSION
 
@@ -211,6 +208,8 @@ enum {
 	LAST_PROP
 };
 
+G_DEFINE_TYPE_WITH_PRIVATE (SoupServer, soup_server, G_TYPE_OBJECT)
+
 static SoupClientContext *soup_client_context_ref (SoupClientContext *client);
 static void soup_client_context_unref (SoupClientContext *client);
 
@@ -232,7 +231,7 @@ free_handler (SoupServerHandler *handler)
 static void
 soup_server_init (SoupServer *server)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	priv->handlers = soup_path_map_new ((GDestroyNotify)free_handler);
 
@@ -247,7 +246,7 @@ static void
 soup_server_dispose (GObject *object)
 {
 	SoupServer *server = SOUP_SERVER (object);
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	priv->disposed = TRUE;
 	soup_server_disconnect (server);
@@ -259,7 +258,7 @@ static void
 soup_server_finalize (GObject *object)
 {
 	SoupServer *server = SOUP_SERVER (object);
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	g_clear_object (&priv->legacy_iface);
 
@@ -285,7 +284,7 @@ soup_server_finalize (GObject *object)
 static gboolean
 soup_server_ensure_listening (SoupServer *server)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupSocket *listener;
 
 	if (priv->listeners)
@@ -329,7 +328,7 @@ soup_server_constructor (GType                  type,
 
 	server = G_OBJECT_CLASS (soup_server_parent_class)->
 		constructor (type, n_construct_properties, construct_properties);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (SOUP_SERVER (server));
 
 	/* For backward compatibility, we have to process the
 	 * :ssl-cert-file, :ssl-key-file, :interface, and :port
@@ -409,7 +408,8 @@ static void
 soup_server_set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (object);
+	SoupServer *server = SOUP_SERVER (object);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	const char *header;
 
 	switch (prop_id) {
@@ -477,7 +477,7 @@ soup_server_get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec)
 {
 	SoupServer *server = SOUP_SERVER (object);
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	switch (prop_id) {
 	case PROP_PORT:
@@ -522,8 +522,6 @@ static void
 soup_server_class_init (SoupServerClass *server_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (server_class);
-
-	g_type_class_add_private (server_class, sizeof (SoupServerPrivate));
 
 	/* virtual method override */
 	object_class->constructor = soup_server_constructor;
@@ -975,7 +973,7 @@ soup_server_get_port (SoupServer *server)
 	SoupServerPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	soup_server_ensure_listening (server);
 	g_return_val_if_fail (priv->legacy_iface != NULL, 0);
@@ -1011,7 +1009,7 @@ soup_server_set_ssl_cert_file  (SoupServer  *server,
 	SoupServerPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), FALSE);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	if (priv->tls_cert)
 		g_object_unref (priv->tls_cert);
@@ -1055,7 +1053,7 @@ soup_server_is_https (SoupServer *server)
 	SoupServerPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	return priv->tls_cert != NULL;
 }
@@ -1081,7 +1079,7 @@ soup_server_get_listener (SoupServer *server)
 	SoupServerPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	soup_server_ensure_listening (server);
 	g_return_val_if_fail (priv->legacy_iface != NULL, NULL);
@@ -1111,7 +1109,7 @@ soup_server_get_listeners (SoupServer *server)
 	GSList *listeners, *iter;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	listeners = NULL;
 	for (iter = priv->listeners; iter; iter = iter->next)
@@ -1182,7 +1180,7 @@ request_finished (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer
 {
 	SoupClientContext *client = user_data;
 	SoupServer *server = client->server;
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupSocket *sock = client->sock;
 	gboolean failed;
 
@@ -1224,7 +1222,7 @@ request_finished (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer
 static SoupServerHandler *
 get_handler (SoupServer *server, SoupMessage *msg)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupURI *uri;
 
 	uri = soup_message_get_uri (msg);
@@ -1271,7 +1269,7 @@ static void
 got_headers (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupServerHandler *handler;
 	SoupURI *uri;
 	SoupDate *date;
@@ -1417,7 +1415,7 @@ got_body (SoupMessage *msg, SoupClientContext *client)
 static void
 start_request (SoupServer *server, SoupClientContext *client)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupMessage *msg;
 
 	soup_client_context_cleanup (client);
@@ -1447,7 +1445,7 @@ start_request (SoupServer *server, SoupClientContext *client)
 static void
 socket_disconnected (SoupSocket *sock, SoupClientContext *client)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (client->server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (client->server);
 
 	priv->clients = g_slist_remove (priv->clients, client);
 
@@ -1461,7 +1459,7 @@ static void
 soup_server_accept_socket (SoupServer *server,
 			   SoupSocket *sock)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupClientContext *client;
 
 	client = soup_client_context_new (server, sock);
@@ -1550,7 +1548,7 @@ soup_server_run_async (SoupServer *server)
 	SoupSocket *listener;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	soup_server_ensure_listening (server);
 
@@ -1591,7 +1589,7 @@ soup_server_run (SoupServer *server)
 	SoupServerPrivate *priv;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	if (!priv->loop) {
 		priv->loop = g_main_loop_new (priv->async_context, TRUE);
@@ -1630,7 +1628,7 @@ soup_server_quit (SoupServer *server)
 	SoupSocket *listener;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 	g_return_if_fail (priv->legacy_iface != NULL);
 	g_return_if_fail (priv->listeners != NULL);
 
@@ -1666,7 +1664,7 @@ soup_server_disconnect (SoupServer *server)
 	SoupClientContext *client;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	if (priv->legacy_iface) {
 		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
@@ -1716,7 +1714,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 			     SoupServerListenOptions options,
 			     GError **error)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	gboolean is_listening;
 
 	if (options & SOUP_SERVER_LISTEN_HTTPS) {
@@ -1804,7 +1802,7 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 	g_return_val_if_fail (!(options & SOUP_SERVER_LISTEN_IPV4_ONLY) &&
 			      !(options & SOUP_SERVER_LISTEN_IPV6_ONLY), FALSE);
 
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
 	saddr = soup_address_new_from_gsockaddr (address);
@@ -1828,7 +1826,7 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
 			      SoupServerListenOptions options,
 			      GError **error)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	GSocketAddress *addr4, *addr6;
 	GError *my_error = NULL;
 	SoupSocket *v4sock;
@@ -2033,7 +2031,7 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
 	g_return_val_if_fail (!(options & SOUP_SERVER_LISTEN_IPV4_ONLY) &&
 			      !(options & SOUP_SERVER_LISTEN_IPV6_ONLY), FALSE);
 
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
 	listener = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
@@ -2083,7 +2081,7 @@ soup_server_listen_fd (SoupServer *server, int fd,
 	g_return_val_if_fail (!(options & SOUP_SERVER_LISTEN_IPV4_ONLY) &&
 			      !(options & SOUP_SERVER_LISTEN_IPV6_ONLY), FALSE);
 
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
 	listener = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
@@ -2129,7 +2127,7 @@ soup_server_get_uris (SoupServer *server)
 	gpointer creds;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	for (l = priv->listeners, uris = NULL; l; l = l->next) {
 		listener = l->data;
@@ -2172,7 +2170,7 @@ soup_server_get_async_context (SoupServer *server)
 	SoupServerPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	return priv->async_context;
 }
@@ -2488,7 +2486,7 @@ soup_client_context_steal_connection (SoupClientContext *client)
 static SoupServerHandler *
 get_or_create_handler (SoupServer *server, const char *exact_path)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupServerHandler *handler;
 
 	exact_path = NORMALIZED_PATH (exact_path);
@@ -2719,7 +2717,7 @@ soup_server_remove_handler (SoupServer *server, const char *path)
 	SoupServerPrivate *priv;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	soup_path_map_remove (priv->handlers, NORMALIZED_PATH (path));
 }
@@ -2747,7 +2745,7 @@ soup_server_add_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
 	SoupServerPrivate *priv;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	priv->auth_domains = g_slist_append (priv->auth_domains, auth_domain);
 	g_object_ref (auth_domain);
@@ -2766,7 +2764,7 @@ soup_server_remove_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
 	SoupServerPrivate *priv;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	priv = soup_server_get_instance_private (server);
 
 	priv->auth_domains = g_slist_remove (priv->auth_domains, auth_domain);
 	g_object_unref (auth_domain);

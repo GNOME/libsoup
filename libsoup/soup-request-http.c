@@ -44,12 +44,12 @@
  * #SoupMessage.
  */
 
-G_DEFINE_TYPE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
-
 struct _SoupRequestHTTPPrivate {
 	SoupMessage *msg;
 	char *content_type;
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
 
 static void content_sniffed (SoupMessage *msg,
 			     const char  *content_type,
@@ -59,7 +59,7 @@ static void content_sniffed (SoupMessage *msg,
 static void
 soup_request_http_init (SoupRequestHTTP *http)
 {
-	http->priv = G_TYPE_INSTANCE_GET_PRIVATE (http, SOUP_TYPE_REQUEST_HTTP, SoupRequestHTTPPrivate);
+	http->priv = soup_request_http_get_instance_private (http);
 }
 
 static gboolean
@@ -202,8 +202,6 @@ soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
 	GObjectClass *object_class = G_OBJECT_CLASS (request_http_class);
 	SoupRequestClass *request_class =
 		SOUP_REQUEST_CLASS (request_http_class);
-
-	g_type_class_add_private (request_http_class, sizeof (SoupRequestHTTPPrivate));
 
 	request_class->schemes = http_schemes;
 

@@ -40,8 +40,6 @@
  * URIs.
  */
 
-G_DEFINE_TYPE (SoupRequestFile, soup_request_file, SOUP_TYPE_REQUEST)
-
 struct _SoupRequestFilePrivate {
 	GFile *gfile;
 
@@ -49,10 +47,12 @@ struct _SoupRequestFilePrivate {
 	goffset size;
 };
 
+G_DEFINE_TYPE_WITH_PRIVATE (SoupRequestFile, soup_request_file, SOUP_TYPE_REQUEST)
+
 static void
 soup_request_file_init (SoupRequestFile *file)
 {
-	file->priv = G_TYPE_INSTANCE_GET_PRIVATE (file, SOUP_TYPE_REQUEST_FILE, SoupRequestFilePrivate);
+	file->priv = soup_request_file_get_instance_private (file);
 
 	file->priv->size = -1;
 }
@@ -264,8 +264,6 @@ soup_request_file_class_init (SoupRequestFileClass *request_file_class)
 	GObjectClass *object_class = G_OBJECT_CLASS (request_file_class);
 	SoupRequestClass *request_class =
 		SOUP_REQUEST_CLASS (request_file_class);
-
-	g_type_class_add_private (request_file_class, sizeof (SoupRequestFilePrivate));
 
 	request_class->schemes = file_schemes;
 

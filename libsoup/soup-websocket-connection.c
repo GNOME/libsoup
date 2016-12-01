@@ -139,7 +139,7 @@ struct _SoupWebsocketConnectionPrivate {
 
 #define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
 
-G_DEFINE_TYPE (SoupWebsocketConnection, soup_websocket_connection, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupWebsocketConnection, soup_websocket_connection, G_TYPE_OBJECT)
 
 typedef enum {
 	SOUP_WEBSOCKET_QUEUE_NORMAL = 0,
@@ -166,8 +166,7 @@ soup_websocket_connection_init (SoupWebsocketConnection *self)
 {
 	SoupWebsocketConnectionPrivate *pv;
 
-	pv = self->pv = G_TYPE_INSTANCE_GET_PRIVATE (self, SOUP_TYPE_WEBSOCKET_CONNECTION,
-						     SoupWebsocketConnectionPrivate);
+	pv = self->pv = soup_websocket_connection_get_instance_private (self);
 
 	pv->incoming = g_byte_array_sized_new (1024);
 	g_queue_init (&pv->outgoing);
@@ -1136,8 +1135,6 @@ static void
 soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 {
 	GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-
-	g_type_class_add_private (klass, sizeof (SoupWebsocketConnectionPrivate));
 
 	gobject_class->constructed = soup_websocket_connection_constructed;
 	gobject_class->get_property = soup_websocket_connection_get_property;

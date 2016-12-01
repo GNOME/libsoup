@@ -37,12 +37,6 @@
  * Since: 2.40
  **/
 
-static void soup_multipart_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
-
-G_DEFINE_TYPE_WITH_CODE (SoupMultipartInputStream, soup_multipart_input_stream, G_TYPE_FILTER_INPUT_STREAM,
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_multipart_input_stream_pollable_init))
-
 enum {
 	PROP_0,
 
@@ -64,6 +58,13 @@ struct _SoupMultipartInputStreamPrivate {
 
 	goffset		        remaining_bytes;
 };
+
+static void soup_multipart_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
+
+G_DEFINE_TYPE_WITH_CODE (SoupMultipartInputStream, soup_multipart_input_stream, G_TYPE_FILTER_INPUT_STREAM,
+                         G_ADD_PRIVATE (SoupMultipartInputStream)
+			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+						soup_multipart_input_stream_pollable_init))
 
 static void
 soup_multipart_input_stream_dispose (GObject *object)
@@ -201,9 +202,7 @@ static void
 soup_multipart_input_stream_init (SoupMultipartInputStream *multipart)
 {
 	SoupMultipartInputStreamPrivate *priv;
-	priv = multipart->priv = G_TYPE_INSTANCE_GET_PRIVATE (multipart,
-							      SOUP_TYPE_MULTIPART_INPUT_STREAM,
-							      SoupMultipartInputStreamPrivate);
+	priv = multipart->priv = soup_multipart_input_stream_get_instance_private (multipart);
 
 	priv->meta_buf = g_byte_array_sized_new (RESPONSE_BLOCK_SIZE);
 	priv->done_with_part = FALSE;
@@ -289,8 +288,6 @@ soup_multipart_input_stream_class_init (SoupMultipartInputStreamClass *multipart
 	GObjectClass *object_class = G_OBJECT_CLASS (multipart_class);
 	GInputStreamClass *input_stream_class =
 		G_INPUT_STREAM_CLASS (multipart_class);
-
-	g_type_class_add_private (multipart_class, sizeof (SoupMultipartInputStreamPrivate));
 
 	object_class->dispose = soup_multipart_input_stream_dispose;
 	object_class->finalize = soup_multipart_input_stream_finalize;

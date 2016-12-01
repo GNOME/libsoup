@@ -38,17 +38,18 @@
  * #SoupRequestData implements #SoupRequest for "data" URIs.
  */
 
-G_DEFINE_TYPE (SoupRequestData, soup_request_data, SOUP_TYPE_REQUEST)
 
 struct _SoupRequestDataPrivate {
 	gsize content_length;
 	char *content_type;
 };
 
+G_DEFINE_TYPE_WITH_PRIVATE (SoupRequestData, soup_request_data, SOUP_TYPE_REQUEST)
+
 static void
 soup_request_data_init (SoupRequestData *data)
 {
-	data->priv = G_TYPE_INSTANCE_GET_PRIVATE (data, SOUP_TYPE_REQUEST_DATA, SoupRequestDataPrivate);
+	data->priv = soup_request_data_get_instance_private (data);
 }
 
 static void
@@ -150,8 +151,6 @@ soup_request_data_class_init (SoupRequestDataClass *request_data_class)
 	GObjectClass *object_class = G_OBJECT_CLASS (request_data_class);
 	SoupRequestClass *request_class =
 		SOUP_REQUEST_CLASS (request_data_class);
-
-	g_type_class_add_private (request_data_class, sizeof (SoupRequestDataPrivate));
 
 	request_class->schemes = data_schemes;
 

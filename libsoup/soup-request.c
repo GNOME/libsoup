@@ -47,12 +47,6 @@
  * Since: 2.42
  */
 
-static void soup_request_initable_interface_init (GInitableIface *initable_interface);
-
-G_DEFINE_TYPE_WITH_CODE (SoupRequest, soup_request, G_TYPE_OBJECT,
-			 G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
-						soup_request_initable_interface_init))
-
 enum {
 	PROP_0,
 	PROP_URI,
@@ -64,10 +58,17 @@ struct _SoupRequestPrivate {
 	SoupSession *session;
 };
 
+static void soup_request_initable_interface_init (GInitableIface *initable_interface);
+
+G_DEFINE_TYPE_WITH_CODE (SoupRequest, soup_request, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (SoupRequest)
+			 G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
+						soup_request_initable_interface_init))
+
 static void
 soup_request_init (SoupRequest *request)
 {
-	request->priv = G_TYPE_INSTANCE_GET_PRIVATE (request, SOUP_TYPE_REQUEST, SoupRequestPrivate);
+	request->priv = soup_request_get_instance_private (request);
 }
 
 static void
@@ -270,8 +271,6 @@ static void
 soup_request_class_init (SoupRequestClass *request_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (request_class);
-
-	g_type_class_add_private (request_class, sizeof (SoupRequestPrivate));
 
 	request_class->check_uri = soup_request_default_check_uri;
 	request_class->send_async = soup_request_default_send_async;

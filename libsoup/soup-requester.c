@@ -37,21 +37,19 @@ struct _SoupRequesterPrivate {
 };
 
 G_DEFINE_TYPE_WITH_CODE (SoupRequester, soup_requester, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (SoupRequester)
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_requester_session_feature_init))
 
 static void
 soup_requester_init (SoupRequester *requester)
 {
-	requester->priv = G_TYPE_INSTANCE_GET_PRIVATE (requester,
-						       SOUP_TYPE_REQUESTER,
-						       SoupRequesterPrivate);
+	requester->priv = soup_requester_get_instance_private (requester);
 }
 
 static void
 soup_requester_class_init (SoupRequesterClass *requester_class)
 {
-	g_type_class_add_private (requester_class, sizeof (SoupRequesterPrivate));
 }
 
 static void
