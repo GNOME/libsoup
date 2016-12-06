@@ -43,7 +43,6 @@ soup_auth_negotiate_supported (void)
 #endif
 }
 
-#ifdef LIBSOUP_HAVE_GSSAPI
 #define AUTH_GSS_ERROR      -1
 #define AUTH_GSS_COMPLETE    1
 #define AUTH_GSS_CONTINUE    0
@@ -59,8 +58,10 @@ typedef struct {
 	gboolean initialized;
 	gchar *response_header;
 
+#ifdef LIBSOUP_HAVE_GSSAPI
 	gss_ctx_id_t context;
 	gss_name_t   server_name;
+#endif
 
 	SoupNegotiateState state;
 } SoupNegotiateConnectionState;
@@ -90,6 +91,7 @@ typedef struct {
  */
 G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CONNECTION_AUTH)
 
+#ifdef LIBSOUP_HAVE_GSSAPI
 static gboolean check_auth_trusted_uri (SoupConnectionAuth *auth,
 					SoupMessage *msg);
 static gboolean soup_gss_build_response (SoupNegotiateConnectionState *conn,
