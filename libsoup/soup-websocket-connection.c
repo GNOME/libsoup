@@ -535,6 +535,59 @@ too_big_error_and_close (SoupWebsocketConnection *self,
 }
 
 static void
+close_connection (SoupWebsocketConnection *self,
+                  gushort                  code,
+                  const char              *data)
+{
+	SoupWebsocketQueueFlags flags;
+	SoupWebsocketConnectionPrivate *pv;
+
+	pv = self->pv;
+
+	if (pv->close_sent) {
+		g_debug ("close code already sent");
+		return;
+	}
+
+	/* Validate the closing code received by the peer */
+	switch (code) {
+	case SOUP_WEBSOCKET_CLOSE_NORMAL:
+	case SOUP_WEBSOCKET_CLOSE_GOING_AWAY:
+	case SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR:
+	case SOUP_WEBSOCKET_CLOSE_UNSUPPORTED_DATA:
+	case SOUP_WEBSOCKET_CLOSE_BAD_DATA:
+	case SOUP_WEBSOCKET_CLOSE_POLICY_VIOLATION:
+	case SOUP_WEBSOCKET_CLOSE_TOO_BIG:
+		break;
+	case SOUP_WEBSOCKET_CLOSE_NO_EXTENSION:
+		if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER) {
+			g_debug ("Wrong closing code %d received for a server connection",
+			         code);
+			break;
+		}
+	case SOUP_WEBSOCKET_CLOSE_SERVER_ERROR:
+		if (pv->connection_type != SOUP_WEBSOCKET_CONNECTION_SERVER) {
+			g_debug ("Wrong closing code %d received for a non server connection",
+			         code);
+			break;
+		}
+	default:
+		g_debug ("Wrong closing code %d received", code);
+	}
+
+	g_signal_emit (self, signals[CLOSING], 0);
+
+	if (pv->close_received)
+		g_debug ("responding to close request");
+
+	flags = 0;
+	if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER && pv->close_received)
+		flags |= SOUP_WEBSOCKET_QUEUE_LAST;
+	send_close (self, flags, code, data);
+	close_io_after_timeout (self);
+}
+
+static void
 receive_close (SoupWebsocketConnection *self,
 	       const guint8 *data,
 	       gsize len)
@@ -565,8 +618,7 @@ receive_close (SoupWebsocketConnection *self,
 		if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER)
 			close_io_stream (self);
 	} else {
-		/* Send back the response */
-		soup_websocket_connection_close (self, pv->peer_close_code, NULL);
+		close_connection (self, pv->peer_close_code, NULL);
 	}
 }
 
@@ -1632,7 +1684,6 @@ soup_websocket_connection_close (SoupWebsocketConnection *self,
 				 gushort code,
 				 const char *data)
 {
-	SoupWebsocketQueueFlags flags;
 	SoupWebsocketConnectionPrivate *pv;
 
 	g_return_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self));
@@ -1647,16 +1698,7 @@ soup_websocket_connection_close (SoupWebsocketConnection *self,
 	else
 		g_return_if_fail (code != SOUP_WEBSOCKET_CLOSE_SERVER_ERROR);
 
-	g_signal_emit (self, signals[CLOSING], 0);
-
-	if (pv->close_received)
-		g_debug ("responding to close request");
-
-	flags = 0;
-	if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER && pv->close_received)
-		flags |= SOUP_WEBSOCKET_QUEUE_LAST;
-	send_close (self, flags, code, data);
-	close_io_after_timeout (self);
+	close_connection (self, code, data);
 }
 
 /**
