@@ -446,7 +446,9 @@ update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy
 	const char *authorization_header = is_proxy ? "Proxy-Authorization" : "Authorization";
 	char *token;
 
-	soup_message_headers_remove (msg->request_headers, authorization_header);
+	if (soup_message_get_auth (msg))
+		soup_message_headers_remove (msg->request_headers, authorization_header);
+
 	if (!auth)
 		return;
 
@@ -454,7 +456,7 @@ update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy
 	if (!token)
 		return;
 
-	soup_message_headers_append (msg->request_headers, authorization_header, token);
+	soup_message_headers_replace (msg->request_headers, authorization_header, token);
 	g_free (token);
 }
 
