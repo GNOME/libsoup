@@ -1,3 +1,39 @@
+Changes in libsoup from 2.56.0 to 2.57.1:
+
+	* Added SoupWebsocketConnection:keepalive-interval, to make a
+          connection send regular pings. [#773253, Ignacio Casal
+          Quinteiro]
+
+	* Added soup_auth_manager_clear_cached_credentials() and
+          SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE, to allow greater control
+          over the use of cached HTTP auth credentials. [#774031,
+          #774033, Carlos Garcia Campos]
+
+	* Fixed the use of SoupSession:proxy-uri values containing
+          passwords. [#772932, Jonathan Lebon]
+
+	* Various minor WebSocket fixes [Ignacio Casal Quinteiro]:
+		* Avoid sending data after we start closing the
+		  connection [#774957]
+		* Do not log a critical if the peer sends an invalid
+		  close status code
+		* Log a debug message when a "pong" is received
+
+	* Fixed introspection of
+          soup_message_headers_get_content_range() [Jasper St. Pierre]
+
+	* Replaced Vala [Deprecated] annotations with [Version] to
+          avoid build warnings [#773177, Evan Nemerson]
+
+	* MSVC build improvements (Chun-wei Fan)
+
+	* Updated error/message strings to use Unicode punctuation.
+          [#772217, Piotr Drąg]
+
+	* Updated translations:
+	  Czech, Friulian, German, Hebrew, Hungarian,
+	  Norwegian bokmål, Polish, Swedish
+
 Changes in libsoup from 2.55.90 to 2.56.0:
 
 	* Added SoupWebsocketConnection:max-incoming-payload-size
