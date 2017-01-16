@@ -623,6 +623,8 @@ set_proxy_resolver (SoupSession *session, SoupURI *uri,
 		G_GNUC_END_IGNORE_DEPRECATIONS;
 	} else if (g_resolver)
 		priv->proxy_resolver = g_object_ref (g_resolver);
+
+	soup_session_abort (session);
 }
 
 static void
@@ -644,7 +646,6 @@ soup_session_set_property (GObject *object, guint prop_id,
 	case PROP_PROXY_URI:
 		set_proxy_resolver (session, g_value_get_boxed (value),
 				    NULL, NULL);
-		soup_session_abort (session);
 		socket_props_changed = TRUE;
 		break;
 	case PROP_PROXY_RESOLVER:
@@ -3217,7 +3218,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * A #GProxyResolver to use with this session. Setting this
 	 * will clear the #SoupSession:proxy-uri property, and remove
 	 * any <type>SoupProxyURIResolver</type> features that have
-	 * been added to the session.
+	 * been added to the session. Setting this property will also
+	 * cancel all currently pending messages.
 	 *
 	 * By default, in a plain #SoupSession, this is set to the
 	 * default #GProxyResolver, but you can set it to %NULL if you
