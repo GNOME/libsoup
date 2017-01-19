@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-03-08 23:01+0000\n"
-"PO-Revision-Date: 2015-03-09 12:01+0100\n"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2016-10-27 12:38+0000\n"
+"PO-Revision-Date: 2017-01-19 22:11+0100\n"
 "Last-Translator: Dušan Kazik <prescott66@gmail.com>\n"
 "Language-Team: Slovak <gnome-sk-list@gnome.org>\n"
 "Language: sk\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 1 : (n>=2 && n<=4) ? 2 : 0;\n"
-"X-Generator: Poedit 1.7.4\n"
+"X-Generator: Poedit 1.8.11\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
@@ -79,39 +79,39 @@ msgstr "Nebol poskytnutý identifikátor URI"
 # first %s - scheme (http, ftp, ...)
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Neplatná schéma „%s“ identifikátora URI: %s"
 
-#: ../libsoup/soup-server.c:1711
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1727
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nedá sa vytvoriť TLS server bez TLS certifikátu"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1744
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepodarilo sa počúvať na adrese %s, porte %d: "
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
 msgstr "Nepodarilo sa analyzovať identifikátor URI „%s“"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "Nepodporovaná schéma „%s“ pre identifikátor URI"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nie je HTTP URI"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Server neprijal vyjednanie protokolu WebSocket."
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Nedá sa importovať ne-soket ako SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
@@ -119,27 +119,27 @@ msgid "Could not import existing socket: "
 msgstr "Nepodarilo sa importovať existujúci soket: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Nedá sa importovať nepripojený soket"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Očakávalo sa vyjednanie protokolu WebSocket"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Nepodporovaná verzia protokolu WebSocket"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Neplatný kľúč protokolu WebSocket"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
 msgstr "Nesprávna hlavička „%s“ protokolu Websocket"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nepodporovaný podprotokol protokolu WebSocket"
 
@@ -161,7 +161,7 @@ msgstr "Server si vyžiadal nepodporované rozšírenie"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "Server vrátil nesprávny kľúč „%s“"
 
 #: ../libsoup/soup-tld.c:188
