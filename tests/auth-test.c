@@ -1336,6 +1336,66 @@ do_message_do_not_use_auth_cache_test (void)
 }
 
 static void
+async_no_auth_cache_authenticate (SoupSession *session, SoupMessage *msg,
+				  SoupAuth *auth, gboolean retrying, SoupAuth **auth_out)
+{
+	debug_printf (1, "  async_no_auth_cache_authenticate\n");
+
+	soup_session_pause_message (session, msg);
+	*auth_out = g_object_ref (auth);
+	g_main_loop_quit (loop);
+}
+
+static void
+async_no_auth_cache_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	debug_printf (1, "  async_no_auth_cache_finished\n");
+
+	g_main_loop_quit (loop);
+}
+
+static void
+do_async_message_do_not_use_auth_cache_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	char *uri;
+	SoupAuth *auth = NULL;
+	SoupMessageFlags flags;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	loop = g_main_loop_new (NULL, TRUE);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+
+	msg = soup_message_new ("GET", uri);
+	g_free (uri);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (async_no_auth_cache_authenticate), &auth);
+	flags = soup_message_get_flags (msg);
+	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	g_object_ref (msg);
+	soup_session_queue_message (session, msg, async_no_auth_cache_finished, NULL);
+	g_main_loop_run (loop);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
+
+	soup_test_assert (auth, "msg didn't get authenticate signal");
+	soup_auth_authenticate (auth, "user1", "realm1");
+	g_object_unref (auth);
+
+	soup_session_unpause_message (session, msg);
+	g_main_loop_run (loop);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+	soup_test_session_abort_unref (session);
+	g_object_unref (msg);
+	g_main_loop_unref (loop);
+}
+
+static void
 has_authorization_header_authenticate (SoupSession *session, SoupMessage *msg,
 				       SoupAuth *auth, gboolean retrying, gpointer data)
 {
@@ -1432,6 +1492,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/disappearing-auth", do_disappearing_auth_test);
 	g_test_add_func ("/auth/clear-credentials", do_clear_credentials_test);
 	g_test_add_func ("/auth/message-do-not-use-auth-cache", do_message_do_not_use_auth_cache_test);
+	g_test_add_func ("/auth/async-message-do-not-use-auth-cache", do_async_message_do_not_use_auth_cache_test);
 	g_test_add_func ("/auth/authorization-header-request", do_message_has_authorization_header_test);
 
 	ret = g_test_run ();

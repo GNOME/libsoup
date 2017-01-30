@@ -625,7 +625,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 	/* If we need to authenticate, try to do it. */
 	authenticate_auth (manager, auth, msg,
 			   prior_auth_failed, FALSE, TRUE);
-	soup_message_set_auth (msg, soup_auth_is_ready (auth, msg) ? auth : NULL);
+	soup_message_set_auth (msg, auth);
 	g_object_unref (auth);
 	g_mutex_unlock (&priv->lock);
 }
@@ -689,7 +689,7 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 	/* If we need to authenticate, try to do it. */
 	authenticate_auth (manager, auth, msg,
 			   prior_auth_failed, TRUE, TRUE);
-	soup_message_set_proxy_auth (msg, soup_auth_is_ready (auth, msg) ? auth : NULL);
+	soup_message_set_proxy_auth (msg, auth);
 	g_object_unref (auth);
 	g_mutex_unlock (&priv->lock);
 }
