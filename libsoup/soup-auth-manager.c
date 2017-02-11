@@ -472,6 +472,9 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (auth && soup_auth_is_ready (auth, msg))
 		return auth;
 
+	if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
+		return NULL;
+
 	host = get_auth_host_for_uri (priv, soup_message_get_uri (msg));
 	if (!host->auth_realms && !make_auto_ntlm_auth (priv, host))
 		return NULL;
@@ -495,6 +498,9 @@ lookup_proxy_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	auth = soup_message_get_proxy_auth (msg);
 	if (auth && soup_auth_is_ready (auth, msg))
 		return auth;
+
+	if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
+		return NULL;
 
 	return priv->proxy_auth;
 }

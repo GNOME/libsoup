@@ -442,6 +442,12 @@ do_digest_nonce_test (SoupSession *session,
 			  got_401 ? "got" : "did not get");
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
+	if (expect_signal) {
+		g_signal_handlers_disconnect_by_func (session,
+						      G_CALLBACK (digest_nonce_authenticate),
+						      NULL);
+	}
+
 	g_object_unref (msg);
 }
 
@@ -1297,9 +1303,10 @@ do_message_do_not_use_auth_cache_test (void)
 {
 	SoupSession *session;
 	SoupAuthManager *manager;
+	SoupMessage *msg;
+	SoupMessageFlags flags;
 	SoupURI *soup_uri;
 	char *uri;
-	char *uri_with_credentials;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -1318,18 +1325,32 @@ do_message_do_not_use_auth_cache_test (void)
 	soup_uri = soup_uri_new (uri);
 	soup_uri_set_user (soup_uri, "user1");
 	soup_uri_set_password (soup_uri, "realm1");
-	uri_with_credentials = soup_uri_to_string (soup_uri, FALSE);
+	msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
+	flags = soup_message_get_flags (msg);
+	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_object_unref (msg);
 	soup_uri_free (soup_uri);
-	do_digest_nonce_test (session, "Fourth", uri_with_credentials, FALSE, TRUE, FALSE);
-	g_free (uri_with_credentials);
 
 	manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
+
 	soup_auth_manager_clear_cached_credentials (manager);
 
 	/* Now check that credentials are not stored */
 	do_digest_nonce_test (session, "First", uri, FALSE, TRUE, TRUE);
 	do_digest_nonce_test (session, "Second", uri, TRUE, TRUE, TRUE);
 	do_digest_nonce_test (session, "Third", uri, TRUE, FALSE, FALSE);
+
+	/* Credentials were stored for uri, but if we set SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE flag,
+	 * and we don't have the authenticate signal, it should respond with 401
+	 */
+	msg = soup_message_new (SOUP_METHOD_GET, uri);
+	flags = soup_message_get_flags (msg);
+	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
+	g_object_unref (msg);
 	g_free (uri);
 
 	soup_test_session_abort_unref (session);
