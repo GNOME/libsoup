@@ -1,14 +1,14 @@
 # Norwegian bokmål translation of libsoup.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# Kjartan Maraas <kmaraas@gnome.org>, 2012-2016.
+# Kjartan Maraas <kmaraas@gnome.org>, 2012-2017.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: libsoup 3.22.x\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-10-15 17:09+0200\n"
-"PO-Revision-Date: 2016-10-15 17:10+0200\n"
+"Project-Id-Version: libsoup 2.57.x\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2016-10-27 12:38+0000\n"
+"PO-Revision-Date: 2017-02-14 07:59+0100\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian bokmål <i18n-nb@lister.ping.uio.no>\n"
 "Language: nb\n"
@@ -70,11 +70,11 @@ msgstr "Ingen URI ble oppgitt"
 
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Ugyldig «%s» URI: %s"
 
 #: ../libsoup/soup-server.c:1727
-msgid "Can't create a TLS server without a TLS certificate"
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Kan ikke lage en TLS-tjener uten et TLS-sertifikat"
 
 #: ../libsoup/soup-server.c:1744
@@ -84,12 +84,12 @@ msgstr "Kunne ikke lytte på adresse %s, port %d: "
 
 #: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
 msgstr "Kunne ikke tolke URI «%s»"
 
 #: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "URI-skjema «%s» er ikke støttet"
 
 #: ../libsoup/soup-session.c:4584
@@ -102,7 +102,7 @@ msgid "The server did not accept the WebSocket handshake."
 msgstr "Tjeneren godtok ikke WebSocket-håndtrykk."
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Kan ikke importere noe som ikke er en socket som SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
@@ -110,7 +110,7 @@ msgid "Could not import existing socket: "
 msgstr "Kunne ikke importere eksisterende socket: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Kan ikke importere ikke-tilkoblet socket"
 
 #: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
@@ -127,7 +127,7 @@ msgstr "Ugyldig WebSocket-nøkkel"
 
 #: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
 msgstr "Ugyldig «%s»-hode for WebSocket"
 
 #: ../libsoup/soup-websocket.c:383
@@ -152,7 +152,7 @@ msgstr "Tjener forespurte utvidelse som ikke støttes"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "Tjener returnerte feil «%s»-nøkkel"
 
 #: ../libsoup/soup-tld.c:188
