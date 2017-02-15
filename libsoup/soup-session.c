@@ -1569,12 +1569,10 @@ soup_session_set_item_status (SoupSession          *session,
 		soup_message_set_status (item->msg, status_code);
 }
 
-
 static void
-message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer user_data)
+real_message_completed (SoupMessageIOCompletion  completion,
+			SoupMessageQueueItem    *item)
 {
-	SoupMessageQueueItem *item = user_data;
-
 	if (item->async)
 		soup_session_kick_queue (item->session);
 
@@ -1590,6 +1588,42 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 		if (item->new_api && !item->async)
 			soup_session_process_queue_item (item->session, item, NULL, TRUE);
 	}
+}
+
+typedef struct {
+	SoupMessageIOCompletion completion;
+	SoupMessageQueueItem *item;
+} MessageCompletedData;
+
+static gboolean
+message_completed_invoke_cb (gpointer user_data) {
+	MessageCompletedData *data = user_data;
+
+	real_message_completed (data->completion, data->item);
+	soup_message_queue_item_unref (data->item);
+	g_slice_free (MessageCompletedData, data);
+	return G_SOURCE_REMOVE;
+}
+
+static void
+message_completed (SoupMessage             *msg,
+		   SoupMessageIOCompletion  completion,
+		   gpointer                 user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	if (item->async) {
+		MessageCompletedData *data;
+
+		data = g_slice_new (MessageCompletedData);
+		data->completion = completion;
+		data->item = item;
+		soup_message_queue_item_ref (item);
+		g_main_context_invoke (item->async_context,
+				       message_completed_invoke_cb,
+				       data);
+	} else
+		real_message_completed (completion, item);
 }
 
 static guint
