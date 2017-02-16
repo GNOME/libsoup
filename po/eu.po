@@ -2,23 +2,23 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 #
-# Iñaki Larrañaga Murgoitio <dooteo@zundan.com>, 2013, 2014, 2015.
 #
+# Iñaki Larrañaga Murgoitio <dooteo@zundan.com>, 2013, 2014, 2015, 2017.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-03-21 15:54+0100\n"
-"PO-Revision-Date: 2015-03-21 15:57+0100\n"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2016-10-27 12:38+0000\n"
+"PO-Revision-Date: 2017-02-16 22:10+0100\n"
 "Last-Translator: Iñaki Larrañaga Murgoitio <dooteo@zundan.com>\n"
-"Language-Team: Basque <librezale@librezale.org>\n"
+"Language-Team: Basque <librezale@librezale.eus>\n"
 "Language: eu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Lokalize 1.4\n"
+"X-Generator: Lokalize 1.5\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
@@ -74,39 +74,44 @@ msgstr "Ez da URIrik eman"
 
 #: ../libsoup/soup-request.c:150
 #, c-format
-msgid "Invalid '%s' URI: %s"
-msgstr "Baliogabeko '%s' URIa: %s"
+#| msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
+msgstr "Baliogabeko “%s“ URIa: %s"
 
-#: ../libsoup/soup-server.c:1711
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1727
+#| msgid "Can't create a TLS server without a TLS certificate"
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Ezin da TLS zerbitzaria sortu TLS ziurtagirik gabe"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1744
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Ezin izan da '%s:%d' helbidean entzun: "
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4525
 #, c-format
-msgid "Could not parse URI '%s'"
-msgstr "Ezin izan da '%s' URIa analizatu"
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
+msgstr "Ezin izan da “%s“ URIa analizatu"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4562
 #, c-format
-msgid "Unsupported URI scheme '%s'"
-msgstr "Onartu gabeko '%s' URI eskema"
+#| msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
+msgstr "Onartu gabeko “%s“ URI eskema"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4584
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ez da HTTP URIa"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4770
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Zerbitzariak ez du WebSocket diosala onartu"
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+#| msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Ezin da SoupSocket bezalako ez-socketa inportatu"
 
 #: ../libsoup/soup-socket.c:166
@@ -114,27 +119,29 @@ msgid "Could not import existing socket: "
 msgstr "Ezin izan da dagoen socket-a inportatu: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+#| msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Ezin da deskonektatutako socket-a inportatu"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "WebSocket diosala espero zen"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Onartu gabeko WebSocket bertsioa"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Baliogabeko WebSocket gakoa"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
-msgstr "Okerreko \"%s\" WebSocket-aren goiburua"
+#| msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Okerreko “%s“ WebSocket-aren goiburua"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Onartu gabeko WebSocket azpi-protokoloa"
 
@@ -156,8 +163,9 @@ msgstr "Zerbitzariak onartu gabeko hedapena eskatu du"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
-msgstr "Zerbitzariak okerreko \"%s\" gakoa itzuli du"
+#| msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
+msgstr "Zerbitzariak okerreko “%s“ gakoa itzuli du"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
