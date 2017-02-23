@@ -1,4 +1,4 @@
-SUBDIRS = vs9 vs10 vs11 vs12 vs14
+SUBDIRS = vs9 vs10 vs11 vs12 vs14 vs15
 
 if HAVE_INTROSPECTION
 GENERATED_ITEMS = 		\

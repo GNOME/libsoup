@@ -404,6 +404,13 @@ case "$host" in
 esac
 AC_SUBST(SOUP_HIDDEN_VISIBILITY_CFLAGS)
 
+dnl ****************************************************
+dnl *** Check whether MSVC toolset is explicitly set ***
+dnl ****************************************************
+AM_CONDITIONAL(MSVC_BASE_NO_TOOLSET_SET, [test x$MSVC_BASE_TOOLSET = x])
+AM_CONDITIONAL(MSVC_NO_TOOLSET_SET, [test x$MSVC_TOOLSET = x])
+
+
 dnl *************************
 dnl *** Output Everything ***
 dnl *************************
@@ -431,5 +438,6 @@ AC_CONFIG_FILES([
 	build/win32/vs11/Makefile
 	build/win32/vs12/Makefile
 	build/win32/vs14/Makefile
+	build/win32/vs15/Makefile
 	])
 AC_OUTPUT
