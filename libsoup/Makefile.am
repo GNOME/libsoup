@@ -353,7 +353,7 @@ soup_gnome_HEADERS_DIR = $(libsoupgnomeincludedir)
 soup_gnome_HEADERS_INST = $(libsoupgnomeinclude_HEADERS)
 soup_gnome_HEADERS_EXCLUDES = dummy
 
-include $(top_srcdir)/build/Makefile.msvcproj
+include $(top_srcdir)/win32/Makefile.msvcproj
 
 if HAVE_INTROSPECTION
 # Introspection Items for MSVC
@@ -364,13 +364,13 @@ endif
 
 BASE_MSVC_GIR_CFLAGS =		\
 	$(SOUP_COMMON_CPPFLAGS)	\
-	-I../..
+	-I..
 
 INTROSPECTION_INTERMEDIATE_ITEMS = 					\
-	$(top_builddir)/build/win32/Soup-2.4.gir.msvc.introspect	\
-	$(top_builddir)/build/win32/Soup_2_4_gir_list			\
-	$(top_builddir)/build/win32/SoupGNOME-2.4.gir.msvc.introspect	\
-	$(top_builddir)/build/win32/SoupGNOME_2_4_gir_list
+	$(top_builddir)/win32/Soup-2.4.gir.msvc.introspect	\
+	$(top_builddir)/win32/Soup_2_4_gir_list			\
+	$(top_builddir)/win32/SoupGNOME-2.4.gir.msvc.introspect	\
+	$(top_builddir)/win32/SoupGNOME_2_4_gir_list
 
 # libsoup
 Soup_2_4_gir_MSVC_FILES = $(gi_soup_files) $(gi_built_soup_files)
@@ -393,14 +393,14 @@ SoupGNOME_2_4_gir_MSVC_SCANNERFLAGS =	i	\
 	--include-uninstalled=./Soup-2.4.gir
 endif
 
-include $(top_srcdir)/build/Makefile.msvc-introspection
+include $(top_srcdir)/win32/Makefile.msvc-introspection
 else
 INTROSPECTION_INTERMEDIATE_ITEMS =
 endif
 
 dist-hook: \
-	$(top_builddir)/build/win32/vs9/soup.vcproj		\
-	$(top_builddir)/build/win32/vs9/soup.headers		\
-	$(top_builddir)/build/win32/vs9/soup-gnome.vcproj	\
-	$(top_builddir)/build/win32/vs9/soup-gnome.headers	\
+	$(top_builddir)/win32/vs9/soup.vcproj		\
+	$(top_builddir)/win32/vs9/soup.headers		\
+	$(top_builddir)/win32/vs9/soup-gnome.vcproj	\
+	$(top_builddir)/win32/vs9/soup-gnome.headers	\
 	$(INTROSPECTION_INTERMEDIATE_ITEMS)

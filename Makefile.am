@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-SUBDIRS = libsoup po tests examples docs build/win32
+SUBDIRS = libsoup po tests examples docs win32
 
 EXTRA_DIST =				\
 	data/effective_tld_names.dat	\
