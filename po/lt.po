@@ -6,11 +6,11 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-03-08 11:02+0000\n"
-"PO-Revision-Date: 2015-03-08 20:30+0200\n"
-"Last-Translator: Aurimas Černius <aurisc4@gmail.com>\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2017-02-28 06:18+0000\n"
+"PO-Revision-Date: 2017-03-03 20:16+0200\n"
+"Last-Translator: Moo\n"
 "Language-Team: Lietuvių <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
 "MIME-Version: 1.0\n"
@@ -18,23 +18,23 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
 "%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Gtranslator 2.91.6\n"
+"X-Generator: Poedit 1.8.11\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Ryšys netikėtai nutrūko"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Netinkama paieškos užklausa"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Negalima trumpinti SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Tinklo srautas netikėtai užsivėrė"
 
@@ -42,7 +42,7 @@ msgstr "Tinklo srautas netikėtai užsivėrė"
 msgid "Failed to completely cache the resource"
 msgstr "Nepavyko visiškai patalpinti resurso į podėlį"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Išvesties buferis yra per mažas"
@@ -67,46 +67,46 @@ msgstr "Veiksmas buvo nutrauktas"
 msgid "Could not parse HTTP request"
 msgstr "Nepavyko perskaityti HTTP užklausos"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Nepateiktas URI"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
-msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Netinkamas „%s“ URI: %s"
 
-#: ../libsoup/soup-server.c:1711
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1725
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Negalima sukurti TLS serverio be TLS liudijimo"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepavyksta klausytis adreso %s, prievadu %d: "
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4518
 #, c-format
-msgid "Could not parse URI '%s'"
-msgstr "Nepavyko perskaityti URI „%s“"
+msgid "Could not parse URI “%s”"
+msgstr "Nepavyko išanalizuoti URI „%s“"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4555
 #, c-format
-msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "Nepalaikoma URI schema „%s“"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4577
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ne HTTP URI"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4763
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveris nepriėmė WebSocket rankos paspaudimo."
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr "Negalima importuoti ne lizdo kaip SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
@@ -114,27 +114,27 @@ msgid "Could not import existing socket: "
 msgstr "Nepavyko importuoti esamo lizdo: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Negalima importuoti neprijungto lizdo"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Tikėtasi WebSocket rankos paspaudimo"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Nepalaikoma WebSocket versija"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Netinkamas WebSocket raktas"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
-msgstr "Netinkama WebSocket „%s“ antraštė"
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Neteisinga WebSocket „%s“ antraštė"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nepalaikomas WebSocket paprotokolis"
 
@@ -156,7 +156,7 @@ msgstr "Serveris paprašė nepalaikomo plėtinio"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "Serveris grąžino neteisingą „%s“ raktą"
 
 #: ../libsoup/soup-tld.c:188
