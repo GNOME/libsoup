@@ -17,6 +17,18 @@
 		Value="$(GlibEtcInstallRoot)"
 	/>
 	<UserMacro
+		Name="SoupMajorVersion"
+		Value="@SOUP_MAJOR_VERSION@"
+	/>
+	<UserMacro
+		Name="SoupMinorVersion"
+		Value="@SOUP_MINOR_VERSION@"
+	/>
+	<UserMacro
+		Name="SoupMicroVersion"
+		Value="@SOUP_MICRO_VERSION@"
+	/>
+	<UserMacro
 		Name="ApiVersion"
 		Value="2.4"
 	/>
