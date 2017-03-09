@@ -26,6 +26,7 @@ endif
 
 EXTRA_DIST =				\
 	replace.py			\
+	soup_version_h.py		\
 	detectenv-msvc.mak		\
 	introspection-msvc.mak		\
 	soup-introspection-msvc.mak	\
