@@ -25,7 +25,9 @@ GENERATED_ITEMS =
 endif
 
 EXTRA_DIST =				\
+	pc_base.py			\
 	replace.py			\
+	souppc.py			\
 	soup_version_h.py		\
 	detectenv-msvc.mak		\
 	introspection-msvc.mak		\
