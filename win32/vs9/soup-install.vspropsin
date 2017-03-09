@@ -23,6 +23,8 @@ copy $(SolutionDir)\$(ConfigurationName)\$(PlatformName)\bin\simple-proxy.pdb $(
 mkdir $(CopyDir)\lib&#x0D;&#x0A;
 copy $(SolutionDir)\$(ConfigurationName)\$(PlatformName)\bin\soup-$(ApiVersion).lib $(CopyDir)\lib&#x0D;&#x0A;
 copy $(SolutionDir)\$(ConfigurationName)\$(PlatformName)\bin\soup-gnome-$(ApiVersion).lib $(CopyDir)\lib&#x0D;&#x0A;
+copy ..\libsoup-$(ApiVersion).pc $(CopyDir)\lib\pkgconfig&#x0D;&#x0A;
+copy ..\libsoup-gnome-$(ApiVersion).pc $(CopyDir)\lib\pkgconfig&#x0D;&#x0A;
 
 mkdir $(CopyDir)\include\libsoup-$(ApiVersion)\libsoup&#x0D;&#x0A;
 #include "soup.headers"
@@ -30,5 +32,9 @@ mkdir $(CopyDir)\include\libsoup-$(ApiVersion)\libsoup&#x0D;&#x0A;
 mkdir $(CopyDir)\include\libsoup-gnome-$(ApiVersion)\libsoup&#x0D;&#x0A;
 #include "soup-gnome.headers"
 		     "
- />
+	/>
+	<UserMacro
+		Name="SoupGenPC"
+		Value="(if not exist $(CopyDir)\lib\pkgconfig mkdir $(CopyDir)\lib\pkgconfig) &amp; ($(PythonPath)\python.exe ..\souppc.py --prefix=$(CopyDir) --version=$(SoupMajorVersion).$(SoupMinorVersion).$(SoupMicroVersion))"
+	/>
 </VisualStudioPropertySheet>

@@ -4,6 +4,7 @@ EXTRA_DIST = \
 	simple-httpd.vcxproj		\
 	simple-proxy.vcxproj		\
 	soup-install.vcxproj		\
+	soup-install.vcxproj.filters	\
 	get.vcxproj.filters		\
 	simple-httpd.vcxproj.filters	\
 	simple-proxy.vcxproj.filters	\

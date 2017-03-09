@@ -5,6 +5,7 @@ EXTRA_DIST = \
 	simple-proxy.vcxproj		\
 	get.vcxproj.filters		\
 	soup-install.vcxproj		\
+	soup-install.vcxproj.filters	\
 	simple-httpd.vcxproj.filters	\
 	simple-proxy.vcxproj.filters	\
 	soup-build-defines.props	\
