@@ -8,35 +8,35 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2015-03-30 10:26+0000\n"
-"PO-Revision-Date: 2015-03-31 00:58+0300\n"
-"Last-Translator: Stas Solovey <whats_up@tut.by>\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2017-02-23 10:17+0000\n"
+"PO-Revision-Date: 2017-03-17 19:33+0400\n"
+"Last-Translator: Yuri Myasoedov <ymyasoedov@yandex.ru>\n"
 "Language-Team: Русский <gnome-cyr@gnome.org>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
-"X-Generator: Gtranslator 2.91.7\n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Poedit 1.8.7.1\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Соединение было неожиданно разорвано"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Неверный запрос поиска"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Не удалось отсечь SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Сетевой поток неожиданно закрылся"
 
@@ -44,7 +44,7 @@ msgstr "Сетевой поток неожиданно закрылся"
 msgid "Failed to completely cache the resource"
 msgstr "Не удалось полностью закэшировать ресурс"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Слишком маленький буфер вывода"
@@ -69,46 +69,46 @@ msgstr "Действие отменено"
 msgid "Could not parse HTTP request"
 msgstr "Не удалось разобрать HTTP-запрос"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Не указан URI"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
-msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Недопустимый URI «%s»: %s"
 
-#: ../libsoup/soup-server.c:1711
-msgid "Can't create a TLS server without a TLS certificate"
-msgstr "Невозможно создать TLS-сервер  без TLS-сертификата"
+#: ../libsoup/soup-server.c:1725
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Невозможно создать TLS-сервер без TLS-сертификата"
 
-#: ../libsoup/soup-server.c:1730
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Не удалось начать прослушивание по адресу %s (порт — %d): "
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4518
 #, c-format
-msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
 msgstr "Не удалось разобрать URI «%s»"
 
-#: ../libsoup/soup-session.c:4591
+#: ../libsoup/soup-session.c:4555
 #, c-format
-msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "Неподдерживаемая схема URI «%s»"
 
-#: ../libsoup/soup-session.c:4613
+#: ../libsoup/soup-session.c:4577
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Формат URI отличается от HTTP"
 
-#: ../libsoup/soup-session.c:4797
+#: ../libsoup/soup-session.c:4763
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Сервер не принимает подтверждение связи WebSocket."
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
 msgstr ""
 "Невозможно импортировать объект, отличный от сокета, в качестве SoupSocket"
 
@@ -117,27 +117,27 @@ msgid "Could not import existing socket: "
 msgstr "Не удалось импортировать существующий сокет: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Невозможно импортировать неподключенный сокет"
 
-#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Ожидается подтверждение связи WebSocket"
 
-#: ../libsoup/soup-websocket.c:353
+#: ../libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Неподдерживаемая версия WebSocket"
 
-#: ../libsoup/soup-websocket.c:362
+#: ../libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Неверный ключ WebSocket"
 
-#: ../libsoup/soup-websocket.c:372
+#: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
 msgstr "Неправильный заголовок WebSocket «%s»"
 
-#: ../libsoup/soup-websocket.c:381
+#: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Неподдерживаемый подпротокол WebSocket"
 
@@ -159,7 +159,7 @@ msgstr "Сервер запросил неподдерживаемое расш�
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
 msgstr "Сервер вернул неправильный ключ «%s»"
 
 #: ../libsoup/soup-tld.c:188
