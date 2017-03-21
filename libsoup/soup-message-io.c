@@ -229,6 +229,8 @@ read_headers (SoupMessage *msg, gboolean blocking,
 							    cancellable, error);
 		io->read_header_buf->len = old_len + MAX (nread, 0);
 		if (nread == 0) {
+			if (io->read_header_buf->len > 0)
+				break;
 			soup_message_set_status (msg, SOUP_STATUS_MALFORMED);
 			g_set_error_literal (error, G_IO_ERROR,
 					     G_IO_ERROR_PARTIAL_INPUT,
@@ -241,27 +243,20 @@ read_headers (SoupMessage *msg, gboolean blocking,
 			if (nread == 1 && old_len >= 2 &&
 			    !strncmp ((char *)io->read_header_buf->data +
 				      io->read_header_buf->len - 2,
-				      "\n\n", 2))
+				      "\n\n", 2)) {
+				io->read_header_buf->len--;
 				break;
-			else if (nread == 2 && old_len >= 3 &&
+			} else if (nread == 2 && old_len >= 3 &&
 				 !strncmp ((char *)io->read_header_buf->data +
 					   io->read_header_buf->len - 3,
-					   "\n\r\n", 3))
+					   "\n\r\n", 3)) {
+				io->read_header_buf->len -= 2;
 				break;
+			}
 		}
 	}
 
-	/* We need to "rewind" io->read_header_buf back one line.
-	 * That SHOULD be two characters (CR LF), but if the
-	 * web server was stupid, it might only be one.
-	 */
-	if (io->read_header_buf->len < 3 ||
-	    io->read_header_buf->data[io->read_header_buf->len - 2] == '\n')
-		io->read_header_buf->len--;
-	else
-		io->read_header_buf->len -= 2;
 	io->read_header_buf->data[io->read_header_buf->len] = '\0';
-
 	return TRUE;
 }
 
