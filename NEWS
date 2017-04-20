@@ -1,3 +1,16 @@
+Changes in libsoup from 2.2.57.1 to 2.58.0:
+
+	* Fix authentication issues when the SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE
+	  flag is used. [#778497, #777936, Carlos Garcia Campos]
+
+	* MSVC build improvements (Chun-wei Fan)
+
+	* Updated translations:
+	  Basque, Belarusian, Brazilian Portuguese, Chinese (Taiwan), Danish,
+	  French, Galician, Greek, Indonesian, Italian, Korean, Latvian,
+	  Lithuanian, Norwegian bokmål, Russian, Serbian, Slovak, Slovenian,
+	  Spanish, zh_CN
+
 Changes in libsoup from 2.56.0 to 2.57.1:
 
 	* Added SoupWebsocketConnection:keepalive-interval, to make a
