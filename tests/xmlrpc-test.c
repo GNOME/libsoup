@@ -23,18 +23,6 @@ static gboolean server_test = FALSE;
 	} G_STMT_END
 #endif
 
-static const char *const value_type[] = {
-	"BAD",
-	"int",
-	"boolean",
-	"string",
-	"double",
-	"datetime",
-	"base64",
-	"struct",
-	"array"
-};
-
 static gboolean
 send_xmlrpc (const char *body, const char *signature, GVariant **retval)
 {
