@@ -908,6 +908,17 @@ do_qvalue_tests (void)
 
 		debug_printf (1, "    acceptable: ");
 		if (acceptable) {
+			/* Kludge to deal with the fact that the sort order of the first
+			 * test is not fully specified.
+			 */
+			if (i == 0 && acceptable->next &&
+			    !g_str_equal (acceptable->data, qvaluetests[i].acceptable[0]) &&
+			    g_str_equal (acceptable->data, qvaluetests[i].acceptable[1])) {
+				gpointer tmp = acceptable->data;
+				acceptable->data = acceptable->next->data;
+				acceptable->next->data = tmp;
+			}
+
 			for (iter = acceptable, j = 0; iter; iter = iter->next, j++) {
 				debug_printf (1, "%s ", (char *)iter->data);
 				g_assert_cmpstr (iter->data, ==, qvaluetests[i].acceptable[j]);
