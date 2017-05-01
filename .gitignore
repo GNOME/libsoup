@@ -9,15 +9,6 @@ Makefile.in
 aclocal.m4
 autom4te.cache
 build-aux
-build/win32/SoupGNOME_2_4_gir_list
-build/win32/Soup_2_4_gir_list
-build/win32/introspection.body.mak
-build/win32/vs9/*.vsprops
-build/win32/vs9/*.vcproj
-build/win32/vs*/*.vcxproj
-build/win32/vs*/*.vcxproj.filters
-build/win32/vs*/libsoup.sln
-build/win32/vs*/soup-*.props
 config.h
 config.h.in
 config.h.in~
@@ -79,3 +70,5 @@ tests/ntlm-test-helper
 tests/pull-api
 tests/soup-tests.gresource
 tests/uri-parsing
+win32/vs10/soup-version-paths.props
+win32/vs9/soup-version-paths.vsprops
