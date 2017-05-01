@@ -67,22 +67,6 @@ libtest_la_SOURCES =	\
 LDADD = libtest.la
 
 if HAVE_APACHE
-if HAVE_APACHE_2_2
-httpd_conf_in = httpd.conf.22.in
-else
-httpd_conf_in = httpd.conf.24.in
-endif
-httpd.conf: $(httpd_conf_in)
-	$(AM_V_GEN) sed -e 's,[@]srcdir@,$(srcdir),' \
-	    -e 's,[@]builddir@,$(builddir),' \
-	    -e 's,[@]APACHE_MODULE_DIR@,$(APACHE_MODULE_DIR),' \
-	    -e 's,[@]APACHE_PHP_MODULE_DIR@,$(APACHE_PHP_MODULE_DIR),' \
-	    -e 's,[@]APACHE_PHP_MODULE@,$(APACHE_PHP_MODULE),' \
-	    -e 's,[@]IF_HAVE_PHP@,$(IF_HAVE_PHP),' \
-	    -e 's,[@]APACHE_SSL_MODULE_DIR@,$(APACHE_SSL_MODULE_DIR),' \
-	    $< > $@ || rm -f $@
-
-BUILT_SOURCES += httpd.conf
 test_data +=			\
 	htdigest		\
 	htpasswd		\
@@ -97,8 +81,7 @@ soup-tests.gresource: soup-tests.gresource.xml $(RESOURCES)
 EXTRA_DIST +=			 \
 	htdigest		 \
 	htpasswd		 \
-	httpd.conf.22.in	 \
-	httpd.conf.24.in	 \
+	httpd.conf.in		 \
 	index.txt		 \
 	libsoup.supp		 \
 	soup-tests.gresource.xml \
@@ -119,21 +102,9 @@ check-local: check-TESTS
 .PHONY: start-httpd kill-httpd
 
 start-httpd:
-if HAVE_APACHE_2_2
-	@$(APACHE_HTTPD) -d $(abs_srcdir) -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k start;
-endif
-if HAVE_APACHE_2_4
 	@$(APACHE_HTTPD) -d $(abs_srcdir) -c "DefaultRuntimeDir `pwd`" -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k start;
-endif
 
 kill-httpd:
-if HAVE_APACHE_2_2
-	@if [ -f httpd.pid ]; then \
-		$(APACHE_HTTPD) -d $(abs_srcdir) -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k stop; \
-	fi
-endif
-if HAVE_APACHE_2_4
 	@if [ -f httpd.pid ]; then \
 		$(APACHE_HTTPD) -d $(abs_srcdir) -c "DefaultRuntimeDir `pwd`" -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k stop; \
 	fi
-endif

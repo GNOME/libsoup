@@ -209,13 +209,8 @@ if test "$APACHE_HTTPD" != "no"; then
     AC_MSG_CHECKING([Apache version])
     apache_version=`$APACHE_HTTPD -v 2>/dev/null | sed -ne 's/Server version: Apache\///p'`
     case $apache_version in
-    2.2.*)
-	AC_MSG_RESULT([$apache_version (ok)])
- 	apache_version=2.2
-	;;
     2.4.*)
 	AC_MSG_RESULT([$apache_version (ok)])
- 	apache_version=2.4
 	;;
     *)
 	AC_MSG_RESULT([$apache_version (ignoring)])
@@ -261,18 +256,11 @@ fi
 
 if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR" -a -n "$APACHE_SSL_MODULE_DIR"; then
     AC_DEFINE(HAVE_APACHE, 1, [Whether or not apache can be used for tests])
-    if test $apache_version = 2.2; then
-        AC_DEFINE(HAVE_APACHE_2_2, 1, [Apache is 2.2.x])
-    else
-        AC_DEFINE(HAVE_APACHE_2_4, 1, [Apache is 2.4.x])
-    fi
     have_apache=1
 else
     have_apache=0
 fi
 AM_CONDITIONAL(HAVE_APACHE, test "$have_apache" = 1)
-AM_CONDITIONAL(HAVE_APACHE_2_2, test "$have_apache" = 1 -a "$apache_version" = 2.2)
-AM_CONDITIONAL(HAVE_APACHE_2_4, test "$have_apache" = 1 -a "$apache_version" = 2.4)
 
 if test "$have_apache" = 1; then
     AC_CHECK_PROGS(PHP, php php5)
@@ -283,7 +271,7 @@ if test "$have_apache" = 1; then
 	IF_HAVE_PHP=""
     else
 	have_php=no
-	IF_HAVE_PHP="\#"
+	IF_HAVE_PHP="#"
     fi
     AC_MSG_RESULT($have_php)
     AC_SUBST(IF_HAVE_PHP)
@@ -425,6 +413,7 @@ AC_CONFIG_FILES([
 	po/Makefile.in
 	po/Makefile
 	tests/Makefile
+	tests/httpd.conf
 	examples/Makefile
 	docs/Makefile
 	docs/reference/Makefile

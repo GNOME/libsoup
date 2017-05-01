@@ -334,11 +334,7 @@ do_apache_range_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
-#if HAVE_APACHE_2_2
-	do_range_test (session, "http://127.0.0.1:47524/", FALSE, FALSE);
-#else
 	do_range_test (session, "http://127.0.0.1:47524/", TRUE, FALSE);
-#endif
 
 	soup_test_session_abort_unref (session);
 }
