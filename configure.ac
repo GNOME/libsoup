@@ -238,20 +238,14 @@ if test "$APACHE_HTTPD" != "no"; then
 	    APACHE_SSL_MODULE_DIR="$dir"
 	    IF_HAVE_APACHE_SSL=""
         fi
-        if test -f $dir/mod_php5.so; then
+        if test -f $dir/libphp7.so; then
 	    APACHE_PHP_MODULE_DIR="$dir"
-	    APACHE_PHP_MODULE=mod_php5.so
-        fi
-        if test -f $dir/libphp5.so; then
-	    APACHE_PHP_MODULE_DIR="$dir"
-	    APACHE_PHP_MODULE=libphp5.so
         fi
     done
     AC_MSG_RESULT($APACHE_MODULE_DIR)
     AC_SUBST(APACHE_MODULE_DIR)
     AC_SUBST(APACHE_SSL_MODULE_DIR)
     AC_SUBST(APACHE_PHP_MODULE_DIR)
-    AC_SUBST(APACHE_PHP_MODULE)
 fi
 
 if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR" -a -n "$APACHE_SSL_MODULE_DIR"; then
@@ -263,14 +257,14 @@ fi
 AM_CONDITIONAL(HAVE_APACHE, test "$have_apache" = 1)
 
 if test "$have_apache" = 1; then
-    AC_CHECK_PROGS(PHP, php php5)
+    AC_CHECK_PROGS(PHP, php)
 
     AC_MSG_CHECKING([for Apache PHP module])
-    if test -f $APACHE_PHP_MODULE_DIR/$APACHE_PHP_MODULE; then
-	have_php=yes
+    if test -d "$APACHE_PHP_MODULE_DIR"; then
+	have_php="yes"
 	IF_HAVE_PHP=""
     else
-	have_php=no
+	have_php="no"
 	IF_HAVE_PHP="#"
     fi
     AC_MSG_RESULT($have_php)
