@@ -280,6 +280,13 @@ if test "$have_apache" = 1; then
 	fi
 	AC_MSG_RESULT($have_php_xmlrpc)
     fi
+
+    if test -f "$APACHE_MODULE_DIR/mod_unixd.so"; then
+	IF_HAVE_MOD_UNIXD=""
+    else
+	IF_HAVE_MOD_UNIXD="#"
+    fi
+    AC_SUBST(IF_HAVE_MOD_UNIXD)
 fi
 
 AC_PATH_PROG(CURL, curl, no)
