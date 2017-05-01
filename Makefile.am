@@ -15,7 +15,7 @@ EXTRA_DIST =				\
 	Makefile.glib			\
 	config.h.win32
 
-DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection
+DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection --disable-vala
 
 pkgconfigdir = $(libdir)/pkgconfig
 
