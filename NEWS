@@ -1,4 +1,25 @@
-Changes in libsoup from 2.2.57.1 to 2.58.0:
+Changes in libsoup from 2.58.0 to 2.58.1:
+
+	* Reverts a change to SoupSession to close all open
+          connections when the :proxy-resolver property is changed
+          [#777326; this change was made in 2.58.0 but accidentally
+          left out of the NEWS for that release]; although that
+          behavior made :proxy-resolver more consistent with
+          :proxy-uri, it ended up breaking Evolution EWS. [#781590]
+
+	* Fixed undefined behavior in tests/header-parsing that could
+          make the test spuriously fail. [#777258]
+
+	* Updates to the configure tests for Apache for use in tests/:
+		* Dropped support for Apache 2.2
+		* Changed PHP support from PHP 5 to PHP 7
+		* mod_unixd can now be either built-in or dynamically
+		  loaded [#776478]
+
+	* Updated translations:
+	  Turkish
+
+Changes in libsoup from 2.57.1 to 2.58.0:
 
 	* Fix authentication issues when the SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE
 	  flag is used. [#778497, #777936, Carlos Garcia Campos]
