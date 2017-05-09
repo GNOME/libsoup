@@ -73,6 +73,11 @@ test_data +=			\
 	httpd.conf
 endif
 
+if HAVE_PHP
+test_data +=			\
+	php.ini
+endif
+
 RESOURCES = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/soup-tests.gresource.xml)
 
 soup-tests.gresource: soup-tests.gresource.xml $(RESOURCES)
@@ -84,6 +89,7 @@ EXTRA_DIST +=			 \
 	httpd.conf.in		 \
 	index.txt		 \
 	libsoup.supp		 \
+	php.ini.in		 \
 	soup-tests.gresource.xml \
 	test-cert.pem		 \
 	test-key.pem		 \
@@ -91,7 +97,7 @@ EXTRA_DIST +=			 \
 	meson.build		 \
 	$(RESOURCES)
 
-DISTCLEANFILES += soup-tests.gresource httpd.conf
+DISTCLEANFILES += soup-tests.gresource httpd.conf php.ini
 
 TESTS_ENVIRONMENT += SOUP_TESTS_IN_MAKE_CHECK=1
 

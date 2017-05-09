@@ -77,6 +77,12 @@ configure_file(output : 'httpd.conf',
   input : 'httpd.conf.in',
   configuration : cdata)
 
+if have_php
+  configure_file(output : 'php.ini',
+    input : 'php.ini.in',
+    configuration : cdata)
+endif
+
 # There is not copy_file() in Meson and this is official workaround as per
 # https://github.com/mesonbuild/meson/issues/860
 configure_file(input : 'htdigest',

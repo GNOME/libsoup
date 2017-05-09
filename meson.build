@@ -137,20 +137,23 @@ if have_apache
 endif
 
 have_php = false
+have_php_xmlrpc = false
 if have_apache
   php = find_program('php', required : false)
   apache_php_module = run_command('test', '-d', cdata.get('APACHE_PHP_MODULE_DIR'))
   if apache_php_module.returncode() == 0
     have_php = true
-    php_xmlrpc = run_command(php, '-r', 'exit(function_exists("xmlrpc_server_create")?0:1);')
+    php_xmlrpc = run_command(php, '-d', 'extension=xmlrpc', '-r', 'exit(function_exists("xmlrpc_server_create")?0:1);')
     if php_xmlrpc.returncode() == 0
       message('php-xmlrpc found')
+      have_php_xmlrpc = true
       cdata.set('HAVE_PHP_XMLRPC', '1')
     else
       message('php-xmlrpc not found')
     endif
   endif
   cdata.set('IF_HAVE_PHP', have_php ? '' : '#')
+  cdata.set('IF_HAVE_PHP_XMLRPC', have_php_xmlrpc ? '' : ';')
 endif
 
 cdata.set('HAVE_CURL', find_program('curl', required : false).found())

@@ -31,6 +31,8 @@ LoadModule proxy_connect_module @APACHE_MODULE_DIR@/mod_proxy_connect.so
 LoadModule ssl_module           @APACHE_SSL_MODULE_DIR@/mod_ssl.so
 @IF_HAVE_MOD_UNIXD@LoadModule unixd_module         @APACHE_SSL_MODULE_DIR@/mod_unixd.so
 
+@IF_HAVE_PHP@PHPIniDir .
+
 DirectoryIndex index.txt
 TypesConfig /dev/null
 AddType application/x-httpd-php .php
