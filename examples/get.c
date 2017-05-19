@@ -90,6 +90,7 @@ get_url (const char *url)
 				fclose (output_file);
 		}
 	}
+	g_object_unref (msg);
 }
 
 /* Inline class for providing a pre-configured client certificate */
@@ -286,6 +287,8 @@ main (int argc, char **argv)
 
 	if (!synchronous)
 		g_main_loop_unref (loop);
+
+	g_object_unref (session);
 
 	return 0;
 }
