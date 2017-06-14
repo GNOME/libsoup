@@ -188,7 +188,29 @@ soup_auth_negotiate_get_connection_authorization (SoupConnectionAuth *auth,
 	SoupNegotiateConnectionState *conn = state;
 	char *header = NULL;
 
-	if (conn->state == SOUP_NEGOTIATE_RECEIVED_CHALLENGE) {
+	if (conn->state == SOUP_NEGOTIATE_NEW) {
+		GError *err = NULL;
+
+		if (!check_auth_trusted_uri (auth, msg)) {
+			conn->state = SOUP_NEGOTIATE_FAILED;
+			return NULL;
+		}
+
+		if (!soup_gss_build_response (conn, SOUP_AUTH (auth), &err)) {
+			/* FIXME: report further upward via
+			 * soup_message_get_error_message  */
+			if (conn->initialized)
+				g_warning ("gssapi step failed: %s", err->message);
+			else
+				g_warning ("gssapi init failed: %s", err->message);
+			conn->state = SOUP_NEGOTIATE_FAILED;
+			g_clear_error (&err);
+
+			return NULL;
+		}
+	}
+
+	if (conn->response_header) {
 		header = conn->response_header;
 		conn->response_header = NULL;
 		conn->state = SOUP_NEGOTIATE_SENT_RESPONSE;
@@ -251,7 +273,10 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 		} else {
 			/* FIXME: report further upward via
 			 * soup_message_get_error_message  */
-			g_warning ("gssapi step failed: %s", err->message);
+			if (conn->initialized)
+				g_warning ("gssapi step failed: %s", err->message);
+			else
+				g_warning ("gssapi init failed: %s", err->message);
 			success = FALSE;
 		}
 	} else if (!strncmp (header, "Negotiate ", 10)) {
