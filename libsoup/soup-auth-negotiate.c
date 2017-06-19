@@ -364,13 +364,28 @@ check_server_response (SoupMessage *msg, gpointer auth)
 
 	ret = soup_gss_client_step (conn, auth_headers + 10, &err);
 
-	priv->is_authenticated = ret == AUTH_GSS_COMPLETE;
-
-	if (ret == AUTH_GSS_CONTINUE) {
+	switch (ret) {
+	case AUTH_GSS_COMPLETE:
+		priv->is_authenticated = TRUE;
+		break;
+	case AUTH_GSS_CONTINUE:
 		conn->state = SOUP_NEGOTIATE_RECEIVED_CHALLENGE;
-	} else if (ret == AUTH_GSS_ERROR) {
+		break;
+	case AUTH_GSS_ERROR:
 		if (err)
 			g_warning ("%s", err->message);
+		/* Unfortunately, so many programs (curl, Firefox, ..) ignore
+		 * the return token that is included in the response, so it is
+		 * possible that there are servers that send back broken stuff.
+		 * Try to behave in the right way (pass the token to
+		 * gss_init_sec_context()), show a warning, but don't fail
+		 * if the server returned 200. */
+		if (msg->status_code == SOUP_STATUS_OK)
+			priv->is_authenticated = TRUE;
+		else
+			conn->state = SOUP_NEGOTIATE_FAILED;
+		break;
+	default:
 		conn->state = SOUP_NEGOTIATE_FAILED;
 	}
  out:
