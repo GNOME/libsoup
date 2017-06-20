@@ -46,6 +46,10 @@ typedef struct {
 
 GType soup_connection_auth_get_type (void);
 
+SOUP_AVAILABLE_IN_2_58
+gpointer	soup_connection_auth_get_connection_state_for_message
+						(SoupConnectionAuth *auth,
+						 SoupMessage *message);
 G_END_DECLS
 
 #endif /* SOUP_CONNECTION_AUTH_H */

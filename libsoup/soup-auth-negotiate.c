@@ -68,11 +68,6 @@ typedef struct {
 
 typedef struct {
 	gboolean is_authenticated;
-
-	gulong message_finished_signal_id;
-	gulong message_got_headers_signal_id;
-
-	SoupNegotiateConnectionState *conn_state;
 } SoupAuthNegotiatePrivate;
 
 /**
@@ -108,7 +103,6 @@ static GSList *blacklisted_uris;
 static void parse_uris_from_env_variable (const gchar *env_variable, GSList **list);
 
 static void check_server_response (SoupMessage *msg, gpointer auth);
-static void remove_server_response_handler (SoupMessage *msg, gpointer auth);
 
 static const char spnego_OID[] = "\x2b\x06\x01\x05\x05\x02";
 static const gss_OID_desc gss_mech_spnego = { sizeof (spnego_OID) - 1, (void *) &spnego_OID };
@@ -116,12 +110,10 @@ static const gss_OID_desc gss_mech_spnego = { sizeof (spnego_OID) - 1, (void *) 
 static gpointer
 soup_auth_negotiate_create_connection_state (SoupConnectionAuth *auth)
 {
-	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (SOUP_AUTH_NEGOTIATE (auth));
 	SoupNegotiateConnectionState *conn;
 
 	conn = g_slice_new0 (SoupNegotiateConnectionState);
 	conn->state = SOUP_NEGOTIATE_NEW;
-	priv->conn_state = conn;
 
 	return conn;
 }
@@ -137,14 +129,11 @@ static void
 soup_auth_negotiate_free_connection_state (SoupConnectionAuth *auth,
 					   gpointer state)
 {
-	SoupAuthNegotiate *negotiate = SOUP_AUTH_NEGOTIATE (auth);
-	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
 	SoupNegotiateConnectionState *conn = state;
 
 	free_connection_state_data (conn);
 
 	g_slice_free (SoupNegotiateConnectionState, conn);
-	priv->conn_state = NULL;
 }
 
 static GSList *
@@ -226,7 +215,6 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 #ifdef LIBSOUP_HAVE_GSSAPI
 	gboolean success = TRUE;
 	SoupNegotiateConnectionState *conn = state;
-	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (SOUP_AUTH_NEGOTIATE (auth));
 	GError *err = NULL;
 
 	if (!check_auth_trusted_uri (auth, msg)) {
@@ -245,24 +233,19 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 
 		conn->state = SOUP_NEGOTIATE_RECEIVED_CHALLENGE;
 		if (soup_gss_build_response (conn, SOUP_AUTH (auth), &err)) {
-			/* Register the callbacks just once */
-			if (priv->message_finished_signal_id == 0) {
-				gulong id = 0;
-				id = g_signal_connect (msg,
-						       "finished",
-						       G_CALLBACK (remove_server_response_handler),
-						       auth);
-				priv->message_finished_signal_id = id;
-			}
-
-			if (priv->message_got_headers_signal_id == 0) {
-				gulong id = 0;
+			/* Connect the signal only once per message */
+			if (!g_object_get_data (G_OBJECT (msg), "negotiate-got-headers-connected")) {
 				/* Wait for the 2xx response to verify server response */
-				id = g_signal_connect (msg,
+				g_signal_connect_data (msg,
 						       "got_headers",
 						       G_CALLBACK (check_server_response),
-						       auth);
-				priv->message_got_headers_signal_id = id;
+						       g_object_ref (auth),
+						       (GClosureNotify) g_object_unref,
+						       0);
+				/* Mark that the signal was connected */
+				g_object_set_data (G_OBJECT (msg),
+						   "negotiate-got-headers-connected",
+						   GINT_TO_POINTER (1));
 			}
 			goto out;
 		} else {
@@ -331,7 +314,11 @@ check_server_response (SoupMessage *msg, gpointer auth)
 	GError *err = NULL;
 	SoupAuthNegotiate *negotiate = auth;
 	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
-	SoupNegotiateConnectionState *conn = priv->conn_state;
+	SoupNegotiateConnectionState *conn;
+
+	conn = soup_connection_auth_get_connection_state_for_message (SOUP_CONNECTION_AUTH (auth), msg);
+	if (!conn)
+		return;
 
 	if (auth != soup_message_get_auth (msg))
 		return;
@@ -361,19 +348,6 @@ check_server_response (SoupMessage *msg, gpointer auth)
 	}
  out:
 	g_clear_error (&err);
-}
-
-static void
-remove_server_response_handler (SoupMessage *msg, gpointer auth)
-{
-	SoupAuthNegotiate *negotiate = auth;
-	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
-
-	g_signal_handler_disconnect (msg, priv->message_got_headers_signal_id);
-	priv->message_got_headers_signal_id = 0;
-
-	g_signal_handler_disconnect (msg, priv->message_finished_signal_id);
-	priv->message_finished_signal_id = 0;
 }
 
 /* Check if scheme://host:port from message matches the given URI. */
