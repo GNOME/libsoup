@@ -71,11 +71,30 @@ soup_connection_auth_finalize (GObject *object)
 	G_OBJECT_CLASS (soup_connection_auth_parent_class)->finalize (object);
 }
 
-static gpointer
-get_connection_state_for_message (SoupConnectionAuth *auth, SoupMessage *msg)
+
+/**
+ * soup_connection_auth_get_connection_state_for_message:
+ * @auth: a #SoupConnectionAuth
+ * @msg: a #SoupMessage
+ *
+ * Returns an associated connection state object for the given @auth and @msg.
+ *
+ * This function is only useful from within implementations of SoupConnectionAuth
+ * subclasses.
+ *
+ * Return value: (transfer none): the connection state
+ *
+ * Since: 2.58
+ **/
+gpointer
+soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,
+						       SoupMessage *msg)
 {
 	SoupConnection *conn;
 	gpointer state;
+
+	g_return_val_if_fail (SOUP_IS_CONNECTION_AUTH (auth), NULL);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	conn = soup_message_get_connection (msg);
 	state = g_hash_table_lookup (auth->priv->conns, conn);
@@ -98,7 +117,7 @@ soup_connection_auth_update (SoupAuth    *auth,
 			     GHashTable  *auth_params)
 {
 	SoupConnectionAuth *cauth = SOUP_CONNECTION_AUTH (auth);
-	gpointer conn = get_connection_state_for_message (cauth, msg);
+	gpointer conn = soup_connection_auth_get_connection_state_for_message (cauth, msg);
 	GHashTableIter iter;
 	GString *auth_header;
 	gpointer key, value;
@@ -140,7 +159,7 @@ soup_connection_auth_get_authorization (SoupAuth    *auth,
 					SoupMessage *msg)
 {
 	SoupConnectionAuth *cauth = SOUP_CONNECTION_AUTH (auth);
-	gpointer conn = get_connection_state_for_message (cauth, msg);
+	gpointer conn = soup_connection_auth_get_connection_state_for_message (cauth, msg);
 
 	return SOUP_CONNECTION_AUTH_GET_CLASS (auth)->
 		get_connection_authorization (cauth, msg, conn);
@@ -151,7 +170,7 @@ soup_connection_auth_is_ready (SoupAuth    *auth,
 			       SoupMessage *msg)
 {
 	SoupConnectionAuth *cauth = SOUP_CONNECTION_AUTH (auth);
-	gpointer conn = get_connection_state_for_message (cauth, msg);
+	gpointer conn = soup_connection_auth_get_connection_state_for_message (cauth, msg);
 
 	return SOUP_CONNECTION_AUTH_GET_CLASS (auth)->
 		is_connection_ready (SOUP_CONNECTION_AUTH (auth), msg, conn);
