@@ -228,7 +228,6 @@ main (int argc, char **argv)
 	soup_uri_free (parsed);
 
 	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_SSL_CA_FILE, ca_file,
 				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 				SOUP_SESSION_USER_AGENT, "get ",
@@ -236,6 +235,8 @@ main (int argc, char **argv)
 				NULL);
 	if (ntlm)
 		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
+	if (ca_file)
+		g_object_set (session, "ssl-ca-file", ca_file, NULL);
 
 	if (client_cert_file) {
 		GTlsCertificate *client_cert;
