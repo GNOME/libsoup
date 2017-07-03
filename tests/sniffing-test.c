@@ -528,6 +528,10 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/sniffing/type/unknown-leading-space",
 			      "unknown/leading_space.html => text/html",
 			      do_sniffing_test);
+	/* https://bugs.webkit.org/show_bug.cgi?id=173923 */
+	g_test_add_data_func ("/sniffing/type/unknown-xml",
+			      "unknown/misc.xml => text/xml",
+			      do_sniffing_test);
 
 	/* Test the XML sniffing path */
 	g_test_add_data_func ("/sniffing/type/xml",

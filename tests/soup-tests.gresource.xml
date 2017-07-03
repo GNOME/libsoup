@@ -13,6 +13,7 @@
     <file>resources/mbox.gz</file>
     <file>resources/mbox.raw</file>
     <file>resources/mbox.zlib</file>
+    <file>resources/misc.xml</file>
     <file>resources/ps_binary.ps</file>
     <file>resources/rss20.xml</file>
     <file>resources/test.aiff</file>

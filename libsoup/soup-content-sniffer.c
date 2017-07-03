@@ -420,7 +420,7 @@ static SoupContentSnifferPattern types_table[] = {
 	  (const guchar *)"\x00\xFF\xFF\xFF\xFF\xFF",
 	  (const guchar *)" <?xml",
 	  5,
-	  "text/html",
+	  "text/xml",
 	  TRUE },
 
 	{ FALSE, FALSE,
