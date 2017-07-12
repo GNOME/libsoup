@@ -563,14 +563,14 @@ close_connection (SoupWebsocketConnection *self,
 		if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER) {
 			g_debug ("Wrong closing code %d received for a server connection",
 			         code);
-			break;
 		}
+		break;
 	case SOUP_WEBSOCKET_CLOSE_SERVER_ERROR:
 		if (pv->connection_type != SOUP_WEBSOCKET_CONNECTION_SERVER) {
 			g_debug ("Wrong closing code %d received for a non server connection",
 			         code);
-			break;
 		}
+		break;
 	default:
 		g_debug ("Wrong closing code %d received", code);
 	}
