@@ -1334,9 +1334,11 @@ soup_uri_is_http (SoupURI *uri, char **aliases)
 {
 	int i;
 
-	if (uri->scheme == SOUP_URI_SCHEME_HTTP)
+	if (uri->scheme == SOUP_URI_SCHEME_HTTP ||
+	    uri->scheme == SOUP_URI_SCHEME_WS)
 		return TRUE;
-	else if (uri->scheme == SOUP_URI_SCHEME_HTTPS)
+	else if (uri->scheme == SOUP_URI_SCHEME_HTTPS ||
+		 uri->scheme == SOUP_URI_SCHEME_WSS)
 		return FALSE;
 	else if (!aliases)
 		return FALSE;
@@ -1357,9 +1359,11 @@ soup_uri_is_https (SoupURI *uri, char **aliases)
 {
 	int i;
 
-	if (uri->scheme == SOUP_URI_SCHEME_HTTPS)
+	if (uri->scheme == SOUP_URI_SCHEME_HTTPS ||
+	    uri->scheme == SOUP_URI_SCHEME_WSS)
 		return TRUE;
-	else if (uri->scheme == SOUP_URI_SCHEME_HTTP)
+	else if (uri->scheme == SOUP_URI_SCHEME_HTTP ||
+		 uri->scheme == SOUP_URI_SCHEME_WS)
 		return FALSE;
 	else if (!aliases)
 		return FALSE;

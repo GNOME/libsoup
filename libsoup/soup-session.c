@@ -1790,7 +1790,7 @@ get_connection_for_host (SoupSession *session,
 	guint num_pending = 0;
 
 	if (priv->disposed)
-		return FALSE;
+		return NULL;
 
 	if (item->conn) {
 		g_return_val_if_fail (soup_connection_get_state (item->conn) != SOUP_CONNECTION_DISCONNECTED, FALSE);
@@ -1839,6 +1839,7 @@ get_connection_for_host (SoupSession *session,
 	ensure_socket_props (session);
 	conn = g_object_new (SOUP_TYPE_CONNECTION,
 			     SOUP_CONNECTION_REMOTE_URI, host->uri,
+			     SOUP_CONNECTION_SSL, soup_uri_is_https (host->uri, priv->https_aliases),
 			     SOUP_CONNECTION_SOCKET_PROPERTIES, priv->socket_props,
 			     NULL);
 

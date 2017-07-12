@@ -13,6 +13,7 @@
 #include "soup.h"
 #include "soup-message-queue.h"
 #include "soup-socket-private.h"
+#include "soup-misc-private.h"
 
 typedef struct {
 	SoupSocket  *socket;
@@ -44,6 +45,7 @@ enum {
 	PROP_REMOTE_URI,
 	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
+	PROP_SSL,
 
 	LAST_PROP
 };
@@ -98,16 +100,15 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_REMOTE_URI:
 		priv->remote_uri = g_value_dup_boxed (value);
-		if (priv->remote_uri)
-			priv->ssl = (priv->remote_uri->scheme == SOUP_URI_SCHEME_HTTPS);
-		else
-			priv->ssl = FALSE;
 		break;
 	case PROP_SOCKET_PROPERTIES:
 		priv->socket_props = g_value_dup_boxed (value);
 		break;
 	case PROP_STATE:
 		soup_connection_set_state (SOUP_CONNECTION (object), g_value_get_uint (value));
+		break;
+	case PROP_SSL:
+		priv->ssl = g_value_get_boolean (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -130,6 +131,9 @@ soup_connection_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_STATE:
 		g_value_set_enum (value, priv->state);
+		break;
+	case PROP_SSL:
+		g_value_set_boolean (value, priv->ssl);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -190,6 +194,12 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				   "Current state of connection",
 				   SOUP_TYPE_CONNECTION_STATE, SOUP_CONNECTION_NEW,
 				   G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_SSL,
+		g_param_spec_boolean (SOUP_CONNECTION_SSL,
+				      "Connection uses TLS",
+				      "Whether the connection should use TLS",
+				      FALSE, G_PARAM_READWRITE));
 }
 
 static void

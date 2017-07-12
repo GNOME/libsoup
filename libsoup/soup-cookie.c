@@ -1012,7 +1012,7 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 {
 	int plen;
 
-	if (cookie->secure && uri->scheme != SOUP_URI_SCHEME_HTTPS)
+	if (cookie->secure && !soup_uri_is_https (uri, NULL))
 		return FALSE;
 
 	if (cookie->expires && soup_date_is_past (cookie->expires))

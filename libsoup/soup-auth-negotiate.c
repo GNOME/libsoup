@@ -454,7 +454,7 @@ check_auth_trusted_uri (SoupConnectionAuth *auth, SoupMessage *msg)
 
 	/* If no trusted URIs are set, we allow all HTTPS URIs */
 	if (!trusted_uris)
-		return msg_uri->scheme == SOUP_URI_SCHEME_HTTPS;
+		return soup_uri_is_https (msg_uri, NULL);
 
 	matched = g_slist_find_custom (trusted_uris,
 				       msg_uri,
