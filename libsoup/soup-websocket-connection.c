@@ -66,6 +66,7 @@
  * @error: default handler for the #SoupWebsocketConnection::error signal
  * @closing: the default handler for the #SoupWebsocketConnection:closing signal
  * @closed: default handler for the #SoupWebsocketConnection::closed signal
+ * @pong: default handler for the #SoupWebsocketConnection::pong signal
  *
  * The abstract base class for #SoupWebsocketConnection
  *
@@ -89,6 +90,7 @@ enum {
 	ERROR,
 	CLOSING,
 	CLOSED,
+	PONG,
 	NUM_SIGNALS
 };
 
@@ -633,6 +635,27 @@ receive_ping (SoupWebsocketConnection *self,
 }
 
 static void
+receive_pong (SoupWebsocketConnection *self,
+                      const guint8 *data,
+                      gsize len)
+{
+	GByteArray *bytes;
+
+	g_debug ("received pong message");
+
+	bytes = g_byte_array_sized_new (len + 1);
+	g_byte_array_append (bytes, data, len);
+	/* Always null terminate, as a convenience */
+	g_byte_array_append (bytes, (guchar *)"\0", 1);
+	/* But don't include the null terminator in the byte count */
+	bytes->len--;
+
+	g_signal_emit (self, signals[PONG], 0, bytes);
+	g_byte_array_unref (bytes);
+
+}
+
+static void
 process_contents (SoupWebsocketConnection *self,
 		  gboolean control,
 		  gboolean fin,
@@ -661,7 +684,7 @@ process_contents (SoupWebsocketConnection *self,
 			receive_ping (self, payload, payload_len);
 			break;
 		case 0x0A:
-			g_debug ("received pong message");
+			receive_pong (self, payload, payload_len);
 			break;
 		default:
 			g_debug ("received unsupported control frame: %d", (int)opcode);
@@ -1410,6 +1433,27 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 					G_STRUCT_OFFSET (SoupWebsocketConnectionClass, closed),
 					NULL, NULL, g_cclosure_marshal_generic,
 					G_TYPE_NONE, 0);
+
+	/**
+	 * SoupWebsocketConnection::pong:
+	 * @self: the WebSocket
+	 * @message: the application data (if any)
+	 *
+	 * Emitted when we receive a Pong frame (solicited or
+	 * unsolicited) from the peer.
+	 *
+	 * As a convenience, the @message data will always be
+	 * NUL-terminated, but the NUL byte will not be included in
+	 * the length count.
+	 *
+	 * Since: 2.60
+	 */
+	signals[PONG] = g_signal_new ("pong",
+				      SOUP_TYPE_WEBSOCKET_CONNECTION,
+				      G_SIGNAL_RUN_FIRST,
+				      G_STRUCT_OFFSET (SoupWebsocketConnectionClass, pong),
+				      NULL, NULL, g_cclosure_marshal_generic,
+				      G_TYPE_NONE, 1, G_TYPE_BYTES);
 }
 
 /**
