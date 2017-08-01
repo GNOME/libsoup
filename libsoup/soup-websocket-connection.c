@@ -1816,9 +1816,12 @@ static gboolean
 on_queue_ping (gpointer user_data)
 {
 	SoupWebsocketConnection *self = SOUP_WEBSOCKET_CONNECTION (user_data);
+	static const char ping_payload[] = "libsoup";
 
 	g_debug ("sending ping message");
-	send_message (self, SOUP_WEBSOCKET_QUEUE_NORMAL, 0x09, NULL, 0);
+
+	send_message (self, SOUP_WEBSOCKET_QUEUE_NORMAL, 0x09,
+		      (guint8 *) ping_payload, strlen(ping_payload));
 
 	return G_SOURCE_CONTINUE;
 }
