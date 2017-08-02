@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Generate tld rules
 # Copyright (C) 2012 Red Hat, Inc.
