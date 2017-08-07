@@ -3,8 +3,8 @@ dnl *** Initialize automake and set version ***
 dnl *******************************************
 
 m4_define([soup_major_version], [2])
-m4_define([soup_minor_version], [58])
-m4_define([soup_micro_version], [0])
+m4_define([soup_minor_version], [59])
+m4_define([soup_micro_version], [90])
 
 AC_PREREQ(2.63)
 AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])

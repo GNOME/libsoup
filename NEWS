@@ -1,3 +1,59 @@
+Changes in libsoup from 2.58.0 to 2.59.90:
+
+	* Several SoupAuthNegotiate compatibility fixes [#783780,
+          #783781, Tomas Popela]
+
+	* Include a payload in SoupWebsocketConnection's "ping"
+          messages (to avoid problems with certain buggy server
+          implementations), and emit a signal when receiving a "pong"
+          (to allow apps to notice when the remote peer has
+          disconnected them). [#785660, David Woodhouse]
+
+	* Fix the interpretation of wss:// URIs, which previously
+          mostly didn't work. [#784766, Nirbheek Chauhan].
+
+	* Fixed SoupContentSniffer behavior on XML files with no
+          Content-Type
+          [https://bugs.webkit.org/show_bug.cgi?id=173923]
+
+	* Fixed a bug with cancelling async requests [#773257, Carlos
+          Garcia Campos]
+
+	* Reverted the (undocumented) change in 2.58.0 to call
+          soup_session_abort() after changing
+          SoupSession:proxy-resolver; while this made its behavior
+          more consistent with :proxy-uri, it ended up breaking
+          things. [#781590]
+
+	* Allow HTTP responses that have no trailing CRLF after the
+          response headers (and no body) [#780352, Carlos Garcia
+          Campos]
+
+	* Fixed an out-of-bounds read in SoupURI parsing [#785042]
+
+	* Fixed a spurious (debug-level) error message in
+          SoupWebsocketConnection [#784935, Ignacio Casal Quinteiro]
+
+	* Fixed introspection annotations on
+          soup_message_headers_get_content_range() [Philip Withnall]
+
+	* Fixed a flake in tests/header-parsing [#777258]
+
+	* Update tests/test-cert.pem to use stronger algorithms to
+          avoid problems with newer gnutls. [#784949, Jan Alexander
+          Steffens]
+
+	* Fixed examples/get to not accidentally break https
+          certificate validation [#784259, Sebatian Dröge]
+
+	* Misc updates to apache/php stuff in unit tests:
+		* Dropped support for Apache 2.2
+		* Deal with mod_unixd being compiled-in [#776478]
+		* Switched PHP support from PHP 5 to PHP 7
+
+	* Updated translations:
+	  Esperanto, Turkish
+
 Changes in libsoup from 2.2.57.1 to 2.58.0:
 
 	* Fix authentication issues when the SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE
