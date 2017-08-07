@@ -151,7 +151,11 @@ static struct {
 	{ "http://[fe80::dead:beef%25em1]/", "http://[fe80::dead:beef%25em1]/", NULL,
 	  { "http", NULL, NULL, "fe80::dead:beef%em1", 80, "/", NULL, NULL } },
 	{ "http://[fe80::dead:beef%10]/", "http://[fe80::dead:beef%2510]/", NULL,
-	  { "http", NULL, NULL, "fe80::dead:beef%10", 80, "/", NULL, NULL } }
+	  { "http", NULL, NULL, "fe80::dead:beef%10", 80, "/", NULL, NULL } },
+
+	/* ".." past top */
+	{ "http://example.com/..", "http://example.com/", "785042",
+	  { "http", NULL, NULL, "example.com", 80, "/", NULL, NULL } },
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 

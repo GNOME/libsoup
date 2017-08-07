@@ -453,7 +453,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		}
 		/* Remove "<segment>/.." at end where <segment> != ".." */
 		q = strrchr (uri->path, '/');
-		if (q && !strcmp (q, "/..")) {
+		if (q && q != uri->path && !strcmp (q, "/..")) {
 			p = q - 1;
 			while (p > uri->path && *p != '/')
 				p--;
