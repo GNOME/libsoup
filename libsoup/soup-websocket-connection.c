@@ -698,11 +698,11 @@ process_contents (SoupWebsocketConnection *self,
 		if (!fin && opcode) {
 			/* Initial fragment of a message */
 			if (pv->message_data) {
-				g_debug ("received out of order inital message fragment");
+				g_debug ("received out of order initial message fragment");
 				protocol_error_and_close (self);
 				return;
 			}
-			g_debug ("received inital fragment frame %d with %d payload", (int)opcode, (int)payload_len);
+			g_debug ("received initial fragment frame %d with %d payload", (int)opcode, (int)payload_len);
 		} else if (!fin && !opcode) {
 			/* Middle fragment of a message */
 			if (!pv->message_data) {
