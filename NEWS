@@ -1,3 +1,9 @@
+Changes in libsoup from 2.56.0 to 2.56.1:
+
+	* CVE-2017-2885: Fixed a chunked decoding buffer overrun that
+	  could be exploited against either clients or servers.
+	  [#785774]
+
 Changes in libsoup from 2.55.90 to 2.56.0:
 
 	* Added SoupWebsocketConnection:max-incoming-payload-size
