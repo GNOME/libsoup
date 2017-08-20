@@ -1,0 +1,175 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Gnome Nepali Translation Project\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2017-08-10 12:33+0000\n"
+"PO-Revision-Date: 2017-08-20 10:37+0545\n"
+"Language-Team: Nepali Translation Team <chautari@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.3\n"
+"Last-Translator: Pawan Chitrakar <chautari@gmail.com>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: ne\n"
+
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:237
+msgid "Connection terminated unexpectedly"
+msgstr "जडान अप्रत्याशित रूपमा समाप्त भयो"
+
+#: ../libsoup/soup-body-input-stream.c:459
+msgid "Invalid seek request"
+msgstr "अमान्य खोज अनुरोध"
+
+#: ../libsoup/soup-body-input-stream.c:487
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr ""
+
+#: ../libsoup/soup-cache-input-stream.c:76
+msgid "Network stream unexpectedly closed"
+msgstr "सञ्जाल स्ट्रीम अनपेक्षित रूपमा बन्द गरियो"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "संसाधन पुरा तरिकाले क्यास गर्न असफल भयो"
+
+#: ../libsoup/soup-converter-wrapper.c:189
+#, c-format
+msgid "Output buffer is too small"
+msgstr "निर्गत बफर धेरै सानो छ"
+
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "HTTP प्रतिक्रिया पार्स गर्न सकिएन"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "अपरिचित HTTP प्रतिक्रिया इन्कोडिङ"
+
+#: ../libsoup/soup-message-io.c:387 ../libsoup/soup-message-io.c:1015
+msgid "Operation would block"
+msgstr "सञ्चालन ब्लक हुनेछ"
+
+#: ../libsoup/soup-message-io.c:967 ../libsoup/soup-message-io.c:1000
+msgid "Operation was cancelled"
+msgstr "सञ्चालन रद्द भएको छ"
+
+#: ../libsoup/soup-message-server-io.c:64
+msgid "Could not parse HTTP request"
+msgstr "HTTP अनुरोध पार्स गर्न सकिएन"
+
+#: ../libsoup/soup-request.c:141
+#, c-format
+msgid "No URI provided"
+msgstr "कुनै URI प्रदान गरिएको छैन"
+
+#: ../libsoup/soup-request.c:151
+#, c-format
+msgid "Invalid “%s” URI: %s"
+msgstr "अमान्य \"%s\" URI:%s"
+
+#: ../libsoup/soup-server.c:1725
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "TLS प्रमाणपत्र बिना TLS सर्भर सिर्जना गर्न सक्दैन"
+
+#: ../libsoup/soup-server.c:1742
+#, c-format
+msgid "Could not listen on address %s, port %d: "
+msgstr "ठेगाना%s, पोर्ट%d मा सुन्न सकेन: "
+
+#: ../libsoup/soup-session.c:4517
+#, c-format
+msgid "Could not parse URI “%s”"
+msgstr "URI \"%s\" पार्स गर्न सकिएन"
+
+#: ../libsoup/soup-session.c:4554
+#, c-format
+msgid "Unsupported URI scheme “%s”"
+msgstr "असमर्थित यूआरआई योजना \"%s\""
+
+#: ../libsoup/soup-session.c:4576
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "HTTP URI होइन"
+
+#: ../libsoup/soup-session.c:4762
+msgid "The server did not accept the WebSocket handshake."
+msgstr "सर्भरले वेबसकेट ह्यान्डशक स्वीकार गरेन।."
+
+#: ../libsoup/soup-socket.c:148
+msgid "Can’t import non-socket as SoupSocket"
+msgstr "सूपसकेटको रूपमा गैर-सकेट आयात गर्न सकिँदैन"
+
+#: ../libsoup/soup-socket.c:166
+msgid "Could not import existing socket: "
+msgstr "अवस्थित सकेट आयात गर्न सकिएन: "
+
+#: ../libsoup/soup-socket.c:175
+msgid "Can’t import unconnected socket"
+msgstr "जडान नगरिएको सकेट सकिएन"
+
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
+msgid "WebSocket handshake expected"
+msgstr "वेबसकेट ह्यान्डशेक अपेक्षित"
+
+#: ../libsoup/soup-websocket.c:355
+msgid "Unsupported WebSocket version"
+msgstr "असमर्थित वेबसकेट संस्करण"
+
+#: ../libsoup/soup-websocket.c:364
+msgid "Invalid WebSocket key"
+msgstr "असमर्थित वेबसकेट सबप्रटोकल"
+
+#: ../libsoup/soup-websocket.c:374
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "गलत वेबसकेट \"%s\" हेडर"
+
+#: ../libsoup/soup-websocket.c:383
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Unsupported WebSocket subprotocol"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "सर्भरले वेबस्केट ह्यान्डशकलाई अस्वीकार गर्यो"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "सर्भरले वेबस्केट ह्यान्डशेकलाई बेवास्ता गर्यो"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "सर्भरले असमर्थित प्रोटोकल अनुरोध गर्यो"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "सर्भरले असमर्थित एक्सटेन्सन अनुरोध गर्यो"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr ""
+
+#: ../libsoup/soup-tld.c:188
+msgid "Hostname is an IP address"
+msgstr "होस्टनाम आईपी ठेगाना हो"
+
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
+msgid "Invalid hostname"
+msgstr "अवैध होस्टनाम"
+
+#: ../libsoup/soup-tld.c:250
+msgid "Hostname has no base domain"
+msgstr "होस्टनामसँग कुनै आधार डोमेन छैन"
+
+#: ../libsoup/soup-tld.c:304
+msgid "Not enough domains"
+msgstr "पर्याप्त डोमेनहरू छैनन्"
