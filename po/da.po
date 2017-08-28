@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: "
-"http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2016-10-27 12:38+0000\n"
+"https://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2017-08-10 12:33+0000\n"
 "PO-Revision-Date: 2015-03-14 17:04+0100\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
@@ -19,22 +19,22 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:237
 msgid "Connection terminated unexpectedly"
 msgstr "Forbindelsen blev uventet afbrudt"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Ugyldig søgeforespørgsel"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Kan ikke afkorte SoupBodyInputStream"
 
 # evt. Netværksstrømmen
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Netværksudsendelsen blev uventet lukket ned"
 
@@ -42,7 +42,7 @@ msgstr "Netværksudsendelsen blev uventet lukket ned"
 msgid "Failed to completely cache the resource"
 msgstr "Kunne ikke lave fuldt mellemlager for ressourcen"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Outputbuffer er for lille"
@@ -55,11 +55,11 @@ msgstr "Kunne ikke fortolke HTTP-svar"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Ej genkendt HTTP-svarkodning"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:387 ../libsoup/soup-message-io.c:1015
 msgid "Operation would block"
 msgstr "Operationen ville blokere"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:967 ../libsoup/soup-message-io.c:1000
 msgid "Operation was cancelled"
 msgstr "Operationen blev annulleret"
 
@@ -67,41 +67,41 @@ msgstr "Operationen blev annulleret"
 msgid "Could not parse HTTP request"
 msgstr "Kunne ikke fortolke HTTP-forespørgsel"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Ingen URI givet"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid “%s” URI: %s"
-msgstr "Ugyldig \"%s\"-URI: %s"
+msgstr "Ugyldig “%s”-URI: %s"
 
-#: ../libsoup/soup-server.c:1727
+#: ../libsoup/soup-server.c:1725
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Kan ikke oprette en TLS-server uden et TLS-certifikat"
 
-#: ../libsoup/soup-server.c:1744
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Kunne ikke lytte på adresse %s, port %d: "
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4517
 #, c-format
 msgid "Could not parse URI “%s”"
-msgstr "Kunne ikke fortolke URI \"%s\""
+msgstr "Kunne ikke fortolke URI “%s”"
 
-#: ../libsoup/soup-session.c:4562
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Unsupported URI scheme “%s”"
-msgstr "Uunderstøttet URI-skema \"%s\""
+msgstr "Uunderstøttet URI-skema “%s”"
 
-#: ../libsoup/soup-session.c:4584
+#: ../libsoup/soup-session.c:4576
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ikke en HTTP URI"
 
-#: ../libsoup/soup-session.c:4770
+#: ../libsoup/soup-session.c:4762
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveren accepterede ikke WebSocket-håndtrykket."
 
@@ -132,7 +132,7 @@ msgstr "Igyldig WebSocket-nøgle"
 #: ../libsoup/soup-websocket.c:374
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
-msgstr "Forkert \"%s\"-header for WebSocket"
+msgstr "Forkert “%s”-header for WebSocket"
 
 #: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
@@ -157,7 +157,7 @@ msgstr "Serveren forespurgte om en udvidelse som ikke understøttes"
 #: ../libsoup/soup-websocket.c:562
 #, c-format
 msgid "Server returned incorrect “%s” key"
-msgstr "Serveren returnerede forkert \"%s\"-nøgle"
+msgstr "Serveren returnerede forkert “%s”-nøgle"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
@@ -174,4 +174,5 @@ msgstr "Værtsnavnet har intet basisdomæne"
 #: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Ikke nok domæner"
+
 
