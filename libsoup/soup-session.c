@@ -2807,7 +2807,7 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 		if (g_type_is_a (feature_type, SOUP_TYPE_PROXY_URI_RESOLVER))
 			priv->proxy_use_default = FALSE;
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+		G_GNUC_END_IGNORE_DEPRECATIONS;
 	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
 		SoupRequestClass *request_class;
 		int i;
