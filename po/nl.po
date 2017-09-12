@@ -3,46 +3,47 @@
 # This file is distributed under the same license as the libsoup package.
 # Reinout van Schouwen <reinout@gmail.com>, 2013.
 # Reinout van Schouwen <reinouts@gnome.org>, 2013.
+# Nathan Follens <nthn@unseen.is>, 2015, 2017.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsou"
-"p&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-09-16 22:19+0000\n"
-"PO-Revision-Date: 2013-09-18 23:22+0200\n"
-"Last-Translator: Reinout van Schouwen <reinouts@gnome.org>\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2017-08-28 17:31+0000\n"
+"PO-Revision-Date: 2017-09-08 12:30+0200\n"
+"Last-Translator: Nathan Follens <nthn@unseen.is>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Virtaal 0.7.1\n"
+"X-Generator: Poedit 2.0.3\n"
 "X-Project-Style: gnome\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:237
 msgid "Connection terminated unexpectedly"
 msgstr "Verbinding werd onverwacht verbroken"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Ongeldige zoekaanvraag"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Kan SoupBodyInputStream niet afkappen"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Netwerkstroom onverwacht gesloten"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Volledig bufferen van de bron is mislukt"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Uitvoerbuffer is te klein"
@@ -55,55 +56,122 @@ msgstr "Kan HTTP-antwoord niet verwerken"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Niet-herkende HTTP-antwoordcodering"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
-msgid "Operation was cancelled"
-msgstr "Bewerking is geannuleerd"
-
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:387 ../libsoup/soup-message-io.c:1015
 msgid "Operation would block"
 msgstr "Bewerking zou blokkeren"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-io.c:967 ../libsoup/soup-message-io.c:1000
+msgid "Operation was cancelled"
+msgstr "Bewerking is geannuleerd"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Kan HTTP-aanvraag niet verwerken"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Geen URI aangeleverd"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
-msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "Ongeldige ‘%s’-URI: %s"
 
-#: ../libsoup/soup-session.c:4259
+#: ../libsoup/soup-server.c:1725
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Kan geen TLS-server aanmaken zonder een TLS-certificaat"
+
+#: ../libsoup/soup-server.c:1742
 #, c-format
-msgid "Could not parse URI '%s'"
+msgid "Could not listen on address %s, port %d: "
+msgstr "Kan niet luisteren op adres %s, poort %d: "
+
+#: ../libsoup/soup-session.c:4517
+#, c-format
+msgid "Could not parse URI “%s”"
 msgstr "Kon URI ‘%s’ niet verwerken"
 
-#: ../libsoup/soup-session.c:4296
+#: ../libsoup/soup-session.c:4554
 #, c-format
-msgid "Unsupported URI scheme '%s'"
-msgstr "Niet-ondersteund URI-schema ‘%s’."
+msgid "Unsupported URI scheme “%s”"
+msgstr "Niet-ondersteund URI-schema ‘%s’"
 
-#: ../libsoup/soup-session.c:4318
+#: ../libsoup/soup-session.c:4576
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Geen HTTP-URI"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-session.c:4762
+msgid "The server did not accept the WebSocket handshake."
+msgstr "De server aanvaardde de WebSocket-handdruk niet."
+
+#: ../libsoup/soup-socket.c:148
+msgid "Can’t import non-socket as SoupSocket"
+msgstr "Kan niet-socket niet importeren als SoupSocket"
+
+#: ../libsoup/soup-socket.c:166
+msgid "Could not import existing socket: "
+msgstr "Kan bestaande socket niet importeren: "
+
+#: ../libsoup/soup-socket.c:175
+msgid "Can’t import unconnected socket"
+msgstr "Kan niet-verbonden socket niet importeren"
+
+#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
+msgid "WebSocket handshake expected"
+msgstr "WebSocket-handdruk verwacht"
+
+#: ../libsoup/soup-websocket.c:355
+msgid "Unsupported WebSocket version"
+msgstr "Niet-ondersteunde WebSocket-versie"
+
+#: ../libsoup/soup-websocket.c:364
+msgid "Invalid WebSocket key"
+msgstr "Ongeldige WebSocket-sleutel"
+
+#: ../libsoup/soup-websocket.c:374
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Onjuiste WebSocket ‘%s’-hoofding"
+
+#: ../libsoup/soup-websocket.c:383
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Niet-ondersteund WebSocket subprotocol"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "WebSocket-handdruk geweigerd door server"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "WebSocket-handdruk genegeerd door server"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "Niet-ondersteund protocol aangevraagd door server"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "Niet-ondersteunde uitbreiding aangevraagd door server"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr "Onjuiste ‘%s’-sleutel weergegeven door server"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "Hostnaam is een IP-adres"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "Ongeldige hostnaam"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "Hostnaam heeft geen basisdomein"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Niet genoeg domeinen"
