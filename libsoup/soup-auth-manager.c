@@ -354,7 +354,7 @@ create_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	const char *header;
 	SoupAuthClass *auth_class;
 	char *challenge = NULL;
-	SoupAuth *auth;
+	SoupAuth *auth = NULL;
 	int i;
 
 	header = auth_header_for_message (msg);
@@ -364,14 +364,14 @@ create_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	for (i = priv->auth_types->len - 1; i >= 0; i--) {
 		auth_class = priv->auth_types->pdata[i];
 		challenge = soup_auth_manager_extract_challenge (header, auth_class->scheme_name);
-		if (challenge)
+		if (!challenge)
+			continue;
+		auth = soup_auth_new (G_TYPE_FROM_CLASS (auth_class), msg, challenge);
+		g_free (challenge);
+		if (auth)
 			break;
 	}
-	if (!challenge)
-		return NULL;
 
-	auth = soup_auth_new (G_TYPE_FROM_CLASS (auth_class), msg, challenge);
-	g_free (challenge);
 	return auth;
 }
 
