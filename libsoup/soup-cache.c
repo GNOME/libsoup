@@ -949,8 +949,17 @@ soup_cache_set_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_CACHE_DIR:
+		g_assert (!priv->cache_dir);
+
 		priv->cache_dir = g_value_dup_string (value);
-		/* Create directory if it does not exist (FIXME: should we?) */
+
+		if (!priv->cache_dir)
+			/* Set a default cache dir, different for each user */
+			priv->cache_dir = g_build_filename (g_get_user_cache_dir (),
+							    "httpcache",
+							    NULL);
+
+		/* Create directory if it does not exist */
 		if (!g_file_test (priv->cache_dir, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR))
 			g_mkdir_with_parents (priv->cache_dir, 0700);
 		break;
@@ -984,32 +993,11 @@ soup_cache_get_property (GObject *object, guint prop_id,
 }
 
 static void
-soup_cache_constructed (GObject *object)
-{
-	SoupCachePrivate *priv;
-
-	priv = SOUP_CACHE (object)->priv;
-
-	if (!priv->cache_dir) {
-		/* Set a default cache dir, different for each user */
-		priv->cache_dir = g_build_filename (g_get_user_cache_dir (),
-						    "httpcache",
-						    NULL);
-		if (!g_file_test (priv->cache_dir, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR))
-			g_mkdir_with_parents (priv->cache_dir, 0700);
-	}
-
-	if (G_OBJECT_CLASS (soup_cache_parent_class)->constructed)
-		G_OBJECT_CLASS (soup_cache_parent_class)->constructed (object);
-}
-
-static void
 soup_cache_class_init (SoupCacheClass *cache_class)
 {
 	GObjectClass *gobject_class = (GObjectClass *)cache_class;
 
 	gobject_class->finalize = soup_cache_finalize;
-	gobject_class->constructed = soup_cache_constructed;
 	gobject_class->set_property = soup_cache_set_property;
 	gobject_class->get_property = soup_cache_get_property;
 
@@ -1044,7 +1032,10 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 
 /**
  * soup_cache_new:
- * @cache_dir: the directory to store the cached data, or %NULL to use the default one
+ * @cache_dir: (allow-none): the directory to store the cached data, or %NULL
+ *   to use the default one. Note that since the cache isn't safe to access for
+ *   multiple processes at once, and the default directory isn't namespaced by
+ *   process, clients are strongly discouraged from passing %NULL.
  * @cache_type: the #SoupCacheType of the cache
  *
  * Creates a new #SoupCache.
