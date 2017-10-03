@@ -51,6 +51,65 @@ if enable_tls_check
   endif
 endif
 
+################################
+# Regresion tests dependencies #
+################################
+apache_httpd2 = find_program('httpd2', 'httpd', 'apache2', 'apache', required : false)
+have_apache=false
+apache_httpd2_version = ''
+if apache_httpd2.found()
+  apache_httpd2_version_raw = run_command(apache_httpd2.path(), '-v')
+  if apache_httpd2_version_raw.returncode() == 0
+    apache_httpd2_version = apache_httpd2_version_raw.stdout().split('\n')[0]
+    apache_httpd2_version = apache_httpd2_version.split('/')[1].split(' ')[0]
+    if apache_httpd2_version.version_compare('>=2.4')
+      have_apache = true
+      add_project_arguments('-DAPACHE_HTTPD=' + apache_httpd2_version, language : 'c')
+    else
+      message('Found ' + apache_httpd2_version + ', but at least 2.4 is needed - ignoring')
+    endif
+  endif
+endif
+
+if have_apache
+  apache_modules = run_command('sh', 'get-apache-module-dirs.sh', apache_httpd2.path())
+  if apache_modules.returncode() == 0
+    message('Apache module directory: ' + apache_modules.stdout().split(':')[0])
+    apache_module_dir = apache_modules.stdout().split(':')[0]
+    cdata.set('APACHE_MODULE_DIR', apache_module_dir)
+    apache_ssl_module_dir = apache_modules.stdout().split(':')[1]
+    cdata.set('APACHE_SSL_MODULE_DIR', apache_ssl_module_dir)
+    if apache_module_dir != '' and apache_ssl_module_dir != ''
+      have_apache = true
+      add_project_arguments('-DHAVE_APACHE=1', language : 'c')
+    endif
+    cdata.set('APACHE_PHP_MODULE_DIR', apache_modules.stdout().split(':')[2])
+  endif
+endif
+
+have_php = false
+if have_apache
+  php = find_program('php', required : false)
+  apache_php_module = run_command('test', '-d', cdata.get('APACHE_PHP_MODULE_DIR'))
+  if apache_php_module.returncode() == 0
+    have_php = true
+    php_xmlrpc = run_command(php, '--rf', 'xmlrpc_server_create')
+    if php_xmlrpc.returncode() == 0
+      message('php-xmlrpc found')
+      add_project_arguments('-DHAVE_PHP_XMLRPC=1', language : 'c')
+    else
+      message('php-xmlrpc not found')
+    endif
+  endif
+  cdata.set('IF_HAVE_PHP', have_php ? '' : '#')
+  apache_mod_unixd = run_command('test', '-d', cdata.get('APACHE_MODULE_DIR') + 'mod_unixd.so')
+  cdata.set('IF_HAVE_MOD_UNIXD', apache_mod_unixd.returncode() == 0 ? '' : '#')
+endif
+
+if find_program('curl', required : false).found()
+  add_project_arguments('-DHAVE_CURL=1', language : 'c')
+endif
+
 ##################
 # GSSAPI support #
 ##################
@@ -130,3 +189,4 @@ configure_file(output : 'libsoup-2.4.pc',
 
 subdir('libsoup')
 subdir('examples')
+subdir('tests')
