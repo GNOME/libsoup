@@ -162,7 +162,7 @@ libsoup_c_args  = ['-DHAVE_CONFIG_H']
 libsoup_c_args += ['-DG_LOG_DOMAIN="libsoup"']
 libsoup_c_args += ['-DLIBSOUP_COMPILATION']
 
-libsoup = library('libsoup-@0@'.format(apiversion), soup_sources,
+libsoup = library('soup-@0@'.format(apiversion), soup_sources,
     soupenum_h, soupenum_c, tlddata,
     version : libversion,
     soversion : soversion,
