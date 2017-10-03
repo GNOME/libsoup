@@ -35,6 +35,9 @@ if host_machine.system() == 'windows'
   cdata.set('DLL_EXPORT', 1)
 endif
 
+###################
+# glib-networking #
+###################
 check_glib_networking_src = '''#include <gio/gio.h>
 int main(void) {
   return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
@@ -48,6 +51,9 @@ if enable_tls_check
   endif
 endif
 
+##################
+# GSSAPI support #
+##################
 enable_gssapi = get_option('enable-gssapi')
 krb5_config_option = get_option('krb5-config')
 if enable_gssapi
@@ -80,6 +86,9 @@ if enable_gssapi
   endif
 endif
 
+################
+# NTLM support #
+################
 # NTLM not supported on Windows
 if host_machine.system() != 'windows'
   enable_ntlm = get_option('enable-ntlm')
