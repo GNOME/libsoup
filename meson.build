@@ -35,6 +35,19 @@ if host_machine.system() == 'windows'
   cdata.set('DLL_EXPORT', 1)
 endif
 
+check_glib_networking_src = '''#include <gio/gio.h>
+int main(void) {
+  return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
+}
+'''
+
+enable_tls_check = get_option('enable-tls-check')
+if enable_tls_check
+  if not cc.compiles(check_glib_networking_src, name : 'glib-networking supports TLS', dependencies : glib_dep)
+    error('libsoup requires glib-networking for TLS support')
+  endif
+endif
+
 enable_gssapi = get_option('enable-gssapi')
 krb5_config_option = get_option('krb5-config')
 if enable_gssapi
