@@ -35,6 +35,53 @@ if host_machine.system() == 'windows'
   cdata.set('DLL_EXPORT', 1)
 endif
 
+enable_gssapi = get_option('enable-gssapi')
+krb5_config_option = get_option('krb5-config')
+if enable_gssapi
+  krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
+  krb5_config = find_program(krb5_config_path, required : false)
+
+  if krb5_config.found()
+    krb5_config_output = run_command (krb5_config, '--libs', 'gssapi')
+    if krb5_config_output.returncode() == 0
+      add_project_link_arguments(krb5_config_output.stdout().split(), language : 'c')
+    else
+      error('Failed to obtain cflags for GSSAPI from krb5-config')
+      enable_gssapi = false
+    endif
+
+    krb5_config_output = run_command (krb5_config, '--cflags', 'gssapi')
+    if krb5_config_output.returncode() == 0
+      add_project_arguments(krb5_config_output.stdout().split(), language : 'c')
+    else
+      error('Failed to obtain cflags for GSSAPI from krb5-config')
+      enable_gssapi = false
+    endif
+  else
+    error('GSSAPI support requested, but krb5-config not found. Please specify its path with -Dkrb5-config=PATH')
+    enable_gssapi = false
+  endif
+
+  if enable_gssapi
+    add_project_arguments('-DLIBSOUP_HAVE_GSSAPI=1', language : 'c')
+  endif
+endif
+
+# NTLM not supported on Windows
+if host_machine.system() != 'windows'
+  enable_ntlm = get_option('enable-ntlm')
+  if enable_ntlm
+    ntlm_auth_option = get_option('ntlm-auth')
+    ntlm_auth_path = ntlm_auth_option != '' ? ntlm_auth_option : 'ntlm_auth'
+    ntlm_auth = find_program(ntlm_auth_path, required : false)
+
+    if ntlm_auth.found()
+        add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
+        add_project_arguments('-DNTLM_AUTH=' + ntlm_auth.path(), language : 'c')
+    endif
+  endif
+endif
+
 configinc = include_directories('.')
 
 prefix = get_option('prefix')
