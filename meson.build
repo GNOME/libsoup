@@ -163,6 +163,15 @@ if host_machine.system() != 'windows'
   endif
 endif
 
+#################
+# GNOME support #
+#################
+enable_gnome = get_option('enable-gnome')
+if host_machine.system() == 'windows'
+  enable_gnome = false
+endif
+cdata.set('BUILD_LIBSOUP_GNOME', enable_gnome)
+
 configinc = include_directories('.')
 
 prefix = get_option('prefix')
@@ -186,6 +195,13 @@ configure_file(output : 'libsoup-2.4.pc',
     input : 'libsoup-2.4.pc.in',
     configuration : pkgconf,
     install_dir : pkg_install_dir)
+
+if enable_gnome
+  configure_file(output : 'libsoup-gnome-2.4.pc',
+      input : 'libsoup-gnome-2.4.pc.in',
+      configuration : pkgconf,
+      install_dir : pkg_install_dir)
+endif
 
 subdir('libsoup')
 subdir('examples')

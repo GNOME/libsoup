@@ -128,6 +128,18 @@ soup_headers = [
   'soup-xmlrpc-old.h',
 ]
 
+soup_gnome_sources = [
+  'soup-cookie-jar-sqlite.c',
+  'soup-gnome-features.c',
+  'soup-proxy-resolver-gnome.c',
+  'soup-password-manager-gnome.c'
+]
+
+soup_gnome_headers = [
+  'soup-proxy-resolver-gnome.h',
+  'soup-password-manager-gnome.h'
+]
+
 includedir = 'libsoup-@0@/libsoup'.format(apiversion)
 install_headers(soup_headers, subdir : includedir)
 
@@ -174,3 +186,16 @@ libsoup = library('soup-@0@'.format(apiversion), soup_sources,
 
 libsoup_dep = declare_dependency(link_with : libsoup,
     include_directories : configinc)
+
+if cdata.get('BUILD_LIBSOUP_GNOME')
+  includedir = 'libsoup-gnome-@0@/libsoup'.format(apiversion)
+  install_headers(soup_gnome_headers, subdir : includedir)
+
+  libsoup_gnome = library('soup-gnome-@0@'.format(apiversion), soup_gnome_sources,
+      version : libversion,
+      soversion : soversion,
+      c_args : libsoup_c_args,
+      include_directories : [configinc],
+      install : true,
+      dependencies : [glib_dep, libxml_dep, sqlite_dep, libsoup_dep])
+endif
