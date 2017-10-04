@@ -64,7 +64,7 @@ if apache_httpd2.found()
     apache_httpd2_version = apache_httpd2_version.split('/')[1].split(' ')[0]
     if apache_httpd2_version.version_compare('>=2.4')
       have_apache = true
-      add_project_arguments('-DAPACHE_HTTPD="' + apache_httpd2.path() + '"', language : 'c')
+      cdata.set('APACHE_HTTPD', '"@0@"'.format(apache_httpd2.path()))
     else
       message('Found ' + apache_httpd2_version + ', but at least 2.4 is needed - ignoring')
     endif
