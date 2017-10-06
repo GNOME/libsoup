@@ -72,7 +72,7 @@ if apache_httpd2.found()
 endif
 
 if have_apache
-  apache_modules = run_command('sh', 'get-apache-module-dirs.sh', apache_httpd2.path())
+  apache_modules = run_command('get_apache_module_dirs.py', apache_httpd2.path())
   if apache_modules.returncode() == 0
     message('Apache module directory: ' + apache_modules.stdout().split(':')[0])
     apache_module_dir = apache_modules.stdout().split(':')[0]
