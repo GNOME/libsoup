@@ -1,6 +1,35 @@
-option('enable-gssapi', type : 'boolean', value : true, description : 'Build with GSSAPI support')
-option('krb5-config', type : 'string', value : '', description : 'Where to look for krb5-config, path points to krb5-config installation (defaultly looking in PATH)')
-option('enable-ntlm', type : 'boolean', value : false, description : 'Build with NTLM support')
-option('ntlm-auth', type : 'string', value : '', description : 'Where to look for ntlm_auth, path points to ntlm_auth installation (defaultly looking in PATH)')
-option('enable-tls-check', type : 'boolean', value : true, description : 'Enable TLS support through glib-networking. If you are building a package, you can disable this to allow building libsoup anyway (since glib-networking is not actually required at compile time), but you should be sure to add a runtime dependency on it.')
-option('enable-gnome', type : 'boolean', value : true, description : 'Build libsoup with GNOME support')
+option('enable-gssapi',
+  type : 'boolean',
+  value : true,
+  description : 'Build with GSSAPI support'
+)
+
+option('krb5-config',
+  type : 'string',
+  value : '',
+  description : 'Where to look for krb5-config, path points to krb5-config installation (defaultly looking in PATH)'
+)
+
+option('enable-ntlm',
+  type : 'boolean',
+  value : false,
+  description : 'Build with NTLM support'
+)
+
+option('ntlm-auth',
+  type : 'string',
+  value : '',
+  description : 'Where to look for ntlm_auth, path points to ntlm_auth installation (defaultly looking in PATH)'
+)
+
+option('enable-tls-check',
+  type : 'boolean',
+  value : true,
+  description : 'Enable TLS support through glib-networking. If you are building a package, you can disable this to allow building libsoup anyway (since glib-networking is not actually required at compile time), but you should be sure to add a runtime dependency on it.'
+)
+
+option('enable-gnome',
+  type : 'boolean',
+  value : true,
+  description : 'Build libsoup with GNOME support'
+)
