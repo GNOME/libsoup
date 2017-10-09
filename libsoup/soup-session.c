@@ -1314,7 +1314,9 @@ soup_session_send_queue_item (SoupSession *session,
 	if (!soup_message_headers_header_contains (item->msg->request_headers,
 						   "Connection", "Keep-Alive") &&
 	    !soup_message_headers_header_contains (item->msg->request_headers,
-						   "Connection", "close")) {
+						   "Connection", "close") &&
+	    !soup_message_headers_header_contains (item->msg->request_headers,
+						   "Connection", "Upgrade")) {
 		soup_message_headers_append (item->msg->request_headers,
 					     "Connection", "Keep-Alive");
 	}
