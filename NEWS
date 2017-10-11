@@ -1,3 +1,16 @@
+Changes in libsoup from 2.60.0 to 2.60.1:
+
+	* Fallback to another authentication type if the current
+          failed [#788238, Tomas Popela]
+
+	* Fix unbalanced G_GNUC_BEGIN_IGNORE_DEPRECATIONS use in
+          soup-session.c [#787166, Zan Dobersek]
+
+	* SoupCache: fix setting default value for cache dir
+	  [#788452, Cosimo Cecchi]
+
+	* Updated translations: Catalan (Valencian).
+
 Changes in libsoup from 2.59.90.1 to 2.60.0:
 
 	* New/updated translations: Catalan, Danish, Dutch, Nepali
