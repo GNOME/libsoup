@@ -4812,13 +4812,13 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
  * If the server returns "101 Switching Protocols", then @msg's status
  * code and response headers will be updated, and then the WebSocket
  * handshake will be completed. On success,
- * soup_websocket_connect_finish() will return a new
+ * soup_session_websocket_connect_finish() will return a new
  * #SoupWebsocketConnection. On failure it will return a #GError.
  *
  * If the server returns a status other than "101 Switching
  * Protocols", then @msg will contain the complete response headers
  * and body from the server's response, and
- * soup_websocket_connect_finish() will return
+ * soup_session_websocket_connect_finish() will return
  * %SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET.
  *
  * Since: 2.50
@@ -4861,7 +4861,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
  *
  * Gets the #SoupWebsocketConnection response to a
  * soup_session_websocket_connect_async() call and (if successful),
- * returns a #SoupWebsockConnection that can be used to communicate
+ * returns a #SoupWebsocketConnection that can be used to communicate
  * with the server.
  *
  * Return value: (transfer full): a new #SoupWebsocketConnection, or
