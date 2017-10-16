@@ -9,12 +9,12 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=Misc\n"
 "POT-Creation-Date: 2017-08-10 12:33+0000\n"
-"PO-Revision-Date: 2017-08-20 10:37+0545\n"
+"PO-Revision-Date: 2017-10-16 16:09+0545\n"
 "Language-Team: Nepali Translation Team <chautari@gmail.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.0.3\n"
+"X-Generator: Poedit 2.0.4\n"
 "Last-Translator: Pawan Chitrakar <chautari@gmail.com>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: ne\n"
@@ -31,7 +31,7 @@ msgstr "अमान्य खोज अनुरोध"
 
 #: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
-msgstr ""
+msgstr "सूपबडीइनपुटस्ट्रीम ट्रंक गर्न सकिँदैन"
 
 #: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
@@ -156,7 +156,7 @@ msgstr "सर्भरले असमर्थित एक्सटेन्�
 #: ../libsoup/soup-websocket.c:562
 #, c-format
 msgid "Server returned incorrect “%s” key"
-msgstr ""
+msgstr "सर्भरले गलत \"%s\" कुञ्जीलाई फर्कायो"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
