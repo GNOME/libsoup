@@ -44,9 +44,9 @@
  * > Host: localhost
  * > Content-Type: text/plain
  * > Connection: close
- * > 
+ * >
  * > This is a test.
- *   
+ *
  * &lt; HTTP/1.1 201 Created
  * &lt; Soup-Debug-Timestamp: 1200171744
  * &lt; Soup-Debug: SoupMessage 1 (0x617000)
@@ -289,7 +289,7 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
  * Returns: a new #SoupLogger
  **/
 SoupLogger *
-soup_logger_new (SoupLoggerLogLevel level, int max_body_size) 
+soup_logger_new (SoupLoggerLogLevel level, int max_body_size)
 {
 	return g_object_new (SOUP_TYPE_LOGGER,
 			     SOUP_LOGGER_LEVEL, level,
@@ -699,7 +699,7 @@ finished (SoupMessage *msg, gpointer user_data)
 	g_mutex_lock (&priv->lock);
 
 	print_response (logger, msg);
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
 	g_mutex_unlock (&priv->lock);
 }
@@ -714,7 +714,7 @@ got_informational (SoupMessage *msg, gpointer user_data)
 
 	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 	print_response (logger, msg);
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
 	if (msg->status_code == SOUP_STATUS_CONTINUE && msg->request_body->data) {
 		SoupLoggerLogLevel log_level;
@@ -733,7 +733,7 @@ got_informational (SoupMessage *msg, gpointer user_data)
 					   "%s", msg->request_body->data);
 		}
 
-		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
+		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 	}
 
 	g_mutex_unlock (&priv->lock);
@@ -749,7 +749,7 @@ got_body (SoupMessage *msg, gpointer user_data)
 
 	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 	print_response (logger, msg);
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
 	g_mutex_unlock (&priv->lock);
 }
@@ -781,7 +781,7 @@ starting (SoupMessage *msg, gpointer user_data)
 		soup_logger_set_id (logger, socket);
 
 	print_request (logger, msg, socket, restarted);
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 }
 
 static void
