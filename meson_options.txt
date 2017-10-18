@@ -33,3 +33,9 @@ option('enable-gnome',
   value : true,
   description : 'Build libsoup with GNOME support'
 )
+
+option('enable-introspection',
+  type : 'boolean',
+  value : true,
+  description : 'Build GObject Introspection data'
+)
