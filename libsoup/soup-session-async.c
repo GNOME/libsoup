@@ -18,16 +18,15 @@
 
 /**
  * SECTION:soup-session-async
- * @short_description: (Deprecated) SoupSession for asynchronous
- *   (main-loop-based) I/O.
+ * @short_description: SoupSession for asynchronous (main-loop-based) I/O
+ * (deprecated).
  *
  * #SoupSessionAsync is an implementation of #SoupSession that uses
  * non-blocking I/O via the glib main loop for all I/O.
  *
- * As of libsoup 2.42, this is deprecated in favor of the plain
- * #SoupSession class (which uses both asynchronous and synchronous
- * I/O, depending on the API used). See the <link
- * linkend="libsoup-session-porting">porting guide</link>.
+ * Deprecated: 2.42: Use the #SoupSession class (which uses both asynchronous
+ * and synchronous I/O, depending on the API used). See the
+ * <link linkend="libsoup-session-porting">porting guide</link>.
  **/
 
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS;

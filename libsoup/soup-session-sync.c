@@ -17,16 +17,15 @@
 
 /**
  * SECTION:soup-session-sync
- * @short_description: (Deprecated) SoupSession for blocking I/O in
- *   multithreaded programs.
+ * @short_description: SoupSession for blocking I/O in multithreaded programs
+ * (deprecated).
  *
  * #SoupSessionSync is an implementation of #SoupSession that uses
  * synchronous I/O, intended for use in multi-threaded programs.
  *
- * As of libsoup 2.42, this is deprecated in favor of the plain
- * #SoupSession class (which uses both asynchronous and synchronous
- * I/O, depending on the API used). See the <link
- * linkend="libsoup-session-porting">porting guide</link>.
+ * Deprecated: 2.42: Use the #SoupSession class (which uses both asynchronous
+ * and synchronous I/O, depending on the API used). See the
+ * <link linkend="libsoup-session-porting">porting guide</link>.
  **/
 
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
