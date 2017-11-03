@@ -196,7 +196,9 @@ libsoup_dep = declare_dependency(link_with : libsoup,
 
 if cdata.get('BUILD_LIBSOUP_GNOME')
   includedir = 'libsoup-gnome-@0@/libsoup'.format(apiversion)
-  install_headers(soup_gnome_headers, subdir : includedir)
+  install_headers(
+    soup_gnome_headers + ['soup-gnome.h', 'soup-gnome-features.h'],
+    subdir : includedir)
 
   libsoup_gnome = library('soup-gnome-@0@'.format(apiversion), soup_gnome_sources,
     version : libversion,
