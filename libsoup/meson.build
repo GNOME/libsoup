@@ -140,6 +140,12 @@ soup_gnome_headers = [
   'soup-password-manager-gnome.h'
 ]
 
+soup_gnome_include_headers = [
+  'soup-cookie-jar-sqlite.h',
+  'soup-gnome.h',
+  'soup-gnome-features.h'
+]
+
 includedir = 'libsoup-@0@/libsoup'.format(apiversion)
 install_headers(soup_headers, subdir : includedir)
 
@@ -338,21 +344,53 @@ if get_option('enable-introspection')
   gir_args = libsoup_c_args + [
     '-DLIBSOUP_USE_UNSTABLE_REQUEST_API',
     '--c-include=libsoup/soup.h'
-    ]
+  ]
 
-  soup_gir = gnome.generate_gir(libsoup,
-    sources : soup_introspection_sources + [ soupenum_h, soupenum_c ],
+  soup_gir_gen_sources = [gnome.generate_gir(libsoup,
+    sources : soup_introspection_sources + [soupenum_h, soupenum_c],
     nsversion : '2.4',
     namespace : 'Soup',
     symbol_prefix : 'soup_',
     identifier_prefix : 'Soup',
     export_packages : 'libsoup-2.4',
     extra_args : gir_args,
-    dependencies : deps,
-    includes : [
-      'Gio-2.0',
-    ],
-    link_with : libsoup,
+    dependencies : [deps, libsoup],
+    includes : ['Gio-2.0'],
     install : true,
-  )
+  )]
+
+  soup_gir_gen_dep = declare_dependency(link_with : libsoup,
+    include_directories : [configinc],
+    dependencies : deps,
+    sources : soup_gir_gen_sources)
+
+  if get_option('enable-gnome')
+    gir_gnome_args = libsoup_c_args + [
+      '--identifier-prefix=Soup',
+      '--symbol-prefix=soup',
+      '--c-include=libsoup/soup-gnome.h',
+      '--include-uninstalled=@0@/Soup-2.4.gir'.format(meson.current_build_dir())
+    ]
+
+    gnome.generate_gir(libsoup_gnome,
+      sources : [
+        soup_gnome_sources,
+        soupenum_c,
+        soupenum_h,
+        'soup-cookie-jar-sqlite.h',
+        'soup-gnome-features.h'
+      ],
+      nsversion : '2.4',
+      namespace : 'SoupGNOME',
+      symbol_prefix : 'soup_',
+      identifier_prefix : 'Soup',
+      export_packages : 'libsoup-gnome-2.4',
+      extra_args : gir_gnome_args,
+      dependencies : [deps, libsoup, libsoup_gnome, soup_gir_gen_dep],
+      includes : [
+        'Gio-2.0',
+      ],
+      install : true,
+    )
+  endif
 endif
