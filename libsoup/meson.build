@@ -215,7 +215,7 @@ if cdata.get('BUILD_LIBSOUP_GNOME')
     dependencies : deps + [libsoup_dep])
 endif
 
-if get_option('enable-introspection')
+if get_option('enable-introspection') or get_option('enable-vala')
   soup_introspection_sources = [
     'soup-address.c',
     'soup-address.h',
@@ -364,6 +364,14 @@ if get_option('enable-introspection')
     dependencies : deps,
     sources : soup_gir_gen_sources)
 
+  if get_option('enable-vala')
+    gnome.generate_vapi('libsoup-2.4',
+      sources : [soup_gir_gen_sources[0][0]],
+      packages : ['gio-2.0'],
+      install : true,
+    )
+  endif
+
   if get_option('enable-gnome')
     gir_gnome_args = libsoup_c_args + [
       '--identifier-prefix=Soup',
@@ -387,9 +395,7 @@ if get_option('enable-introspection')
       export_packages : 'libsoup-gnome-2.4',
       extra_args : gir_gnome_args,
       dependencies : [deps, libsoup, libsoup_gnome, soup_gir_gen_dep],
-      includes : [
-        'Gio-2.0',
-      ],
+      includes : ['Gio-2.0'],
       install : true,
     )
   endif

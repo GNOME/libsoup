@@ -39,3 +39,9 @@ option('enable-introspection',
   value : true,
   description : 'Build GObject Introspection data'
 )
+
+option('enable-vala',
+  type : 'boolean',
+  value : false,
+  description : 'Build Vala bindings'
+)
