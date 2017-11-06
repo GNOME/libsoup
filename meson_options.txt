@@ -45,3 +45,9 @@ option('enable-vala',
   value : false,
   description : 'Build Vala bindings'
 )
+
+option('enable-gtk-doc',
+  type: 'boolean',
+  value: false,
+  description: 'Enable generating the API reference'
+)
