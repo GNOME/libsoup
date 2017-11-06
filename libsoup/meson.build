@@ -188,7 +188,7 @@ deps = [
 ]
 
 libsoup = library('soup-@0@'.format(apiversion), soup_sources,
-  soupenum_h, soupenum_c, tlddata,
+  soup_enums, tlddata,
   version : libversion,
   soversion : soversion,
   c_args : libsoup_c_args,
@@ -198,7 +198,8 @@ libsoup = library('soup-@0@'.format(apiversion), soup_sources,
 )
 
 libsoup_dep = declare_dependency(link_with : libsoup,
-  include_directories : configinc)
+  include_directories : configinc,
+  sources : soup_enums)
 
 if cdata.get('BUILD_LIBSOUP_GNOME')
   includedir = 'libsoup-gnome-@0@/libsoup'.format(apiversion)
@@ -212,7 +213,7 @@ if cdata.get('BUILD_LIBSOUP_GNOME')
     c_args : libsoup_c_args,
     include_directories : [configinc],
     install : true,
-    dependencies : deps + [libsoup_dep])
+    dependencies : [deps, libsoup_dep])
 endif
 
 if get_option('enable-introspection') or get_option('enable-vala')
