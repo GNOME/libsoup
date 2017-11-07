@@ -54,7 +54,7 @@ scan_args = [
   '--ignore-decorators="SOUP_DEPRECATED\w*\s*\([^)]*\)|SOUP_DEPRECATED\w*|SOUP_AVAILABLE\w*"'
 ]
 
-gnome.gtkdoc('libsoup',
+gnome.gtkdoc('libsoup-2.4',
   main_sgml : 'libsoup-2.4-docs.sgml',
   src_dir : join_paths(meson.source_root(), 'libsoup'),
   ignore_headers : ignore_headers,
