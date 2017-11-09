@@ -157,3 +157,10 @@ xmlrpc_test = executable('ntlm-test-helper', 'ntlm-test-helper.c',
 configure_file(output : 'httpd.conf',
   input : 'httpd.conf.in',
   configuration : cdata)
+
+gnome.compile_resources('soup-tests',
+  'soup-tests.gresource.xml',
+  gresource_bundle : true,
+  install : true,
+  install_dir : meson.current_build_dir() + '/tests',
+  source_dir : '.')
