@@ -18,15 +18,15 @@ test_programs =			\
 	context-test		\
 	continue-test		\
 	cookies-test		\
-	date			\
+	date-test		\
 	forms-test		\
-	header-parsing		\
+	header-parsing-test	\
 	misc-test		\
 	multipart-test		\
 	no-ssl-test		\
 	ntlm-test		\
 	proxy-test		\
-	pull-api		\
+	pull-api-test		\
 	range-test		\
 	redirect-test		\
 	requester-test		\
@@ -40,7 +40,7 @@ test_programs =			\
 	streaming-test		\
 	timeout-test		\
 	tld-test		\
-	uri-parsing		\
+	uri-parsing-test	\
 	websocket-test		\
 	xmlrpc-old-server-test	\
 	xmlrpc-old-test		\
