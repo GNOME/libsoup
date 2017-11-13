@@ -102,7 +102,7 @@ if have_apache
     endif
   endif
   cdata.set('IF_HAVE_PHP', have_php ? '' : '#')
-  apache_mod_unixd = run_command('test', '-d', cdata.get('APACHE_MODULE_DIR') + 'mod_unixd.so')
+  apache_mod_unixd = run_command('test', '-f', cdata.get('APACHE_MODULE_DIR') + '/mod_unixd.so')
   cdata.set('IF_HAVE_MOD_UNIXD', apache_mod_unixd.returncode() == 0 ? '' : '#')
 endif
 
