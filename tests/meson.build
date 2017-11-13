@@ -1,4 +1,4 @@
-libtest = library('libtest', 'test-utils.c', 'test-utils.h',
+test_utils = library('test-utils', 'test-utils.c', 'test-utils.h',
   install : false,
   c_args : '-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'),
   dependencies : [glib_dep, libsoup_dep])
@@ -45,7 +45,7 @@ tests = [
 
 foreach test: tests
     auth_test = executable('@0@-test'.format(test), '@0@-test.c'.format(test),
-      link_with: libtest,
+      link_with: test_utils,
       dependencies : [glib_dep, libsoup_dep])
 endforeach
 
