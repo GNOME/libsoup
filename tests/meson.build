@@ -43,10 +43,20 @@ tests = [
   'xmlrpc'
 ]
 
+env = environment()
+env.set('G_TEST_SRCDIR', meson.current_source_dir())
+env.set('G_TEST_BUILDDIR', meson.current_build_dir())
+env.set('G_DEBUG', 'gc-friendly')
+env.set('MALLOC_CHECK_', '2')
+# This is set by Meson if empty
+env.set('MALLOC_PERTURB_', '')
+
 foreach test: tests
-    auth_test = executable('@0@-test'.format(test), '@0@-test.c'.format(test),
-      link_with: test_utils,
-      dependencies : [glib_dep, libsoup_dep])
+  test_name = '@0@-test'.format(test)
+  test_target = executable(test_name, test_name + '.c',
+    link_with: test_utils,
+    dependencies : [glib_dep, libsoup_dep])
+  test(test_name, test_target, env : env)
 endforeach
 
 executable('ntlm-test-helper', 'ntlm-test-helper.c',
@@ -55,6 +65,15 @@ executable('ntlm-test-helper', 'ntlm-test-helper.c',
 configure_file(output : 'httpd.conf',
   input : 'httpd.conf.in',
   configuration : cdata)
+
+# There is not copy_file() in Meson and this is official workaroud as per
+# https://github.com/mesonbuild/meson/issues/860
+configure_file(input : 'test-cert.pem',
+  output : 'test-cert.pem',
+  configuration : configuration_data())
+configure_file(input : 'test-key.pem',
+  output : 'test-key.pem',
+  configuration : configuration_data())
 
 gnome.compile_resources('soup-tests',
   'soup-tests.gresource.xml',
