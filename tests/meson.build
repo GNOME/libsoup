@@ -68,11 +68,23 @@ configure_file(output : 'httpd.conf',
 
 # There is not copy_file() in Meson and this is official workaroud as per
 # https://github.com/mesonbuild/meson/issues/860
+configure_file(input : 'htdigest',
+  output : 'htdigest',
+  configuration : configuration_data())
+configure_file(input : 'htpasswd',
+  output : 'htpasswd',
+  configuration : configuration_data())
+configure_file(input : 'index.txt',
+  output : 'index.txt',
+  configuration : configuration_data())
 configure_file(input : 'test-cert.pem',
   output : 'test-cert.pem',
   configuration : configuration_data())
 configure_file(input : 'test-key.pem',
   output : 'test-key.pem',
+  configuration : configuration_data())
+configure_file(input : 'xmlrpc-server.php',
+  output : 'xmlrpc-server.php',
   configuration : configuration_data())
 
 gnome.compile_resources('soup-tests',
