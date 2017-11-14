@@ -157,8 +157,8 @@ if host_machine.system() != 'windows'
     ntlm_auth = find_program(ntlm_auth_path, required : false)
 
     if ntlm_auth.found()
-        add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
-        add_project_arguments('-DNTLM_AUTH=' + ntlm_auth.path(), language : 'c')
+      add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
+      add_project_arguments('-DNTLM_AUTH=' + ntlm_auth.path(), language : 'c')
     endif
   endif
 endif
@@ -192,15 +192,15 @@ pkgconf.set('VERSION', soup_version)
 pkg_install_dir = '@0@/pkgconfig'.format(get_option('libdir'))
 
 configure_file(output : 'libsoup-2.4.pc',
-    input : 'libsoup-2.4.pc.in',
-    configuration : pkgconf,
-    install_dir : pkg_install_dir)
+  input : 'libsoup-2.4.pc.in',
+  configuration : pkgconf,
+  install_dir : pkg_install_dir)
 
 if enable_gnome
   configure_file(output : 'libsoup-gnome-2.4.pc',
-      input : 'libsoup-gnome-2.4.pc.in',
-      configuration : pkgconf,
-      install_dir : pkg_install_dir)
+    input : 'libsoup-gnome-2.4.pc.in',
+    configuration : pkgconf,
+    install_dir : pkg_install_dir)
 endif
 
 subdir('libsoup')
