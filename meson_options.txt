@@ -51,3 +51,9 @@ option('enable-gtk-doc',
   value: false,
   description: 'Enable generating the API reference'
 )
+
+option('enable-tests',
+  type: 'boolean',
+  value: true,
+  description: 'Enable unit tests compilation'
+)

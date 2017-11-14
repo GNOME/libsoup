@@ -205,7 +205,10 @@ endif
 
 subdir('libsoup')
 subdir('examples')
-subdir('tests')
+
+if get_option('enable-tests')
+  subdir('tests')
+ endif
 
 if get_option('enable-gtk-doc')
   subdir('docs/reference')
