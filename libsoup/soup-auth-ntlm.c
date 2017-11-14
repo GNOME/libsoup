@@ -332,6 +332,11 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	if (conn->state == SOUP_NTLM_NEW && !auth_header[4])
 		return TRUE;
 
+	if (!auth_header[4] || !auth_header[5]) {
+		conn->state = SOUP_NTLM_FAILED;
+		return FALSE;
+	}
+
 	if (!soup_ntlm_parse_challenge (auth_header + 5, &conn->nonce,
 					priv->domain ? NULL : &priv->domain,
 					&conn->ntlmv2_session)) {
