@@ -3,44 +3,45 @@ test_utils = library('test-utils', 'test-utils.c', 'test-utils.h',
   c_args : '-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'),
   dependencies : [glib_dep, libsoup_dep])
 
+# ['name', is_parallel]
 tests = [
-  'auth',
-  'cache',
-  'chunk',
-  'chunk-io',
-  'coding',
-  'connection',
-  'context',
-  'continue',
-  'cookies',
-  'date',
-  'forms',
-  'header-parsing',
-  'misc',
-  'multipart',
-  'no-ssl',
-  'ntlm',
-  'proxy',
-  'pull-api',
-  'range',
-  'redirect',
-  'requester',
-  'resource',
-  'session',
-  'server-auth',
-  'server',
-  'sniffing',
-  'socket',
-  'ssl',
-  'streaming',
-  'timeout',
-  'tld',
-  'uri-parsing',
-  'websocket',
-  'xmlrpc-old-server',
-  'xmlrpc-old',
-  'xmlrpc-server',
-  'xmlrpc'
+  ['auth', false],
+  ['cache', true],
+  ['chunk', true],
+  ['chunk-io', true],
+  ['coding', true],
+  ['connection', false],
+  ['context', true],
+  ['continue', true],
+  ['cookies', true],
+  ['date', true],
+  ['forms', true],
+  ['header-parsing', true],
+  ['misc', true],
+  ['multipart', true],
+  ['no-ssl', true],
+  ['ntlm', true],
+  ['proxy', true],
+  ['pull-api', false],
+  ['range', false],
+  ['redirect', true],
+  ['requester', true],
+  ['resource', true],
+  ['session', true],
+  ['server-auth', true],
+  ['server', true],
+  ['sniffing', true],
+  ['socket', true],
+  ['ssl', true],
+  ['streaming', true],
+  ['timeout', true],
+  ['tld', true],
+  ['uri-parsing', true],
+  ['websocket', true],
+  ['xmlrpc-old-server', true],
+  ['xmlrpc-old', false],
+  ['xmlrpc-server', true],
+  ['xmlrpc', false]
 ]
 
 env = environment()
@@ -52,11 +53,11 @@ env.set('MALLOC_CHECK_', '2')
 env.set('MALLOC_PERTURB_', '')
 
 foreach test: tests
-  test_name = '@0@-test'.format(test)
+  test_name = '@0@-test'.format(test[0])
   test_target = executable(test_name, test_name + '.c',
     link_with: test_utils,
     dependencies : [glib_dep, libsoup_dep])
-  test(test_name, test_target, env : env)
+  test(test_name, test_target, env : env, is_parallel : test[1])
 endforeach
 
 executable('ntlm-test-helper', 'ntlm-test-helper.c',
