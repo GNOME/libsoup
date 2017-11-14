@@ -431,7 +431,7 @@ server_handler (SoupServer        *server,
 int
 main (int argc, char **argv)
 {
-	SoupServer *server;
+	SoupServer *server = NULL;
 	int i, ret;
 	GError *error = NULL;
 
