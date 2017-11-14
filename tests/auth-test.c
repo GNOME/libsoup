@@ -1132,7 +1132,8 @@ do_disappearing_auth_test (void)
 	SoupSession *session;
 	int counter;
 
-	g_test_bug ("https://bugzilla.redhat.com/show_bug.cgi?id=916224");
+	g_test_bug_base ("https://bugzilla.redhat.com/");
+	g_test_bug ("916224");
 
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL,

@@ -314,7 +314,8 @@ do_temporary_test (void)
 	char *client_md5;
 	const char *server_md5;
 
-	g_test_bug ("https://bugs.webkit.org/show_bug.cgi?id=18343");
+	g_test_bug_base ("https://bugs.webkit.org/");
+	g_test_bug ("18343");
 
 	msg = soup_message_new_from_uri ("PUT", base_uri);
 	soup_message_body_append (msg->request_body, SOUP_MEMORY_TEMPORARY,
