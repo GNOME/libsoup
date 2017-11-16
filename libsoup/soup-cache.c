@@ -928,7 +928,7 @@ soup_cache_finalize (GObject *object)
 
 	priv = SOUP_CACHE (object)->priv;
 
-	// Cannot use g_hash_table_foreach as callbacks must not modify the hash table
+	/* Cannot use g_hash_table_foreach as callbacks must not modify the hash table */
 	entries = g_hash_table_get_values (priv->cache);
 	g_list_foreach (entries, remove_cache_item, object);
 	g_list_free (entries);
@@ -1338,7 +1338,7 @@ soup_cache_clear (SoupCache *cache)
 	g_return_if_fail (SOUP_IS_CACHE (cache));
 	g_return_if_fail (cache->priv->cache);
 
-	// Cannot use g_hash_table_foreach as callbacks must not modify the hash table
+	/* Cannot use g_hash_table_foreach as callbacks must not modify the hash table */
 	entries = g_hash_table_get_values (cache->priv->cache);
 	g_list_foreach (entries, clear_cache_item, cache);
 	g_list_free (entries);

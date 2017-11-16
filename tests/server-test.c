@@ -365,7 +365,7 @@ multi_server_callback (SoupServer *server, SoupMessage *msg,
 
 	g_assert_cmpint (g_inet_socket_address_get_port (iaddr), ==, uri->port);
 
-	// FIXME ssl
+	/* FIXME ssl */
 
 	soup_message_set_response (msg, "text/plain",
 				   SOUP_MEMORY_TAKE, uristr, strlen (uristr));
