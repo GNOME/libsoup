@@ -5,6 +5,7 @@ project('libsoup', 'c',
         default_options : ['warning_level=1', 'c_std=c89'])
 
 gnome = import('gnome')
+i18n = import('i18n')
 cc = meson.get_compiler('c')
 
 soup_version = meson.project_version()
@@ -205,6 +206,7 @@ if enable_gnome
 endif
 
 subdir('libsoup')
+subdir('po')
 subdir('examples')
 
 if get_option('enable-tests')
