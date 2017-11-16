@@ -1,7 +1,8 @@
 project('libsoup', 'c',
         version: '2.60.2',
         meson_version : '>=0.40.1',
-        license : 'LGPL')
+        license : 'LGPL',
+        default_options : ['warning_level=1', 'c_std=c89'])
 
 gnome = import('gnome')
 cc = meson.get_compiler('c')
