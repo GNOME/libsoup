@@ -46,7 +46,7 @@ int main(void) {
 }
 '''
 
-enable_tls_check = get_option('enable-tls-check')
+enable_tls_check = get_option('tls_check')
 if enable_tls_check
   if not cc.compiles(check_glib_networking_src, name : 'glib-networking supports TLS', dependencies : glib_dep)
     error('libsoup requires glib-networking for TLS support')
@@ -115,8 +115,8 @@ endif
 ##################
 # GSSAPI support #
 ##################
-enable_gssapi = get_option('enable-gssapi')
-krb5_config_option = get_option('krb5-config')
+enable_gssapi = get_option('gssapi')
+krb5_config_option = get_option('krb5_config')
 if enable_gssapi
   krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
   krb5_config = find_program(krb5_config_path, required : false)
@@ -152,9 +152,9 @@ endif
 ################
 # NTLM not supported on Windows
 if host_machine.system() != 'windows'
-  enable_ntlm = get_option('enable-ntlm')
+  enable_ntlm = get_option('ntlm')
   if enable_ntlm
-    ntlm_auth_option = get_option('ntlm-auth')
+    ntlm_auth_option = get_option('ntlm_auth')
     ntlm_auth_path = ntlm_auth_option != '' ? ntlm_auth_option : 'ntlm_auth'
     ntlm_auth = find_program(ntlm_auth_path, required : false)
 
@@ -168,7 +168,7 @@ endif
 #################
 # GNOME support #
 #################
-enable_gnome = get_option('enable-gnome')
+enable_gnome = get_option('gnome')
 if host_machine.system() == 'windows'
   enable_gnome = false
 endif
@@ -209,10 +209,10 @@ subdir('libsoup')
 subdir('po')
 subdir('examples')
 
-if get_option('enable-tests')
+if get_option('tests')
   subdir('tests')
  endif
 
-if get_option('enable-gtk-doc')
+if get_option('doc')
   subdir('docs/reference')
 endif
