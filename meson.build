@@ -20,6 +20,10 @@ soversion = '0'
 
 host_system = host_machine.system()
 
+if cc.get_id() == 'msvc'
+  add_project_arguments('/FImsvc_recommended_pragmas.h', language : 'c')
+endif
+
 glib_dep = [dependency('glib-2.0', version : '>=2.38'),
             dependency('gobject-2.0', version : '>=2.38'),
             dependency('gio-2.0', version : '>=2.38')]
