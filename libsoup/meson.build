@@ -201,7 +201,7 @@ libsoup_dep = declare_dependency(link_with : libsoup,
   include_directories : configinc,
   sources : soup_enums)
 
-if cdata.get('BUILD_LIBSOUP_GNOME')
+if enable_gnome
   includedir = 'libsoup-gnome-@0@/libsoup'.format(apiversion)
   install_headers(
     soup_gnome_headers + ['soup-gnome.h', 'soup-gnome-features.h'],
@@ -373,7 +373,7 @@ if get_option('introspection') or get_option('vapi')
     )
   endif
 
-  if get_option('gnome')
+  if enable_gnome
     gir_gnome_args = libsoup_c_args + [
       '--identifier-prefix=Soup',
       '--symbol-prefix=soup',
