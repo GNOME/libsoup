@@ -28,9 +28,27 @@ glib_dep = [dependency('glib-2.0', version : '>=2.38'),
             dependency('gobject-2.0', version : '>=2.38'),
             dependency('gio-2.0', version : '>=2.38')]
 
-sqlite_dep = [dependency('sqlite3')]
+sqlite_dep = dependency('sqlite3', required: cc.get_id() != 'msvc')
 
-libxml_dep = [dependency('libxml-2.0')]
+# Fallback check for sqlite on Visual Studio, which normally does not
+# generate a pkg-config file upon a successful build
+if not sqlite_dep.found()
+  cc.has_header('sqlite3.h')
+  cc.has_header('sqlite3ext.h')
+  sqlite_dep = cc.find_library('sqlite3')
+endif
+
+libxml_dep = dependency('libxml-2.0', required: cc.get_id() != 'msvc')
+
+
+# Fallback check for libxml2 on Visual Studio, which normally does not
+# generate a pkg-config file upon a successful build
+if not libxml_dep.found()
+  # Note: The XML include dir needs to be within the INCLUDE envvar,
+  # such as <INCLUDEDIR>\libxml2
+  cc.has_header('libxml/tree.h')
+  libxml2_dep = cc.find_library('libxml2')
+endif
 
 cdata = configuration_data()
 
