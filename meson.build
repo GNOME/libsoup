@@ -140,28 +140,45 @@ endif
 enable_gssapi = get_option('gssapi')
 krb5_config_option = get_option('krb5_config')
 if enable_gssapi
-  krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
-  krb5_config = find_program(krb5_config_path, required : false)
-
-  if krb5_config.found()
-    krb5_config_output = run_command (krb5_config, '--libs', 'gssapi')
-    if krb5_config_output.returncode() == 0
-      add_project_link_arguments(krb5_config_output.stdout().split(), language : 'c')
+  if cc.get_id() == 'msvc'
+    if host_machine.cpu_family() == 'x86'
+      gssapi_lib_type = '32'
     else
-      error('Failed to obtain cflags for GSSAPI from krb5-config')
-      enable_gssapi = false
+      gssapi_lib_type = '64'
     endif
-
-    krb5_config_output = run_command (krb5_config, '--cflags', 'gssapi')
-    if krb5_config_output.returncode() == 0
-      add_project_arguments(krb5_config_output.stdout().split(), language : 'c')
+    gssapi_header = cc.has_header('gssapi/gssapi.h', required: false)
+    if gssapi_header
+      gssapi_lib = cc.find_library('gssapi@0@'.format(gssapi_lib_type), required: false)
+    endif
+    if gssapi_header and gssapi_lib.found()
+      add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
     else
-      error('Failed to obtain cflags for GSSAPI from krb5-config')
-      enable_gssapi = false
+      error('GSSAPI support requested, but the MIT Keberos 5 headers and libraries are not found')
     endif
   else
-    error('GSSAPI support requested, but krb5-config not found. Please specify its path with -Dkrb5-config=PATH')
-    enable_gssapi = false
+    krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
+    krb5_config = find_program(krb5_config_path, required : false)
+
+    if krb5_config.found()
+      krb5_config_output = run_command (krb5_config, '--libs', 'gssapi')
+      if krb5_config_output.returncode() == 0
+        add_project_link_arguments(krb5_config_output.stdout().split(), language : 'c')
+      else
+        error('Failed to obtain cflags for GSSAPI from krb5-config')
+        enable_gssapi = false
+      endif
+
+      krb5_config_output = run_command (krb5_config, '--cflags', 'gssapi')
+      if krb5_config_output.returncode() == 0
+        add_project_arguments(krb5_config_output.stdout().split(), language : 'c')
+      else
+        error('Failed to obtain cflags for GSSAPI from krb5-config')
+        enable_gssapi = false
+      endif
+    else
+      error('GSSAPI support requested, but krb5-config not found. Please specify its path with -Dkrb5-config=PATH')
+      enable_gssapi = false
+    endif
   endif
 
   if enable_gssapi
