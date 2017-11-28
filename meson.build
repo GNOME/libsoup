@@ -60,9 +60,9 @@ if host_machine.system() == 'windows'
 endif
 
 ###################
-# glib-networking #
+# GIO TLS support #
 ###################
-check_glib_networking_src = '''#include <gio/gio.h>
+check_gio_tls_src = '''#include <gio/gio.h>
 int main(void) {
   return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
 }
@@ -70,8 +70,8 @@ int main(void) {
 
 enable_tls_check = get_option('tls_check')
 if enable_tls_check
-  if not cc.compiles(check_glib_networking_src, name : 'glib-networking supports TLS', dependencies : glib_dep)
-    error('libsoup requires glib-networking for TLS support')
+  if not cc.compiles(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_dep)
+    error('libsoup requires glib-networking or glib-openssl for TLS support')
   endif
 endif
 
