@@ -855,7 +855,7 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 		soup_cache_entry_remove (cache, entry, TRUE);
 
 	request_time = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "request-time"));
-	response_time = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "request-time"));
+	response_time = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "response-time"));
 	entry = soup_cache_entry_new (cache, msg, request_time, response_time);
 	entry->hits = 1;
 	entry->dirty = TRUE;
