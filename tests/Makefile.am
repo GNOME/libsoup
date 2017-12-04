@@ -88,6 +88,7 @@ EXTRA_DIST +=			 \
 	test-cert.pem		 \
 	test-key.pem		 \
 	xmlrpc-server.php	 \
+	meson.build		 \
 	$(RESOURCES)
 
 DISTCLEANFILES += soup-tests.gresource httpd.conf

@@ -328,6 +328,8 @@ CLEANFILES+= $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
 
 endif
 
+EXTRA_DIST += meson.build soup-enum-types.h.template soup-enum-types.c.template
+
 # ------ MSVC Project File Generation ------
 MSVCPROJS = soup soup-gnome
 

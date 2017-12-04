@@ -8,6 +8,8 @@ LIBS =			\
 	$(top_builddir)/libsoup/libsoup-2.4.la \
 	$(GLIB_LIBS)
 
+EXTRA_DIST = meson.build
+
 noinst_PROGRAMS =		\
 	get			\
 	simple-httpd		\

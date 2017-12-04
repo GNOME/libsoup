@@ -12,6 +12,9 @@ EXTRA_DIST =				\
 	tap-driver.sh			\
 	tap-test			\
 	Makefile.glib			\
+	meson.build			\
+	meson_options.txt		\
+	get_apache_module_dirs.py	\
 	config.h.win32
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection --disable-vala

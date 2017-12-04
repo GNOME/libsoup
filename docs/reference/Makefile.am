@@ -84,3 +84,5 @@ $(srcdir)/tmpl/*.sgml:
 
 clean: clean-am
 	rm -rf tmpl
+
+EXTRA_DIST += meson.build
