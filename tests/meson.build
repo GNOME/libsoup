@@ -1,7 +1,10 @@
 test_utils = library('test-utils', 'test-utils.c', 'test-utils.h',
   install : false,
-  c_args : '-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'),
   dependencies : [glib_dep, libsoup_dep])
+
+if apache_httpd2.found()
+  add_project_arguments('-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'), language : 'c')
+endif
 
 # ['name', is_parallel]
 tests = [
