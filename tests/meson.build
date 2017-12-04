@@ -1,6 +1,12 @@
-test_utils = library('test-utils', 'test-utils.c', 'test-utils.h',
-  install : false,
-  dependencies : [glib_dep, libsoup_dep])
+if cc.get_id() == 'msvc'
+  test_utils = static_library('test-utils', 'test-utils.c', 'test-utils.h',
+    install : false,
+    dependencies : [glib_dep, libsoup_dep])
+else
+  test_utils = library('test-utils', 'test-utils.c', 'test-utils.h',
+    install : false,
+    dependencies : [glib_dep, libsoup_dep])
+endif
 
 if apache_httpd2.found()
   add_project_arguments('-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'), language : 'c')
@@ -59,7 +65,7 @@ foreach test: tests
   test_name = '@0@-test'.format(test[0])
   test_target = executable(test_name, test_name + '.c',
     link_with: test_utils,
-    dependencies : [glib_dep, libsoup_dep])
+    dependencies : [glib_dep, libsoup_dep, platform_deps])
   test(test_name, test_target, env : env, is_parallel : test[1])
 endforeach
 
