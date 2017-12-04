@@ -10,6 +10,10 @@
 #include <fcntl.h>
 #include <gio/gnetworking.h>
 
+#ifdef G_OS_WIN32
+#include <io.h>
+#endif
+
 static void
 do_unconnected_socket_test (void)
 {

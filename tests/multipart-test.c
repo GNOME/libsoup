@@ -6,9 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "test-utils.h"
+
+#ifndef G_OS_WIN32
+#include <unistd.h>
+#endif
 
 #define READ_BUFFER_SIZE 8192
 

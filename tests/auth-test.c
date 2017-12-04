@@ -5,6 +5,13 @@
 static const char *base_uri;
 static GMainLoop *loop;
 
+#if defined (G_OS_WIN32) && defined (_MSC_VER)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#define sleep(x) Sleep (x * 1000)
+#endif
+
 typedef struct {
 	/* Explanation of what you should see */
 	const char *explanation;
