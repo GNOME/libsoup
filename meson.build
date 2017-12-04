@@ -106,6 +106,7 @@ if have_apache
     if apache_module_dir != '' and apache_ssl_module_dir != ''
       have_apache = true
       add_project_arguments('-DHAVE_APACHE=1', language : 'c')
+      add_project_arguments('-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'), language : 'c')
     endif
     cdata.set('APACHE_PHP_MODULE_DIR', apache_modules.stdout().split(':')[2])
   endif

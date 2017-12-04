@@ -8,10 +8,6 @@ else
     dependencies : [glib_dep, libsoup_dep])
 endif
 
-if apache_httpd2.found()
-  add_project_arguments('-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'), language : 'c')
-endif
-
 # ['name', is_parallel]
 tests = [
   ['auth', false],
