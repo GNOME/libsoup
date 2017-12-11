@@ -1,3 +1,16 @@
+Changes in libsoup from 2.60.2 to 2.61.1:
+
+	* tld-parser: use Python 3 [#785735, Ross Burton]
+
+	* Fix heap-buffer-overflow in soup_ntlm_parse_challenge()
+	  [#788037, Milan Crha]
+
+	* Fix possibly uninitialized value in ssl-test
+	  [Tomas Popela]
+
+	* SoupCache: fix the timestamp for responses [#791031,
+	  Claudio Saavedra]
+
 Changes in libsoup from 2.60.1 to 2.60.2:
 
 	* Fix documentation typos [#788920, Nirbheek Chauhan]
