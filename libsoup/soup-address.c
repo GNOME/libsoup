@@ -1246,7 +1246,7 @@ soup_address_connectable_enumerate (GSocketConnectable *connectable)
 	SoupAddressPrivate *priv;
 
 	addr_enum = g_object_new (SOUP_TYPE_ADDRESS_ADDRESS_ENUMERATOR, NULL);
-	addr_enum->addr = g_object_ref (connectable);
+	addr_enum->addr = g_object_ref (SOUP_ADDRESS (connectable));
 
 	priv = soup_address_get_instance_private (addr_enum->addr);
 	addr_enum->orig_offset = priv->offset;

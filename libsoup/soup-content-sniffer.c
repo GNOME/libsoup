@@ -854,7 +854,7 @@ soup_content_sniffer_request_queued (SoupSessionFeature *feature,
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	priv->sniffer = g_object_ref (feature);
+	priv->sniffer = g_object_ref (SOUP_CONTENT_SNIFFER (feature));
 	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (soup_content_sniffer_got_headers_cb),
 			  feature);
