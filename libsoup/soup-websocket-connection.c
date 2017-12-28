@@ -611,10 +611,14 @@ receive_close (SoupWebsocketConnection *self,
 	if (len > 2) {
 		data += 2;
 		len -= 2;
-		if (g_utf8_validate ((char *)data, len, NULL))
-			pv->peer_close_data = g_strndup ((char *)data, len);
-		else
+		
+		if (!g_utf8_validate ((char *)data, len, NULL)) {
 			g_debug ("received non-UTF8 close data: %d '%.*s' %d", (int)len, (int)len, (char *)data, (int)data[0]);
+			protocol_error_and_close (self);
+			return;
+		}
+
+		pv->peer_close_data = g_strndup ((char *)data, len);
 	}
 
 	/* Once we receive close response on server, close immediately */
