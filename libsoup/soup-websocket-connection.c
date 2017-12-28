@@ -578,7 +578,11 @@ close_connection (SoupWebsocketConnection *self,
 		}
 		break;
 	default:
-		g_debug ("Wrong closing code %d received", code);
+		if (code < 3000) {
+			g_debug ("Wrong closing code %d received", code);
+			protocol_error_and_close (self);
+			return;
+		}
 	}
 
 	g_signal_emit (self, signals[CLOSING], 0);
@@ -605,10 +609,21 @@ receive_close (SoupWebsocketConnection *self,
 	pv->peer_close_data = NULL;
 	pv->close_received = TRUE;
 
-	/* Store the code/data payload */
-	if (len >= 2) {
+	switch (len) {
+	case 0:
+		/* Send a clean close when having an empty payload */
+		close_connection (self, 1000, NULL);
+		return;
+	case 1:
+		/* Send a protocol error since the close code is incomplete */
+		protocol_error_and_close (self);
+		return;
+	default:
+		/* Store the code/data payload */
 		pv->peer_close_code = (guint16)data[0] << 8 | data[1];
+		break;
 	}
+
 	if (len > 2) {
 		data += 2;
 		len -= 2;
