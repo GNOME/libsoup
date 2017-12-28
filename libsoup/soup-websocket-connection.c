@@ -761,18 +761,6 @@ process_contents (SoupWebsocketConnection *self,
 
 		switch (pv->message_opcode) {
 		case 0x01:
-			if (!g_utf8_validate ((char *)payload, payload_len, NULL)) {
-				g_debug ("received invalid non-UTF8 text data");
-
-				/* Discard the entire message */
-				g_byte_array_unref (pv->message_data);
-				pv->message_data = NULL;
-				pv->message_opcode = 0;
-
-				bad_data_error_and_close (self);
-				return;
-			}
-			/* fall through */
 		case 0x02:
 			g_byte_array_append (pv->message_data, payload, payload_len);
 			break;
@@ -784,6 +772,22 @@ process_contents (SoupWebsocketConnection *self,
 
 		/* Actually deliver the message? */
 		if (fin) {
+			if (pv->message_opcode == 0x01 &&
+			    !g_utf8_validate((char *)pv->message_data->data,
+			                     pv->message_data->len,
+			                     NULL)) {
+
+				g_debug ("received invalid non-UTF8 text data");
+
+				/* Discard the entire message */
+				g_byte_array_unref (pv->message_data);
+				pv->message_data = NULL;
+				pv->message_opcode = 0;
+
+				bad_data_error_and_close (self);
+				return;
+			}
+
 			/* Always null terminate, as a convenience */
 			g_byte_array_append (pv->message_data, (guchar *)"\0", 1);
 
