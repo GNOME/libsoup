@@ -804,6 +804,11 @@ process_frame (SoupWebsocketConnection *self)
 	opcode = header[0] & 0x0f;
 	masked = ((header[1] & 0x80) != 0);
 
+	/* We do not support extensions, reserved bits must be 0 */
+	if (header[0] & 0x70) {
+		protocol_error_and_close (self);
+	}
+
 	switch (header[1] & 0x7f) {
 	case 126:
 		at = 4;
