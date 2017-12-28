@@ -627,7 +627,7 @@ receive_close (SoupWebsocketConnection *self,
 		if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER)
 			close_io_stream (self);
 	} else {
-		close_connection (self, pv->peer_close_code, NULL);
+		close_connection (self, pv->peer_close_code, pv->peer_close_data);
 	}
 }
 
