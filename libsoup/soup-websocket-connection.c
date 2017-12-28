@@ -96,11 +96,17 @@ enum {
 
 static guint signals[NUM_SIGNALS] = { 0, };
 
+typedef enum {
+	SOUP_WEBSOCKET_QUEUE_NORMAL = 0,
+	SOUP_WEBSOCKET_QUEUE_URGENT = 1 << 0,
+	SOUP_WEBSOCKET_QUEUE_LAST = 1 << 1,
+} SoupWebsocketQueueFlags;
+
 typedef struct {
 	GBytes *data;
-	gboolean last;
 	gsize sent;
 	gsize amount;
+	SoupWebsocketQueueFlags flags;
 } Frame;
 
 struct _SoupWebsocketConnectionPrivate {
@@ -142,12 +148,6 @@ struct _SoupWebsocketConnectionPrivate {
 #define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupWebsocketConnection, soup_websocket_connection, G_TYPE_OBJECT)
-
-typedef enum {
-	SOUP_WEBSOCKET_QUEUE_NORMAL = 0,
-	SOUP_WEBSOCKET_QUEUE_URGENT = 1 << 0,
-	SOUP_WEBSOCKET_QUEUE_LAST = 1 << 1,
-} SoupWebsocketQueueFlags;
 
 static void queue_frame (SoupWebsocketConnection *self, SoupWebsocketQueueFlags flags,
 			 gpointer data, gsize len, gsize amount);
@@ -982,7 +982,7 @@ on_web_socket_output (GObject *pollable_stream,
 		g_debug ("sent frame");
 		g_queue_pop_head (&pv->outgoing);
 
-		if (frame->last) {
+		if (frame->flags & SOUP_WEBSOCKET_QUEUE_LAST) {
 			if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER) {
 				close_io_stream (self);
 			} else {
@@ -1019,7 +1019,6 @@ queue_frame (SoupWebsocketConnection *self,
 {
 	SoupWebsocketConnectionPrivate *pv = self->pv;
 	Frame *frame;
-	Frame *prev;
 
 	g_return_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self));
 	g_return_if_fail (pv->close_sent == FALSE);
@@ -1029,21 +1028,22 @@ queue_frame (SoupWebsocketConnection *self,
 	frame = g_slice_new0 (Frame);
 	frame->data = g_bytes_new_take (data, len);
 	frame->amount = amount;
-	frame->last = (flags & SOUP_WEBSOCKET_QUEUE_LAST) ? TRUE : FALSE;
+	frame->flags = flags;
 
 	/* If urgent put at front of queue */
 	if (flags & SOUP_WEBSOCKET_QUEUE_URGENT) {
-		/* But we can't interrupt a message already partially sent */
-		prev = g_queue_pop_head (&pv->outgoing);
-		if (prev == NULL) {
-			g_queue_push_head (&pv->outgoing, frame);
-		} else if (prev->sent > 0) {
-			g_queue_push_head (&pv->outgoing, frame);
-			g_queue_push_head (&pv->outgoing, prev);
-		} else {
-			g_queue_push_head (&pv->outgoing, prev);
-			g_queue_push_head (&pv->outgoing, frame);
+		GList *l;
+
+		/* Find out the first frame that is not urgent or partially sent */
+		for (l = g_queue_peek_head_link (&pv->outgoing); l != NULL; l = l->next) {
+			Frame *prev = l->data;
+
+			if (!(prev->flags & SOUP_WEBSOCKET_QUEUE_URGENT) &&
+			    prev->sent == 0)
+				break;
 		}
+
+		g_queue_insert_before (&pv->outgoing, l, frame);
 	} else {
 		g_queue_push_tail (&pv->outgoing, frame);
 	}
