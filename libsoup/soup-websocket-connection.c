@@ -152,6 +152,8 @@ typedef enum {
 static void queue_frame (SoupWebsocketConnection *self, SoupWebsocketQueueFlags flags,
 			 gpointer data, gsize len, gsize amount);
 
+static void protocol_error_and_close (SoupWebsocketConnection *self);
+
 static void
 frame_free (gpointer data)
 {
@@ -358,11 +360,12 @@ send_message (SoupWebsocketConnection *self,
 	outer = bytes->data;
 	outer[0] = 0x80 | opcode;
 
-	/* If control message, truncate payload */
+	/* If control message, check payload size */
 	if (opcode & 0x08) {
 		if (length > 125) {
-			g_warning ("Truncating WebSocket control message payload");
-			length = 125;
+			g_warning ("WebSocket control message payload exceeds size limit");
+			protocol_error_and_close (self);
+			return;
 		}
 
 		buffered_amount = 0;
