@@ -691,7 +691,8 @@ process_contents (SoupWebsocketConnection *self,
 			break;
 		default:
 			g_debug ("received unsupported control frame: %d", (int)opcode);
-			break;
+			protocol_error_and_close (self);
+			return;
 		}
 	} else if (pv->close_received) {
 		g_debug ("received message after close was received");
@@ -757,7 +758,8 @@ process_contents (SoupWebsocketConnection *self,
 			break;
 		default:
 			g_debug ("received unknown data frame: %d", (int)opcode);
-			break;
+			protocol_error_and_close (self);
+			return;
 		}
 
 		/* Actually deliver the message? */
