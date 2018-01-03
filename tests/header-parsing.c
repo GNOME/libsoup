@@ -517,6 +517,14 @@ static struct ResponseTest {
 	  }
 	},
 
+	{ "Response w/ unknown status code", NULL,
+	  "HTTP/1.1 999 Request denied\r\nFoo: bar\r\n", -1,
+	  SOUP_HTTP_1_1, 999, "Request denied",
+	  { { "Foo", "bar" },
+	    { NULL }
+	  }
+	},
+
 	{ "Connection header on HTTP/1.0 message", NULL,
 	  "HTTP/1.0 200 ok\r\nFoo: bar\r\nConnection: Bar\r\nBar: quux\r\n", -1,
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
@@ -704,8 +712,8 @@ static struct ResponseTest {
 	  { { NULL } }
 	},
 
-	{ "Status code > 599", NULL,
-	  "HTTP/1.1 600 OK\r\nFoo: bar\r\n", -1,
+	{ "Status code > 999", NULL,
+	  "HTTP/1.1 1000 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},

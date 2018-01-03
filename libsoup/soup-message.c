@@ -766,7 +766,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_param_spec_uint (SOUP_MESSAGE_STATUS_CODE,
 				   "Status code",
 				   "The HTTP response status code",
-				   0, 599, 0,
+				   0, 999, 0,
 				   G_PARAM_READWRITE));
 	/**
 	 * SOUP_MESSAGE_REASON_PHRASE:

@@ -323,7 +323,7 @@ soup_headers_parse_status_line (const char       *status_line,
 	if (code_end != code_start + 3)
 		return FALSE;
 	code = atoi (code_start);
-	if (code < 100 || code > 599)
+	if (code < 100 || code > 999)
 		return FALSE;
 	if (status_code)
 		*status_code = code;
