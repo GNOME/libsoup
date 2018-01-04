@@ -1976,6 +1976,11 @@ soup_session_process_queue_item (SoupSession          *session,
 			break;
 
 		case SOUP_MESSAGE_READY:
+			if (item->connect_only) {
+				item->state = SOUP_MESSAGE_FINISHING;
+				break;
+			}
+
 			if (item->msg->status_code) {
 				if (item->msg->status_code == SOUP_STATUS_TRY_AGAIN) {
 					soup_message_cleanup_response (item->msg);
@@ -4683,6 +4688,42 @@ soup_request_error_quark (void)
 	return error;
 }
 
+static GIOStream *
+steal_connection (SoupSession          *session,
+                  SoupMessageQueueItem *item)
+{
+        SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+        SoupConnection *conn;
+        SoupSocket *sock;
+        SoupSessionHost *host;
+        GIOStream *stream;
+
+        conn = g_object_ref (item->conn);
+        soup_session_set_item_connection (session, item, NULL);
+
+        g_mutex_lock (&priv->conn_lock);
+        host = get_host_for_message (session, item->msg);
+        g_hash_table_remove (priv->conns, conn);
+        drop_connection (session, host, conn);
+        g_mutex_unlock (&priv->conn_lock);
+
+        sock = soup_connection_get_socket (conn);
+        g_object_set (sock,
+                      SOUP_SOCKET_TIMEOUT, 0,
+                      NULL);
+
+	if (item->connect_only)
+		stream = g_object_ref (soup_socket_get_connection (sock));
+	else
+		stream = soup_message_io_steal (item->msg);
+        g_object_set_data_full (G_OBJECT (stream), "GSocket",
+                                soup_socket_steal_gsocket (sock),
+                                g_object_unref);
+        g_object_unref (conn);
+
+	return stream;
+}
+
 /**
  * soup_session_steal_connection:
  * @session: a #SoupSession
@@ -4710,41 +4751,17 @@ soup_session_steal_connection (SoupSession *session,
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
-	SoupConnection *conn;
-	SoupSocket *sock;
-	SoupSessionHost *host;
-	GIOStream *stream;
+	GIOStream *stream = NULL;
 
 	item = soup_message_queue_lookup (priv->queue, msg);
 	if (!item)
 		return NULL;
-	if (!item->conn ||
-	    soup_connection_get_state (item->conn) != SOUP_CONNECTION_IN_USE) {
-		soup_message_queue_item_unref (item);
-		return NULL;
-	}
 
-	conn = g_object_ref (item->conn);
-	soup_session_set_item_connection (session, item, NULL);
-
-	g_mutex_lock (&priv->conn_lock);
-	host = get_host_for_message (session, item->msg);
-	g_hash_table_remove (priv->conns, conn);
-	drop_connection (session, host, conn);
-	g_mutex_unlock (&priv->conn_lock);
-
-	sock = soup_connection_get_socket (conn);
-	g_object_set (sock,
-		      SOUP_SOCKET_TIMEOUT, 0,
-		      NULL);
-
-	stream = soup_message_io_steal (item->msg);
-	g_object_set_data_full (G_OBJECT (stream), "GSocket",
-				soup_socket_steal_gsocket (sock),
-				g_object_unref);
-	g_object_unref (conn);
+	if (item->conn && soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE)
+		stream = steal_connection (session, item);
 
 	soup_message_queue_item_unref (item);
+
 	return stream;
 }
 
@@ -4880,4 +4897,156 @@ soup_session_websocket_connect_finish (SoupSession      *session,
 	g_return_val_if_fail (g_task_is_valid (result, session), NULL);
 
 	return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+/**
+ * SoupSessionConnectProgressCallback:
+ * @session: the #SoupSession
+ * @event: a #GSocketClientEvent
+ * @connection: the current state of the network connection
+ * @user_data: the data passed to soup_session_connect_async().
+ *
+ * Prototype for the progress callback passed to soup_session_connect_async().
+ *
+ * Since: 2.62
+ */
+
+typedef struct {
+        SoupMessageQueueItem *item;
+        SoupSessionConnectProgressCallback progress_callback;
+        gpointer user_data;
+} ConnectAsyncData;
+
+static ConnectAsyncData *
+connect_async_data_new (SoupMessageQueueItem              *item,
+                        SoupSessionConnectProgressCallback progress_callback,
+                        gpointer                           user_data)
+{
+        ConnectAsyncData *data;
+
+        data = g_slice_new (ConnectAsyncData);
+        data->item = soup_message_queue_item_ref (item);
+        data->progress_callback = progress_callback;
+        data->user_data = user_data;
+
+        return data;
+}
+
+static void
+connect_async_data_free (ConnectAsyncData *data)
+{
+        soup_message_queue_item_unref (data->item);
+
+        g_slice_free (ConnectAsyncData, data);
+}
+
+static void
+connect_async_message_network_event (SoupMessage        *msg,
+                                     GSocketClientEvent  event,
+                                     GIOStream          *connection,
+                                     GTask              *task)
+{
+        ConnectAsyncData *data = g_task_get_task_data (task);
+
+        if (data->progress_callback)
+                data->progress_callback (data->item->session, event, connection, data->user_data);
+}
+
+static void
+connect_async_message_finished (SoupMessage *msg,
+                                GTask       *task)
+{
+        ConnectAsyncData *data = g_task_get_task_data (task);
+        SoupMessageQueueItem *item = data->item;
+
+        if (!item->conn || item->error) {
+                g_task_return_error (task, g_error_copy (item->error));
+        } else {
+                g_task_return_pointer (task,
+                                       steal_connection (item->session, item),
+                                       g_object_unref);
+        }
+        g_object_unref (task);
+}
+
+/**
+ * soup_session_connect_async:
+ * @session: a #SoupSession
+ * @uri: a #SoupURI to connect to
+ * @cancellable: a #GCancellable
+ * @progress_callback: (allow-none) (scope async): a #SoupSessionConnectProgressCallback which
+ * will be called for every network event that occurs during the connection.
+ * @callback: (allow-none) (scope async): the callback to invoke when the operation finishes
+ * @user_data: data for @progress_callback and @callback
+ *
+ * Start a connection to @uri. The operation can be monitored by providing a @progress_callback
+ * and finishes when the connection is done or an error ocurred.
+ *
+ * Call soup_session_connect_finish() to get the #GIOStream to communicate with the server.
+ *
+ * Since: 2.62
+ */
+void
+soup_session_connect_async (SoupSession                       *session,
+                            SoupURI                           *uri,
+                            GCancellable                      *cancellable,
+                            SoupSessionConnectProgressCallback progress_callback,
+                            GAsyncReadyCallback                callback,
+                            gpointer                           user_data)
+{
+        SoupSessionPrivate *priv;
+        SoupMessage *msg;
+        SoupMessageQueueItem *item;
+        ConnectAsyncData *data;
+        GTask *task;
+
+        g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
+        priv = soup_session_get_instance_private (session);
+        g_return_if_fail (priv->use_thread_context);
+        g_return_if_fail (uri != NULL);
+
+        task = g_task_new (session, cancellable, callback, user_data);
+
+        msg = soup_message_new_from_uri (SOUP_METHOD_HEAD, uri);
+        soup_message_set_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect_object (msg, "finished",
+                                 G_CALLBACK (connect_async_message_finished),
+                                 task, 0);
+        if (progress_callback) {
+                g_signal_connect_object (msg, "network-event",
+                                         G_CALLBACK (connect_async_message_network_event),
+                                         task, 0);
+        }
+
+        item = soup_session_append_queue_item (session, msg, TRUE, FALSE, NULL, NULL);
+        item->connect_only = TRUE;
+        data = connect_async_data_new (item, progress_callback, user_data);
+        g_task_set_task_data (task, data, (GDestroyNotify) connect_async_data_free);
+        soup_session_kick_queue (session);
+        soup_message_queue_item_unref (item);
+        g_object_unref (msg);
+}
+
+/**
+ * soup_session_connect_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ * @error: return location for a #GError, or %NULL
+ *
+ * Gets the #GIOStream created for the connection to communicate with the server.
+ *
+ * Return value: (transfer full): a new #GIOStream, or %NULL on error.
+ *
+ * Since: 2.62
+ */
+GIOStream *
+soup_session_connect_finish (SoupSession  *session,
+                             GAsyncResult *result,
+                             GError      **error)
+{
+        g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+        g_return_val_if_fail (g_task_is_valid (result, session), NULL);
+
+        return g_task_propagate_pointer (G_TASK (result), error);
 }

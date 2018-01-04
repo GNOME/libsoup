@@ -475,6 +475,10 @@ soup_session_has_feature
 <SUBSECTION>
 soup_session_steal_connection
 <SUBSECTION>
+SoupSessionConnectProgressCallback
+soup_session_connect_async
+soup_session_connect_finish
+<SUBSECTION>
 SOUP_SESSION_PROXY_URI
 SOUP_SESSION_PROXY_RESOLVER
 SOUP_SESSION_MAX_CONNS

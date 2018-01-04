@@ -50,6 +50,7 @@ struct _SoupMessageQueueItem {
 	guint async             : 1;
 	guint async_pending     : 1;
 	guint conn_is_dedicated : 1;
+	guint connect_only      : 1;
 	guint priority          : 3;
 	guint resend_count      : 5;
 
