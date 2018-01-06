@@ -94,6 +94,7 @@ typedef struct {
 static void io_run (SoupMessage *msg, gboolean blocking);
 
 #define RESPONSE_BLOCK_SIZE 8192
+#define HEADER_SIZE_LIMIT (64 * 1024)
 
 void
 soup_message_io_cleanup (SoupMessage *msg)
@@ -253,6 +254,14 @@ read_headers (SoupMessage *msg, gboolean blocking,
 				io->read_header_buf->len -= 2;
 				break;
 			}
+		}
+
+		if (io->read_header_buf->len > HEADER_SIZE_LIMIT) {
+			soup_message_set_status (msg, SOUP_STATUS_MALFORMED);
+			g_set_error_literal (error, G_IO_ERROR,
+					     G_IO_ERROR_PARTIAL_INPUT,
+					     _("Header too big"));
+			return FALSE;
 		}
 	}
 

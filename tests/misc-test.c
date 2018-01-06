@@ -120,6 +120,38 @@ do_host_test (void)
 	g_object_unref (two);
 }
 
+/* request with too big header should be discarded with a IO error to 
+ * prevent DOS attacks.
+ */
+static void
+do_host_big_header (void)
+{
+	SoupMessage *msg;
+	SoupSession *session;
+	int i;
+
+	g_test_bug ("792173");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	for (i = 0; i < 2048; i++) {
+		char *key = g_strdup_printf ("test-long-header-key%d", i);
+		char *value = g_strdup_printf ("test-long-header-key%d", i);
+		soup_message_headers_append (msg->request_headers, key, value);
+		g_free (value);
+		g_free (key);
+	}
+
+	soup_session_send_message (session, msg);
+
+	soup_test_session_abort_unref (session);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_IO_ERROR);
+
+	g_object_unref (msg);
+}
+
 /* Dropping the application's ref on the session from a callback
  * should not cause the session to be freed at an incorrect time.
  * (This test will crash if it fails.)
@@ -1182,6 +1214,7 @@ main (int argc, char **argv)
 		ssl_base_uri = soup_test_server_get_uri (ssl_server, "https", "127.0.0.1");
 	}
 
+	g_test_add_func ("/misc/bigheader", do_host_big_header);
 	g_test_add_func ("/misc/host", do_host_test);
 	g_test_add_func ("/misc/callback-unref/msg", do_callback_unref_test);
 	g_test_add_func ("/misc/callback-unref/req", do_callback_unref_req_test);
