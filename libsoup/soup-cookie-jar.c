@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-cookie-jar.h"
+#include "soup-misc-private.h"
 #include "soup.h"
 
 /**
@@ -509,6 +510,38 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 	soup_cookie_jar_changed (jar, NULL, cookie);
 }
 
+static const char *
+normalize_cookie_domain (const char *domain)
+{
+	/* Trim any leading dot if present to transform the cookie
+         * domain into a valid hostname.
+         */
+	if (domain != NULL && domain[0] == '.')
+		return domain + 1;
+	return domain;
+}
+
+static gboolean
+incoming_cookie_is_third_party (SoupCookie *cookie, SoupURI *first_party)
+{
+	const char *normalized_cookie_domain;
+	const char *cookie_base_domain;
+	const char *first_party_base_domain;
+
+	if (first_party == NULL || first_party->host == NULL)
+		return TRUE;
+
+	normalized_cookie_domain = normalize_cookie_domain (cookie->domain);
+	cookie_base_domain = soup_tld_get_base_domain (normalized_cookie_domain, NULL);
+	if (cookie_base_domain == NULL)
+		cookie_base_domain = cookie->domain;
+
+	first_party_base_domain = soup_tld_get_base_domain (first_party->host, NULL);
+	if (first_party_base_domain == NULL)
+		first_party_base_domain = first_party->host;
+	return !soup_host_matches_host (cookie_base_domain, first_party_base_domain);
+}
+
 /**
  * soup_cookie_jar_add_cookie_with_first_party:
  * @jar: a #SoupCookieJar
@@ -542,7 +575,7 @@ soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, SoupURI *first_
 	}
 
 	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS ||
-	    soup_cookie_domain_matches (cookie, first_party->host)) {
+	    !incoming_cookie_is_third_party (cookie, first_party)) {
 		/* will steal or free soup_cookie */
 		soup_cookie_jar_add_cookie (jar, cookie);
 	} else {
@@ -644,8 +677,7 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 		SoupURI *first_party = soup_message_get_first_party (msg);
 		
 		if ((priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
-		     first_party != NULL && first_party->host &&
-		     soup_cookie_domain_matches (nc->data, first_party->host)) ||
+		     !incoming_cookie_is_third_party (nc->data, first_party)) ||
 		    priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS)
 			soup_cookie_jar_add_cookie (jar, nc->data);
 		else

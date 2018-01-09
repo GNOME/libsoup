@@ -94,6 +94,61 @@ do_cookies_accept_policy_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_cookies_subdomain_policy_test (void)
+{
+	SoupCookieJar *jar;
+	GSList *cookies;
+	SoupURI *uri1;
+	SoupURI *uri2;
+
+	g_test_bug ("792130");
+
+	/* Only the base domain should be considered when deciding
+	 * whether a cookie is a third-party cookie.
+	 */
+	uri1 = soup_uri_new ("https://www.gnome.org");
+	uri2 = soup_uri_new ("https://foundation.gnome.org");
+
+	/* We can't check subdomains with a test server running on
+	 * localhost, so we'll just check the cookie jar API itself.
+	 */
+
+	/* Cookie should be accepted. One cookie in the jar. */
+	jar = soup_cookie_jar_new ();
+	soup_cookie_jar_set_accept_policy (jar, SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY);
+	soup_cookie_jar_set_cookie_with_first_party (jar, uri1, uri2, "1=foo");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 1);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* Cookie should be accepted. Two cookies in the jar. */
+	soup_cookie_jar_set_cookie_with_first_party (jar, uri2, uri1, "2=foo");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 2);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* Third-party cookie should be rejected, so there are still
+	 * only two cookies in the jar.
+	 */
+	soup_cookie_jar_set_cookie_with_first_party (jar, third_party_uri, uri1, "3=foo");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 2);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* A leading dot in the domain property should not affect things.
+	 * This cookie should be accepted. Three cookies in the jar.
+	 */
+	soup_cookie_jar_set_cookie_with_first_party (jar, uri1, uri1, "4=foo; Domain=.www.gnome.org");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 3);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	soup_uri_free (uri1);
+	soup_uri_free (uri2);
+	g_object_unref (jar);
+}
+
 /* FIXME: moar tests! */
 static void
 do_cookies_parsing_test (void)
@@ -182,6 +237,7 @@ main (int argc, char **argv)
 	soup_uri_set_port (third_party_uri, server_uri->port);
 
 	g_test_add_func ("/cookies/accept-policy", do_cookies_accept_policy_test);
+	g_test_add_func ("/cookies/accept-policy-subdomains", do_cookies_subdomain_policy_test);
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
 
 	ret = g_test_run ();
