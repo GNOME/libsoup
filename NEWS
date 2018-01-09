@@ -1,3 +1,14 @@
+Changes in libsoup from 2.60.2 to 2.60.3:
+
+	* heap-buffer-overflow in soup_ntlm_parse_challenge()
+	  [#788037, Milan Crha]
+
+	* session: don't request Keep-Alive for upgraded connections
+	  [#788723, Lionel Landwerlin]
+
+        * soup-headers: accept any 3 digit number as message status code
+	  [#792124, Carlos Garcia Campos]
+
 Changes in libsoup from 2.60.1 to 2.60.2:
 
 	* Fix documentation typos [#788920, Nirbheek Chauhan]
