@@ -71,7 +71,7 @@ function echo_ ($method_name, $params, $app_data)
 
 function ping ($method_name, $params, $app_data)
 {
-	if (count ($params) == 0)
+	if (is_null ($params) or count ($params) == 0)
 		return "pong";
 	else
 		return paramfault ();
