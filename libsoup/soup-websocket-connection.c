@@ -107,6 +107,7 @@ typedef struct {
 	gsize sent;
 	gsize amount;
 	SoupWebsocketQueueFlags flags;
+	gboolean pending;
 } Frame;
 
 struct _SoupWebsocketConnectionPrivate {
@@ -971,6 +972,9 @@ on_web_socket_output (GObject *pollable_stream,
 		if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 			g_clear_error (&error);
 			count = 0;
+
+			g_debug ("failed to send frame because it would block, marking as pending");
+			frame->pending = TRUE;
 		} else {
 			emit_error_and_close (self, error, TRUE);
 			return FALSE;
@@ -1034,12 +1038,12 @@ queue_frame (SoupWebsocketConnection *self,
 	if (flags & SOUP_WEBSOCKET_QUEUE_URGENT) {
 		GList *l;
 
-		/* Find out the first frame that is not urgent or partially sent */
+		/* Find out the first frame that is not urgent or partially sent or pending */
 		for (l = g_queue_peek_head_link (&pv->outgoing); l != NULL; l = l->next) {
 			Frame *prev = l->data;
 
 			if (!(prev->flags & SOUP_WEBSOCKET_QUEUE_URGENT) &&
-			    prev->sent == 0)
+			    prev->sent == 0 && !prev->pending)
 				break;
 		}
 
