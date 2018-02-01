@@ -4924,8 +4924,10 @@ connect_async_data_new (SoupMessageQueueItem              *item,
 {
         ConnectAsyncData *data;
 
+        soup_message_queue_item_ref (item);
+
         data = g_slice_new (ConnectAsyncData);
-        data->item = soup_message_queue_item_ref (item);
+        data->item = item;
         data->progress_callback = progress_callback;
         data->user_data = user_data;
 
