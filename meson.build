@@ -1,5 +1,5 @@
 project('libsoup', 'c',
-        version: '2.60.2',
+        version: '2.61.90',
         meson_version : '>=0.40.1',
         license : 'LGPL',
         default_options : ['warning_level=1', 'c_std=c89'])
