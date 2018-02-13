@@ -97,8 +97,7 @@ soup_tld_get_base_domain (const char *hostname, GError **error)
  *
  * Prior to libsoup 2.46, this function required that @domain be in
  * UTF-8 if it was an IDN. From 2.46 on, the name can be in either
- * UTF-8 or ASCII format (and the return value will be in the same
- * format).
+ * UTF-8 or ASCII format.
  *
  * Returns: %TRUE if it is a public domain, %FALSE otherwise.
  *
