@@ -20,8 +20,27 @@ soversion = '0'
 
 host_system = host_machine.system()
 
+# Enable extra warnings if compiler supports them.
 if cc.get_id() == 'msvc'
   add_project_arguments('/FImsvc_recommended_pragmas.h', language : 'c')
+else
+  foreach arg : [
+      '-Wall',
+      '-Wmissing-include-dirs',
+      '-Wpointer-arith',
+      '-Winit-self',
+      '-Wdeclaration-after-statement',
+      '-Werror=missing-prototypes',
+      '-Werror=implicit-function-declaration',
+      '-Werror=aggregate-return',
+      '-Werror=format=2',
+      '-Wstrict-prototypes',
+      '-Wno-format-zero-length',
+    ]
+    if cc.has_argument(arg)
+       add_project_arguments(arg, language : 'c')
+    endif
+  endforeach
 endif
 
 glib_dep = [dependency('glib-2.0', version : '>=2.38'),
@@ -57,25 +76,6 @@ if host_machine.system() == 'windows'
   cdata.set('_SOUP_EXTERN', '__declspec(dllexport)')
   cdata.set('DLL_EXPORT', 1)
 endif
-
-# Enable extra warnings if compiler supports them.
-foreach arg : [
-    '-Wall',
-    '-Wmissing-include-dirs',
-    '-Wpointer-arith',
-    '-Winit-self',
-    '-Wdeclaration-after-statement',
-    '-Werror=missing-prototypes',
-    '-Werror=implicit-function-declaration',
-    '-Werror=aggregate-return',
-    '-Werror=format=2',
-    '-Wstrict-prototypes',
-    '-Wno-format-zero-length',
-  ]
-  if cc.has_argument(arg)
-     add_project_arguments(arg, language : 'c')
-  endif
-endforeach
 
 ###################
 # GIO TLS support #
