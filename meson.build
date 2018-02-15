@@ -213,6 +213,23 @@ if host_machine.system() == 'windows'
   enable_gnome = false
 endif
 
+#########################
+# GObject introspection #
+#########################
+enable_introspection = get_option('introspection')
+if enable_introspection
+  enable_introspection = find_program('g-ir-scanner', required: false).found() and not meson.is_cross_build()
+endif
+
+############
+# Vala API #
+############
+enable_vapi = get_option('vapi')
+if enable_vapi
+  assert(enable_gir, 'vapi support was requested, but introspection support is mandatory.')
+  assert(add_languages('vala', required: false), 'vapi support was requested, but vala not found.')
+endif
+
 configinc = include_directories('.')
 
 prefix = get_option('prefix')

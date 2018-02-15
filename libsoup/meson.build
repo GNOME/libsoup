@@ -251,7 +251,7 @@ if enable_gnome
     variables: 'exec_prefix=${prefix}')
 endif
 
-if get_option('introspection') or get_option('vapi')
+if enable_introspection or enable_vapi
   gir_args = libsoup_c_args + ['-DLIBSOUP_USE_UNSTABLE_REQUEST_API']
 
   soup_ns = 'Soup'
@@ -274,7 +274,7 @@ if get_option('introspection') or get_option('vapi')
     dependencies : deps,
     sources : soup_gir_gen_sources)
 
-  if get_option('vapi')
+  if enable_vapi
     gnome.generate_vapi(libsoup_api_name,
       sources : soup_gir_gen_sources[0],
       packages : 'gio-2.0',
