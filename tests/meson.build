@@ -72,7 +72,7 @@ configure_file(output : 'httpd.conf',
   input : 'httpd.conf.in',
   configuration : cdata)
 
-# There is not copy_file() in Meson and this is official workaroud as per
+# There is not copy_file() in Meson and this is official workaround as per
 # https://github.com/mesonbuild/meson/issues/860
 configure_file(input : 'htdigest',
   output : 'htdigest',
