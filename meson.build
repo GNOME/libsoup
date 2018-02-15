@@ -1,11 +1,10 @@
 project('libsoup', 'c',
         version: '2.61.90',
         meson_version : '>=0.40.1',
-        license : 'LGPL',
-        default_options : ['warning_level=1', 'c_std=c89'])
+        license : 'LGPL2',
+        default_options : 'c_std=c89')
 
 gnome = import('gnome')
-i18n = import('i18n')
 cc = meson.get_compiler('c')
 
 soup_version = meson.project_version()
@@ -17,14 +16,15 @@ soup_version_micro = version_arr[2]
 libversion = '1.8.0'
 apiversion = '2.4'
 soversion = '0'
+libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
 
 host_system = host_machine.system()
 
 # Enable extra warnings if compiler supports them.
 if cc.get_id() == 'msvc'
-  add_project_arguments('/FImsvc_recommended_pragmas.h', language : 'c')
+  common_flags = ['/FImsvc_recommended_pragmas.h']
 else
-  foreach arg : [
+  test_cflags = [
       '-Wall',
       '-Wmissing-include-dirs',
       '-Wpointer-arith',
@@ -36,16 +36,17 @@ else
       '-Werror=format=2',
       '-Wstrict-prototypes',
       '-Wno-format-zero-length',
-    ]
-    if cc.has_argument(arg)
-       add_project_arguments(arg, language : 'c')
-    endif
-  endforeach
+  ]
+
+  common_flags = cc.get_supported_arguments(test_cflags)
 endif
 
-glib_dep = [dependency('glib-2.0', version : '>=2.38'),
-            dependency('gobject-2.0', version : '>=2.38'),
-            dependency('gio-2.0', version : '>=2.38')]
+add_project_arguments(common_flags, language : 'c')
+
+glib_required_version = '>= 2.38'
+glib_dep = [dependency('glib-2.0', version : glib_required_version),
+            dependency('gobject-2.0', version : glib_required_version),
+            dependency('gio-2.0', version : glib_required_version)]
 
 sqlite_dep = dependency('sqlite3', required: cc.get_id() != 'msvc')
 
@@ -88,14 +89,13 @@ int main(void) {
 
 enable_tls_check = get_option('tls_check')
 if enable_tls_check
-  if not cc.compiles(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_dep)
-    error('libsoup requires glib-networking or glib-openssl for TLS support')
-  endif
+  assert(cc.compiles(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_dep),
+         'libsoup requires glib-networking or glib-openssl for TLS support')
 endif
 
-################################
-# Regresion tests dependencies #
-################################
+#################################
+# Regression tests dependencies #
+#################################
 apache_httpd2 = find_program('httpd2', 'httpd', 'apache2', 'apache', required : false)
 have_apache=false
 apache_httpd2_version = ''
@@ -106,7 +106,7 @@ if apache_httpd2.found()
     apache_httpd2_version = apache_httpd2_version.split('/')[1].split(' ')[0]
     if apache_httpd2_version.version_compare('>=2.4')
       have_apache = true
-      cdata.set('APACHE_HTTPD', '"@0@"'.format(apache_httpd2.path()))
+      cdata.set_quoted('APACHE_HTTPD', apache_httpd2.path())
     else
       message('Found ' + apache_httpd2_version + ', but at least 2.4 is needed - ignoring')
     endif
@@ -123,8 +123,7 @@ if have_apache
     cdata.set('APACHE_SSL_MODULE_DIR', apache_ssl_module_dir)
     if apache_module_dir != '' and apache_ssl_module_dir != ''
       have_apache = true
-      add_project_arguments('-DHAVE_APACHE=1', language : 'c')
-      add_project_arguments('-DAPACHE_HTTPD=' + cdata.get('APACHE_HTTPD'), language : 'c')
+      cdata.set('HAVE_APACHE', '1')
     endif
     cdata.set('APACHE_PHP_MODULE_DIR', apache_modules.stdout().split(':')[2])
   endif
@@ -139,7 +138,7 @@ if have_apache
     php_xmlrpc = run_command(php, '--rf', 'xmlrpc_server_create')
     if php_xmlrpc.returncode() == 0
       message('php-xmlrpc found')
-      add_project_arguments('-DHAVE_PHP_XMLRPC=1', language : 'c')
+      cdata.set('HAVE_PHP_XMLRPC', '1')
     else
       message('php-xmlrpc not found')
     endif
@@ -150,7 +149,7 @@ if have_apache
 endif
 
 if find_program('curl', required : false).found()
-  add_project_arguments('-DHAVE_CURL=1', language : 'c')
+  cdata.set('HAVE_CURL', '1')
 endif
 
 ##################
@@ -165,39 +164,24 @@ if enable_gssapi
     else
       gssapi_lib_type = '64'
     endif
-    gssapi_header = cc.has_header('gssapi/gssapi.h', required: false)
-    if gssapi_header
-      gssapi_lib = cc.find_library('gssapi@0@'.format(gssapi_lib_type), required: false)
-    endif
-    if gssapi_header and gssapi_lib.found()
+    if cc.has_header('gssapi/gssapi.h', required: false)
+      gssapi_lib = cc.find_library('gssapi' + gssapi_lib_type, required: false)
+      assert(gssapi_lib.found(), 'GSSAPI support requested, but the MIT Keberos 5 headers and libraries are not found')
       add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
-    else
-      error('GSSAPI support requested, but the MIT Keberos 5 headers and libraries are not found')
     endif
   else
     krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
     krb5_config = find_program(krb5_config_path, required : false)
 
-    if krb5_config.found()
-      krb5_config_output = run_command (krb5_config, '--libs', 'gssapi')
-      if krb5_config_output.returncode() == 0
-        add_project_link_arguments(krb5_config_output.stdout().split(), language : 'c')
-      else
-        error('Failed to obtain cflags for GSSAPI from krb5-config')
-        enable_gssapi = false
-      endif
+    assert(krb5_config.found(), 'GSSAPI support requested, but krb5-config not found. Please specify its path with -Dkrb5-config=PATH')
 
-      krb5_config_output = run_command (krb5_config, '--cflags', 'gssapi')
-      if krb5_config_output.returncode() == 0
-        add_project_arguments(krb5_config_output.stdout().split(), language : 'c')
-      else
-        error('Failed to obtain cflags for GSSAPI from krb5-config')
-        enable_gssapi = false
-      endif
-    else
-      error('GSSAPI support requested, but krb5-config not found. Please specify its path with -Dkrb5-config=PATH')
-      enable_gssapi = false
-    endif
+    krb5_config_output = run_command (krb5_config, '--libs', 'gssapi')
+    assert(krb5_config_output.returncode() == 0, 'Failed to obtain cflags for GSSAPI from krb5-config')
+    add_project_link_arguments(krb5_config_output.stdout().split(), language : 'c')
+
+    krb5_config_output = run_command (krb5_config, '--cflags', 'gssapi')
+    assert(krb5_config_output.returncode() == 0, 'Failed to obtain cflags for GSSAPI from krb5-config')
+    add_project_arguments(krb5_config_output.stdout().split(), language : 'c')
   endif
 
   if enable_gssapi
@@ -212,9 +196,7 @@ endif
 if host_machine.system() != 'windows'
   enable_ntlm = get_option('ntlm')
   if enable_ntlm
-    ntlm_auth_option = get_option('ntlm_auth')
-    ntlm_auth_path = ntlm_auth_option != '' ? ntlm_auth_option : 'ntlm_auth'
-    ntlm_auth = find_program(ntlm_auth_path, required : false)
+    ntlm_auth = find_program(get_option('ntlm_auth'), required: false)
 
     if ntlm_auth.found()
       add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
@@ -230,38 +212,15 @@ enable_gnome = get_option('gnome')
 if host_machine.system() == 'windows'
   enable_gnome = false
 endif
-cdata.set('BUILD_LIBSOUP_GNOME', enable_gnome)
 
 configinc = include_directories('.')
 
 prefix = get_option('prefix')
 
-cdata.set('PACKAGE_VERSION', '"@0@"'.format(soup_version))
-cdata.set('LOCALEDIR', '"@0@/@1@"'.format(prefix, get_option('localedir')))
-cdata.set('GETTEXT_PACKAGE', '"libsoup-2.4"')
+cdata.set_quoted('PACKAGE_VERSION', soup_version)
+cdata.set_quoted('LOCALEDIR', join_paths(prefix, get_option('localedir')))
+cdata.set_quoted('GETTEXT_PACKAGE', libsoup_api_name)
 configure_file(output : 'config.h', configuration : cdata)
-
-pkgconf = configuration_data()
-
-pkgconf.set('prefix', get_option('prefix'))
-pkgconf.set('exec_prefix', '${prefix}')
-pkgconf.set('libdir', '${prefix}/@0@'.format(get_option('libdir')))
-pkgconf.set('includedir', '${prefix}/@0@'.format(get_option('includedir')))
-pkgconf.set('VERSION', soup_version)
-
-pkg_install_dir = '@0@/pkgconfig'.format(get_option('libdir'))
-
-configure_file(output : 'libsoup-2.4.pc',
-  input : 'libsoup-2.4.pc.in',
-  configuration : pkgconf,
-  install_dir : pkg_install_dir)
-
-if enable_gnome
-  configure_file(output : 'libsoup-gnome-2.4.pc',
-    input : 'libsoup-gnome-2.4.pc.in',
-    configuration : pkgconf,
-    install_dir : pkg_install_dir)
-endif
 
 subdir('libsoup')
 subdir('po')

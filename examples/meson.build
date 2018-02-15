@@ -1,8 +1,14 @@
-get_example = executable('get', 'get.c',
-    dependencies : [glib_dep, libsoup_dep])
+deps = [
+  glib_dep,
+  libsoup_dep
+]
 
-simple_httpd_example = executable('simple_httpd', 'simple-httpd.c',
-    dependencies : [glib_dep, libsoup_dep])
+examples = [
+  'get',
+  'simple-httpd',
+  'simple-proxy'
+]
 
-simple_proxy_example = executable('simple_proxy', 'simple-proxy.c',
-    dependencies : [glib_dep, libsoup_dep])
+foreach example: examples
+  executable(example, example + '.c', dependencies: deps)
+endforeach

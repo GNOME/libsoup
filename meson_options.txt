@@ -18,7 +18,7 @@ option('ntlm',
 
 option('ntlm_auth',
   type : 'string',
-  value : '',
+  value : 'ntlm_auth',
   description : 'Where to look for ntlm_auth, path points to ntlm_auth installation (defaultly looking in PATH)'
 )
 

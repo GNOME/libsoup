@@ -1,10 +1,10 @@
+test_utils_name = 'test-utils'
+
 if cc.get_id() == 'msvc'
-  test_utils = static_library('test-utils', 'test-utils.c', 'test-utils.h',
-    install : false,
+  test_utils = static_library(test_utils_name, test_utils_name + '.c',
     dependencies : [glib_dep, libsoup_dep])
 else
-  test_utils = library('test-utils', 'test-utils.c', 'test-utils.h',
-    install : false,
+  test_utils = library(test_utils_name, test_utils_name + '.c',
     dependencies : [glib_dep, libsoup_dep])
 endif
 
@@ -97,5 +97,4 @@ gnome.compile_resources('soup-tests',
   'soup-tests.gresource.xml',
   gresource_bundle : true,
   install : true,
-  install_dir : meson.current_build_dir() + '/tests',
-  source_dir : '.')
+  install_dir : meson.current_build_dir() + '/tests')

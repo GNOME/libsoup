@@ -1,3 +1,5 @@
+pkg = import('pkgconfig')
+
 soup_sources = [
   'soup-address.c',
   'soup-auth.c',
@@ -74,8 +76,7 @@ soup_sources = [
   'soup-xmlrpc-old.c',
 ]
 
-soup_headers = [
-  'soup.h',
+soup_shared_headers = [
   'soup-address.h',
   'soup-auth.h',
   'soup-auth-domain.h',
@@ -103,7 +104,6 @@ soup_headers = [
   'soup-multipart-input-stream.h',
   'soup-password-manager.h',
   'soup-portability.h',
-  'soup-proxy-resolver.h',
   'soup-proxy-resolver-default.h',
   'soup-proxy-uri-resolver.h',
   'soup-request.h',
@@ -128,6 +128,11 @@ soup_headers = [
   'soup-xmlrpc-old.h',
 ]
 
+soup_headers = soup_shared_headers + [
+  'soup.h',
+  'soup-proxy-resolver.h'
+]
+
 soup_gnome_sources = [
   'soup-cookie-jar-sqlite.c',
   'soup-gnome-features.c',
@@ -146,7 +151,7 @@ soup_gnome_include_headers = [
   'soup-gnome-features.h'
 ]
 
-includedir = 'libsoup-@0@/libsoup'.format(apiversion)
+includedir = join_paths(libsoup_api_name, meson.project_name())
 install_headers(soup_headers, subdir : includedir)
 
 version_cdata = configuration_data()
@@ -159,10 +164,11 @@ configure_file(input : 'soup-version.h.in',
   install_dir : join_paths(get_option('includedir'), includedir),
   configuration : version_cdata)
 
+enum_types = 'soup-enum-types'
 soup_enums = gnome.mkenums('soup-enum-types',
   sources : soup_headers,
-  h_template : 'soup-enum-types.h.template',
-  c_template : 'soup-enum-types.c.template',
+  h_template : enum_types + '.h.template',
+  c_template : enum_types + '.c.template',
   install_header : true,
   install_dir : join_paths(get_option('includedir'), includedir))
 
@@ -176,9 +182,11 @@ tlddata = custom_target('tlddata',
   install : false,
   command : [tldparser, '@INPUT@', '@OUTPUT@'])
 
-libsoup_c_args  = ['-DHAVE_CONFIG_H']
-libsoup_c_args += ['-DG_LOG_DOMAIN="libsoup"']
-libsoup_c_args += ['-DLIBSOUP_COMPILATION']
+libsoup_c_args  = [
+  '-DHAVE_CONFIG_H',
+  '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
+  '-DLIBSOUP_COMPILATION'
+]
 
 deps = [
   glib_dep,
@@ -192,193 +200,91 @@ libsoup = library('soup-@0@'.format(apiversion), soup_sources,
   version : libversion,
   soversion : soversion,
   c_args : libsoup_c_args,
-  include_directories : [configinc],
+  include_directories : configinc,
   install : true,
-  dependencies : deps
-)
+  dependencies : deps)
+
+pkg.generate(
+  libraries : libsoup,
+  version : soup_version,
+  name : meson.project_name(),
+  description : 'A glib-based HTTP library',
+  filebase : libsoup_api_name,
+  requires : [
+    'glib-2.0 ' + glib_required_version,
+    'gobject-2.0 ' + glib_required_version,
+    'gio-2.0 ' + glib_required_version
+  ],
+  requires_private : 'libxml-2.0',
+  subdirs: libsoup_api_name,
+  variables: 'exec_prefix=${prefix}')
 
 libsoup_dep = declare_dependency(link_with : libsoup,
   include_directories : configinc,
-  sources : soup_enums)
+  sources : soupenum_h)
 
 if enable_gnome
-  includedir = 'libsoup-gnome-@0@/libsoup'.format(apiversion)
+  soup_gnome_api_name = 'soup-gnome-' + apiversion
+  libsoup_gnome_api_name = 'lib' + soup_gnome_api_name
+
+  includedir = join_paths(libsoup_gnome_api_name, meson.project_name())
   install_headers(
     soup_gnome_headers + ['soup-gnome.h', 'soup-gnome-features.h'],
     subdir : includedir)
 
-  libsoup_gnome = library('soup-gnome-@0@'.format(apiversion), soup_gnome_sources,
+  libsoup_gnome = library(soup_gnome_api_name, soup_gnome_sources,
     version : libversion,
     soversion : soversion,
     c_args : libsoup_c_args,
-    include_directories : [configinc],
+    include_directories : configinc,
     install : true,
-    dependencies : [deps, libsoup_dep])
+    dependencies : deps + [libsoup_dep])
+
+  pkg.generate(
+    libraries : libsoup_gnome,
+    version : soup_version,
+    name : meson.project_name(),
+    description : 'A glib-based HTTP library',
+    filebase : libsoup_gnome_api_name,
+    requires : libsoup_api_name,
+    subdirs: libsoup_gnome_api_name,
+    variables: 'exec_prefix=${prefix}')
 endif
 
 if get_option('introspection') or get_option('vapi')
-  soup_introspection_sources = [
-    'soup-address.c',
-    'soup-address.h',
-    'soup-auth-basic.c',
-    'soup-auth.c',
-    'soup-auth-digest.c',
-    'soup-auth-domain-basic.c',
-    'soup-auth-domain-basic.h',
-    'soup-auth-domain.c',
-    'soup-auth-domain-digest.c',
-    'soup-auth-domain-digest.h',
-    'soup-auth-domain.h',
-    'soup-auth.h',
-    'soup-auth-manager.c',
-    'soup-auth-manager.h',
-    'soup-auth-negotiate.c',
-    'soup-auth-ntlm.c',
-    'soup-autocleanups.h',
-    'soup-body-input-stream.c',
-    'soup-body-output-stream.c',
-    'soup-cache.c',
-    'soup-cache-client-input-stream.c',
-    'soup-cache.h',
-    'soup-cache-input-stream.c',
-    'soup-client-input-stream.c',
-    'soup-connection-auth.c',
-    'soup-connection.c',
-    'soup-content-decoder.c',
-    'soup-content-decoder.h',
-    'soup-content-processor.c',
-    'soup-content-sniffer.c',
-    'soup-content-sniffer.h',
-    'soup-content-sniffer-stream.c',
-    'soup-converter-wrapper.c',
-    'soup-cookie.c',
-    'soup-cookie.h',
-    'soup-cookie-jar.c',
-    'soup-cookie-jar-db.c',
-    'soup-cookie-jar-db.h',
-    'soup-cookie-jar.h',
-    'soup-cookie-jar-text.c',
-    'soup-cookie-jar-text.h',
-    'soup-date.c',
-    'soup-date.h',
-    'soup-directory-input-stream.c',
-    'soup-filter-input-stream.c',
-    'soup-form.c',
-    'soup-form.h',
-    'soup-headers.c',
-    'soup-headers.h',
-    'soup-init.c',
-    'soup-io-stream.c',
-    'soup-logger.c',
-    'soup-logger.h',
-    'soup-message-body.c',
-    'soup-message-body.h',
-    'soup-message.c',
-    'soup-message-client-io.c',
-    'soup-message.h',
-    'soup-message-headers.c',
-    'soup-message-headers.h',
-    'soup-message-io.c',
-    'soup-message-queue.c',
-    'soup-message-server-io.c',
-    'soup-method.c',
-    'soup-method.h',
-    'soup-misc.c',
-    'soup-misc.h',
-    'soup-multipart.c',
-    'soup-multipart.h',
-    'soup-multipart-input-stream.c',
-    'soup-multipart-input-stream.h',
-    'soup-password-manager.c',
-    'soup-password-manager.h',
-    'soup-path-map.c',
-    'soup-portability.h',
-    'soup-proxy-resolver.c',
-    'soup-proxy-resolver-default.c',
-    'soup-proxy-resolver-default.h',
-    'soup-proxy-resolver-wrapper.c',
-    'soup-proxy-uri-resolver.c',
-    'soup-proxy-uri-resolver.h',
-    'soup-request.c',
-    'soup-request-data.c',
-    'soup-request-data.h',
-    'soup-requester.c',
-    'soup-requester.h',
-    'soup-request-file.c',
-    'soup-request-file.h',
-    'soup-request.h',
-    'soup-request-http.c',
-    'soup-request-http.h',
-    'soup-server.c',
-    'soup-server.h',
-    'soup-session-async.c',
-    'soup-session-async.h',
-    'soup-session.c',
-    'soup-session-feature.c',
-    'soup-session-feature.h',
-    'soup-session.h',
-    'soup-session-sync.c',
-    'soup-session-sync.h',
-    'soup-socket.c',
-    'soup-socket.h',
-    'soup-socket-properties.c',
-    'soup-status.c',
-    'soup-status.h',
-    'soup-tld.c',
-    'soup-tld.h',
-    'soup-types.h',
-    'soup-uri.c',
-    'soup-uri.h',
-    'soup-value-utils.c',
-    'soup-value-utils.h',
-    'soup-version.c',
-    'soup-websocket.c',
-    'soup-websocket-connection.c',
-    'soup-websocket-connection.h',
-    'soup-websocket.h',
-    'soup-xmlrpc.c',
-    'soup-xmlrpc.h',
-    'soup-xmlrpc-old.c',
-    'soup-xmlrpc-old.h',
-  ]
+  gir_args = libsoup_c_args + ['-DLIBSOUP_USE_UNSTABLE_REQUEST_API']
 
-  gir_args = libsoup_c_args + [
-    '-DLIBSOUP_USE_UNSTABLE_REQUEST_API',
-    '--c-include=libsoup/soup.h'
-  ]
+  soup_ns = 'Soup'
 
-  soup_gir_gen_sources = [gnome.generate_gir(libsoup,
-    sources : soup_introspection_sources + [soupenum_h, soupenum_c],
-    nsversion : '2.4',
-    namespace : 'Soup',
-    symbol_prefix : 'soup_',
-    identifier_prefix : 'Soup',
-    export_packages : 'libsoup-2.4',
+  soup_gir_gen_sources = gnome.generate_gir(libsoup,
+    sources : soup_sources + soup_shared_headers + [soupenum_h, soupenum_c],
+    nsversion : apiversion,
+    namespace : soup_ns,
+    symbol_prefix : soup_ns.to_lower() + '_',
+    identifier_prefix : soup_ns,
+    export_packages : libsoup_api_name,
     extra_args : gir_args,
-    dependencies : [deps, libsoup],
-    includes : ['Gio-2.0'],
+    includes : 'Gio-2.0',
     install : true,
-  )]
+    header: join_paths(meson.project_name(), 'soup.h'),
+  )
 
   soup_gir_gen_dep = declare_dependency(link_with : libsoup,
-    include_directories : [configinc],
+    include_directories : configinc,
     dependencies : deps,
     sources : soup_gir_gen_sources)
 
   if get_option('vapi')
-    gnome.generate_vapi('libsoup-2.4',
-      sources : [soup_gir_gen_sources[0][0]],
-      packages : ['gio-2.0'],
+    gnome.generate_vapi(libsoup_api_name,
+      sources : soup_gir_gen_sources[0],
+      packages : 'gio-2.0',
       install : true,
     )
   endif
 
   if enable_gnome
     gir_gnome_args = libsoup_c_args + [
-      '--identifier-prefix=Soup',
-      '--symbol-prefix=soup',
-      '--c-include=libsoup/soup-gnome.h',
-      '--include-uninstalled=@0@/Soup-2.4.gir'.format(meson.current_build_dir())
+      '--include-uninstalled=' + soup_gir_gen_sources[0].full_path()
     ]
 
     gnome.generate_gir(libsoup_gnome,
@@ -389,15 +295,16 @@ if get_option('introspection') or get_option('vapi')
         'soup-cookie-jar-sqlite.h',
         'soup-gnome-features.h'
       ],
-      nsversion : '2.4',
+      nsversion : apiversion,
       namespace : 'SoupGNOME',
-      symbol_prefix : 'soup_',
-      identifier_prefix : 'Soup',
-      export_packages : 'libsoup-gnome-2.4',
+      symbol_prefix : soup_ns.to_lower() + '_',
+      identifier_prefix : soup_ns,
+      export_packages : libsoup_gnome_api_name,
       extra_args : gir_gnome_args,
-      dependencies : [deps, libsoup, libsoup_gnome, soup_gir_gen_dep],
-      includes : ['Gio-2.0'],
+      dependencies : soup_gir_gen_dep,
+      includes : 'Gio-2.0',
       install : true,
+      header: join_paths(meson.project_name(), 'soup-gnome.h'),
     )
   endif
 endif
