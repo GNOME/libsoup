@@ -2,17 +2,17 @@
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 # Tobias Endrigkeit <tobiasendrigkeit@googlemail.com>, 2012.
-# Mario Blättermann <mario.blaettermann@gmail.com>, 2012-2013, 2016.
+# Mario Blättermann <mario.blaettermann@gmail.com>, 2012-2013, 2016, 2018.
 # Andre Jonas <nipsky@googlemail.com>, 2013.
 # Bernd Homuth <dev@hmt.im>, 2015.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2016-10-27 12:38+0000\n"
-"PO-Revision-Date: 2016-11-11 21:37+0100\n"
+"POT-Creation-Date: 2018-02-09 14:43+0000\n"
+"PO-Revision-Date: 2018-02-18 14:09+0100\n"
 "Last-Translator: Mario Blättermann <mario.blaettermann@gmail.com>\n"
 "Language-Team: Deutsch <gnome-de@gnome.org>\n"
 "Language: de\n"
@@ -20,23 +20,23 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.8.11\n"
+"X-Generator: Poedit 2.0.6\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "Die Verbindung wurde unerwartet beendet"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Ungültige Suchanfrage"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream konnte nicht abgeschnitten werden"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Netzwerk-Stream wurde unerwartet geschlossen"
 
@@ -44,7 +44,7 @@ msgstr "Netzwerk-Stream wurde unerwartet geschlossen"
 msgid "Failed to completely cache the resource"
 msgstr "Das vollständige Zwischenspeichern der Ressource ist fehlgeschlagen"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Der Ausgabe-Zwischenspeicher ist zu klein"
@@ -57,11 +57,15 @@ msgstr "HTTP-Antwort konnte nicht verarbeitet werden"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Unbekannte Kodierung der HTTP-Antwort"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:263
+msgid "Header too big"
+msgstr "Kopf ist zu groß"
+
+#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Der Vorgang würde gestoppt werden"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Der Vorgang wurde abgebrochen"
 
@@ -69,41 +73,41 @@ msgstr "Der Vorgang wurde abgebrochen"
 msgid "Could not parse HTTP request"
 msgstr "HTTP-Anfrage konnte nicht verarbeitet werden"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Es wurde keine Adresse bereitgestellt"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid “%s” URI: %s"
 msgstr "Ungültige »%s«-Adresse: %s"
 
-#: ../libsoup/soup-server.c:1727
+#: ../libsoup/soup-server.c:1725
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "TLS-Server kann nicht ohne TLS-Zertifikat erstellt werden"
 
-#: ../libsoup/soup-server.c:1744
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Auf Adresse %s, Port %d kann nicht gehört werden: "
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Die Adresse »%s« konnte nicht verarbeitet werden"
 
-#: ../libsoup/soup-session.c:4562
+#: ../libsoup/soup-session.c:4561
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nicht unterstütztes Adressenschema »%s«"
 
-#: ../libsoup/soup-session.c:4584
+#: ../libsoup/soup-session.c:4583
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Keine HTTP-Adresse"
 
-#: ../libsoup/soup-session.c:4770
+#: ../libsoup/soup-session.c:4781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Der Server hat den WebSocket-Handshake nicht angenommen."
 
