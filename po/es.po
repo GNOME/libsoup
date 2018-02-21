@@ -2,15 +2,15 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# Daniel Mustieles <daniel.mustieles@gmail.com>, 2012, 2013, 2014, 2015, 2016.
+# Daniel Mustieles <daniel.mustieles@gmail.com>, 2012, 2013, 2014, 2015, 2016, 2018.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2016-10-27 12:38+0000\n"
-"PO-Revision-Date: 2016-12-20 16:58+0100\n"
+"POT-Creation-Date: 2018-02-09 14:43+0000\n"
+"PO-Revision-Date: 2018-02-21 17:30+0100\n"
 "Last-Translator: Daniel Mustieles <daniel.mustieles@gmail.com>\n"
 "Language-Team: es <gnome-es-list@gnome.org>\n"
 "Language: es\n"
@@ -20,21 +20,21 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Gtranslator 2.91.6\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "La conexión terminó inesperadamente"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Petición de búsqueda no válida"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "No se puede truncar SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "El flujo de red se cerró inesperadamente"
 
@@ -42,7 +42,7 @@ msgstr "El flujo de red se cerró inesperadamente"
 msgid "Failed to completely cache the resource"
 msgstr "Falló al cachear completamente el recurso"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "El búfer de salida es demasiado pequeño"
@@ -55,11 +55,15 @@ msgstr "No se pudo analizar la respuesta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codificación de la respuesta HTTP no reconocida"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:263
+msgid "Header too big"
+msgstr "La cabecera es demasiado grande"
+
+#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "La operación se bloqueará"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Se canceló la operación"
 
@@ -67,50 +71,45 @@ msgstr "Se canceló la operación"
 msgid "Could not parse HTTP request"
 msgstr "No se pudo analizar la solicitud HTTP"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "No se ha proporcionado un URI"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
-#| msgid "Invalid '%s' URI: %s"
 msgid "Invalid “%s” URI: %s"
 msgstr "URI «%s» no válida: %s"
 
-#: ../libsoup/soup-server.c:1727
-#| msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1725
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "No se puede crear un servidor TLS sin un certificado TLS"
 
-#: ../libsoup/soup-server.c:1744
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "No se puede escuchar en la dirección %s, puerto %d: "
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4524
 #, c-format
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse URI “%s”"
 msgstr "No se pudo analizar el URI «%s»"
 
-#: ../libsoup/soup-session.c:4562
+#: ../libsoup/soup-session.c:4561
 #, c-format
-#| msgid "Unsupported URI scheme '%s'"
 msgid "Unsupported URI scheme “%s”"
 msgstr "Esquema «%s» de URI no soportado"
 
-#: ../libsoup/soup-session.c:4584
+#: ../libsoup/soup-session.c:4583
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No es un URI HTTP"
 
-#: ../libsoup/soup-session.c:4770
+#: ../libsoup/soup-session.c:4781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "El servidor no ha aceptado la negociación WebSocket."
 
 #: ../libsoup/soup-socket.c:148
-#| msgid "Can't import non-socket as SoupSocket"
 msgid "Can’t import non-socket as SoupSocket"
 msgstr "No se puede importar algo que no es un socket como SoupSocket"
 
@@ -119,7 +118,6 @@ msgid "Could not import existing socket: "
 msgstr "No se pudo importar el socket existente: "
 
 #: ../libsoup/soup-socket.c:175
-#| msgid "Can't import unconnected socket"
 msgid "Can’t import unconnected socket"
 msgstr "No se puede importar un socket no conectado"
 
@@ -137,7 +135,6 @@ msgstr "Clave de WebSocket no válida"
 
 #: ../libsoup/soup-websocket.c:374
 #, c-format
-#| msgid "Incorrect WebSocket \"%s\" header"
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Cabecera «%s» de WebSocket no válida"
 
@@ -163,7 +160,6 @@ msgstr "El servidor ha solicitado una extensión no soportada"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-#| msgid "Server returned incorrect \"%s\" key"
 msgid "Server returned incorrect “%s” key"
 msgstr "El servidor ha devuelto una clave «%s» incorrecta"
 
