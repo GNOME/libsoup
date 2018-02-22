@@ -98,6 +98,10 @@ PKG_CHECK_MODULES(SQLITE, sqlite3)
 AC_SUBST(SQLITE_CFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
+PKG_CHECK_MODULES(LIBPSL, libpsl >= 0.20.0)
+AC_SUBST(LIBPSL_CFLAGS)
+AC_SUBST(LIBPSL_LIBS)
+
 dnl ***********************
 dnl *** Check for Win32 ***
 dnl ***********************

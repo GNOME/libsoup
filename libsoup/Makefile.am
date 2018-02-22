@@ -24,7 +24,8 @@ AM_CPPFLAGS = 				\
 	$(XML_CFLAGS)			\
 	$(SQLITE_CFLAGS)		\
 	$(CODE_COVERAGE_CFLAGS)		\
-	$(KRB5_CFLAGS)
+	$(KRB5_CFLAGS)			\
+	$(LIBPSL_CFLAGS)
 
 libsoupincludedir = $(includedir)/libsoup-2.4/libsoup
 
@@ -103,7 +104,8 @@ libsoup_2_4_la_LIBADD =			\
 	$(LIBWS2_32)			\
 	$(XML_LIBS)			\
 	$(SQLITE_LIBS)			\
-	$(KRB5_LIBS)
+	$(KRB5_LIBS)			\
+	$(LIBPSL_LIBS)
 
 libsoup_2_4_la_SOURCES =		\
 	gconstructor.h			\
@@ -200,7 +202,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-socket-properties.c	\
 	soup-status.c			\
 	soup-tld.c			\
-	soup-tld-private.h		\
 	soup-uri.c			\
 	soup-value-utils.c		\
 	soup-version.c			\
@@ -208,14 +209,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-websocket-connection.c	\
 	soup-xmlrpc.c			\
 	soup-xmlrpc-old.c
-
-# TLD rules
-EXTRA_DIST += tld-parser.py
-
-TLD_DATA_FILE=$(top_srcdir)/data/effective_tld_names.dat
-
-tld_data.inc: tld-parser.py $(TLD_DATA_FILE)
-	$(srcdir)/tld-parser.py $(TLD_DATA_FILE) tld_data.inc
 
 if BUILD_LIBSOUP_GNOME
 
@@ -251,8 +244,7 @@ endif
 
 GLIB_GENERATED = soup-enum-types.c soup-enum-types.h
 BUILT_SOURCES = \
-	$(GLIB_GENERATED)   \
-	tld_data.inc
+	$(GLIB_GENERATED)
 
 soup_enum_types_sources = $(libsoupinclude_HEADERS) $(libsoupgnomeinclude_HEADERS)
 soup_enum_types_MKENUMS_C_FLAGS = --fhead "\#define LIBSOUP_USE_UNSTABLE_REQUEST_API"
