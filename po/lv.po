@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Tranzistors <rudolfs.mazurs@gmail.com>, 2012.
-# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014, 2016, 2017.
+# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014, 2016, 2017, 2018.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?product=libsoup"
 "&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2017-02-23 10:17+0000\n"
-"PO-Revision-Date: 2017-03-18 21:40+0200\n"
+"POT-Creation-Date: 2018-02-09 14:43+0000\n"
+"PO-Revision-Date: 2018-02-24 20:14+0200\n"
 "Last-Translator: Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>\n"
 "Language-Team: Latvian <lata-l10n@googlegroups.com>\n"
 "Language: lv\n"
@@ -23,7 +23,7 @@ msgstr ""
 
 #: ../libsoup/soup-body-input-stream.c:139
 #: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "Savienojums tika negaidīti pārtraukts"
 
@@ -56,11 +56,15 @@ msgstr "Nevarēja parsēt HTTP atbildi"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neatpazīts HTTP atbildes kodējums"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:263
+msgid "Header too big"
+msgstr "Galvene ir pārāk liela"
+
+#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Darbība bloķētu"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Darbība tika atcelta"
 
@@ -75,12 +79,10 @@ msgstr "Nav sniegts URI"
 
 #: ../libsoup/soup-request.c:151
 #, c-format
-#| msgid "Invalid '%s' URI: %s"
 msgid "Invalid “%s” URI: %s"
 msgstr "Nederīgs “%s” URI — %s"
 
 #: ../libsoup/soup-server.c:1725
-#| msgid "Can't create a TLS server without a TLS certificate"
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Bez TLS sertifikāta nevar izveidot TLS serveri"
 
@@ -89,29 +91,26 @@ msgstr "Bez TLS sertifikāta nevar izveidot TLS serveri"
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nevarēja sākt klausīties adresi %s, portu %d: "
 
-#: ../libsoup/soup-session.c:4518
+#: ../libsoup/soup-session.c:4524
 #, c-format
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse URI “%s”"
 msgstr "Nevarēja parsēt URI “%s”"
 
-#: ../libsoup/soup-session.c:4555
+#: ../libsoup/soup-session.c:4561
 #, c-format
-#| msgid "Unsupported URI scheme '%s'"
 msgid "Unsupported URI scheme “%s”"
 msgstr "Neatbalstīta URI shēma “%s”"
 
-#: ../libsoup/soup-session.c:4577
+#: ../libsoup/soup-session.c:4583
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nav HTTP URI"
 
-#: ../libsoup/soup-session.c:4763
+#: ../libsoup/soup-session.c:4781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveris nepieņēma WebSocket rokasspiedienu."
 
 #: ../libsoup/soup-socket.c:148
-#| msgid "Can't import non-socket as SoupSocket"
 msgid "Can’t import non-socket as SoupSocket"
 msgstr "Nevar importēt ne-ligzdu kā SoupSocket"
 
@@ -120,7 +119,6 @@ msgid "Could not import existing socket: "
 msgstr "Nevarēja importēt esošu ligzdu: "
 
 #: ../libsoup/soup-socket.c:175
-#| msgid "Can't import unconnected socket"
 msgid "Can’t import unconnected socket"
 msgstr "Nevar importēt nesavienotu ligzdu"
 
@@ -138,7 +136,6 @@ msgstr "Nederīga WebSocket atslēga"
 
 #: ../libsoup/soup-websocket.c:374
 #, c-format
-#| msgid "Incorrect WebSocket \"%s\" header"
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Nederīga WebSocket “%s” galvene"
 
@@ -164,7 +161,6 @@ msgstr "Serveris pieprasīja neatbalstītu paplašinājumu"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-#| msgid "Server returned incorrect \"%s\" key"
 msgid "Server returned incorrect “%s” key"
 msgstr "Serveris atgrieza nederīgu “%s” atslēgu"
 
