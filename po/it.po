@@ -1,15 +1,15 @@
 # Italian translations for libsoup package
-# Copyright (C) 2012, 2013, 2014, 2015, 2017 the Free Software Foundation, Inc.
+# Copyright (C) 2012, 2013, 2014, 2015, 2017, 2018 the Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Milo Casagrande <milo@milo.name>, 2012, 2013, 2014, 2015, 2017.
+# Milo Casagrande <milo@milo.name>, 2012, 2013, 2014, 2015, 2017, 2018.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2016-10-27 12:38+0000\n"
-"PO-Revision-Date: 2017-02-13 18:24+0100\n"
+"POT-Creation-Date: 2018-02-09 14:43+0000\n"
+"PO-Revision-Date: 2018-02-09 16:37+0100\n"
 "Last-Translator: Milo Casagrande <milo@milo.name>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
@@ -17,23 +17,23 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
-"X-Generator: Poedit 2.0beta2\n"
+"X-Generator: Poedit 2.0.4\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "Connessione terminata inaspettatamente"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Richiesta di posizionamento non valida"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Impossibile troncare SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Flusso di rete chiuso inaspettatamente"
 
@@ -41,7 +41,7 @@ msgstr "Flusso di rete chiuso inaspettatamente"
 msgid "Failed to completely cache the resource"
 msgstr "Salvataggio in memoria della risorsa non riuscito"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Il buffer di uscita è troppo piccolo"
@@ -54,11 +54,15 @@ msgstr "Impossibile analizzare la risposta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codifica risposta HTTP non riconosciuta"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:263
+msgid "Header too big"
+msgstr "Intestazione troppo grande"
+
+#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "L'operazione potrebbe bloccarsi"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "L'operazione è stata annullata"
 
@@ -66,41 +70,41 @@ msgstr "L'operazione è stata annullata"
 msgid "Could not parse HTTP request"
 msgstr "Impossibile analizzare la richiesta HTTP"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Nessun URI fornito"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid “%s” URI: %s"
 msgstr "URI «%s» non valido: %s"
 
-#: ../libsoup/soup-server.c:1727
+#: ../libsoup/soup-server.c:1725
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impossibile creare un server TLS senza un certificato TLS"
 
-#: ../libsoup/soup-server.c:1744
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impossibile restare in ascolto sull'indirizzo %s, porta %d: "
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Impossibile analizzare l'URI «%s»"
 
-#: ../libsoup/soup-session.c:4562
+#: ../libsoup/soup-session.c:4561
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Schema URI «%s» non supportato"
 
-#: ../libsoup/soup-session.c:4584
+#: ../libsoup/soup-session.c:4583
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Non è uno URI HTTP"
 
-#: ../libsoup/soup-session.c:4770
+#: ../libsoup/soup-session.c:4781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Il server non ha accettato l'handshake WebSocket."
 
