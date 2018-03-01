@@ -1,14 +1,14 @@
 # Scottish Gaelic translation for libsoup.
 # Copyright (C) 2016 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# GunChleoc <fios@foramnagaidhlig.net>, 2016.
+# GunChleoc <fios@foramnagaidhlig.net>, 2016, 2018.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsou"
-"p&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-04-28 13:19+0000\n"
-"PO-Revision-Date: 2016-04-28 15:13+0100\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?product=libso"
+"up&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2017-10-27 08:22+0000\n"
+"PO-Revision-Date: 2018-03-01 10:41+0100\n"
 "Last-Translator: GunChleoc <fios@foramnagaidhlig.net>\n"
 "Language-Team: Fòram na Gàidhlig\n"
 "Language: gd\n"
@@ -20,21 +20,21 @@ msgstr ""
 "X-Generator: Virtaal 0.7.1\n"
 "X-Project-Style: gnome\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:237
 msgid "Connection terminated unexpectedly"
-msgstr "Chaidh crìoch a chur air a' cheangal gun dùil"
+msgstr "Chaidh crìoch a chur air a’ cheangal gun dùil"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Iarrtas siridh mì-dhligheach"
 
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Chan urrainn dhuinn buntach a dhèanamh air SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Chaidh an sreath lìonraidh a dhùnadh gun dùil"
 
@@ -42,81 +42,87 @@ msgstr "Chaidh an sreath lìonraidh a dhùnadh gun dùil"
 msgid "Failed to completely cache the resource"
 msgstr "Cha deach leinn an goireas slàn a chur dhan tasgadan"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Tha bufair an às-chuir ro bheag"
 
 #: ../libsoup/soup-message-client-io.c:41
 msgid "Could not parse HTTP response"
-msgstr "Cha b' urrainn dhuinn an fhreagairt HTTP a pharsadh"
+msgstr "Cha b’ urrainn dhuinn an fhreagairt HTTP a pharsadh"
 
 #: ../libsoup/soup-message-client-io.c:66
 msgid "Unrecognized HTTP response encoding"
-msgstr "Cha do dh'aithnich sinn còdachadh an fhreagairt HTTP"
+msgstr "Cha do dh’aithnich sinn còdachadh an fhreagairt HTTP"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:387 ../libsoup/soup-message-io.c:1015
 msgid "Operation would block"
 msgstr "Dhèanadh an t-obrachadh bacadh"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:967 ../libsoup/soup-message-io.c:1000
 msgid "Operation was cancelled"
 msgstr "Chaidh sgur dhen obrachadh"
 
 #: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
-msgstr "Cha b' urrainn dhuinn an t-iarrtas HTTP a pharsadh"
+msgstr "Cha b’ urrainn dhuinn an t-iarrtas HTTP a pharsadh"
 
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Cha deach URI a sholar"
 
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
-msgid "Invalid '%s' URI: %s"
-msgstr "URI \"%s\" mì-dhligheach: %s"
+#| msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
+msgstr "URI “%s” mì-dhligheach: %s"
 
-#: ../libsoup/soup-server.c:1720
-msgid "Can't create a TLS server without a TLS certificate"
+#: ../libsoup/soup-server.c:1725
+#| msgid "Can't create a TLS server without a TLS certificate"
+msgid "Can’t create a TLS server without a TLS certificate"
 msgstr ""
 "Chan urrainn dhuinn frithealaiche TLS a chruthachadh às aonais teisteanais "
 "TLS"
 
-#: ../libsoup/soup-server.c:1737
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Chan urrainn dhuinn èisteachd ris an t-seòladh %s, port %d: "
 
-#: ../libsoup/soup-session.c:4543
+#: ../libsoup/soup-session.c:4517
 #, c-format
-msgid "Could not parse URI '%s'"
-msgstr "Cha b' urrainn dhuinn an URI \"%s\" a pharsadh"
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
+msgstr "Cha b’ urrainn dhuinn an URI “%s” a pharsadh"
 
-#: ../libsoup/soup-session.c:4580
+#: ../libsoup/soup-session.c:4554
 #, c-format
-msgid "Unsupported URI scheme '%s'"
-msgstr "Chan eil taic ri sgeama \"%s\" an URI"
+#| msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
+msgstr "Chan eil taic ri sgeama “%s” an URI"
 
-#: ../libsoup/soup-session.c:4602
+#: ../libsoup/soup-session.c:4576
 #, c-format
 msgid "Not an HTTP URI"
-msgstr "Chan e URI HTTP a th' ann"
+msgstr "Chan e URI HTTP a th’ ann"
 
-#: ../libsoup/soup-session.c:4788
+#: ../libsoup/soup-session.c:4762
 msgid "The server did not accept the WebSocket handshake."
-msgstr "Cha do ghabh am frithealaiche ris a' chrathadh-làimhe WebSocket."
+msgstr "Cha do ghabh am frithealaiche ris a’ chrathadh-làimhe WebSocket."
 
 #: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
-msgstr "Chan urrainn dhuinn nì nach eil 'na shocaid ion-phortadh mar SoupSocket"
+#| msgid "Can't import non-socket as SoupSocket"
+msgid "Can’t import non-socket as SoupSocket"
+msgstr "Chan urrainn dhuinn nì nach eil ’na shocaid ion-phortadh mar SoupSocket"
 
 #: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr "Cha b' urrainn dhuinn socaid a tha ann ion-phortadh: "
+msgstr "Cha b’ urrainn dhuinn socaid a tha ann ion-phortadh: "
 
 #: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+#| msgid "Can't import unconnected socket"
+msgid "Can’t import unconnected socket"
 msgstr "Chan urrainn dhuinn socaid gun cheangal ion-phortadh"
 
 #: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
@@ -133,8 +139,9 @@ msgstr "Iuchair WebSocket mì-dhligheach"
 
 #: ../libsoup/soup-websocket.c:374
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
-msgstr "Bann-cinn WebSocket \"%s\" nach eil mar bu chòir"
+#| msgid "Incorrect WebSocket \"%s\" header"
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Bann-cinn WebSocket “%s” nach eil mar bu chòir"
 
 #: ../libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
@@ -150,20 +157,21 @@ msgstr "Leig am frithealaiche an crathadh-làimhe WebSocket seachad"
 
 #: ../libsoup/soup-websocket.c:539
 msgid "Server requested unsupported protocol"
-msgstr "Dh'iarr am frithealaiche pròtacal ris nach cuirear taic"
+msgstr "Dh’iarr am frithealaiche pròtacal ris nach cuirear taic"
 
 #: ../libsoup/soup-websocket.c:549
 msgid "Server requested unsupported extension"
-msgstr "Dh'iarr am frithealaiche leudachan ris nach cuirear taic"
+msgstr "Dh’iarr am frithealaiche leudachan ris nach cuirear taic"
 
 #: ../libsoup/soup-websocket.c:562
 #, c-format
-msgid "Server returned incorrect \"%s\" key"
-msgstr "Thill am frithealaiche iuchair \"%s\" nach eil mar bu chòir"
+#| msgid "Server returned incorrect \"%s\" key"
+msgid "Server returned incorrect “%s” key"
+msgstr "Thill am frithealaiche iuchair “%s” nach eil mar bu chòir"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
-msgstr "'S e seòladh IP a tha san ainm-òstair"
+msgstr "’S e seòladh IP a tha san ainm-òstair"
 
 #: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
