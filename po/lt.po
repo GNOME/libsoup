@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2017-02-28 06:18+0000\n"
-"PO-Revision-Date: 2017-03-03 20:16+0200\n"
+"POT-Creation-Date: 2018-03-01 21:42+0000\n"
+"PO-Revision-Date: 2018-03-02 11:59+0200\n"
 "Last-Translator: Moo\n"
 "Language-Team: Lietuvių <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
@@ -18,11 +18,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
 "%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Poedit 1.8.11\n"
+"X-Generator: Poedit 2.0.4\n"
 
 #: ../libsoup/soup-body-input-stream.c:139
 #: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "Ryšys netikėtai nutrūko"
 
@@ -55,11 +55,15 @@ msgstr "Nepavyko perskaityti URI „%s“Nepavyko perskaityti HTTP atsako"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neatpažinta HTTP atsako koduotė"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:263
+msgid "Header too big"
+msgstr "Antraštė yra per didelė"
+
+#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Veiksmas blokuosis"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Veiksmas buvo nutrauktas"
 
@@ -86,22 +90,22 @@ msgstr "Negalima sukurti TLS serverio be TLS liudijimo"
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepavyksta klausytis adreso %s, prievadu %d: "
 
-#: ../libsoup/soup-session.c:4518
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nepavyko išanalizuoti URI „%s“"
 
-#: ../libsoup/soup-session.c:4555
+#: ../libsoup/soup-session.c:4561
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nepalaikoma URI schema „%s“"
 
-#: ../libsoup/soup-session.c:4577
+#: ../libsoup/soup-session.c:4583
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ne HTTP URI"
 
-#: ../libsoup/soup-session.c:4763
+#: ../libsoup/soup-session.c:4781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveris nepriėmė WebSocket rankos paspaudimo."
 
@@ -159,18 +163,18 @@ msgstr "Serveris paprašė nepalaikomo plėtinio"
 msgid "Server returned incorrect “%s” key"
 msgstr "Serveris grąžino neteisingą „%s“ raktą"
 
-#: ../libsoup/soup-tld.c:188
+#: ../libsoup/soup-tld.c:187
 msgid "Hostname is an IP address"
 msgstr "Serverio vardas arba IP adresas"
 
-#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
+#: ../libsoup/soup-tld.c:197 ../libsoup/soup-tld.c:219
 msgid "Invalid hostname"
 msgstr "Netinkamas serverio vardas"
 
-#: ../libsoup/soup-tld.c:250
+#: ../libsoup/soup-tld.c:249
 msgid "Hostname has no base domain"
 msgstr "Serverio vardas neturi bazinio domeno"
 
-#: ../libsoup/soup-tld.c:304
+#: ../libsoup/soup-tld.c:303
 msgid "Not enough domains"
 msgstr "Nepakanka domenų"
