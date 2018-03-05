@@ -1,3 +1,14 @@
+Changes in libsoup from 2.61.90 to 2.61.91:
+
+	* Add limit to header length to avoid DOS attacks
+	  [#792173, Michele Dionisio]
+
+        * Update the public-suffix list.
+	  [Claudio Saavedra]
+
+        * Revert "cookie-jar: use base domain to decide if cookie is third party"
+	  [#792130, Claudio Saavedra]
+
 Changes in libsoup from 2.61.2 to 2.61.90:
 
 	* Various improvements to the WebSocket implementation
