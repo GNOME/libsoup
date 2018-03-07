@@ -1,16 +1,16 @@
 # Danish translation for libsoup.
-# Copyright (C) 2013-15 libsoup's COPYRIGHT HOLDER
+# Copyright (C) 2013-15, 2018 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Ask Hjorth Larsen <asklarsen@gmail.com>, 2012, 2014-15.
+# Ask Hjorth Larsen <asklarsen@gmail.com>, 2012, 2014-15, 2018.
 # Joe Hansen (joedalton2@yahoo.dk), 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: "
-"https://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2017-08-10 12:33+0000\n"
-"PO-Revision-Date: 2015-03-14 17:04+0100\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=Misc\n"
+"POT-Creation-Date: 2018-02-09 14:43+0000\n"
+"PO-Revision-Date: 2018-03-06 23:20+0100\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
 "Language: da\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: ../libsoup/soup-body-input-stream.c:139
 #: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:237
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "Forbindelsen blev uventet afbrudt"
 
@@ -55,11 +55,15 @@ msgstr "Kunne ikke fortolke HTTP-svar"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Ej genkendt HTTP-svarkodning"
 
-#: ../libsoup/soup-message-io.c:387 ../libsoup/soup-message-io.c:1015
+#: ../libsoup/soup-message-io.c:263
+msgid "Header too big"
+msgstr "Teksthovedet er for stort"
+
+#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Operationen ville blokere"
 
-#: ../libsoup/soup-message-io.c:967 ../libsoup/soup-message-io.c:1000
+#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Operationen blev annulleret"
 
@@ -86,22 +90,22 @@ msgstr "Kan ikke oprette en TLS-server uden et TLS-certifikat"
 msgid "Could not listen on address %s, port %d: "
 msgstr "Kunne ikke lytte på adresse %s, port %d: "
 
-#: ../libsoup/soup-session.c:4517
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Kunne ikke fortolke URI “%s”"
 
-#: ../libsoup/soup-session.c:4554
+#: ../libsoup/soup-session.c:4561
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Uunderstøttet URI-skema “%s”"
 
-#: ../libsoup/soup-session.c:4576
+#: ../libsoup/soup-session.c:4583
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ikke en HTTP URI"
 
-#: ../libsoup/soup-session.c:4762
+#: ../libsoup/soup-session.c:4781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveren accepterede ikke WebSocket-håndtrykket."
 
@@ -174,5 +178,3 @@ msgstr "Værtsnavnet har intet basisdomæne"
 #: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Ikke nok domæner"
-
-
