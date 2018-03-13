@@ -36,7 +36,11 @@ do_test (SoupURI *base_uri, const char *path,
 	GPid pid;
 	gboolean done;
 
-	uri = soup_uri_new_with_base (base_uri, path);
+	/* We build the URI this way to avoid having soup_uri_new()
+	   normalize the path, hence losing the encoded characters in
+	   tests 4. and 5. below. */
+	uri = soup_uri_copy (base_uri);
+	soup_uri_set_path (uri, path);
 	uri_str = soup_uri_to_string (uri, FALSE);
 	soup_uri_free (uri);
 
@@ -156,7 +160,46 @@ do_server_auth_test (gconstpointer data)
 		 /* success? */
 		 TEST_USES_DIGEST (i) && TEST_GOOD_AUTH (i));
 
-	/* 4. Any auth required. */
+	/* 4. Digest auth with encoded URI. See #794208.
+	 */
+	do_test (base_uri, "/Digest/A%20B",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_PREEMPTIVE_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from server */
+		 FALSE, TRUE,
+		 /* success? */
+		 TEST_USES_DIGEST (i) && TEST_GOOD_AUTH (i));
+
+	/* 5. Digest auth with a mixture of encoded and decoded chars in the URI. See #794208.
+	 */
+	do_test (base_uri, "/Digest/A%20|%20B",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_PREEMPTIVE_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from server */
+		 FALSE, TRUE,
+		 /* success? */
+		 TEST_USES_DIGEST (i) && TEST_GOOD_AUTH (i));
+
+	/* 6. Digest auth with UTF-8 chars in the URI. See #794208.
+	 */
+	do_test (base_uri, "/Digest/A௹B",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_PREEMPTIVE_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from server */
+		 FALSE, TRUE,
+		 /* success? */
+		 TEST_USES_DIGEST (i) && TEST_GOOD_AUTH (i));
+
+	/* 7. Any auth required. */
 	do_test (base_uri, "/Any/foo",
 		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
 		 /* request */
@@ -168,7 +211,7 @@ do_server_auth_test (gconstpointer data)
 		 /* success? */
 		 (TEST_USES_BASIC (i) || TEST_USES_DIGEST (i)) && TEST_GOOD_AUTH (i));
 
-	/* 5. No auth required again. (Makes sure that
+	/* 8. No auth required again. (Makes sure that
 	 * SOUP_AUTH_DOMAIN_REMOVE_PATH works.)
 	 */
 	do_test (base_uri, "/Any/Not/foo",

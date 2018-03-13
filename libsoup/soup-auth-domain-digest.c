@@ -214,15 +214,20 @@ check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
 			return FALSE;
 		}
 		soup_uri_free (dig_uri);
-	} else {	
+	} else {
 		char *req_path;
+		char *dig_path;
 
 		req_path = soup_uri_to_string (req_uri, TRUE);
-		if (strcmp (uri, req_path) != 0) {
+		dig_path = soup_uri_decode (uri);
+
+		if (strcmp (dig_path, req_path) != 0) {
 			g_free (req_path);
+			g_free (dig_path);
 			return FALSE;
 		}
 		g_free (req_path);
+		g_free (dig_path);
 	}
 
 	/* Check qop; we only support "auth" for now */
