@@ -401,9 +401,10 @@ send_message (SoupWebsocketConnection *self,
 	 * probably a client somewhere that's not expecting it.
 	 */
 	if (self->pv->connection_type == SOUP_WEBSOCKET_CONNECTION_CLIENT) {
+		guint32 rnd = g_random_int ();
 		outer[1] |= 0x80;
 		mask = outer + bytes->len;
-		* ((guint32 *)mask) = g_random_int ();
+		memcpy (mask, &rnd, sizeof (rnd));
 		bytes->len += 4;
 	}
 
