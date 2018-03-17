@@ -6,10 +6,10 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2016-10-27 12:38+0000\n"
-"PO-Revision-Date: 2017-01-19 22:11+0100\n"
+"POT-Creation-Date: 2018-02-09 14:43+0000\n"
+"PO-Revision-Date: 2018-03-17 21:37+0100\n"
 "Last-Translator: Dušan Kazik <prescott66@gmail.com>\n"
 "Language-Team: Slovak <gnome-sk-list@gnome.org>\n"
 "Language: sk\n"
@@ -17,24 +17,24 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 1 : (n>=2 && n<=4) ? 2 : 0;\n"
-"X-Generator: Poedit 1.8.11\n"
+"X-Generator: Poedit 2.0.6\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "Pripojenie bolo neočakávane ukončené"
 
-#: ../libsoup/soup-body-input-stream.c:462
+#: ../libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Neplatná požiadavka na posunutie"
 
 # struct
-#: ../libsoup/soup-body-input-stream.c:490
+#: ../libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream sa nedá skrátiť"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Sieťový prúd bol neočakávane uzavretý"
 
@@ -44,7 +44,7 @@ msgstr "Úplné načítanie zdroja do dočasnej pamäte zlyhalo"
 
 # PM: buffer by som preložil ako schránka
 # PK: schranka je clipboard, buffer je jednoznacne vyrovnavacia pamet
-#: ../libsoup/soup-converter-wrapper.c:192
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Výstupná vyrovnávacia pamäť je príliš malá"
@@ -57,12 +57,16 @@ msgstr "Nepodarilo sa analyzovať odpoveď HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Nerozpoznané kódovanie odpovede HTTP"
 
+#: ../libsoup/soup-message-io.c:263
+msgid "Header too big"
+msgstr "Záhlavie je príliš veľké"
+
 # PK: tu neviem ako to povedat, malo by ist o to, ze proste ta operacia neni async
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Operácia by blokovala spracovanie"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Operácia bola zrušená"
 
@@ -71,42 +75,42 @@ msgid "Could not parse HTTP request"
 msgstr "Nepodarilo sa analyzovať požiadavku HTTP"
 
 # error
-#: ../libsoup/soup-request.c:140
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Nebol poskytnutý identifikátor URI"
 
 # first %s - scheme (http, ftp, ...)
-#: ../libsoup/soup-request.c:150
+#: ../libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid “%s” URI: %s"
 msgstr "Neplatná schéma „%s“ identifikátora URI: %s"
 
-#: ../libsoup/soup-server.c:1727
+#: ../libsoup/soup-server.c:1725
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nedá sa vytvoriť TLS server bez TLS certifikátu"
 
-#: ../libsoup/soup-server.c:1744
+#: ../libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepodarilo sa počúvať na adrese %s, porte %d: "
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nepodarilo sa analyzovať identifikátor URI „%s“"
 
-#: ../libsoup/soup-session.c:4562
+#: ../libsoup/soup-session.c:4561
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nepodporovaná schéma „%s“ pre identifikátor URI"
 
-#: ../libsoup/soup-session.c:4584
+#: ../libsoup/soup-session.c:4583
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nie je HTTP URI"
 
-#: ../libsoup/soup-session.c:4770
+#: ../libsoup/soup-session.c:4781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Server neprijal vyjednanie protokolu WebSocket."
 
