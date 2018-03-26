@@ -127,10 +127,11 @@ typedef struct {
 
 	/* Must hold the conn_lock before potentially creating a new
 	 * SoupSessionHost, adding/removing a connection,
-	 * disconnecting a connection, or moving a connection from
-	 * IDLE to IN_USE. Must not emit signals or destroy objects
-	 * while holding it. conn_cond is signaled when it may be
-	 * possible for a previously-blocked message to continue.
+	 * disconnecting a connection, moving a connection from
+	 * IDLE to IN_USE, or when updating socket properties.
+	 * Must not emit signals or destroy objects while holding it.
+	 * The conn_cond is signaled when it may be possible for
+	 * a previously-blocked message to continue.
 	 */
 	GMutex conn_lock;
 	GCond conn_cond;
@@ -355,6 +356,7 @@ soup_session_finalize (GObject *object)
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
 }
 
+/* requires conn_lock */
 static void
 ensure_socket_props (SoupSession *session)
 {
@@ -770,11 +772,13 @@ soup_session_set_property (GObject *object, guint prop_id,
 		break;
 	}
 
+	g_mutex_lock (&priv->conn_lock);
 	if (priv->socket_props && socket_props_changed) {
 		soup_socket_properties_unref (priv->socket_props);
 		priv->socket_props = NULL;
 		ensure_socket_props (session);
 	}
+	g_mutex_unlock (&priv->conn_lock);
 }
 
 static void
@@ -794,7 +798,9 @@ soup_session_get_property (GObject *object, guint prop_id,
 		g_value_set_boxed (value, priv->proxy_uri);
 		break;
 	case PROP_PROXY_RESOLVER:
+		g_mutex_lock (&priv->conn_lock);
 		ensure_socket_props (session);
+		g_mutex_unlock (&priv->conn_lock);
 		g_value_set_object (value, priv->proxy_resolver);
 		break;
 	case PROP_MAX_CONNS:
@@ -815,12 +821,16 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+		g_mutex_lock (&priv->conn_lock);
 		ensure_socket_props (session);
+		g_mutex_unlock (&priv->conn_lock);
 		g_value_set_boolean (value, priv->tlsdb == tlsdb);
 		g_clear_object (&tlsdb);
 		break;
 	case PROP_TLS_DATABASE:
+		g_mutex_lock (&priv->conn_lock);
 		ensure_socket_props (session);
+		g_mutex_unlock (&priv->conn_lock);
 		g_value_set_object (value, priv->tlsdb);
 		break;
 	case PROP_TLS_INTERACTION:
