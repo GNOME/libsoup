@@ -1,14 +1,4 @@
 namespace Soup {
-	[CCode (type_id = "soup_auth_domain_basic_get_type ()", cheader_filename = "libsoup/soup.h")]
-	public class AuthDomainBasic : Soup.AuthDomain {
-		public static void set_auth_callback (Soup.AuthDomain domain, owned Soup.AuthDomainBasicAuthCallback callback);
-	}
-
-	[CCode (type_id = "soup_auth_domain_digest_get_type ()", cheader_filename = "libsoup/soup.h")]
-	public class AuthDomainDigest : Soup.AuthDomain {
-		public static void set_auth_callback (Soup.AuthDomain domain, owned Soup.AuthDomainDigestAuthCallback callback);
-	}
-
 	[Compact]
 	[CCode (copy_function = "g_boxed_copy", free_function = "g_boxed_free", type_id = "soup_buffer_get_type ()", cheader_filename = "libsoup/soup.h")]
 	public class Buffer {

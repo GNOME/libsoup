@@ -133,7 +133,7 @@ soup_auth_domain_digest_new (const char *optname1, ...)
 
 /**
  * SoupAuthDomainDigestAuthCallback:
- * @domain: the domain
+ * @domain: (type SoupAuthDomainDigest): the domain
  * @msg: the message being authenticated
  * @username: the username provided by the client
  * @user_data: the data passed to soup_auth_domain_digest_set_auth_callback()
@@ -150,7 +150,7 @@ soup_auth_domain_digest_new (const char *optname1, ...)
 
 /**
  * soup_auth_domain_digest_set_auth_callback:
- * @domain: the domain
+ * @domain: (type SoupAuthDomainDigest): the domain
  * @callback: the callback
  * @user_data: data to pass to @auth_callback
  * @dnotify: destroy notifier to free @user_data when @domain
@@ -417,6 +417,11 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
 	 * (The #SoupAuthDomainDigestAuthCallback.)
 	 **/
+	/**
+	 * SoupAuthDomainDigest:auth-callback: (type SoupAuthDomainDigestAuthCallback)
+	 *
+	 * The #SoupAuthDomainDigestAuthCallback
+	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_CALLBACK,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK,
@@ -429,6 +434,11 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
 	 * (The #SoupAuthDomainDigestAuthCallback.)
 	 **/
+	/**
+	 * SoupAuthDomainDigest:auth-data:
+	 *
+	 * The data to pass to the #SoupAuthDomainDigestAuthCallback
+	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_DATA,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA,

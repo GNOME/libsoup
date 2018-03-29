@@ -21,10 +21,7 @@ Requester
 Soup cheader_filename="libsoup/soup.h"
 add_* skip=false type="unowned GLib.TimeoutSource"
 AuthDomain
-	.accepts#method skip
-	.challenge#virtual_method vfunc_name="challenge"
-	.basic_set_auth_callback skip
-	.digest_set_auth_callback skip
+	.accepts#method name="accepts_authorization"
 AuthDomainBasic.new skip=false
 AuthDomainDigest.new skip=false
 Buffer.new.data type="uint8[]" array_length_idx=2
