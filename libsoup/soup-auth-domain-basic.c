@@ -130,7 +130,7 @@ soup_auth_domain_basic_new (const char *optname1, ...)
 
 /**
  * SoupAuthDomainBasicAuthCallback:
- * @domain: the domain
+ * @domain: (type SoupAuthDomainBasic): the domain
  * @msg: the message being authenticated
  * @username: the username provided by the client
  * @password: the password provided by the client
@@ -156,7 +156,7 @@ soup_auth_domain_basic_new (const char *optname1, ...)
 
 /**
  * soup_auth_domain_basic_set_auth_callback:
- * @domain: the domain
+ * @domain: (type SoupAuthDomainBasic): the domain
  * @callback: the callback
  * @user_data: data to pass to @auth_callback
  * @dnotify: destroy notifier to free @user_data when @domain
@@ -311,6 +311,11 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	 * Alias for the #SoupAuthDomainBasic:auth-callback property.
 	 * (The #SoupAuthDomainBasicAuthCallback.)
 	 **/
+	/**
+	 * SoupAuthDomainBasic:auth-callback: (type SoupAuthDomainBasicAuthCallback)
+	 *
+	 * The #SoupAuthDomainBasicAuthCallback
+	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_CALLBACK,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK,
@@ -323,6 +328,11 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	 * Alias for the #SoupAuthDomainBasic:auth-data property.
 	 * (The data to pass to the #SoupAuthDomainBasicAuthCallback.)
 	 **/
+	/**
+	 * SoupAuthDomainBasic:auth-data:
+	 *
+	 * The data to pass to the #SoupAuthDomainBasicAuthCallback
+	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_DATA,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA,
