@@ -148,7 +148,7 @@ soup_check_version (guint major,
 }
 
 /**
- * SOUP_VERSION_MIN_REQUIRED:
+ * SOUP_VERSION_MIN_REQUIRED: (skip)
  *
  * A macro that should be defined by the user prior to including
  * libsoup.h. The definition should be one of the predefined libsoup
@@ -166,7 +166,7 @@ soup_check_version (guint major,
  */
 
 /**
- * SOUP_VERSION_MAX_ALLOWED:
+ * SOUP_VERSION_MAX_ALLOWED: (skip)
  *
  * A macro that should be defined by the user prior to including
  * libsoup.h. The definition should be one of the predefined libsoup

@@ -5,8 +5,8 @@
  * Copyright (C) 2012 Igalia S.L.
  */
 
-#ifndef SOUP_VERSION_H
-#define SOUP_VERSION_H
+#ifndef __SOUP_VERSION_H__
+#define __SOUP_VERSION_H__
 
 #include <glib.h>
 
@@ -390,4 +390,4 @@ gboolean soup_check_version     (guint major,
 
 G_END_DECLS
 
-#endif /* SOUP_VERSION_H */
+#endif /* __SOUP_VERSION_H__ */

@@ -3,8 +3,8 @@
  * Copyright (C) 2005 Novell, Inc.
  */
 
-#ifndef SOUP_MESSAGE_HEADERS_H
-#define SOUP_MESSAGE_HEADERS_H 1
+#ifndef __SOUP_MESSAGE_HEADERS_H__
+#define __SOUP_MESSAGE_HEADERS_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -178,4 +178,4 @@ void     soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs
 
 G_END_DECLS
 
-#endif /* SOUP_MESSAGE_HEADERS_H */
+#endif /* __SOUP_MESSAGE_HEADERS_H__ */

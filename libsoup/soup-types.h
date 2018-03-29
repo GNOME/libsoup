@@ -3,8 +3,8 @@
  * Copyright (C) 2003, Ximian, Inc.
  */
 
-#ifndef SOUP_TYPES_H
-#define SOUP_TYPES_H 1
+#ifndef __SOUP_TYPES_H__
+#define __SOUP_TYPES_H__ 1
 
 #include <gio/gio.h>
 

@@ -3,8 +3,8 @@
  * Copyright 2012 Red Hat, Inc.
  */
 
-#ifndef SOUP_BODY_INPUT_STREAM_H
-#define SOUP_BODY_INPUT_STREAM_H 1
+#ifndef __SOUP_BODY_INPUT_STREAM_H__
+#define __SOUP_BODY_INPUT_STREAM_H__ 1
 
 #include "soup-types.h"
 #include "soup-filter-input-stream.h"
@@ -45,4 +45,4 @@ GInputStream *soup_body_input_stream_new (GInputStream *base_stream,
 
 G_END_DECLS
 
-#endif /* SOUP_BODY_INPUT_STREAM_H */
+#endif /* __SOUP_BODY_INPUT_STREAM_H__ */

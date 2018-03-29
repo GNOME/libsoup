@@ -4,8 +4,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_MESSAGE_QUEUE_H
-#define SOUP_MESSAGE_QUEUE_H 1
+#ifndef __SOUP_MESSAGE_QUEUE_H__
+#define __SOUP_MESSAGE_QUEUE_H__ 1
 
 #include "soup-connection.h"
 #include "soup-message.h"
@@ -86,4 +86,4 @@ void soup_message_queue_item_unref          (SoupMessageQueueItem *item);
 
 G_END_DECLS
 
-#endif /* SOUP_MESSAGE_QUEUE_H */
+#endif /* __SOUP_MESSAGE_QUEUE_H__ */

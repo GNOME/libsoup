@@ -657,10 +657,15 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * Alias for the #SoupSocket:ssl-creds property.
 	 * (SSL credential information.)
 	 **/
-	/* For historical reasons, there's only a single property
+	/**
+	 * SoupSocket:ssl-creds: (type GObject)
+	 *
+	 * SSL credential information
+	 *
+	 * For historical reasons, there's only a single property
 	 * here, which is a GTlsDatabase for client sockets, and
 	 * a GTlsCertificate for server sockets. Whee!
-	 */
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_CREDENTIALS,
 		g_param_spec_pointer (SOUP_SOCKET_SSL_CREDENTIALS,
@@ -704,6 +709,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Whether the server certificate is trusted, if this is an SSL socket",
 				     FALSE,
 				     G_PARAM_READABLE));
+	/**
+	 * SoupSocket:async-context: (type GMainContext)
+	 *
+	 * If #SoupSocket:use-thread-context is %FALSE, this context
+	 * will also be used for asynchronous HTTP I/O.
+	 */
 	/**
 	 * SOUP_SOCKET_ASYNC_CONTEXT:
 	 *
@@ -1888,10 +1899,11 @@ out:
  * @buffer: (array length=len) (element-type guint8): buffer to read
  *   into
  * @len: size of @buffer in bytes
- * @boundary: boundary to read until
+ * @boundary: (array length=boundary_len) (element-type guint8): boundary to
+ * read until
  * @boundary_len: length of @boundary in bytes
  * @nread: (out): on return, the number of bytes read into @buffer
- * @got_boundary: on return, whether or not the data in @buffer
+ * @got_boundary: (out): on return, whether or not the data in @buffer
  * ends with the boundary string
  * @cancellable: a #GCancellable, or %NULL
  * @error: error pointer

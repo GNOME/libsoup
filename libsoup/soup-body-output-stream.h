@@ -3,8 +3,8 @@
  * Copyright 2012 Red Hat, Inc.
  */
 
-#ifndef SOUP_BODY_OUTPUT_STREAM_H
-#define SOUP_BODY_OUTPUT_STREAM_H 1
+#ifndef __SOUP_BODY_OUTPUT_STREAM_H__
+#define __SOUP_BODY_OUTPUT_STREAM_H__ 1
 
 #include "soup-types.h"
 #include "soup-message-headers.h"
@@ -44,4 +44,4 @@ GOutputStream *soup_body_output_stream_new (GOutputStream *base_stream,
 
 G_END_DECLS
 
-#endif /* SOUP_BODY_OUTPUT_STREAM_H */
+#endif /* __SOUP_BODY_OUTPUT_STREAM_H__ */

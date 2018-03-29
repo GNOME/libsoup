@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_COOKIE_JAR_TEXT_H
-#define SOUP_COOKIE_JAR_TEXT_H 1
+#ifndef __SOUP_COOKIE_JAR_TEXT_H__
+#define __SOUP_COOKIE_JAR_TEXT_H__ 1
 
 #include <libsoup/soup-cookie-jar.h>
 
@@ -43,4 +43,4 @@ SoupCookieJar *soup_cookie_jar_text_new (const char *filename,
 
 G_END_DECLS
 
-#endif /* SOUP_COOKIE_JAR_TEXT_H */
+#endif /* __SOUP_COOKIE_JAR_TEXT_H__ */

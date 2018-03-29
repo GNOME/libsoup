@@ -272,7 +272,7 @@ SOUP_UNSTABLE_REQUEST_CFLAG = -DLIBSOUP_USE_UNSTABLE_REQUEST_API
 
 # Core library
 gi_soup_files = \
-	$(filter-out soup.h soup-enum-types.% soup-proxy-resolver.h,\
+	$(filter-out soup.h soup-enum-types.%,\
 	   $(soup_headers) $(filter-out %.h, $(libsoup_2_4_la_SOURCES)))
 gi_built_soup_files = soup-enum-types.h soup-version.h
 
@@ -281,7 +281,7 @@ Soup_2_4_gir_INCLUDES = Gio-2.0
 Soup_2_4_gir_CFLAGS = $(AM_CPPFLAGS) $(SOUP_UNSTABLE_REQUEST_CFLAG)
 Soup_2_4_gir_LIBS = libsoup-2.4.la
 Soup_2_4_gir_EXPORT_PACKAGES = libsoup-2.4
-Soup_2_4_gir_SCANNERFLAGS = --c-include "libsoup/soup.h"
+Soup_2_4_gir_SCANNERFLAGS = --c-include "libsoup/soup.h" --warn-all
 Soup_2_4_gir_FILES = \
 	$(addprefix $(srcdir)/, $(gi_soup_files)) \
         $(foreach f,$(gi_built_soup_files), \

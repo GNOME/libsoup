@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_PROXY_RESOLVER_WRAPPER_H
-#define SOUP_PROXY_RESOLVER_WRAPPER_H 1
+#ifndef __SOUP_PROXY_RESOLVER_WRAPPER_H__
+#define __SOUP_PROXY_RESOLVER_WRAPPER_H__ 1
 
 #include "soup-proxy-uri-resolver.h"
 #include "soup-uri.h"
@@ -31,4 +31,4 @@ GType soup_proxy_resolver_wrapper_get_type (void);
 
 GProxyResolver *soup_proxy_resolver_wrapper_new (SoupProxyURIResolver *soup_resolver);
 
-#endif /* SOUP_PROXY_RESOLVER_WRAPPER_H */
+#endif /* __SOUP_PROXY_RESOLVER_WRAPPER_H__ */

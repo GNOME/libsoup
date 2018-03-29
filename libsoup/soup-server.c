@@ -783,7 +783,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	/**
-	 * SoupServer:async-context:
+	 * SoupServer:async-context: (type GMainContext)
 	 *
 	 * The server's #GMainContext, if you are using the old API.
 	 * Servers created using soup_server_listen() will listen on

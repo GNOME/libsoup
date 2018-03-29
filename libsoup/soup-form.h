@@ -3,8 +3,8 @@
  * Copyright 2008 Red Hat, Inc.
  */
 
-#ifndef  SOUP_FORM_H
-#define  SOUP_FORM_H 1
+#ifndef  __SOUP_FORM_H__
+#define  __SOUP_FORM_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-multipart.h>
@@ -60,4 +60,4 @@ SoupMessage *soup_form_request_new_from_multipart (const char     *uri,
 
 G_END_DECLS
 
-#endif /* SOUP_FORM_H */
+#endif /* __SOUP_FORM_H__ */

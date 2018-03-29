@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_SESSION_PRIVATE_H
-#define SOUP_SESSION_PRIVATE_H 1
+#ifndef __SOUP_SESSION_PRIVATE_H__
+#define __SOUP_SESSION_PRIVATE_H__ 1
 
 #include "soup-session.h"
 #include "soup-message-private.h"
@@ -45,4 +45,4 @@ void                  soup_session_process_queue_item   (SoupSession          *s
 
 G_END_DECLS
 
-#endif /* SOUP_SESSION_PRIVATE_H */
+#endif /* __SOUP_SESSION_PRIVATE_H__ */

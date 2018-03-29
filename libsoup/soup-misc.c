@@ -63,12 +63,12 @@ soup_str_case_equal (gconstpointer v1,
 }
 
 /**
- * soup_add_io_watch: (skip)
+ * soup_add_io_watch:
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @chan: the #GIOChannel to watch
  * @condition: the condition to watch for
- * @function: the callback to invoke when @condition occurs
+ * @function: (scope async): the callback to invoke when @condition occurs
  * @data: user data to pass to @function
  *
  * Adds an I/O watch as with g_io_add_watch(), but using the given
@@ -90,10 +90,10 @@ soup_add_io_watch (GMainContext *async_context,
 }
 
 /**
- * soup_add_idle: (skip)
+ * soup_add_idle:
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
- * @function: the callback to invoke at idle time
+ * @function: (scope async): the callback to invoke at idle time
  * @data: user data to pass to @function
  *
  * Adds an idle event as with g_idle_add(), but using the given
@@ -132,10 +132,10 @@ soup_add_completion_reffed (GMainContext   *async_context,
 }
 
 /**
- * soup_add_completion: (skip)
+ * soup_add_completion:
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
- * @function: the callback to invoke
+ * @function: (scope async): the callback to invoke
  * @data: user data to pass to @function
  *
  * Adds @function to be executed from inside @async_context with the
@@ -159,11 +159,11 @@ soup_add_completion (GMainContext *async_context,
 }
 
 /**
- * soup_add_timeout: (skip)
+ * soup_add_timeout:
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @interval: the timeout interval, in milliseconds
- * @function: the callback to invoke at timeout time
+ * @function: (scope async): the callback to invoke at timeout time
  * @data: user data to pass to @function
  *
  * Adds a timeout as with g_timeout_add(), but using the given

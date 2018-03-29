@@ -1087,7 +1087,7 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
 /**
  * soup_message_headers_free_ranges:
  * @hdrs: a #SoupMessageHeaders
- * @ranges: an array of #SoupRange
+ * @ranges: (array): an array of #SoupRange
  *
  * Frees the array of ranges returned from soup_message_headers_get_ranges().
  *

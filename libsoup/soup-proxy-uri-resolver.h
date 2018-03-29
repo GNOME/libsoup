@@ -3,8 +3,8 @@
  * Copyright (C) 2009 Red Hat, Inc.
  */
 
-#ifndef SOUP_PROXY_URI_RESOLVER_H
-#define SOUP_PROXY_URI_RESOLVER_H 1
+#ifndef __SOUP_PROXY_URI_RESOLVER_H__
+#define __SOUP_PROXY_URI_RESOLVER_H__ 1
 
 #include <libsoup/soup-proxy-resolver.h>
 
@@ -64,4 +64,4 @@ guint soup_proxy_uri_resolver_get_proxy_uri_sync  (SoupProxyURIResolver  *proxy_
 
 G_END_DECLS
 
-#endif /*SOUP_PROXY_URI_RESOLVER_H*/
+#endif /* __SOUP_PROXY_URI_RESOLVER_H__ */

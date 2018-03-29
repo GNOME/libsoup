@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_SESSION_ASYNC_H
-#define SOUP_SESSION_ASYNC_H 1
+#ifndef __SOUP_SESSION_ASYNC_H__
+#define __SOUP_SESSION_ASYNC_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-session.h>
@@ -57,4 +57,4 @@ SoupSession *soup_session_async_new_with_options (const char *optname1,
 
 G_END_DECLS
 
-#endif /* SOUP_SESSION_ASYNC_H */
+#endif /* __SOUP_SESSION_ASYNC_H__ */

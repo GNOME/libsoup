@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_MESSAGE_BODY_H
-#define SOUP_MESSAGE_BODY_H 1
+#ifndef __SOUP_MESSAGE_BODY_H__
+#define __SOUP_MESSAGE_BODY_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -111,4 +111,4 @@ void             soup_message_body_free          (SoupMessageBody *body);
 
 G_END_DECLS
 
-#endif /* SOUP_MESSAGE_BODY_H */
+#endif /* __SOUP_MESSAGE_BODY_H__ */

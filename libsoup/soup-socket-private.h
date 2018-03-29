@@ -3,8 +3,8 @@
  * Copyright 2011-2014 Red Hat, Inc.
  */
 
-#ifndef SOUP_SOCKET_PRIVATE_H
-#define SOUP_SOCKET_PRIVATE_H 1
+#ifndef __SOUP_SOCKET_PRIVATE_H__
+#define __SOUP_SOCKET_PRIVATE_H__ 1
 
 #include "soup-socket.h"
 
@@ -88,4 +88,4 @@ void                  soup_socket_properties_unref (SoupSocketProperties *props)
 void soup_socket_properties_push_async_context (SoupSocketProperties *props);
 void soup_socket_properties_pop_async_context  (SoupSocketProperties *props);
 
-#endif /* SOUP_SOCKET_PRIVATE_H */
+#endif /* __SOUP_SOCKET_PRIVATE_H__ */

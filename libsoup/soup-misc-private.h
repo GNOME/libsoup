@@ -4,8 +4,8 @@
  * Copyright 2011 Red Hat, Inc.
  */
 
-#ifndef SOUP_MISC_PRIVATE_H
-#define SOUP_MISC_PRIVATE_H 1
+#ifndef __SOUP_MISC_PRIVATE_H__
+#define __SOUP_MISC_PRIVATE_H__ 1
 
 #include "soup-message-headers.h"
 
@@ -46,4 +46,4 @@ SoupAddress *soup_address_new_from_gsockaddr (GSocketAddress *addr);
 gboolean           soup_host_matches_host    (const gchar *host,
 					      const gchar *compare_with);
 
-#endif /* SOUP_MISC_PRIVATE_H */
+#endif /* __SOUP_MISC_PRIVATE_H__ */

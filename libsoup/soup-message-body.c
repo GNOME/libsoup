@@ -61,7 +61,7 @@ enum {
 
 /**
  * SoupBuffer:
- * @data: (type gpointer): the data
+ * @data: (array length=length) (element-type guint8): the data
  * @length: length of @data
  *
  * A data buffer, generally used to represent a chunk of a
@@ -135,7 +135,7 @@ soup_buffer_new_take (guchar *data, gsize length)
 }
 
 /**
- * soup_buffer_new_subbuffer:
+ * soup_buffer_new_subbuffer: (constructor)
  * @parent: the parent #SoupBuffer
  * @offset: offset within @parent to start at
  * @length: number of bytes to copy from @parent
@@ -341,7 +341,7 @@ G_DEFINE_BOXED_TYPE (SoupBuffer, soup_buffer, soup_buffer_copy, soup_buffer_free
 
 /**
  * SoupMessageBody:
- * @data: the data
+ * @data: (array length=length) (element-type guint8): the data
  * @length: length of @data
  *
  * A #SoupMessage request or response body.

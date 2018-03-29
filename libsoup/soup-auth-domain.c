@@ -242,6 +242,11 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	 * Alias for the #SoupAuthDomain:filter property. (The
 	 * #SoupAuthDomainFilter for the domain.)
 	 **/
+	/**
+	 * SoupAuthDomain:filter: (type SoupAuthDomainFilter)
+	 *
+	 * The #SoupAuthDomainFilter for the domain
+	 */
 	g_object_class_install_property (
 		object_class, PROP_FILTER,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_FILTER,
@@ -266,6 +271,11 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	 * Alias for the #SoupAuthDomain:generic-auth-callback property.
 	 * (The #SoupAuthDomainGenericAuthCallback.)
 	 **/
+	/**
+	 * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback)
+	 *
+	 * The #SoupAuthDomainGenericAuthCallback for the domain
+	 */
 	g_object_class_install_property (
 		object_class, PROP_GENERIC_AUTH_CALLBACK,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK,
@@ -587,7 +597,7 @@ soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
 }
 
 /**
- * soup_auth_domain_challenge:
+ * soup_auth_domain_challenge: (virtual challenge)
  * @domain: a #SoupAuthDomain
  * @msg: a #SoupMessage
  *

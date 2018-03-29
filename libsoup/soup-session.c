@@ -3480,7 +3480,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      TRUE,
 				      G_PARAM_READWRITE));
 	/**
-	 * SoupSession:async-context:
+	 * SoupSession:async-context: (type GMainContext)
 	 *
 	 * The #GMainContext that miscellaneous session-related
 	 * asynchronous callbacks are invoked on. (Eg, setting

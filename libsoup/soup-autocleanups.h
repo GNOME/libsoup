@@ -19,8 +19,8 @@
 #error "Only <libsoup/soup.h> can be included directly."
 #endif
 
-#ifndef SOUP_AUTOCLEANUPS_H
-#define SOUP_AUTOCLEANUPS_H
+#ifndef __SOUP_AUTOCLEANUPS_H__
+#define __SOUP_AUTOCLEANUPS_H__
 
 #if SOUP_VERSION_MAX_ALLOWED >= SOUP_VERSION_2_52
 #ifndef __GI_SCANNER__
@@ -65,4 +65,4 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupXMLRPCParams, soup_xmlrpc_params_free)
 #endif
 #endif
 
-#endif /* SOUP_AUTOCLEANUPS_H */
+#endif /* __SOUP_AUTOCLEANUPS_H__ */

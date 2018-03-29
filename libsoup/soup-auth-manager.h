@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#ifndef SOUP_AUTH_MANAGER_H
-#define SOUP_AUTH_MANAGER_H 1
+#ifndef __SOUP_AUTH_MANAGER_H__
+#define __SOUP_AUTH_MANAGER_H__ 1
 
 #include "soup-types.h"
 #include "soup-auth.h"
@@ -46,4 +46,4 @@ void soup_auth_manager_clear_cached_credentials (SoupAuthManager *manager);
 
 G_END_DECLS
 
-#endif /* SOUP_AUTH_MANAGER_H */
+#endif /* __SOUP_AUTH_MANAGER_H__ */
