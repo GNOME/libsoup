@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#ifndef SOUP_VALUE_UTILS_H
-#define SOUP_VALUE_UTILS_H 1
+#ifndef __SOUP_VALUE_UTILS_H__
+#define __SOUP_VALUE_UTILS_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <gobject/gvaluecollector.h>
@@ -111,4 +111,4 @@ GType        soup_byte_array_get_type       (void);
 
 G_END_DECLS
 
-#endif /* SOUP_VALUE_UTILS_H */
+#endif /* __SOUP_VALUE_UTILS_H__ */

@@ -4,8 +4,8 @@
  * Copyright (C) 2016 Red Hat, Inc.
  */
 
-#ifndef SOUP_AUTH_NEGOTIATE_H
-#define SOUP_AUTH_NEGOTIATE_H 1
+#ifndef __SOUP_AUTH_NEGOTIATE_H__
+#define __SOUP_AUTH_NEGOTIATE_H__ 1
 
 #include "soup-connection-auth.h"
 
@@ -25,4 +25,4 @@ typedef struct {
 
 } SoupAuthNegotiateClass;
 
-#endif /* SOUP_AUTH_NEGOTIATE_H */
+#endif /* __SOUP_AUTH_NEGOTIATE_H__ */

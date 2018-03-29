@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#ifndef SOUP_PATH_MAP_H
-#define SOUP_PATH_MAP_H 1
+#ifndef __SOUP_PATH_MAP_H__
+#define __SOUP_PATH_MAP_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -23,4 +23,4 @@ gpointer     soup_path_map_lookup (SoupPathMap    *map,
 				   const char     *path);
 
 
-#endif /* SOUP_PATH_MAP_H */
+#endif /* __SOUP_PATH_MAP_H__ */

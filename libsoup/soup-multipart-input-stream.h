@@ -3,8 +3,8 @@
  * Copyright (C) 2012 Collabora Ltd.
  */
 
-#ifndef SOUP_MULTIPART_INPUT_STREAM_H
-#define SOUP_MULTIPART_INPUT_STREAM_H 1
+#ifndef __SOUP_MULTIPART_INPUT_STREAM_H__
+#define __SOUP_MULTIPART_INPUT_STREAM_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-message-headers.h>
@@ -63,4 +63,4 @@ SoupMessageHeaders       *soup_multipart_input_stream_get_headers      (SoupMult
 
 G_END_DECLS
 
-#endif /* SOUP_MULTIPART_INPUT_STREAM_H */
+#endif /* __SOUP_MULTIPART_INPUT_STREAM_H__ */

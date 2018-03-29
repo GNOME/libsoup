@@ -20,8 +20,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef SOUP_CACHE_H
-#define SOUP_CACHE_H 1
+#ifndef __SOUP_CACHE_H__
+#define __SOUP_CACHE_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <gio/gio.h>
@@ -98,5 +98,5 @@ guint      soup_cache_get_max_size (SoupCache     *cache);
 
 G_END_DECLS
 
-#endif /* SOUP_CACHE_H */
+#endif /* __SOUP_CACHE_H__ */
 

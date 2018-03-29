@@ -3,8 +3,8 @@
  * Copyright (C) 2011 Collabora Ltd.
  */
 
-#ifndef SOUP_PROXY_RESOLVER_DEFAULT_H
-#define SOUP_PROXY_RESOLVER_DEFAULT_H 1
+#ifndef __SOUP_PROXY_RESOLVER_DEFAULT_H__
+#define __SOUP_PROXY_RESOLVER_DEFAULT_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -28,4 +28,4 @@ SOUP_AVAILABLE_IN_2_4
 GType soup_proxy_resolver_default_get_type (void);
 #define SOUP_TYPE_PROXY_RESOLVER_DEFAULT (soup_proxy_resolver_default_get_type ())
 
-#endif /*SOUP_PROXY_RESOLVER_DEFAULT_H*/
+#endif /* __SOUP_PROXY_RESOLVER_DEFAULT_H__ */

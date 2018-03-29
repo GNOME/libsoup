@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#ifndef SOUP_AUTH_NTLM_H
-#define SOUP_AUTH_NTLM_H 1
+#ifndef __SOUP_AUTH_NTLM_H__
+#define __SOUP_AUTH_NTLM_H__ 1
 
 #include "soup-connection-auth.h"
 
@@ -24,4 +24,4 @@ typedef struct {
 
 } SoupAuthNTLMClass;
 
-#endif /* SOUP_AUTH_NTLM_H */
+#endif /* __SOUP_AUTH_NTLM_H__ */

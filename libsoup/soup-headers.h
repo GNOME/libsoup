@@ -3,8 +3,8 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_HEADERS_H
-#define SOUP_HEADERS_H 1
+#ifndef __SOUP_HEADERS_H__
+#define __SOUP_HEADERS_H__ 1
 
 #include <glib.h>
 #include <libsoup/soup-message.h>
@@ -71,4 +71,4 @@ void        soup_header_g_string_append_param_quoted (GString    *string,
 
 G_END_DECLS
 
-#endif /*SOUP_HEADERS_H*/
+#endif /* __SOUP_HEADERS_H__ */

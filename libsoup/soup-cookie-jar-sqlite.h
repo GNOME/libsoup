@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Diego Escalante Urrelo
  */
 
-#ifndef SOUP_COOKIE_JAR_SQLITE_H
-#define SOUP_COOKIE_JAR_SQLITE_H 1
+#ifndef __SOUP_COOKIE_JAR_SQLITE_H__
+#define __SOUP_COOKIE_JAR_SQLITE_H__ 1
 
 #include <libsoup/soup-cookie-jar-db.h>
 
@@ -40,4 +40,4 @@ SoupCookieJar *soup_cookie_jar_sqlite_new (const char *filename,
 
 G_END_DECLS
 
-#endif /* SOUP_COOKIE_JAR_SQLITE_H */
+#endif /* __SOUP_COOKIE_JAR_SQLITE_H__ */

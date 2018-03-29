@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_ADDRESS_H
-#define SOUP_ADDRESS_H
+#ifndef __SOUP_ADDRESS_H__
+#define __SOUP_ADDRESS_H__
 
 #include <sys/types.h>
 
@@ -107,4 +107,4 @@ gboolean         soup_address_equal_by_ip        (gconstpointer        addr1,
 
 G_END_DECLS
 
-#endif /* SOUP_ADDRESS_H */
+#endif /* __SOUP_ADDRESS_H__ */

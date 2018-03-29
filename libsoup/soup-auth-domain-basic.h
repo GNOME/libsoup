@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#ifndef SOUP_AUTH_DOMAIN_BASIC_H
-#define SOUP_AUTH_DOMAIN_BASIC_H 1
+#ifndef __SOUP_AUTH_DOMAIN_BASIC_H__
+#define __SOUP_AUTH_DOMAIN_BASIC_H__ 1
 
 #include <libsoup/soup-auth-domain.h>
 
@@ -56,4 +56,4 @@ void      soup_auth_domain_basic_set_auth_callback  (SoupAuthDomain *domain,
 
 G_END_DECLS
 
-#endif /* SOUP_AUTH_DOMAIN_BASIC_H */
+#endif /* __SOUP_AUTH_DOMAIN_BASIC_H__ */

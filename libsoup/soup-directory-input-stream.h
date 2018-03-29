@@ -19,8 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef SOUP_DIRECTORY_INPUT_STREAM_H
-#define SOUP_DIRECTORY_INPUT_STREAM_H 1
+#ifndef __SOUP_DIRECTORY_INPUT_STREAM_H__
+#define __SOUP_DIRECTORY_INPUT_STREAM_H__ 1
 
 #include <gio/gio.h>
 #include <libsoup/soup-types.h>
@@ -59,4 +59,4 @@ GInputStream *soup_directory_input_stream_new      (GFileEnumerator *enumerator,
 
 G_END_DECLS
 
-#endif /* SOUP_DIRECTORY_INPUT_STREAM_H */
+#endif /* __SOUP_DIRECTORY_INPUT_STREAM_H__ */
