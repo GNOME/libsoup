@@ -104,6 +104,7 @@ soup_shared_headers = [
   'soup-multipart-input-stream.h',
   'soup-password-manager.h',
   'soup-portability.h',
+  'soup-proxy-resolver.h',
   'soup-proxy-resolver-default.h',
   'soup-proxy-uri-resolver.h',
   'soup-request.h',
@@ -129,8 +130,7 @@ soup_shared_headers = [
 ]
 
 soup_headers = soup_shared_headers + [
-  'soup.h',
-  'soup-proxy-resolver.h'
+  'soup.h'
 ]
 
 soup_gnome_sources = [

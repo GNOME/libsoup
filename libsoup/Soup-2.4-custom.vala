@@ -16,13 +16,6 @@ namespace Soup {
 		public Buffer.subbuffer (Soup.Buffer parent, size_t offset, size_t length);
 	}
 
-	[Version (replacement = "Soup.ProxyURIResolver")]
-	[CCode (cheader_filename = "libsoup/soup.h", type_cname = "SoupProxyResolverInterface", type_id = "soup_proxy_resolver_get_type ()")]
-	public interface ProxyResolver : Soup.SessionFeature, GLib.Object {
-		public abstract void get_proxy_async (Soup.Message msg, GLib.MainContext async_context, GLib.Cancellable? cancellable, Soup.ProxyResolverCallback callback);
-		public abstract uint get_proxy_sync (Soup.Message msg, GLib.Cancellable? cancellable, out unowned Soup.Address addr);
-	}
-
 	public errordomain SSLError {
 		HANDSHAKE_NEEDS_READ,
 		HANDSHAKE_NEEDS_WRITE,
@@ -163,6 +156,4 @@ namespace Soup {
 		INSUFFICIENT_STORAGE,
 		NOT_EXTENDED
 	}
-
-	public delegate void ProxyResolverCallback (Soup.ProxyResolver p1, Soup.Message p2, uint p3, Soup.Address p4);
 }

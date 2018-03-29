@@ -264,7 +264,7 @@ SOUP_UNSTABLE_REQUEST_CFLAG = -DLIBSOUP_USE_UNSTABLE_REQUEST_API
 
 # Core library
 gi_soup_files = \
-	$(filter-out soup.h soup-enum-types.% soup-proxy-resolver.h,\
+	$(filter-out soup.h soup-enum-types.%,\
 	   $(soup_headers) $(filter-out %.h, $(libsoup_2_4_la_SOURCES)))
 gi_built_soup_files = soup-enum-types.h soup-version.h
 
