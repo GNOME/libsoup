@@ -3,8 +3,8 @@
  * Copyright (C) 2009 Red Hat, Inc.
  */
 
-#ifndef SOUP_CONTENT_DECODER_H
-#define SOUP_CONTENT_DECODER_H 1
+#ifndef __SOUP_CONTENT_DECODER_H__
+#define __SOUP_CONTENT_DECODER_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-message-body.h>
@@ -42,4 +42,4 @@ GType soup_content_decoder_get_type (void);
 
 G_END_DECLS
 
-#endif /* SOUP_CONTENT_DECODER_H */
+#endif /* __SOUP_CONTENT_DECODER_H__ */

@@ -3,8 +3,8 @@
  * Copyright (C) 2010 Red Hat, Inc.
  */
 
-#ifndef SOUP_CONNECTION_AUTH_H
-#define SOUP_CONNECTION_AUTH_H 1
+#ifndef __SOUP_CONNECTION_AUTH_H__
+#define __SOUP_CONNECTION_AUTH_H__ 1
 
 #include <libsoup/soup-auth.h>
 
@@ -52,4 +52,4 @@ gpointer	soup_connection_auth_get_connection_state_for_message
 						 SoupMessage *message);
 G_END_DECLS
 
-#endif /* SOUP_CONNECTION_AUTH_H */
+#endif /* __SOUP_CONNECTION_AUTH_H__ */

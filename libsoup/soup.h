@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_H
-#define SOUP_H 1
+#ifndef __SOUP_H__
+#define __SOUP_H__ 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,4 +65,4 @@ extern "C" {
 }
 #endif
 
-#endif /* SOUP_H */
+#endif /* __SOUP_H__ */

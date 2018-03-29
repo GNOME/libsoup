@@ -3,8 +3,8 @@
  * Copyright 2011 Red Hat, Inc.
  */
 
-#ifndef SOUP_CONVERTER_WRAPPER_H
-#define SOUP_CONVERTER_WRAPPER_H 1
+#ifndef __SOUP_CONVERTER_WRAPPER_H__
+#define __SOUP_CONVERTER_WRAPPER_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -42,4 +42,4 @@ GConverter *soup_converter_wrapper_new (GConverter  *base_converter,
 
 G_END_DECLS
 
-#endif /* SOUP_CONVERTER_WRAPPER_H */
+#endif /* __SOUP_CONVERTER_WRAPPER_H__ */

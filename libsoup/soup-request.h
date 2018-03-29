@@ -19,8 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef SOUP_REQUEST_H
-#define SOUP_REQUEST_H 1
+#ifndef __SOUP_REQUEST_H__
+#define __SOUP_REQUEST_H__ 1
 
 #include <gio/gio.h>
 
@@ -100,4 +100,4 @@ const char   *soup_request_get_content_type   (SoupRequest          *request);
 
 G_END_DECLS
 
-#endif /* SOUP_REQUEST_H */
+#endif /* __SOUP_REQUEST_H__ */

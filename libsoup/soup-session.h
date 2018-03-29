@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_SESSION_H
-#define SOUP_SESSION_H 1
+#ifndef __SOUP_SESSION_H__
+#define __SOUP_SESSION_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-address.h>
@@ -254,4 +254,4 @@ GIOStream *soup_session_connect_finish (SoupSession                       *sessi
 
 G_END_DECLS
 
-#endif /* SOUP_SESSION_H */
+#endif /* __SOUP_SESSION_H__ */

@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_SOCKET_H
-#define SOUP_SOCKET_H 1
+#ifndef __SOUP_SOCKET_H__
+#define __SOUP_SOCKET_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -133,4 +133,4 @@ SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
 
 G_END_DECLS
 
-#endif /* SOUP_SOCKET_H */
+#endif /* __SOUP_SOCKET_H__ */

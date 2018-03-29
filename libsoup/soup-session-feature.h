@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_SESSION_FEATURE_H
-#define SOUP_SESSION_FEATURE_H 1
+#ifndef __SOUP_SESSION_FEATURE_H__
+#define __SOUP_SESSION_FEATURE_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -68,4 +68,4 @@ gboolean soup_session_feature_has_feature    (SoupSessionFeature *feature,
 
 G_END_DECLS
 
-#endif /* SOUP_SESSION_FEATURE_H */
+#endif /* __SOUP_SESSION_FEATURE_H__ */

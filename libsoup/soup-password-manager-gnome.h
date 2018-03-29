@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_PASSWORD_MANAGER_GNOME_H
-#define SOUP_PASSWORD_MANAGER_GNOME_H 1
+#ifndef __SOUP_PASSWORD_MANAGER_GNOME_H__
+#define __SOUP_PASSWORD_MANAGER_GNOME_H__ 1
 
 #include "soup-password-manager.h"
 #include "soup-gnome-features.h"
@@ -25,4 +25,4 @@ typedef struct {
 
 } SoupPasswordManagerGNOMEClass;
 
-#endif /* SOUP_PASSWORD_MANAGER_GNOME_H */
+#endif /* __SOUP_PASSWORD_MANAGER_GNOME_H__ */

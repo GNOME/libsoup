@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_MULTIPART_H
-#define SOUP_MULTIPART_H 1
+#ifndef __SOUP_MULTIPART_H__
+#define __SOUP_MULTIPART_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-message-body.h>
@@ -58,4 +58,4 @@ void     soup_multipart_free               (SoupMultipart       *multipart);
 
 G_END_DECLS
 
-#endif /* SOUP_MULTIPART_H */
+#endif /* __SOUP_MULTIPART_H__ */

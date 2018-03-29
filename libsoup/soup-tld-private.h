@@ -5,8 +5,8 @@
  * Copyright (C) 2012 Igalia, S.L.
  */
 
-#ifndef SOUP_TLD_PRIVATE_H
-#define SOUP_TLD_PRIVATE_H 1
+#ifndef __SOUP_TLD_PRIVATE_H__
+#define __SOUP_TLD_PRIVATE_H__ 1
 
 G_BEGIN_DECLS
 
@@ -23,4 +23,4 @@ typedef struct {
 
 G_END_DECLS
 
-#endif /* SOUP_TLD_PRIVATE_H */
+#endif /* __SOUP_TLD_PRIVATE_H__ */

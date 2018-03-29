@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_GNOME_FEATURES_H
-#define SOUP_GNOME_FEATURES_H 1
+#ifndef __SOUP_GNOME_FEATURES_H__
+#define __SOUP_GNOME_FEATURES_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -27,4 +27,4 @@ GType soup_password_manager_gnome_get_type (void);
 
 G_END_DECLS
 
-#endif /* SOUP_GNOME_FEATURES_H */
+#endif /* __SOUP_GNOME_FEATURES_H__ */

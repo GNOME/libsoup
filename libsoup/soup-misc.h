@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_MISC_H
-#define SOUP_MISC_H 1
+#ifndef __SOUP_MISC_H__
+#define __SOUP_MISC_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -74,4 +74,4 @@ typedef enum {
 
 G_END_DECLS
 
-#endif /* SOUP_MISC_H */
+#endif /* __SOUP_MISC_H__ */

@@ -3,8 +3,8 @@
  * Copyright 2012 Red Hat, Inc.
  */
 
-#ifndef SOUP_FILTER_INPUT_STREAM_H
-#define SOUP_FILTER_INPUT_STREAM_H 1
+#ifndef __SOUP_FILTER_INPUT_STREAM_H__
+#define __SOUP_FILTER_INPUT_STREAM_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -54,4 +54,4 @@ gssize        soup_filter_input_stream_read_until (SoupFilterInputStream  *fstre
 
 G_END_DECLS
 
-#endif /* SOUP_FILTER_INPUT_STREAM_H */
+#endif /* __SOUP_FILTER_INPUT_STREAM_H__ */
