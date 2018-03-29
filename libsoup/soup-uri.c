@@ -224,13 +224,13 @@ soup_scheme_default_port (const char *scheme)
 }
 
 /**
- * soup_uri_new_with_base:
+ * soup_uri_new_with_base: (constructor)
  * @base: a base URI
  * @uri_string: the URI
  *
  * Parses @uri_string relative to @base.
  *
- * Return value: a parsed #SoupURI.
+ * Returns: a parsed #SoupURI.
  **/
 SoupURI *
 soup_uri_new_with_base (SoupURI *base, const char *uri_string)
