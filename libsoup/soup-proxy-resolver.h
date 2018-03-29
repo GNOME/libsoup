@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_PROXY_RESOLVER_H
-#define SOUP_PROXY_RESOLVER_H 1
+#ifndef __SOUP_PROXY_RESOLVER_H__
+#define __SOUP_PROXY_RESOLVER_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -21,8 +21,8 @@ G_BEGIN_DECLS
 
 typedef struct _SoupProxyResolver SoupProxyResolver;
 
-typedef void (*SoupProxyResolverCallback) (SoupProxyResolver *, SoupMessage *,
-					   guint, SoupAddress *, gpointer);
+typedef void (*SoupProxyResolverCallback) (SoupProxyResolver *proxy_resolver, SoupMessage *msg,
+					   guint arg, SoupAddress *addr, gpointer user_data);
 
 typedef struct {
 	GTypeInterface base;
@@ -31,7 +31,7 @@ typedef struct {
 	void (*get_proxy_async) (SoupProxyResolver *proxy_resolver,
 				 SoupMessage *msg, GMainContext *async_context,
 				 GCancellable *cancellable,
-				 SoupProxyResolverCallback callaback,
+				 SoupProxyResolverCallback callback,
 				 gpointer user_data);
 	guint (*get_proxy_sync) (SoupProxyResolver *proxy_resolver,
 				 SoupMessage *msg, GCancellable *cancellable,
@@ -62,4 +62,4 @@ guint soup_proxy_resolver_get_proxy_sync  (SoupProxyResolver  *proxy_resolver,
 
 G_END_DECLS
 
-#endif /*SOUP_PROXY_RESOLVER_H*/
+#endif /* __SOUP_PROXY_RESOLVER_H__ */
