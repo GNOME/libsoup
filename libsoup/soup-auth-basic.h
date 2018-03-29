@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_AUTH_BASIC_H
-#define SOUP_AUTH_BASIC_H 1
+#ifndef __SOUP_AUTH_BASIC_H__
+#define __SOUP_AUTH_BASIC_H__ 1
 
 #include "soup-auth.h"
 
@@ -24,4 +24,4 @@ typedef struct {
 
 } SoupAuthBasicClass;
 
-#endif /*SOUP_AUTH_BASIC_H*/
+#endif /* __SOUP_AUTH_BASIC_H__ */

@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#ifndef SOUP_AUTH_DOMAIN_H
-#define SOUP_AUTH_DOMAIN_H 1
+#ifndef __SOUP_AUTH_DOMAIN_H__
+#define __SOUP_AUTH_DOMAIN_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -107,4 +107,4 @@ gboolean    soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
 
 G_END_DECLS
 
-#endif /* SOUP_AUTH_DOMAIN_H */
+#endif /* __SOUP_AUTH_DOMAIN_H__ */

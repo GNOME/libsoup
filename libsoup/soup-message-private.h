@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_MESSAGE_PRIVATE_H
-#define SOUP_MESSAGE_PRIVATE_H 1
+#ifndef __SOUP_MESSAGE_PRIVATE_H__
+#define __SOUP_MESSAGE_PRIVATE_H__ 1
 
 #include "soup-message.h"
 #include "soup-auth.h"
@@ -161,4 +161,4 @@ SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
 					     SoupConnection *conn);
 
-#endif /* SOUP_MESSAGE_PRIVATE_H */
+#endif /* __SOUP_MESSAGE_PRIVATE_H__ */

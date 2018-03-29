@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_METHOD_H
-#define SOUP_METHOD_H 1
+#ifndef __SOUP_METHOD_H__
+#define __SOUP_METHOD_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-misc.h>
@@ -77,4 +77,4 @@ SOUP_VAR gpointer _SOUP_METHOD_UNLOCK;
 
 G_END_DECLS
 
-#endif /* SOUP_METHOD_H */
+#endif /* __SOUP_METHOD_H__ */

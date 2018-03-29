@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_LOGGER_H
-#define SOUP_LOGGER_H 1
+#ifndef __SOUP_LOGGER_H__
+#define __SOUP_LOGGER_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -89,4 +89,4 @@ void        soup_logger_set_printer         (SoupLogger        *logger,
 
 G_END_DECLS
 
-#endif /* SOUP_LOGGER_H */
+#endif /* __SOUP_LOGGER_H__ */

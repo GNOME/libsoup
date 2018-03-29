@@ -18,8 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef SOUP_REQUESTER_H
-#define SOUP_REQUESTER_H 1
+#ifndef __SOUP_REQUESTER_H__
+#define __SOUP_REQUESTER_H__ 1
 
 #ifdef LIBSOUP_USE_UNSTABLE_REQUEST_API
 
@@ -81,4 +81,4 @@ G_END_DECLS
 
 #endif /* LIBSOUP_USE_UNSTABLE_REQUEST_API */
 
-#endif /* SOUP_REQUESTER_H */
+#endif /* __SOUP_REQUESTER_H__ */

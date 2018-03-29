@@ -3,8 +3,8 @@
  * Copyright (C) 2010 Red Hat, Inc.
  */
 
-#ifndef SOUP_CONTENT_SNIFFER_STREAM_H
-#define SOUP_CONTENT_SNIFFER_STREAM_H 1
+#ifndef __SOUP_CONTENT_SNIFFER_STREAM_H__
+#define __SOUP_CONTENT_SNIFFER_STREAM_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-content-sniffer.h>
@@ -46,4 +46,4 @@ const char   *soup_content_sniffer_stream_sniff    (SoupContentSnifferStream  *s
 
 G_END_DECLS
 
-#endif /* SOUP_CONTENT_SNIFFER_STREAM_H */
+#endif /* __SOUP_CONTENT_SNIFFER_STREAM_H__ */

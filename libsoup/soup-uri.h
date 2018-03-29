@@ -5,8 +5,8 @@
  */
 
 
-#ifndef  SOUP_URI_H
-#define  SOUP_URI_H 1
+#ifndef __SOUP_URI_H__
+#define __SOUP_URI_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-misc.h>
@@ -139,4 +139,4 @@ gboolean    soup_uri_host_equal            (gconstpointer v1,
 
 G_END_DECLS
 
-#endif /*SOUP_URI_H*/
+#endif /* __SOUP_URI_H__ */

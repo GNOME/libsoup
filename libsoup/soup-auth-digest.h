@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_AUTH_DIGEST_H
-#define SOUP_AUTH_DIGEST_H 1
+#ifndef __SOUP_AUTH_DIGEST_H__
+#define __SOUP_AUTH_DIGEST_H__ 1
 
 #include "soup-auth.h"
 
@@ -61,4 +61,4 @@ void soup_auth_digest_compute_response (const char              *method,
 					int                      nc,
 					char                     response[33]);
 
-#endif /*SOUP_AUTH_DIGEST_H*/
+#endif /* __SOUP_AUTH_DIGEST_H__ */

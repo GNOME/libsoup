@@ -4,8 +4,8 @@
  */
 
 
-#ifndef SOUP_CONTENT_PROCESSOR_H
-#define SOUP_CONTENT_PROCESSOR_H 1
+#ifndef __SOUP_CONTENT_PROCESSOR_H__
+#define __SOUP_CONTENT_PROCESSOR_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <gio/gio.h>
@@ -53,4 +53,4 @@ SoupProcessingStage soup_content_processor_get_processing_stage (SoupContentProc
 
 G_END_DECLS
 
-#endif /* SOUP_CONTENT_PROCESSOR_H */
+#endif /* __SOUP_CONTENT_PROCESSOR_H__ */

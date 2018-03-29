@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#ifndef SOUP_XMLRPC_OLD_H
-#define SOUP_XMLRPC_OLD_H 1
+#ifndef __SOUP_XMLRPC_OLD_H__
+#define __SOUP_XMLRPC_OLD_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -65,4 +65,4 @@ void         soup_xmlrpc_set_fault               (SoupMessage  *msg,
 
 G_END_DECLS
 
-#endif /* SOUP_XMLRPC_OLD_H */
+#endif /* __SOUP_XMLRPC_OLD_H__ */

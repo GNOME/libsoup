@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_PROXY_RESOLVER_GNOME_H
-#define SOUP_PROXY_RESOLVER_GNOME_H 1
+#ifndef __SOUP_PROXY_RESOLVER_GNOME_H__
+#define __SOUP_PROXY_RESOLVER_GNOME_H__ 1
 
 #include "soup-gnome-features.h"
 #include "soup-proxy-resolver-default.h"
@@ -22,4 +22,4 @@
 typedef SoupProxyResolverDefault SoupProxyResolverGNOME;
 typedef SoupProxyResolverDefaultClass SoupProxyResolverGNOMEClass;
 
-#endif /*SOUP_PROXY_RESOLVER_GNOME_H*/
+#endif /* __SOUP_PROXY_RESOLVER_GNOME_H__ */

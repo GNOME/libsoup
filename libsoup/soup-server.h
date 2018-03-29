@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_SERVER_H
-#define SOUP_SERVER_H 1
+#ifndef __SOUP_SERVER_H__
+#define __SOUP_SERVER_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-uri.h>
@@ -228,4 +228,4 @@ SoupSocket   *soup_client_context_get_socket  (SoupClientContext *client);
 
 G_END_DECLS
 
-#endif /* SOUP_SERVER_H */
+#endif /* __SOUP_SERVER_H__ */

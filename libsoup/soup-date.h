@@ -4,8 +4,8 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#ifndef SOUP_DATE_H
-#define SOUP_DATE_H 1
+#ifndef __SOUP_DATE_H__
+#define __SOUP_DATE_H__ 1
 
 #include <time.h>
 #include <libsoup/soup-types.h>
@@ -89,4 +89,4 @@ void      soup_date_free            (SoupDate       *date);
 
 G_END_DECLS
 
-#endif /* SOUP_DATE_H */
+#endif /* __SOUP_DATE_H__ */

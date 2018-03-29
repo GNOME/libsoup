@@ -3,8 +3,8 @@
  * Copyright (C) 2009 Gustavo Noronha Silva.
  */
 
-#ifndef SOUP_CONTENT_SNIFFER_H
-#define SOUP_CONTENT_SNIFFER_H 1
+#ifndef __SOUP_CONTENT_SNIFFER_H__
+#define __SOUP_CONTENT_SNIFFER_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-message-body.h>
@@ -59,4 +59,4 @@ gsize               soup_content_sniffer_get_buffer_size (SoupContentSniffer  *s
 
 G_END_DECLS
 
-#endif /* SOUP_CONTENT_SNIFFER_H */
+#endif /* __SOUP_CONTENT_SNIFFER_H__ */

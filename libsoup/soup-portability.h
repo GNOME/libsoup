@@ -3,8 +3,8 @@
  * Copyright (C) 2005, Novell, Inc.
  */
 
-#ifndef SOUP_PORTABILITY_H
-#define SOUP_PORTABILITY_H
+#ifndef __SOUP_PORTABILITY_H__
+#define __SOUP_PORTABILITY_H__
 
 #include <libsoup/soup-types.h>
 
@@ -23,4 +23,4 @@
 
 #endif
 
-#endif /* SOUP_PORTABILITY_H */
+#endif /* __SOUP_PORTABILITY_H__ */

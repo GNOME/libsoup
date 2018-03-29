@@ -3,8 +3,8 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_PASSWORD_MANAGER_H
-#define SOUP_PASSWORD_MANAGER_H 1
+#ifndef __SOUP_PASSWORD_MANAGER_H__
+#define __SOUP_PASSWORD_MANAGER_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -61,4 +61,4 @@ void  soup_password_manager_get_passwords_sync  (SoupPasswordManager  *password_
 						 SoupAuth             *auth,
 						 GCancellable         *cancellable);
 
-#endif /* SOUP_PASSWORD_MANAGER_H */
+#endif /* __SOUP_PASSWORD_MANAGER_H__ */

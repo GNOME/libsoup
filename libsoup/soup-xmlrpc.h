@@ -3,8 +3,8 @@
  * Copyright 2015 - Collabora Ltd.
  */
 
-#ifndef SOUP_XMLRPC_H
-#define SOUP_XMLRPC_H 1
+#ifndef __SOUP_XMLRPC_H__
+#define __SOUP_XMLRPC_H__ 1
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-xmlrpc-old.h>
@@ -94,4 +94,4 @@ typedef enum {
 
 G_END_DECLS
 
-#endif /* SOUP_XMLRPC_H */
+#endif /* __SOUP_XMLRPC_H__ */

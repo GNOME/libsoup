@@ -3,8 +3,8 @@
  * Copyright 2007, 2008 Red Hat, Inc.
  */
 
-#ifndef SOUP_COOKIE_H
-#define SOUP_COOKIE_H 1
+#ifndef __SOUP_COOKIE_H__
+#define __SOUP_COOKIE_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -119,4 +119,4 @@ gboolean    soup_cookie_domain_matches          (SoupCookie  *cookie,
 
 G_END_DECLS
 
-#endif /* SOUP_COOKIE_H */
+#endif /* __SOUP_COOKIE_H__ */

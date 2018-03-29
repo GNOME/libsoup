@@ -3,8 +3,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef SOUP_CONNECTION_H
-#define SOUP_CONNECTION_H 1
+#ifndef __SOUP_CONNECTION_H__
+#define __SOUP_CONNECTION_H__ 1
 
 #include "soup-types.h"
 #include "soup-message-private.h"
@@ -82,4 +82,4 @@ void            soup_connection_send_request   (SoupConnection          *conn,
 
 G_END_DECLS
 
-#endif /* SOUP_CONNECTION_H */
+#endif /* __SOUP_CONNECTION_H__ */

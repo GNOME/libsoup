@@ -19,8 +19,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef SOUP_REQUEST_DATA_H
-#define SOUP_REQUEST_DATA_H 1
+#ifndef __SOUP_REQUEST_DATA_H__
+#define __SOUP_REQUEST_DATA_H__ 1
 
 #include "soup-request.h"
 
@@ -50,4 +50,4 @@ GType soup_request_data_get_type (void);
 
 G_END_DECLS
 
-#endif /* SOUP_REQUEST_DATA_H */
+#endif /* __SOUP_REQUEST_DATA_H__ */
