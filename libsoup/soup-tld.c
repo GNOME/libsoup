@@ -62,6 +62,17 @@ soup_tld_get_base_domain (const char *hostname, GError **error)
 	return soup_tld_get_base_domain_internal (hostname, error);
 }
 
+static psl_ctx_t *
+soup_psl_context (void)
+{
+	static psl_ctx_t *psl = NULL;
+
+	if (!psl)
+		psl = psl_latest (NULL);
+
+	return psl;
+}
+
 /**
  * soup_tld_domain_is_public_suffix:
  * @domain: a domain name
@@ -80,12 +91,14 @@ soup_tld_get_base_domain (const char *hostname, GError **error)
 gboolean
 soup_tld_domain_is_public_suffix (const char *domain)
 {
-	const psl_ctx_t* psl = psl_builtin ();
+	const psl_ctx_t* psl = soup_psl_context ();
 
 	g_return_val_if_fail (domain, FALSE);
 
-	/* This will fail if libpsl's built-in data was disabled during compilation. */
-	g_assert (psl);
+	if (!psl) {
+		g_warning ("soup-tld: There is no public-suffix data available.");
+		return FALSE;
+	}
 
 	return psl_is_public_suffix2 (psl, domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE);
 }
@@ -128,11 +141,15 @@ static const char *
 soup_tld_get_base_domain_internal (const char *hostname, GError **error)
 {
 	char *utf8_hostname = NULL;
-	const psl_ctx_t* psl = psl_builtin ();
+	const psl_ctx_t* psl = soup_psl_context ();
 	const char *registrable_domain, *unregistrable_domain;
 
-	/* This will fail if libpsl's built-in data was disabled during compilation. */
-	g_assert (psl);
+	if (!psl) {
+		g_set_error_literal (error, SOUP_TLD_ERROR,
+				     SOUP_TLD_ERROR_NO_PSL_DATA,
+				     _("No public-suffix list available."));
+		return NULL;
+	}
 
 	/* Valid hostnames neither start with a dot nor have more than one
 	 * dot together.
