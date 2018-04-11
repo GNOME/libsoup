@@ -810,7 +810,7 @@ soup_ntlm_response (const char *nonce,
 	ntlm_set_string (&resp.nt_resp, &offset, sizeof (nt_resp));
 
 	out = g_malloc (((offset + 3) * 4) / 3 + 6);
-	strncpy (out, "NTLM ", 5);
+	memcpy (out, "NTLM ", 5);
 	p = out + 5;
 
 	state = save = 0;
