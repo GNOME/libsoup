@@ -42,7 +42,7 @@ IGNORE_HFILES= soup.h soup-autocleanups.h soup-enum-types.h \
 	soup-client-input-stream.h soup-content-processor.h \
 	soup-content-sniffer-stream.h soup-io-stream.h \
 	soup-cache-input-stream.h soup-filter-input-stream.h \
-	soup-cookie-jar-sqlite.h soup-requester.h soup-tld-private.h \
+	soup-cookie-jar-sqlite.h soup-requester.h \
 	soup-misc-private.h soup-proxy-uri-resolver.h \
 	soup-proxy-resolver-wrapper.h soup-proxy-uri-resolver.h \
 	soup-cache-private.h soup-cache-client-input-stream.h \
