@@ -31,7 +31,6 @@ ignore_headers = [
   'soup-filter-input-stream.h',
   'soup-cookie-jar-sqlite.h',
   'soup-requester.h',
-  'soup-tld-private.h',
   'soup-misc-private.h',
   'soup-proxy-uri-resolver.h',
   'soup-proxy-resolver-wrapper.h',

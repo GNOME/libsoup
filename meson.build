@@ -78,6 +78,9 @@ if host_machine.system() == 'windows'
   cdata.set('DLL_EXPORT', 1)
 endif
 
+libpsl_required_version = '>= 0.20'
+libpsl_dep = dependency('libpsl', version : libpsl_required_version)
+
 ###################
 # GIO TLS support #
 ###################

@@ -175,13 +175,6 @@ soup_enums = gnome.mkenums('soup-enum-types',
 soupenum_h = soup_enums[1]
 soupenum_c = soup_enums[0]
 
-tldparser = find_program(join_paths(meson.current_source_dir(), 'tld-parser.py'))
-tlddata = custom_target('tlddata',
-  output : 'tld_data.inc',
-  input : join_paths(meson.source_root(), 'data', 'effective_tld_names.dat'),
-  install : false,
-  command : [tldparser, '@INPUT@', '@OUTPUT@'])
-
 libsoup_c_args  = [
   '-DHAVE_CONFIG_H',
   '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
@@ -192,11 +185,12 @@ deps = [
   glib_dep,
   libxml_dep,
   sqlite_dep,
+  libpsl_dep,
   platform_deps
 ]
 
 libsoup = shared_library('soup-@0@'.format(apiversion), soup_sources,
-  soup_enums, tlddata,
+  soup_enums,
   version : libversion,
   soversion : soversion,
   c_args : libsoup_c_args,
