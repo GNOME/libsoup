@@ -176,7 +176,6 @@ soupenum_h = soup_enums[1]
 soupenum_c = soup_enums[0]
 
 libsoup_c_args  = [
-  '-DHAVE_CONFIG_H',
   '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
   '-DLIBSOUP_COMPILATION'
 ]

@@ -20,9 +20,13 @@ libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
 
 host_system = host_machine.system()
 
+common_flags = [
+  '-DHAVE_CONFIG_H',
+]
+
 # Enable extra warnings if compiler supports them.
 if cc.get_id() == 'msvc'
-  common_flags = ['/FImsvc_recommended_pragmas.h']
+  common_flags += ['/FImsvc_recommended_pragmas.h']
 else
   test_cflags = [
       '-Wall',
@@ -38,7 +42,7 @@ else
       '-Wno-format-zero-length',
   ]
 
-  common_flags = cc.get_supported_arguments(test_cflags)
+  common_flags += cc.get_supported_arguments(test_cflags)
 endif
 
 add_project_arguments(common_flags, language : 'c')
