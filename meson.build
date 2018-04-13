@@ -229,7 +229,7 @@ endif
 ############
 enable_vapi = get_option('vapi')
 if enable_vapi
-  assert(enable_gir, 'vapi support was requested, but introspection support is mandatory.')
+  assert(enable_introspection, 'vapi support was requested, but introspection support is mandatory.')
   assert(add_languages('vala', required: false), 'vapi support was requested, but vala not found.')
 endif
 
