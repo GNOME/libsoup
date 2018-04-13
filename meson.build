@@ -151,9 +151,7 @@ if have_apache
   cdata.set('IF_HAVE_MOD_UNIXD', apache_mod_unixd.returncode() == 0 ? '' : '#')
 endif
 
-if find_program('curl', required : false).found()
-  cdata.set('HAVE_CURL', '1')
-endif
+cdata.set('HAVE_CURL', find_program('curl', required : false).found())
 
 ##################
 # GSSAPI support #
