@@ -276,11 +276,11 @@ if test "$have_apache" = 1; then
 
     if test "$have_php" = yes; then
 	AC_MSG_CHECKING([for php-xmlrpc])
-	if $PHP --rf xmlrpc_server_create | grep -q "does not exist"; then
-	    have_php_xmlrpc=no
-	else
+	if $PHP -r 'exit(function_exists("xmlrpc_server_create")?0:1);'; then
 	    have_php_xmlrpc=yes
 	    AC_DEFINE(HAVE_PHP_XMLRPC, 1, [Have php-xmlrpc])
+	else
+	    have_php_xmlrpc=no
 	fi
 	AC_MSG_RESULT($have_php_xmlrpc)
     fi
