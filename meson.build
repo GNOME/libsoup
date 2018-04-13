@@ -207,18 +207,12 @@ endif
 #################
 # GNOME support #
 #################
-enable_gnome = get_option('gnome')
-if host_machine.system() == 'windows'
-  enable_gnome = false
-endif
+enable_gnome = get_option('gnome') and host_machine.system() != 'windows'
 
 #########################
 # GObject introspection #
 #########################
-enable_introspection = get_option('introspection')
-if enable_introspection
-  enable_introspection = find_program('g-ir-scanner', required: false).found() and not meson.is_cross_build()
-endif
+enable_introspection = get_option('introspection') and find_program('g-ir-scanner', required: false).found() and not meson.is_cross_build()
 
 ############
 # Vala API #
