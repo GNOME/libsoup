@@ -8,6 +8,10 @@ else
     dependencies : [glib_dep, libsoup_dep])
 endif
 
+test_resources = gnome.compile_resources('soup-tests',
+  'soup-tests.gresource.xml',
+  gresource_bundle : true)
+
 # ['name', is_parallel]
 tests = [
   ['auth', false],
@@ -59,8 +63,9 @@ env.set('MALLOC_PERTURB_', '')
 
 foreach test: tests
   test_name = '@0@-test'.format(test[0])
-  test_target = executable(test_name, test_name + '.c',
-    link_with: test_utils,
+  test_target = executable(test_name,
+    sources : [ test_name + '.c', test_resources ],
+    link_with : test_utils,
     dependencies : [glib_dep, libsoup_dep, platform_deps])
   test(test_name, test_target, env : env, is_parallel : test[1])
 endforeach
@@ -92,9 +97,3 @@ configure_file(input : 'test-key.pem',
 configure_file(input : 'xmlrpc-server.php',
   output : 'xmlrpc-server.php',
   configuration : configuration_data())
-
-gnome.compile_resources('soup-tests',
-  'soup-tests.gresource.xml',
-  gresource_bundle : true,
-  install : true,
-  install_dir : meson.current_build_dir() + '/tests')
