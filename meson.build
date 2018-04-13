@@ -84,14 +84,14 @@ libpsl_dep = dependency('libpsl', version : libpsl_required_version)
 ###################
 # GIO TLS support #
 ###################
-check_gio_tls_src = '''#include <gio/gio.h>
-int main(void) {
-  return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
-}
-'''
-
 enable_tls_check = get_option('tls_check')
 if enable_tls_check
+  check_gio_tls_src = '''#include <gio/gio.h>
+  int main(void) {
+    return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
+  }
+  '''
+
   assert(cc.compiles(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_dep),
          'libsoup requires glib-networking or glib-openssl for TLS support')
 endif
