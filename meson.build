@@ -124,10 +124,8 @@ if have_apache
     cdata.set('APACHE_MODULE_DIR', apache_module_dir)
     apache_ssl_module_dir = apache_modules.stdout().split(':')[1]
     cdata.set('APACHE_SSL_MODULE_DIR', apache_ssl_module_dir)
-    if apache_module_dir != '' and apache_ssl_module_dir != ''
-      have_apache = true
-      cdata.set('HAVE_APACHE', '1')
-    endif
+    have_apache = apache_module_dir != '' and apache_ssl_module_dir != ''
+    cdata.set('HAVE_APACHE', have_apache)
     cdata.set('APACHE_PHP_MODULE_DIR', apache_modules.stdout().split(':')[2])
   endif
 endif
