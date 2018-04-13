@@ -155,7 +155,6 @@ cdata.set('HAVE_CURL', find_program('curl', required : false).found())
 # GSSAPI support #
 ##################
 enable_gssapi = get_option('gssapi')
-krb5_config_option = get_option('krb5_config')
 if enable_gssapi
   if cc.get_id() == 'msvc'
     if host_machine.cpu_family() == 'x86'
@@ -169,6 +168,8 @@ if enable_gssapi
       add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
     endif
   else
+    krb5_config_option = get_option('krb5_config')
+
     krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
     krb5_config = find_program(krb5_config_path, required : false)
 
