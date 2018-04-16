@@ -12,7 +12,7 @@ authenticate (SoupSession *session, SoupMessage *msg,
 		soup_auth_authenticate (auth, "user2", "realm2");
 }
 
-#if HAVE_APACHE
+#ifdef HAVE_APACHE
 static void
 get_correct_response (const char *uri)
 {
@@ -514,7 +514,7 @@ main (int argc, char **argv)
 	apache_init ();
 
 	base_uri = "http://127.0.0.1:47524/";
-#if HAVE_APACHE
+#ifdef HAVE_APACHE
 	get_correct_response (base_uri);
 #endif
 
@@ -524,7 +524,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-#if HAVE_APACHE
+#ifdef HAVE_APACHE
 	soup_buffer_free (correct_response);
 #endif
 
