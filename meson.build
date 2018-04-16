@@ -127,6 +127,8 @@ if have_apache
     have_apache = apache_module_dir != '' and apache_ssl_module_dir != ''
     cdata.set('HAVE_APACHE', have_apache)
     cdata.set('APACHE_PHP_MODULE_DIR', apache_module_dirs.stdout().split(':')[2])
+    apache_mod_unixd = run_command('test', '-f', cdata.get('APACHE_MODULE_DIR') + '/mod_unixd.so')
+    cdata.set('IF_HAVE_MOD_UNIXD', apache_mod_unixd.returncode() == 0 ? '' : '#')
   endif
 endif
 
@@ -145,8 +147,6 @@ if have_apache
     endif
   endif
   cdata.set('IF_HAVE_PHP', have_php ? '' : '#')
-  apache_mod_unixd = run_command('test', '-f', cdata.get('APACHE_MODULE_DIR') + '/mod_unixd.so')
-  cdata.set('IF_HAVE_MOD_UNIXD', apache_mod_unixd.returncode() == 0 ? '' : '#')
 endif
 
 cdata.set('HAVE_CURL', find_program('curl', required : false).found())
