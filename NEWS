@@ -1,3 +1,21 @@
+Changes in libsoup from 2.62.0 to 2.63.1:
+
+	* Fix digest authentication with encoded URIs [#794208,
+	  Claudio Saavedra]
+	* Avoid unaligned memory accesses in WebSocket implementation
+	  [#794421, Rolf Eike Beer]
+	* Use base domain to decide if cookies are third-party [#792130,
+	  Michael Catanzaro]
+	* Fix crash under soup_socket_new() [#762138, Milan Crha]
+	* Use libpsl for the SoupTLD API instead of shipping a copy of
+	  the public-suffix list [#769650, Claudio Saavedra]
+	* Introspection documentation fixes [#795135, Claudio Saavedra]
+	* Minor cleanups and fixes [Tomas Popela]
+	* Initial meson build system support [#784212, Sebastian Dröge,
+	  Chun-wei Fan, Tomas Popela]
+	* Various fixes to the meson build system [#795233, Iñigo Martinez]
+	* Updated translations: Chinese, Croatian, Italian, Slovak.
+
 Changes in libsoup from 2.61.91 to 2.62.0:
 
 	* Updated translations.
