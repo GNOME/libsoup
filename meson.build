@@ -171,7 +171,7 @@ if enable_gssapi
     endif
     if cc.has_header('gssapi/gssapi.h', required: false)
       gssapi_lib = cc.find_library('gssapi' + gssapi_lib_type, required: false)
-      assert(gssapi_lib.found(), 'GSSAPI support requested, but the MIT Keberos 5 headers and libraries are not found')
+      assert(gssapi_lib.found(), 'GSSAPI support requested, but the MIT Kerberos 5 headers and libraries are not found')
       add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
     endif
   else
