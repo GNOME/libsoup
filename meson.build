@@ -121,18 +121,17 @@ if apache_httpd2.found()
 endif
 
 if have_apache
-  apache_module_dirs = run_command('get_apache_module_dirs.py', apache_httpd2.path())
-  have_apache = (apache_module_dirs.returncode() == 0)
+  apache_module_dirs_out = run_command('get_apache_module_dirs.py', apache_httpd2.path())
+  have_apache = (apache_module_dirs_out.returncode() == 0)
   if have_apache
-    message('Apache module directory: ' + apache_module_dirs.stdout().split(':')[0])
-    apache_module_dir = apache_module_dirs.stdout().split(':')[0]
-    cdata.set('APACHE_MODULE_DIR', apache_module_dir)
-    apache_ssl_module_dir = apache_module_dirs.stdout().split(':')[1]
-    cdata.set('APACHE_SSL_MODULE_DIR', apache_ssl_module_dir)
-    cdata.set('HAVE_APACHE', have_apache)
-    cdata.set('APACHE_PHP_MODULE_DIR', apache_module_dirs.stdout().split(':')[2])
-    apache_mod_unixd = run_command('test', '-f', cdata.get('APACHE_MODULE_DIR') + '/mod_unixd.so')
+    apache_module_dirs = apache_module_dirs_out.stdout().split(':')
+    message('Apache module directory: ' + apache_module_dirs[0])
+    cdata.set('APACHE_MODULE_DIR', apache_module_dirs[0])
+    cdata.set('APACHE_SSL_MODULE_DIR', apache_module_dirs[1])
+    cdata.set('APACHE_PHP_MODULE_DIR', apache_module_dirs[2])
+    apache_mod_unixd = run_command('test', '-f', join_paths(apache_module_dirs[0], 'mod_unixd.so'))
     cdata.set('IF_HAVE_MOD_UNIXD', apache_mod_unixd.returncode() == 0 ? '' : '#')
+    cdata.set('HAVE_APACHE', have_apache)
   endif
 endif
 
