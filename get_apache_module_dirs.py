@@ -69,6 +69,10 @@ def main():
                     if os.path.isfile(modules_path + 'libphp7.so'):
                         apache_php_module_dir = modules_path
 
+    # These two are mandatory for having properly configured Apache
+    if apache_module_dir == '' or apache_ssl_module_dir == '':
+        sys.exit(1)
+
     print(apache_module_dir.rstrip('/') + ":" + apache_ssl_module_dir.rstrip('/') + ":" + apache_php_module_dir.rstrip('/'), end='')
 
 if __name__ == "__main__":
