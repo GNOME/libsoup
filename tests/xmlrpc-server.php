@@ -20,7 +20,7 @@ function sum ($method_name, $params, $app_data)
 	foreach ($params[0] as $val) {
 		if (xmlrpc_get_type ($val) != "double")
 			return paramfault();
-			
+
 		$sum = $sum + $val;
 	}
 	return $sum;
