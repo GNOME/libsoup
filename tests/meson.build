@@ -14,12 +14,10 @@ test_resources = gnome.compile_resources('soup-tests',
 
 # ['name', is_parallel]
 tests = [
-  ['auth', false],
   ['cache', true],
   ['chunk', true],
   ['chunk-io', true],
   ['coding', true],
-  ['connection', false],
   ['context', true],
   ['continue', true],
   ['cookies', true],
@@ -30,9 +28,6 @@ tests = [
   ['multipart', true],
   ['no-ssl', true],
   ['ntlm', true],
-  ['proxy', true],
-  ['pull-api', false],
-  ['range', false],
   ['redirect', true],
   ['requester', true],
   ['resource', true],
@@ -46,12 +41,59 @@ tests = [
   ['timeout', true],
   ['tld', true],
   ['uri-parsing', true],
-  ['websocket', true],
-  ['xmlrpc-old-server', true],
-  ['xmlrpc-old', false],
-  ['xmlrpc-server', true],
-  ['xmlrpc', false]
+  ['websocket', true]
 ]
+
+if have_apache
+  tests += [
+    ['auth', false],
+    ['connection', false],
+    ['range', false],
+    ['proxy', true],
+    ['pull-api', false],
+  ]
+
+  configure_file(output : 'httpd.conf',
+    input : 'httpd.conf.in',
+    configuration : cdata)
+
+  # There is not copy_file() in Meson and this is official workaround as per
+  # https://github.com/mesonbuild/meson/issues/860
+  configure_file(input : 'htdigest',
+    output : 'htdigest',
+    configuration : configuration_data())
+  configure_file(input : 'htpasswd',
+    output : 'htpasswd',
+    configuration : configuration_data())
+  configure_file(input : 'index.txt',
+    output : 'index.txt',
+    configuration : configuration_data())
+  configure_file(input : 'test-cert.pem',
+    output : 'test-cert.pem',
+    configuration : configuration_data())
+  configure_file(input : 'test-key.pem',
+    output : 'test-key.pem',
+    configuration : configuration_data())
+endif
+
+if have_php
+  configure_file(output : 'php.ini',
+    input : 'php.ini.in',
+    configuration : cdata)
+endif
+
+if have_php_xmlrpc
+  tests += [
+    ['xmlrpc-old-server', true, have_php_xmlrpc],
+    ['xmlrpc-old', false, have_php_xmlrpc],
+    ['xmlrpc-server', true, have_php_xmlrpc],
+    ['xmlrpc', false, have_php_xmlrpc]
+  ]
+
+  configure_file(input : 'xmlrpc-server.php',
+    output : 'xmlrpc-server.php',
+    configuration : configuration_data())
+endif
 
 env = environment()
 env.set('G_TEST_SRCDIR', meson.current_source_dir())
@@ -72,34 +114,3 @@ endforeach
 
 executable('ntlm-test-helper', 'ntlm-test-helper.c',
   dependencies : [glib_dep, libsoup_dep])
-
-configure_file(output : 'httpd.conf',
-  input : 'httpd.conf.in',
-  configuration : cdata)
-
-if have_php
-  configure_file(output : 'php.ini',
-    input : 'php.ini.in',
-    configuration : cdata)
-endif
-
-# There is not copy_file() in Meson and this is official workaround as per
-# https://github.com/mesonbuild/meson/issues/860
-configure_file(input : 'htdigest',
-  output : 'htdigest',
-  configuration : configuration_data())
-configure_file(input : 'htpasswd',
-  output : 'htpasswd',
-  configuration : configuration_data())
-configure_file(input : 'index.txt',
-  output : 'index.txt',
-  configuration : configuration_data())
-configure_file(input : 'test-cert.pem',
-  output : 'test-cert.pem',
-  configuration : configuration_data())
-configure_file(input : 'test-key.pem',
-  output : 'test-key.pem',
-  configuration : configuration_data())
-configure_file(input : 'xmlrpc-server.php',
-  output : 'xmlrpc-server.php',
-  configuration : configuration_data())
