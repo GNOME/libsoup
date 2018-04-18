@@ -57,23 +57,23 @@ def main():
     apache_ssl_module_dir = ''
     apache_php_module_dir = ''
 
-    for lib_dir in ['/lib', '/lib64']:
+    for lib_dir in ['lib', 'lib64']:
         for httpd_dir in ['apache', 'apache2', 'http', 'http2', 'httpd']:
             for mpm_suffix in ['', '-' + mpm]:
-                for modules_dir in ['/', '/modules/']:
-                    modules_path = apache_prefix + lib_dir + '/' + httpd_dir + mpm_suffix + modules_dir
-                    if os.path.isfile(modules_path + 'mod_auth_digest.so'):
+                for modules_dir in ['', 'modules']:
+                    modules_path = os.path.join(apache_prefix, lib_dir, httpd_dir + mpm_suffix, modules_dir)
+                    if os.path.isfile(os.path.join(modules_path, 'mod_auth_digest.so')):
                         apache_module_dir = modules_path
-                    if os.path.isfile(modules_path + 'mod_ssl.so'):
+                    if os.path.isfile(os.path.join(modules_path, 'mod_ssl.so')):
                         apache_ssl_module_dir = modules_path
-                    if os.path.isfile(modules_path + 'libphp7.so'):
+                    if os.path.isfile(os.path.join(modules_path, 'libphp7.so')):
                         apache_php_module_dir = modules_path
 
     # These two are mandatory for having properly configured Apache
     if apache_module_dir == '' or apache_ssl_module_dir == '':
         sys.exit(1)
 
-    print(apache_module_dir.rstrip('/') + ":" + apache_ssl_module_dir.rstrip('/') + ":" + apache_php_module_dir.rstrip('/'), end='')
+    print(apache_module_dir + ":" + apache_ssl_module_dir + ":" + apache_php_module_dir, end='')
 
 if __name__ == "__main__":
     main()
