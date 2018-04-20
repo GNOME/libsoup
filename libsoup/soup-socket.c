@@ -188,6 +188,7 @@ disconnect_internal (SoupSocket *sock, gboolean close)
 	g_clear_object (&priv->gsock);
 	if (priv->conn && close) {
 		g_io_stream_close (priv->conn, NULL, NULL);
+		g_signal_handlers_disconnect_by_data (priv->conn, sock);
 		g_clear_object (&priv->conn);
 	}
 
