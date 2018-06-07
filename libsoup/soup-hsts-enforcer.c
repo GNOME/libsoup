@@ -1,8 +1,9 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-hsts-enforcer.c: HTTP Strict Transport Security implementation
+ * soup-hsts-enforcer.c: HTTP Strict Transport Security enforcer session feature
  *
- * Copyright (C) 2016 Igalia S.L.
+ * Copyright (C) 2016, 2017, 2018 Igalia S.L.
+ * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
 /* TODO Use only internationalized domain names */
@@ -11,38 +12,39 @@
 #include <config.h>
 #endif
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "soup-hsts-enforcer.h"
 #include "soup-hsts-enforcer-private.h"
 #include "soup.h"
 
 /**
  * SECTION:soup-hsts-enforcer
- * @short_description: Automatic HSTS enforcing for SoupSession
+ * @short_description: Automatic HTTP Strict Transport Security enforcing
+ * for #SoupSession
  *
- * A #SoupHstsEnforcer stores HSTS policies and enforce them when
- * required.
- * #SoupHstsEnforcer implements #SoupSessionFeature, so you can add a
- * HSTS enforcer to a session with soup_session_add_feature() or
- * soup_session_add_feature_by_type().
+ * A #SoupHSTSEnforcer stores HSTS policies and enforces them when
+ * required. #SoupHSTSEnforcer implements #SoupSessionFeature, so you
+ * can add an HSTS enforcer to a session with
+ * soup_session_add_feature() or soup_session_add_feature_by_type().
  *
- * When the #SoupSession the #SoupHstsEnforcer is attached to sends a
- * message, the #SoupHstsEnforcer will ask for a redirection to HTTPS if
- * the destination is a known HSTS host and is contacted over an insecure
- * transport protocol (HTTP).
+ * #SoupHSTSEnforcer keeps track of all the HTTPS destinations that,
+ * when connected to, return the Strict-Transport-Security header with
+ * valid values. #SoupHSTSEnforcer will forget those destinations
+ * upon expiry or when the server requests it.
  *
- * Note that the base #SoupHstsEnforcer class does not support any form
- * of long-term HSTS policy persistence.
+ * When the #SoupSession the #SoupHSTSEnforcer is attached to queues
+ * or restarts a message, the #SoupHSTSEnforcer will rewrite the URI
+ * to HTTPS if the destination is a known HSTS host and is contacted
+ * over an insecure transport protocol (HTTP). Users of
+ * #SoupHSTSEnforcer are advised to listen to changes in
+ * SoupMessage:uri in order to be aware of changes in the message URI.
+ *
+ * Note that #SoupHSTSEnforcer does not support any form of long-term
+ * HSTS policy persistence. See #SoupHSTSDBEnforcer for a persistent
+ * enforcer.
+ *
  **/
 
 static void soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
-
-G_DEFINE_TYPE_WITH_CODE (SoupHstsEnforcer, soup_hsts_enforcer, G_TYPE_OBJECT,
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_hsts_enforcer_session_feature_init))
 
 enum {
 	CHANGED,
@@ -51,30 +53,34 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-typedef struct {
+struct _SoupHSTSEnforcerPrivate {
 	GHashTable *host_policies;
 	GHashTable *session_policies;
-} SoupHstsEnforcerPrivate;
-#define SOUP_HSTS_ENFORCER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_HSTS_ENFORCER, SoupHstsEnforcerPrivate))
+};
+
+G_DEFINE_TYPE_WITH_CODE (SoupHSTSEnforcer, soup_hsts_enforcer, G_TYPE_OBJECT,
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						soup_hsts_enforcer_session_feature_init)
+			 G_ADD_PRIVATE(SoupHSTSEnforcer))
 
 static void
-soup_hsts_enforcer_init (SoupHstsEnforcer *hsts_enforcer)
+soup_hsts_enforcer_init (SoupHSTSEnforcer *hsts_enforcer)
 {
-	SoupHstsEnforcerPrivate *priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
+	hsts_enforcer->priv = soup_hsts_enforcer_get_instance_private (hsts_enforcer);
 
-	priv->host_policies = g_hash_table_new_full (soup_str_case_hash,
-						soup_str_case_equal,
-						g_free, NULL);
+	hsts_enforcer->priv->host_policies = g_hash_table_new_full (soup_str_case_hash,
+								    soup_str_case_equal,
+								    g_free, NULL);
 
-	priv->session_policies = g_hash_table_new_full (soup_str_case_hash,
-							soup_str_case_equal,
-							g_free, NULL);
+	hsts_enforcer->priv->session_policies = g_hash_table_new_full (soup_str_case_hash,
+								       soup_str_case_equal,
+								       g_free, NULL);
 }
 
 static void
 soup_hsts_enforcer_finalize (GObject *object)
 {
-	SoupHstsEnforcerPrivate *priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (object);
+	SoupHSTSEnforcerPrivate *priv = SOUP_HSTS_ENFORCER (object)->priv;
 	GHashTableIter iter;
 	gpointer key, value;
 
@@ -92,302 +98,30 @@ soup_hsts_enforcer_finalize (GObject *object)
 }
 
 static gboolean
-soup_hsts_enforcer_real_is_persistent (SoupHstsEnforcer *hsts_enforcer)
+soup_hsts_enforcer_real_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
 {
 	return FALSE;
 }
 
-static void
-soup_hsts_enforcer_class_init (SoupHstsEnforcerClass *hsts_enforcer_class)
+static SoupHSTSPolicy *
+soup_hsts_enforcer_get_host_policy (SoupHSTSEnforcer *hsts_enforcer,
+				    const char *domain)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (hsts_enforcer_class);
-
-	g_type_class_add_private (hsts_enforcer_class, sizeof (SoupHstsEnforcerPrivate));
-
-	object_class->finalize = soup_hsts_enforcer_finalize;
-
-	hsts_enforcer_class->is_persistent = soup_hsts_enforcer_real_is_persistent;
-
-	/**
-	 * SoupHstsEnforcer::changed:
-	 * @hsts_enforcer: the #SoupHstsEnforcer
-	 * @old_policy: the old #SoupHstsPolicy value
-	 * @new_policy: the new #SoupHstsPolicy value
-	 *
-	 * Emitted when @hsts_enforcer changes. If a policy has been added,
-	 * @new_policy will contain the newly-added policy and
-	 * @old_policy will be %NULL. If a policy has been deleted,
-	 * @old_policy will contain the to-be-deleted policy and
-	 * @new_policy will be %NULL. If a policy has been changed,
-	 * @old_policy will contain its old value, and @new_policy its
-	 * new value.
-	 **/
-	signals[CHANGED] =
-		g_signal_new ("changed",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupHstsEnforcerClass, changed),
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 2,
-			      SOUP_TYPE_HSTS_POLICY | G_SIGNAL_TYPE_STATIC_SCOPE,
-			      SOUP_TYPE_HSTS_POLICY | G_SIGNAL_TYPE_STATIC_SCOPE);
+	return g_hash_table_lookup (hsts_enforcer->priv->host_policies, domain);
 }
 
-/**
- * soup_hsts_enforcer_new:
- *
- * Creates a new #SoupHstsEnforcer. The base #SoupHstsEnforcer class does
- * not support persistent storage of HSTS policies; use a subclass for
- * that.
- *
- * Returns: a new #SoupHstsEnforcer
- *
- * Since: 2.54
- **/
-SoupHstsEnforcer *
-soup_hsts_enforcer_new (void)
+static SoupHSTSPolicy *
+soup_hsts_enforcer_get_session_policy (SoupHSTSEnforcer *hsts_enforcer,
+				       const char *domain)
 {
-	return g_object_new (SOUP_TYPE_HSTS_ENFORCER, NULL);
-}
-
-static void
-soup_hsts_enforcer_changed (SoupHstsEnforcer *hsts_enforcer,
-			    SoupHstsPolicy *old, SoupHstsPolicy *new)
-{
-	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
-
-	g_assert_true (old || new);
-
-	g_signal_emit (hsts_enforcer, signals[CHANGED], 0, old, new);
-}
-
-static void
-soup_hsts_enforcer_remove_expired_host_policies (SoupHstsEnforcer *hsts_enforcer)
-{
-	SoupHstsEnforcerPrivate *priv;
-	SoupHstsPolicy *policy;
-	GList *domains, *p;
-	const char *domain;
-
-	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
-
-	priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
-
-	/* Remove all the expired policies as soon as one is encountered as required by the RFC. */
-	domains = g_hash_table_get_keys (priv->host_policies);
-	for (p = domains; p; p = p->next ) {
-		domain = (const char *) p->data;
-		policy = g_hash_table_lookup (priv->host_policies, domain);
-		if (policy && soup_hsts_policy_is_expired (policy)) {
-			g_hash_table_remove (priv->host_policies, domain);
-			soup_hsts_enforcer_changed (hsts_enforcer, policy, NULL);
-			soup_hsts_policy_free (policy);
-		}
-	}
-	g_list_free (domains);
-}
-
-static void
-soup_hsts_enforcer_remove_host_policy (SoupHstsEnforcer *hsts_enforcer,
-				       const gchar *domain)
-{
-	SoupHstsEnforcerPrivate *priv;
-	SoupHstsPolicy *policy;
-
-	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
-	g_return_if_fail (domain != NULL);
-
-	priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
-
-	policy = g_hash_table_lookup (priv->host_policies, domain);
-
-	g_assert_nonnull (policy);
-
-	g_hash_table_remove (priv->host_policies, domain);
-	soup_hsts_enforcer_changed (hsts_enforcer, policy, NULL);
-	soup_hsts_policy_free (policy);
-
-	soup_hsts_enforcer_remove_expired_host_policies (hsts_enforcer);
-}
-
-static void
-soup_hsts_enforcer_replace_policy (SoupHstsEnforcer *hsts_enforcer,
-				   SoupHstsPolicy *new_policy)
-{
-	SoupHstsEnforcerPrivate *priv;
-	GHashTable *policies;
-	SoupHstsPolicy *old_policy;
-	const gchar *domain;
-	gboolean is_permanent;
-
-	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
-	g_return_if_fail (new_policy != NULL);
-
-	g_assert_false (soup_hsts_policy_is_expired (new_policy));
-
-	domain = soup_hsts_policy_get_domain (new_policy);
-	is_permanent = soup_hsts_policy_is_permanent (new_policy);
-
-	g_return_if_fail (domain != NULL);
-
-	priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
-	policies = is_permanent ? priv->session_policies :
-				  priv->host_policies;
-
-	old_policy = g_hash_table_lookup (policies, domain);
-
-	g_assert_nonnull (old_policy);
-
-	g_hash_table_remove (policies, domain);
-	g_hash_table_insert (policies, g_strdup (domain), new_policy);
-	if (!is_permanent && !soup_hsts_policy_equal (old_policy, new_policy))
-		soup_hsts_enforcer_changed (hsts_enforcer, old_policy, new_policy);
-	soup_hsts_policy_free (old_policy);
-
-	soup_hsts_enforcer_remove_expired_host_policies (hsts_enforcer);
-}
-
-static void
-soup_hsts_enforcer_insert_policy (SoupHstsEnforcer *hsts_enforcer,
-				  SoupHstsPolicy *policy)
-{
-	SoupHstsEnforcerPrivate *priv;
-	GHashTable *policies;
-	const gchar *domain;
-	gboolean is_permanent;
-
-	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
-	g_return_if_fail (policy != NULL);
-
-	g_assert_false (soup_hsts_policy_is_expired (policy));
-
-	domain = soup_hsts_policy_get_domain (policy);
-	is_permanent = soup_hsts_policy_is_permanent (policy);
-
-	g_return_if_fail (domain != NULL);
-
-	priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
-	policies = is_permanent ? priv->session_policies :
-				  priv->host_policies;
-
-	g_assert_false (g_hash_table_contains (policies, domain));
-
-	g_hash_table_insert (policies, g_strdup (domain), policy);
-	if (!is_permanent)
-		soup_hsts_enforcer_changed (hsts_enforcer, NULL, policy);
-}
-
-/**
- * soup_hsts_enforcer_set_policy:
- * @hsts_enforcer: a #SoupHstsEnforcer
- * @policy: (transfer full): the policy of the HSTS host
- *
- * Sets @domain's HSTS policy to @policy. If @policy is expired, any
- * existing HSTS policy for this host will be removed instead. If a policy
- * exited for this host, it will be replaced. Otherwise, the new policy
- * will be inserted.
- *
- * This steals @policy.
- *
- * Since: 2.54
- **/
-void
-soup_hsts_enforcer_set_policy (SoupHstsEnforcer *hsts_enforcer,
-			       SoupHstsPolicy *policy)
-{
-	SoupHstsEnforcerPrivate *priv;
-	GHashTable *policies;
-	const gchar *domain;
-	gboolean is_permanent;
-
-	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
-	g_return_if_fail (policy != NULL);
-
-	domain = soup_hsts_policy_get_domain (policy);
-	is_permanent = soup_hsts_policy_is_permanent (policy);
-
-	g_return_if_fail (domain != NULL);
-
-	priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
-	policies = is_permanent ? priv->session_policies :
-				  priv->host_policies;
-
-	if (!is_permanent && soup_hsts_policy_is_expired (policy)) {
-		soup_hsts_enforcer_remove_host_policy (hsts_enforcer, domain);
-		soup_hsts_policy_free (policy);
-		return;
-	}
-
-	if (g_hash_table_contains (policies, domain))
-		soup_hsts_enforcer_replace_policy (hsts_enforcer, policy);
-	else
-		soup_hsts_enforcer_insert_policy (hsts_enforcer, policy);
-}
-
-static SoupHstsPolicy *
-soup_hsts_enforcer_get_host_policy (SoupHstsEnforcer *hsts_enforcer,
-				    const gchar *domain)
-{
-	SoupHstsEnforcerPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), NULL);
-	g_return_val_if_fail (domain != NULL, NULL);
-
-	priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
-
-	return g_hash_table_lookup (priv->host_policies, domain);
-}
-
-static SoupHstsPolicy *
-soup_hsts_enforcer_get_session_policy (SoupHstsEnforcer *hsts_enforcer,
-				       const gchar *domain)
-{
-	SoupHstsEnforcerPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), NULL);
-	g_return_val_if_fail (domain != NULL, NULL);
-
-	priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
-
-	return g_hash_table_lookup (priv->session_policies, domain);
-}
-
-/**
- * soup_hsts_enforcer_set_session_policy:
- * @hsts_enforcer: a #SoupHstsEnforcer
- * @domain: policy domain or hostname
- * @include_sub_domains: %TRUE if the policy applies on sub domains
- *
- * Sets a session policy@domain's HSTS policy to @policy. If @policy is expired, any
- * existing HSTS policy for this host will be removed instead. If a policy
- * exited for this host, it will be replaced. Otherwise, the new policy
- * will be inserted.
- *
- * Since: 2.54
- **/
-void
-soup_hsts_enforcer_set_session_policy (SoupHstsEnforcer *hsts_enforcer,
-				       const char *domain,
-				       gboolean include_sub_domains)
-{
-	SoupHstsPolicy *policy;
-
-	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
-	g_return_if_fail (domain != NULL);
-
-	policy = soup_hsts_policy_new_permanent (domain, include_sub_domains);
-	soup_hsts_enforcer_set_policy (hsts_enforcer, policy);
+	return g_hash_table_lookup (hsts_enforcer->priv->session_policies, domain);
 }
 
 static gboolean
-soup_hsts_enforcer_is_valid_host (SoupHstsEnforcer *hsts_enforcer,
-				  const gchar *domain)
+soup_hsts_enforcer_real_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
+					  const char *domain)
 {
-	SoupHstsPolicy *policy;
-
-	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), FALSE);
-	g_return_val_if_fail (domain != NULL, FALSE);
+	SoupHSTSPolicy *policy;
 
 	if (soup_hsts_enforcer_get_session_policy (hsts_enforcer, domain))
 		return TRUE;
@@ -399,33 +133,272 @@ soup_hsts_enforcer_is_valid_host (SoupHstsEnforcer *hsts_enforcer,
 	return FALSE;
 }
 
-static gboolean
-soup_hsts_enforcer_host_includes_sub_domains (SoupHstsEnforcer *hsts_enforcer,
-					      const gchar *domain)
+static void
+soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 {
-	SoupHstsPolicy *policy;
-	gboolean include_sub_domains = FALSE;
+	GObjectClass *object_class = G_OBJECT_CLASS (hsts_enforcer_class);
+
+	object_class->finalize = soup_hsts_enforcer_finalize;
+
+	hsts_enforcer_class->is_persistent = soup_hsts_enforcer_real_is_persistent;
+	hsts_enforcer_class->has_valid_policy = soup_hsts_enforcer_real_has_valid_policy;
+
+	/**
+	 * SoupHSTSEnforcer::changed:
+	 * @hsts_enforcer: the #SoupHSTSEnforcer
+	 * @old_policy: the old #SoupHSTSPolicy value
+	 * @new_policy: the new #SoupHSTSPolicy value
+	 *
+	 * Emitted when @hsts_enforcer changes. If a policy has been added,
+	 * @new_policy will contain the newly-added policy and
+	 * @old_policy will be %NULL. If a policy has been deleted,
+	 * @old_policy will contain the to-be-deleted policy and
+	 * @new_policy will be %NULL. If a policy has been changed,
+	 * @old_policy will contain its old value, and @new_policy its
+	 * new value.
+	 *
+	 * Note that you shouldn't modify the policies from a callback to
+	 * this signal.
+	 **/
+	signals[CHANGED] =
+		g_signal_new ("changed",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupHSTSEnforcerClass, changed),
+			      NULL, NULL,
+			      NULL,
+			      G_TYPE_NONE, 2,
+			      SOUP_TYPE_HSTS_POLICY | G_SIGNAL_TYPE_STATIC_SCOPE,
+			      SOUP_TYPE_HSTS_POLICY | G_SIGNAL_TYPE_STATIC_SCOPE);
+}
+
+/**
+ * soup_hsts_enforcer_new:
+ *
+ * Creates a new #SoupHSTSEnforcer. The base #SoupHSTSEnforcer class
+ * does not support persistent storage of HSTS policies, see
+ * #SoupHSTSEnforcerDB for that.
+ *
+ * Returns: a new #SoupHSTSEnforcer
+ *
+ * Since: 2.68
+ **/
+SoupHSTSEnforcer *
+soup_hsts_enforcer_new (void)
+{
+	return g_object_new (SOUP_TYPE_HSTS_ENFORCER, NULL);
+}
+
+static void
+soup_hsts_enforcer_changed (SoupHSTSEnforcer *hsts_enforcer,
+			    SoupHSTSPolicy *old, SoupHSTSPolicy *new)
+{
+	g_assert (old || new);
+
+	g_signal_emit (hsts_enforcer, signals[CHANGED], 0, old, new);
+}
+
+static gboolean
+should_remove_expired_host_policy (G_GNUC_UNUSED gpointer key,
+				   SoupHSTSPolicy *policy,
+				   SoupHSTSEnforcer *enforcer)
+{
+	if (soup_hsts_policy_is_expired (policy)) {
+		/* This will emit the ::changed signal before the
+		   policy is actually removed from the policies hash
+		   table, which could be problematic, or not.
+		*/
+		soup_hsts_enforcer_changed (enforcer, policy, NULL);
+		soup_hsts_policy_free (policy);
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+static void
+remove_expired_host_policies (SoupHSTSEnforcer *hsts_enforcer)
+{
+	g_hash_table_foreach_remove (hsts_enforcer->priv->host_policies,
+				     (GHRFunc)should_remove_expired_host_policy,
+				     hsts_enforcer);
+}
+
+static void
+soup_hsts_enforcer_remove_host_policy (SoupHSTSEnforcer *hsts_enforcer,
+				       const char *domain)
+{
+	SoupHSTSPolicy *policy;
+
+	policy = g_hash_table_lookup (hsts_enforcer->priv->host_policies, domain);
+
+	if (!policy)
+		return;
+
+	g_hash_table_remove (hsts_enforcer->priv->host_policies, domain);
+	soup_hsts_enforcer_changed (hsts_enforcer, policy, NULL);
+	soup_hsts_policy_free (policy);
+
+	remove_expired_host_policies (hsts_enforcer);
+}
+
+static void
+soup_hsts_enforcer_replace_policy (SoupHSTSEnforcer *hsts_enforcer,
+				   SoupHSTSPolicy *new_policy)
+{
+	GHashTable *policies;
+	SoupHSTSPolicy *old_policy;
+	const char *domain;
+	gboolean is_session_policy;
+
+	g_assert (!soup_hsts_policy_is_expired (new_policy));
+
+	domain = soup_hsts_policy_get_domain (new_policy);
+	is_session_policy = soup_hsts_policy_is_session_policy (new_policy);
+
+	policies = is_session_policy ? hsts_enforcer->priv->session_policies :
+		                       hsts_enforcer->priv->host_policies;
+
+	old_policy = g_hash_table_lookup (policies, domain);
+	g_assert (old_policy);
+
+	g_hash_table_replace (policies, g_strdup (domain), soup_hsts_policy_copy (new_policy));
+	if (!soup_hsts_policy_equal (old_policy, new_policy))
+		soup_hsts_enforcer_changed (hsts_enforcer, old_policy, new_policy);
+	soup_hsts_policy_free (old_policy);
+
+	remove_expired_host_policies (hsts_enforcer);
+}
+
+static void
+soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
+				  SoupHSTSPolicy *policy)
+{
+	GHashTable *policies;
+	const char *domain;
+	gboolean is_session_policy;
+
+	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
+	g_return_if_fail (policy != NULL);
+
+	g_assert (!soup_hsts_policy_is_expired (policy));
+
+	domain = soup_hsts_policy_get_domain (policy);
+	is_session_policy = soup_hsts_policy_is_session_policy (policy);
+
+	g_return_if_fail (domain != NULL);
+
+	policies = is_session_policy ? hsts_enforcer->priv->session_policies :
+				  hsts_enforcer->priv->host_policies;
+
+	g_assert (!g_hash_table_contains (policies, domain));
+
+	g_hash_table_insert (policies, g_strdup (domain), soup_hsts_policy_copy (policy));
+	soup_hsts_enforcer_changed (hsts_enforcer, NULL, policy);
+}
+
+/**
+ * soup_hsts_enforcer_set_policy:
+ * @hsts_enforcer: a #SoupHSTSEnforcer
+ * @policy: (transfer none): the policy of the HSTS host
+ *
+ * Sets @policy to @hsts_enforcer. If @policy is expired, any
+ * existing HSTS policy for its host will be removed instead. If a
+ * policy existed for this host, it will be replaced. Otherwise, the
+ * new policy will be inserted. If the policy is a session policy, that
+ * is, one created with soup_hsts_policy_new_session_policy(), the policy
+ * will not expire and will be enforced during the lifetime of
+ * @hsts_enforcer's #SoupSession.
+ *
+ * Since: 2.68
+ **/
+void
+soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
+			       SoupHSTSPolicy *policy)
+{
+	GHashTable *policies;
+	const char *domain;
+	gboolean is_session_policy;
+	SoupHSTSPolicy *current_policy;
+
+	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
+	g_return_if_fail (policy != NULL);
+
+	domain = soup_hsts_policy_get_domain (policy);
+	g_return_if_fail (domain != NULL);
+
+	is_session_policy = soup_hsts_policy_is_session_policy (policy);
+	policies = is_session_policy ? hsts_enforcer->priv->session_policies :
+				  hsts_enforcer->priv->host_policies;
+
+	if (!is_session_policy && soup_hsts_policy_is_expired (policy)) {
+		soup_hsts_enforcer_remove_host_policy (hsts_enforcer, domain);
+		return;
+	}
+
+	current_policy = g_hash_table_lookup (policies, domain);
+
+	if (current_policy)
+		soup_hsts_enforcer_replace_policy (hsts_enforcer, policy);
+	else
+		soup_hsts_enforcer_insert_policy (hsts_enforcer, policy);
+}
+
+/**
+ * soup_hsts_enforcer_set_session_policy:
+ * @hsts_enforcer: a #SoupHSTSEnforcer
+ * @domain: policy domain or hostname
+ * @include_subdomains: %TRUE if the policy applies on sub domains
+ *
+ * Sets a session policy for @domain. A session policy is a policy
+ * that is permanent to the lifetime of @hsts_enforcer's #SoupSession
+ * and doesn't expire.
+ *
+ * Since: 2.68
+ **/
+void
+soup_hsts_enforcer_set_session_policy (SoupHSTSEnforcer *hsts_enforcer,
+				       const char *domain,
+				       gboolean include_subdomains)
+{
+	SoupHSTSPolicy *policy;
+
+	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
+	g_return_if_fail (domain != NULL);
+
+	policy = soup_hsts_policy_new_session_policy (domain, include_subdomains);
+	soup_hsts_enforcer_set_policy (hsts_enforcer, policy);
+	soup_hsts_policy_free (policy);
+}
+
+static gboolean
+soup_hsts_enforcer_host_includes_subdomains (SoupHSTSEnforcer *hsts_enforcer,
+					     const char *domain)
+{
+	SoupHSTSPolicy *policy;
+	gboolean include_subdomains = FALSE;
 
 	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), FALSE);
 	g_return_val_if_fail (domain != NULL, FALSE);
 
 	policy = soup_hsts_enforcer_get_session_policy (hsts_enforcer, domain);
 	if (policy)
-		include_sub_domains |= soup_hsts_policy_includes_sub_domains (policy);
+		include_subdomains |= soup_hsts_policy_includes_subdomains (policy);
 
 	policy = soup_hsts_enforcer_get_host_policy (hsts_enforcer, domain);
 	if (policy)
-		include_sub_domains |= soup_hsts_policy_includes_sub_domains (policy);
+		include_subdomains |= soup_hsts_policy_includes_subdomains (policy);
 
-	return include_sub_domains;
+	return include_subdomains;
 }
 
-static inline const gchar*
-super_domain_of (const gchar *domain)
+static inline const char *
+super_domain_of (const char *domain)
 {
-	const gchar *iter = domain;
+	const char *iter = domain;
 
-	g_return_val_if_fail (domain != NULL, NULL);
+	g_assert (domain);
 
 	for (; *iter != '\0' && *iter != '.' ; iter++);
 	for (; *iter == '.' ; iter++);
@@ -437,39 +410,33 @@ super_domain_of (const gchar *domain)
 }
 
 static gboolean
-soup_hsts_enforcer_must_enforce_secure_transport (SoupHstsEnforcer *hsts_enforcer,
-						  const gchar *domain)
+soup_hsts_enforcer_must_enforce_secure_transport (SoupHSTSEnforcer *hsts_enforcer,
+						  const char *domain)
 {
-	const gchar *super_domain = domain;
+	const char *super_domain = domain;
 
-	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), FALSE);
 	g_return_val_if_fail (domain != NULL, FALSE);
 
-	if (soup_hsts_enforcer_is_valid_host (hsts_enforcer, domain))
+	if (soup_hsts_enforcer_has_valid_policy (hsts_enforcer, domain))
 		return TRUE;
 
 	while ((super_domain = super_domain_of (super_domain)) != NULL) {
-		if (soup_hsts_enforcer_host_includes_sub_domains (hsts_enforcer, super_domain) &&
-		    soup_hsts_enforcer_is_valid_host (hsts_enforcer, super_domain))
+		if (soup_hsts_enforcer_host_includes_subdomains (hsts_enforcer, super_domain) &&
+		    soup_hsts_enforcer_has_valid_policy (hsts_enforcer, super_domain))
 			return TRUE;
 	}
 
 	return FALSE;
 }
 
-/* Processes the 'Strict-Transport-Security' field of a message's response header. */
 static void
-soup_hsts_enforcer_process_sts_header (SoupHstsEnforcer *hsts_enforcer,
+soup_hsts_enforcer_process_sts_header (SoupHSTSEnforcer *hsts_enforcer,
 				       SoupMessage *msg)
 {
-	SoupHstsPolicy *policy;
+	SoupHSTSPolicy *policy;
 	SoupURI *uri;
 
-	g_return_if_fail (hsts_enforcer != NULL);
-	g_return_if_fail (msg != NULL);
-
 	/* TODO if connection error or warnings received, do nothing. */
-
 	/* TODO if header received on hazardous connection, do nothing. */
 
 	uri = soup_message_get_uri (msg);
@@ -477,64 +444,70 @@ soup_hsts_enforcer_process_sts_header (SoupHstsEnforcer *hsts_enforcer,
 	g_return_if_fail (uri != NULL);
 
 	policy = soup_hsts_policy_new_from_response (msg);
-
-	g_return_if_fail (policy != NULL);
-
-	soup_hsts_enforcer_set_policy (hsts_enforcer, policy);
-}
-
-/* Enforces HTTPS when demanded. */
-static gboolean
-soup_hsts_enforcer_should_redirect_to_https (SoupHstsEnforcer *hsts_enforcer,
-					     SoupMessage *msg)
-{
-	SoupURI *uri;
-	const gchar *domain;
-
-	g_return_val_if_fail (hsts_enforcer != NULL, FALSE);
-	g_return_val_if_fail (msg != NULL, FALSE);
-
-	uri = soup_message_get_uri (msg);
-
-	g_return_val_if_fail (uri != NULL, FALSE);
-
-	// HSTS secures only HTTP connections.
-	if (uri->scheme != SOUP_URI_SCHEME_HTTP)
-		return FALSE;
-
-	domain = soup_uri_get_host (uri);
-
-	g_return_val_if_fail (domain != NULL, FALSE);
-
-	return soup_hsts_enforcer_must_enforce_secure_transport (hsts_enforcer, domain);
+	if (policy) {
+		soup_hsts_enforcer_set_policy (hsts_enforcer, policy);
+		soup_hsts_policy_free (policy);
+	}
 }
 
 static void
-redirect_to_https (SoupMessage *msg)
+got_sts_header_cb (SoupMessage *msg, gpointer user_data)
 {
-	SoupURI *src_uri, *dst_uri;
-	char *dst;
-
-	src_uri = soup_message_get_uri (msg);
-
-	dst_uri = soup_uri_copy (src_uri);
-	soup_uri_set_scheme (dst_uri, SOUP_URI_SCHEME_HTTPS);
-	dst = soup_uri_to_string (dst_uri, FALSE);
-	soup_uri_free (dst_uri);
-
-	soup_message_set_redirect (msg, 301, dst);
-	g_free (dst);
-}
-
-static void
-process_sts_header (SoupMessage *msg, gpointer user_data)
-{
-	SoupHstsEnforcer *hsts_enforcer = SOUP_HSTS_ENFORCER (user_data);
-
-	g_return_if_fail (hsts_enforcer != NULL);
-	g_return_if_fail (msg != NULL);
+	SoupHSTSEnforcer *hsts_enforcer = SOUP_HSTS_ENFORCER (user_data);
 
 	soup_hsts_enforcer_process_sts_header (hsts_enforcer, msg);
+}
+
+static void
+rewrite_message_uri_to_https (SoupMessage *msg)
+{
+	SoupURI *uri;
+	guint original_port;
+
+	uri = soup_uri_copy (soup_message_get_uri (msg));
+
+	original_port = soup_uri_get_port (uri);
+	/* This will unconditionally rewrite the port to 443. */
+	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTPS);
+	/* From the RFC: "If the URI contains an explicit port component that
+	   is not equal to "80", the port component value MUST be preserved;" */
+	if (original_port != 80)
+		soup_uri_set_port (uri, original_port);
+
+	soup_message_set_uri (msg, uri);
+	soup_uri_free (uri);
+}
+
+static void
+preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
+{
+	SoupURI *uri;
+	const char *scheme;
+	const char *host;
+
+	uri = soup_message_get_uri (msg);
+	host = soup_uri_get_host (uri);
+
+	if (g_hostname_is_ip_address (host))
+		return;
+
+	scheme = soup_uri_get_scheme (uri);
+	if (scheme == SOUP_URI_SCHEME_HTTP) {
+		if (soup_hsts_enforcer_must_enforce_secure_transport (enforcer, host))
+			rewrite_message_uri_to_https (msg);
+	} else if (scheme == SOUP_URI_SCHEME_HTTPS) {
+		soup_message_add_header_handler (msg, "got-headers",
+						 "Strict-Transport-Security",
+						 G_CALLBACK (got_sts_header_cb),
+						 enforcer);
+	}
+}
+
+static void
+message_restarted_cb (SoupMessage *msg, gpointer user_data)
+{
+	preprocess_request (SOUP_HSTS_ENFORCER (user_data), msg);
+
 }
 
 static void
@@ -542,29 +515,8 @@ soup_hsts_enforcer_request_queued (SoupSessionFeature *feature,
 				   SoupSession *session,
 				   SoupMessage *msg)
 {
-	SoupHstsEnforcer *hsts_enforcer = SOUP_HSTS_ENFORCER (feature);
-	SoupURI *uri;
-	const char *scheme;
-
-	g_return_if_fail (hsts_enforcer != NULL);
-	g_return_if_fail (msg != NULL);
-
-	uri = soup_message_get_uri (msg);
-
-	g_return_if_fail (uri != NULL);
-
-	scheme = soup_uri_get_scheme (uri);
-
-	if (scheme == SOUP_URI_SCHEME_HTTP) {
-		if (soup_hsts_enforcer_should_redirect_to_https (hsts_enforcer, msg))
-			redirect_to_https (msg);
-	}
-	else if (scheme == SOUP_URI_SCHEME_HTTPS) {
-		soup_message_add_header_handler (msg, "got-headers",
-						 "Strict-Transport-Security",
-						 G_CALLBACK (process_sts_header),
-						 hsts_enforcer);
-	}
+	g_signal_connect (msg, "restarted", G_CALLBACK (message_restarted_cb), feature);
+	preprocess_request (SOUP_HSTS_ENFORCER (feature), msg);
 }
 
 static void
@@ -572,7 +524,8 @@ soup_hsts_enforcer_request_unqueued (SoupSessionFeature *feature,
 				     SoupSession *session,
 				     SoupMessage *msg)
 {
-	g_signal_handlers_disconnect_by_func (msg, process_sts_header, feature);
+	g_signal_handlers_disconnect_by_func (msg, message_restarted_cb, feature);
+	g_signal_handlers_disconnect_by_func (msg, got_sts_header_cb, feature);
 }
 
 static void
@@ -585,18 +538,40 @@ soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_in
 
 /**
  * soup_hsts_enforcer_is_persistent:
- * @hsts_enforcer: a #SoupHstsEnforcer
+ * @hsts_enforcer: a #SoupHSTSEnforcer
  *
  * Gets whether @hsts_enforcer stores policies persistenly.
  *
  * Returns: %TRUE if @hsts_enforcer storage is persistent or %FALSE otherwise.
  *
- * Since: 2.54
+ * Since: 2.68
  **/
 gboolean
-soup_hsts_enforcer_is_persistent (SoupHstsEnforcer *hsts_enforcer)
+soup_hsts_enforcer_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
 {
 	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), FALSE);
 
 	return SOUP_HSTS_ENFORCER_GET_CLASS (hsts_enforcer)->is_persistent (hsts_enforcer);
+}
+
+/**
+ * soup_hsts_enforcer_has_valid_policy:
+ * @hsts_enforcer: a #SoupHSTSEnforcer
+ * @domain: a domain.
+ *
+ * Gets whether @hsts_enforcer has a currently valid policy for @domain.
+ *
+ * Returns: %TRUE if access to @domain should happen over HTTPS, false
+ * otherwise.
+ *
+ * Since: 2.68
+ **/
+gboolean
+soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
+				     const char *domain)
+{
+	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), FALSE);
+	g_return_val_if_fail (domain != NULL, FALSE);
+
+	return SOUP_HSTS_ENFORCER_GET_CLASS (hsts_enforcer)->has_valid_policy (hsts_enforcer, domain);
 }
