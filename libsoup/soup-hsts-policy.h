@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Copyright (C) 2016 Igalia S.L.
+ * Copyright (C) 2016, 2017, 2018 Igalia S.L.
+ * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
 #ifndef SOUP_HSTS_POLICY_H
@@ -10,10 +11,11 @@
 
 G_BEGIN_DECLS
 
-struct _SoupHstsPolicy {
+struct _SoupHSTSPolicy {
 	char                 *domain;
+	unsigned long         max_age;
 	SoupDate             *expires;
-	gboolean              include_sub_domains;
+	gboolean              include_subdomains;
 };
 
 SOUP_AVAILABLE_IN_2_54
@@ -23,36 +25,36 @@ GType soup_hsts_policy_get_type (void);
 #define SOUP_HSTS_POLICY_MAX_AGE_PAST (0)
 
 SOUP_AVAILABLE_IN_2_54
-SoupHstsPolicy *soup_hsts_policy_new		(const char *domain,
-						 SoupDate   *expiry_date,
-						 gboolean    include_sub_domains);
+SoupHSTSPolicy *soup_hsts_policy_new		(const char   *domain,
+						 unsigned long max_age,
+						 gboolean      include_subdomains);
 SOUP_AVAILABLE_IN_2_54
-SoupHstsPolicy *soup_hsts_policy_new_with_max_age	(const char *domain,
-							 int         max_age,
-							 gboolean    include_sub_domains);
+SoupHSTSPolicy *soup_hsts_policy_new_full	(const char   *domain,
+						 unsigned long max_age,
+						 SoupDate     *expires,
+						 gboolean      include_subdomains);
 SOUP_AVAILABLE_IN_2_54
-SoupHstsPolicy *soup_hsts_policy_new_permanent		(const char *domain,
-							 gboolean    include_sub_domains);
+SoupHSTSPolicy *soup_hsts_policy_new_permanent		(const char *domain,
+							 gboolean    include_subdomains);
 SOUP_AVAILABLE_IN_2_54
-SoupHstsPolicy *soup_hsts_policy_new_from_response	(SoupMessage *msg);
+SoupHSTSPolicy *soup_hsts_policy_new_from_response	(SoupMessage *msg);
 
 SOUP_AVAILABLE_IN_2_54
-SoupHstsPolicy *soup_hsts_policy_copy           (SoupHstsPolicy *policy);
+SoupHSTSPolicy *soup_hsts_policy_copy           (SoupHSTSPolicy *policy);
 SOUP_AVAILABLE_IN_2_54
-gboolean soup_hsts_policy_equal                 (SoupHstsPolicy *policy1,
-                                                 SoupHstsPolicy *policy2);
+gboolean soup_hsts_policy_equal                 (SoupHSTSPolicy *policy1,
+                                                 SoupHSTSPolicy *policy2);
+SOUP_AVAILABLE_IN_2_54
+const char *soup_hsts_policy_get_domain         (SoupHSTSPolicy *policy);
+SOUP_AVAILABLE_IN_2_54
+gboolean    soup_hsts_policy_is_expired         (SoupHSTSPolicy *policy);
+SOUP_AVAILABLE_IN_2_54
+gboolean    soup_hsts_policy_includes_subdomains       (SoupHSTSPolicy *policy);
+SOUP_AVAILABLE_IN_2_54
+gboolean    soup_hsts_policy_is_permanent       (SoupHSTSPolicy *policy);
 
 SOUP_AVAILABLE_IN_2_54
-const char *soup_hsts_policy_get_domain         (SoupHstsPolicy *policy);
-SOUP_AVAILABLE_IN_2_54
-gboolean    soup_hsts_policy_is_expired         (SoupHstsPolicy *policy);
-SOUP_AVAILABLE_IN_2_54
-gboolean    soup_hsts_policy_includes_sub_domains       (SoupHstsPolicy *policy);
-SOUP_AVAILABLE_IN_2_54
-gboolean    soup_hsts_policy_is_permanent       (SoupHstsPolicy *policy);
-
-SOUP_AVAILABLE_IN_2_54
-void        soup_hsts_policy_free               (SoupHstsPolicy *policy);
+void        soup_hsts_policy_free               (SoupHSTSPolicy *policy);
 
 G_END_DECLS
 

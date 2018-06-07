@@ -21,6 +21,8 @@ test_programs =			\
 	date-test		\
 	forms-test		\
 	header-parsing-test	\
+	hsts-test		\
+	hsts-db-test		\
 	misc-test		\
 	multipart-test		\
 	no-ssl-test		\
