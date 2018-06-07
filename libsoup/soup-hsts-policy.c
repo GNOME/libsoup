@@ -1,14 +1,16 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-hsts-policy.c
+ * soup-hsts-policy.c: HSTS policy structure
  *
- * Copyright (C) 2016 Igalia S.L.
+ * Copyright (C) 2016, 2017, 2018 Igalia S.L.
+ * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -18,78 +20,80 @@
 /**
  * SECTION:soup-hsts-policy
  * @short_description: HTTP Strict Transport Security policies
- * @see_also: #SoupHstsEnforcer
+ * @see_also: #SoupHSTSEnforcer
  *
- * #SoupHstsPolicy implements HTTP policies, as described by <ulink
+ * #SoupHSTSPolicy implements HTTP policies, as described by <ulink
  * url="http://tools.ietf.org/html/rfc6797">RFC 6797</ulink>.
  *
  * To have a #SoupSession handle HSTS policies for your appliction
- * automatically, use a #SoupHstsEnforcer.
+ * automatically, use a #SoupHSTSEnforcer.
  **/
 
 /**
- * SoupHstsPolicy:
- * @domain: the "domain" attribute, or else the hostname that the
- * policy came from.
- * @expires: the policy expiration time, or %NULL for a session policy
- * @include_sub_domains: %TRUE if the policy applies on sub domains
+ * SoupHSTSPolicy:
+ * @domain: The domain or hostname that the policy applies to
+ * @max_age: The maximum age, in seconds, that the policy is valid
+ * @expires: the policy expiration time, or %NULL for a permanent session policy
+ * @include_subdomains: %TRUE if the policy applies on subdomains
  *
  * An HTTP Strict Transport Security policy.
  *
  * @domain give the host or domain that this policy belongs to and applies
  * on.
  *
+ * @max_age contains the 'max-age' value from the Strict Transport
+ * Security header and indicates the time to live of this policy,
+ * in seconds.
+ *
  * @expires will be non-%NULL if the policy has been set by the host and
  * hence has an expiry time. If @expires is %NULL, it indicates that the
- * policy is a session policy set by the user agent.
- * 
- * If @include_sub_domains is set, the strict transport security policy
- * must also be enforced on all subdomains of @domain.
+ * policy is a permanent session policy set by the user agent.
  *
- * Since: 2.54
+ * If @include_subdomains is %TRUE, the Strict Transport Security policy
+ * must also be enforced on subdomains of @domain.
+ *
+ * Since: 2.66
  **/
 
-G_DEFINE_BOXED_TYPE (SoupHstsPolicy, soup_hsts_policy, soup_hsts_policy_copy, soup_hsts_policy_free)
+G_DEFINE_BOXED_TYPE (SoupHSTSPolicy, soup_hsts_policy, soup_hsts_policy_copy, soup_hsts_policy_free)
 
 /**
  * soup_hsts_policy_copy:
- * @policy: a #SoupHstsPolicy
+ * @policy: a #SoupHSTSPolicy
  *
  * Copies @policy.
  *
- * Return value: a copy of @policy
+ * Returns: (transfer full): a copy of @policy
  *
- * Since: 2.54
+ * Since: 2.66
  **/
-SoupHstsPolicy *
-soup_hsts_policy_copy (SoupHstsPolicy *policy)
+SoupHSTSPolicy *
+soup_hsts_policy_copy (SoupHSTSPolicy *policy)
 {
-	SoupHstsPolicy *copy = g_slice_new0 (SoupHstsPolicy);
+	SoupHSTSPolicy *copy = g_slice_new0 (SoupHSTSPolicy);
 
 	copy->domain = g_strdup (policy->domain);
-	copy->expires = policy->expires ? soup_date_copy(policy->expires)
-					: NULL;
-	copy->include_sub_domains = policy->include_sub_domains;
+	copy->max_age = policy->max_age;
+	copy->expires = policy->expires ?
+		soup_date_copy (policy->expires) : NULL;
+	copy->include_subdomains = policy->include_subdomains;
 
 	return copy;
 }
 
 /**
  * soup_hsts_policy_equal:
- * @policy1: a #SoupCookie
- * @policy2: a #SoupCookie
+ * @policy1: a #SoupHSTSPolicy
+ * @policy2: a #SoupHSTSPolicy
  *
  * Tests if @policy1 and @policy2 are equal.
  *
- * Note that currently, this does not check that the cookie domains
- * match. This may change in the future.
+ * Returns: whether the policies are equal.
  *
- * Return value: whether the cookies are equal.
- *
- * Since: 2.24
+ * Since: 2.66
  */
 gboolean
-soup_hsts_policy_equal (SoupHstsPolicy *policy1, SoupHstsPolicy *policy2)
+soup_hsts_policy_equal (SoupHSTSPolicy *policy1, SoupHSTSPolicy *policy2)
 {
 	g_return_val_if_fail (policy1, FALSE);
 	g_return_val_if_fail (policy2, FALSE);
@@ -97,7 +101,10 @@ soup_hsts_policy_equal (SoupHstsPolicy *policy1, SoupHstsPolicy *policy2)
 	if (strcmp (policy1->domain, policy2->domain))
 		return FALSE;
 
-	if (policy1->include_sub_domains != policy2->include_sub_domains)
+	if (policy1->include_subdomains != policy2->include_subdomains)
+		return FALSE;
+
+	if (policy1->max_age != policy2->max_age)
 		return FALSE;
 
 	if ((policy1->expires && !policy2->expires) ||
@@ -112,186 +119,24 @@ soup_hsts_policy_equal (SoupHstsPolicy *policy1, SoupHstsPolicy *policy2)
 	return TRUE;
 }
 
-static inline const char *
-skip_lws (const char *s)
-{
-	while (g_ascii_isspace (*s))
-		s++;
-	return s;
-}
-
-static inline const char *
-unskip_lws (const char *s, const char *start)
-{
-	while (s > start && g_ascii_isspace (*(s - 1)))
-		s--;
-	return s;
-}
-
-#define is_attr_ender(ch) ((ch) < ' ' || (ch) == ';' || (ch) == ',' || (ch) == '=')
-#define is_value_ender(ch) ((ch) < ' ' || (ch) == ';')
-
-static char *
-parse_value (const char **val_p, gboolean copy)
-{
-	const char *start, *end, *p;
-	char *value;
-
-	p = *val_p;
-	if (*p == '=')
-		p++;
-	start = skip_lws (p);
-	for (p = start; !is_value_ender (*p); p++)
-		;
-	end = unskip_lws (p, start);
-
-	if (copy)
-		value = g_strndup (start, end - start);
-	else
-		value = NULL;
-
-	*val_p = p;
-	return value;
-}
-
-static SoupHstsPolicy *
-parse_one_policy (const char *header, SoupURI *origin)
-{
-	const char *start, *end, *p;
-	gboolean has_value;
-	long max_age = -1;
-	gboolean include_sub_domains = FALSE;
-
-	g_return_val_if_fail (origin == NULL || origin->host, NULL);
-
-	p = start = skip_lws (header);
-
-	/* Parse directives */
-	do {
-		if (*p == ';')
-			p++;
-
-		start = skip_lws (p);
-		for (p = start; !is_attr_ender (*p); p++)
-			;
-		end = unskip_lws (p, start);
-
-		has_value = (*p == '=');
-#define MATCH_NAME(name) ((end - start == strlen (name)) && !g_ascii_strncasecmp (start, name, end - start))
-
-		if (MATCH_NAME ("max-age") && has_value) {
-			char *max_age_str, *max_age_end;
-
-			/* Repeated directives make the policy invalid. */
-			if (max_age >= 0)
-				goto fail;
-
-			max_age_str = parse_value (&p, TRUE);
-			max_age = strtol (max_age_str, &max_age_end, 10);
-			g_free (max_age_str);
-
-			if (*max_age_end == '\0') {
-				/* Invalid 'max-age' directive makes the policy invalid. */
-				if (max_age < 0)
-					goto fail;
-			}
-		} else if (MATCH_NAME ("includeSubDomains")) {
-			/* Repeated directives make the policy invalid. */
-			if (include_sub_domains)
-				goto fail;
-
-			/* The 'includeSubDomains' directive can't have a value. */
-			if (has_value)
-				goto fail;
-
-			include_sub_domains = TRUE;
-		} else {
-			/* Unknown directives must be skipped. */
-			if (has_value)
-				parse_value (&p, FALSE);
-		}
-	} while (*p == ';');
-
-	/* No 'max-age' directive makes the policy invalid. */
-	if (max_age < 0)
-		goto fail;
-
-	return soup_hsts_policy_new_with_max_age (origin->host, max_age,
-						  include_sub_domains);
-
-fail:
-	return NULL;
-}
-
-/**
- * Return value: %TRUE if the hostname is suitable for an HSTS host, %FALSE
- * otherwise.
- **/
+/*
+ * Returns: %TRUE if the hostname is suitable for an HSTS host, %FALSE
+ * otherwise. Suitable hostnames are any that is not an IP address.
+ */
 static gboolean
 is_hostname_valid (const char *hostname)
 {
-	if (!hostname)
-		return FALSE;
-
-	/* Hostnames must have at least one '.'
-	 */
-	if (!strchr (hostname, '.'))
-		return FALSE;
-
-	/* IP addresses are not valid hostnames, only domain names are.
-	 */
-	if (g_hostname_is_ip_address (hostname))
-		return FALSE;
-
-	/* The hostname should be a valid domain name.
-	 */
-	return TRUE;
+	/* IP addresses are not valid hostnames, only domain names are. */
+	return hostname && !g_hostname_is_ip_address (hostname);
 }
 
 /**
  * soup_hsts_policy_new:
  * @domain: policy domain or hostname
- * @expires: (transfer full): the expiry date of the policy
- * @include_sub_domains: %TRUE if the policy applies on sub domains
- *
- * Creates a new #SoupHstsPolicy with the given attributes.
- *
- * @domain is a domain on which the strict transport security policy
- * represented by this object must be enforced.
- *
- * @expires is the date and time when the policy should be considered
- * expired.
- *
- * If @include_sub_domains is %TRUE, the strict transport security policy
- * must also be enforced on all subdomains of @domain.
- *
- * Return value: a new #SoupHstsPolicy.
- *
- * Since: 2.54
- **/
-SoupHstsPolicy *
-soup_hsts_policy_new (const char *domain, SoupDate *expires,
-		      gboolean include_sub_domains)
-{
-	SoupHstsPolicy *policy;
-
-	g_return_val_if_fail (is_hostname_valid (domain), NULL);
-
-	policy = g_slice_new0 (SoupHstsPolicy);
-	policy->domain = g_strdup (domain);
-	policy->expires = expires;
-	policy->include_sub_domains = include_sub_domains;
-
-	return policy;
-}
-
-/**
- * soup_hsts_policy_new_with_max_age:
- * @domain: policy domain or hostname
  * @max_age: max age of the policy
- * @include_sub_domains: %TRUE if the policy applies on sub domains
+ * @include_subdomains: %TRUE if the policy applies on subdomains
  *
- * Creates a new #SoupHstsPolicy with the given attributes.
+ * Creates a new #SoupHSTSPolicy with the given attributes.
  *
  * @domain is a domain on which the strict transport security policy
  * represented by this object must be enforced.
@@ -300,22 +145,19 @@ soup_hsts_policy_new (const char *domain, SoupDate *expires,
  * SOUP_HSTS_POLICY_MAX_AGE_PAST for an already-expired policy, or a
  * lifetime in seconds.
  *
- * If @include_sub_domains is %TRUE, the strict transport security policy
+ * If @include_subdomains is %TRUE, the strict transport security policy
  * must also be enforced on all subdomains of @domain.
  *
- * Return value: a new #SoupHstsPolicy.
+ * Returns: a new #SoupHSTSPolicy.
  *
- * Since: 2.54
+ * Since: 2.66
  **/
-SoupHstsPolicy *
-soup_hsts_policy_new_with_max_age (const char *domain, int max_age,
-				   gboolean include_sub_domains)
+SoupHSTSPolicy *
+soup_hsts_policy_new (const char *domain,
+		      unsigned long max_age,
+		      gboolean include_subdomains)
 {
 	SoupDate *expires;
-	SoupHstsPolicy *policy;
-
-	g_return_val_if_fail (is_hostname_valid (domain), NULL);
-	g_return_val_if_fail (max_age >= 0, NULL);
 
 	if (max_age == SOUP_HSTS_POLICY_MAX_AGE_PAST) {
 		/* Use a date way in the past, to protect against
@@ -325,66 +167,134 @@ soup_hsts_policy_new_with_max_age (const char *domain, int max_age,
 	} else
 		expires = soup_date_new_from_now (max_age);
 
-	policy = soup_hsts_policy_new (domain, expires, include_sub_domains);
+	return soup_hsts_policy_new_full (domain, max_age, expires, include_subdomains);
+}
 
-	if (!policy)
-		soup_date_free (expires);
+/**
+ * soup_hsts_policy_new_full:
+ * @domain: policy domain or hostname
+ * @max_age: max age of the policy
+ * @expires: the date of expiration of the policy or %NULL for a permanent policy
+ * @include_subdomains: %TRUE if the policy applies on subdomains
+ *
+ * Full version of #soup_hsts_policy_new(), to use with an existing
+ * expiration date. See #soup_hsts_policy_new() for details.
+ *
+ * Returns: a new #SoupHSTSPolicy.
+ *
+ * Since: 2.66
+ **/
+SoupHSTSPolicy *
+soup_hsts_policy_new_full (const char *domain,
+			   unsigned long max_age,
+			   SoupDate *expires,
+			   gboolean include_subdomains)
+{
+	SoupHSTSPolicy *policy;
+
+	g_return_val_if_fail (is_hostname_valid (domain), NULL);
+
+	policy = g_slice_new0 (SoupHSTSPolicy);
+	policy->domain = g_strdup (domain);
+	policy->max_age = max_age;
+	policy->expires = expires;
+	policy->include_subdomains = include_subdomains;
 
 	return policy;
 }
 
 /**
- * soup_hsts_policy_new_permanent:
+ * soup_hsts_policy_new_session_policy:
  * @domain: policy domain or hostname
- * @include_sub_domains: %TRUE if the policy applies on sub domains
+ * @include_subdomains: %TRUE if the policy applies on sub domains
  *
- * Creates a new #SoupHstsPolicy with the given attributes.
+ * Creates a new session #SoupHSTSPolicy with the given attributes.
+ * A session policy is a policy that is valid during the lifetime of
+ * the #SoupHSTSEnforcer it is added to. Contrary to regular policies,
+ * it has no expiration date and is not stored in persistent
+ * enforcers. These policies are useful for user-agent to load their
+ * own or user-defined rules.
  *
  * @domain is a domain on which the strict transport security policy
  * represented by this object must be enforced.
  *
- * If @include_sub_domains is %TRUE, the strict transport security policy
+ * If @include_subdomains is %TRUE, the strict transport security policy
  * must also be enforced on all subdomains of @domain.
  *
- * Return value: a new #SoupHstsPolicy.
+ * Returns: a new #SoupHSTSPolicy.
  *
- * Since: 2.54
+ * Since: 2.66
  **/
-SoupHstsPolicy *
-soup_hsts_policy_new_permanent (const char *domain,
-				gboolean include_sub_domains)
+SoupHSTSPolicy *
+soup_hsts_policy_new_session_policy (const char *domain,
+				     gboolean include_subdomains)
 {
-	return soup_hsts_policy_new (domain, NULL, include_sub_domains);
+	SoupHSTSPolicy *policy;
+
+	policy = soup_hsts_policy_new_full (domain, 0, NULL, include_subdomains);
+
+	return policy;
 }
 
 /**
  * soup_hsts_policy_new_from_response:
- * @msg: a #SoupMessage containing a "Strict-Transport-Security" response
- * header
+ * @msg: a #SoupMessage
  *
  * Parses @msg's first "Strict-Transport-Security" response header and
- * returns a #SoupHstsPolicy, or %NULL if no valid
+ * returns a #SoupHSTSPolicy.
+ *
+ * Returns: (nullable): a new #SoupHSTSPolicy, or %NULL if no valid
  * "Strict-Transport-Security" response header was found.
  *
- * Return value: (nullable): a new #SoupHstsPolicy, or %NULL if no valid
- * "Strict-Transport-Security" response header was found.
- *
- * Since: 2.54
+ * Since: 2.66
  **/
-SoupHstsPolicy *
+SoupHSTSPolicy *
 soup_hsts_policy_new_from_response (SoupMessage *msg)
 {
-	SoupURI *origin;
-	const char *name, *value;
 	SoupMessageHeadersIter iter;
+	const char *name, *value;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	soup_message_headers_iter_init (&iter, msg->response_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
-		if (g_ascii_strcasecmp (name, "Strict-Transport-Security") != 0)
+		SoupURI *uri;
+		GHashTable *params;
+		const char *max_age_str;
+		char *endptr;
+		unsigned long max_age;
+		gboolean include_subdomains;
+		gpointer include_subdomains_value = NULL;
+		SoupHSTSPolicy *policy = NULL;
+
+		if (strcmp (name, "Strict-Transport-Security") != 0)
 			continue;
 
-		origin = soup_message_get_uri (msg);
-		return parse_one_policy (value, origin);
+		uri = soup_message_get_uri (msg);
+
+		params = soup_header_parse_semi_param_list (value);
+
+		max_age_str = g_hash_table_lookup (params, "max-age");
+
+		if (!max_age_str)
+			goto out;
+		max_age = strtoul (max_age_str, &endptr, 10);
+		if (*endptr != '\0')
+			goto out;
+
+		include_subdomains = g_hash_table_lookup_extended (params, "includeSubDomains", NULL,
+								   &include_subdomains_value);
+		/* includeSubdomains shouldn't have a value. */
+		if (include_subdomains_value)
+			goto out;
+		/* if there are extra params, the HSTS spec demands the header to be ignored. */
+		if (g_hash_table_size (params) > (include_subdomains ? 2 : 1))
+			goto out;
+
+		policy = soup_hsts_policy_new (uri->host, max_age, include_subdomains);
+	out:
+		soup_header_free_param_list (params);
+		return policy;
 	}
 
 	return NULL;
@@ -392,88 +302,92 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 
 /**
  * soup_hsts_policy_get_domain:
- * @policy: a #SoupHstsPolicy
+ * @policy: a #SoupHSTSPolicy
  *
  * Gets @policy's domain.
  *
- * Return value: @policy's domain.
+ * Returns: (transfer none): @policy's domain.
  *
- * Since: 2.54
+ * Since: 2.66
  **/
 const char *
-soup_hsts_policy_get_domain (SoupHstsPolicy *policy)
+soup_hsts_policy_get_domain (SoupHSTSPolicy *policy)
 {
+	g_return_val_if_fail (policy != NULL, NULL);
+
 	return policy->domain;
 }
 
 /**
  * soup_hsts_policy_is_expired:
- * @policy: a #SoupHstsPolicy
+ * @policy: a #SoupHSTSPolicy
  *
- * Gets whether @policy is expired.
+ * Gets whether @policy is expired. Permanent policies never
+ * expire.
  *
- * Permanent policies never expire.
+ * Returns: %TRUE if @policy is expired, %FALSE otherwise.
  *
- * Return value: whether @policy is expired.
- *
- * Since: 2.54
+ * Since: 2.66
  **/
 gboolean
-soup_hsts_policy_is_expired (SoupHstsPolicy *policy)
+soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
 {
+	g_return_val_if_fail (policy != NULL, TRUE);
+
 	return policy->expires && soup_date_is_past (policy->expires);
 }
 
 /**
- * soup_hsts_policy_includes_sub_domains:
- * @policy: a #SoupHstsPolicy
+ * soup_hsts_policy_includes_subdomains:
+ * @policy: a #SoupHSTSPolicy
  *
- * Gets whether @policy include its sub-domains.
+ * Gets whether @policy include its subdomains.
  *
- * Return value: whether @policy include its sub-domains.
+ * Returns: %TRUE if @policy includes subdomains, %FALSE otherwise.
  *
- * Since: 2.54
+ * Since: 2.66
  **/
 gboolean
-soup_hsts_policy_includes_sub_domains (SoupHstsPolicy *policy)
+soup_hsts_policy_includes_subdomains (SoupHSTSPolicy *policy)
 {
-	return policy->include_sub_domains;
+	g_return_val_if_fail (policy != NULL, FALSE);
+
+	return policy->include_subdomains;
 }
 
 /**
- * soup_hsts_policy_is_permanent:
- * @policy: a #SoupHstsPolicy
+ * soup_hsts_policy_is_session_policy:
+ * @policy: a #SoupHSTSPolicy
  *
- * Gets whether @policy is permanent (not expirable).
+ * Gets whether @policy is a non-permanent, non-expirable session policy.
+ * see soup_hsts_policy_new_session_policy() for details.
  *
- * A permanent policy never expires and should not be saved by a persistent
- * #SoupHstsEnforcer so the user agent can control them.
+ * Returns: %TRUE if @policy is permanent, %FALSE otherwise
  *
- * Return value: whether @policy is permanent.
- *
- * Since: 2.54
+ * Since: 2.66
  **/
 gboolean
-soup_hsts_policy_is_permanent (SoupHstsPolicy *policy)
+soup_hsts_policy_is_session_policy (SoupHSTSPolicy *policy)
 {
+	g_return_val_if_fail (policy != NULL, FALSE);
+
 	return !policy->expires;
 }
 
 /**
  * soup_hsts_policy_free:
- * @policy: a #SoupHstsPolicy
+ * @policy: (transfer full): a #SoupHSTSPolicy
  *
  * Frees @policy.
  *
- * Since: 2.54
+ * Since: 2.66
  **/
 void
-soup_hsts_policy_free (SoupHstsPolicy *policy)
+soup_hsts_policy_free (SoupHSTSPolicy *policy)
 {
 	g_return_if_fail (policy != NULL);
 
 	g_free (policy->domain);
 	g_clear_pointer (&policy->expires, soup_date_free);
-
-	g_slice_free (SoupHstsPolicy, policy);
+	g_slice_free (SoupHSTSPolicy, policy);
 }

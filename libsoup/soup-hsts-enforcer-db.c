@@ -1,9 +1,10 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-hsts-enforcer-db.c: database-based HSTS policy storage
+ * soup-hsts-enforcer-db.c: persistent HTTP Strict Transport Security feature
  *
  * Using soup-cookie-jar-db as template
- * Copyright (C) 2016 Igalia S.L.
+ * Copyright (C) 2016, 2017, 2018 Igalia S.L.
+ * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -20,10 +21,10 @@
 
 /**
  * SECTION:soup-hsts-enforcer-db
- * @short_description: Database-based HSTS Enforcer
+ * @short_description: Persistent HTTP Strict Transport Security enforcer
  *
- * #SoupHstsEnforcerDB is a #SoupHstsEnforcer that reads HSTS policies from
- * and writes them to a sqlite database.
+ * #SoupHSTSEnforcerDB is a #SoupHSTSEnforcer that uses a SQLite
+ * database as a backend for persistency.
  **/
 
 enum {
@@ -34,30 +35,29 @@ enum {
 	LAST_PROP
 };
 
-typedef struct {
+struct _SoupHSTSEnforcerDBPrivate {
 	char *filename;
 	sqlite3 *db;
-} SoupHstsEnforcerDBPrivate;
+};
 
-#define SOUP_HSTS_ENFORCER_DB_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_HSTS_ENFORCER_DB, SoupHstsEnforcerDBPrivate))
+G_DEFINE_TYPE_WITH_CODE (SoupHSTSEnforcerDB, soup_hsts_enforcer_db, SOUP_TYPE_HSTS_ENFORCER,
+			 G_ADD_PRIVATE(SoupHSTSEnforcerDB))
 
-G_DEFINE_TYPE (SoupHstsEnforcerDB, soup_hsts_enforcer_db, SOUP_TYPE_HSTS_ENFORCER)
-
-static void load (SoupHstsEnforcer *hsts_enforcer);
+static void load (SoupHSTSEnforcer *hsts_enforcer);
 
 static void
-soup_hsts_enforcer_db_init (SoupHstsEnforcerDB *db)
+soup_hsts_enforcer_db_init (SoupHSTSEnforcerDB *db)
 {
+	db->priv = soup_hsts_enforcer_db_get_instance_private (db);
 }
 
 static void
 soup_hsts_enforcer_db_finalize (GObject *object)
 {
-	SoupHstsEnforcerDBPrivate *priv =
-		SOUP_HSTS_ENFORCER_DB_GET_PRIVATE (object);
+	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (object)->priv;
 
 	g_free (priv->filename);
-	g_clear_pointer (&priv->db, sqlite3_close);
+	sqlite3_close (priv->db);
 
 	G_OBJECT_CLASS (soup_hsts_enforcer_db_parent_class)->finalize (object);
 }
@@ -66,8 +66,7 @@ static void
 soup_hsts_enforcer_db_set_property (GObject *object, guint prop_id,
 				    const GValue *value, GParamSpec *pspec)
 {
-	SoupHstsEnforcerDBPrivate *priv =
-		SOUP_HSTS_ENFORCER_DB_GET_PRIVATE (object);
+	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (object)->priv;
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -84,8 +83,7 @@ static void
 soup_hsts_enforcer_db_get_property (GObject *object, guint prop_id,
 				    GValue *value, GParamSpec *pspec)
 {
-	SoupHstsEnforcerDBPrivate *priv =
-		SOUP_HSTS_ENFORCER_DB_GET_PRIVATE (object);
+	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (object)->priv;
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -99,19 +97,22 @@ soup_hsts_enforcer_db_get_property (GObject *object, guint prop_id,
 
 /**
  * soup_hsts_enforcer_db_new:
- * @filename: the filename to read to/write from, or %NULL
+ * @filename: the filename of the database to read/write from.
  *
- * Creates a #SoupHstsEnforcerDB.
+ * Creates a #SoupHSTSEnforcerDB.
  *
- * @filename will be read in at startup to create an initial set of HSTS
- * policies. Changes to the policies will be written to @filename when the
- * 'changed' signal is emitted from the HSTS enforcer.
+ * @filename will be read in during the initialization of a
+ * #SoupHSTSEnforcerDB, in order to create an initial set of HSTS
+ * policies. If the file doesn't exist, a new database will be created
+ * and initialized. Changes to the policies during the lifetime of a
+ * #SoupHSTSEnforcerDB will be written to @filename when
+ * #SoupHSTSEnforcer::changed is emitted.
  *
- * Return value: the new #SoupHstsEnforcer
+ * Return value: the new #SoupHSTSEnforcer
  *
- * Since: 2.54
+ * Since: 2.66
  **/
-SoupHstsEnforcer *
+SoupHSTSEnforcer *
 soup_hsts_enforcer_db_new (const char *filename)
 {
 	g_return_val_if_fail (filename != NULL, NULL);
@@ -121,30 +122,32 @@ soup_hsts_enforcer_db_new (const char *filename)
 			     NULL);
 }
 
-#define QUERY_ALL "SELECT id, host, expiry, includeSubDomains FROM soup_hsts_policies;"
-#define CREATE_TABLE "CREATE TABLE soup_hsts_policies (id INTEGER PRIMARY KEY, host TEXT UNIQUE, expiry INTEGER, includeSubDomains INTEGER)"
-#define QUERY_INSERT "INSERT OR REPLACE INTO soup_hsts_policies VALUES((SELECT id FROM soup_hsts_policies WHERE host=%Q), %Q, %d, %d);"
+#define QUERY_ALL "SELECT id, host, max_age, expiry, include_subdomains FROM soup_hsts_policies;"
+#define CREATE_TABLE "CREATE TABLE soup_hsts_policies (id INTEGER PRIMARY KEY, host TEXT UNIQUE, max_age INTEGER, expiry INTEGER, include_subdomains INTEGER)"
+#define QUERY_INSERT "INSERT OR REPLACE INTO soup_hsts_policies VALUES((SELECT id FROM soup_hsts_policies WHERE host=%Q), %Q, %d, %d, %d);"
 #define QUERY_DELETE "DELETE FROM soup_hsts_policies WHERE host=%Q;"
 
 enum {
 	COL_ID,
 	COL_HOST,
+	COL_MAX_AGE,
 	COL_EXPIRY,
-	COL_SUB_DOMAINS,
+	COL_SUBDOMAINS,
 	N_COL,
 };
 
 static int
-callback (void *data, int argc, char **argv, char **colname)
+query_all_callback (void *data, int argc, char **argv, char **colname)
 {
-	SoupHstsPolicy *policy = NULL;
-	SoupHstsEnforcer *hsts_enforcer = SOUP_HSTS_ENFORCER (data);
+	SoupHSTSPolicy *policy = NULL;
+	SoupHSTSEnforcer *hsts_enforcer = SOUP_HSTS_ENFORCER (data);
 
 	char *host;
 	gulong expire_time;
+	unsigned long max_age;
 	time_t now;
 	SoupDate *expires;
-	gboolean include_sub_domains = FALSE;
+	gboolean include_subdomains = FALSE;
 
 	now = time (NULL);
 
@@ -155,13 +158,15 @@ callback (void *data, int argc, char **argv, char **colname)
 		return 0;
 
 	expires = soup_date_new_from_time_t (expire_time);
-	include_sub_domains = (g_strcmp0 (argv[COL_SUB_DOMAINS], "1") == 0);
+	max_age = strtoul (argv[COL_MAX_AGE], NULL, 10);
+	include_subdomains = (g_strcmp0 (argv[COL_SUBDOMAINS], "1") == 0);
 
-	policy = soup_hsts_policy_new (host, expires, include_sub_domains);
+	policy = soup_hsts_policy_new_full (host, max_age, expires, include_subdomains);
 
-	if (policy)
+	if (policy) {
 		soup_hsts_enforcer_set_policy (hsts_enforcer, policy);
-	else
+		soup_hsts_policy_free (policy);
+	} else
 		soup_date_free (expires);
 
 	return 0;
@@ -178,10 +183,12 @@ try_create_table (sqlite3 *db)
 	}
 }
 
+typedef int (*ExecQueryCallback) (void *, int, char**, char**);
+
 static void
 exec_query_with_try_create_table (sqlite3 *db,
 				  const char *sql,
-				  int (*callback)(void*,int,char**,char**),
+				  ExecQueryCallback callback,
 				  void *argument)
 {
 	char *error = NULL;
@@ -204,10 +211,9 @@ try_exec:
 
 /* Follows sqlite3 convention; returns TRUE on error */
 static gboolean
-open_db (SoupHstsEnforcer *hsts_enforcer)
+open_db (SoupHSTSEnforcer *hsts_enforcer)
 {
-	SoupHstsEnforcerDBPrivate *priv =
-		SOUP_HSTS_ENFORCER_DB_GET_PRIVATE (hsts_enforcer);
+	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (hsts_enforcer)->priv;
 
 	char *error = NULL;
 
@@ -227,27 +233,30 @@ open_db (SoupHstsEnforcer *hsts_enforcer)
 }
 
 static void
-load (SoupHstsEnforcer *hsts_enforcer)
+load (SoupHSTSEnforcer *hsts_enforcer)
 {
-	SoupHstsEnforcerDBPrivate *priv =
-		SOUP_HSTS_ENFORCER_DB_GET_PRIVATE (hsts_enforcer);
+	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (hsts_enforcer)->priv;
 
 	if (priv->db == NULL) {
 		if (open_db (hsts_enforcer))
 			return;
 	}
 
-	exec_query_with_try_create_table (priv->db, QUERY_ALL, callback, hsts_enforcer);
+	exec_query_with_try_create_table (priv->db, QUERY_ALL, query_all_callback, hsts_enforcer);
 }
 
 static void
-soup_hsts_enforcer_db_changed (SoupHstsEnforcer *hsts_enforcer,
-			       SoupHstsPolicy   *old_policy,
-			       SoupHstsPolicy   *new_policy)
+soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
+			       SoupHSTSPolicy   *old_policy,
+			       SoupHSTSPolicy   *new_policy)
 {
-	SoupHstsEnforcerDBPrivate *priv =
-		SOUP_HSTS_ENFORCER_DB_GET_PRIVATE (hsts_enforcer);
+	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (hsts_enforcer)->priv;
 	char *query;
+
+	/* Session policies do not need to be stored in the database. */
+	if ((old_policy && soup_hsts_policy_is_session_policy (old_policy)) ||
+	    (new_policy && soup_hsts_policy_is_session_policy (new_policy)))
+		return;
 
 	if (priv->db == NULL) {
 		if (open_db (hsts_enforcer))
@@ -257,6 +266,7 @@ soup_hsts_enforcer_db_changed (SoupHstsEnforcer *hsts_enforcer,
 	if (old_policy && !new_policy) {
 		query = sqlite3_mprintf (QUERY_DELETE,
 					 old_policy->domain);
+		g_assert (query);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
@@ -269,29 +279,44 @@ soup_hsts_enforcer_db_changed (SoupHstsEnforcer *hsts_enforcer,
 		query = sqlite3_mprintf (QUERY_INSERT,
 					 new_policy->domain,
 					 new_policy->domain,
+					 new_policy->max_age,
 					 expires,
-					 new_policy->include_sub_domains);
+					 new_policy->include_subdomains);
+		g_assert (query);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
 }
 
 static gboolean
-soup_hsts_enforcer_db_is_persistent (SoupHstsEnforcer *hsts_enforcer)
+soup_hsts_enforcer_db_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
 {
 	return TRUE;
 }
 
-static void
-soup_hsts_enforcer_db_class_init (SoupHstsEnforcerDBClass *db_class)
+static gboolean
+soup_hsts_enforcer_db_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
+					const char *domain)
 {
-	SoupHstsEnforcerClass *hsts_enforcer_class =
+	/* TODO: In the future we should not load the full contents of
+	   this database into the enforcer, and instead query the
+	   database on request here. Loading the entire database for a
+	   potentially large amount of domains is probably not the
+	   best approach.
+	*/
+
+	return SOUP_HSTS_ENFORCER_CLASS (soup_hsts_enforcer_db_parent_class)->has_valid_policy (hsts_enforcer, domain);
+}
+
+static void
+soup_hsts_enforcer_db_class_init (SoupHSTSEnforcerDBClass *db_class)
+{
+	SoupHSTSEnforcerClass *hsts_enforcer_class =
 		SOUP_HSTS_ENFORCER_CLASS (db_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (db_class);
 
-	g_type_class_add_private (db_class, sizeof (SoupHstsEnforcerDBPrivate));
-
 	hsts_enforcer_class->is_persistent = soup_hsts_enforcer_db_is_persistent;
+	hsts_enforcer_class->has_valid_policy = soup_hsts_enforcer_db_has_valid_policy;
 	hsts_enforcer_class->changed       = soup_hsts_enforcer_db_changed;
 
 	object_class->finalize     = soup_hsts_enforcer_db_finalize;
@@ -299,10 +324,9 @@ soup_hsts_enforcer_db_class_init (SoupHstsEnforcerDBClass *db_class)
 	object_class->get_property = soup_hsts_enforcer_db_get_property;
 
 	/**
-	 * SOUP_HSTS_ENFORCER_DB_FILENAME:
+	 * SoupHSTSEnforcerDB:filename:
 	 *
-	 * Alias for the #SoupHstsEnforcerDB:filename property. (The
-	 * HSTS policy storage filename.)
+	 * The filename of the SQLite database where HSTS policies are stored.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_FILENAME,
