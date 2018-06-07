@@ -54,6 +54,8 @@
     <xi:include href="xml/soup-cookie-jar.xml"/>
     <xi:include href="xml/soup-cookie-jar-text.xml"/>
     <xi:include href="xml/soup-cookie-jar-db.xml"/>
+    <xi:include href="xml/soup-hsts-enforcer.xml"/>
+    <xi:include href="xml/soup-hsts-enforcer-db.xml"/>
     <xi:include href="xml/soup-logger.xml"/>
     <xi:include href="xml/soup-proxy-resolver-default.xml"/>
   </chapter>
