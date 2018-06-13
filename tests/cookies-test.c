@@ -219,6 +219,15 @@ do_cookies_parsing_test (void)
 	soup_test_session_abort_unref (session);
 }	
 
+static void
+do_cookies_parsing_nopath_nullorigin (void)
+{
+	SoupCookie *cookie = soup_cookie_parse ("NAME=Value", NULL);
+	g_assert_nonnull (cookie);
+	g_assert_cmpstr ("/", ==, soup_cookie_get_path (cookie));
+	soup_cookie_free (cookie);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -239,6 +248,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/accept-policy", do_cookies_accept_policy_test);
 	g_test_add_func ("/cookies/accept-policy-subdomains", do_cookies_subdomain_policy_test);
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
+	g_test_add_func ("/cookies/parsing/no-path-null-origin", do_cookies_parsing_nopath_nullorigin);
 
 	ret = g_test_run ();
 
