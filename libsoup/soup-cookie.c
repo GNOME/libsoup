@@ -299,7 +299,9 @@ parse_one_cookie (const char *header, SoupURI *origin)
 							  slash - origin->path);
 			}
 		}
-	}
+	} else if (!cookie->path) {
+        cookie->path = g_strdup ("/");
+    }
 
 	return cookie;
 }
