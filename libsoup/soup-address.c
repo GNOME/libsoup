@@ -57,31 +57,36 @@ typedef struct {
 /* sockaddr generic macros */
 #define SOUP_SIN(priv) ((struct sockaddr_in *)priv->sockaddr)
 #define SOUP_SIN6(priv) ((struct sockaddr_in6 *)priv->sockaddr)
+#define SOUP_SUN(priv) ((struct sockaddr_un *)priv->sockaddr)
 
 /* sockaddr family macros */
 #define SOUP_ADDRESS_GET_FAMILY(priv) (priv->sockaddr->ss_family)
 #define SOUP_ADDRESS_SET_FAMILY(priv, family) \
 	(priv->sockaddr->ss_family = family)
 #define SOUP_ADDRESS_FAMILY_IS_VALID(family) \
-	(family == AF_INET || family == AF_INET6)
+	(family == AF_INET || family == AF_INET6 || family == AF_UNIX)
 #define SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE(family) \
 	(family == AF_INET ? sizeof (struct sockaddr_in) : \
-			     sizeof (struct sockaddr_in6))
+			     family == AF_INET6 ? sizeof (struct sockaddr_in6) : \
+						  sizeof (struct sockaddr_un))
 #define SOUP_ADDRESS_FAMILY_DATA_SIZE(family) \
 	(family == AF_INET ? sizeof (struct in_addr) : \
-			     sizeof (struct in6_addr))
+			     family == AF_INET6 ? sizeof (struct in6_addr) : \
+						  sizeof (char [108]))
 
 /* sockaddr port macros */
 #define SOUP_ADDRESS_PORT_IS_VALID(port) (((gint) port) >= 0 && port <= 65535)
 #define SOUP_ADDRESS_GET_PORT(priv) \
 	(priv->sockaddr->ss_family == AF_INET ? \
 		SOUP_SIN(priv)->sin_port : \
-		SOUP_SIN6(priv)->sin6_port)
+		priv->sockaddr->ss_family  == AF_INET6 ? \
+			SOUP_SIN6(priv)->sin6_port : \
+			0)
 #define SOUP_ADDRESS_SET_PORT(priv, port) \
 	G_STMT_START {					\
 	if (priv->sockaddr->ss_family == AF_INET)	\
 		SOUP_SIN(priv)->sin_port = port;	\
-	else						\
+	else if (priv->sockaddr->ss_family == AF_INET6)	\
 		SOUP_SIN6(priv)->sin6_port = port;	\
 	} G_STMT_END
 
@@ -89,7 +94,9 @@ typedef struct {
 #define SOUP_ADDRESS_GET_DATA(priv) \
 	(priv->sockaddr->ss_family == AF_INET ? \
 		(gpointer)&SOUP_SIN(priv)->sin_addr : \
-		(gpointer)&SOUP_SIN6(priv)->sin6_addr)
+		priv->sockaddr->ss_family == AF_INET6 ? \
+			(gpointer)&SOUP_SIN6(priv)->sin6_addr : \
+			(gpointer)&SOUP_SUN(priv)->sun_path)
 #define SOUP_ADDRESS_SET_DATA(priv, data, length) \
 	memcpy (SOUP_ADDRESS_GET_DATA (priv), data, length)
 
@@ -163,6 +170,8 @@ soup_address_set_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_NAME:
 		priv->name = g_value_dup_string (value);
+		if (priv->sockaddr)
+			SOUP_ADDRESS_SET_DATA (priv, priv->name, strlen (priv->name));
 		break;
 
 	case PROP_FAMILY:
@@ -175,6 +184,10 @@ soup_address_set_property (GObject *object, guint prop_id,
 		priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
 		SOUP_ADDRESS_SET_FAMILY (priv, family);
 		SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
+
+		if (priv->name)
+			SOUP_ADDRESS_SET_DATA (priv, priv->name, strlen (priv->name));
+
 		priv->n_addrs = 1;
 		break;
 
