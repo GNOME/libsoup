@@ -77,6 +77,11 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		else
 			soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		/* In a real program you should also provide some text explaining the
+		 * error to the user (via soup_message_set_response), and include in it
+		 * the request path, as otherwise some browsers (Firefox, WebKit) only
+		 * show a blank page, confusing the user.
+		 */
 		return;
 	}
 
@@ -96,7 +101,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		}
 
 		index_path = g_strdup_printf ("%s/index.html", path);
-		if (g_stat (path, &st) != -1) {
+		if (g_stat (index_path, &st) != -1) {
 			do_get (server, msg, index_path);
 			g_free (index_path);
 			return;
