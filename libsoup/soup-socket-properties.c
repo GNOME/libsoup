@@ -45,23 +45,22 @@ soup_socket_properties_new (GMainContext    *async_context,
 SoupSocketProperties *
 soup_socket_properties_ref (SoupSocketProperties *props)
 {
-	props->ref_count++;
+	g_atomic_int_inc (&props->ref_count);
 	return props;
 }
 
 void
 soup_socket_properties_unref (SoupSocketProperties *props)
 {
-	if (--props->ref_count)
-		return;
+	if (g_atomic_int_dec_and_test (&props->ref_count)) {
+		g_clear_pointer (&props->async_context, g_main_context_unref);
+		g_clear_object (&props->proxy_resolver);
+		g_clear_object (&props->local_addr);
+		g_clear_object (&props->tlsdb);
+		g_clear_object (&props->tls_interaction);
 
-	g_clear_pointer (&props->async_context, g_main_context_unref);
-	g_clear_object (&props->proxy_resolver);
-	g_clear_object (&props->local_addr);
-	g_clear_object (&props->tlsdb);
-	g_clear_object (&props->tls_interaction);
-
-	g_slice_free (SoupSocketProperties, props);
+		g_slice_free (SoupSocketProperties, props);
+	}
 }
 
 void
