@@ -45,14 +45,14 @@ soup_socket_properties_new (GMainContext    *async_context,
 SoupSocketProperties *
 soup_socket_properties_ref (SoupSocketProperties *props)
 {
-	props->ref_count++;
+	g_atomic_int_inc (&props->ref_count);
 	return props;
 }
 
 void
 soup_socket_properties_unref (SoupSocketProperties *props)
 {
-	if (--props->ref_count)
+	if (!g_atomic_int_dec_and_test (&props->ref_count))
 		return;
 
 	g_clear_pointer (&props->async_context, g_main_context_unref);
