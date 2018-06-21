@@ -272,7 +272,7 @@ soup_buffer_copy (SoupBuffer *buffer)
 
 	/* For non-TEMPORARY buffers, this is just a ref */
 	if (priv->use != SOUP_MEMORY_TEMPORARY) {
-		priv->refcount++;
+		g_atomic_int_inc (&priv->refcount);
 		return buffer;
 	}
 
@@ -305,11 +305,12 @@ soup_buffer_free (SoupBuffer *buffer)
 {
 	SoupBufferPrivate *priv = (SoupBufferPrivate *)buffer;
 
-	if (!--priv->refcount) {
-		if (priv->owner_dnotify)
-			priv->owner_dnotify (priv->owner);
-		g_slice_free (SoupBufferPrivate, priv);
-	}
+	if (!g_atomic_int_dec_and_test (&priv->refcount))
+		return;
+
+	if (priv->owner_dnotify)
+		priv->owner_dnotify (priv->owner);
+	g_slice_free (SoupBufferPrivate, priv);
 }
 
 /**
@@ -725,7 +726,7 @@ soup_message_body_copy (SoupMessageBody *body)
 {
 	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	priv->ref_count++;
+	g_atomic_int_inc (&priv->ref_count);
 	return body;
 }
 
@@ -741,10 +742,11 @@ soup_message_body_free (SoupMessageBody *body)
 {
 	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	if (--priv->ref_count == 0) {
-		soup_message_body_truncate (body);
-		g_slice_free (SoupMessageBodyPrivate, priv);
-	}
+	if (!g_atomic_int_dec_and_test (&priv->ref_count))
+		return;
+
+	soup_message_body_truncate (body);
+	g_slice_free (SoupMessageBodyPrivate, priv);
 }
 
 G_DEFINE_BOXED_TYPE (SoupMessageBody, soup_message_body, soup_message_body_copy, soup_message_body_free)

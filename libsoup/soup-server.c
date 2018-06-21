@@ -1156,14 +1156,14 @@ soup_client_context_cleanup (SoupClientContext *client)
 static SoupClientContext *
 soup_client_context_ref (SoupClientContext *client)
 {
-	client->ref_count++;
+	g_atomic_int_inc (&client->ref_count);
 	return client;
 }
 
 static void
 soup_client_context_unref (SoupClientContext *client)
 {
-	if (--client->ref_count != 0)
+	if (!g_atomic_int_dec_and_test (&client->ref_count))
 		return;
 
 	soup_client_context_cleanup (client);
