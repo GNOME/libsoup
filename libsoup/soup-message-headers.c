@@ -90,7 +90,7 @@ soup_message_headers_new (SoupMessageHeadersType type)
 static SoupMessageHeaders *
 soup_message_headers_copy (SoupMessageHeaders *hdrs)
 {
-	hdrs->ref_count++;
+	g_atomic_int_inc (&hdrs->ref_count);
 	return hdrs;
 }
 
@@ -103,12 +103,13 @@ soup_message_headers_copy (SoupMessageHeaders *hdrs)
 void
 soup_message_headers_free (SoupMessageHeaders *hdrs)
 {
-	if (--hdrs->ref_count == 0) {
-		soup_message_headers_clear (hdrs);
-		g_array_free (hdrs->array, TRUE);
-		g_clear_pointer (&hdrs->concat, g_hash_table_destroy);
-		g_slice_free (SoupMessageHeaders, hdrs);
-	}
+	if (!g_atomic_int_dec_and_test (&hdrs->ref_count))
+		return;
+
+	soup_message_headers_clear (hdrs);
+	g_array_free (hdrs->array, TRUE);
+	g_clear_pointer (&hdrs->concat, g_hash_table_destroy);
+	g_slice_free (SoupMessageHeaders, hdrs);
 }
 
 G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_headers_copy, soup_message_headers_free)
