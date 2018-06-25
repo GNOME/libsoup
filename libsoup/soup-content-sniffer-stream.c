@@ -167,7 +167,8 @@ read_internal (GInputStream  *stream,
 
 	if (sniffer->priv->buffer) {
 		nread = MIN (count, sniffer->priv->buffer_nread);
-		memcpy (buffer, sniffer->priv->buffer, nread);
+		if (buffer)
+			memcpy (buffer, sniffer->priv->buffer, nread);
 		if (nread == sniffer->priv->buffer_nread) {
 			g_free (sniffer->priv->buffer);
 			sniffer->priv->buffer = NULL;
