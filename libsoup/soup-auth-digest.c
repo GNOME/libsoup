@@ -343,7 +343,7 @@ soup_auth_digest_compute_response (const char        *method,
 	g_checksum_update (checksum, (guchar *)method, strlen (method));
 	g_checksum_update (checksum, (guchar *)":", 1);
 	g_checksum_update (checksum, (guchar *)uri, strlen (uri));
-	strncpy (hex_a2, g_checksum_get_string (checksum), 33);
+	memcpy (hex_a2, g_checksum_get_string (checksum), sizeof (char) * 33);
 	g_checksum_free (checksum);
 
 	/* compute KD */
@@ -369,7 +369,7 @@ soup_auth_digest_compute_response (const char        *method,
 	}
 
 	g_checksum_update (checksum, (guchar *)hex_a2, 32);
-	strncpy (response, g_checksum_get_string (checksum), 33);
+	memcpy (response, g_checksum_get_string (checksum), sizeof (char) * 33);
 	g_checksum_free (checksum);
 }
 
