@@ -307,7 +307,7 @@ get_cookies (SoupCookieJar *jar, SoupURI *uri, gboolean for_http, gboolean copy_
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
-	if (!uri->host)
+	if (!uri->host || !uri->host[0])
 		return NULL;
 
 	/* The logic here is a little weird, but the plan is that if
