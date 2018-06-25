@@ -72,7 +72,7 @@ typedef struct {
 			     sizeof (struct in6_addr))
 
 /* sockaddr port macros */
-#define SOUP_ADDRESS_PORT_IS_VALID(port) (port >= 0 && port <= 65535)
+#define SOUP_ADDRESS_PORT_IS_VALID(port) (((gint) port) >= 0 && port <= 65535)
 #define SOUP_ADDRESS_GET_PORT(priv) \
 	(priv->sockaddr->ss_family == AF_INET ? \
 		SOUP_SIN(priv)->sin_port : \
@@ -1183,10 +1183,10 @@ got_addresses (SoupAddress *addr, guint status, gpointer user_data)
 	if (error)
 		g_task_return_error (task, g_error_copy (error));
 	else {
-		GSocketAddress *addr;
+		GSocketAddress *socket_addr;
 
-		addr = next_address (g_task_get_source_object (task));
-		g_task_return_pointer (task, addr, g_object_unref);
+		socket_addr = next_address (g_task_get_source_object (task));
+		g_task_return_pointer (task, socket_addr, g_object_unref);
 	}
 	g_object_unref (task);
 }
