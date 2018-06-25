@@ -479,6 +479,14 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (!host->auth_realms && !make_auto_ntlm_auth (priv, host))
 		return NULL;
 
+	/* Cannot change the above '&&' into '||', because make_auto_ntlm_auth() is used
+	 * to populate host->auth_realms when it's not set yet. Even the make_auto_ntlm_auth()
+	 * returns TRUE only if it also populates the host->auth_realms, this extra test
+	 * is required to mute a FORWARD_NULL Coverity Scan warning, which is a false-positive
+	 * here */
+	if (!host->auth_realms)
+		return NULL;
+
 	path = soup_message_get_uri (msg)->path;
 	if (!path)
 		path = "/";
