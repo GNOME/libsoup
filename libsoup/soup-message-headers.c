@@ -1324,18 +1324,20 @@ static void
 content_type_setter (SoupMessageHeaders *hdrs, const char *value)
 {
 	g_free (hdrs->content_type);
+	hdrs->content_type = NULL;
+
 	if (value) {
-		char *content_type, *p;
+		char *content_type = NULL, *p;
 
 		parse_content_foo (hdrs, "Content-Type", &content_type, NULL);
+		g_return_if_fail (content_type != NULL);
+
 		p = strpbrk (content_type, " /");
-		if (!p || *p != '/' || strpbrk (p + 1, " /")) {
+		if (!p || *p != '/' || strpbrk (p + 1, " /"))
 			g_free (content_type);
-			hdrs->content_type = NULL;
-		} else
+		else
 			hdrs->content_type = content_type;
-	} else
-		hdrs->content_type = NULL;
+	}
 }
 
 /**
