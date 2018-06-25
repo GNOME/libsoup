@@ -676,11 +676,9 @@ soup_test_request_read_all (SoupRequest   *req,
 
 	if (!SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
 		data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
-	else
-		data.loop = NULL;
 
 	do {
-		if (!data.loop) {
+		if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req))) {
 			nread = g_input_stream_read (stream, buf, sizeof (buf),
 						     cancellable, error);
 		} else {
@@ -693,7 +691,7 @@ soup_test_request_read_all (SoupRequest   *req,
 		}
 	} while (nread > 0);
 
-	if (data.loop)
+	if (!SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
 		g_main_loop_unref (data.loop);
 
 	return nread == 0;
