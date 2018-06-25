@@ -8,7 +8,7 @@
 #ifndef __SOUP_STATUS_H__
 #define __SOUP_STATUS_H__ 1
 
-#include <libsoup/soup-types.h>
+#include <libsoup/soup-version.h>
 
 G_BEGIN_DECLS
 
