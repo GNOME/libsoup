@@ -1348,7 +1348,7 @@ soup_uri_is_http (SoupURI *uri, char **aliases)
 			return TRUE;
 	}
 
-	if (!aliases[1] && !strcmp (aliases[0], "*"))
+	if (aliases[0] && !aliases[1] && !strcmp (aliases[0], "*"))
 		return TRUE;
 	else
 		return FALSE;
