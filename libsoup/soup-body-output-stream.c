@@ -162,7 +162,6 @@ again:
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE:
 		g_snprintf (buf, sizeof (bostream->priv->buf),
 			    "%lx\r\n", (gulong)count);
-		len = strlen (buf);
 
 		if (count > 0)
 			bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK;
@@ -182,13 +181,11 @@ again:
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_END:
 		strncpy (buf, "\r\n", sizeof (bostream->priv->buf));
-		len = 2;
 		bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_TRAILERS:
 		strncpy (buf, "\r\n", sizeof (bostream->priv->buf));
-		len = 2;
 		bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
 		break;
 
