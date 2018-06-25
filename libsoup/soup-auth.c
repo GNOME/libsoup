@@ -107,13 +107,9 @@ soup_auth_get_property (GObject *object, guint prop_id,
 		g_value_set_string (value, soup_auth_get_scheme_name (auth));
 		break;
 	case PROP_REALM:
-		if (auth->realm)
-			g_free (auth->realm);
 		g_value_set_string (value, soup_auth_get_realm (auth));
 		break;
 	case PROP_HOST:
-		if (priv->host)
-			g_free (priv->host);
 		g_value_set_string (value, soup_auth_get_host (auth));
 		break;
 	case PROP_IS_FOR_PROXY:
