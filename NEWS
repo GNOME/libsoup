@@ -1,3 +1,17 @@
+Changes in libsoup from 2.63.2 to 2.63.90:
+
+	* Set default cookie path for NULL origins [#1, Adrian Perez de Castro]
+	* Fixes to GObject-introspection [bgo#794787, Corentin Noël]
+	* Use atomic-refcounting in classes that are not using GObject-refcounting
+	  [bgo#785110, Edward Hervey]
+	* Many Coverity-found code fixes [bgo#781771, Milan Crha]
+	* Bail out on cookie-jar calls with empty hostnames [#3, Michael Catanzaro]
+	* Fixes to the simple-httpd example [#2, Mooffie]
+	* Updated translations: Chinese (Taiwan), Catalan
+
+	Note: from now onwards bgo# references bugs in GNOME Bugzilla
+	and # issues in GNOME gitlab.
+
 Changes in libsoup from 2.63.1 to 2.63.2:
 
 	* Many fixes to the meson build system support [#795324,
