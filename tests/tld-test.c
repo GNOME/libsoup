@@ -22,6 +22,9 @@ static struct {
 	{ ".example", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
 	{ ".example.com", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
 	{ ".example.example", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
+	/* Trailing dot. */
+	{ ".com.", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
+	{ "domain.biz.", "domain.biz.", -1 },
 	/* TLD with only 1 rule. */
 	{ "biz", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
 	{ "domain.biz", "domain.biz", -1 },
