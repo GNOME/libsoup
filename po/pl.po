@@ -7,9 +7,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-02-10 14:42+0100\n"
-"PO-Revision-Date: 2018-02-10 14:44+0100\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
+"POT-Creation-Date: 2018-07-01 06:42+0000\n"
+"PO-Revision-Date: 2018-08-04 20:00+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <community-poland@mozilla.org>\n"
 "Language: pl\n"
@@ -19,161 +19,164 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
 
-#: ../libsoup/soup-body-input-stream.c:139
-#: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "Połączenie zostało nieoczekiwanie zakończone"
 
-#: ../libsoup/soup-body-input-stream.c:459
+#: libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Nieprawidłowe żądanie przewinięcia"
 
-#: ../libsoup/soup-body-input-stream.c:487
+#: libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Nie można skrócić SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:76
+#: libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Strumień sieciowy został nieoczekiwanie zamknięty"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Całkowite umieszczenie zasobu w pamięci podręcznej się nie powiodło"
 
-#: ../libsoup/soup-converter-wrapper.c:189
+#: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Bufor wyjściowy jest za mały"
 
-#: ../libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:41
 msgid "Could not parse HTTP response"
 msgstr "Nie można przetworzyć odpowiedzi HTTP"
 
-#: ../libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:66
 msgid "Unrecognized HTTP response encoding"
 msgstr "Nierozpoznane kodowanie odpowiedzi HTTP"
 
-#: ../libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:263
 msgid "Header too big"
 msgstr "Nagłówek jest za duży"
 
-#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Działanie spowodowałoby zablokowanie"
 
-#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Anulowano działanie"
 
-#: ../libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Nie można przetworzyć żądania HTTP"
 
-#: ../libsoup/soup-request.c:141
+#: libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Nie podano adresu URI"
 
-#: ../libsoup/soup-request.c:151
+#: libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid “%s” URI: %s"
 msgstr "Nieprawidłowy adres URI „%s”: %s"
 
-#: ../libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1725
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nie można utworzyć serwera TLS bez certyfikatu TLS"
 
-#: ../libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nie można nasłuchiwać na adresie %s, porcie %d: "
 
-#: ../libsoup/soup-session.c:4524
+#: libsoup/soup-session.c:4534
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nie można przetworzyć adresu URI „%s”"
 
-#: ../libsoup/soup-session.c:4561
+#: libsoup/soup-session.c:4571
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nieobsługiwany schemat adresu URI „%s”"
 
-#: ../libsoup/soup-session.c:4583
+#: libsoup/soup-session.c:4593
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nie jest adresem URI protokołu HTTP"
 
-#: ../libsoup/soup-session.c:4781
+#: libsoup/soup-session.c:4791
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serwer nie przyjął powitania WebSocket."
 
-#: ../libsoup/soup-socket.c:148
+#: libsoup/soup-socket.c:148
 msgid "Can’t import non-socket as SoupSocket"
 msgstr "Nie można zaimportować niegniazda jako SoupSocket"
 
-#: ../libsoup/soup-socket.c:166
+#: libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Nie można zaimportować istniejącego gniazda: "
 
-#: ../libsoup/soup-socket.c:175
+#: libsoup/soup-socket.c:175
 msgid "Can’t import unconnected socket"
 msgstr "Nie można zaimportować niepołączonego gniazda"
 
-#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
+#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Oczekiwano powitania WebSocket"
 
-#: ../libsoup/soup-websocket.c:355
+#: libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Nieobsługiwana wersja WebSocket"
 
-#: ../libsoup/soup-websocket.c:364
+#: libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Nieprawidłowy klucz WebSocket"
 
-#: ../libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:374
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Niepoprawny nagłówek „%s” WebSocket"
 
-#: ../libsoup/soup-websocket.c:383
+#: libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nieobsługiwany podprotokół WebSocket"
 
-#: ../libsoup/soup-websocket.c:510
+#: libsoup/soup-websocket.c:510
 msgid "Server rejected WebSocket handshake"
 msgstr "Serwer odrzucił powitanie WebSocket"
 
-#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
 msgid "Server ignored WebSocket handshake"
 msgstr "Serwer zignorował powitanie WebSocket"
 
-#: ../libsoup/soup-websocket.c:539
+#: libsoup/soup-websocket.c:539
 msgid "Server requested unsupported protocol"
 msgstr "Serwer zażądał nieobsługiwanego protokołu"
 
-#: ../libsoup/soup-websocket.c:549
+#: libsoup/soup-websocket.c:549
 msgid "Server requested unsupported extension"
 msgstr "Serwer zażądał nieobsługiwanego rozszerzenia"
 
-#: ../libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:562
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Serwer zwrócił niepoprawny klucz „%s”"
 
-#: ../libsoup/soup-tld.c:188
-msgid "Hostname is an IP address"
-msgstr "Nazwa komputera jest adresem IP"
+#: libsoup/soup-tld.c:150
+msgid "No public-suffix list available."
+msgstr "Brak dostępnej listy „public-suffix”."
 
-#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
+#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
 msgid "Invalid hostname"
 msgstr "Nieprawidłowa nazwa komputera"
 
-#: ../libsoup/soup-tld.c:250
+#: libsoup/soup-tld.c:167
+msgid "Hostname is an IP address"
+msgstr "Nazwa komputera jest adresem IP"
+
+#: libsoup/soup-tld.c:188
 msgid "Hostname has no base domain"
 msgstr "Nazwa komputera nie ma podstawowej domeny"
 
-#: ../libsoup/soup-tld.c:304
+#: libsoup/soup-tld.c:196
 msgid "Not enough domains"
 msgstr "Brak wystarczającej liczby domen"
