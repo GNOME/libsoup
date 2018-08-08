@@ -257,9 +257,6 @@ const char soup_char_attributes[] = {
 gboolean
 soup_host_matches_host (const gchar *host, const gchar *compare_with)
 {
-	char *match;
-	int dlen;
-
 	g_return_val_if_fail (host != NULL, FALSE);
 	g_return_val_if_fail (compare_with != NULL, FALSE);
 
@@ -269,11 +266,5 @@ soup_host_matches_host (const gchar *host, const gchar *compare_with)
 		return FALSE;
 	if (!g_ascii_strcasecmp (host + 1, compare_with))
 		return TRUE;
-	dlen = strlen (host);
-	while ((match = strstr (compare_with, host))) {
-		if (!match[dlen])
-			return TRUE;
-		compare_with = match + 1;
-	}
-	return FALSE;
+	return g_str_has_suffix (compare_with, host);
 }
