@@ -101,6 +101,7 @@ do_cookies_subdomain_policy_test (void)
 	GSList *cookies;
 	SoupURI *uri1;
 	SoupURI *uri2;
+	SoupURI *uri3;
 
 	g_test_bug ("792130");
 
@@ -109,6 +110,7 @@ do_cookies_subdomain_policy_test (void)
 	 */
 	uri1 = soup_uri_new ("https://www.gnome.org");
 	uri2 = soup_uri_new ("https://foundation.gnome.org");
+	uri3 = soup_uri_new ("https://www.gnome.org.");
 
 	/* We can't check subdomains with a test server running on
 	 * localhost, so we'll just check the cookie jar API itself.
@@ -136,16 +138,74 @@ do_cookies_subdomain_policy_test (void)
 	g_assert_cmpint (g_slist_length (cookies), ==, 2);
 	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 
-	/* A leading dot in the domain property should not affect things.
-	 * This cookie should be accepted. Three cookies in the jar.
+	/* Now some Domain attribute tests.*/
+	soup_cookie_jar_set_accept_policy (jar, SOUP_COOKIE_JAR_ACCEPT_ALWAYS);
+
+	/* The cookie must be rejected if the Domain is not an appropriate
+	 * match for the URI. Still two cookies in the jar.
 	 */
-	soup_cookie_jar_set_cookie_with_first_party (jar, uri1, uri1, "4=foo; Domain=.www.gnome.org");
+	soup_cookie_jar_set_cookie (jar, uri1, "4=foo; Domain=gitlab.gnome.org");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 2);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* Now the Domain is an appropriate match. Three cookies in the jar. */
+	soup_cookie_jar_set_cookie (jar, uri1, "5=foo; Domain=gnome.org");
 	cookies = soup_cookie_jar_all_cookies (jar);
 	g_assert_cmpint (g_slist_length (cookies), ==, 3);
 	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 
+	/* A leading dot in the domain property should not affect things.
+	 * This cookie should be accepted. Four cookies in the jar.
+	 */
+	soup_cookie_jar_set_cookie (jar, uri1, "6=foo; Domain=.www.gnome.org");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 4);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* The cookie must be rejected if the Domain ends in a trailing dot
+	 * but the uri doesn't.
+	 */
+	soup_cookie_jar_set_cookie (jar, uri1, "7=foo; Domain=www.gnome.org.");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 4);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* The cookie should be accepted if both Domain and URI end with a trailing
+	 * dot and they are a match. Five cookies in the jar.
+	 */
+	soup_cookie_jar_set_cookie (jar, uri3, "8=foo; Domain=gnome.org.");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 5);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* The cookie should be rejected if URI has trailing dot but Domain doesn't.
+	 * Five cookies in the jar.
+	 */
+	soup_cookie_jar_set_cookie (jar, uri3, "9=foo; Domain=gnome.org");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 5);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* It should not be possible to set a cookie for a TLD. Still five
+	 * cookies in the jar.
+	 */
+	soup_cookie_jar_set_cookie (jar, uri1, "10=foo; Domain=.org");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 5);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
+	/* It should still not be possible to set a cookie for a TLD, even if
+	 * we are tricksy and have a trailing dot. Still only five cookies.
+	 */
+	soup_cookie_jar_set_cookie (jar, uri3, "11=foo; Domain=.org.");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==, 5);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+
 	soup_uri_free (uri1);
 	soup_uri_free (uri2);
+	soup_uri_free (uri3);
 	g_object_unref (jar);
 }
 

@@ -209,6 +209,8 @@ soup_tld_get_base_domain_internal (const char *hostname, guint additional_domain
 		char *orig_domain;
 		gboolean domain_found;
 		int *flags;
+		char *normalized_domain = NULL;
+		int domain_length;
 
 		/* Valid hostnames neither start with a dot nor have more than one
 		 * dot together.
@@ -222,7 +224,15 @@ soup_tld_get_base_domain_internal (const char *hostname, guint additional_domain
 		}
 
 		next_dot = strchr (cur_domain, '.');
-		domain_found = g_hash_table_lookup_extended (rules, cur_domain, (gpointer *) &orig_domain, (gpointer *) &flags);
+
+		/* Discard trailing dot if any before looking up. */
+		domain_length = strlen (cur_domain);
+		if (cur_domain[domain_length - 1] == '.')
+			normalized_domain = g_strndup (cur_domain, domain_length - 1);
+		domain_found = g_hash_table_lookup_extended (rules, normalized_domain ? normalized_domain : cur_domain, (gpointer *) &orig_domain, (gpointer *) &flags);
+		g_free (normalized_domain);
+		normalized_domain = NULL;
+
 		/* We compare the keys just to be sure that we haven't hit a collision */
 		if (domain_found && !strncmp (orig_domain, cur_domain, strlen (orig_domain))) {
 			if (*flags & SOUP_TLD_RULE_MATCH_ALL) {
