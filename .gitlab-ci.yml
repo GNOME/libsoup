@@ -1,4 +1,4 @@
-image: php:7.2-apache
+image: fedora/apache
 
 variables:
   ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php mod_ssl redhat-rpm-config
