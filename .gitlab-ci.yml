@@ -1,7 +1,7 @@
 image: fedora:28
 
 variables:
-  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd redhat-rpm-config
+  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php redhat-rpm-config
 
 build_stable:
   before_script:
@@ -11,4 +11,5 @@ build_stable:
     - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
   script:
     - ./autogen.sh
+    - make
     - make check
