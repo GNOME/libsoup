@@ -1,3 +1,15 @@
+Changes in libsoup from 2.62.2 to 2.62.3:
+
+	* Check for trailing dots in domains [#5, Claudio Saavedra]
+	* Set default cookie path for NULL origins [#1, Adrian Perez de Castro]
+	* Use atomic-refcounting in classes that are not using GObject-refcounting
+	  [bgo#785110, Edward Hervey]
+	* Many Coverity-found code fixes [bgo#781771, Milan Crha]
+	* Bail out on cookie-jar calls with empty hostnames [#3, Michael Catanzaro]
+
+	Note: from now onwards bgo# references bugs in GNOME Bugzilla
+	and # issues in GNOME gitlab.
+
 Changes in libsoup from 2.62.1 to 2.62.2:
 
 	* Fixes to instrospection annotation [#795135,
