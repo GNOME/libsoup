@@ -2,9 +2,9 @@ image: fedora:28
 
 build_stable:
   before_script:
-    - dnf update -y --nopgpcheck
+    - dnf update -y --nogpgcheck
     - dnf install 'dnf-command(builddep)'
-    - dnf builddep -y --nopgpcheck libsoup
+    - dnf builddep -y --nogpgcheck libsoup
   script:
     - ./autogen.sh
     - make check
