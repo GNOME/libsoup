@@ -1,7 +1,7 @@
 image: fedora:28
 
 variables:
-  ADDITIONAL_DEPENDENCIES: autoconf intltool
+  ADDITIONAL_DEPENDENCIES: which
 
 build_stable:
   before_script:
