@@ -1,7 +1,7 @@
 image: fedora:28
 
 variables:
-  ADDITIONAL_DEPENDENCIES: which
+  ADDITIONAL_DEPENDENCIES: which gtk-doc
 
 build_stable:
   before_script:
