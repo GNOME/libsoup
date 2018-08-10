@@ -1,10 +1,14 @@
 image: fedora:28
 
+variables:
+  ADDITIONAL_DEPENDENCIES: autoconf intltool
+
 build_stable:
   before_script:
     - dnf update -y --nogpgcheck
     - dnf install -y 'dnf-command(builddep)'
     - dnf builddep -y --nogpgcheck libsoup
+    - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
   script:
     - ./autogen.sh
     - make check
