@@ -13,3 +13,4 @@ build_stable:
     - ./autogen.sh
     - make
     - make check
+    - cat tests/test-suite.org
