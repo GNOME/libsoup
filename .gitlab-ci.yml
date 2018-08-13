@@ -1,4 +1,4 @@
-image: f28/httpd
+image: registry.fedoraproject.org/f28/httpd
 
 variables:
   ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make redhat-rpm-config
