@@ -1,7 +1,7 @@
-image: fedora/apache
+image: f28/httpd
 
 variables:
-  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php mod_ssl redhat-rpm-config
+  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make redhat-rpm-config
 
 build_stable:
   before_script:
