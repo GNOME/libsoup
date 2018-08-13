@@ -5,10 +5,10 @@ variables:
 
 build_stable:
   before_script:
-    - dnf update -y --nogpgcheck
-    - dnf install -y 'dnf-command(builddep)'
-    - dnf builddep -y --nogpgcheck libsoup
-    - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
+    - sudo dnf update -y --nogpgcheck
+    - sudo dnf install -y 'dnf-command(builddep)'
+    - sudo dnf builddep -y --nogpgcheck libsoup
+    - sudo dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
   script:
     - ./autogen.sh
     - make
