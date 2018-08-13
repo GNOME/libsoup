@@ -9,8 +9,6 @@ build_stable:
     - dnf install -y 'dnf-command(builddep)'
     - dnf builddep -y --nogpgcheck libsoup
     - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
-    - adduser runner
-    - su runner
   script:
     - ./autogen.sh
     - make
