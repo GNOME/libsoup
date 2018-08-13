@@ -1,14 +1,16 @@
-image: registry.fedoraproject.org/f28/httpd
+image: fedora:28
 
 variables:
-  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make redhat-rpm-config
+  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php mod_ssl redhat-rpm-config
 
 build_stable:
   before_script:
-    - sudo dnf update -y --nogpgcheck
-    - sudo dnf install -y 'dnf-command(builddep)'
-    - sudo dnf builddep -y --nogpgcheck libsoup
-    - sudo dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
+    - dnf update -y --nogpgcheck
+    - dnf install -y 'dnf-command(builddep)'
+    - dnf builddep -y --nogpgcheck libsoup
+    - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
+    - adduser runner
+    - su runner
   script:
     - ./autogen.sh
     - make
