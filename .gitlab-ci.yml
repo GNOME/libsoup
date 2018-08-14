@@ -14,5 +14,6 @@ build_stable:
     - make
     - make check
   artifacts:
-    paths: tests/test-suite.log
+    paths: 
+      - tests/test-suite.log
     when: on_failure
