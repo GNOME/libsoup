@@ -2,6 +2,7 @@ image: fedora:28
 
 variables:
   ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php php-xmlrpc mod_ssl redhat-rpm-config
+  USER: user
 
 build_stable:
   before_script:
@@ -10,10 +11,12 @@ build_stable:
     - dnf builddep -y --nogpgcheck libsoup
     - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
   script:
-    - ./autogen.sh
-    - make
-    - make check
+    - adduser $USER
+    - su -c ./autogen.sh $USER
+    - su -c make $USER
+    - su -c 'make check' $USER
   artifacts:
-    paths: 
+    paths:
+      - config.log
       - tests/test-suite.log
     when: on_failure

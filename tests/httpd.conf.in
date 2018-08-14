@@ -3,9 +3,6 @@
 ServerName 127.0.0.1
 Listen 127.0.0.1:47524
 
-User apache
-Group apache
-
 DocumentRoot .
 
 # The tests shut down apache with "graceful-stop", because that makes
