@@ -1,15 +1,9 @@
 image: fedora:28
 
-stages:
-  - build
-  - test
-  - cleanup
-
 variables:
   ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php mod_ssl redhat-rpm-config
 
-build_job:
-  stage: build
+build_stable:
   before_script:
     - dnf update -y --nogpgcheck
     - dnf install -y 'dnf-command(builddep)'
@@ -18,14 +12,7 @@ build_job:
   script:
     - ./autogen.sh
     - make
-
-test_job:
-  stage: test
-  script:
-    - make test
-
-cleanup_job:
-  stage: cleanup
-  script:
-    - cat tests/test-suite.log
-  when: on_failure
+    - make check
+  artifacts:
+    paths: tests/test-suite.log
+    when: on_failure
