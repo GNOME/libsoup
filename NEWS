@@ -1,3 +1,9 @@
+Changes in libsoup from 2.63.90 to 2.63.91:
+
+	* Simplify soup_hosts_matches_host() [Claudio Saavedra]
+	* Add new tests for trailing dots in domain names [Claudio Saavedra]
+	* Updated Turkish translation
+
 Changes in libsoup from 2.63.2 to 2.63.90:
 
 	* Set default cookie path for NULL origins [#1, Adrian Perez de Castro]
