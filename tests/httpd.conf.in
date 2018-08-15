@@ -24,7 +24,7 @@ LoadModule authz_host_module    @APACHE_MODULE_DIR@/mod_authz_host.so
 LoadModule authz_user_module    @APACHE_MODULE_DIR@/mod_authz_user.so
 LoadModule dir_module           @APACHE_MODULE_DIR@/mod_dir.so
 LoadModule mime_module          @APACHE_MODULE_DIR@/mod_mime.so
-@IF_HAVE_PHP@LoadModule php7_module          @APACHE_PHP_MODULE_DIR@/libphp7.so
+@IF_HAVE_PHP@LoadModule php7_module          @APACHE_PHP_MODULE_FILE@
 LoadModule proxy_module         @APACHE_MODULE_DIR@/mod_proxy.so
 LoadModule proxy_http_module    @APACHE_MODULE_DIR@/mod_proxy_http.so
 LoadModule proxy_connect_module @APACHE_MODULE_DIR@/mod_proxy_connect.so

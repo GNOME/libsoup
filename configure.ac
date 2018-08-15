@@ -243,13 +243,15 @@ if test "$APACHE_HTTPD" != "no"; then
 	    IF_HAVE_APACHE_SSL=""
         fi
         if test -f $dir/libphp7.so; then
-	    APACHE_PHP_MODULE_DIR="$dir"
+	    APACHE_PHP_MODULE_FILE="$dir/libphp7.so"
+        elif test -f $dir/libphp7.2.so; then
+	    APACHE_PHP_MODULE_FILE="$dir/libphp7.2.so"
         fi
     done
     AC_MSG_RESULT($APACHE_MODULE_DIR)
     AC_SUBST(APACHE_MODULE_DIR)
     AC_SUBST(APACHE_SSL_MODULE_DIR)
-    AC_SUBST(APACHE_PHP_MODULE_DIR)
+    AC_SUBST(APACHE_PHP_MODULE_FILE)
 fi
 
 if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR" -a -n "$APACHE_SSL_MODULE_DIR"; then
@@ -264,7 +266,7 @@ if test "$have_apache" = 1; then
     AC_CHECK_PROGS(PHP, php)
 
     AC_MSG_CHECKING([for Apache PHP module])
-    if test -d "$APACHE_PHP_MODULE_DIR"; then
+    if test -f "$APACHE_PHP_MODULE_FILE"; then
 	have_php="yes"
 	IF_HAVE_PHP=""
     else
