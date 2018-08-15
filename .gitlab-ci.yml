@@ -3,7 +3,7 @@ image: fedora:28
 variables:
   ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php php-xmlrpc mod_ssl redhat-rpm-config
   USER: user
-  BUILDDIR: build
+  BUILDDIR: $CI_PROJECT_DIR/build
 
 build:
   tags:
@@ -15,7 +15,8 @@ build:
     - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
   script:
     - adduser $USER
-    - mkdir -p $BUILDDIR && cd $BUILDDIR
+    - su -c 'mkdir -p $BUILDDIR' $USER
+    - cd $BUILDDIR
     - su -c $CI_PROJECT_DIR/autogen.sh $USER
     - su -c make $USER
     - su -c 'make check' $USER
