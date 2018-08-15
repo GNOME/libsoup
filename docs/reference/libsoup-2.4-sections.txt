@@ -1366,7 +1366,7 @@ soup_hsts_policy_free
 soup_hsts_policy_get_domain
 soup_hsts_policy_is_expired
 soup_hsts_policy_includes_subdomains
-soup_hsts_policy_is_permanet
+soup_hsts_policy_is_permanent
 SOUP_HSTS_POLICY_MAX_AGE_PAST
 <SUBSECTION Standard>
 SOUP_HSTS_ENFORCER
