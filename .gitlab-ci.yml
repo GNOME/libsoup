@@ -1,0 +1,27 @@
+image: fedora:28
+
+variables:
+  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php php-xmlrpc mod_ssl redhat-rpm-config
+  USER: user
+  BUILDDIR: $CI_PROJECT_DIR/build
+
+build:
+  tags:
+    - non_aws
+  before_script:
+    - dnf update -y --nogpgcheck
+    - dnf install -y 'dnf-command(builddep)'
+    - dnf builddep -y --nogpgcheck libsoup
+    - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
+  script:
+    - adduser $USER
+    - su -c 'mkdir -p $BUILDDIR' $USER
+    - cd $BUILDDIR
+    - su -c $CI_PROJECT_DIR/autogen.sh $USER
+    - su -c make $USER
+    - su -c 'make check' $USER
+  artifacts:
+    paths:
+      - $BUILDDIR/config.log
+      - $BUILDDIR/tests/test-suite.log
+    when: on_failure
