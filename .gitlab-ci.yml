@@ -6,7 +6,8 @@ variables:
   BUILDDIR: build
 
 build:
-  tags: non_aws
+  tags:
+    - non_aws
   before_script:
     - dnf update -y --nogpgcheck
     - dnf install -y 'dnf-command(builddep)'
