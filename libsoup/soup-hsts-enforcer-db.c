@@ -58,7 +58,7 @@ soup_hsts_enforcer_db_finalize (GObject *object)
 	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (object)->priv;
 
 	g_free (priv->filename);
-	g_clear_pointer (&priv->db, sqlite3_close);
+	sqlite3_close (priv->db);
 
 	G_OBJECT_CLASS (soup_hsts_enforcer_db_parent_class)->finalize (object);
 }
