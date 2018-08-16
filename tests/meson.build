@@ -24,6 +24,7 @@ tests = [
   ['date', true],
   ['forms', true],
   ['header-parsing', true],
+  ['hsts', true],
   ['misc', true],
   ['multipart', true],
   ['no-ssl', true],
