@@ -303,7 +303,8 @@ do_hsts_invalid_values_test (void)
 static void
 do_hsts_extra_values_test (void)
 {
-	for (int i = 0; i < 3; i++) {
+	int i;
+	for (i = 0; i < 3; i++) {
 		SoupSession *session = hsts_session_new (NULL);
 		char *uri = g_strdup_printf ("https://localhost/extra-values-%i", i);
 		session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
