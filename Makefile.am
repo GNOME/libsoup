@@ -14,6 +14,7 @@ EXTRA_DIST =				\
 	Makefile.glib			\
 	meson.build			\
 	meson_options.txt		\
+	po/meson.build			\
 	get_apache_module_dirs.py	\
 	config.h.win32
 
