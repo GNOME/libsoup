@@ -50,10 +50,6 @@
 
 static void soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
-G_DEFINE_TYPE_WITH_CODE (SoupHSTSEnforcer, soup_hsts_enforcer, G_TYPE_OBJECT,
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_hsts_enforcer_session_feature_init))
-
 enum {
 	CHANGED,
 	LAST_SIGNAL
@@ -66,12 +62,15 @@ struct _SoupHSTSEnforcerPrivate {
 	GHashTable *session_policies;
 };
 
-#define SOUP_HSTS_ENFORCER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_HSTS_ENFORCER, SoupHSTSEnforcerPrivate))
+G_DEFINE_TYPE_WITH_CODE (SoupHSTSEnforcer, soup_hsts_enforcer, G_TYPE_OBJECT,
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						soup_hsts_enforcer_session_feature_init)
+			 G_ADD_PRIVATE(SoupHSTSEnforcer))
 
 static void
 soup_hsts_enforcer_init (SoupHSTSEnforcer *hsts_enforcer)
 {
-	hsts_enforcer->priv = SOUP_HSTS_ENFORCER_GET_PRIVATE (hsts_enforcer);
+	hsts_enforcer->priv = soup_hsts_enforcer_get_instance_private (hsts_enforcer);
 
 	hsts_enforcer->priv->host_policies = g_hash_table_new_full (soup_str_case_hash,
 								    soup_str_case_equal,
@@ -142,8 +141,6 @@ static void
 soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (hsts_enforcer_class);
-
-	g_type_class_add_private (hsts_enforcer_class, sizeof (SoupHSTSEnforcerPrivate));
 
 	object_class->finalize = soup_hsts_enforcer_finalize;
 
@@ -469,7 +466,7 @@ static void
 rewrite_message_uri_to_https (SoupMessage *msg)
 {
 	SoupURI *uri;
-	uint original_port;
+	guint original_port;
 
 	uri = soup_uri_copy (soup_message_get_uri (msg));
 
