@@ -40,16 +40,15 @@ struct _SoupHSTSEnforcerDBPrivate {
 	sqlite3 *db;
 };
 
-#define SOUP_HSTS_ENFORCER_DB_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_HSTS_ENFORCER_DB, SoupHSTSEnforcerDBPrivate))
-
-G_DEFINE_TYPE (SoupHSTSEnforcerDB, soup_hsts_enforcer_db, SOUP_TYPE_HSTS_ENFORCER)
+G_DEFINE_TYPE_WITH_CODE (SoupHSTSEnforcerDB, soup_hsts_enforcer_db, SOUP_TYPE_HSTS_ENFORCER,
+			 G_ADD_PRIVATE(SoupHSTSEnforcerDB))
 
 static void load (SoupHSTSEnforcer *hsts_enforcer);
 
 static void
 soup_hsts_enforcer_db_init (SoupHSTSEnforcerDB *db)
 {
-	db->priv = SOUP_HSTS_ENFORCER_DB_GET_PRIVATE (db);
+	db->priv = soup_hsts_enforcer_db_get_instance_private (db);
 }
 
 static void
@@ -306,8 +305,6 @@ soup_hsts_enforcer_db_class_init (SoupHSTSEnforcerDBClass *db_class)
 	SoupHSTSEnforcerClass *hsts_enforcer_class =
 		SOUP_HSTS_ENFORCER_CLASS (db_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (db_class);
-
-	g_type_class_add_private (db_class, sizeof (SoupHSTSEnforcerDBPrivate));
 
 	hsts_enforcer_class->is_persistent = soup_hsts_enforcer_db_is_persistent;
 	hsts_enforcer_class->has_valid_policy = soup_hsts_enforcer_db_has_valid_policy;
