@@ -183,10 +183,12 @@ try_create_table (sqlite3 *db)
 	}
 }
 
+typedef int (*ExecQueryCallback) (void *, int, char**, char**);
+
 static void
 exec_query_with_try_create_table (sqlite3 *db,
 				  const char *sql,
-				  int (*callback)(void*,int,char**,char**),
+				  ExecQueryCallback callback,
 				  void *argument)
 {
 	char *error = NULL;
