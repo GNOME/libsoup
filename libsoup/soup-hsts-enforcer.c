@@ -194,7 +194,7 @@ static void
 soup_hsts_enforcer_changed (SoupHSTSEnforcer *hsts_enforcer,
 			    SoupHSTSPolicy *old, SoupHSTSPolicy *new)
 {
-	g_assert_true (old || new);
+	g_assert (old || new);
 
 	g_signal_emit (hsts_enforcer, signals[CHANGED], 0, old, new);
 }
@@ -255,7 +255,7 @@ soup_hsts_enforcer_replace_policy (SoupHSTSEnforcer *hsts_enforcer,
 	const char *domain;
 	gboolean is_permanent;
 
-	g_assert_false (soup_hsts_policy_is_expired (new_policy));
+	g_assert (!soup_hsts_policy_is_expired (new_policy));
 
 	domain = soup_hsts_policy_get_domain (new_policy);
 	is_permanent = soup_hsts_policy_is_permanent (new_policy);
@@ -264,7 +264,7 @@ soup_hsts_enforcer_replace_policy (SoupHSTSEnforcer *hsts_enforcer,
 				  hsts_enforcer->priv->host_policies;
 
 	old_policy = g_hash_table_lookup (policies, domain);
-	g_assert_nonnull (old_policy);
+	g_assert (old_policy);
 
 	g_hash_table_replace (policies, g_strdup (domain), soup_hsts_policy_copy (new_policy));
 	if (!is_permanent && !soup_hsts_policy_equal (old_policy, new_policy))
@@ -285,7 +285,7 @@ soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
 	g_return_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer));
 	g_return_if_fail (policy != NULL);
 
-	g_assert_false (soup_hsts_policy_is_expired (policy));
+	g_assert (!soup_hsts_policy_is_expired (policy));
 
 	domain = soup_hsts_policy_get_domain (policy);
 	is_permanent = soup_hsts_policy_is_permanent (policy);
@@ -295,7 +295,7 @@ soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
 	policies = is_permanent ? hsts_enforcer->priv->session_policies :
 				  hsts_enforcer->priv->host_policies;
 
-	g_assert_false (g_hash_table_contains (policies, domain));
+	g_assert (!g_hash_table_contains (policies, domain));
 
 	g_hash_table_insert (policies, g_strdup (domain), soup_hsts_policy_copy (policy));
 	if (!is_permanent)
@@ -402,7 +402,7 @@ super_domain_of (const char *domain)
 {
 	const char *iter = domain;
 
-	g_assert_nonnull (domain);
+	g_assert (domain);
 
 	for (; *iter != '\0' && *iter != '.' ; iter++);
 	for (; *iter == '.' ; iter++);
