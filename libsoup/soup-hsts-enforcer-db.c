@@ -261,6 +261,7 @@ soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
 	if (old_policy && !new_policy) {
 		query = sqlite3_mprintf (QUERY_DELETE,
 					 old_policy->domain);
+		g_assert (query);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
@@ -276,6 +277,7 @@ soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
 					 new_policy->max_age,
 					 expires,
 					 new_policy->include_subdomains);
+		g_assert (query);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
