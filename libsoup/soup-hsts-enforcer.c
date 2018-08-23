@@ -27,7 +27,7 @@
  *
  * A #SoupHSTSEnforcer stores HSTS policies and enforces them when
  * required. #SoupHSTSEnforcer implements #SoupSessionFeature, so you
- * can add a HSTS enforcer to a session with
+ * can add an HSTS enforcer to a session with
  * soup_session_add_feature() or soup_session_add_feature_by_type().
  *
  * #SoupHSTSEnforcer keeps track of all the HTTPS destinations that,
@@ -176,9 +176,9 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 /**
  * soup_hsts_enforcer_new:
  *
- * Creates a new #SoupHSTSEnforcer. The base #SoupHSTSEnforcer class does
- * not support persistent storage of HSTS policies; use a subclass for
- * that.
+ * Creates a new #SoupHSTSEnforcer. The base #SoupHSTSEnforcer class
+ * does not support persistent storage of HSTS policies, see
+ * #SoupHSTSEnforcerDB for that.
  *
  * Returns: a new #SoupHSTSEnforcer
  *
@@ -307,13 +307,13 @@ soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
  * @hsts_enforcer: a #SoupHSTSEnforcer
  * @policy: (transfer none): the policy of the HSTS host
  *
- * Sets @domain's HSTS policy to @policy. If @policy is expired, any
- * existing HSTS policy for this host will be removed instead. If a
+ * Sets @policy to @hsts_enforcer. If @policy is expired, any
+ * existing HSTS policy for its host will be removed instead. If a
  * policy existed for this host, it will be replaced. Otherwise, the
  * new policy will be inserted. If the policy is a permanent one, that
  * is, one created with soup_hsts_policy_new_permanent(), the policy
  * will not expire and will be enforced during the lifetime of
- * @soup_enforcer's #SoupSession.
+ * @hsts_enforcer's #SoupSession.
  *
  * Since: 2.64
  **/
@@ -378,7 +378,7 @@ soup_hsts_enforcer_set_session_policy (SoupHSTSEnforcer *hsts_enforcer,
 
 static gboolean
 soup_hsts_enforcer_host_includes_subdomains (SoupHSTSEnforcer *hsts_enforcer,
-					      const char *domain)
+					     const char *domain)
 {
 	SoupHSTSPolicy *policy;
 	gboolean include_subdomains = FALSE;
@@ -397,7 +397,7 @@ soup_hsts_enforcer_host_includes_subdomains (SoupHSTSEnforcer *hsts_enforcer,
 	return include_subdomains;
 }
 
-static inline const char*
+static inline const char *
 super_domain_of (const char *domain)
 {
 	const char *iter = domain;
@@ -513,6 +513,7 @@ message_restarted_cb (SoupMessage *msg, gpointer user_data)
 	preprocess_request (SOUP_HSTS_ENFORCER (user_data), msg);
 
 }
+
 static void
 soup_hsts_enforcer_request_queued (SoupSessionFeature *feature,
 				   SoupSession *session,
