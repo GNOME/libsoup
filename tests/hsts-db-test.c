@@ -58,7 +58,6 @@ session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_stat
 	msg = soup_message_new ("GET", uri);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 	soup_session_send_message (session, msg);
-	/* g_assert_cmpint (soup_uri_get_port (soup_message_get_uri (msg)), ==, soup_uri_get_port (https_uri)); */
 	soup_test_assert_message_status (msg, expected_status);
 	g_object_unref (msg);
 }
