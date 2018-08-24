@@ -528,6 +528,7 @@ soup_hsts_enforcer_request_unqueued (SoupSessionFeature *feature,
 				     SoupSession *session,
 				     SoupMessage *msg)
 {
+	g_signal_handlers_disconnect_by_func (msg, message_restarted_cb, feature);
 	g_signal_handlers_disconnect_by_func (msg, got_sts_headers_cb, feature);
 }
 
