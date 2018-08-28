@@ -1,3 +1,10 @@
+Changes in libsoup from 2.63.91 to 2.63.92:
+
+	* Make sure that XMLRPC tests build in Debian too [Claudio Saavedra]
+	* Distribute missing meson files [Claudio Saavedra]
+	* Some fixes to the meson build files [Claudio Saavedra]
+	* Updated Korean and Swedish translations
+
 Changes in libsoup from 2.63.90 to 2.63.91:
 
 	* Simplify soup_hosts_matches_host() [Claudio Saavedra]
