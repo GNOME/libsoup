@@ -57,6 +57,8 @@ server_callback  (SoupServer *server, SoupMessage *msg,
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=31536000; includeSubDomains");
+		} else if (strcmp (path, "/no-sts-header") == 0) {
+			/* Do not add anything */
 		} else if (strcmp (path, "/multiple-headers") == 0) {
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
@@ -245,6 +247,18 @@ do_hsts_set_and_delete_test (void)
 }
 
 static void
+do_hsts_no_hsts_header_test (void)
+{
+	SoupSession *session = hsts_session_new (NULL);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/no-sts-header", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+
+	soup_test_session_abort_unref (session);
+}
+
+static void
 do_hsts_persistency_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
@@ -397,6 +411,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/replace", do_hsts_replace_test);
 	g_test_add_func ("/hsts/update", do_hsts_update_test);
 	g_test_add_func ("/hsts/set_and_delete", do_hsts_set_and_delete_test);
+	g_test_add_func ("/hsts/no_hsts_header", do_hsts_no_hsts_header_test);
 	g_test_add_func ("/hsts/persistency", do_hsts_persistency_test);
 	g_test_add_func ("/hsts/subdomains", do_hsts_subdomains_test);
 	g_test_add_func ("/hsts/multiple-headers", do_hsts_multiple_headers_test);
