@@ -230,8 +230,7 @@ soup_hsts_policy_new_permanent (const char *domain,
 
 	g_return_val_if_fail (is_hostname_valid (domain), NULL);
 
-	policy = soup_hsts_policy_new (domain, 0, include_subdomains);
-	g_clear_pointer (&policy->expires, soup_date_free);
+	policy = soup_hsts_policy_new_full (domain, 0, NULL, include_subdomains);
 
 	return policy;
 }
