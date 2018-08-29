@@ -257,7 +257,7 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 
 	soup_message_headers_iter_init (&iter, msg->response_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
-		SoupURI *origin;
+		SoupURI *uri;
 		GHashTable *params;
 		const char *max_age_str;
 		char *endptr;
@@ -269,7 +269,7 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 		if (strcmp (name, "Strict-Transport-Security") != 0)
 			continue;
 
-		origin = soup_message_get_uri (msg);
+		uri = soup_message_get_uri (msg);
 
 		params = soup_header_parse_semi_param_list (value);
 
@@ -290,7 +290,7 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 		if (g_hash_table_size (params) > (include_subdomains ? 2 : 1))
 			goto out;
 
-		policy = soup_hsts_policy_new (origin->host, max_age, include_subdomains);
+		policy = soup_hsts_policy_new (uri->host, max_age, include_subdomains);
 	out:
 		soup_header_free_param_list (params);
 		return policy;
