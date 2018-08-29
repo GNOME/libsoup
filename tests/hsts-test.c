@@ -169,7 +169,7 @@ do_hsts_basic_test (void)
 	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
 	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
 
-	/* The HSTS headers in the url above doesn't incldue
+	/* The HSTS headers in the url above doesn't include
 	   subdomains, so the request should ask for the unchanged
 	   HTTP address below, to which the server will respond with a
 	   moved permanently status. */
