@@ -5,12 +5,11 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?product=libsou"
-"p&keywords=I18N+L10N&component=Misc\n"
-"POT-Creation-Date: 2018-02-09 14:43+0000\n"
-"PO-Revision-Date: 2018-02-10 19:58+0200\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
+"POT-Creation-Date: 2018-07-01 06:42+0000\n"
+"PO-Revision-Date: 2018-08-30 00:21+0200\n"
 "Last-Translator: Fran Dieguez <frandieguez@gnome.org>\n"
-"Language-Team: Galician\n"
+"Language-Team: Proxecto Trasno <proxecto@trasno.gal>\n"
 "Language: gl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -19,161 +18,164 @@ msgstr ""
 "X-Generator: Virtaal 0.7.1\n"
 "X-Project-Style: gnome\n"
 
-#: ../libsoup/soup-body-input-stream.c:139
-#: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
 msgid "Connection terminated unexpectedly"
 msgstr "A conexión rematou de forma non esperada"
 
-#: ../libsoup/soup-body-input-stream.c:459
+#: libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "Petición de busca non válida"
 
-#: ../libsoup/soup-body-input-stream.c:487
+#: libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Non é posíbel truncar SoupbodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:76
+#: libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
 msgstr "Fluxo de rede pechado de forma non esperada"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Produciuse un fallo ao cachear completamente o recurso"
 
-#: ../libsoup/soup-converter-wrapper.c:189
+#: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "O búfer de saída é demasiado pequeno"
 
-#: ../libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:41
 msgid "Could not parse HTTP response"
 msgstr "Non é posíbel analizar a resposta HTTP"
 
-#: ../libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:66
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codificación da resposta HTTP non recoñecida"
 
-#: ../libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:263
 msgid "Header too big"
 msgstr "Cabeceira demasiado grande"
 
-#: ../libsoup/soup-message-io.c:396 ../libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "A operación bloquearase"
 
-#: ../libsoup/soup-message-io.c:976 ../libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "A operación foi cancelada"
 
-#: ../libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Non é posíbel analizar a consulta HTTP"
 
-#: ../libsoup/soup-request.c:141
+#: libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Non se forneceu un URI"
 
-#: ../libsoup/soup-request.c:151
+#: libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid “%s” URI: %s"
 msgstr "URI «%s» non válida: %s"
 
-#: ../libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1725
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Non é posíbel crear un servidor TLS sen un certificado TLS"
 
-#: ../libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Non é posíbel escoitar no enderezo %s, porto %d: "
 
-#: ../libsoup/soup-session.c:4524
+#: libsoup/soup-session.c:4534
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Non é posíbel analizar o URI «%s»"
 
-#: ../libsoup/soup-session.c:4561
+#: libsoup/soup-session.c:4571
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Esquema de URI «%s» non admitido"
 
-#: ../libsoup/soup-session.c:4583
+#: libsoup/soup-session.c:4593
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Non é unha URI de HTTP"
 
-#: ../libsoup/soup-session.c:4781
+#: libsoup/soup-session.c:4791
 msgid "The server did not accept the WebSocket handshake."
 msgstr "O servidor non acepta un saúdo WebSocket."
 
-#: ../libsoup/soup-socket.c:148
+#: libsoup/soup-socket.c:148
 msgid "Can’t import non-socket as SoupSocket"
 msgstr "Non é posíbel importar un non socket como SoupSocket"
 
-#: ../libsoup/soup-socket.c:166
+#: libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Non é posíbel importar un socket existente: "
 
-#: ../libsoup/soup-socket.c:175
+#: libsoup/soup-socket.c:175
 msgid "Can’t import unconnected socket"
 msgstr "Non é posíbel importar un socket non conectado"
 
-#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
+#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
 msgid "WebSocket handshake expected"
 msgstr "Agardábase un saúdo WebSocket"
 
-#: ../libsoup/soup-websocket.c:355
+#: libsoup/soup-websocket.c:355
 msgid "Unsupported WebSocket version"
 msgstr "Versión de WebSocket non admitida"
 
-#: ../libsoup/soup-websocket.c:364
+#: libsoup/soup-websocket.c:364
 msgid "Invalid WebSocket key"
 msgstr "Chave de WebSocket non válida"
 
-#: ../libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:374
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Cabeceira «%s» WebSocket incorrecta"
 
-#: ../libsoup/soup-websocket.c:383
+#: libsoup/soup-websocket.c:383
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Subprotocolo WebSocket non compatíbel"
 
-#: ../libsoup/soup-websocket.c:510
+#: libsoup/soup-websocket.c:510
 msgid "Server rejected WebSocket handshake"
 msgstr "Saúdo WebSocket rexeitado polo servidor"
 
-#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
 msgid "Server ignored WebSocket handshake"
 msgstr "Saúdo WebSocket ignorado polo servidor"
 
-#: ../libsoup/soup-websocket.c:539
+#: libsoup/soup-websocket.c:539
 msgid "Server requested unsupported protocol"
 msgstr "Protocolo solicitado polo servidor non compatíbel"
 
-#: ../libsoup/soup-websocket.c:549
+#: libsoup/soup-websocket.c:549
 msgid "Server requested unsupported extension"
 msgstr "Extensión solicitado polo servidor non compatíbel"
 
-#: ../libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:562
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Chave «%s» devolta polo servidor incorrecta"
 
-#: ../libsoup/soup-tld.c:188
-msgid "Hostname is an IP address"
-msgstr "O nome do computador é un enderezo IP"
+#: libsoup/soup-tld.c:150
+msgid "No public-suffix list available."
+msgstr "Non hai unha lista de sufixos públicos dispoñíbel."
 
-#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
+#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
 msgid "Invalid hostname"
 msgstr "O nome do computador non é válido"
 
-#: ../libsoup/soup-tld.c:250
+#: libsoup/soup-tld.c:167
+msgid "Hostname is an IP address"
+msgstr "O nome do computador é un enderezo IP"
+
+#: libsoup/soup-tld.c:188
 msgid "Hostname has no base domain"
 msgstr "O nome do computador non ten un dominio base"
 
-#: ../libsoup/soup-tld.c:304
+#: libsoup/soup-tld.c:196
 msgid "Not enough domains"
 msgstr "Non hai dominios dabondo"
