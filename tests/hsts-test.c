@@ -87,6 +87,10 @@ server_callback  (SoupServer *server, SoupMessage *msg,
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
 						     "MAX-AGE=3600; includesubdomains");
+		} else if (strcmp (path, "/optional-quotations") == 0) {
+			soup_message_headers_append (msg->response_headers,
+						     "Strict-Transport-Security",
+						     "max-age=\"31536000\"");
 		}
 	}
 }
@@ -324,6 +328,17 @@ do_hsts_case_insensitive_directives_test (void)
 }
 
 static void
+do_hsts_optional_quotations_test (void)
+{
+	SoupSession *session = hsts_session_new (NULL);
+
+	session_get_uri (session, "https://localhost/optional-quotations", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+
+	soup_test_session_abort_unref (session);
+}
+
+static void
 do_hsts_ip_address_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
@@ -391,6 +406,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/invalid-values", do_hsts_invalid_values_test);
 	g_test_add_func ("/hsts/extra-values", do_hsts_extra_values_test);
 	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
+	g_test_add_func ("/hsts/optional-quotations", do_hsts_optional_quotations_test);
 	g_test_add_func ("/hsts/ip-address", do_hsts_ip_address_test);
 	g_test_add_func ("/hsts/utf8-address", do_hsts_utf8_address_test);
 	g_test_add_func ("/hsts/session-policy", do_hsts_session_policy_test);
