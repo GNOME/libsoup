@@ -86,7 +86,7 @@ server_callback  (SoupServer *server, SoupMessage *msg,
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=3600; includeDomains; includeDomains");
-		} else if (strcmp (path, "/case-insensitive") == 0) {
+		} else if (strcmp (path, "/case-insensitive-directives") == 0) {
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
 						     "MAX-AGE=3600; includesubdomains");
@@ -332,10 +332,10 @@ do_hsts_extra_values_test (void)
 }
 
 static void
-do_hsts_case_insensitive_test (void)
+do_hsts_case_insensitive_directives_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/case-insensitive", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/case-insensitive-directives", SOUP_STATUS_OK);
 	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
 	soup_test_session_abort_unref (session);
 }
@@ -419,7 +419,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/missing-values", do_hsts_missing_values_test);
 	g_test_add_func ("/hsts/invalid-values", do_hsts_invalid_values_test);
 	g_test_add_func ("/hsts/extra-values", do_hsts_extra_values_test);
-	g_test_add_func ("/hsts/case-insensitive", do_hsts_case_insensitive_test);
+	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
 	g_test_add_func ("/hsts/optional-quotations", do_hsts_optional_quotations_test);
 	g_test_add_func ("/hsts/ip-address", do_hsts_ip_address_test);
 	g_test_add_func ("/hsts/utf8-address", do_hsts_utf8_address_test);
