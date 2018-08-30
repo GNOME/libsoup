@@ -301,6 +301,7 @@ do_hsts_insecure_sts_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 	session_get_uri (session, "http://localhost/insecure", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
 	soup_test_session_abort_unref (session);
 }
 
