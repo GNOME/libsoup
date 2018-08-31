@@ -103,15 +103,30 @@ endif
 #################################
 # Regression tests dependencies #
 #################################
+
+# The situation here is a little bit complicated. For running some of the tests
+# we need the Apache's httpd binary. As we want to know more about its
+# configuration we have to run it and parse the output. But here is the first
+# problem, because on Debian we can't run the binary unless the
+# /etc/apache2/envvars file is sourced, otherwise it ends with failure. The
+# recommended way to communicate with the Apache is the apachectl that passes
+# the arguments to httpd and also sources the envvars file. In the ideal world
+# we could use the apachectl to run the tests as well, but on Fedora any non
+# trivial call to it ends with the following error:
+#     Passing arguments to httpd using apachectl is no longer supported.
+#
+# The summary is that for the configuration parsing we will use the apachectl,
+# but for running the tests we will use the httpd binary.
+apachectl = find_program('apachectl', '/sbin/apachectl', '/usr/sbin/apachectl', required : false)
 # This abomination is a result of https://github.com/mesonbuild/meson/issues/1576
 apache_httpd2 = find_program('httpd2', 'httpd', 'apache2', 'apache',
-	      '/sbin/httpd2', '/sbin/httpd', '/sbin/apache2', '/sbin/apache',
-	      '/usr/sbin/httpd2', '/usr/sbin/httpd', '/usr/sbin/apache2', '/usr/sbin/apache',
-	      required : false)
+             '/sbin/httpd2', '/sbin/httpd', '/sbin/apache2', '/sbin/apache',
+             '/usr/sbin/httpd2', '/usr/sbin/httpd', '/usr/sbin/apache2', '/usr/sbin/apache',
+             required : false)
 have_apache=false
 apache_httpd2_version = ''
-if apache_httpd2.found()
-  apache_httpd2_version_raw = run_command(apache_httpd2.path(), '-v')
+if apache_httpd2.found() and apachectl.found()
+  apache_httpd2_version_raw = run_command(apachectl.path(), '-v')
   if apache_httpd2_version_raw.returncode() == 0
     apache_httpd2_version = apache_httpd2_version_raw.stdout().split('\n')[0]
     apache_httpd2_version = apache_httpd2_version.split('/')[1].split(' ')[0]
@@ -125,7 +140,7 @@ if apache_httpd2.found()
 endif
 
 if have_apache
-  apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apache_httpd2.path())
+  apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apachectl.path())
   have_apache = (apache_modules_dirs_out.returncode() == 0)
   if have_apache
     apache_modules_dirs = apache_modules_dirs_out.stdout().split(':')

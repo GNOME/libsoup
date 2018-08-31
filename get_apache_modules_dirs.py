@@ -43,27 +43,27 @@ def main():
     """Checks whether the required Apache modules are available and prints their
        paths to stdout (values are separated by colons).
 
-       Only one argument is required - path to the Apache httpd2 executable"""
+       Only one argument is required - path to the Apache's apachectl executable"""
 
     if len(sys.argv) != 2:
-        print('Only argument with path to the Apache httpd executable expected!', file=sys.stderr)
+        print('Only one argument with path to the Apache apachectl executable expected!', file=sys.stderr)
         sys.exit(1)
 
-    httpd_executable = sys.argv[1]
+    apachectl_executable = sys.argv[1]
 
-    if not os.path.isfile(httpd_executable):
-        print('The passed Apache httpd executable does not exist!', file=sys.stderr)
+    if not os.path.isfile(apachectl_executable):
+        print('The passed Apache apachectl executable does not exist!', file=sys.stderr)
         sys.exit(1)
 
-    apache_prefix = os.path.dirname(os.path.dirname(httpd_executable))
-    apache_httpd_output = subprocess.run(
-        [httpd_executable, '-V', '-C', 'ServerName localhost'], stdout=subprocess.PIPE)
-    if apache_httpd_output.returncode != 0:
-        print('Something went wrong when calling Apache httpd executable!', file=sys.stderr)
+    apache_prefix = os.path.dirname(os.path.dirname(apachectl_executable))
+    apachectl_output = subprocess.run(
+        [apachectl_executable, '-V', '-C', 'ServerName localhost'], stdout=subprocess.PIPE)
+    if apachectl_output.returncode != 0:
+        print('Something went wrong when calling ' + apachectl_executable + '!', file=sys.stderr)
         sys.exit(1)
 
     mpm_regex = re.compile(r'\nServer MPM:[\s]+([\w]+)\n')
-    mpm = mpm_regex.search(apache_httpd_output.stdout.decode('utf-8')).group(1).lower()
+    mpm = mpm_regex.search(apachectl_output.stdout.decode('utf-8')).group(1).lower()
 
     apache_modules_dir = ''
     apache_ssl_module_dir = ''
