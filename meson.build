@@ -143,8 +143,8 @@ have_php = false
 have_php_xmlrpc = false
 if have_apache
   php = find_program('php', required : false)
-  apache_php_module = run_command('test', '-f', cdata.get('APACHE_PHP_MODULE_FILE'))
-  if apache_php_module.returncode() == 0
+  message(cdata.get('APACHE_PHP_MODULE_FILE'))
+  if php.found() and cdata.get('APACHE_PHP_MODULE_FILE') != ''
     have_php = true
     php_xmlrpc = run_command(php, '-d', 'extension=xmlrpc', '-r', 'exit(function_exists("xmlrpc_server_create")?0:1);')
     if php_xmlrpc.returncode() == 0
