@@ -39,6 +39,44 @@ def check_module(modules_path, module):
      return os.path.isfile(module_path)
 
 
+def check_required_basic_modules(modules_path):
+
+    apache_required_modules = [
+        'mod_alias',
+        'mod_auth_basic',
+        'mod_auth_digest',
+        'mod_authn_core',
+        'mod_authn_file',
+        'mod_authz_core',
+        'mod_authz_host',
+        'mod_authz_user',
+        'mod_dir',
+        'mod_mime',
+        'mod_mpm_prefork',
+        'mod_proxy',
+        'mod_proxy_http',
+        'mod_proxy_connect'
+    ]
+
+    found = 0
+    not_found = []
+    for module_name in apache_required_modules:
+        if not check_module(modules_path, module_name + '.so'):
+            if found == 0:
+                return False
+            # If we found at least one module, continue and later report all the
+            # modules that we didn't find.
+            not_found.append(module_name)
+        else:
+            found += 1
+
+    if found < len(apache_required_modules):
+        print('Failed to find required Apache modules for running tests: ' + ', '.join(not_found), file=sys.stderr)
+        return False
+
+    return True
+
+
 def main():
     """Checks whether the required Apache modules are available and prints their
        paths to stdout (values are separated by colons).
@@ -75,7 +113,7 @@ def main():
             for mpm_suffix in ['', '-' + mpm]:
                 for modules_dir in ['', 'modules']:
                     modules_path = os.path.join(apache_prefix, lib_dir, httpd_dir + mpm_suffix, modules_dir)
-                    if check_module(modules_path, 'mod_auth_digest.so'):
+                    if check_required_basic_modules(modules_path):
                         apache_modules_dir = modules_path
                     if check_module(modules_path, 'mod_ssl.so'):
                         apache_ssl_module_dir = modules_path

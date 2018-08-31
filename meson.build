@@ -173,6 +173,11 @@ if have_apache
   cdata.set('IF_HAVE_PHP_XMLRPC', have_php_xmlrpc ? '' : ';')
 endif
 
+tests_ready = have_apache and have_php and have_php_xmlrpc
+if not tests_ready
+  warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
+endif
+
 cdata.set('HAVE_CURL', find_program('curl', required : false).found())
 
 ##################
