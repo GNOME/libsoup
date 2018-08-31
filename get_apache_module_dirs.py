@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2017 Tomas Popela <tpopela@redhat.com>
+# Copyright 2017, 2018 Tomas Popela <tpopela@redhat.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -25,6 +25,18 @@ import re
 import subprocess
 import sys
 import os
+import glob
+
+def check_php_module(modules_path):
+    php_modules = glob.glob(os.path.join(modules_path, 'libphp7*.so'));
+    if len(php_modules):
+        # The last one in the sorted output will be the desired php module.
+        return sorted(php_modules)[-1];
+
+
+def check_module(modules_path, module):
+     module_path = os.path.join(modules_path, module)
+     return os.path.isfile(module_path)
 
 
 def main():
@@ -55,25 +67,26 @@ def main():
 
     apache_module_dir = ''
     apache_ssl_module_dir = ''
-    apache_php_module_dir = ''
+    apache_php_module_file = ''
 
     for lib_dir in ['lib', 'lib64']:
         for httpd_dir in ['apache', 'apache2', 'http', 'http2', 'httpd']:
             for mpm_suffix in ['', '-' + mpm]:
                 for modules_dir in ['', 'modules']:
                     modules_path = os.path.join(apache_prefix, lib_dir, httpd_dir + mpm_suffix, modules_dir)
-                    if os.path.isfile(os.path.join(modules_path, 'mod_auth_digest.so')):
+                    if check_module(modules_path, 'mod_auth_digest.so'):
                         apache_module_dir = modules_path
-                    if os.path.isfile(os.path.join(modules_path, 'mod_ssl.so')):
+                    if check_module(modules_path, 'mod_ssl.so'):
                         apache_ssl_module_dir = modules_path
-                    if os.path.isfile(os.path.join(modules_path, 'libphp7.so')):
-                        apache_php_module_dir = modules_path
+                    php_module = check_php_module(modules_path)
+                    if (php_module):
+                        apache_php_module_file = php_module
 
     # These two are mandatory for having properly configured Apache
     if apache_module_dir == '' or apache_ssl_module_dir == '':
         sys.exit(1)
 
-    print(apache_module_dir + ":" + apache_ssl_module_dir + ":" + apache_php_module_dir, end='')
+    print(apache_module_dir + ":" + apache_ssl_module_dir + ":" + apache_php_module_file, end='')
 
 if __name__ == "__main__":
     main()

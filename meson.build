@@ -132,7 +132,7 @@ if have_apache
     message('Apache module directory: ' + apache_module_dirs[0])
     cdata.set('APACHE_MODULE_DIR', apache_module_dirs[0])
     cdata.set('APACHE_SSL_MODULE_DIR', apache_module_dirs[1])
-    cdata.set('APACHE_PHP_MODULE_DIR', apache_module_dirs[2])
+    cdata.set('APACHE_PHP_MODULE_FILE', apache_module_dirs[2])
     apache_mod_unixd = run_command('test', '-f', join_paths(apache_module_dirs[0], 'mod_unixd.so'))
     cdata.set('IF_HAVE_MOD_UNIXD', apache_mod_unixd.returncode() == 0 ? '' : '#')
     cdata.set('HAVE_APACHE', have_apache)
@@ -143,7 +143,7 @@ have_php = false
 have_php_xmlrpc = false
 if have_apache
   php = find_program('php', required : false)
-  apache_php_module = run_command('test', '-d', cdata.get('APACHE_PHP_MODULE_DIR'))
+  apache_php_module = run_command('test', '-f', cdata.get('APACHE_PHP_MODULE_FILE'))
   if apache_php_module.returncode() == 0
     have_php = true
     php_xmlrpc = run_command(php, '-d', 'extension=xmlrpc', '-r', 'exit(function_exists("xmlrpc_server_create")?0:1);')
