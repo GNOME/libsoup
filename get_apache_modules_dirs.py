@@ -65,7 +65,7 @@ def main():
     mpm_regex = re.compile(r'\nServer MPM:[\s]+([\w]+)\n')
     mpm = mpm_regex.search(apache_httpd_output.stdout.decode('utf-8')).group(1).lower()
 
-    apache_module_dir = ''
+    apache_modules_dir = ''
     apache_ssl_module_dir = ''
     apache_php_module_file = ''
     apache_mod_unixd_module_file = ''
@@ -76,7 +76,7 @@ def main():
                 for modules_dir in ['', 'modules']:
                     modules_path = os.path.join(apache_prefix, lib_dir, httpd_dir + mpm_suffix, modules_dir)
                     if check_module(modules_path, 'mod_auth_digest.so'):
-                        apache_module_dir = modules_path
+                        apache_modules_dir = modules_path
                     if check_module(modules_path, 'mod_ssl.so'):
                         apache_ssl_module_dir = modules_path
                     php_module = check_php_module(modules_path)
@@ -86,10 +86,10 @@ def main():
                         apache_mod_unixd_module_file = modules_path
 
     # These two are mandatory for having properly configured Apache
-    if apache_module_dir == '' or apache_ssl_module_dir == '':
+    if apache_modules_dir == '' or apache_ssl_module_dir == '':
         sys.exit(1)
 
-    print(apache_module_dir + ":" +
+    print(apache_modules_dir + ":" +
           apache_ssl_module_dir + ":" +
           apache_php_module_file + ":" +
           apache_mod_unixd_module_file, end='')
