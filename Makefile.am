@@ -15,7 +15,7 @@ EXTRA_DIST =				\
 	meson.build			\
 	meson_options.txt		\
 	po/meson.build			\
-	get_apache_module_dirs.py	\
+	get_apache_modules_dirs.py	\
 	config.h.win32
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection --disable-vala
