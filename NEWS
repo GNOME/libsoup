@@ -1,3 +1,9 @@
+Changes in libsoup from 2.63.92 to 2.64.0:
+
+	* Many fixes to the meson build system [#7, #8, #9, #11, Tomas Popela]
+	* Updated translations: Brazilian Portuguese, Galician,
+          Hungarian, Latvian, Danish.
+
 Changes in libsoup from 2.63.91 to 2.63.92:
 
 	* Make sure that XMLRPC tests build in Debian too [Claudio Saavedra]
