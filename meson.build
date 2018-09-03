@@ -76,10 +76,19 @@ endif
 cdata = configuration_data()
 
 platform_deps = []
-if host_machine.system() == 'windows'
-  platform_deps = [cc.find_library('ws2_32')]
-  cdata.set('_SOUP_EXTERN', '__declspec(dllexport)')
-  cdata.set('DLL_EXPORT', 1)
+hidden_visibility_flag = []
+if get_option('default_library') != 'static'
+  if host_machine.system() == 'windows'
+    platform_deps = [cc.find_library('ws2_32')]
+    cdata.set('DLL_EXPORT', true)
+    cdata.set('_SOUP_EXTERN', '__declspec(dllexport) extern')
+    if cc.get_id() != 'msvc'
+      hidden_visibility_flag += ['-fvisibility=hidden']
+    endif
+  else
+    cdata.set('_SOUP_EXTERN', '__attribute__((visibility("default"))) extern')
+    hidden_visibility_flag += ['-fvisibility=hidden']
+  endif
 endif
 
 libpsl_required_version = '>= 0.20'
