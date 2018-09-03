@@ -15,7 +15,7 @@ soup_version_micro = version_arr[2]
 
 libversion = '1.8.0'
 apiversion = '2.4'
-soversion = '0'
+soversion = '1'
 libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
 
 host_system = host_machine.system()
