@@ -223,7 +223,7 @@ libsoup = shared_library('soup-@0@'.format(apiversion),
   soup_enums,
   version : libversion,
   soversion : soversion,
-  c_args : libsoup_c_args,
+  c_args : libsoup_c_args + hidden_visibility_flag,
   include_directories : configinc,
   install : true,
   dependencies : deps)
@@ -259,7 +259,7 @@ if enable_gnome
   libsoup_gnome = shared_library(soup_gnome_api_name, soup_gnome_sources,
     version : libversion,
     soversion : soversion,
-    c_args : libsoup_c_args,
+    c_args : libsoup_c_args + hidden_visibility_flag,
     include_directories : configinc,
     install : true,
     dependencies : deps + [libsoup_dep])
