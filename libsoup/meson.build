@@ -145,7 +145,7 @@ soup_gnome_headers = [
   'soup-password-manager-gnome.h'
 ]
 
-soup_gnome_include_headers = [
+soup_gnome_installed_headers = [
   'soup-cookie-jar-sqlite.h',
   'soup-gnome.h',
   'soup-gnome-features.h'
@@ -222,10 +222,11 @@ if enable_gnome
 
   includedir = join_paths(libsoup_gnome_api_name, meson.project_name())
   install_headers(
-    soup_gnome_headers + ['soup-gnome.h', 'soup-gnome-features.h'],
+    soup_gnome_installed_headers,
     subdir : includedir)
 
-  libsoup_gnome = shared_library(soup_gnome_api_name, soup_gnome_sources,
+  libsoup_gnome = shared_library(soup_gnome_api_name,
+    soup_gnome_sources + soup_gnome_headers,
     version : libversion,
     soversion : soversion,
     c_args : libsoup_c_args,
