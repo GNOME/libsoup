@@ -277,7 +277,7 @@ if enable_gnome
 endif
 
 if enable_introspection or enable_vapi
-  gir_args = libsoup_c_args + ['-DLIBSOUP_USE_UNSTABLE_REQUEST_API']
+  soup_gir_args = libsoup_c_args + ['-DLIBSOUP_USE_UNSTABLE_REQUEST_API']
 
   soup_ns = 'Soup'
 
@@ -288,7 +288,7 @@ if enable_introspection or enable_vapi
     symbol_prefix : soup_ns.to_lower(),
     identifier_prefix : soup_ns,
     export_packages : libsoup_api_name,
-    extra_args : gir_args,
+    extra_args : soup_gir_args,
     includes : 'Gio-2.0',
     install : true,
     header: join_paths(meson.project_name(), 'soup.h'),
@@ -308,7 +308,7 @@ if enable_introspection or enable_vapi
   endif
 
   if enable_gnome
-    gir_gnome_args = libsoup_c_args + [
+    soup_gnome_gir_args = libsoup_c_args + [
       '--include-uninstalled=' + soup_gir_gen_sources[0].full_path()
     ]
 
@@ -325,7 +325,7 @@ if enable_introspection or enable_vapi
       symbol_prefix : soup_ns.to_lower(),
       identifier_prefix : soup_ns,
       export_packages : libsoup_gnome_api_name,
-      extra_args : gir_gnome_args,
+      extra_args : soup_gnome_gir_args,
       dependencies : soup_gir_gen_dep,
       install : true,
       header: join_paths(meson.project_name(), 'soup-gnome.h'),
