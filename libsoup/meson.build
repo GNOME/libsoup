@@ -195,7 +195,10 @@ configure_file(input : 'soup-version.h.in',
 
 enum_types = 'soup-enum-types'
 soup_enums = gnome.mkenums('soup-enum-types',
-  sources : soup_installed_headers,
+  sources : [
+    soup_installed_headers,
+    soup_gnome_installed_headers
+  ],
   h_template : enum_types + '.h.template',
   c_template : enum_types + '.c.template',
   install_header : true,
