@@ -105,7 +105,7 @@ soup_headers = [
   'soup-socket-private.h',
 ]
 
-soup_shared_headers = [
+soup_introspection_headers = [
   'soup-address.h',
   'soup-auth.h',
   'soup-auth-domain.h',
@@ -158,15 +158,15 @@ soup_shared_headers = [
   'soup-xmlrpc-old.h',
 ]
 
-soup_installed_headers = soup_shared_headers + [
+soup_installed_headers = soup_introspection_headers + [
   'soup.h'
 ]
 
 soup_gnome_sources = [
   'soup-cookie-jar-sqlite.c',
   'soup-gnome-features.c',
-  'soup-proxy-resolver-gnome.c',
-  'soup-password-manager-gnome.c'
+  'soup-password-manager-gnome.c',
+  'soup-proxy-resolver-gnome.c'
 ]
 
 soup_gnome_headers = [
@@ -174,10 +174,13 @@ soup_gnome_headers = [
   'soup-password-manager-gnome.h'
 ]
 
-soup_gnome_installed_headers = [
+soup_gnome_introspection_headers = [
   'soup-cookie-jar-sqlite.h',
-  'soup-gnome.h',
   'soup-gnome-features.h'
+]
+
+soup_gnome_installed_headers = soup_gnome_introspection_headers + [
+  'soup-gnome.h'
 ]
 
 includedir = join_paths(libsoup_api_name, meson.project_name())
@@ -188,7 +191,7 @@ version_cdata.set('SOUP_MAJOR_VERSION', soup_version_major)
 version_cdata.set('SOUP_MINOR_VERSION', soup_version_minor)
 version_cdata.set('SOUP_MICRO_VERSION', soup_version_micro)
 
-configure_file(input : 'soup-version.h.in',
+soup_version_h = configure_file(input : 'soup-version.h.in',
   output : 'soup-version.h',
   install_dir : join_paths(get_option('includedir'), includedir),
   configuration : version_cdata)
@@ -285,7 +288,12 @@ if enable_introspection or enable_vapi
   soup_ns = 'Soup'
 
   soup_gir_gen_sources = gnome.generate_gir(libsoup,
-    sources : soup_sources + soup_shared_headers + [soup_enum_h, soup_enum_c],
+    sources : [
+      soup_sources,
+      soup_introspection_headers,
+      soup_enum_h,
+      soup_version_h
+    ],
     nsversion : apiversion,
     namespace : soup_ns,
     symbol_prefix : soup_ns.to_lower(),
@@ -318,10 +326,7 @@ if enable_introspection or enable_vapi
     gnome.generate_gir(libsoup_gnome,
       sources : [
         soup_gnome_sources,
-        soup_enum_c,
-        soup_enum_h,
-        'soup-cookie-jar-sqlite.h',
-        'soup-gnome-features.h'
+        soup_gnome_introspection_headers
       ],
       nsversion : apiversion,
       namespace : 'SoupGNOME',
