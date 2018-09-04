@@ -204,8 +204,8 @@ soup_enums = gnome.mkenums('soup-enum-types',
   install_header : true,
   install_dir : join_paths(get_option('includedir'), includedir))
 
-soupenum_h = soup_enums[1]
-soupenum_c = soup_enums[0]
+soup_enum_h = soup_enums[1]
+soup_enum_c = soup_enums[0]
 
 libsoup_c_args  = [
   '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
@@ -248,7 +248,7 @@ pkg.generate(
 
 libsoup_dep = declare_dependency(link_with : libsoup,
   include_directories : configinc,
-  sources : soupenum_h)
+  sources : soup_enum_h)
 
 if enable_gnome
   soup_gnome_api_name = 'soup-gnome-' + apiversion
@@ -285,7 +285,7 @@ if enable_introspection or enable_vapi
   soup_ns = 'Soup'
 
   soup_gir_gen_sources = gnome.generate_gir(libsoup,
-    sources : soup_sources + soup_shared_headers + [soupenum_h, soupenum_c],
+    sources : soup_sources + soup_shared_headers + [soup_enum_h, soup_enum_c],
     nsversion : apiversion,
     namespace : soup_ns,
     symbol_prefix : soup_ns.to_lower(),
@@ -318,8 +318,8 @@ if enable_introspection or enable_vapi
     gnome.generate_gir(libsoup_gnome,
       sources : [
         soup_gnome_sources,
-        soupenum_c,
-        soupenum_h,
+        soup_enum_c,
+        soup_enum_h,
         'soup-cookie-jar-sqlite.h',
         'soup-gnome-features.h'
       ],
