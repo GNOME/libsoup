@@ -327,7 +327,6 @@ if enable_introspection or enable_vapi
       export_packages : libsoup_gnome_api_name,
       extra_args : gir_gnome_args,
       dependencies : soup_gir_gen_dep,
-      includes : 'Gio-2.0',
       install : true,
       header: join_paths(meson.project_name(), 'soup-gnome.h'),
     )
