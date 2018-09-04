@@ -94,6 +94,10 @@ endif
 libpsl_required_version = '>= 0.20'
 libpsl_dep = dependency('libpsl', version : libpsl_required_version)
 
+if cc.has_function('gmtime_r', prefix : '#include <time.h>', args : ['-D_POSIX_SOURCE'])
+    cdata.set('HAVE_GMTIME_R', '1')
+endif
+
 ###################
 # GIO TLS support #
 ###################
