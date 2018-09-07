@@ -286,9 +286,6 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 		/* includeSubdomains shouldn't have a value. */
 		if (include_subdomains_value)
 			goto out;
-		/* if there are extra params, the HSTS spec demands the header to be ignored. */
-		if (g_hash_table_size (params) > (include_subdomains ? 2 : 1))
-			goto out;
 
 		policy = soup_hsts_policy_new (uri->host, max_age, include_subdomains);
 	out:
