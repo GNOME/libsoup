@@ -311,8 +311,13 @@ if enable_introspection or enable_vapi
     sources : soup_gir_gen_sources)
 
   if enable_vapi
+    soup_ns_version = '@0@-@1@'.format(soup_ns, apiversion)
+
     gnome.generate_vapi(libsoup_api_name,
-      sources : soup_gir_gen_sources[0],
+      sources : [
+        soup_gir_gen_sources[0],
+        soup_ns_version + '-custom.vala'
+      ],
       packages : 'gio-2.0',
       install : true,
     )
