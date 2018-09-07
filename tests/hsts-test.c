@@ -331,6 +331,7 @@ do_hsts_extra_values_test (void)
 		SoupSession *session = hsts_session_new (NULL);
 		char *uri = g_strdup_printf ("https://localhost/extra-values-%i", i);
 		session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+		session_get_uri (session, uri, SOUP_STATUS_OK);
 		soup_test_session_abort_unref (session);
 		g_free (uri);
 	}
