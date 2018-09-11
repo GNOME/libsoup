@@ -430,15 +430,5 @@ AC_CONFIG_FILES([
 	docs/Makefile
 	docs/reference/Makefile
 	libsoup/soup-version.h
-	config.h.win32
-	win32/Makefile
-	win32/vs9/Makefile
-	win32/vs9/soup-version-paths.vsprops
-	win32/vs10/Makefile
-	win32/vs10/soup-version-paths.props
-	win32/vs11/Makefile
-	win32/vs12/Makefile
-	win32/vs14/Makefile
-	win32/vs15/Makefile
 	])
 AC_OUTPUT
