@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-SUBDIRS = libsoup po tests examples docs win32
+SUBDIRS = libsoup po tests examples docs 
 
 EXTRA_DIST =				\
 	libsoup-2.4.pc.in		\
@@ -15,8 +15,7 @@ EXTRA_DIST =				\
 	meson.build			\
 	meson_options.txt		\
 	po/meson.build			\
-	get_apache_modules_dirs.py	\
-	config.h.win32
+	get_apache_modules_dirs.py
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection --disable-vala
 

@@ -12,7 +12,6 @@ build-aux
 config.h
 config.h.in
 config.h.in~
-config.h.win32
 config.log
 config.status
 configure
@@ -70,12 +69,3 @@ tests/ntlm-test-helper
 tests/pull-api
 tests/soup-tests.gresource
 tests/uri-parsing
-win32/SoupGNOME_2_4_gir_list
-win32/Soup_2_4_gir_list
-win32/introspection.body.mak
-win32/vs9/*.vsprops
-win32/vs9/*.vcproj
-win32/vs*/*.vcxproj
-win32/vs*/*.vcxproj.filters
-win32/vs*/libsoup.sln
-win32/vs*/soup-*.props
