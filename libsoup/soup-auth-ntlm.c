@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
 #include <glib.h>
 
 #include "soup-auth-ntlm.h"
@@ -26,14 +28,20 @@ static char       *soup_ntlm_request           (void);
 static gboolean    soup_ntlm_parse_challenge   (const char  *challenge,
 						char       **nonce,
 						char       **default_domain,
-						gboolean    *ntlmv2_session);
-static char       *soup_ntlm_response          (const char  *nonce, 
+						gboolean    *ntlmv2_session,
+						gboolean    *negotiate_target,
+						char		**target_info,
+						size_t		*target_info_sz);
+static char       *soup_ntlm_response          (const char  *nonce,
 						const char  *user,
 						guchar       nt_hash[21],
 						guchar       lm_hash[21],
 						const char  *host, 
 						const char  *domain,
-						gboolean     ntlmv2_session);
+						gboolean     ntlmv2_session,
+						gboolean     negotiate_target,
+						const char	*target_info,
+						size_t		target_info_sz);
 
 typedef enum {
 	SOUP_NTLM_NEW,
@@ -49,6 +57,9 @@ typedef struct {
 	char *nonce;
 	char *response_header;
 	gboolean ntlmv2_session;
+	gboolean negotiate_target;
+	char *target_info;
+	size_t target_info_sz;
 } SoupNTLMConnectionState;
 
 typedef enum {
@@ -339,7 +350,8 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 
 	if (!soup_ntlm_parse_challenge (auth_header + 5, &conn->nonce,
 					priv->domain ? NULL : &priv->domain,
-					&conn->ntlmv2_session)) {
+					&conn->ntlmv2_session, &conn->negotiate_target,
+					&conn->target_info, &conn->target_info_sz)) {
 		conn->state = SOUP_NTLM_FAILED;
 		return FALSE;
 	}
@@ -521,7 +533,10 @@ soup_auth_ntlm_get_connection_authorization (SoupConnectionAuth *auth,
 						     priv->lm_hash,
 						     NULL,
 						     priv->domain,
-						     conn->ntlmv2_session);
+						     conn->ntlmv2_session,
+							 conn->negotiate_target,
+							 conn->target_info,
+							 conn->target_info_sz);
 		}
 		g_clear_pointer (&conn->nonce, g_free);
 		conn->state = SOUP_NTLM_SENT_RESPONSE;
@@ -647,13 +662,19 @@ typedef struct {
 #define NTLM_CHALLENGE_NONCE_OFFSET         24
 #define NTLM_CHALLENGE_NONCE_LENGTH          8
 #define NTLM_CHALLENGE_DOMAIN_STRING_OFFSET 12
+#define NTLM_CHALLENGE_TARGET_INFORMATION_OFFSET      40
 
 #define NTLM_CHALLENGE_FLAGS_OFFSET         20
 #define NTLM_FLAGS_NEGOTIATE_NTLMV2 0x00080000
+#define NTLM_FLAGS_NEGOTIATE_TARGET_INFORMATION 0x00800000
+#define NTLM_FLAGS_REQUEST_TARGET 0x00000004
 
 #define NTLM_RESPONSE_HEADER "NTLMSSP\x00\x03\x00\x00\x00"
 #define NTLM_RESPONSE_FLAGS 0x8201
+#define NTLM_RESPONSE_TARGET_INFORMATION_OFFSET 44
 #define NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY 0x00080000
+
+#define HMAC_MD5_LENGTH                     16
 
 typedef struct {
         guchar     header[12];
@@ -686,10 +707,14 @@ static gboolean
 soup_ntlm_parse_challenge (const char *challenge,
 			   char      **nonce,
 			   char      **default_domain,
-			   gboolean   *ntlmv2_session)
+			   gboolean   *ntlmv2_session,
+			   gboolean   *negotiate_target,
+			   char		**target_info,
+			   size_t	*target_info_sz)
 {
 	gsize clen;
 	NTLMString domain;
+	NTLMString target;
 	guchar *chall;
 	guint32 flags;
 
@@ -703,6 +728,8 @@ soup_ntlm_parse_challenge (const char *challenge,
 	memcpy (&flags, chall + NTLM_CHALLENGE_FLAGS_OFFSET, sizeof(flags));
 	flags = GUINT_FROM_LE (flags);
 	*ntlmv2_session = (flags & NTLM_FLAGS_NEGOTIATE_NTLMV2) ? TRUE : FALSE;
+	//To know if NTLMv2 responses should be calculated
+	*negotiate_target = (flags & NTLM_FLAGS_NEGOTIATE_TARGET_INFORMATION ) ? TRUE : FALSE;
 
 	if (default_domain) {
 		memcpy (&domain, chall + NTLM_CHALLENGE_DOMAIN_STRING_OFFSET, sizeof (domain));
@@ -722,6 +749,19 @@ soup_ntlm_parse_challenge (const char *challenge,
 	if (nonce) {
 		*nonce = g_memdup (chall + NTLM_CHALLENGE_NONCE_OFFSET,
 				   NTLM_CHALLENGE_NONCE_LENGTH);
+	}
+	//For NTLMv2 response
+	if (*negotiate_target && target_info) {
+		memcpy (&target, chall + NTLM_CHALLENGE_TARGET_INFORMATION_OFFSET, sizeof (target));
+		target.length = GUINT16_FROM_LE (target.length);
+		target.offset = GUINT16_FROM_LE (target.offset);
+
+		if (clen < target.length + target.offset) {
+			g_free (chall);
+			return FALSE;
+		}
+		*target_info = g_memdup (chall + target.offset, target.length);
+		*target_info_sz = target.length;
 	}
 
 	g_free (chall);
@@ -761,6 +801,101 @@ calc_ntlm2_session_response (const char *nonce,
 	calc_response (nt_hash, ntlmv2_hash, nt_resp);
 }
 
+/* Compute HMAC-MD5 with Glib function*/
+static void
+calc_hmac_md5 (unsigned char *hmac, const guchar *key, gsize key_sz, const guchar *data, gsize data_sz)
+{
+	char *hmac_hex, *hex_pos;
+	size_t count;
+
+	hmac_hex = g_compute_hmac_for_data(G_CHECKSUM_MD5, key, key_sz, data, data_sz);
+	hex_pos = hmac_hex;
+	for (count = 0; count < HMAC_MD5_LENGTH; count++)
+	{
+		sscanf(hex_pos, "%2hhx", &hmac[count]);
+		hex_pos += 2;
+	}
+	g_free(hmac_hex);
+}
+
+static void
+calc_ntlmv2_response (const char *user, const char *domain,
+						const guchar *nt_hash, const gsize nt_hash_sz,
+						const guchar *nonce,
+						const char *target_info, size_t target_info_sz,
+						guchar *lm_resp, size_t lm_resp_sz,
+						guchar *nt_resp, size_t nt_resp_sz)
+{
+	const unsigned char blob_signature[] = {0x01,0x01,0x00,0x00};
+	const unsigned char blob_reserved[] = {0x00,0x00,0x00,0x00};
+	gint64 blob_timestamp;
+	unsigned char client_nonce[8];
+	const unsigned char blob_unknown[] = {0x00,0x00,0x00,0x00};
+
+	unsigned char ntv2_hash[HMAC_MD5_LENGTH];
+	guchar *nonce_blob, *blob, *p_blob;
+	unsigned char nonce_blob_hash[HMAC_MD5_LENGTH];
+	unsigned char nonce_client_nonce[16], nonce_client_nonce_hash[HMAC_MD5_LENGTH];
+	gchar *user_domain, *user_domain_conv;
+	gsize user_domain_conv_sz;
+	size_t blob_sz;
+
+	/* create HMAC-MD5 hash of Unicode uppercase username and Unicode domain */
+	user_domain = g_strconcat ((const gchar *) g_utf8_strup ((const gchar *) user, (gsize) strlen(user)), (gchar *) domain, NULL);
+	user_domain_conv = g_convert (user_domain, -1, "UCS-2LE", "UTF-8", NULL, &user_domain_conv_sz, NULL);
+	calc_hmac_md5 (ntv2_hash, nt_hash, nt_hash_sz, (const guchar *)user_domain_conv, user_domain_conv_sz);
+	g_free (user_domain);
+	g_free (user_domain_conv);
+
+	/* create random client nonce */
+	for (int i = 0; i < sizeof (client_nonce); i++)
+	{
+		client_nonce[i] = g_random_int();
+	}
+
+	/* create timestamp for blob
+	 * LE, 64-bit signed value, number of tenths of a ms since January 1, 1601.*/
+	blob_timestamp = GINT64_TO_LE(((unsigned long)time(NULL) + 11644473600) * 10000000);
+
+	/* create blob */
+	blob_sz = sizeof (blob_signature) + sizeof (blob_reserved) +
+			sizeof (blob_timestamp) + sizeof (client_nonce) +
+			sizeof (blob_unknown) + target_info_sz;
+	p_blob = blob = g_malloc (blob_sz);
+	memset (blob, 0, blob_sz);
+	memcpy (p_blob, blob_signature, sizeof (blob_signature));
+	memcpy (p_blob += sizeof (blob_signature), blob_reserved, sizeof (blob_reserved));
+	memcpy (p_blob += sizeof (blob_reserved), &blob_timestamp, sizeof (blob_timestamp));
+	memcpy (p_blob += sizeof (blob_timestamp), client_nonce, sizeof (client_nonce));
+	memcpy (p_blob += sizeof (client_nonce), blob_unknown, sizeof (blob_unknown));
+	memcpy (p_blob += sizeof (blob_unknown), target_info, target_info_sz);
+
+	/* create HMAC-MD5 hash of concatenated nonce and blob */
+	nonce_blob = g_malloc (NTLM_CHALLENGE_NONCE_LENGTH + blob_sz);
+	memcpy (nonce_blob, nonce, NTLM_CHALLENGE_NONCE_LENGTH);
+	memcpy (nonce_blob + NTLM_CHALLENGE_NONCE_LENGTH, blob, blob_sz);
+	calc_hmac_md5 (nonce_blob_hash, (const guchar *)ntv2_hash, (gsize) sizeof (ntv2_hash), (const guchar *) nonce_blob, (gsize) NTLM_CHALLENGE_NONCE_LENGTH + blob_sz);
+	g_free (nonce_blob);
+
+	/* create NTv2 response */
+	memset (nt_resp, 0, nt_resp_sz);
+	memcpy (nt_resp, nonce_blob_hash, sizeof (nonce_blob_hash));
+	memcpy (nt_resp + sizeof (nonce_blob_hash), blob, blob_sz);
+
+	g_free (blob);
+
+	/* LMv2
+	 * create HMAC-MD5 hash of concatenated nonce and client nonce
+	 */
+	memcpy (nonce_client_nonce, nonce, NTLM_CHALLENGE_NONCE_LENGTH);
+	memcpy (nonce_client_nonce + NTLM_CHALLENGE_NONCE_LENGTH, client_nonce, sizeof (client_nonce));
+	calc_hmac_md5 (nonce_client_nonce_hash, (const guchar *) ntv2_hash, (gsize) sizeof (ntv2_hash), (const guchar *) nonce_client_nonce, (gsize) NTLM_CHALLENGE_NONCE_LENGTH + sizeof (client_nonce));
+
+	/* create LMv2 response */
+	memset (lm_resp, 0, lm_resp_sz);
+	memcpy (lm_resp, nonce_client_nonce_hash, sizeof (nonce_client_nonce_hash));
+	memcpy (lm_resp + sizeof (nonce_client_nonce_hash), client_nonce, sizeof (client_nonce));
+}
 
 static char *
 soup_ntlm_response (const char *nonce, 
@@ -769,31 +904,54 @@ soup_ntlm_response (const char *nonce,
 		    guchar      lm_hash[21],
 		    const char *host, 
 		    const char *domain,
-		    gboolean    ntlmv2_session)
+		    gboolean    ntlmv2_session,
+		    gboolean    negotiate_target,
+		    const char	*target_info,
+		    size_t	target_info_sz)
 {
+
 	int offset;
-	gsize hlen, dlen, ulen;
-	guchar lm_resp[24], nt_resp[24];
+	gsize hlen, dlen, ulen, nt_resp_sz;
+	guchar lm_resp[24], *nt_resp;
 	char *user_conv, *host_conv, *domain_conv;
 	NTLMResponse resp;
 	char *out, *p;
 	int state, save;
 
-	if (ntlmv2_session) {
+	if (negotiate_target)
+	{
+		/* nonce_blob_hash 16 + blob_signature 4 + blob_reserved 4 +
+		 * blob_timestamp 8 + client_nonce 8 + blob_unknown 4 +
+		 * target_info*/
+		nt_resp_sz = NTLM_RESPONSE_TARGET_INFORMATION_OFFSET + target_info_sz;
+	} else {
+		nt_resp_sz = 24;
+	}
+	nt_resp = g_malloc (nt_resp_sz);
+
+	if (ntlmv2_session && !negotiate_target) {
 		calc_ntlm2_session_response (nonce, nt_hash, lm_hash,
 					     lm_resp, sizeof(lm_resp), nt_resp);
-	} else {
-		/* Compute a regular response */
+	} else if (!negotiate_target){
+		/* Compute a regular NTLMv1 response */
 		calc_response (nt_hash, (guchar *) nonce, nt_resp);
 		calc_response (lm_hash, (guchar *) nonce, lm_resp);
+	} else {
+		calc_ntlmv2_response (user, domain,
+					nt_hash, 21,
+					(guchar *) nonce,
+					target_info, target_info_sz,
+					lm_resp, sizeof (lm_resp),
+					nt_resp, (size_t) nt_resp_sz);
 	}
 
 	memset (&resp, 0, sizeof (resp));
 	memcpy (resp.header, NTLM_RESPONSE_HEADER, sizeof (resp.header));
 	resp.flags = GUINT32_TO_LE (NTLM_RESPONSE_FLAGS);
-	if (ntlmv2_session)
+	if (ntlmv2_session && !negotiate_target)
 		resp.flags |= GUINT32_TO_LE (NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
-
+	if (negotiate_target)
+			resp.flags |= GUINT32_TO_LE (NTLM_FLAGS_REQUEST_TARGET);
 	offset = sizeof (resp);
 
 	if (!host)
@@ -807,7 +965,7 @@ soup_ntlm_response (const char *nonce,
 	ntlm_set_string (&resp.user, &offset, ulen);
 	ntlm_set_string (&resp.host, &offset, hlen);
 	ntlm_set_string (&resp.lm_resp, &offset, sizeof (lm_resp));
-	ntlm_set_string (&resp.nt_resp, &offset, sizeof (nt_resp));
+	ntlm_set_string (&resp.nt_resp, &offset, nt_resp_sz);
 
 	out = g_malloc (((offset + 3) * 4) / 3 + 6);
 	memcpy (out, "NTLM ", 5);
@@ -825,7 +983,7 @@ soup_ntlm_response (const char *nonce,
 				   FALSE, p, &state, &save);
 	p += g_base64_encode_step (lm_resp, sizeof (lm_resp), 
 				   FALSE, p, &state, &save);
-	p += g_base64_encode_step (nt_resp, sizeof (nt_resp), 
+	p += g_base64_encode_step (nt_resp, nt_resp_sz,
 				   FALSE, p, &state, &save);
 	p += g_base64_encode_close (FALSE, p, &state, &save);
 	*p = '\0';
@@ -833,6 +991,7 @@ soup_ntlm_response (const char *nonce,
 	g_free (domain_conv);
 	g_free (user_conv);
 	g_free (host_conv);
+	g_free (nt_resp);
 
 	return out;
 }
