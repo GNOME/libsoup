@@ -5,7 +5,6 @@ project('libsoup', 'c',
         default_options : 'c_std=c89')
 
 gnome = import('gnome')
-cc = meson.get_compiler('c')
 
 soup_version = meson.project_version()
 version_arr = soup_version.split('.')
@@ -20,10 +19,18 @@ libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
 
 host_system = host_machine.system()
 
+# Needed for the gmtime_r check and for some system types availability.
+default_source_flag = [
+  '-D_DEFAULT_SOURCE'
+]
+
+add_project_arguments(default_source_flag, language: 'c')
+
 common_flags = [
   '-DHAVE_CONFIG_H',
 ]
 
+cc = meson.get_compiler('c')
 # Enable extra warnings if compiler supports them.
 if cc.get_id() == 'msvc'
   common_flags += ['/FImsvc_recommended_pragmas.h']
@@ -94,7 +101,7 @@ endif
 libpsl_required_version = '>= 0.20'
 libpsl_dep = dependency('libpsl', version : libpsl_required_version)
 
-if cc.has_function('gmtime_r', prefix : '#include <time.h>', args : ['-D_POSIX_SOURCE'])
+if cc.has_function('gmtime_r', prefix : '#include <time.h>', args : default_source_flag)
     cdata.set('HAVE_GMTIME_R', '1')
 endif
 
