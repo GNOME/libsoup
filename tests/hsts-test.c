@@ -65,7 +65,7 @@ server_callback  (SoupServer *server, SoupMessage *msg,
 						     "max-age=31536000; includeSubDomains");
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
-						     "max-age=0; includeSubDomains");
+						     "max-age=1; includeSubDomains");
 		} else if (strcmp (path, "/missing-values") == 0) {
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
@@ -292,7 +292,8 @@ do_hsts_multiple_headers_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 	session_get_uri (session, "https://localhost/multiple-headers", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost/multiple-headers", SOUP_STATUS_OK);
+	sleep(2);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
 	soup_test_session_abort_unref (session);
 }
 
