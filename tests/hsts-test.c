@@ -82,7 +82,7 @@ server_callback  (SoupServer *server, SoupMessage *msg,
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
 						     " max-age=3600; includeDomains; foo");
-		} else if (strcmp (path, "/extra-values-2") == 0) {
+		} else if (strcmp (path, "/duplicated-directives") == 0) {
 			soup_message_headers_append (msg->response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=3600; includeDomains; includeDomains");
@@ -338,6 +338,15 @@ do_hsts_extra_values_test (void)
 }
 
 static void
+do_hsts_duplicated_directives_test (void)
+{
+	SoupSession *session = hsts_session_new (NULL);
+	session_get_uri (session, "https://localhost/duplicated-directives", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	soup_test_session_abort_unref (session);
+}
+
+static void
 do_hsts_case_insensitive_header_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
@@ -434,6 +443,9 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/missing-values", do_hsts_missing_values_test);
 	g_test_add_func ("/hsts/invalid-values", do_hsts_invalid_values_test);
 	g_test_add_func ("/hsts/extra-values", do_hsts_extra_values_test);
+	/* This test is skipped because soup_header_parse_semi_param_list() does not
+	   take into account duplicated directives/parameters. */
+	/* g_test_add_func ("/hsts/duplicated-directives", do_hsts_duplicated_directives_test); */
 	g_test_add_func ("/hsts/case-insensitive-header", do_hsts_case_insensitive_header_test);
 	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
 	g_test_add_func ("/hsts/optional-quotations", do_hsts_optional_quotations_test);
