@@ -165,7 +165,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-headers.c			\
 	soup-hsts-enforcer.c		\
 	soup-hsts-enforcer-db.c		\
-	soup-hsts-enforcer-private.h	\
 	soup-hsts-policy.c		\
 	soup-init.c			\
 	soup-io-stream.h		\

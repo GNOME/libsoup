@@ -16,7 +16,6 @@
 #include <sqlite3.h>
 
 #include "soup-hsts-enforcer-db.h"
-#include "soup-hsts-enforcer-private.h"
 #include "soup.h"
 
 /**
