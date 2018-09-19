@@ -1355,6 +1355,7 @@ SoupHSTSEnforcerClass
 soup_hsts_enforcer_new
 soup_hsts_enforcer_is_persistent
 soup_hsts_enforcer_has_valid_policy
+soup_hsts_enforcer_set_policy
 soup_hsts_enforcer_set_session_policy
 <SUBSECTION>
 SoupHSTSPolicy

@@ -40,7 +40,6 @@ ignore_headers = [
   'soup-socket-private.h',
   'soup-value-utils.h',
   'soup-xmlrpc-old.h'
-  'soup-hsts-enforcer-private.h'
 ]
 
 mkdb_args = [
