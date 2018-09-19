@@ -4,7 +4,6 @@
  * Copyright (C) 2018 Metrological Group B.V.
  */
 
-#include <stdio.h>
 #include "test-utils.h"
 
 SoupURI *http_uri;
