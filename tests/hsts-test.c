@@ -287,6 +287,28 @@ do_hsts_subdomains_test (void)
 }
 
 static void
+do_hsts_superdomain_test (void)
+{
+	SoupHSTSEnforcer *enforcer = soup_hsts_enforcer_new ();
+	SoupHSTSPolicy *policy;
+
+	SoupSession *session = hsts_session_new (enforcer);
+	/* This adds a long-lasting policy for localhost. */
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
+
+	/* We want to set a policy with age = 0 for a subdomain, to test that the
+	   superdomain's policy is not removed. We cannot test this with a
+	   server, so we just create one by hand and add it to the enforcer. */
+	policy = soup_hsts_policy_new ("subdomain.localhost", 0, TRUE);
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	/* This should work, as we have a long-lasting policy in place. If it fails,
+	   the subdomain policy has modified the superdomain's policy, which is wrong. */
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+}
+
+static void
 do_hsts_multiple_headers_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
@@ -438,6 +460,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/no_hsts_header", do_hsts_no_hsts_header_test);
 	g_test_add_func ("/hsts/persistency", do_hsts_persistency_test);
 	g_test_add_func ("/hsts/subdomains", do_hsts_subdomains_test);
+	g_test_add_func ("/hsts/superdomain", do_hsts_superdomain_test);
 	g_test_add_func ("/hsts/multiple-headers", do_hsts_multiple_headers_test);
 	g_test_add_func ("/hsts/insecure-sts", do_hsts_insecure_sts_test);
 	g_test_add_func ("/hsts/missing-values", do_hsts_missing_values_test);
