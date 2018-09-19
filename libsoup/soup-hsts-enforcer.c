@@ -181,7 +181,7 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
  *
  * Returns: a new #SoupHSTSEnforcer
  *
- * Since: 2.64
+ * Since: 2.66
  **/
 SoupHSTSEnforcer *
 soup_hsts_enforcer_new (void)
@@ -314,7 +314,7 @@ soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
  * will not expire and will be enforced during the lifetime of
  * @hsts_enforcer's #SoupSession.
  *
- * Since: 2.64
+ * Since: 2.66
  **/
 void
 soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -358,7 +358,7 @@ soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
  * that is permanent to the lifetime of @hsts_enforcer's #SoupSession
  * and doesn't expire.
  *
- * Since: 2.64
+ * Since: 2.66
  **/
 void
 soup_hsts_enforcer_set_session_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -547,7 +547,7 @@ soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_in
  *
  * Returns: %TRUE if @hsts_enforcer storage is persistent or %FALSE otherwise.
  *
- * Since: 2.64
+ * Since: 2.66
  **/
 gboolean
 soup_hsts_enforcer_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
@@ -567,7 +567,7 @@ soup_hsts_enforcer_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
  * Returns: %TRUE if access to @domain should happen over HTTPS, false
  * otherwise.
  *
- * Since: 2.64
+ * Since: 2.66
  **/
 gboolean
 soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,

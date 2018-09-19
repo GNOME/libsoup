@@ -39,10 +39,10 @@ typedef struct {
 
 #define SOUP_HSTS_ENFORCER_DB_FILENAME  "filename"
 
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 GType soup_hsts_enforcer_db_get_type (void);
 
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 SoupHSTSEnforcer *soup_hsts_enforcer_db_new (const char *filename);
 
 G_END_DECLS

@@ -56,20 +56,20 @@ typedef struct {
 	void (*_libsoup_reserved4) (void);
 } SoupHSTSEnforcerClass;
 
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 GType             soup_hsts_enforcer_get_type                      (void);
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 SoupHSTSEnforcer *soup_hsts_enforcer_new                           (void);
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 gboolean          soup_hsts_enforcer_is_persistent                 (SoupHSTSEnforcer *hsts_enforcer);
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 gboolean          soup_hsts_enforcer_has_valid_policy              (SoupHSTSEnforcer *hsts_enforcer,
 								    const char       *domain);
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 void soup_hsts_enforcer_set_policy                                 (SoupHSTSEnforcer  *hsts_enforcer,
 				                                    SoupHSTSPolicy    *policy);
 
-SOUP_AVAILABLE_IN_2_64
+SOUP_AVAILABLE_IN_2_66
 void              soup_hsts_enforcer_set_session_policy            (SoupHSTSEnforcer *hsts_enforcer,
 								    const char       *domain,
 								    gboolean          include_subdomains);

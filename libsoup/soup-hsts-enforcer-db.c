@@ -109,7 +109,7 @@ soup_hsts_enforcer_db_get_property (GObject *object, guint prop_id,
  *
  * Return value: the new #SoupHSTSEnforcer
  *
- * Since: 2.64
+ * Since: 2.66
  **/
 SoupHSTSEnforcer *
 soup_hsts_enforcer_db_new (const char *filename)
