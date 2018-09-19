@@ -13,7 +13,6 @@
 #endif
 
 #include "soup-hsts-enforcer.h"
-#include "soup-hsts-enforcer-private.h"
 #include "soup.h"
 
 /**
