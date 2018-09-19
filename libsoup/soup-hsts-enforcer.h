@@ -66,6 +66,10 @@ SOUP_AVAILABLE_IN_2_64
 gboolean          soup_hsts_enforcer_has_valid_policy              (SoupHSTSEnforcer *hsts_enforcer,
 								    const char       *domain);
 SOUP_AVAILABLE_IN_2_64
+void soup_hsts_enforcer_set_policy                                 (SoupHSTSEnforcer  *hsts_enforcer,
+				                                    SoupHSTSPolicy    *policy);
+
+SOUP_AVAILABLE_IN_2_64
 void              soup_hsts_enforcer_set_session_policy            (SoupHSTSEnforcer *hsts_enforcer,
 								    const char       *domain,
 								    gboolean          include_subdomains);
