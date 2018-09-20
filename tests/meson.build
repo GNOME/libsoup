@@ -96,6 +96,8 @@ endif
 env = environment()
 env.set('G_TEST_SRCDIR', meson.current_source_dir())
 env.set('G_TEST_BUILDDIR', meson.current_build_dir())
+# See https://github.com/mesonbuild/meson/issues/4228 for the workaround below
+env.prepend('LD_LIBRARY_PATH', meson.build_root() + '/libsoup')
 env.set('G_DEBUG', 'gc-friendly')
 env.set('MALLOC_CHECK_', '2')
 # This is set by Meson if empty
