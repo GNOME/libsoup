@@ -4,8 +4,8 @@
  * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
-#ifndef SOUP_HSTS_ENFORCER_DB_H
-#define SOUP_HSTS_ENFORCER_DB_H 1
+#ifndef __SOUP_HSTS_ENFORCER_DB_H__
+#define __SOUP_HSTS_ENFORCER_DB_H__ 1
 
 #include <libsoup/soup-hsts-enforcer.h>
 
@@ -47,4 +47,4 @@ SoupHSTSEnforcer *soup_hsts_enforcer_db_new (const char *filename);
 
 G_END_DECLS
 
-#endif /* SOUP_HSTS_ENFORCER_DB_H */
+#endif /* __SOUP_HSTS_ENFORCER_DB_H__ */

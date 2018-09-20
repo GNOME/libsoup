@@ -4,8 +4,8 @@
  * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
-#ifndef SOUP_HSTS_ENFORCER_H
-#define SOUP_HSTS_ENFORCER_H 1
+#ifndef __SOUP_HSTS_ENFORCER_H__
+#define __SOUP_HSTS_ENFORCER_H__ 1
 
 #include <libsoup/soup-types.h>
 
@@ -75,4 +75,4 @@ void              soup_hsts_enforcer_set_session_policy            (SoupHSTSEnfo
 								    gboolean          include_subdomains);
 G_END_DECLS
 
-#endif /* SOUP_HSTS_ENFORCER_H */
+#endif /* __SOUP_HSTS_ENFORCER_H__ */
