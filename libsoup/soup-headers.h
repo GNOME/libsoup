@@ -57,6 +57,10 @@ SOUP_AVAILABLE_IN_2_4
 GHashTable *soup_header_parse_param_list      (const char       *header);
 SOUP_AVAILABLE_IN_2_24
 GHashTable *soup_header_parse_semi_param_list (const char       *header);
+SOUP_AVAILABLE_IN_2_66
+GHashTable *soup_header_parse_param_list_strict      (const char       *header);
+SOUP_AVAILABLE_IN_2_66
+GHashTable *soup_header_parse_semi_param_list_strict (const char       *header);
 SOUP_AVAILABLE_IN_2_4
 void        soup_header_free_param_list       (GHashTable       *param_list);
 
