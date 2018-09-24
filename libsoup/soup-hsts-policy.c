@@ -271,7 +271,10 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 
 		uri = soup_message_get_uri (msg);
 
-		params = soup_header_parse_semi_param_list (value);
+		params = soup_header_parse_semi_param_list_strict (value);
+
+		if (!params)
+			return NULL;
 
 		max_age_str = g_hash_table_lookup (params, "max-age");
 
