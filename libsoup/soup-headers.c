@@ -710,12 +710,12 @@ decode_rfc5987 (char *encoded_string)
 }
 
 static GHashTable *
-parse_param_list (const char *header, char delim)
+parse_param_list (const char *header, char delim, gboolean strict)
 {
 	GHashTable *params;
 	GSList *list, *iter;
 	char *item, *eq, *name_end, *value;
-	gboolean override;
+	gboolean override, duplicated;
 
 	params = g_hash_table_new_full (soup_str_case_hash, 
 					soup_str_case_equal,
@@ -751,7 +751,14 @@ parse_param_list (const char *header, char delim)
 		} else
 			value = NULL;
 
-		if (override || !g_hash_table_lookup (params, item))
+		duplicated = g_hash_table_lookup_extended (params, item, NULL, NULL);
+
+		if (strict && duplicated) {
+			soup_header_free_param_list (params);
+			params = NULL;
+			g_free (item);
+			break;
+		} else if (override || !duplicated)
 			g_hash_table_replace (params, item, value);
 		else
 			g_free (item);
@@ -784,7 +791,7 @@ soup_header_parse_param_list (const char *header)
 {
 	g_return_val_if_fail (header != NULL, NULL);
 
-	return parse_param_list (header, ',');
+	return parse_param_list (header, ',', FALSE);
 }
 
 /**
@@ -812,7 +819,61 @@ soup_header_parse_semi_param_list (const char *header)
 {
 	g_return_val_if_fail (header != NULL, NULL);
 
-	return parse_param_list (header, ';');
+	return parse_param_list (header, ';', FALSE);
+}
+
+/**
+ * soup_header_parse_param_list_strict:
+ * @header: a header value
+ *
+ * A strict version of soup_header_parse_param_list()
+ * that bails out if there are duplicate parameters.
+ * Note that this function will treat RFC5987-encoded
+ * parameters as duplicated if an ASCII version is also
+ * present. For header fields that might contain
+ * RFC5987-encoded parameters, use
+ * soup_header_parse_param_list() instead.
+ *
+ * Return value: (element-type utf8 utf8) (transfer full) (nullable):
+ * a #GHashTable of list elements, which can be freed with
+ * soup_header_free_param_list() or %NULL if there are duplicate
+ * elements.
+ *
+ * Since: 2.66
+ **/
+GHashTable *
+soup_header_parse_param_list_strict (const char *header)
+{
+	g_return_val_if_fail (header != NULL, NULL);
+
+	return parse_param_list (header, ',', TRUE);
+}
+
+/**
+ * soup_header_parse_semi_param_list_strict:
+ * @header: a header value
+ *
+ * A strict version of soup_header_parse_semi_param_list()
+ * that bails out if there are duplicate parameters.
+ * Note that this function will treat RFC5987-encoded
+ * parameters as duplicated if an ASCII version is also
+ * present. For header fields that might contain
+ * RFC5987-encoded parameters, use
+ * soup_header_parse_semi_param_list() instead.
+ *
+ * Return value: (element-type utf8 utf8) (transfer full) (nullable):
+ * a #GHashTable of list elements, which can be freed with
+ * soup_header_free_param_list() or %NULL if there are duplicate
+ * elements.
+ *
+ * Since: 2.66
+ **/
+GHashTable *
+soup_header_parse_semi_param_list_strict (const char *header)
+{
+	g_return_val_if_fail (header != NULL, NULL);
+
+	return parse_param_list (header, ';', TRUE);
 }
 
 /**

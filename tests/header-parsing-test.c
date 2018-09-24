@@ -794,6 +794,46 @@ static struct QValueTest {
 };
 static const int num_qvaluetests = G_N_ELEMENTS (qvaluetests);
 
+static struct ParamListTest {
+	gboolean strict;
+	const char *header_value;
+	struct ParamListResult {
+		const char * param;
+		const char * value;
+	} results[3];
+} paramlisttests[] = {
+	{ TRUE,
+	  "UserID=JohnDoe; Max-Age=3600; Version=1",
+	  { { "UserID", "JohnDoe" },
+	    { "Max-Age", "3600" },
+	    { "Version", "1" },
+	  }
+	},
+
+	{ TRUE,
+	  "form-data; name=\"fieldName\"; filename=\"filename.jpg\"",
+	  { { "form-data", NULL },
+	    { "name", "fieldName" },
+	    { "filename", "filename.jpg" },
+	  },
+	},
+
+	{ FALSE,
+	  "form-data; form-data; filename=\"filename.jpg\"",
+	  { { "form-data", NULL },
+	    { "filename", "filename.jpg" },
+	  },
+	},
+
+	{ FALSE,
+	  "attachment; filename*=UTF-8''t%C3%A9st.txt; filename=\"test.txt\"",
+	  { { "attachment", NULL },
+	    { "filename", "t\xC3\xA9st.txt" },
+	  },
+	},
+};
+static const int num_paramlisttests = G_N_ELEMENTS (paramlisttests);
+
 static void
 check_headers (Header *headers, SoupMessageHeaders *hdrs)
 {
@@ -946,6 +986,41 @@ do_qvalue_tests (void)
 			soup_header_free_list (unacceptable);
 		} else
 			debug_printf (1, "(none)\n");
+	}
+}
+
+static void
+do_param_list_tests (void)
+{
+	int i, j, n_params;
+	GHashTable* params;
+
+	for (i = 0; i < num_paramlisttests; i++) {
+		params = soup_header_parse_semi_param_list (paramlisttests[i].header_value);
+		g_assert_nonnull (params);
+		n_params = paramlisttests[i].strict ? 3 : 2;
+		g_assert_cmpuint (g_hash_table_size (params), ==, n_params);
+		for (j = 0; j < n_params; j++) {
+			g_assert_cmpstr (g_hash_table_lookup (params, paramlisttests[i].results[j].param),
+					 ==, paramlisttests[i].results[j].value);
+		}
+		soup_header_free_param_list (params);
+	}
+
+	for (i = 0; i < num_paramlisttests; i++) {
+		params = soup_header_parse_semi_param_list_strict (paramlisttests[i].header_value);
+		if (paramlisttests[i].strict) {
+			g_assert_nonnull (params);
+			n_params = 3;
+			g_assert_cmpuint (g_hash_table_size (params), ==, n_params);
+			for (j = 0; j < n_params; j++) {
+				g_assert_cmpstr (g_hash_table_lookup (params, paramlisttests[i].results[j].param),
+						 ==, paramlisttests[i].results[j].value);
+			}
+			soup_header_free_param_list (params);
+		} else {
+			g_assert_null (params);
+		}
 	}
 }
 
@@ -1175,6 +1250,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/header-parsing/request", do_request_tests);
 	g_test_add_func ("/header-parsing/response", do_response_tests);
 	g_test_add_func ("/header-parsing/qvalue", do_qvalue_tests);
+	g_test_add_func ("/header-parsing/param-list", do_param_list_tests);
 	g_test_add_func ("/header-parsing/content-disposition", do_content_disposition_tests);
 	g_test_add_func ("/header-parsing/content-type", do_content_type_tests);
 	g_test_add_func ("/header-parsing/append-param", do_append_param_tests);
