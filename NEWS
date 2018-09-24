@@ -1,3 +1,9 @@
+Changes in libsoup from 2.63.92 to 2.64.1:
+
+	* Many fixes to the meson build system (which, by the way, is
+	  NOT official yet) (#13, Tomas Popela)
+	* Updated translations: Belarusian.
+
 Changes in libsoup from 2.63.92 to 2.64.0:
 
 	* Many fixes to the meson build system [#7, #8, #9, #11, Tomas Popela]
