@@ -466,9 +466,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/missing-values", do_hsts_missing_values_test);
 	g_test_add_func ("/hsts/invalid-values", do_hsts_invalid_values_test);
 	g_test_add_func ("/hsts/extra-values", do_hsts_extra_values_test);
-	/* This test is skipped because soup_header_parse_semi_param_list() does not
-	   take into account duplicated directives/parameters. */
-	/* g_test_add_func ("/hsts/duplicated-directives", do_hsts_duplicated_directives_test); */
+	g_test_add_func ("/hsts/duplicated-directives", do_hsts_duplicated_directives_test);
 	g_test_add_func ("/hsts/case-insensitive-header", do_hsts_case_insensitive_header_test);
 	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
 	g_test_add_func ("/hsts/optional-quotations", do_hsts_optional_quotations_test);
