@@ -454,7 +454,7 @@ soup_hsts_enforcer_process_sts_header (SoupHSTSEnforcer *hsts_enforcer,
 }
 
 static void
-got_sts_headers_cb (SoupMessage *msg, gpointer user_data)
+got_sts_header_cb (SoupMessage *msg, gpointer user_data)
 {
 	SoupHSTSEnforcer *hsts_enforcer = SOUP_HSTS_ENFORCER (user_data);
 
@@ -501,7 +501,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 	} else if (scheme == SOUP_URI_SCHEME_HTTPS) {
 		soup_message_add_header_handler (msg, "got-headers",
 						 "Strict-Transport-Security",
-						 G_CALLBACK (got_sts_headers_cb),
+						 G_CALLBACK (got_sts_header_cb),
 						 enforcer);
 	}
 }
@@ -528,7 +528,7 @@ soup_hsts_enforcer_request_unqueued (SoupSessionFeature *feature,
 				     SoupMessage *msg)
 {
 	g_signal_handlers_disconnect_by_func (msg, message_restarted_cb, feature);
-	g_signal_handlers_disconnect_by_func (msg, got_sts_headers_cb, feature);
+	g_signal_handlers_disconnect_by_func (msg, got_sts_header_cb, feature);
 }
 
 static void
