@@ -54,6 +54,7 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0 };
 
 struct _SoupHSTSEnforcerPrivate {
+	SoupSession *session;
 	GHashTable *host_policies;
 	GHashTable *session_policies;
 };
@@ -436,9 +437,6 @@ soup_hsts_enforcer_process_sts_header (SoupHSTSEnforcer *hsts_enforcer,
 	SoupHSTSPolicy *policy;
 	SoupURI *uri;
 
-	/* TODO if connection error or warnings received, do nothing. */
-	/* TODO if header received on hazardous connection, do nothing. */
-
 	uri = soup_message_get_uri (msg);
 
 	g_return_if_fail (uri != NULL);
@@ -479,6 +477,20 @@ rewrite_message_uri_to_https (SoupMessage *msg)
 }
 
 static void
+on_sts_known_host_message_starting (SoupMessage *msg, SoupHSTSEnforcer *enforcer)
+{
+	GTlsCertificateFlags errors;
+
+	/* THE UA MUST terminate the connection if there are
+	   any errors with the underlying secure transport for STS
+	   known hosts. */
+
+	soup_message_get_https_status (msg, NULL, &errors);
+	if (errors)
+		soup_session_cancel_message (enforcer->priv->session, msg, SOUP_STATUS_CANCELLED);
+}
+
+static void
 preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 {
 	SoupURI *uri;
@@ -493,8 +505,12 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 
 	scheme = soup_uri_get_scheme (uri);
 	if (scheme == SOUP_URI_SCHEME_HTTP) {
-		if (soup_hsts_enforcer_must_enforce_secure_transport (enforcer, host))
+		if (soup_hsts_enforcer_must_enforce_secure_transport (enforcer, host)) {
 			rewrite_message_uri_to_https (msg);
+			g_signal_connect (msg, "starting",
+					  G_CALLBACK (on_sts_known_host_message_starting),
+					  enforcer);
+		}
 	} else if (scheme == SOUP_URI_SCHEME_HTTPS) {
 		soup_message_add_header_handler (msg, "got-headers",
 						 "Strict-Transport-Security",
@@ -508,6 +524,15 @@ message_restarted_cb (SoupMessage *msg, gpointer user_data)
 {
 	preprocess_request (SOUP_HSTS_ENFORCER (user_data), msg);
 
+}
+
+static void
+soup_hsts_enforcer_attach (SoupSessionFeature *feature, SoupSession *session)
+{
+	SOUP_HSTS_ENFORCER (feature)->priv->session = session;
+
+	if (soup_hsts_enforcer_default_feature_interface->attach)
+		soup_hsts_enforcer_default_feature_interface->attach (feature, session);
 }
 
 static void
@@ -541,6 +566,7 @@ soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_in
 	soup_hsts_enforcer_default_feature_interface =
 		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
 
+	feature_interface->attach = soup_hsts_enforcer_attach;
 	feature_interface->request_queued = soup_hsts_enforcer_request_queued;
 	feature_interface->request_unqueued = soup_hsts_enforcer_request_unqueued;
 }
