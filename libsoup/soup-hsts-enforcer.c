@@ -43,6 +43,7 @@
  *
  **/
 
+static SoupSessionFeatureInterface *soup_hsts_enforcer_default_feature_interface;
 static void soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 enum {
@@ -516,6 +517,9 @@ soup_hsts_enforcer_request_queued (SoupSessionFeature *feature,
 {
 	g_signal_connect (msg, "restarted", G_CALLBACK (message_restarted_cb), feature);
 	preprocess_request (SOUP_HSTS_ENFORCER (feature), msg);
+
+	if (soup_hsts_enforcer_default_feature_interface->request_queued)
+		soup_hsts_enforcer_default_feature_interface->request_queued (feature, session, msg);
 }
 
 static void
@@ -525,12 +529,18 @@ soup_hsts_enforcer_request_unqueued (SoupSessionFeature *feature,
 {
 	g_signal_handlers_disconnect_by_func (msg, message_restarted_cb, feature);
 	g_signal_handlers_disconnect_by_func (msg, got_sts_header_cb, feature);
+
+	if (soup_hsts_enforcer_default_feature_interface->request_unqueued)
+		soup_hsts_enforcer_default_feature_interface->request_unqueued (feature, session, msg);
 }
 
 static void
 soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 					 gpointer interface_data)
 {
+	soup_hsts_enforcer_default_feature_interface =
+		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
+
 	feature_interface->request_queued = soup_hsts_enforcer_request_queued;
 	feature_interface->request_unqueued = soup_hsts_enforcer_request_unqueued;
 }
