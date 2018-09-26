@@ -252,6 +252,11 @@ soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
 	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (hsts_enforcer)->priv;
 	char *query;
 
+	/* Session policies do not need to be stored in the database. */
+	if ((old_policy && soup_hsts_policy_is_permanent (old_policy)) ||
+	    (new_policy && soup_hsts_policy_is_permanent (new_policy)))
+		return;
+
 	if (priv->db == NULL) {
 		if (open_db (hsts_enforcer))
 			return;

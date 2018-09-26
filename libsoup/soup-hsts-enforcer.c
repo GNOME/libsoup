@@ -161,6 +161,9 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 	 * @new_policy will be %NULL. If a policy has been changed,
 	 * @old_policy will contain its old value, and @new_policy its
 	 * new value.
+	 *
+	 * Note that you shouldn't modify the policies from a callback to
+	 * this signal.
 	 **/
 	signals[CHANGED] =
 		g_signal_new ("changed",
@@ -208,9 +211,7 @@ should_remove_expired_host_policy (G_GNUC_UNUSED gpointer key,
 	if (soup_hsts_policy_is_expired (policy)) {
 		/* This will emit the ::changed signal before the
 		   policy is actually removed from the policies hash
-		   table, which could be problematic, or not. On the
-		   other hand, I have my doubts that the ::changed
-		   signal has any use.
+		   table, which could be problematic, or not.
 		*/
 		soup_hsts_enforcer_changed (enforcer, policy, NULL);
 		soup_hsts_policy_free (policy);
@@ -268,7 +269,7 @@ soup_hsts_enforcer_replace_policy (SoupHSTSEnforcer *hsts_enforcer,
 	g_assert (old_policy);
 
 	g_hash_table_replace (policies, g_strdup (domain), soup_hsts_policy_copy (new_policy));
-	if (!is_permanent && !soup_hsts_policy_equal (old_policy, new_policy))
+	if (!soup_hsts_policy_equal (old_policy, new_policy))
 		soup_hsts_enforcer_changed (hsts_enforcer, old_policy, new_policy);
 	soup_hsts_policy_free (old_policy);
 
@@ -299,8 +300,7 @@ soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
 	g_assert (!g_hash_table_contains (policies, domain));
 
 	g_hash_table_insert (policies, g_strdup (domain), soup_hsts_policy_copy (policy));
-	if (!is_permanent)
-		soup_hsts_enforcer_changed (hsts_enforcer, NULL, policy);
+	soup_hsts_enforcer_changed (hsts_enforcer, NULL, policy);
 }
 
 /**
