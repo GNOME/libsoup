@@ -6,8 +6,6 @@
  * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
-/* TODO Use only internationalized domain names */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -496,6 +494,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 	SoupURI *uri;
 	const char *scheme;
 	const char *host;
+	char *canonicalized = NULL;
 
 	uri = soup_message_get_uri (msg);
 	host = soup_uri_get_host (uri);
@@ -505,12 +504,18 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 
 	scheme = soup_uri_get_scheme (uri);
 	if (scheme == SOUP_URI_SCHEME_HTTP) {
-		if (soup_hsts_enforcer_must_enforce_secure_transport (enforcer, host)) {
+		if (g_hostname_is_ascii_encoded (host)) {
+			canonicalized = g_hostname_to_unicode (host);
+			if (!canonicalized)
+				return;
+		}
+		if (soup_hsts_enforcer_must_enforce_secure_transport (enforcer, canonicalized? canonicalized : host)) {
 			rewrite_message_uri_to_https (msg);
 			g_signal_connect (msg, "starting",
 					  G_CALLBACK (on_sts_known_host_message_starting),
 					  enforcer);
 		}
+		g_free (canonicalized);
 	} else if (scheme == SOUP_URI_SCHEME_HTTPS) {
 		soup_message_add_header_handler (msg, "got-headers",
 						 "Strict-Transport-Security",
@@ -605,8 +610,21 @@ gboolean
 soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
 				     const char *domain)
 {
+	char *canonicalized = NULL;
+	gboolean retval;
+
 	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), FALSE);
 	g_return_val_if_fail (domain != NULL, FALSE);
 
-	return SOUP_HSTS_ENFORCER_GET_CLASS (hsts_enforcer)->has_valid_policy (hsts_enforcer, domain);
+	if (g_hostname_is_ascii_encoded (domain)) {
+		canonicalized = g_hostname_to_unicode (domain);
+		g_return_val_if_fail (canonicalized, FALSE);
+	}
+
+	retval = SOUP_HSTS_ENFORCER_GET_CLASS (hsts_enforcer)->has_valid_policy (hsts_enforcer,
+										 canonicalized ? canonicalized : domain);
+
+	g_free (canonicalized);
+
+	return retval;
 }
