@@ -12,10 +12,6 @@
 #include <config.h>
 #endif
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "soup-hsts-enforcer.h"
 #include "soup.h"
 
