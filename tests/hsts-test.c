@@ -437,7 +437,7 @@ main (int argc, char **argv)
 {
 	int ret;
 	SoupServer *server;
-	SoupServer *https_server;
+	SoupServer *https_server = NULL;
 
 	test_init (argc, argv, NULL);
 
