@@ -441,9 +441,6 @@ soup_hsts_enforcer_process_sts_header (SoupHSTSEnforcer *hsts_enforcer,
 	SoupHSTSPolicy *policy;
 	SoupURI *uri;
 
-	/* TODO if connection error or warnings received, do nothing. */
-	/* TODO if header received on hazardous connection, do nothing. */
-
 	uri = soup_message_get_uri (msg);
 
 	g_return_if_fail (uri != NULL);
