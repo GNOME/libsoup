@@ -505,7 +505,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 
 	scheme = soup_uri_get_scheme (uri);
 	if (scheme == SOUP_URI_SCHEME_HTTP) {
-		if (soup_hsts_enforcer_must_enforce_secure_transport (enforcer, soup_uri_get_host (uri))) {
+		if (soup_hsts_enforcer_must_enforce_secure_transport (enforcer, host)) {
 			rewrite_message_uri_to_https (msg);
 			g_signal_connect (msg, "starting",
 					  G_CALLBACK (on_sts_known_host_message_starting),
