@@ -432,6 +432,35 @@ do_hsts_session_policy_test (void)
 	g_object_unref (enforcer);
 }
 
+static void
+on_idna_test_enforcer_changed (SoupHSTSEnforcer *enforcer, SoupHSTSPolicy *old, SoupHSTSPolicy *new, gpointer data)
+{
+	/* If NULL, then instead of replacing we're adding a new
+	 * policy and somewhere we're failing to canonicalize a hostname. */
+	g_assert_nonnull (old);
+	g_assert_cmpstr (old->domain, ==, new->domain);
+	/*  Domains should not have punycoded segments at this point. */
+	g_assert_false (g_hostname_is_ascii_encoded (old->domain));
+}
+
+static void
+do_hsts_idna_addresses_test (void)
+{
+	SoupHSTSEnforcer *enforcer = soup_hsts_enforcer_new ();
+
+	soup_hsts_enforcer_set_session_policy (enforcer, "áéí.com", FALSE);
+	soup_hsts_enforcer_set_session_policy (enforcer, "xn--6scagyk0fc4c.in", FALSE);
+
+	g_assert_true (soup_hsts_enforcer_has_valid_policy (enforcer, "xn--1caqm.com"));
+
+	g_signal_connect (enforcer, "changed", G_CALLBACK (on_idna_test_enforcer_changed), NULL);
+
+	soup_hsts_enforcer_set_session_policy (enforcer, "xn--1caqm.com", TRUE);
+	soup_hsts_enforcer_set_session_policy (enforcer, "ನೆನಪಿರಲಿ.in", TRUE);
+
+	g_object_unref (enforcer);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -473,6 +502,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/ip-address", do_hsts_ip_address_test);
 	g_test_add_func ("/hsts/utf8-address", do_hsts_utf8_address_test);
 	g_test_add_func ("/hsts/session-policy", do_hsts_session_policy_test);
+	g_test_add_func ("/hsts/idna-addresses", do_hsts_idna_addresses_test);
 
 	ret = g_test_run ();
 

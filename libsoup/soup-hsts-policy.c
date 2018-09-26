@@ -38,8 +38,9 @@
  *
  * An HTTP Strict Transport Security policy.
  *
- * @domain give the host or domain that this policy belongs to and applies
- * on.
+ * @domain represents the host that this policy applies to. The domain
+ * must be IDNA-canonicalized. soup_hsts_policy_new() and related methods
+ * will do this for you.
  *
  * @max_age contains the 'max-age' value from the Strict Transport
  * Security header and indicates the time to live of this policy,
@@ -197,7 +198,17 @@ soup_hsts_policy_new_full (const char *domain,
 	g_return_val_if_fail (is_hostname_valid (domain), NULL);
 
 	policy = g_slice_new0 (SoupHSTSPolicy);
-	policy->domain = g_strdup (domain);
+
+	if (g_hostname_is_ascii_encoded (domain)) {
+		policy->domain = g_hostname_to_unicode (domain);
+		if (!policy->domain) {
+			g_slice_free (SoupHSTSPolicy, policy);
+			return NULL;
+		}
+	} else {
+		policy->domain = g_strdup (domain);
+	}
+
 	policy->max_age = max_age;
 	policy->expires = expires;
 	policy->include_subdomains = include_subdomains;
