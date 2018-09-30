@@ -42,7 +42,7 @@ option('introspection',
 
 option('vapi',
   type : 'boolean',
-  value : false,
+  value : true,
   description : 'Build Vala bindings'
 )
 
