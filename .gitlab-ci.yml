@@ -1,27 +1,50 @@
-image: fedora:28
-
 variables:
-  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php php-xmlrpc mod_ssl redhat-rpm-config
-  USER: user
-  BUILDDIR: $CI_PROJECT_DIR/build
+  BUILD_DIR: $CI_PROJECT_DIR/build
+  FEDORA_DEPS: gtk-doc libpsl-devel httpd meson php php-xmlrpc mod_ssl redhat-rpm-config
+  UBUNTU_DEPS: gcc gettext apache2 curl glib-networking
+    gobject-introspection gtk-doc-tools libgirepository1.0-dev
+    libglib2.0-dev libkrb5-dev libpsl-dev libsqlite3-dev libxml2-dev
+    meson php php-xmlrpc valac
 
-build:
+build-fedora:
+  image: fedora:latest
   tags:
     - non_aws
+
   before_script:
     - dnf update -y --nogpgcheck
     - dnf install -y 'dnf-command(builddep)'
     - dnf builddep -y --nogpgcheck libsoup
-    - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
+    - dnf install -y --nogpgcheck $FEDORA_DEPS
+
   script:
-    - adduser $USER
-    - su -c 'mkdir -p $BUILDDIR' $USER
-    - cd $BUILDDIR
-    - su -c $CI_PROJECT_DIR/autogen.sh $USER
-    - su -c make $USER
-    - su -c 'make check' $USER
+    - meson $BUILD_DIR --prefix=/usr
+    - cd $BUILD_DIR
+    - ninja install
+    - ninja test
+
   artifacts:
     paths:
-      - $BUILDDIR/config.log
-      - $BUILDDIR/tests/test-suite.log
+      - $BUILD_DIR/meson-logs
+    when: on_failure
+
+build-ubuntu:
+  image: ubuntu:devel
+  tags:
+    - non_aws
+
+  before_script:
+    - apt-get update
+    # DEBIAN_FRONTEND avoids a timezone debconf question from tzdata
+    - DEBIAN_FRONTEND=noninteractive apt-get install -q -y --no-install-recommends $UBUNTU_DEPS
+
+  script:
+    - meson $BUILD_DIR --prefix=/usr
+    - cd $BUILD_DIR
+    - ninja install
+    - ninja test
+
+  artifacts:
+    paths:
+      - $BUILD_DIR/meson-logs
     when: on_failure
