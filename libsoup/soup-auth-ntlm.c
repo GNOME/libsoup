@@ -728,7 +728,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 	memcpy (&flags, chall + NTLM_CHALLENGE_FLAGS_OFFSET, sizeof(flags));
 	flags = GUINT_FROM_LE (flags);
 	*ntlmv2_session = (flags & NTLM_FLAGS_NEGOTIATE_NTLMV2) ? TRUE : FALSE;
-	//To know if NTLMv2 responses should be calculated
+	/* To know if NTLMv2 responses should be calculated */
 	*negotiate_target = (flags & NTLM_FLAGS_NEGOTIATE_TARGET_INFORMATION ) ? TRUE : FALSE;
 
 	if (default_domain) {
@@ -750,7 +750,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 		*nonce = g_memdup (chall + NTLM_CHALLENGE_NONCE_OFFSET,
 				   NTLM_CHALLENGE_NONCE_LENGTH);
 	}
-	//For NTLMv2 response
+	/* For NTLMv2 response */
 	if (*negotiate_target && target_info) {
 		memcpy (&target, chall + NTLM_CHALLENGE_TARGET_INFORMATION_OFFSET, sizeof (target));
 		target.length = GUINT16_FROM_LE (target.length);
@@ -839,6 +839,7 @@ calc_ntlmv2_response (const char *user, const char *domain,
 	gchar *user_domain, *user_domain_conv;
 	gsize user_domain_conv_sz;
 	size_t blob_sz;
+	int i;
 
 	/* create HMAC-MD5 hash of Unicode uppercase username and Unicode domain */
 	user_domain = g_strconcat ((const gchar *) g_utf8_strup ((const gchar *) user, (gsize) strlen(user)), (gchar *) domain, NULL);
@@ -848,7 +849,7 @@ calc_ntlmv2_response (const char *user, const char *domain,
 	g_free (user_domain_conv);
 
 	/* create random client nonce */
-	for (int i = 0; i < sizeof (client_nonce); i++)
+	for (i = 0; i < sizeof (client_nonce); i++)
 	{
 		client_nonce[i] = g_random_int();
 	}
