@@ -137,7 +137,7 @@ struct SoupClientContext {
 	char           *auth_user;
 
 	GSocketAddress *remote_addr;
-	const char     *remote_ip;
+	char           *remote_ip;
 	GSocketAddress *local_addr;
 
 	int             ref_count;
