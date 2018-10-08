@@ -26,8 +26,17 @@ static const char *state_name[] = {
 #define NTLM_REQUEST_START "TlRMTVNTUAABAAAA"
 #define NTLM_RESPONSE_START "TlRMTVNTUAADAAAA"
 
-#define NTLM_CHALLENGE "TlRMTVNTUAACAAAADAAMADAAAAABAoEAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
-#define NTLMSSP_CHALLENGE "TlRMTVNTUAACAAAADAAMADAAAAABAokAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
+/*
+ * NTLMV1_CHALLENGE - does not have "Negotiate Target Info" nor "Negotiate NTLM2 Key flags"
+ * NTLMV2_CHALLENGE - "Negotiate Target Info" flag is set
+ * NTLMSSP_CHALLENGE - "Negotiate NTLM2 Key" flag is set
+ */
+#define NTLMV1_CHALLENGE "TlRMTVNTUAACAAAADAAMADAAAAABAgEAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
+#define NTLMV2_CHALLENGE "TlRMTVNTUAACAAAADAAMADAAAAABAoEAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
+#define NTLMSSP_CHALLENGE "TlRMTVNTUAACAAAADAAMADAAAAABAgkAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
+
+#define NTLM_RESPONSE_FLAGS_OFFSET 60
+#define NTLM_FLAGS_REQUEST_TARGET 0x00000004
 
 #define NTLM_RESPONSE_USER(response) ((response)[86] == 'E' ? NTLM_AUTHENTICATED_ALICE : ((response)[86] == 'I' ? NTLM_AUTHENTICATED_BOB : NTLM_UNAUTHENTICATED))
 
@@ -36,6 +45,7 @@ typedef struct {
 	GHashTable *connections;
 	SoupURI *uri;
 	gboolean ntlmssp;
+	gboolean ntlmv2;
 } TestServer;
 
 static void
@@ -127,7 +137,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		if (ntlm_allowed && state == NTLM_RECEIVED_REQUEST) {
 			soup_message_headers_append (msg->response_headers,
 						     "WWW-Authenticate",
-						     ts->ntlmssp ? ("NTLM " NTLMSSP_CHALLENGE) : ("NTLM " NTLM_CHALLENGE));
+						     ts->ntlmssp ? ("NTLM " NTLMSSP_CHALLENGE) : ts->ntlmv2 ? ("NTLM " NTLMV2_CHALLENGE) : ("NTLM " NTLMV1_CHALLENGE));
 			state = NTLM_SENT_CHALLENGE;
 		} else if (ntlm_allowed) {
 			soup_message_headers_append (msg->response_headers,
@@ -158,6 +168,7 @@ setup_server (TestServer *ts,
 	ts->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	ts->connections = g_hash_table_new (NULL, NULL);
 	ts->ntlmssp = FALSE;
+	ts->ntlmv2 = FALSE;
 	soup_server_add_handler (ts->server, NULL, server_callback, ts, NULL);
 
 	ts->uri = soup_test_server_get_uri (ts->server, "http", NULL);
@@ -169,6 +180,14 @@ setup_ntlmssp_server (TestServer *ts,
 {
 	setup_server (ts, test_data);
 	ts->ntlmssp = TRUE;
+}
+
+static void
+setup_ntlmv2_server (TestServer *ts,
+		      gconstpointer test_data)
+{
+	setup_server (ts, test_data);
+	ts->ntlmv2 = TRUE;
 }
 
 static void
@@ -213,8 +232,9 @@ prompt_check (SoupMessage *msg, gpointer user_data)
 	if (header && strstr (header, "Basic "))
 		state->got_basic_prompt = TRUE;
 	if (header && strstr (header, "NTLM") &&
-	    (!strstr (header, NTLM_CHALLENGE) &&
-	     !strstr (header, NTLMSSP_CHALLENGE))) {
+	    (!strstr (header, NTLMV1_CHALLENGE) &&
+	     !strstr (header, NTLMSSP_CHALLENGE) &&
+	     !strstr (header, NTLMV2_CHALLENGE))) {
 		state->got_ntlm_prompt = TRUE;
 	}
 }
@@ -249,12 +269,37 @@ response_check (SoupMessage *msg, gpointer user_data)
 {
 	NTLMState *state = user_data;
 	const char *header;
+	guchar *ntlm_data;
+	gsize ntlm_data_sz;
+	gboolean request_target;
+	guint32 flags;
+	int nt_resp_sz;
 
 	header = soup_message_headers_get_one (msg->request_headers,
 					       "Authorization");
 	if (header && !strncmp (header, "NTLM " NTLM_RESPONSE_START,
 				strlen ("NTLM " NTLM_RESPONSE_START)))
-		state->sent_ntlm_response = TRUE;
+	{
+		ntlm_data = g_base64_decode (header + 5, &ntlm_data_sz);
+
+		memcpy (&flags, ntlm_data + NTLM_RESPONSE_FLAGS_OFFSET, sizeof(flags));
+		flags = GUINT_FROM_LE (flags);
+		request_target = (flags & NTLM_FLAGS_REQUEST_TARGET) ? TRUE : FALSE;
+		nt_resp_sz = ntlm_data[22] | ntlm_data[23] << 8;
+
+		/*
+		 * If the "Request Target" flag is not set in response, it should return NTLMv1 or NTLM2 Session Response,
+		 * they both should return exactly 24-byte NT response.
+		 * If the "Request Target" flag is set, it should return NTLMv2 reponse,
+		 * which has NT response always over 24 bytes.
+		 */
+		if ((!request_target && nt_resp_sz == 24) || (request_target && nt_resp_sz > 24))
+		{
+			state->sent_ntlm_response = TRUE;
+		}
+
+		g_free (ntlm_data);
+	}
 	if (header && !strncmp (header, "Basic ", 6))
 		state->sent_basic_response = TRUE;
 }
@@ -505,6 +550,13 @@ static const NtlmTest ntlmssp_tests[] = {
 	{ "/ntlm/ssp/basic", "alice", FALSE, BUILTIN }
 };
 
+static const NtlmTest ntlmv2_tests[] = {
+	{ "/ntlm/v2/none",  NULL,    FALSE, BUILTIN },
+	{ "/ntlm/v2/alice", "alice", TRUE,  BUILTIN },
+	{ "/ntlm/v2/bob",   "bob",   TRUE,  BUILTIN },
+	{ "/ntlm/v2/basic", "alice", FALSE, BUILTIN }
+};
+
 static void
 do_ntlm_test (TestServer *ts,
 	      gconstpointer data)
@@ -647,6 +699,10 @@ main (int argc, char **argv)
 	for (i = 0; i < G_N_ELEMENTS (ntlmssp_tests); i++) {
 		g_test_add (ntlmssp_tests[i].name, TestServer, &ntlmssp_tests[i],
 			    setup_ntlmssp_server, do_ntlm_test, teardown_server);
+	}
+	for (i = 0; i < G_N_ELEMENTS (ntlmv2_tests); i++) {
+		g_test_add (ntlmv2_tests[i].name, TestServer, &ntlmv2_tests[i],
+			    setup_ntlmv2_server, do_ntlm_test, teardown_server);
 	}
 
 	g_test_add ("/ntlm/retry", TestServer, NULL,
