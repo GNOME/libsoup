@@ -1,3 +1,8 @@
+Changes in libsoup from 2.64.1 to 2.64.2:
+
+	* TLD tests updated (Claudio Saavedra)
+	* Updated translations: Serbian
+
 Changes in libsoup from 2.63.92 to 2.64.1:
 
 	* Many fixes to the meson build system (which, by the way, is
