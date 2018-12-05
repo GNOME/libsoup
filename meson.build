@@ -55,9 +55,12 @@ endif
 add_project_arguments(common_flags, language : 'c')
 
 glib_required_version = '>= 2.38'
-glib_dep = [dependency('glib-2.0', version : glib_required_version),
-            dependency('gobject-2.0', version : glib_required_version),
-            dependency('gio-2.0', version : glib_required_version)]
+glib_dep = [dependency('glib-2.0', version : glib_required_version,
+                       fallback: ['glib', 'libglib_dep']),
+            dependency('gobject-2.0', version : glib_required_version,
+                       fallback: ['glib', 'libgobject_dep']),
+            dependency('gio-2.0', version : glib_required_version,
+                       fallback: ['glib', 'libgio_dep'])]
 
 sqlite_dep = dependency('sqlite3', required: cc.get_id() != 'msvc')
 
