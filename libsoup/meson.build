@@ -244,7 +244,8 @@ pkg.generate(libsoup,
 
 libsoup_dep = declare_dependency(link_with : libsoup,
   include_directories : configinc,
-  sources : soup_enum_h)
+  sources : soup_enum_h,
+  dependencies : glib_dep)
 
 if enable_gnome
   soup_gnome_api_name = 'soup-gnome-' + apiversion
