@@ -234,18 +234,11 @@ libsoup = shared_library('soup-@0@'.format(apiversion),
   install : true,
   dependencies : deps)
 
-pkg.generate(
-  libraries : libsoup,
-  version : soup_version,
+pkg.generate(libsoup,
+  libraries : glib_dep,
   name : meson.project_name(),
   description : 'A glib-based HTTP library',
   filebase : libsoup_api_name,
-  requires : [
-    'glib-2.0 ' + glib_required_version,
-    'gobject-2.0 ' + glib_required_version,
-    'gio-2.0 ' + glib_required_version
-  ],
-  requires_private : 'libxml-2.0',
   subdirs: libsoup_api_name,
   variables: 'exec_prefix=${prefix}')
 
