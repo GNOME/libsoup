@@ -100,7 +100,8 @@ if get_option('default_library') != 'static'
 endif
 
 libpsl_required_version = '>= 0.20'
-libpsl_dep = dependency('libpsl', version : libpsl_required_version)
+libpsl_dep = dependency('libpsl', version : libpsl_required_version,
+  fallback : ['libpsl', 'libpsl_dep'])
 
 if cc.has_function('gmtime_r', prefix : '#include <time.h>', args : default_source_flag)
     cdata.set('HAVE_GMTIME_R', '1')
