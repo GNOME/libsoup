@@ -78,7 +78,7 @@ if not libxml_dep.found()
   # Note: The XML include dir needs to be within the INCLUDE envvar,
   # such as <INCLUDEDIR>\libxml2
   cc.has_header('libxml/tree.h')
-  libxml2_dep = cc.find_library('xml2')
+  libxml_dep = cc.find_library('xml2')
 endif
 
 cdata = configuration_data()
