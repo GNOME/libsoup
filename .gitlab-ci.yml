@@ -1,27 +1,28 @@
-image: fedora:28
+image: registry.gitlab.gnome.org/gnome/libsoup/master:v1
 
-variables:
-  ADDITIONAL_DEPENDENCIES: which gtk-doc libpsl-devel make httpd php php-xmlrpc mod_ssl redhat-rpm-config
-  USER: user
-  BUILDDIR: $CI_PROJECT_DIR/build
-
-build:
+fedora-autotools-x86_64:
   tags:
     - non_aws
-  before_script:
-    - dnf update -y --nogpgcheck
-    - dnf install -y 'dnf-command(builddep)'
-    - dnf builddep -y --nogpgcheck libsoup
-    - dnf install -y --nogpgcheck $ADDITIONAL_DEPENDENCIES
   script:
-    - adduser $USER
-    - su -c 'mkdir -p $BUILDDIR' $USER
-    - cd $BUILDDIR
-    - su -c $CI_PROJECT_DIR/autogen.sh $USER
-    - su -c make $USER
-    - su -c 'make check' $USER
+    - mkdir -p _build
+    - cd _build
+    - ../autogen.sh
+    - make
+    - make check
   artifacts:
     paths:
-      - $BUILDDIR/config.log
-      - $BUILDDIR/tests/test-suite.log
+      - _build/config.log
+      - _build/tests/test-suite.log
+    when: on_failure
+
+fedora-meson-x86_64:
+  tags:
+    - non_aws
+  script:
+    - meson _build
+    - ninja -C _build
+    - ninja -C _build test
+  artifacts:
+    paths:
+      - "_build/meson-logs"
     when: on_failure
