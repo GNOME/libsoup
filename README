@@ -19,8 +19,8 @@ There is a mailing list for libsoup-related questions/discussions at
 gnome.org. Visit http://mail.gnome.org/mailman/listinfo/libsoup-list
 to subscribe or read the archives.
 
-Bugs against libsoup can be filed at the GNOME bugzilla:
-https://bugzilla.gnome.org/enter_bug.cgi?product=libsoup
+Bugs against libsoup can be filed at:
+https://gitlab.gnome.org/GNOME/libsoup/issues/
 
 More information (including the libsoup To Do list) is available at
 https://wiki.gnome.org/Projects/libsoup

@@ -7,7 +7,7 @@ m4_define([soup_minor_version], [65])
 m4_define([soup_micro_version], [1])
 
 AC_PREREQ(2.63)
-AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
+AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[https://gitlab.gnome.org/GNOME/libsoup/issues/])
 AC_CONFIG_SRCDIR([libsoup-2.4.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
