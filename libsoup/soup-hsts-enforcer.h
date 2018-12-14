@@ -49,6 +49,9 @@ typedef struct {
 			 SoupHSTSPolicy	  *old_policy,
 			 SoupHSTSPolicy	  *new_policy);
 
+	void (*hsts_enforced) (SoupHSTSEnforcer *enforcer,
+			       SoupMessage      *message);
+
 	/* Padding for future expansion */
 	void (*_libsoup_reserved1) (void);
 	void (*_libsoup_reserved2) (void);

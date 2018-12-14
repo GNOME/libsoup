@@ -46,6 +46,7 @@ static void soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface
 
 enum {
 	CHANGED,
+	HSTS_ENFORCED,
 	LAST_SIGNAL
 };
 
@@ -169,6 +170,25 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_HSTS_POLICY | G_SIGNAL_TYPE_STATIC_SCOPE,
 			      SOUP_TYPE_HSTS_POLICY | G_SIGNAL_TYPE_STATIC_SCOPE);
+
+	/**
+	 * SoupHSTSEnforcer::hsts-enforced:
+	 * @hsts_enforcer: the #SoupHSTSEnforcer
+	 * @message: the message for which HSTS is being enforced
+	 *
+	 * Emitted when @hsts_enforcer has upgraded the protocol
+	 * for @message to HTTPS as a result of matching its domain with
+	 * a HSTS policy.
+	 **/
+	signals[HSTS_ENFORCED] =
+		g_signal_new ("hsts-enforced",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupHSTSEnforcerClass, hsts_enforced),
+			      NULL, NULL,
+			      NULL,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_MESSAGE);
 }
 
 /**
@@ -514,6 +534,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 			g_signal_connect (msg, "starting",
 					  G_CALLBACK (on_sts_known_host_message_starting),
 					  enforcer);
+			g_signal_emit (enforcer, signals[HSTS_ENFORCED], 0, msg);
 		}
 		g_free (canonicalized);
 	} else if (scheme == SOUP_URI_SCHEME_HTTPS) {
