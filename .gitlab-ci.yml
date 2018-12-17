@@ -1,8 +1,6 @@
 image: registry.gitlab.gnome.org/gnome/libsoup/master:v1
 
 fedora-autotools-x86_64:
-  tags:
-    - non_aws
   script:
     - mkdir -p _build
     - cd _build
@@ -16,8 +14,6 @@ fedora-autotools-x86_64:
     when: on_failure
 
 fedora-meson-x86_64:
-  tags:
-    - non_aws
   script:
     - meson _build
     - ninja -C _build
