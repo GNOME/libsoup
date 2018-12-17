@@ -1,6 +1,13 @@
 image: registry.gitlab.gnome.org/gnome/libsoup/master:v1
 
+.build:
+  tags:
+    # We need runners supporting IPv6:
+    # https://gitlab.gnome.org/Infrastructure/GitLab/issues/313
+    - osuosl
+
 fedora-autotools-x86_64:
+  extends: .build
   script:
     - mkdir -p _build
     - cd _build
@@ -14,6 +21,7 @@ fedora-autotools-x86_64:
     when: on_failure
 
 fedora-meson-x86_64:
+  extends: .build
   script:
     - meson _build
     - ninja -C _build
