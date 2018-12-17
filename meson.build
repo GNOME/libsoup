@@ -85,7 +85,8 @@ cdata = configuration_data()
 
 platform_deps = []
 hidden_visibility_flag = []
-if get_option('default_library') != 'static'
+is_static_library = get_option('default_library') == 'static'
+if not is_static_library
   if host_machine.system() == 'windows'
     platform_deps = [cc.find_library('ws2_32')]
     cdata.set('DLL_EXPORT', true)
@@ -263,7 +264,7 @@ enable_gnome = get_option('gnome') and host_machine.system() != 'windows'
 #########################
 # GObject introspection #
 #########################
-enable_introspection = get_option('introspection') and find_program('g-ir-scanner', required: false).found() and not meson.is_cross_build()
+enable_introspection = get_option('introspection') and find_program('g-ir-scanner', required: false).found() and not meson.is_cross_build() and not is_static_library
 
 ############
 # Vala API #

@@ -223,7 +223,7 @@ deps = [
   platform_deps
 ]
 
-libsoup = shared_library('soup-@0@'.format(apiversion),
+libsoup = library('soup-@0@'.format(apiversion),
   soup_sources,
   soup_headers,
   soup_enums,
@@ -262,7 +262,7 @@ if enable_gnome
     soup_gnome_installed_headers,
     subdir : includedir)
 
-  libsoup_gnome = shared_library(soup_gnome_api_name,
+  libsoup_gnome = library(soup_gnome_api_name,
     soup_gnome_sources + soup_gnome_headers,
     version : libversion,
     soversion : soversion,
