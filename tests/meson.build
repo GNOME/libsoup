@@ -107,7 +107,9 @@ foreach test: tests
     sources : [ test_name + '.c', test_resources ],
     link_with : test_utils,
     dependencies : [glib_dep, libsoup_dep, platform_deps])
-  test(test_name, test_target, env : env, is_parallel : test[1])
+  # Increase the timeout as on some architectures the tests could be slower
+  # than the default 30 seconds.
+  test(test_name, test_target, env : env, is_parallel : test[1], timeout : 60)
 endforeach
 
 executable('ntlm-test-helper', 'ntlm-test-helper.c',
