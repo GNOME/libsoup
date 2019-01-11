@@ -6,20 +6,6 @@ image: registry.gitlab.gnome.org/gnome/libsoup/master:v1
     # https://gitlab.gnome.org/Infrastructure/GitLab/issues/313
     - osuosl
 
-fedora-autotools-x86_64:
-  extends: .build
-  script:
-    - mkdir -p _build
-    - cd _build
-    - ../autogen.sh
-    - make
-    - make check
-  artifacts:
-    paths:
-      - _build/config.log
-      - _build/tests/test-suite.log
-    when: on_failure
-
 fedora-meson-x86_64:
   extends: .build
   script:

@@ -4,17 +4,11 @@
 .deps
 .libs
 INSTALL
-Makefile
-Makefile.in
-aclocal.m4
-autom4te.cache
-build-aux
 config.h
 config.h.in
 config.h.in~
 config.log
 config.status
-configure
 docs/reference/*.stamp
 docs/reference/*.bak
 docs/reference/html
@@ -35,8 +29,6 @@ docs/reference/xml
 examples/get
 examples/simple-httpd
 examples/simple-proxy
-gtk-doc.make
-libsoup-zip
 libsoup-2.4.pc
 libsoup-gnome-2.4.pc
 libsoup/libsoup-2.4.vapi
@@ -48,10 +40,6 @@ libsoup/SoupGNOME-2.4.typelib
 libsoup/tld_data.inc
 libsoup/soup-version.h
 libtool
-m4/gtk-doc.m4
-m4/intltool.m4
-m4/libtool.m4
-m4/lt*.m4
 po/*.gmo
 po/libsoup.pot
 po/Makefile.in.in
