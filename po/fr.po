@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2018-07-01 06:42+0000\n"
-"PO-Revision-Date: 2018-07-20 11:59+0200\n"
+"POT-Creation-Date: 2018-09-24 14:21+0000\n"
+"PO-Revision-Date: 2018-11-15 21:15+0100\n"
 "Last-Translator: Charles Monzat <charles.monzat@numericable.fr>\n"
 "Language-Team: français <gnomefr@traduc.org>\n"
 "Language: fr\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Gtranslator 2.91.7\n"
+"X-Generator: Gtranslator 3.30.0\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
@@ -29,7 +29,7 @@ msgstr "La connexion a été interrompue de manière inattendue"
 
 #: libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
-msgstr "Requête de recherche invalide"
+msgstr "Requête de recherche non valide"
 
 #: libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
@@ -89,7 +89,7 @@ msgstr "Impossible de créer un serveur TLS sans un certificat TLS"
 #: libsoup/soup-server.c:1742
 #, c-format
 msgid "Could not listen on address %s, port %d: "
-msgstr "Impossible d’écouter l’adresse %s sur le port %d: "
+msgstr "Impossible d’écouter l’adresse %s sur le port %d : "
 
 #: libsoup/soup-session.c:4534
 #, c-format
