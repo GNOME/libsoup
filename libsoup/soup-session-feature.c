@@ -66,8 +66,11 @@ request_queued (SoupSession *session, SoupMessage *msg, gpointer feature)
 	if (soup_message_disables_feature (msg, feature))
 		return;
 
-	SOUP_SESSION_FEATURE_GET_CLASS (feature)->
-		request_queued (feature, session, msg);
+	g_object_ref (feature);
+	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_queued) {
+		SOUP_SESSION_FEATURE_GET_CLASS (feature)->
+			request_queued (feature, session, msg);
+	}
 }
 
 static void
@@ -87,8 +90,11 @@ request_unqueued (SoupSession *session, SoupMessage *msg, gpointer feature)
 	if (soup_message_disables_feature (msg, feature))
 		return;
 
-	SOUP_SESSION_FEATURE_GET_CLASS (feature)->
-		request_unqueued (feature, session, msg);
+	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_unqueued) {
+		SOUP_SESSION_FEATURE_GET_CLASS (feature)->
+			request_unqueued (feature, session, msg);
+	}
+	g_object_unref (feature);
 }
 
 static void
@@ -97,20 +103,16 @@ soup_session_feature_real_attach (SoupSessionFeature *feature, SoupSession *sess
 	g_object_weak_ref (G_OBJECT (session),
 			   weak_notify_unref, g_object_ref (feature));
 
-	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_queued) {
-		g_signal_connect (session, "request_queued",
-				  G_CALLBACK (request_queued), feature);
-	}
+	g_signal_connect (session, "request_queued",
+			  G_CALLBACK (request_queued), feature);
 
 	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_started) {
 		g_signal_connect (session, "request_started",
 				  G_CALLBACK (request_started), feature);
 	}
 
-	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_unqueued) {
-		g_signal_connect (session, "request_unqueued",
-				  G_CALLBACK (request_unqueued), feature);
-	}
+	g_signal_connect (session, "request_unqueued",
+			  G_CALLBACK (request_unqueued), feature);
 }
 
 void

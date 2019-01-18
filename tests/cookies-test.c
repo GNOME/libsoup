@@ -3,6 +3,7 @@
  * Copyright (C) 2010 Igalia S.L.
  */
 
+#include <stdio.h>
 #include "test-utils.h"
 
 SoupServer *server;
@@ -306,6 +307,38 @@ do_get_cookies_empty_host_test (void)
 	soup_uri_free (uri);
 }
 
+static void
+send_callback (GObject *source_object,
+	       GAsyncResult *res,
+	       GMainLoop *loop)
+{
+	g_main_loop_quit (loop);
+}
+
+static void
+do_remove_feature_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *uri;
+	GMainLoop *loop;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
+	uri = soup_uri_new_with_base (first_party_uri, "/index.html");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_message_set_first_party (msg, first_party_uri);
+
+	loop = g_main_loop_new (NULL, TRUE);
+	soup_session_send_async (session, msg, NULL, (GAsyncReadyCallback)send_callback, loop);
+	soup_session_remove_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
+
+	g_main_loop_run(loop);
+
+	g_object_unref (msg);
+	soup_uri_free (uri);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -328,6 +361,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
 	g_test_add_func ("/cookies/parsing/no-path-null-origin", do_cookies_parsing_nopath_nullorigin);
 	g_test_add_func ("/cookies/get-cookies/empty-host", do_get_cookies_empty_host_test);
+	g_test_add_func ("/cookies/remove-feature", do_remove_feature_test);
 
 	ret = g_test_run ();
 
