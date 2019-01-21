@@ -1,3 +1,19 @@
+Changes in libsoup from 2.65.1 to 2.65.2:
+
+	* Remove autotools build system and change to meson by default
+          [#12, Tomas Popela]
+
+	* Many fixes to Meson [Claudio Saavedra, Tomas Popela, Xavier
+          Claessens]
+
+	* Improvements to the continuous integration infrastructure
+          [Xavier Claessens]
+
+	* Make sure SoupSession features are not disposed until all
+          pending messages are processed [#130, Claudio Saavedra]
+
+	* Updated translations: Greek, Slovak, French.
+
 Changes in libsoup from 2.64.0 to 2.65.1:
 
 	* Added MTLMv2 responses support [Michal Hrubý]
