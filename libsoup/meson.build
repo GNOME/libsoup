@@ -295,6 +295,7 @@ if enable_introspection or enable_vapi
     export_packages : libsoup_api_name,
     extra_args : soup_gir_args,
     includes : 'Gio-2.0',
+    link_with: libsoup,
     install : true,
     header: join_paths(meson.project_name(), 'soup.h'),
   )

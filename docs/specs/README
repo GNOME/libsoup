@@ -11,3 +11,4 @@ rfc2817 - Upgrading to TLS Within HTTP/1.1
 rfc2818 - HTTP Over TLS
 rfc2965 - HTTP State Management Mechanism (allegedly obsoletes 2109)
 rfc3986 - Uniform Resource Identifiers (URI): Generic Syntax
+cookie-same-site.txt - Same-Site Cookies (draft)
