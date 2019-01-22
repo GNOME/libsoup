@@ -36,6 +36,7 @@ typedef struct {
 	GSList            *disabled_features;
 
 	SoupURI           *first_party;
+	SoupURI           *site_for_cookies;
 
 	GTlsCertificate      *tls_certificate;
 	GTlsCertificateFlags  tls_errors;
@@ -43,6 +44,8 @@ typedef struct {
 	SoupRequest       *request;
 
 	SoupMessagePriority priority;
+
+	gboolean is_top_level_navigation;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
