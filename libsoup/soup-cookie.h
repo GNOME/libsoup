@@ -10,6 +10,17 @@
 
 G_BEGIN_DECLS
 
+/**
+ * SoupSameSitePolicy:
+ *
+ * Since: 2.66
+ */
+typedef enum {
+	SOUP_SAME_SITE_POLICY_NONE,
+	SOUP_SAME_SITE_POLICY_LAX,
+	SOUP_SAME_SITE_POLICY_STRICT,
+} SoupSameSitePolicy;
+
 struct _SoupCookie {
 	char     *name;
 	char     *value;
@@ -79,6 +90,12 @@ gboolean    soup_cookie_get_http_only           (SoupCookie  *cookie);
 SOUP_AVAILABLE_IN_2_24
 void        soup_cookie_set_http_only           (SoupCookie  *cookie,
 						 gboolean     http_only);
+
+SOUP_AVAILABLE_IN_2_68
+void        soup_cookie_set_same_site_policy    (SoupCookie         *cookie,
+                                                 SoupSameSitePolicy  policy);
+SOUP_AVAILABLE_IN_2_68
+SoupSameSitePolicy soup_cookie_get_same_site_policy (SoupCookie     *cookie);
 
 SOUP_AVAILABLE_IN_2_24
 char       *soup_cookie_to_set_cookie_header    (SoupCookie  *cookie);
