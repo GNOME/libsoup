@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-cookie-jar.h"
+#include "soup-message-private.h"
 #include "soup-misc-private.h"
 #include "soup.h"
 
@@ -297,8 +298,42 @@ compare_cookies (gconstpointer a, gconstpointer b, gpointer jar)
 	return aserial - bserial;
 }
 
+static gboolean
+cookie_is_valid_for_same_site_policy (SoupCookie *cookie,
+                                      const char *method,
+				      SoupURI    *uri,
+				      SoupURI    *top_level,
+				      SoupURI    *cookie_uri,
+				      gboolean    is_top_level_navigation,
+				      gboolean    for_http)
+{
+	SoupSameSitePolicy policy = soup_cookie_get_same_site_policy (cookie);
+
+	if (policy == SOUP_SAME_SITE_POLICY_NONE)
+		return TRUE;
+
+	if (top_level == NULL)
+		return TRUE;
+
+	if (policy == SOUP_SAME_SITE_POLICY_LAX && is_top_level_navigation &&
+	    (SOUP_METHOD_IS_SAFE (method) || for_http == FALSE))
+		return TRUE;
+
+	if (is_top_level_navigation && cookie_uri == NULL)
+		return FALSE;
+
+	return soup_host_matches_host (soup_uri_get_host (cookie_uri ? cookie_uri : top_level), soup_uri_get_host (uri));
+}
+
 static GSList *
-get_cookies (SoupCookieJar *jar, SoupURI *uri, gboolean for_http, gboolean copy_cookies)
+get_cookies (SoupCookieJar *jar,
+             SoupURI       *uri,
+	     SoupURI       *top_level,
+	     SoupURI       *site_for_cookies,
+	     const char    *method,
+	     gboolean       for_http,
+	     gboolean       is_top_level_navigation,
+	     gboolean       copy_cookies)
 {
 	SoupCookieJarPrivate *priv;
 	GSList *cookies, *domain_cookies;
@@ -332,6 +367,9 @@ get_cookies (SoupCookieJar *jar, SoupURI *uri, gboolean for_http, gboolean copy_
 						     g_strdup (cur),
 						     new_head);
 			} else if (soup_cookie_applies_to_uri (cookie, uri) &&
+			           cookie_is_valid_for_same_site_policy (cookie, method, uri, top_level,
+				                                         site_for_cookies, is_top_level_navigation,
+									 for_http) &&
 				   (for_http || !cookie->http_only))
 				cookies = g_slist_append (cookies, copy_cookies ? soup_cookie_copy (cookie) : cookie);
 
@@ -386,7 +424,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	cookies = get_cookies (jar, uri, for_http, FALSE);
+	cookies = get_cookies (jar, uri, NULL, NULL, NULL, for_http, FALSE, FALSE);
 
 	if (cookies) {
 		char *result = soup_cookies_to_cookie_header (cookies);
@@ -430,7 +468,39 @@ soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, SoupURI *uri, gboolean for_
 	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	return get_cookies (jar, uri, for_http, TRUE);
+	return get_cookies (jar, uri, NULL, NULL, NULL, for_http, FALSE, TRUE);
+}
+
+/**
+ * soup_cookie_jar_get_cookie_list_full:
+ * @jar: a #SoupCookieJar
+ * @uri: a #SoupURI
+ * @top_level: (nullable): a #SoupURI for the top level document
+ * @site_for_cookies: (nullable): a #SoupURI
+ * @method: (nullable): the HTTP method requesting the cookies, this
+ * should only be %NULL when @for_http is %FALSE
+ * @for_http: whether or not the return value is being passed directly
+ * to an HTTP operation
+ * @is_top_level_navigation: whether or not the http request is part of
+ * top level navigation
+ *
+ * This is an extended version of soup_cookie_jar_get_cookie_list() that
+ * provides more information required to use SameSite cookies. See the
+ * [SameSite cookies spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
+ * for more detailed information.
+ *
+ * Return value: (transfer full) (element-type Soup.Cookie): a #GSList
+ * with the cookies in the @jar that would be sent with a request to @uri.
+ *
+ * Since: 2.66
+ */
+GSList *
+soup_cookie_jar_get_cookie_list_full (SoupCookieJar *jar, SoupURI *uri, SoupURI *top_level, SoupURI *site_for_cookies, const char *method, gboolean for_http, gboolean is_top_level_navigation)
+{
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	return get_cookies (jar,  uri, top_level, site_for_cookies, g_intern_string (method), for_http, is_top_level_navigation, TRUE);
 }
 
 static const char *
@@ -722,15 +792,21 @@ static void
 msg_starting_cb (SoupMessage *msg, gpointer feature)
 {
 	SoupCookieJar *jar = SOUP_COOKIE_JAR (feature);
-	char *cookies;
+	GSList *cookies;
 
-	cookies = soup_cookie_jar_get_cookies (jar, soup_message_get_uri (msg), TRUE);
-	if (cookies) {
-		soup_message_headers_replace (msg->request_headers,
-					      "Cookie", cookies);
-		g_free (cookies);
-	} else
+	cookies = soup_cookie_jar_get_cookie_list_full (jar, soup_message_get_uri (msg),
+	                                                     soup_message_get_first_party (msg),
+							     soup_message_get_site_for_cookies (msg),
+							     msg->method,
+							     TRUE, soup_message_get_is_top_level_navigation (msg));
+	if (cookies != NULL) {
+		char *cookie_header = soup_cookies_to_cookie_header (cookies);
+		soup_message_headers_replace (msg->request_headers, "Cookie", cookie_header);
+		g_free (cookie_header);
+		g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+	} else {
 		soup_message_headers_remove (msg->request_headers, "Cookie");
+	}
 }
 
 static void
