@@ -88,6 +88,7 @@ soup_cookie_copy (SoupCookie *cookie)
 		copy->expires = soup_date_copy(cookie->expires);
 	copy->secure = cookie->secure;
 	copy->http_only = cookie->http_only;
+	soup_cookie_set_same_site_policy (copy, soup_cookie_get_same_site_policy (cookie));
 
 	return copy;
 }
@@ -238,6 +239,19 @@ parse_one_cookie (const char *header, SoupURI *origin)
 			cookie->secure = TRUE;
 			if (has_value)
 				parse_value (&p, FALSE);
+		} else if (MATCH_NAME ("samesite")) {
+			if (has_value) {
+				char *policy = parse_value (&p, TRUE);
+				if (g_ascii_strcasecmp (policy, "Lax") == 0) {
+					soup_cookie_set_same_site_policy (cookie, SOUP_SAME_SITE_POLICY_LAX);
+					g_free (policy);
+					continue;
+				}
+				g_free (policy);
+			}
+
+			/* "Strict" and any invalid value are treated the same */
+			soup_cookie_set_same_site_policy (cookie, SOUP_SAME_SITE_POLICY_STRICT);
 		} else {
 			/* Ignore unknown attributes, but we still have
 			 * to skip over the value.
@@ -708,6 +722,8 @@ soup_cookie_set_http_only (SoupCookie *cookie, gboolean http_only)
 static void
 serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 {
+	SoupSameSitePolicy same_site_policy;
+
 	if (!*cookie->name && !*cookie->value)
 		return;
 
@@ -743,10 +759,56 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 		g_string_append (header, "; domain=");
 		g_string_append (header, cookie->domain);
 	}
+
+	same_site_policy = soup_cookie_get_same_site_policy (cookie);
+	if (same_site_policy) {
+		g_string_append (header, "; SameSite=");
+		if (same_site_policy == SOUP_SAME_SITE_POLICY_LAX)
+			g_string_append (header, "Lax");
+		else
+			g_string_append (header, "Strict");
+	}
 	if (cookie->secure)
 		g_string_append (header, "; secure");
 	if (cookie->http_only)
 		g_string_append (header, "; HttpOnly");
+}
+
+/**
+ * soup_cookie_set_same_site_policy:
+ * @cookie: a #SoupCookie
+ * @policy: a #SoupSameSitePolicy
+ *
+ * Since: 2.66
+ **/
+void
+soup_cookie_set_same_site_policy (SoupCookie         *cookie,
+                                  SoupSameSitePolicy  policy)
+{
+	switch (policy)
+	{
+	case SOUP_SAME_SITE_POLICY_NONE:
+	case SOUP_SAME_SITE_POLICY_STRICT:
+	case SOUP_SAME_SITE_POLICY_LAX:
+		g_dataset_id_set_data (cookie, g_quark_from_static_string ("soup-same-site-policy"), GUINT_TO_POINTER (policy));
+		break;
+	default:
+		g_return_if_reached ();
+	}
+}
+
+/**
+ * soup_cookie_get_same_site_policy:
+ * @cookie: a #SoupCookie
+ * 
+ * Returns a #SoupSameSitePolicy
+ *
+ * Since: 2.66
+ **/
+SoupSameSitePolicy
+soup_cookie_get_same_site_policy (SoupCookie *cookie)
+{
+	return GPOINTER_TO_UINT (g_dataset_id_get_data (cookie, g_quark_from_static_string ("soup-same-site-policy")));
 }
 
 /**
@@ -808,6 +870,7 @@ soup_cookie_free (SoupCookie *cookie)
 	g_free (cookie->path);
 	g_clear_pointer (&cookie->expires, soup_date_free);
 
+	g_dataset_destroy (cookie);
 	g_slice_free (SoupCookie, cookie);
 }
 
