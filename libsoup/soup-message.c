@@ -144,6 +144,8 @@ enum {
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
 	PROP_PRIORITY,
+	PROP_SITE_FOR_COOKIES,
+	PROP_IS_TOP_LEVEL_NAVIGATION,
 
 	LAST_PROP
 };
@@ -174,6 +176,7 @@ soup_message_finalize (GObject *object)
 
 	g_clear_pointer (&priv->uri, soup_uri_free);
 	g_clear_pointer (&priv->first_party, soup_uri_free);
+	g_clear_pointer (&priv->site_for_cookies, soup_uri_free);
 	g_clear_object (&priv->addr);
 
 	g_clear_object (&priv->auth);
@@ -206,6 +209,12 @@ soup_message_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_URI:
 		soup_message_set_uri (msg, g_value_get_boxed (value));
+		break;
+	case PROP_SITE_FOR_COOKIES:
+		soup_message_set_site_for_cookies (msg, g_value_get_boxed (value));
+		break;
+	case PROP_IS_TOP_LEVEL_NAVIGATION:
+		soup_message_set_is_toplevel_navigation (msg, g_value_get_boolean (value));
 		break;
 	case PROP_HTTP_VERSION:
 		soup_message_set_http_version (msg, g_value_get_enum (value));
@@ -269,6 +278,12 @@ soup_message_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_URI:
 		g_value_set_boxed (value, priv->uri);
+		break;
+	case PROP_SITE_FOR_COOKIES:
+		g_value_set_boxed (value, priv->site_for_cookies);
+		break;
+	case PROP_IS_TOP_LEVEL_NAVIGATION:
+		g_value_set_boolean (value, priv->is_toplevel_navigation);
 		break;
 	case PROP_HTTP_VERSION:
 		g_value_set_enum (value, priv->http_version);
@@ -804,6 +819,30 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "First party",
 				    "The URI loaded in the application when the message was requested.",
 				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
+	/**
+	 * SoupMessage:site-for-cookkies:
+	 *
+	 * Since: 2.66
+	 */
+	g_object_class_install_property (
+		object_class, PROP_SITE_FOR_COOKIES,
+		g_param_spec_boxed (SOUP_MESSAGE_SITE_FOR_COOKIES,
+				    "Site for cookies",
+				    "The URI for the site to compare cookies against",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
+	/**
+	 * SoupMessage:is-toplevel-navigation:
+	 *
+	 * Since: 2.66
+	 */
+	g_object_class_install_property (
+		object_class, PROP_IS_TOP_LEVEL_NAVIGATION,
+		g_param_spec_boolean (SOUP_MESSAGE_IS_TOPLEVEL_NAVIGATION,
+				    "Is top-level navigation",
+				    "If the current messsage is navigating between top-levels",
+				    FALSE,
 				    G_PARAM_READWRITE));
 	/**
 	 * SOUP_MESSAGE_REQUEST_BODY:
@@ -1888,6 +1927,111 @@ soup_message_set_first_party (SoupMessage *msg,
 
 	priv->first_party = soup_uri_copy (first_party);
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FIRST_PARTY);
+}
+
+/**
+ * soup_message_get_site_for_cookies:
+ * @msg: a #SoupMessage
+ *
+ * Gets @msg's site for cookies #SoupURI
+ * 
+ * Returns: (transfer none): the @msg's site for cookies #SoupURI
+ * 
+ * Since: 2.66
+ **/
+SoupURI *
+soup_message_get_site_for_cookies (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	return priv->site_for_cookies;
+}
+
+/**
+ * soup_message_set_site_for_cookies:
+ * @msg: a #SoupMessage
+ * @site_for_cookies: (nullable): the #SoupURI for the @msg's site for cookies
+ * 
+ * Sets @site_for_cookies as the policy URL for same-site cookies for @msg.
+ * 
+ * It is either the URL of the top-level document or %NULL depending on whether the registrable
+ * domain of this document's URL matches the registrable domain of its parent's/opener's
+ * URL. For the top-level document it is set to the document's URL.
+ * 
+ * See the [same-site spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
+ * for more information.
+ *
+ * Since: 2.66
+ **/
+void
+soup_message_set_site_for_cookies (SoupMessage *msg,
+			           SoupURI     *site_for_cookies)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->site_for_cookies == site_for_cookies)
+		return;
+
+	if (priv->site_for_cookies) {
+		if (site_for_cookies && soup_uri_equal (priv->site_for_cookies, site_for_cookies))
+			return;
+
+		soup_uri_free (priv->site_for_cookies);
+	}
+
+	priv->site_for_cookies = site_for_cookies ? soup_uri_copy (site_for_cookies) : NULL;
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_SITE_FOR_COOKIES);
+}
+
+/**
+ * soup_message_set_is_toplevel_navigation:
+ * @msg: a #SoupMessage
+ * @is_toplevel_navigation: if %TRUE indicate the current request is a toplevel navigation
+ *
+ * See the [same-site spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
+ * for more information.
+ *
+ * Since: 2.66
+ **/
+void
+soup_message_set_is_toplevel_navigation (SoupMessage *msg,
+			                 gboolean     is_toplevel_navigation)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->is_toplevel_navigation == is_toplevel_navigation)
+		return;
+
+	priv->is_toplevel_navigation = is_toplevel_navigation;
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_IS_TOPLEVEL_NAVIGATION);
+}
+
+/**
+ * soup_message_get_is_toplevel_navigation:
+ * @msg: a #SoupMessage
+ *
+ * Since: 2.66
+ **/
+gboolean
+soup_message_get_is_toplevel_navigation (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	return priv->is_toplevel_navigation;
 }
 
 void

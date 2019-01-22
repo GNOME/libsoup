@@ -121,6 +121,35 @@ soup_cookie_jar_text_new (const char *filename, gboolean read_only)
 			     NULL);
 }
 
+static SoupSameSitePolicy
+string_to_same_site_policy (const char *string)
+{
+	if (strcmp (string, "Lax") == 0)
+		return SOUP_SAME_SITE_POLICY_LAX;
+	else if (strcmp (string, "Strict") == 0)
+		return SOUP_SAME_SITE_POLICY_STRICT;
+	else if (strcmp (string, "None") == 0)
+		return SOUP_SAME_SITE_POLICY_NONE;
+	else
+		g_return_val_if_reached (SOUP_SAME_SITE_POLICY_NONE);
+}
+
+static const char *
+same_site_policy_to_string (SoupSameSitePolicy policy)
+{
+	switch (policy)
+	{
+	case SOUP_SAME_SITE_POLICY_STRICT:
+		return "Strict";
+	case SOUP_SAME_SITE_POLICY_LAX:
+		return "Lax";
+	case SOUP_SAME_SITE_POLICY_NONE:
+		return "None";
+	}
+
+	g_return_val_if_reached ("None");
+}
+
 static SoupCookie*
 parse_cookie (char *line, time_t now)
 {
@@ -129,7 +158,7 @@ parse_cookie (char *line, time_t now)
 	gboolean http_only;
 	gulong expire_time;
 	int max_age;
-	char *host, *path, *secure, *expires, *name, *value;
+	char *host, *path, *secure, *expires, *name, *value, *samesite = NULL;
 
 	if (g_str_has_prefix (line, "#HttpOnly_")) {
 		http_only = TRUE;
@@ -140,7 +169,7 @@ parse_cookie (char *line, time_t now)
 		http_only = FALSE;
 
 	result = g_strsplit (line, "\t", -1);
-	if (g_strv_length (result) != 7)
+	if (g_strv_length (result) < 7)
 		goto out;
 
 	/* Check this first */
@@ -164,7 +193,13 @@ parse_cookie (char *line, time_t now)
 	name = result[5];
 	value = result[6];
 
+	if (g_strv_length (result) == 8)
+		samesite = result[7];
+
 	cookie = soup_cookie_new (name, value, host, path, max_age);
+
+	if (samesite != NULL)
+		soup_cookie_set_same_site_policy (cookie, string_to_same_site_policy (samesite));
 
 	if (strcmp (secure, "FALSE") != 0)
 		soup_cookie_set_secure (cookie, TRUE);
@@ -219,7 +254,7 @@ write_cookie (FILE *out, SoupCookie *cookie)
 {
 	fseek (out, 0, SEEK_END);
 
-	fprintf (out, "%s%s\t%s\t%s\t%s\t%lu\t%s\t%s\n",
+	fprintf (out, "%s%s\t%s\t%s\t%s\t%lu\t%s\t%s\t%s\n",
 		 cookie->http_only ? "#HttpOnly_" : "",
 		 cookie->domain,
 		 *cookie->domain == '.' ? "TRUE" : "FALSE",
@@ -227,7 +262,8 @@ write_cookie (FILE *out, SoupCookie *cookie)
 		 cookie->secure ? "TRUE" : "FALSE",
 		 (gulong)soup_date_to_time_t (cookie->expires),
 		 cookie->name,
-		 cookie->value);
+		 cookie->value,
+		 same_site_policy_to_string (cookie->same_site_policy));
 }
 
 static void
