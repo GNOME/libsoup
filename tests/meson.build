@@ -33,6 +33,7 @@ tests = [
   ['redirect', true],
   ['requester', true],
   ['resource', true],
+  ['samesite', true],
   ['session', true],
   ['server-auth', true],
   ['server', true],

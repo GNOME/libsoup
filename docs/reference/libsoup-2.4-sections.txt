@@ -919,6 +919,8 @@ soup_cookie_set_secure
 soup_cookie_get_secure
 soup_cookie_set_http_only
 soup_cookie_get_http_only
+soup_cookie_set_same_site_policy
+soup_cookie_get_same_site_policy
 <SUBSECTION>
 soup_cookie_applies_to_uri
 soup_cookie_domain_matches
@@ -946,6 +948,7 @@ SoupCookieJar
 soup_cookie_jar_new
 soup_cookie_jar_get_cookies
 soup_cookie_jar_get_cookie_list
+soup_cookie_jar_get_cookie_list_full
 soup_cookie_jar_set_cookie
 soup_cookie_jar_set_cookie_with_first_party
 <SUBSECTION>
