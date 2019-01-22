@@ -69,6 +69,7 @@ GType soup_message_get_type (void);
 #define SOUP_MESSAGE_STATUS_CODE        "status-code"
 #define SOUP_MESSAGE_REASON_PHRASE      "reason-phrase"
 #define SOUP_MESSAGE_FIRST_PARTY        "first-party"
+#define SOUP_MESSAGE_SITE_FOR_COOKIES   "site-for-cookies"
 #define SOUP_MESSAGE_REQUEST_BODY       "request-body"
 #define SOUP_MESSAGE_REQUEST_BODY_DATA  "request-body-data"
 #define SOUP_MESSAGE_REQUEST_HEADERS    "request-headers"
@@ -126,6 +127,16 @@ SoupURI         *soup_message_get_first_party     (SoupMessage       *msg);
 SOUP_AVAILABLE_IN_2_30
 void             soup_message_set_first_party     (SoupMessage       *msg,
 						   SoupURI           *first_party);
+SOUP_AVAILABLE_IN_2_66
+SoupURI         *soup_message_get_site_for_cookies (SoupMessage      *msg);
+SOUP_AVAILABLE_IN_2_66
+void             soup_message_set_site_for_cookies (SoupMessage      *msg,
+						    SoupURI          *site_for_cookies);
+SOUP_AVAILABLE_IN_2_66
+void             soup_message_set_is_toplevel_navigation (SoupMessage      *msg,
+			                                  gboolean          is_toplevel_navigation);
+SOUP_AVAILABLE_IN_2_66
+gboolean         soup_message_get_is_toplevel_navigation (SoupMessage      *msg);
 
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT              = (1 << 1),

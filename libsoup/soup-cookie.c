@@ -88,6 +88,7 @@ soup_cookie_copy (SoupCookie *cookie)
 		copy->expires = soup_date_copy(cookie->expires);
 	copy->secure = cookie->secure;
 	copy->http_only = cookie->http_only;
+	copy->same_site_policy = cookie->same_site_policy;
 
 	return copy;
 }
@@ -238,6 +239,19 @@ parse_one_cookie (const char *header, SoupURI *origin)
 			cookie->secure = TRUE;
 			if (has_value)
 				parse_value (&p, FALSE);
+		} else if (MATCH_NAME ("samesite")) {
+			if (has_value) {
+				char *policy = parse_value (&p, TRUE);
+				if (g_ascii_strcasecmp (policy, "Lax") == 0) {
+					cookie->same_site_policy = SOUP_SAME_SITE_POLICY_LAX;
+					g_free (policy);
+					continue;
+				}
+				g_free (policy);
+			}
+
+			/* "Strict" and any invalid value are treated the same */
+			cookie->same_site_policy = SOUP_SAME_SITE_POLICY_STRICT;
 		} else {
 			/* Ignore unknown attributes, but we still have
 			 * to skip over the value.
@@ -743,10 +757,54 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 		g_string_append (header, "; domain=");
 		g_string_append (header, cookie->domain);
 	}
+	if (cookie->same_site_policy) {
+		g_string_append (header, "; SameSite=");
+		if (cookie->same_site_policy == SOUP_SAME_SITE_POLICY_LAX)
+			g_string_append (header, "Lax");
+		else
+			g_string_append (header, "Strict");
+	}
 	if (cookie->secure)
 		g_string_append (header, "; secure");
 	if (cookie->http_only)
 		g_string_append (header, "; HttpOnly");
+}
+
+/**
+ * soup_cookie_set_same_site_policy:
+ * @cookie: a #SoupCookie
+ * @policy: a #SoupSameSitePolicy
+ *
+ * Since: 2.66
+ **/
+void
+soup_cookie_set_same_site_policy (SoupCookie         *cookie,
+                                  SoupSameSitePolicy  policy)
+{
+	switch (policy)
+	{
+	case SOUP_SAME_SITE_POLICY_NONE:
+	case SOUP_SAME_SITE_POLICY_STRICT:
+	case SOUP_SAME_SITE_POLICY_LAX:
+		cookie->same_site_policy = policy;
+		break;
+	default:
+		g_return_if_reached ();
+	}
+}
+
+/**
+ * soup_cookie_get_same_site_policy:
+ * @cookie: a #SoupCookie
+ * 
+ * Returns a #SoupSameSitePolicy
+ *
+ * Since: 2.66
+ **/
+SoupSameSitePolicy
+soup_cookie_get_same_site_policy (SoupCookie *cookie)
+{
+	return cookie->same_site_policy;
 }
 
 /**
