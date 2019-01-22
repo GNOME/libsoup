@@ -128,9 +128,9 @@ soup_cookie_jar_db_new (const char *filename, gboolean read_only)
 			     NULL);
 }
 
-#define QUERY_ALL "SELECT id, name, value, host, path, expiry, lastAccessed, isSecure, isHttpOnly FROM moz_cookies;"
-#define CREATE_TABLE "CREATE TABLE moz_cookies (id INTEGER PRIMARY KEY, name TEXT, value TEXT, host TEXT, path TEXT,expiry INTEGER, lastAccessed INTEGER, isSecure INTEGER, isHttpOnly INTEGER)"
-#define QUERY_INSERT "INSERT INTO moz_cookies VALUES(NULL, %Q, %Q, %Q, %Q, %d, NULL, %d, %d);"
+#define QUERY_ALL "SELECT id, name, value, host, path, expiry, lastAccessed, isSecure, isHttpOnly, sameSite FROM moz_cookies;"
+#define CREATE_TABLE "CREATE TABLE moz_cookies (id INTEGER PRIMARY KEY, name TEXT, value TEXT, host TEXT, path TEXT, expiry INTEGER, lastAccessed INTEGER, isSecure INTEGER, isHttpOnly INTEGER, sameSite INTEGER)"
+#define QUERY_INSERT "INSERT INTO moz_cookies VALUES(NULL, %Q, %Q, %Q, %Q, %d, NULL, %d, %d, %d);"
 #define QUERY_DELETE "DELETE FROM moz_cookies WHERE name=%Q AND host=%Q;"
 
 enum {
@@ -143,6 +143,7 @@ enum {
 	COL_LAST_ACCESS,
 	COL_SECURE,
 	COL_HTTP_ONLY,
+	COL_SAME_SITE_POLICY,
 	N_COL,
 };
 
@@ -157,6 +158,7 @@ callback (void *data, int argc, char **argv, char **colname)
 	time_t now;
 	int max_age;
 	gboolean http_only = FALSE, secure = FALSE;
+	SoupSameSitePolicy same_site_policy;
 
 	now = time (NULL);
 
@@ -172,6 +174,7 @@ callback (void *data, int argc, char **argv, char **colname)
 
 	http_only = (g_strcmp0 (argv[COL_HTTP_ONLY], "1") == 0);
 	secure = (g_strcmp0 (argv[COL_SECURE], "1") == 0);
+	same_site_policy = g_ascii_strtoll (argv[COL_SAME_SITE_POLICY], NULL, 0);
 
 	cookie = soup_cookie_new (name, value, host, path, max_age);
 
@@ -179,6 +182,8 @@ callback (void *data, int argc, char **argv, char **colname)
 		soup_cookie_set_secure (cookie, TRUE);
 	if (http_only)
 		soup_cookie_set_http_only (cookie, TRUE);
+	if (same_site_policy)
+		soup_cookie_set_same_site_policy (cookie, same_site_policy);
 
 	soup_cookie_jar_add_cookie (jar, cookie);
 
@@ -241,6 +246,10 @@ open_db (SoupCookieJar *jar)
 		sqlite3_free (error);
 	}
 
+	/* Migrate old DB to include same-site info. We simply always run this as it
+	   will safely handle a column with the same name existing */
+	sqlite3_exec (priv->db, "ALTER TABLE moz_cookies ADD COLUMN sameSite INTEGER DEFAULT 0", NULL, NULL, NULL);
+
 	return FALSE;
 }
 
@@ -291,7 +300,8 @@ soup_cookie_jar_db_changed (SoupCookieJar *jar,
 					 new_cookie->path,
 					 expires,
 					 new_cookie->secure,
-					 new_cookie->http_only);
+					 new_cookie->http_only,
+					 new_cookie->same_site_policy);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
