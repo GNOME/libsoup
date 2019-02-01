@@ -116,6 +116,7 @@ windowsify_file_uri_path (char *path)
 }
 #endif
 
+/* Does not do I/O */
 static gboolean
 soup_request_file_ensure_file (SoupRequestFile  *file,
 			       GCancellable     *cancellable,
@@ -198,20 +199,95 @@ soup_request_file_send (SoupRequest          *request,
 }
 
 static void
-soup_request_file_send_async_thread (GTask        *task,
-				     gpointer      source_object,
-				     gpointer      task_data,
-				     GCancellable *cancellable)
+on_enumerate_children_ready (GObject      *source,
+                             GAsyncResult *result,
+                             gpointer      user_data)
 {
-	SoupRequest *request = source_object;
+	GTask *task = G_TASK (user_data);
+	SoupRequestFile *file = SOUP_REQUEST_FILE (g_task_get_source_object (task));
+	GFileEnumerator *enumerator;
+	GError *error = NULL;
+
+	enumerator = g_file_enumerate_children_finish (G_FILE (source), result, &error);
+	if (enumerator == NULL) {
+		g_task_return_error (task, error);
+	} else {
+		GInputStream *stream;
+
+		stream = soup_directory_input_stream_new (enumerator,
+		                                          soup_request_get_uri (SOUP_REQUEST (file)));
+		g_object_unref (enumerator);
+		file->priv->mime_type = g_strdup ("text/html");
+
+		g_task_return_pointer (task, stream, g_object_unref);
+	}
+
+	g_object_unref (task);
+}
+
+static void
+on_query_info_ready (GObject      *source,
+                     GAsyncResult *result,
+                     gpointer      user_data)
+{
+	GTask *task = G_TASK (user_data);
+	SoupRequestFile *file = SOUP_REQUEST_FILE (g_task_get_source_object (task));
+	GInputStream *stream = G_INPUT_STREAM (g_task_get_task_data (task));
+	GFileInfo *info;
+	GError *error = NULL;
+
+	info = g_file_query_info_finish (G_FILE (source), result, &error);
+	if (info) {
+		const char *content_type;
+
+		file->priv->size = g_file_info_get_size (info);
+		content_type = g_file_info_get_content_type (info);
+
+		if (content_type)
+			file->priv->mime_type = g_content_type_get_mime_type (content_type);
+		g_object_unref (info);
+	}
+
+	g_task_return_pointer (task, g_object_ref (stream), g_object_unref);
+	g_object_unref (task);
+}
+
+static void
+on_read_file_ready (GObject      *source,
+                    GAsyncResult *result,
+                    gpointer      user_data)
+{
+	GTask *task = G_TASK (user_data);
+	SoupRequestFile *file = SOUP_REQUEST_FILE (g_task_get_source_object (task));
 	GInputStream *stream;
 	GError *error = NULL;
 
-	stream = soup_request_file_send (request, cancellable, &error);
-	if (stream == NULL)
-		g_task_return_error (task, error);
-	else
-		g_task_return_pointer (task, stream, g_object_unref);
+	stream = G_INPUT_STREAM (g_file_read_finish (G_FILE (source), result, &error));
+	if (stream == NULL) {
+		if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_IS_DIRECTORY)) {
+			g_file_enumerate_children_async (file->priv->gfile,
+			                                 "*",
+			                                 G_FILE_QUERY_INFO_NONE,
+			                                 G_PRIORITY_DEFAULT,
+			                                 g_task_get_cancellable (task),
+			                                 on_enumerate_children_ready,
+			                                 task);
+			g_error_free (error);
+		} else {
+			g_task_return_error (task, error);
+			g_object_unref (task);
+		}
+	} else {
+		g_task_set_task_data (task, stream, g_object_unref);
+		g_file_query_info_async (file->priv->gfile,
+		                         G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
+		                         G_FILE_ATTRIBUTE_STANDARD_SIZE,
+		                         0,
+		                         G_PRIORITY_DEFAULT,
+		                         g_task_get_cancellable (task),
+		                         on_query_info_ready,
+		                         task);
+	}
 }
 
 static void
@@ -220,11 +296,23 @@ soup_request_file_send_async (SoupRequest          *request,
 			      GAsyncReadyCallback   callback,
 			      gpointer              user_data)
 {
+	SoupRequestFile *file = SOUP_REQUEST_FILE (request);
 	GTask *task;
+	GError *error = NULL;
 
 	task = g_task_new (request, cancellable, callback, user_data);
-	g_task_run_in_thread (task, soup_request_file_send_async_thread);
-	g_object_unref (task);
+
+	if (!soup_request_file_ensure_file (file, cancellable, &error)) {
+		g_task_return_error (task, error);
+		g_object_unref (task);
+		return;
+	}
+
+	g_file_read_async (file->priv->gfile,
+	                   G_PRIORITY_DEFAULT,
+	                   cancellable,
+	                   on_read_file_ready,
+	                   task);
 }
 
 static GInputStream *
