@@ -1,3 +1,8 @@
+Changes in libsoup from 2.65.2 to 2.65.90:
+
+        * Avoid using threads in SoupRequestFile asynchronous API
+          [Ignacio Casal Quinteiro]
+
 Changes in libsoup from 2.65.1 to 2.65.2:
 
 	* Remove autotools build system and change to meson by default
