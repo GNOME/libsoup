@@ -47,6 +47,7 @@
 struct _SoupRequestHTTPPrivate {
 	SoupMessage *msg;
 	char *content_type;
+	gboolean block_cookies;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
@@ -231,4 +232,21 @@ soup_request_http_get_message (SoupRequestHTTP *http)
 	g_return_val_if_fail (SOUP_IS_REQUEST_HTTP (http), NULL);
 
 	return g_object_ref (http->priv->msg);
+}
+
+void
+soup_request_http_set_block_cookies (SoupRequestHTTP *http,
+                                     gboolean         block_cookies)
+{
+	g_return_if_fail (SOUP_IS_REQUEST_HTTP (http));
+
+	http->priv->block_cookies = block_cookies;
+}
+
+gboolean
+soup_request_http_get_block_cookies (SoupRequestHTTP *http)
+{
+	g_return_val_if_fail (SOUP_IS_REQUEST_HTTP (http), FALSE);
+
+	return http->priv->block_cookies;
 }

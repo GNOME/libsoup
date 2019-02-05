@@ -668,8 +668,13 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 	SoupCookieJar *jar = user_data;
 	SoupCookieJarPrivate *priv = soup_cookie_jar_get_instance_private (jar);
 	GSList *new_cookies, *nc;
+	SoupRequest *request;
 
 	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
+		return;
+
+	request = soup_message_get_soup_request (msg);
+	if (SOUP_IS_REQUEST_HTTP (request) && soup_request_http_get_block_cookies (SOUP_REQUEST_HTTP (request)))
 		return;
 
 	new_cookies = soup_cookies_from_response (msg);
@@ -691,6 +696,13 @@ msg_starting_cb (SoupMessage *msg, gpointer feature)
 {
 	SoupCookieJar *jar = SOUP_COOKIE_JAR (feature);
 	char *cookies;
+	SoupRequest *request;
+
+	request = soup_message_get_soup_request (msg);
+	if (SOUP_IS_REQUEST_HTTP (request) && soup_request_http_get_block_cookies (SOUP_REQUEST_HTTP (request)) {
+		soup_message_headers_remove (msg->request_headers, "Cookie");
+		return;
+	}
 
 	cookies = soup_cookie_jar_get_cookies (jar, soup_message_get_uri (msg), TRUE);
 	if (cookies) {
