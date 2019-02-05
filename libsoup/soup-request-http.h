@@ -51,6 +51,12 @@ GType soup_request_http_get_type (void);
 SOUP_AVAILABLE_IN_2_34
 SoupMessage *soup_request_http_get_message (SoupRequestHTTP *http);
 
+SOUP_AVAILABLE_IN_2_66
+void         soup_request_http_set_block_cookies (SoupRequestHTTP *http,
+                                                  gboolean         block_cookies);
+SOUP_AVAILABLE_IN_2_66
+gboolean     soup_request_http_get_block_cookies (SoupRequestHTTP *http);
+
 G_END_DECLS
 
 #endif /* __SOUP_REQUEST_HTTP_H__ */
