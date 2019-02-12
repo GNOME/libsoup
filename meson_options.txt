@@ -10,6 +10,12 @@ option('krb5_config',
   description : 'Where to look for krb5-config, path points to krb5-config installation (defaultly looking in PATH)'
 )
 
+option('nls',
+  type : 'boolean',
+  value : true,
+  description : 'Build with native language support'
+)
+
 option('ntlm',
   type : 'boolean',
   value : false,
