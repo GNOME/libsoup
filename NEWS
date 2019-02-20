@@ -1,3 +1,7 @@
+Changes in libsoup from 2.65.90 to 2.65.91:
+
+	* Remove RFCs from sources [Tomas Popela, #133]
+
 Changes in libsoup from 2.65.2 to 2.65.90:
 
         * Avoid using threads in SoupRequestFile asynchronous API
