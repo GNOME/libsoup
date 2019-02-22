@@ -38,7 +38,6 @@ gboolean   soup_socket_handshake_finish        (SoupSocket           *sock,
 						GAsyncResult         *result,
 						GError              **error);
 
-gboolean   soup_socket_is_readable             (SoupSocket           *sock);
 GSocket   *soup_socket_get_gsocket             (SoupSocket           *sock);
 GSocket   *soup_socket_steal_gsocket           (SoupSocket           *sock);
 GIOStream *soup_socket_get_connection          (SoupSocket           *sock);
