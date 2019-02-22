@@ -631,6 +631,46 @@ soup_connection_is_via_proxy (SoupConnection *conn)
 	return priv->proxy_uri != NULL;
 }
 
+static gboolean
+is_idle_connection_disconnected (SoupConnection *conn)
+{
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+	GIOStream *iostream;
+	GInputStream *istream;
+	char buffer[1];
+	GError *error = NULL;
+	gboolean ret = FALSE;
+
+	if (!soup_socket_is_connected (priv->socket))
+		return TRUE;
+
+	if (priv->unused_timeout && priv->unused_timeout < time (NULL))
+		return TRUE;
+
+	iostream = soup_socket_get_iostream (priv->socket);
+	istream = g_io_stream_get_input_stream (iostream);
+
+	/* This is tricky. The goal is to check if the socket is readable. If
+	 * so, that means either the server has disconnected or it's broken (it
+	 * should not send any data while the connection is in idle state). But
+	 * we can't just check the readability of the SoupSocket because there
+	 * could be non-application layer TLS data that is readable, but which
+	 * we don't want to consider. So instead, just read and see if the read
+	 * succeeds. This is OK to do here because if the read does succeed, we
+	 * just disconnect and ignore the data anyway.
+	 */
+	g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM (istream),
+						  &buffer, sizeof (buffer),
+						  NULL, &error);
+	if (error != NULL) {
+		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK))
+			ret = TRUE;
+		g_error_free (error);
+	}
+
+	return ret;
+}
+
 SoupConnectionState
 soup_connection_get_state (SoupConnection *conn)
 {
@@ -641,12 +681,7 @@ soup_connection_get_state (SoupConnection *conn)
 	priv = soup_connection_get_instance_private (conn);
 
 	if (priv->state == SOUP_CONNECTION_IDLE &&
-	    (!soup_socket_is_connected (priv->socket) ||
-	     soup_socket_is_readable (priv->socket)))
-		soup_connection_set_state (conn, SOUP_CONNECTION_REMOTE_DISCONNECTED);
-
-	if (priv->state == SOUP_CONNECTION_IDLE &&
-	    priv->unused_timeout && priv->unused_timeout < time (NULL))
+	    is_idle_connection_disconnected (conn))
 		soup_connection_set_state (conn, SOUP_CONNECTION_REMOTE_DISCONNECTED);
 
 	return priv->state;
@@ -660,7 +695,6 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (state >= SOUP_CONNECTION_NEW &&
 			  state <= SOUP_CONNECTION_DISCONNECTED);
-
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	priv = soup_connection_get_instance_private (conn);
