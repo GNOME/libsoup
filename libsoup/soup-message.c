@@ -98,7 +98,7 @@
  * @request_body as appropriate, passing %FALSE.
  **/
 
-G_DEFINE_TYPE (SoupMessage, soup_message, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
 
 enum {
 	WROTE_INFORMATIONAL,
@@ -151,7 +151,7 @@ enum {
 static void
 soup_message_init (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	priv->http_version = priv->orig_http_version = SOUP_HTTP_1_1;
 	priv->priority = SOUP_MESSAGE_PRIORITY_NORMAL;
@@ -166,7 +166,7 @@ static void
 soup_message_finalize (GObject *object)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	soup_message_io_cleanup (msg);
 	if (priv->chunk_allocator_dnotify)
@@ -198,7 +198,7 @@ soup_message_set_property (GObject *object, guint prop_id,
 			   const GValue *value, GParamSpec *pspec)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	switch (prop_id) {
 	case PROP_METHOD:
@@ -260,7 +260,7 @@ soup_message_get_property (GObject *object, guint prop_id,
 			   GValue *value, GParamSpec *pspec)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 	SoupBuffer *buf;
 
 	switch (prop_id) {
@@ -328,7 +328,7 @@ soup_message_get_property (GObject *object, guint prop_id,
 static void
 soup_message_real_got_body (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 	SoupMessageBody *body;
 
 	body = priv->server_side ? msg->request_body : msg->response_body;
@@ -344,8 +344,6 @@ static void
 soup_message_class_init (SoupMessageClass *message_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (message_class);
-
-	g_type_class_add_private (message_class, sizeof (SoupMessagePrivate));
 
 	/* virtual method definition */
 	message_class->got_body = soup_message_real_got_body;
@@ -1155,7 +1153,7 @@ soup_message_starting (SoupMessage *msg)
 void
 soup_message_restarted (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	if (priv->msg_flags & SOUP_MESSAGE_CAN_REBUILD)
 		soup_message_body_truncate (msg->request_body);
@@ -1190,7 +1188,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 			    gpointer invocation_hint, gpointer marshal_data)
 {
 	SoupMessage *msg = g_value_get_object (&param_values[0]);
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 	const char *header_name = marshal_data;
 	SoupMessageHeaders *hdrs;
 
@@ -1308,7 +1306,7 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (auth == NULL || SOUP_IS_AUTH (auth));
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	if (priv->auth == auth)
 		return;
@@ -1321,9 +1319,13 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 SoupAuth *
 soup_message_get_auth (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	return SOUP_MESSAGE_GET_PRIVATE (msg)->auth;
+	priv = soup_message_get_instance_private (msg);
+
+	return priv->auth;
 }
 
 void
@@ -1334,7 +1336,7 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (auth == NULL || SOUP_IS_AUTH (auth));
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	if (priv->proxy_auth == auth)
 		return;
@@ -1347,22 +1349,30 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 SoupAuth *
 soup_message_get_proxy_auth (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	return SOUP_MESSAGE_GET_PRIVATE (msg)->proxy_auth;
+	priv = soup_message_get_instance_private (msg);
+
+	return priv->proxy_auth;
 }
 
 SoupConnection *
 soup_message_get_connection (SoupMessage *msg)
 {
-	return SOUP_MESSAGE_GET_PRIVATE (msg)->connection;
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	return priv->connection;
 }
 
 void
 soup_message_set_connection (SoupMessage    *msg,
 			     SoupConnection *conn)
 {
-	SOUP_MESSAGE_GET_PRIVATE (msg)->connection = conn;
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	priv->connection = conn;
 }
 
 /**
@@ -1376,7 +1386,7 @@ soup_message_set_connection (SoupMessage    *msg,
 void
 soup_message_cleanup_response (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	soup_message_body_truncate (msg->response_body);
 	soup_message_headers_clear (msg->response_headers);
@@ -1460,7 +1470,7 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 	SoupMessagePrivate *priv;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	if ((priv->msg_flags ^ flags) & SOUP_MESSAGE_OVERWRITE_CHUNKS) {
 		soup_message_body_set_accumulate (
@@ -1483,9 +1493,13 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 SoupMessageFlags
 soup_message_get_flags (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
 
-	return SOUP_MESSAGE_GET_PRIVATE (msg)->msg_flags;
+	priv = soup_message_get_instance_private (msg);
+
+	return priv->msg_flags;
 }
 
 /**
@@ -1511,7 +1525,7 @@ soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 	SoupMessagePrivate *priv;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	priv->http_version = version;
 	if (msg->status_code == SOUP_STATUS_NONE)
@@ -1531,9 +1545,13 @@ soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 SoupHTTPVersion
 soup_message_get_http_version (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_HTTP_1_0);
 
-	return SOUP_MESSAGE_GET_PRIVATE (msg)->http_version;
+	priv = soup_message_get_instance_private (msg);
+
+	return priv->http_version;
 }
 
 /**
@@ -1549,6 +1567,8 @@ soup_message_get_http_version (SoupMessage *msg)
 gboolean
 soup_message_is_keepalive (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
 	if (msg->status_code == SOUP_STATUS_OK &&
 	    msg->method == SOUP_METHOD_CONNECT)
 		return TRUE;
@@ -1557,7 +1577,7 @@ soup_message_is_keepalive (SoupMessage *msg)
 	if (soup_message_headers_get_encoding (msg->response_headers) == SOUP_ENCODING_EOF)
 		return FALSE;
 
-	if (SOUP_MESSAGE_GET_PRIVATE (msg)->http_version == SOUP_HTTP_1_0) {
+	if (priv->http_version == SOUP_HTTP_1_0) {
 		/* In theory, HTTP/1.0 connections are only persistent
 		 * if the client requests it, and the server agrees.
 		 * But some servers do keep-alive even if the client
@@ -1596,7 +1616,7 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 	SoupMessagePrivate *priv;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);
@@ -1620,9 +1640,13 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 SoupURI *
 soup_message_get_uri (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	return SOUP_MESSAGE_GET_PRIVATE (msg)->uri;
+	priv = soup_message_get_instance_private (msg);
+
+	return priv->uri;
 }
 
 /**
@@ -1644,7 +1668,7 @@ soup_message_get_address (SoupMessage *msg)
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 	if (!priv->addr) {
 		priv->addr = soup_address_new (priv->uri->host,
 					       priv->uri->port);
@@ -1778,7 +1802,7 @@ soup_message_set_chunk_allocator (SoupMessage *msg,
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	if (priv->chunk_allocator_dnotify)
 		priv->chunk_allocator_dnotify (priv->chunk_allocator_data);
@@ -1813,7 +1837,7 @@ soup_message_disable_feature (SoupMessage *msg, GType feature_type)
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	priv->disabled_features = g_slist_prepend (priv->disabled_features,
 						   GSIZE_TO_POINTER (feature_type));
@@ -1827,7 +1851,7 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	for (f = priv->disabled_features; f; f = f->next) {
 		if (G_TYPE_CHECK_INSTANCE_TYPE (feature, (GType) GPOINTER_TO_SIZE (f->data)))
@@ -1853,7 +1877,7 @@ soup_message_get_first_party (SoupMessage *msg)
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 	return priv->first_party;
 }
 
@@ -1877,7 +1901,7 @@ soup_message_set_first_party (SoupMessage *msg,
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (first_party != NULL);
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	if (priv->first_party) {
 		if (soup_uri_equal (priv->first_party, first_party))
@@ -1946,7 +1970,7 @@ soup_message_get_https_status (SoupMessage           *msg,
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 
 	if (certificate)
 		*certificate = priv->tls_certificate;
@@ -1994,7 +2018,7 @@ void
 soup_message_set_soup_request (SoupMessage *msg,
 			       SoupRequest *req)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	priv->request = req;
 }
@@ -2017,7 +2041,7 @@ soup_message_get_soup_request (SoupMessage *msg)
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv = soup_message_get_instance_private (msg);
 	return priv->request;
 }
 
@@ -2084,7 +2108,11 @@ soup_message_set_priority (SoupMessage        *msg,
 SoupMessagePriority
 soup_message_get_priority (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_MESSAGE_PRIORITY_NORMAL);
 
-	return SOUP_MESSAGE_GET_PRIVATE (msg)->priority;
+	priv = soup_message_get_instance_private (msg);
+
+	return priv->priority;
 }
