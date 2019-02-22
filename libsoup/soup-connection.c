@@ -639,7 +639,6 @@ is_idle_connection_disconnected (SoupConnection *conn)
 	GInputStream *istream;
 	char buffer[1];
 	GError *error = NULL;
-	gboolean ret = FALSE;
 
 	if (!soup_socket_is_connected (priv->socket))
 		return TRUE;
@@ -662,13 +661,14 @@ is_idle_connection_disconnected (SoupConnection *conn)
 	g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM (istream),
 						  &buffer, sizeof (buffer),
 						  NULL, &error);
-	if (error != NULL) {
-		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK))
-			ret = TRUE;
-		g_error_free (error);
+	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+		g_clear_error (&error);
+		return TRUE;
 	}
 
-	return ret;
+	g_error_free (error);
+
+	return FALSE;
 }
 
 SoupConnectionState
