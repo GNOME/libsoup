@@ -15,6 +15,7 @@ test_resources = gnome.compile_resources('soup-tests',
 # ['name', is_parallel]
 tests = [
   ['cache', true],
+  ['cached-resolver', true],
   ['chunk', true],
   ['chunk-io', true],
   ['coding', true],
