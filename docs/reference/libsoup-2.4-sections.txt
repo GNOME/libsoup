@@ -1097,6 +1097,23 @@ SoupCacheability
 </SECTION>
 
 <SECTION>
+<FILE>soup-cached-resolver</FILE>
+<TITLE>SoupCachedResolver</TITLE>
+SoupCachedResolver
+SoupCachedResolverType
+soup_cached_resolver_ensure_default
+soup_cached_resolver_new
+<SUBSECTION Standard>
+SOUP_TYPE_CACHED_RESOLVER
+SOUP_IS_CACHED_RESOLVER
+SOUP_IS_CACHED_RESOLVER_CLASS
+SOUP_CACHED_RESOLVER
+SOUP_CACHED_RESOLVER_CLASS
+SOUP_CACHED_RESOLVER_GET_CLASS
+soup_cached_resolver_get_type
+</SECTION>
+
+<SECTION>
 <FILE>soup-content-decoder</FILE>
 <TITLE>SoupContentDecoder</TITLE>
 SoupContentDecoder
