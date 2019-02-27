@@ -83,6 +83,13 @@ endif
 
 cdata = configuration_data()
 
+if get_option('brotli')
+  brotlidec_dep = dependency('libbrotlidec')
+  cdata.set('WITH_BROTLI', true)
+else
+  brotlidec_dep = dependency('', required: false)
+endif
+
 platform_deps = []
 hidden_visibility_flag = []
 is_static_library = get_option('default_library') == 'static'

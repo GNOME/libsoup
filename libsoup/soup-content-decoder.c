@@ -13,6 +13,9 @@
 #include "soup-converter-wrapper.h"
 #include "soup.h"
 #include "soup-message-private.h"
+#ifdef WITH_BROTLI
+#include "soup-brotli-decompressor.h"
+#endif
 
 /**
  * SECTION:soup-content-decoder
@@ -20,7 +23,7 @@
  *
  * #SoupContentDecoder handles adding the "Accept-Encoding" header on
  * outgoing messages, and processing the "Content-Encoding" header on
- * incoming ones. Currently it supports the "gzip" and "deflate"
+ * incoming ones. Currently it supports the "gzip", "deflate", and "br"
  * content codings.
  *
  * If you are using a plain #SoupSession (ie, not #SoupSessionAsync or
@@ -169,7 +172,11 @@ soup_content_decoder_content_processor_init (SoupContentProcessorInterface *proc
 }
 
 /* This is constant for now */
+#ifdef WITH_BROTLI
+#define ACCEPT_ENCODING_HEADER "gzip, deflate, br"
+#else
 #define ACCEPT_ENCODING_HEADER "gzip, deflate"
+#endif
 
 static GConverter *
 gzip_decoder_creator (void)
@@ -182,6 +189,14 @@ zlib_decoder_creator (void)
 {
 	return (GConverter *)g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_ZLIB);
 }
+
+#ifdef WITH_BROTLI
+static GConverter *
+brotli_decoder_creator (void)
+{
+	return (GConverter *)soup_brotli_decompressor_new ();
+}
+#endif
 
 static void
 soup_content_decoder_init (SoupContentDecoder *decoder)
@@ -196,6 +211,10 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 			     gzip_decoder_creator);
 	g_hash_table_insert (decoder->priv->decoders, "deflate",
 			     zlib_decoder_creator);
+#ifdef WITH_BROTLI
+	g_hash_table_insert (decoder->priv->decoders, "br",
+			     brotli_decoder_creator);
+#endif
 }
 
 static void
