@@ -22,6 +22,12 @@ option('ntlm_auth',
   description : 'Where to look for ntlm_auth, path points to ntlm_auth installation (defaultly looking in PATH)'
 )
 
+option('brotli',
+  type : 'boolean',
+  value : true,
+  description : 'Build with Brotli decompression support'
+)
+
 option('tls_check',
   type : 'boolean',
   value : true,
