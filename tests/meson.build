@@ -44,6 +44,12 @@ tests = [
   ['websocket', true]
 ]
 
+if brotlidec_dep.found()
+  tests += [
+    ['brotli-decompressor', true],
+  ]
+endif
+
 if have_apache
   tests += [
     ['auth', false],
