@@ -64,6 +64,7 @@ glib_dep = [dependency('glib-2.0', version : glib_required_version,
 
 sqlite_dep = dependency('sqlite3', required: false)
 
+
 # Fallback check for sqlite, not all platforms ship pkg-config file
 if not sqlite_dep.found()
   cc.has_header('sqlite3.h')
@@ -82,6 +83,13 @@ if not libxml_dep.found()
 endif
 
 cdata = configuration_data()
+
+if get_option('brotli')
+  brotlidec_dep = dependency('libbrotlidec')
+  cdata.set('WITH_BROTLI', true)
+else
+  brotlidec_dep = dependency('', required: false)
+endif
 
 platform_deps = []
 hidden_visibility_flag = []
