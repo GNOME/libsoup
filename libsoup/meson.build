@@ -183,6 +183,12 @@ soup_gnome_installed_headers = soup_gnome_introspection_headers + [
   'soup-gnome.h'
 ]
 
+if brotlidec_dep.found()
+  soup_sources += 'soup-brotli-decompressor.c'
+  soup_headers += 'soup-brotli-decompressor.h'
+endif
+
+
 includedir = join_paths(libsoup_api_name, meson.project_name())
 install_headers(soup_installed_headers, subdir : includedir)
 
@@ -220,7 +226,8 @@ deps = [
   libxml_dep,
   sqlite_dep,
   libpsl_dep,
-  platform_deps
+  brotlidec_dep,
+  platform_deps,
 ]
 
 libsoup = library('soup-@0@'.format(apiversion),

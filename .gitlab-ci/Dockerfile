@@ -13,6 +13,7 @@ RUN dnf update -y \
                       mod_ssl \
                       redhat-rpm-config \
                       meson \
+                      brotli-devel \
     && dnf clean all
 
 ARG HOST_USER_ID=5555
