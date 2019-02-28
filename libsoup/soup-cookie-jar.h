@@ -75,6 +75,11 @@ SOUP_AVAILABLE_IN_2_40
 void                      soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar             *jar,
 								       SoupURI                   *first_party,
 								       SoupCookie                *cookie);
+SOUP_AVAILABLE_IN_2_66
+void                      soup_cookie_jar_add_cookie_full             (SoupCookieJar             *jar,
+                                                                       SoupCookie                *cookie,
+								       SoupURI                   *uri,
+								       SoupURI                   *first_party);
 SOUP_AVAILABLE_IN_2_26
 void                      soup_cookie_jar_delete_cookie               (SoupCookieJar             *jar,
 								       SoupCookie                *cookie);

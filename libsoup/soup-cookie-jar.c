@@ -433,21 +433,61 @@ soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, SoupURI *uri, gboolean for_
 	return get_cookies (jar, uri, for_http, TRUE);
 }
 
+static const char *
+normalize_cookie_domain (const char *domain)
+{
+	/* Trim any leading dot if present to transform the cookie
+         * domain into a valid hostname.
+         */
+	if (domain != NULL && domain[0] == '.')
+		return domain + 1;
+	return domain;
+}
+
+static gboolean
+incoming_cookie_is_third_party (SoupCookie *cookie, SoupURI *first_party)
+{
+	const char *normalized_cookie_domain;
+	const char *cookie_base_domain;
+	const char *first_party_base_domain;
+
+	if (first_party == NULL || first_party->host == NULL)
+		return TRUE;
+
+	normalized_cookie_domain = normalize_cookie_domain (cookie->domain);
+	cookie_base_domain = soup_tld_get_base_domain (normalized_cookie_domain, NULL);
+	if (cookie_base_domain == NULL)
+		cookie_base_domain = cookie->domain;
+
+	first_party_base_domain = soup_tld_get_base_domain (first_party->host, NULL);
+	if (first_party_base_domain == NULL)
+		first_party_base_domain = first_party->host;
+	return !soup_host_matches_host (cookie_base_domain, first_party_base_domain);
+}
+
 /**
- * soup_cookie_jar_add_cookie:
+ * soup_cookie_jar_add_cookie_full:
  * @jar: a #SoupCookieJar
  * @cookie: (transfer full): a #SoupCookie
+ * @uri: (nullable): the URI setting the cookie
+ * @first_party: (nullable): the URI for the main document
  *
  * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
  * an existing cookie or adding a valid new cookie ('valid' means
  * that the cookie's expire date is not in the past).
  *
+ * @first_party will be used to reject cookies coming from third party
+ * resources in case such a security policy is set in the @jar.
+ *
+ * @uri will be used to reject setting or overwriting secure cookies
+ * from insecure origins.
+ * 
  * @cookie will be 'stolen' by the jar, so don't free it afterwards.
  *
- * Since: 2.26
+ * Since: 2.68
  **/
 void
-soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
+soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI *uri, SoupURI *first_party)
 {
 	SoupCookieJarPrivate *priv;
 	GSList *old_cookies, *oc, *last = NULL;
@@ -464,12 +504,33 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 	}
 
 	priv = soup_cookie_jar_get_instance_private (jar);
+
+	if (first_party != NULL) {
+		if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER ||
+                    (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
+		     incoming_cookie_is_third_party (cookie, first_party))) {
+			soup_cookie_free (cookie);
+			return;
+		}
+	}
+
+	/* Cannot set a secure cookie over http */
+	if (uri != NULL && !soup_uri_is_https (uri, NULL) && soup_cookie_get_secure (cookie)) {
+		soup_cookie_free (cookie);
+		return;
+	}
+
 	old_cookies = g_hash_table_lookup (priv->domains, cookie->domain);
 	for (oc = old_cookies; oc; oc = oc->next) {
 		old_cookie = oc->data;
 		if (!strcmp (cookie->name, old_cookie->name) &&
 		    !g_strcmp0 (cookie->path, old_cookie->path)) {
-			if (cookie->expires && soup_date_is_past (cookie->expires)) {
+			if (soup_cookie_get_secure (oc->data) && uri != NULL && !soup_uri_is_https (uri, NULL)) {
+				/* We do not allow overwriting secure cookies from an insecure origin
+				 * https://tools.ietf.org/html/draft-ietf-httpbis-cookie-alone-01
+				 */
+				soup_cookie_free (cookie);
+			} else if (cookie->expires && soup_date_is_past (cookie->expires)) {
 				/* The new cookie has an expired date,
 				 * this is the way the the server has
 				 * of telling us that we have to
@@ -510,36 +571,23 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 	soup_cookie_jar_changed (jar, NULL, cookie);
 }
 
-static const char *
-normalize_cookie_domain (const char *domain)
+/**
+ * soup_cookie_jar_add_cookie:
+ * @jar: a #SoupCookieJar
+ * @cookie: (transfer full): a #SoupCookie
+ *
+ * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
+ * an existing cookie or adding a valid new cookie ('valid' means
+ * that the cookie's expire date is not in the past).
+ *
+ * @cookie will be 'stolen' by the jar, so don't free it afterwards.
+ *
+ * Since: 2.26
+ **/
+void
+soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 {
-	/* Trim any leading dot if present to transform the cookie
-         * domain into a valid hostname.
-         */
-	if (domain != NULL && domain[0] == '.')
-		return domain + 1;
-	return domain;
-}
-
-static gboolean
-incoming_cookie_is_third_party (SoupCookie *cookie, SoupURI *first_party)
-{
-	const char *normalized_cookie_domain;
-	const char *cookie_base_domain;
-	const char *first_party_base_domain;
-
-	if (first_party == NULL || first_party->host == NULL)
-		return TRUE;
-
-	normalized_cookie_domain = normalize_cookie_domain (cookie->domain);
-	cookie_base_domain = soup_tld_get_base_domain (normalized_cookie_domain, NULL);
-	if (cookie_base_domain == NULL)
-		cookie_base_domain = cookie->domain;
-
-	first_party_base_domain = soup_tld_get_base_domain (first_party->host, NULL);
-	if (first_party_base_domain == NULL)
-		first_party_base_domain = first_party->host;
-	return !soup_host_matches_host (cookie_base_domain, first_party_base_domain);
+	soup_cookie_jar_add_cookie_full (jar, cookie, NULL, NULL);
 }
 
 /**
@@ -562,25 +610,9 @@ incoming_cookie_is_third_party (SoupCookie *cookie, SoupURI *first_party)
 void
 soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, SoupURI *first_party, SoupCookie *cookie)
 {
-	SoupCookieJarPrivate *priv;
-
-	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
 	g_return_if_fail (first_party != NULL);
-	g_return_if_fail (cookie != NULL);
 
-	priv = soup_cookie_jar_get_instance_private (jar);
-	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER) {
-		soup_cookie_free (cookie);
-		return;
-	}
-
-	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS ||
-	    !incoming_cookie_is_third_party (cookie, first_party)) {
-		/* will steal or free soup_cookie */
-		soup_cookie_jar_add_cookie (jar, cookie);
-	} else {
-		soup_cookie_free (cookie);
-	}
+	soup_cookie_jar_add_cookie_full (jar, cookie, NULL, first_party);
 }
 
 /**
@@ -623,7 +655,7 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	soup_cookie = soup_cookie_parse (cookie, uri);
 	if (soup_cookie) {
 		/* will steal or free soup_cookie */
-		soup_cookie_jar_add_cookie (jar, soup_cookie);
+		soup_cookie_jar_add_cookie_full (jar, g_steal_pointer (&soup_cookie), uri, NULL);
 	}
 }
 
@@ -658,8 +690,9 @@ soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
 		return;
 
 	soup_cookie = soup_cookie_parse (cookie, uri);
-	if (soup_cookie)
-		soup_cookie_jar_add_cookie_with_first_party (jar, first_party, soup_cookie);
+	if (soup_cookie) {
+		soup_cookie_jar_add_cookie_full (jar, g_steal_pointer (&soup_cookie), uri, first_party);
+	}
 }
 
 static void
@@ -668,20 +701,16 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 	SoupCookieJar *jar = user_data;
 	SoupCookieJarPrivate *priv = soup_cookie_jar_get_instance_private (jar);
 	GSList *new_cookies, *nc;
+	SoupURI *first_party, *uri;
 
 	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
 		return;
 
 	new_cookies = soup_cookies_from_response (msg);
-	for (nc = new_cookies; nc; nc = nc->next) {
-		SoupURI *first_party = soup_message_get_first_party (msg);
-		
-		if ((priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
-		     !incoming_cookie_is_third_party (nc->data, first_party)) ||
-		    priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS)
-			soup_cookie_jar_add_cookie (jar, nc->data);
-		else
-			soup_cookie_free (nc->data);
+	first_party = soup_message_get_first_party (msg);
+	uri = soup_message_get_uri (msg);
+	for (nc = new_cookies; nc; nc = nc->next) {		
+		soup_cookie_jar_add_cookie_full (jar, g_steal_pointer (&nc->data), uri, first_party);
 	}
 	g_slist_free (new_cookies);
 }
