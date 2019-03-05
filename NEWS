@@ -1,3 +1,14 @@
+Changes in libsoup from 2.65.91 to 2.65.92:
+
+        * SoupConnection: Fix check for remote disconnectin idle state
+          [Michael Catanzaro, #134]
+
+        * Code cleanups and warnings fixed [Michael Catanzaro]
+
+        * Remove stale .pc.in files [Claudio Saavedra, #137]
+
+        * Updated translations: Dutch
+
 Changes in libsoup from 2.65.90 to 2.65.91:
 
 	* Remove RFCs from sources [Tomas Popela, #133]
