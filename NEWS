@@ -1,3 +1,7 @@
+Changes in libsoup from 2.65.92 to 2.66.0:
+
+        * Fix lookup for libxml2 on Visual Studio builds [Chun-wei Fan]
+
 Changes in libsoup from 2.65.91 to 2.65.92:
 
         * SoupConnection: Fix check for remote disconnectin idle state
