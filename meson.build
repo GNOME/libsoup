@@ -1,6 +1,6 @@
 project('libsoup', 'c',
         version: '2.66.0',
-        meson_version : '>=0.47',
+        meson_version : '>=0.48',
         license : 'LGPL2',
         default_options : 'c_std=c89')
 
@@ -16,6 +16,11 @@ libversion = '1.8.0'
 apiversion = '2.4'
 soversion = '1'
 libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
+libversion_arr = libversion.split('.')
+darwin_version_major = libversion_arr[0].to_int()
+darwin_version_minor = libversion_arr[1].to_int()
+darwin_version_micro = libversion_arr[2].to_int()
+darwin_versions = [darwin_version_major + darwin_version_minor + 1, '@0@.@1@'.format(darwin_version_major + darwin_version_minor + 1, darwin_version_micro)]
 
 host_system = host_machine.system()
 
