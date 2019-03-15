@@ -211,7 +211,7 @@ apache_cleanup (void)
 	} else
 		pid = 0;
 
-	if (!apache_cmd ("graceful-stop"))
+	if (apache_cmd ("graceful-stop"))
 		return;
 	apache_running = FALSE;
 
