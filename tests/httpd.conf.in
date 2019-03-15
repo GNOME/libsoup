@@ -11,7 +11,7 @@ DocumentRoot .
 GracefulShutdownTimeout 1
 
 # Change this to "./error.log" if it's failing and you don't know why
-ErrorLog /dev/null
+ErrorLog ./error.log
 
 LoadModule mpm_prefork_module   @APACHE_MODULE_DIR@/mod_mpm_prefork.so
 LoadModule alias_module         @APACHE_MODULE_DIR@/mod_alias.so

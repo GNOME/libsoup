@@ -49,7 +49,7 @@ if have_apache
     ['auth', false],
     ['connection', false],
     ['range', false],
-    ['proxy', true],
+    ['proxy', false],
     ['pull-api', false],
   ]
 
