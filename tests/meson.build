@@ -96,8 +96,6 @@ endif
 env = environment()
 env.set('G_TEST_SRCDIR', meson.current_source_dir())
 env.set('G_TEST_BUILDDIR', meson.current_build_dir())
-# See https://github.com/mesonbuild/meson/issues/4228 for the workaround below
-env.prepend('LD_LIBRARY_PATH', meson.build_root() + '/libsoup')
 env.set('G_DEBUG', 'gc-friendly')
 env.set('MALLOC_CHECK_', '2')
 # This is set by Meson if empty
@@ -108,7 +106,7 @@ foreach test: tests
   test_target = executable(test_name,
     sources : [ test_name + '.c', test_resources ],
     link_with : test_utils,
-    dependencies : [glib_dep, libsoup_dep, platform_deps])
+    dependencies : libsoup_dep)
   # Increase the timeout as on some architectures the tests could be slower
   # than the default 30 seconds.
   test(test_name, test_target, env : env, is_parallel : test[1], timeout : 60)
