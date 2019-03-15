@@ -290,6 +290,7 @@ if enable_introspection or enable_vapi
       soup_enum_h,
       soup_version_h
     ],
+    dependencies : libsoup_dep,
     nsversion : apiversion,
     namespace : soup_ns,
     symbol_prefix : soup_ns.to_lower(),
@@ -301,9 +302,8 @@ if enable_introspection or enable_vapi
     header: join_paths(meson.project_name(), 'soup.h'),
   )
 
-  soup_gir_gen_dep = declare_dependency(link_with : libsoup,
-    include_directories : configinc,
-    dependencies : deps,
+  soup_gir_gen_dep = declare_dependency(
+    dependencies : libsoup_dep,
     sources : soup_gir_gen_sources)
 
   if enable_vapi
