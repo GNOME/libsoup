@@ -57,6 +57,11 @@ else
   common_flags += cc.get_supported_arguments(test_cflags)
 endif
 
+if cc.get_id() != 'msvc' and host_system == 'windows'
+  # For "%2hhx" sscanf format and the like
+  add_project_arguments('-D__USE_MINGW_ANSI_STDIO=1', language : 'c')
+endif
+
 add_project_arguments(common_flags, language : 'c')
 
 glib_required_version = '>= 2.38'
