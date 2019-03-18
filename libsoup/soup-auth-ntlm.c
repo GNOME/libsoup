@@ -812,7 +812,19 @@ calc_hmac_md5 (unsigned char *hmac, const guchar *key, gsize key_sz, const gucha
 	hex_pos = hmac_hex;
 	for (count = 0; count < HMAC_MD5_LENGTH; count++)
 	{
+		unsigned int tmp_hmac;
+
+		/* The 'hh' sscanf format modifier is C99, so we enable it on
+		 * non-Windows or if __USE_MINGW_ANSI_STDIO is enabled or`
+		 * if we are building on Visual Studio 2015 or later
+		 */
+#if !defined (G_OS_WIN32) || (__USE_MINGW_ANSI_STDIO == 1) || (_MSC_VER >= 1900)
 		sscanf(hex_pos, "%2hhx", &hmac[count]);
+#else
+		sscanf(hex_pos, "%2x", &tmp_hmac);
+		hmac[count] = (guint8)tmp_hmac;
+#endif
+
 		hex_pos += 2;
 	}
 	g_free(hmac_hex);
