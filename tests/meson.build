@@ -2,10 +2,10 @@ test_utils_name = 'test-utils'
 
 if cc.get_id() == 'msvc'
   test_utils = static_library(test_utils_name, test_utils_name + '.c',
-    dependencies : [glib_dep, libsoup_dep])
+    dependencies : libsoup_dep)
 else
   test_utils = library(test_utils_name, test_utils_name + '.c',
-    dependencies : [glib_dep, libsoup_dep])
+    dependencies : libsoup_dep)
 endif
 
 test_resources = gnome.compile_resources('soup-tests',
@@ -97,6 +97,8 @@ env = environment()
 env.set('G_TEST_SRCDIR', meson.current_source_dir())
 env.set('G_TEST_BUILDDIR', meson.current_build_dir())
 env.set('G_DEBUG', 'gc-friendly')
+# See https://github.com/mesonbuild/meson/issues/1383 for the workaround below
+env.prepend('LD_LIBRARY_PATH', meson.build_root() + '/libsoup')
 env.set('MALLOC_CHECK_', '2')
 # This is set by Meson if empty
 env.set('MALLOC_PERTURB_', '')
@@ -113,4 +115,4 @@ foreach test: tests
 endforeach
 
 executable('ntlm-test-helper', 'ntlm-test-helper.c',
-  dependencies : [glib_dep, libsoup_dep])
+  dependencies : libsoup_dep)
