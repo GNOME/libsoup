@@ -873,7 +873,7 @@ calc_ntlmv2_response (const char *user, const char *domain,
 	/* create blob */
 	blob_sz = sizeof (blob_signature) + sizeof (blob_reserved) +
 			sizeof (blob_timestamp) + sizeof (client_nonce) +
-			sizeof (blob_unknown) + target_info_sz;
+			sizeof (blob_unknown) + target_info_sz + 4;
 	p_blob = blob = g_malloc (blob_sz);
 	memset (blob, 0, blob_sz);
 	memcpy (p_blob, blob_signature, sizeof (blob_signature));
@@ -935,8 +935,8 @@ soup_ntlm_response (const char *nonce,
 	{
 		/* nonce_blob_hash 16 + blob_signature 4 + blob_reserved 4 +
 		 * blob_timestamp 8 + client_nonce 8 + blob_unknown 4 +
-		 * target_info*/
-		nt_resp_sz = NTLM_RESPONSE_TARGET_INFORMATION_OFFSET + target_info_sz;
+		 * target_info + unknown 4*/
+		nt_resp_sz = NTLM_RESPONSE_TARGET_INFORMATION_OFFSET + target_info_sz + 4;
 	} else {
 		nt_resp_sz = 24;
 	}
@@ -961,7 +961,7 @@ soup_ntlm_response (const char *nonce,
 	memset (&resp, 0, sizeof (resp));
 	memcpy (resp.header, NTLM_RESPONSE_HEADER, sizeof (resp.header));
 	resp.flags = GUINT32_TO_LE (NTLM_RESPONSE_FLAGS);
-	if (ntlmv2_session && !negotiate_target)
+	if (ntlmv2_session)
 		resp.flags |= GUINT32_TO_LE (NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
 	if (negotiate_target)
 			resp.flags |= GUINT32_TO_LE (NTLM_FLAGS_REQUEST_TARGET);
