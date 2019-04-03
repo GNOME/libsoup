@@ -72,7 +72,8 @@ glib_dep = [dependency('glib-2.0', version : glib_required_version,
             dependency('gio-2.0', version : glib_required_version,
                        fallback: ['glib', 'libgio_dep'])]
 
-sqlite_dep = dependency('sqlite3', required: false)
+sqlite_dep = dependency('sqlite3', required: false,
+                        fallback: ['sqlite', 'sqlite_dep'])
 
 # Fallback check for sqlite, not all platforms ship pkg-config file
 if not sqlite_dep.found()
@@ -81,7 +82,8 @@ if not sqlite_dep.found()
   sqlite_dep = cc.find_library('sqlite3')
 endif
 
-libxml_dep = dependency('libxml-2.0', required: false)
+libxml_dep = dependency('libxml-2.0', required: false,
+                        fallback: ['libxml2', 'xml2lib_dep'])
 
 # Fallback check for libxml2, not all platforms ship pkg-config file
 if not libxml_dep.found()
