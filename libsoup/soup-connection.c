@@ -27,6 +27,7 @@ typedef struct {
 	time_t       unused_timeout;
 	GSource     *idle_timeout_src;
 	gboolean     reusable;
+	guint source_id;
 } SoupConnectionPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
@@ -233,13 +234,14 @@ start_idle_timer (SoupConnection *conn)
 			soup_add_timeout (priv->socket_props->async_context,
 					  priv->socket_props->idle_timeout * 1000,
 					  idle_timeout, conn);
+		priv->source_id=g_source_get_id (priv->idle_timeout_src);
 	}
 }
 
 static void
 stop_idle_timer (SoupConnectionPrivate *priv)
 {
-	if (priv->idle_timeout_src) {
+	if ((priv->idle_timeout_src) && (priv->source_id != 0)) {
 		g_source_destroy (priv->idle_timeout_src);
 		priv->idle_timeout_src = NULL;
 	}
