@@ -242,8 +242,10 @@ static void
 stop_idle_timer (SoupConnectionPrivate *priv)
 {
 	if ((priv->idle_timeout_src) && (priv->source_id != 0)) {
-		g_source_destroy (priv->idle_timeout_src);
+	    g_source_destroy(g_main_context_find_source_by_id(priv->async_context,priv->source_id));
+		//g_source_destroy (priv->idle_timeout_src);
 		priv->idle_timeout_src = NULL;
+		priv->source_id=0;
 	}
 }
 
