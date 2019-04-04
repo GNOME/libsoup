@@ -36,6 +36,7 @@ enum {
 	DISCONNECTED,
 	NEW_CONNECTION,
 	EVENT,
+	ACCEPT_CERTIFICATE,
 	LAST_SIGNAL
 };
 
@@ -535,6 +536,28 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_TYPE_SOCKET_CLIENT_EVENT,
 			      G_TYPE_IO_STREAM);
 
+	/**
+	 * SoupSocket::accept-certificate:
+	 * @sock: the socket
+	 * @peer_cert: the peer's #GTlsCertificate
+	 * @errors: the problems with @peer_cert.
+	 * @identity: the peer's #GSocketConnectable identity
+	 *
+	 * Emitted during the TLS handshake after the peer certificate has
+	 * been received. See #GTlsConnection::accept-certificate for more
+	 * details.
+	 **/
+	signals[ACCEPT_CERTIFICATE] =
+		g_signal_new ("accept-certificate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupSocketClass, accept_certificate),
+			      g_signal_accumulator_true_handled,
+			      NULL, NULL,
+			      G_TYPE_BOOLEAN, 3,
+			      G_TYPE_TLS_CERTIFICATE,
+			      G_TYPE_TLS_CERTIFICATE_FLAGS,
+			      G_TYPE_SOCKET_CONNECTABLE);
 
 	/* properties */
 	g_object_class_install_property (
@@ -1344,10 +1367,40 @@ soup_socket_peer_certificate_changed (GObject *conn, GParamSpec *pspec,
 }
 
 static gboolean
-soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert,
+soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert, 
 				GTlsCertificateFlags errors, gpointer sock)
 {
-	return TRUE;
+	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
+	gboolean accept = FALSE;
+
+	if (!priv->ssl_strict) {
+		GValue args[4] = { {0}, {0}, {0}, {0} };
+		GValue ret = { 0 };
+
+		g_value_init (&args[0], SOUP_TYPE_SOCKET);
+		g_value_set_object (&args[0], sock);
+		g_value_init (&args[1], G_TYPE_TLS_CERTIFICATE);
+		g_value_set_object (&args[1], cert);
+		g_value_init (&args[2], G_TYPE_TLS_CERTIFICATE_FLAGS);
+		g_value_set_flags (&args[2], errors);
+		g_value_init (&args[3], G_TYPE_SOCKET_CONNECTABLE);
+		g_value_set_object (&args[3],
+			g_tls_client_connection_get_server_identity (G_TLS_CLIENT_CONNECTION (conn)));
+
+		g_value_init (&ret, G_TYPE_BOOLEAN);
+		g_value_set_boolean (&ret, TRUE);
+
+		g_signal_emitv (args, signals[ACCEPT_CERTIFICATE], 0, &ret);
+
+		g_value_unset (&args[0]);
+		g_value_unset (&args[1]);
+		g_value_unset (&args[2]);
+		g_value_unset (&args[3]);
+		accept = g_value_get_boolean (&ret);
+		g_value_unset (&ret);
+	}
+
+	return accept;
 }
 
 static gboolean
@@ -1396,11 +1449,9 @@ soup_socket_setup_ssl (SoupSocket    *sock,
 		g_object_unref (priv->conn);
 		priv->conn = G_IO_STREAM (conn);
 
-		if (!priv->ssl_strict) {
-			g_signal_connect (conn, "accept-certificate",
-					  G_CALLBACK (soup_socket_accept_certificate),
-					  sock);
-		}
+		g_signal_connect (conn, "accept-certificate",
+				  G_CALLBACK (soup_socket_accept_certificate),
+				  sock);
 	} else {
 		GTlsServerConnection *conn;
 
