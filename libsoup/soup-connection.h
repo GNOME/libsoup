@@ -30,6 +30,8 @@ typedef struct {
 	/* signals */
 	void (*disconnected)    (SoupConnection *);
 
+	gboolean (*accept_certificate)(SoupConnection *conn, GTlsCertificate *peer_cert,
+		GTlsCertificateFlags errors, GSocketConnectable *identity);
 } SoupConnectionClass;
 
 GType soup_connection_get_type (void);

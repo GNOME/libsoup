@@ -32,6 +32,9 @@ typedef struct {
 
 	void (*new_connection) (SoupSocket *listener, SoupSocket *new_sock);
 
+	gboolean (*accept_certificate)(SoupSocket *sock, GTlsCertificate *peer_cert,
+		GTlsCertificateFlags errors, GSocketConnectable *identity);
+
 	/* Padding for future expansion */
 	void (*_libsoup_reserved1) (void);
 	void (*_libsoup_reserved2) (void);

@@ -37,6 +37,9 @@ typedef struct {
 				 SoupSocket *socket);
 	void (*authenticate)    (SoupSession *session, SoupMessage *msg,
 				 SoupAuth *auth, gboolean retrying);
+	gboolean (*accept_certificate) (SoupSession *session,
+		GTlsCertificate *peer_cert, GTlsCertificateFlags errors,
+		GSocketConnectable *identity);
 
 	/* methods */
 	void  (*queue_message)   (SoupSession *session, SoupMessage *msg,
