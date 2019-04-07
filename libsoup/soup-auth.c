@@ -13,6 +13,7 @@
 
 #include "soup-auth.h"
 #include "soup.h"
+#include "soup-connection.h"
 #include "soup-connection-auth.h"
 
 /**
@@ -230,14 +231,26 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	SoupAuth *auth;
 	GHashTable *params;
 	const char *scheme, *realm;
+	const char *host;
+	gboolean is_for_proxy;
 
 	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 	g_return_val_if_fail (auth_header != NULL, NULL);
 
+	if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+		SoupConnection *conn = soup_message_get_connection (msg);
+		SoupURI *uri = soup_connection_get_proxy_uri (conn);
+		host = uri->host;
+		is_for_proxy = TRUE;
+	} else {
+		host = soup_message_get_uri (msg)->host;
+		is_for_proxy = FALSE;
+	}
+
 	auth = g_object_new (type,
-			     SOUP_AUTH_IS_FOR_PROXY, (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
-			     SOUP_AUTH_HOST, soup_message_get_uri (msg)->host,
+			     SOUP_AUTH_IS_FOR_PROXY, is_for_proxy,
+			     SOUP_AUTH_HOST, host,
 			     NULL);
 
 	scheme = soup_auth_get_scheme_name (auth);
