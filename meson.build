@@ -39,6 +39,9 @@ cc = meson.get_compiler('c')
 # Enable extra warnings if compiler supports them.
 if cc.get_id() == 'msvc'
   common_flags += ['/FImsvc_recommended_pragmas.h']
+
+  # set the input encoding to utf-8
+  add_project_arguments(cc.get_supported_arguments(['/utf-8']), language: 'c')
 else
   test_cflags = [
       '-Wall',
