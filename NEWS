@@ -1,3 +1,17 @@
+Changes in libsoup from 2.66.0 to 2.66.1:
+
+        * Fix dylib versioning in MacOS [Tom Schoonjans]
+
+        * Visual Studio build fixes [Chun-wei Fan]
+
+        * MinGW build fixes [Руслан Ижбулатов]
+
+        * Meson build system improvements [Claudio Saavedra, Jakub Adam]
+
+        * Fix random CI failures due to parallel apache tests [Claudio Saavedra]
+
+        * Code cleanups [Claudio Saavedra]
+
 Changes in libsoup from 2.65.92 to 2.66.0:
 
         * Fix lookup for libxml2 on Visual Studio builds [Chun-wei Fan]
