@@ -108,7 +108,7 @@ foreach test: tests
   test_target = executable(test_name,
     sources : [ test_name + '.c', test_resources ],
     link_with : test_utils,
-    dependencies : libsoup_dep)
+    dependencies : [libsoup_dep, platform_deps])
   # Increase the timeout as on some architectures the tests could be slower
   # than the default 30 seconds.
   test(test_name, test_target, env : env, is_parallel : test[1], timeout : 60)
