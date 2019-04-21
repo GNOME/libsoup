@@ -1,5 +1,5 @@
 deps = [
-  glib_dep,
+  glib_deps,
   libsoup_dep
 ]
 
