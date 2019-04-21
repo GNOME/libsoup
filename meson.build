@@ -68,12 +68,14 @@ endif
 add_project_arguments(common_flags, language : 'c')
 
 glib_required_version = '>= 2.38'
-glib_dep = [dependency('glib-2.0', version : glib_required_version,
-                       fallback: ['glib', 'libglib_dep']),
-            dependency('gobject-2.0', version : glib_required_version,
-                       fallback: ['glib', 'libgobject_dep']),
-            dependency('gio-2.0', version : glib_required_version,
-                       fallback: ['glib', 'libgio_dep'])]
+glib_dep = dependency('glib-2.0', version : glib_required_version,
+                       fallback: ['glib', 'libglib_dep'])
+gobject_dep = dependency('gobject-2.0', version : glib_required_version,
+                       fallback: ['glib', 'libgobject_dep'])
+gio_dep = dependency('gio-2.0', version : glib_required_version,
+                       fallback: ['glib', 'libgio_dep'])
+
+glib_deps = [glib_dep, gobject_dep, gio_dep]
 
 sqlite_dep = dependency('sqlite3', required: false,
                         fallback: ['sqlite', 'sqlite_dep'])
@@ -129,14 +131,18 @@ endif
 ###################
 enable_tls_check = get_option('tls_check')
 if enable_tls_check
-  check_gio_tls_src = '''#include <gio/gio.h>
-  int main(void) {
-    return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
-  }
-  '''
+  if gio_dep.type_name() == 'internal'
+    warning('TLS check was enabled but required dependency is internal')
+  else
+    check_gio_tls_src = '''#include <gio/gio.h>
+    int main(void) {
+      return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
+    }
+    '''
 
-  assert(cc.compiles(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_dep),
-         'libsoup requires glib-networking or glib-openssl for TLS support')
+    assert(cc.compiles(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_deps),
+          'libsoup requires glib-networking or glib-openssl for TLS support')
+  endif
 endif
 
 #################################

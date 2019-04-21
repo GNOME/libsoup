@@ -216,7 +216,7 @@ libsoup_c_args  = [
 ]
 
 deps = [
-  glib_dep,
+  glib_deps,
   libxml_dep,
   sqlite_dep,
   libpsl_dep,
@@ -236,7 +236,7 @@ libsoup = library('soup-@0@'.format(apiversion),
   dependencies : deps)
 
 pkg.generate(libsoup,
-  libraries : glib_dep,
+  libraries : glib_deps,
   name : meson.project_name(),
   description : 'A glib-based HTTP library',
   filebase : libsoup_api_name,
@@ -246,7 +246,7 @@ pkg.generate(libsoup,
 libsoup_dep = declare_dependency(link_with : libsoup,
   include_directories : configinc,
   sources : soup_enum_h,
-  dependencies : [ platform_deps, glib_dep ])
+  dependencies : [ platform_deps, glib_deps ])
 
 if enable_gnome
   soup_gnome_api_name = 'soup-gnome-' + apiversion
