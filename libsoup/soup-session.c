@@ -150,6 +150,8 @@ static void free_host (SoupSessionHost *host);
 static void connection_state_changed (GObject *object, GParamSpec *param,
 				      gpointer user_data);
 static void connection_disconnected (SoupConnection *conn, gpointer user_data);
+static gboolean connection_accept_certificate (SoupConnection *conn, GTlsCertificate *peer_cert,
+	GTlsCertificateFlags errors, GSocketConnectable *identity, gpointer user_data);
 static void drop_connection (SoupSession *session, SoupSessionHost *host,
 			     SoupConnection *conn);
 
@@ -177,6 +179,7 @@ enum {
 	AUTHENTICATE,
 	CONNECTION_CREATED,
 	TUNNELING,
+	ACCEPT_CERTIFICATE,
 	LAST_SIGNAL
 };
 
@@ -1431,6 +1434,7 @@ drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *co
 
 	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
 	g_signal_handlers_disconnect_by_func (conn, connection_state_changed, session);
+	g_signal_handlers_disconnect_by_func (conn, connection_accept_certificate, session);
 	priv->num_conns--;
 
 	g_object_unref (conn);
@@ -1453,6 +1457,44 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 	g_mutex_unlock (&priv->conn_lock);
 
 	soup_session_kick_queue (session);
+}
+
+static gboolean
+connection_accept_certificate (SoupConnection *conn, GTlsCertificate *peer_cert,
+	GTlsCertificateFlags errors, GSocketConnectable *identity, gpointer user_data)
+{
+	SoupSession *session = user_data;
+	GValue args[4] = { {0}, {0}, {0}, {0} };
+	GValue ret = { 0 };
+	gboolean accept;
+
+	g_value_init (&args[0], SOUP_TYPE_SESSION);
+	g_value_set_object (&args[0], session);
+	g_value_init (&args[1], G_TYPE_TLS_CERTIFICATE);
+	g_value_set_object (&args[1], peer_cert);
+	g_value_init (&args[2], G_TYPE_TLS_CERTIFICATE_FLAGS);
+	g_value_set_flags (&args[2], errors);
+	g_value_init (&args[3], G_TYPE_SOCKET_CONNECTABLE);
+	g_value_set_object (&args[3], identity);
+
+	g_value_init (&ret, G_TYPE_BOOLEAN);
+	g_value_set_boolean (&ret, TRUE);
+
+	/* Can't use g_signal_emit (), because it will reset the return
+	 * value to FALSE, even if no signal handlers were connected.
+	 * When ssl-strict is FALSE, by default we accept all certificates
+	 * unless explicitly rejected. This keeps it consistent with the
+	 * GTlsConnection::accept-certificate signal.
+	 */
+	g_signal_emitv (args, signals[ACCEPT_CERTIFICATE], 0, &ret);
+
+	g_value_unset (&args[0]);
+	g_value_unset (&args[1]);
+	g_value_unset (&args[2]);
+	g_value_unset (&args[3]);
+	accept = g_value_get_boolean (&ret);
+	g_value_unset (&ret);
+	return accept;
 }
 
 static void
@@ -1860,6 +1902,9 @@ get_connection_for_host (SoupSession *session,
 			  session);
 	g_signal_connect (conn, "notify::state",
 			  G_CALLBACK (connection_state_changed),
+			  session);
+	g_signal_connect (conn, "accept-certificate",
+			  G_CALLBACK (connection_accept_certificate),
 			  session);
 
 	/* This is a debugging-related signal, and so can ignore the
@@ -3195,6 +3240,32 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_TYPE_OBJECT);
 
 
+	/**
+	 * SoupSession::accept-certificate:
+	 * @session: the #SoupSession
+	 * @peer_cert: the peer's #GTlsCertificate
+	 * @errors: the problems with @peer_cert.
+	 * @identity: the peer's #GSocketConnectable identity
+	 *
+	 * Emitted during the TLS handshake after the peer certificate has
+	 * been received. See #GTlsConnection::accept-certificate for more
+	 * details.
+	 *
+	 * Since: 2.67
+	 */
+	signals[ACCEPT_CERTIFICATE] =
+		g_signal_new ("accept-certificate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupSessionClass, accept_certificate),
+			      g_signal_accumulator_true_handled,
+			      NULL, NULL,
+			      G_TYPE_BOOLEAN, 3,
+			      G_TYPE_TLS_CERTIFICATE,
+			      G_TYPE_TLS_CERTIFICATE_FLAGS,
+			      G_TYPE_SOCKET_CONNECTABLE);
+
+
 	/* properties */
 	/**
 	 * SoupSession:proxy-uri:
@@ -3456,11 +3527,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * %SOUP_STATUS_SSL_FAILED.
 	 *
 	 * If you set #SoupSession:ssl-strict to %FALSE, then all
-	 * certificates will be accepted, and you will need to call
-	 * soup_message_get_https_status() to distinguish valid from
-	 * invalid certificates. (This can be used, eg, if you want to
-	 * accept invalid certificates after giving some sort of
-	 * warning.)
+	 * certificates will be accepted. You can connect the
+	 * #SoupSession:accept-certificate signal and return %FALSE
+	 * to reject invalid certificates.
 	 *
 	 * For a plain #SoupSession, if the session has no CA file or
 	 * TLS database, and this property is %TRUE, then all

@@ -34,6 +34,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 enum {
 	EVENT,
 	DISCONNECTED,
+	ACCEPT_CERTIFICATE,
 	LAST_SIGNAL
 };
 
@@ -171,6 +172,17 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
+	signals[ACCEPT_CERTIFICATE] =
+		g_signal_new ("accept-certificate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupConnectionClass, accept_certificate),
+			      g_signal_accumulator_true_handled,
+			      NULL, NULL,
+			      G_TYPE_BOOLEAN, 3,
+			      G_TYPE_TLS_CERTIFICATE,
+			      G_TYPE_TLS_CERTIFICATE_FLAGS,
+			      G_TYPE_SOCKET_CONNECTABLE);
 
 	/* properties */
 	g_object_class_install_property (
@@ -319,6 +331,45 @@ re_emit_socket_event (SoupSocket          *socket,
 		soup_connection_event (conn, event, connection);
 }
 
+static gboolean
+re_emit_socket_accept_certificate (SoupSocket *socket,
+	GTlsCertificate *peer_cert, GTlsCertificateFlags errors,
+	GSocketConnectable *identity, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+	GValue args[4] = { {0}, {0}, {0}, {0} };
+	GValue ret = { 0 };
+	gboolean accept;
+
+	g_value_init (&args[0], SOUP_TYPE_CONNECTION);
+	g_value_set_object (&args[0], conn);
+	g_value_init (&args[1], G_TYPE_TLS_CERTIFICATE);
+	g_value_set_object (&args[1], peer_cert);
+	g_value_init (&args[2], G_TYPE_TLS_CERTIFICATE_FLAGS);
+	g_value_set_flags (&args[2], errors);
+	g_value_init (&args[3], G_TYPE_SOCKET_CONNECTABLE);
+	g_value_set_object (&args[3], identity);
+
+	g_value_init (&ret, G_TYPE_BOOLEAN);
+	g_value_set_boolean (&ret, TRUE);
+
+	/* Can't use g_signal_emit (), because it will reset the return
+	 * value to FALSE, even if no signal handlers were connected.
+	 * When ssl-strict is FALSE, by default we accept all certificates
+	 * unless explicitly rejected. This keeps it consistent with the
+	 * GTlsConnection::accept-certificate signal.
+	 */
+	g_signal_emitv (args, signals[ACCEPT_CERTIFICATE], 0, &ret);
+
+	g_value_unset (&args[0]);
+	g_value_unset (&args[1]);
+	g_value_unset (&args[2]);
+	g_value_unset (&args[3]);
+	accept = g_value_get_boolean (&ret);
+	g_value_unset (&ret);
+	return accept;
+}
+
 static void
 socket_connect_finished (GTask *task, SoupSocket *sock, GError *error)
 {
@@ -411,6 +462,8 @@ soup_connection_connect_async (SoupConnection      *conn,
 
 	g_signal_connect (priv->socket, "event",
 			  G_CALLBACK (re_emit_socket_event), conn);
+	g_signal_connect (priv->socket, "accept-certificate",
+			  G_CALLBACK (re_emit_socket_accept_certificate), conn);
 
 	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
@@ -459,6 +512,8 @@ soup_connection_connect_sync (SoupConnection  *conn,
 
 	g_signal_connect (priv->socket, "event",
 			  G_CALLBACK (re_emit_socket_event), conn);
+	g_signal_connect (priv->socket, "accept-certificate",
+			  G_CALLBACK (re_emit_socket_accept_certificate), conn);
 	if (!soup_socket_connect_sync_internal (priv->socket, cancellable, error))
 		return FALSE;
 
@@ -581,6 +636,7 @@ soup_connection_disconnect (SoupConnection *conn)
 		SoupSocket *socket = priv->socket;
 
 		g_signal_handlers_disconnect_by_func (socket, G_CALLBACK (re_emit_socket_event), conn);
+		g_signal_handlers_disconnect_by_func (socket, G_CALLBACK (re_emit_socket_accept_certificate), conn);
 
 		priv->socket = NULL;
 		soup_socket_disconnect (socket);
