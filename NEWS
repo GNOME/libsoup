@@ -1,3 +1,15 @@
+Changes in libsoup from 2.66.1 to 2.66.2:
+
+	* Make gettext optional (might not be available in Windows)
+	  [Seungha Yang]
+
+	* MSVC: set encoding to UTF-8 to avoid errors [Seungha Yang]
+
+	* MinGW tests build fix [Tomas Popela]
+
+	* Check for TLS support only when external glib dependency is available
+	  [Seungha Yang]
+
 Changes in libsoup from 2.66.0 to 2.66.1:
 
         * Fix dylib versioning in MacOS [Tom Schoonjans]
