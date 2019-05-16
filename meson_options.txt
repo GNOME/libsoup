@@ -46,7 +46,7 @@ option('vapi',
   description : 'Build Vala bindings'
 )
 
-option('doc',
+option('gtk_doc',
   type: 'boolean',
   value: false,
   description: 'Enable generating the API reference'
