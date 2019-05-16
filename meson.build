@@ -321,6 +321,6 @@ if get_option('tests')
   subdir('tests')
  endif
 
-if get_option('doc')
+if get_option('gtk_doc')
   subdir('docs/reference')
 endif
