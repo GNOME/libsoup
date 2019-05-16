@@ -55,7 +55,7 @@ scan_args = [
 
 gnome.gtkdoc('libsoup-2.4',
   main_sgml : 'libsoup-2.4-docs.sgml',
-  src_dir : join_paths(meson.source_root(), 'libsoup'),
+  src_dir : srcdir,
   ignore_headers : ignore_headers,
   mkdb_args : mkdb_args,
   scan_args : scan_args,

@@ -322,5 +322,6 @@ if get_option('tests')
  endif
 
 if get_option('gtk_doc')
+  srcdir = include_directories('libsoup')
   subdir('docs/reference')
 endif
