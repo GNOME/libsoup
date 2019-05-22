@@ -2,7 +2,7 @@
 
 set -e
 
-TAG="registry.gitlab.gnome.org/gnome/libsoup/master:v1"
+TAG="registry.gitlab.gnome.org/gnome/libsoup/master:v2"
 
 cd "$(dirname "$0")"
 docker build --build-arg HOST_USER_ID="$UID" --tag "${TAG}" \
