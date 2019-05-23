@@ -1,3 +1,18 @@
+Changes in libsoup from 2.66.2 to 2.67.1:
+
+        * Add a brotli decoder. This adds a new dependency on libbrotli
+	  [Patrick Griffis]
+
+        * Add strict secure cookies support [Patrick Griffis]
+
+        * Add HSTS enforcer SoupSession feature (with both memory
+          and sqlite backends) [Adrien Plazas, Claudio Saavedra]
+
+        * meson gtk-doc documentation fixes [Claudio Saavedra]
+
+        * Bump the CI test image to Fedora 30 and add libbrotli
+          dependency [Claudio Saavedra]
+
 Changes in libsoup from 2.66.1 to 2.66.2:
 
 	* Make gettext optional (might not be available in Windows)
