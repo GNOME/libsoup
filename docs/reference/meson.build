@@ -8,6 +8,7 @@ ignore_headers = [
   'soup-auth-digest.h',
   'soup-auth-ntlm.h',
   'soup-auth-negotiate.h',
+  'soup-brotli-decompressor.h',
   'soup-connection.h',
   'soup-connection-auth.h',
   'soup-message-queue.h',
