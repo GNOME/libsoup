@@ -173,7 +173,10 @@ soup_content_decoder_content_processor_init (SoupContentProcessorInterface *proc
 
 /* This is constant for now */
 #ifdef WITH_BROTLI
-#define ACCEPT_ENCODING_HEADER "gzip, deflate, br"
+/* Don't advertise br support atm until some edge cases are resolved:
+   https://gitlab.gnome.org/GNOME/libsoup/issues/146 */
+/* #define ACCEPT_ENCODING_HEADER "gzip, deflate, br" */
+#define ACCEPT_ENCODING_HEADER "gzip, deflate"
 #else
 #define ACCEPT_ENCODING_HEADER "gzip, deflate"
 #endif
