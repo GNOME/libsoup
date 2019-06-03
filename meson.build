@@ -1,6 +1,6 @@
 project('libsoup', 'c',
         version: '2.66.1',
-        meson_version : '>=0.48',
+        meson_version : '>=0.50',
         license : 'LGPL2',
         default_options : 'c_std=c89')
 
@@ -75,26 +75,33 @@ glib_dep = [dependency('glib-2.0', version : glib_required_version,
             dependency('gio-2.0', version : glib_required_version,
                        fallback: ['glib', 'libgio_dep'])]
 
-sqlite_dep = dependency('sqlite3', required: false,
-                        fallback: ['sqlite', 'sqlite_dep'])
+sqlite_dep = dependency('sqlite3', required: false)
 
 # Fallback check for sqlite, not all platforms ship pkg-config file
 if not sqlite_dep.found()
-  cc.has_header('sqlite3.h')
-  cc.has_header('sqlite3ext.h')
-  sqlite_dep = cc.find_library('sqlite3')
+  sqlite_dep = cc.find_library('sqlite3',
+    has_headers : ['sqlite3.h', 'sqlite3ext.h'],
+    required: false)
 endif
 
-libxml_dep = dependency('libxml-2.0', required: false,
-                        fallback: ['libxml2', 'xml2lib_dep'])
+if not sqlite_dep.found()
+  sqlite_dep = subproject('sqlite').get_variable('sqlite_dep')
+endif
+
+libxml_dep = dependency('libxml-2.0', required: false)
 
 # Fallback check for libxml2, not all platforms ship pkg-config file
 if not libxml_dep.found()
   # Note: The XML include dir needs to be within the INCLUDE envvar,
   # such as <INCLUDEDIR>\libxml2
-  cc.has_header('libxml/tree.h')
   libxml2_libname = cc.get_id() == 'msvc' ? 'libxml2' : 'xml2'
-  libxml_dep = cc.find_library(libxml2_libname)
+  libxml_dep = cc.find_library(libxml2_libname,
+    has_headers : 'libxml/tree.h',
+    required: false)
+endif
+
+if not libxml_dep.found()
+  libxml_dep = subproject('libxml2').get_variable('xml2lib_dep')
 endif
 
 cdata = configuration_data()
