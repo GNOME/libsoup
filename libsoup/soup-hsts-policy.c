@@ -278,7 +278,7 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 		gpointer include_subdomains_value = NULL;
 		SoupHSTSPolicy *policy = NULL;
 
-		if (strcmp (name, "Strict-Transport-Security") != 0)
+		if (g_ascii_strcasecmp (name, "Strict-Transport-Security") != 0)
 			continue;
 
 		uri = soup_message_get_uri (msg);

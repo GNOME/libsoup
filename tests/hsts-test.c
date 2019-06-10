@@ -480,6 +480,10 @@ main (int argc, char **argv)
 		https_uri = soup_test_server_get_uri (https_server, "https", NULL);
 	}
 
+	/* The case sensitivity test is run first because soup_message_headers_append()
+	   interns the header name and further uses of the name use the interned version.
+	   if we ran this test later, then the casing that this tests uses wouldn't be used. */
+	g_test_add_func ("/hsts/case-insensitive-header", do_hsts_case_insensitive_header_test);
 	g_test_add_func ("/hsts/basic", do_hsts_basic_test);
 	g_test_add_func ("/hsts/expire", do_hsts_expire_test);
 	g_test_add_func ("/hsts/delete", do_hsts_delete_test);
@@ -496,7 +500,6 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/invalid-values", do_hsts_invalid_values_test);
 	g_test_add_func ("/hsts/extra-values", do_hsts_extra_values_test);
 	g_test_add_func ("/hsts/duplicated-directives", do_hsts_duplicated_directives_test);
-	g_test_add_func ("/hsts/case-insensitive-header", do_hsts_case_insensitive_header_test);
 	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
 	g_test_add_func ("/hsts/optional-quotations", do_hsts_optional_quotations_test);
 	g_test_add_func ("/hsts/ip-address", do_hsts_ip_address_test);
