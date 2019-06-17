@@ -1,3 +1,28 @@
+Changes in libsoup from 2.67.1 to 2.67.2:
+
+        * gobject-introspection: Fix annotation for soup_auth_new()
+          [Rico Tzschichholz]
+
+        * brotli: Do not advertise the decoder as it's failing with
+          some websites [Patrick Griffis]
+
+        * Meson: Fix xml2 and sqlite fallbacks [Xavier Claessens]
+
+        * HSTS: Add SoupHSTSEnforcer:hsts-enforced signal [Claudio
+          Saavedra]
+
+        * HSTS: Fixes to the types used to store policies in the
+          SQLite storage [Claudio Saavedra]
+
+        * HSTS: Accept Strict-Transport-Security regardless of casing
+          [Claudio Saavedra]
+
+        * WebSockets: Ensure messages finishes when handshake fails
+          [Carlos Garcia Campos]
+
+        * WebSockets: Fix critical warnings and test failures [Carlos
+          Garcia Campos]
+
 Changes in libsoup from 2.66.2 to 2.67.1:
 
         * Add a brotli decoder. This adds a new dependency on libbrotli
