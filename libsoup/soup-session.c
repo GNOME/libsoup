@@ -4804,6 +4804,8 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 	/* Disconnect websocket_connect_async_stop() handler. */
 	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, task);
+	/* Ensure websocket_connect_async_complete is not called either. */
+	item->callback = NULL;
 
 	if (soup_websocket_client_verify_handshake (item->msg, &error)){
 		stream = soup_session_steal_connection (item->session, item->msg);
