@@ -311,6 +311,55 @@ test_handshake (Test *test,
 	g_assert_cmpint (soup_websocket_connection_get_state (test->server), ==, SOUP_WEBSOCKET_STATE_OPEN);
 }
 
+static void
+websocket_server_request_started (SoupServer *server, SoupMessage *msg,
+				  SoupClientContext *client, gpointer user_data)
+{
+	soup_message_headers_append (msg->response_headers, "Sec-WebSocket-Extensions", "x-foo");
+}
+
+static void
+request_unqueued (SoupSession *session,
+		  SoupMessage *msg,
+                  gpointer data)
+{
+	Test *test = data;
+
+	if (test->msg == msg)
+		g_clear_object (&test->msg);
+}
+
+
+static void
+test_handshake_unsupported_extension (Test *test,
+				      gconstpointer data)
+{
+	char *url;
+
+	setup_listener (test);
+	test->soup_server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_listen_socket (test->soup_server, test->listener, 0, NULL);
+	g_signal_connect (test->soup_server, "request-started",
+			  G_CALLBACK (websocket_server_request_started),
+			  NULL);
+	soup_server_add_websocket_handler (test->soup_server, "/unix", NULL, NULL,
+					   got_server_connection, test, NULL);
+
+	test->session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	g_signal_connect (test->session, "request-unqueued",
+			  G_CALLBACK (request_unqueued),
+			  test);
+        url = g_strdup_printf ("ws://127.0.0.1:%u/unix", test->port);
+        test->msg = soup_message_new ("GET", url);
+        g_free (url);
+
+	soup_session_websocket_connect_async (test->session, test->msg, NULL, NULL, NULL,
+					      got_client_connection, test);
+	WAIT_UNTIL (test->server != NULL);
+	WAIT_UNTIL (test->msg == NULL);
+	g_assert_error (test->client_error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE);
+}
+
 #define TEST_STRING "this is a test"
 
 static void
@@ -853,6 +902,10 @@ main (int argc,
 	g_test_add ("/websocket/soup/handshake", Test, NULL, 
 		    setup_soup_connection,
 		    test_handshake,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/soup/handshake-error", Test, NULL, NULL,
+		    test_handshake_unsupported_extension,
 		    teardown_soup_connection);
 
 	g_test_add ("/websocket/direct/send-client-to-server", Test, NULL,
