@@ -4815,8 +4815,10 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 		g_object_unref (stream);
 
 		g_task_return_pointer (task, client, g_object_unref);
-	} else
+	} else {
+		soup_message_io_finished (item->msg);
 		g_task_return_error (task, error);
+	}
 	g_object_unref (task);
 }
 
