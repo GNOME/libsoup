@@ -239,9 +239,13 @@ soup_test_session_new (GType type, ...)
 	va_end (args);
 
 	if (tls_available) {
+		char *abs_cafile;
+
 		cafile = g_test_build_filename (G_TEST_DIST, "test-cert.pem", NULL);
-		tlsdb = g_tls_file_database_new (cafile, &error);
+		abs_cafile = g_canonicalize_filename (cafile, NULL);
 		g_free (cafile);
+		tlsdb = g_tls_file_database_new (abs_cafile, &error);
+		g_free (abs_cafile);
 		if (error) {
 			if (g_strcmp0 (g_getenv ("GIO_USE_TLS"), "dummy") == 0)
 				g_clear_error (&error);
