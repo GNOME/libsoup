@@ -839,13 +839,26 @@ process_frame (SoupWebsocketConnection *self)
 
 	switch (header[1] & 0x7f) {
 	case 126:
+		/* If 126, the following 2 bytes interpreted as a 16-bit
+		 * unsigned integer are the payload length.
+		 */
 		at = 4;
 		if (len < at)
 			return FALSE; /* need more data */
 		payload_len = (((guint16)header[2] << 8) |
 			       ((guint16)header[3] << 0));
+
+		/* The minimal number of bytes MUST be used to encode the length. */
+		if (payload_len <= 125) {
+			protocol_error_and_close (self);
+			return FALSE;
+		}
 		break;
 	case 127:
+		/* If 127, the following 8 bytes interpreted as a 64-bit
+		 * unsigned integer (the most significant bit MUST be 0)
+		 * are the payload length.
+		 */
 		at = 10;
 		if (len < at)
 			return FALSE; /* need more data */
@@ -857,6 +870,12 @@ process_frame (SoupWebsocketConnection *self)
 			       ((guint64)header[7] << 16) |
 			       ((guint64)header[8] << 8) |
 			       ((guint64)header[9] << 0));
+
+		/* The minimal number of bytes MUST be used to encode the length. */
+		if (payload_len <= G_MAXUINT16) {
+			protocol_error_and_close (self);
+			return FALSE;
+		}
 		break;
 	default:
 		payload_len = header[1] & 0x7f;

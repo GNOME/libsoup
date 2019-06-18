@@ -889,6 +889,99 @@ test_receive_fragmented (Test *test,
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 }
 
+typedef struct {
+	Test *test;
+	const char *header;
+	GString *payload;
+} InvalidEncodeLengthTest;
+
+static gpointer
+send_invalid_encode_length_server_thread (gpointer user_data)
+{
+	InvalidEncodeLengthTest *test = user_data;
+	gsize header_size;
+	gsize written;
+	GError *error = NULL;
+
+	header_size = test->payload->len == 125 ? 6 : 10;
+	g_output_stream_write_all (g_io_stream_get_output_stream (test->test->raw_server),
+				   test->header, header_size, &written, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpuint (written, ==, header_size);
+
+	g_output_stream_write_all (g_io_stream_get_output_stream (test->test->raw_server),
+				   test->payload->str, test->payload->len, &written, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpuint (written, ==, test->payload->len);
+
+	g_io_stream_close (test->test->raw_server, NULL, &error);
+	g_assert_no_error (error);
+
+	return NULL;
+}
+
+static void
+test_receive_invalid_encode_length_16 (Test *test,
+				       gconstpointer data)
+{
+	GThread *thread;
+	GBytes *received = NULL;
+	GError *error = NULL;
+	InvalidEncodeLengthTest context = { test, NULL };
+	guint i;
+
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "message", G_CALLBACK (on_binary_message), &received);
+
+	/* We use 126(~) as payload length with 125 extended length */
+	context.header = "\x82~\x00}";
+	context.payload = g_string_new (NULL);
+	for (i = 0; i < 125; i++)
+		g_string_append (context.payload, "X");
+	thread = g_thread_new ("invalid-encode-length-thread", send_invalid_encode_length_server_thread, &context);
+
+	WAIT_UNTIL (error != NULL || received != NULL);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
+	g_clear_error (&error);
+	g_assert_null (received);
+
+	g_thread_join (thread);
+	g_string_free (context.payload, TRUE);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+}
+
+static void
+test_receive_invalid_encode_length_64 (Test *test,
+				       gconstpointer data)
+{
+	GThread *thread;
+	GBytes *received = NULL;
+	GError *error = NULL;
+	InvalidEncodeLengthTest context = { test, NULL };
+	guint i;
+
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "message", G_CALLBACK (on_binary_message), &received);
+
+	/* We use 127(\x7f) as payload length with 65535 extended length */
+	context.header = "\x82\x7f\x00\x00\x00\x00\x00\x00\xff\xff";
+	context.payload = g_string_new (NULL);
+	for (i = 0; i < 65535; i++)
+		g_string_append (context.payload, "X");
+	thread = g_thread_new ("invalid-encode-length-thread", send_invalid_encode_length_server_thread, &context);
+
+	WAIT_UNTIL (error != NULL || received != NULL);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
+	g_clear_error (&error);
+	g_assert_null (received);
+
+        g_thread_join (thread);
+	g_string_free (context.payload, TRUE);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+}
+
 static void
 test_client_context_got_server_connection (SoupServer              *server,
 					   SoupWebsocketConnection *connection,
@@ -1059,6 +1152,16 @@ main (int argc,
 	g_test_add ("/websocket/direct/receive-fragmented", Test, NULL,
 		    setup_half_direct_connection,
 		    test_receive_fragmented,
+		    teardown_direct_connection);
+
+	g_test_add ("/websocket/direct/receive-invalid-encode-length-16", Test, NULL,
+		    setup_half_direct_connection,
+		    test_receive_invalid_encode_length_16,
+		    teardown_direct_connection);
+
+	g_test_add ("/websocket/direct/receive-invalid-encode-length-64", Test, NULL,
+		    setup_half_direct_connection,
+		    test_receive_invalid_encode_length_64,
 		    teardown_direct_connection);
 
 	if (g_test_slow ()) {
