@@ -834,6 +834,7 @@ process_frame (SoupWebsocketConnection *self)
 	/* We do not support extensions, reserved bits must be 0 */
 	if (header[0] & 0x70) {
 		protocol_error_and_close (self);
+		return FALSE;
 	}
 
 	switch (header[1] & 0x7f) {
