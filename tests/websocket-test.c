@@ -292,6 +292,21 @@ on_text_message (SoupWebsocketConnection *ws,
 }
 
 static void
+on_binary_message (SoupWebsocketConnection *ws,
+		   SoupWebsocketDataType type,
+		   GBytes *message,
+		   gpointer user_data)
+{
+	GBytes **receive = user_data;
+
+	g_assert_cmpint (type, ==, SOUP_WEBSOCKET_DATA_BINARY);
+	g_assert (*receive == NULL);
+	g_assert (message != NULL);
+
+	*receive = g_bytes_ref (message);
+}
+
+static void
 on_close_set_flag (SoupWebsocketConnection *ws,
                    gpointer user_data)
 {
@@ -442,6 +457,37 @@ test_send_big_packets (Test *test,
 	g_assert (g_bytes_equal (sent, received));
 	g_bytes_unref (sent);
 	g_bytes_unref (received);
+}
+
+static void
+test_send_empty_packets (Test *test,
+			 gconstpointer data)
+{
+	GBytes *received = NULL;
+	gulong id;
+
+	id = g_signal_connect (test->client, "message", G_CALLBACK (on_text_message), &received);
+
+	soup_websocket_connection_send_text (test->server, "\0");
+	WAIT_UNTIL (received != NULL);
+	g_assert_nonnull (g_bytes_get_data (received, NULL));
+	g_assert_cmpuint (((char *) g_bytes_get_data (received, NULL))[0], ==, '\0');
+	g_assert_cmpuint (g_bytes_get_size (received), ==, 0);
+	g_bytes_unref (received);
+	received = NULL;
+	g_signal_handler_disconnect (test->client, id);
+
+	id = g_signal_connect (test->client, "message", G_CALLBACK (on_binary_message), &received);
+
+	soup_websocket_connection_send_binary (test->server, NULL, 0);
+	WAIT_UNTIL (received != NULL);
+	/* We always include at least a null character */
+	g_assert_nonnull (g_bytes_get_data (received, NULL));
+	g_assert_cmpuint (((char *) g_bytes_get_data (received, NULL))[0], ==, '\0');
+	g_assert_cmpuint (g_bytes_get_size (received), ==, 0);
+	g_bytes_unref (received);
+	received = NULL;
+	g_signal_handler_disconnect (test->client, id);
 }
 
 static void
@@ -933,6 +979,15 @@ main (int argc,
 	g_test_add ("/websocket/soup/send-big-packets", Test, NULL,
 		    setup_soup_connection,
 		    test_send_big_packets,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/send-empty-packets", Test, NULL,
+		    setup_direct_connection,
+		    test_send_empty_packets,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-empty-packets", Test, NULL,
+		    setup_soup_connection,
+		    test_send_empty_packets,
 		    teardown_soup_connection);
 
 	g_test_add ("/websocket/direct/send-bad-data", Test, NULL,
