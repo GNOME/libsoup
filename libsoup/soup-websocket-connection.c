@@ -1722,10 +1722,10 @@ soup_websocket_connection_send_text (SoupWebsocketConnection *self,
 /**
  * soup_websocket_connection_send_binary:
  * @self: the WebSocket
- * @data: (array length=length) (element-type guint8): the message contents
+ * @data: (array length=length) (element-type guint8) (nullable): the message contents
  * @length: the length of @data
  *
- * Send a binary message to the peer.
+ * Send a binary message to the peer. If @length is 0, @data may be %NULL.
  *
  * The message is queued to be sent and will be sent when the main loop
  * is run.
@@ -1739,7 +1739,7 @@ soup_websocket_connection_send_binary (SoupWebsocketConnection *self,
 {
 	g_return_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self));
 	g_return_if_fail (soup_websocket_connection_get_state (self) == SOUP_WEBSOCKET_STATE_OPEN);
-	g_return_if_fail (data != NULL);
+	g_return_if_fail (data != NULL || length == 0);
 
 	send_message (self, SOUP_WEBSOCKET_QUEUE_NORMAL, 0x02, data, length);
 }
