@@ -217,3 +217,10 @@ soup_io_stream_new (GIOStream *base_iostream,
 			     "close-on-dispose", close_on_dispose,
 			     NULL);
 }
+
+GIOStream *soup_io_stream_get_base_iostream (SoupIOStream *stream)
+{
+	g_return_val_if_fail (SOUP_IS_IO_STREAM (stream), NULL);
+
+	return stream->priv->base_iostream;
+}
