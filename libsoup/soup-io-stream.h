@@ -35,6 +35,8 @@ GType soup_io_stream_get_type (void);
 GIOStream *soup_io_stream_new (GIOStream *base_iostream,
 			       gboolean   close_on_dispose);
 
+GIOStream *soup_io_stream_get_base_iostream (SoupIOStream *stream);
+
 G_END_DECLS
 
 #endif /* __SOUP_IO_STREAM_H__ */
