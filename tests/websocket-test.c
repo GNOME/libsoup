@@ -498,9 +498,11 @@ test_send_bad_data (Test *test,
 	GIOStream *io;
 	gsize written;
 	const char *frame;
+	gboolean close_event = FALSE;
 
 	g_signal_handlers_disconnect_by_func (test->server, on_error_not_reached, NULL);
 	g_signal_connect (test->server, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
 
 	io = soup_websocket_connection_get_io_stream (test->client);
 
@@ -516,6 +518,7 @@ test_send_bad_data (Test *test,
 	g_clear_error (&error);
 
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert (close_event);
 
 	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
 }
