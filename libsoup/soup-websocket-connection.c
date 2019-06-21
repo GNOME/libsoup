@@ -24,6 +24,7 @@
 
 #include "soup-websocket-connection.h"
 #include "soup-enum-types.h"
+#include "soup-io-stream.h"
 #include "soup-uri.h"
 
 /*
@@ -281,18 +282,26 @@ shutdown_wr_io_stream (SoupWebsocketConnection *self)
 {
 	SoupWebsocketConnectionPrivate *pv = self->pv;
 	GSocket *socket;
+	GIOStream *base_iostream = NULL;
 	GError *error = NULL;
 
 	stop_output (self);
 
-	if (G_IS_SOCKET_CONNECTION (pv->io_stream)) {
-		socket = g_socket_connection_get_socket (G_SOCKET_CONNECTION (pv->io_stream));
+	if (SOUP_IS_IO_STREAM (pv->io_stream))
+		g_object_get (pv->io_stream, "base-iostream", &base_iostream, NULL);
+	else
+		base_iostream = g_object_ref (pv->io_stream);
+
+	if (G_IS_SOCKET_CONNECTION (base_iostream)) {
+		socket = g_socket_connection_get_socket (G_SOCKET_CONNECTION (base_iostream));
 		g_socket_shutdown (socket, FALSE, TRUE, &error);
 		if (error != NULL) {
 			g_debug ("error shutting down io stream: %s", error->message);
 			g_error_free (error);
 		}
 	}
+
+	g_clear_object (&base_iostream);
 
 	g_object_notify (G_OBJECT (self), "state");
 }
