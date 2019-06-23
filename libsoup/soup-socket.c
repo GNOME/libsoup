@@ -1367,6 +1367,14 @@ soup_socket_setup_ssl (SoupSocket    *sock,
 
 	priv->ssl = TRUE;
 
+	/* We intentionally disable require-close-notify when creating the
+	 * GTlsConnection because it's required for web compatibility and
+	 * perfectly safe to do with HTTP 1.0 and newer. (It's unsafe in old
+	 * HTTP 0.9, but we don't support that.)
+	 *
+	 * https://security.stackexchange.com/a/82044
+	 */
+
 	if (!priv->is_server) {
 		GTlsClientConnection *conn;
 		GSocketConnectable *identity;
