@@ -912,6 +912,15 @@ process_frame (SoupWebsocketConnection *self)
 	opcode = header[0] & 0x0f;
 	masked = ((header[1] & 0x80) != 0);
 
+	if (self->pv->connection_type == SOUP_WEBSOCKET_CONNECTION_CLIENT && masked) {
+		/* A server MUST NOT mask any frames that it sends to the client.
+		 * A client MUST close a connection if it detects a masked frame.
+		 */
+		g_debug ("A server must not mask any frames that it sends to the client.");
+		protocol_error_and_close (self);
+		return FALSE;
+	}
+
 	/* We do not support extensions, reserved bits must be 0 */
 	if (header[0] & 0x70) {
 		protocol_error_and_close (self);

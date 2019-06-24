@@ -1004,6 +1004,48 @@ test_receive_invalid_encode_length_64 (Test *test,
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 }
 
+static gpointer
+send_masked_frame_server_thread (gpointer user_data)
+{
+	Test *test = user_data;
+	const char frame[] = "\x82\x8e\x9a";
+	gsize written;
+	GError *error = NULL;
+
+	g_output_stream_write_all (g_io_stream_get_output_stream (test->raw_server),
+				   frame, sizeof (frame), &written, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpuint (written, ==, sizeof (frame));
+
+	g_io_stream_close (test->raw_server, NULL, &error);
+	g_assert_no_error (error);
+
+	return NULL;
+}
+
+static void
+test_client_receive_masked_frame (Test *test,
+				  gconstpointer data)
+{
+	GThread *thread;
+	GBytes *received = NULL;
+	GError *error = NULL;
+
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "message", G_CALLBACK (on_binary_message), &received);
+
+	thread = g_thread_new ("send-masked-frame-thread", send_masked_frame_server_thread, test);
+
+	WAIT_UNTIL (error != NULL || received != NULL);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
+	g_clear_error (&error);
+	g_assert_null (received);
+
+        g_thread_join (thread);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+}
+
 static void
 test_client_context_got_server_connection (SoupServer              *server,
 					   SoupWebsocketConnection *connection,
@@ -1184,6 +1226,11 @@ main (int argc,
 	g_test_add ("/websocket/direct/receive-invalid-encode-length-64", Test, NULL,
 		    setup_half_direct_connection,
 		    test_receive_invalid_encode_length_64,
+		    teardown_direct_connection);
+
+	g_test_add ("/websocket/direct/client-receive-masked-frame", Test, NULL,
+		    setup_half_direct_connection,
+		    test_client_receive_masked_frame,
 		    teardown_direct_connection);
 
 	if (g_test_slow ()) {
