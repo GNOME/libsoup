@@ -376,11 +376,13 @@ test_handshake_unsupported_extension (Test *test,
 }
 
 #define TEST_STRING "this is a test"
+#define TEST_STRING_WITH_NULL "this is\0 a test"
 
 static void
 test_send_client_to_server (Test *test,
                             gconstpointer data)
 {
+	GBytes *sent;
 	GBytes *received = NULL;
 	const char *contents;
 	gsize len;
@@ -395,14 +397,23 @@ test_send_client_to_server (Test *test,
 	contents = g_bytes_get_data (received, &len);
 	g_assert_cmpstr (contents, ==, TEST_STRING);
 	g_assert_cmpint (len, ==, strlen (TEST_STRING));
+	g_clear_pointer (&received, g_bytes_unref);
 
-	g_bytes_unref (received);
+	sent = g_bytes_new_static (TEST_STRING_WITH_NULL, sizeof (TEST_STRING_WITH_NULL));
+	soup_websocket_connection_send_message (test->client, SOUP_WEBSOCKET_DATA_TEXT, sent);
+
+	WAIT_UNTIL (received != NULL);
+
+	g_assert (g_bytes_equal (sent, received));
+	g_clear_pointer (&sent, g_bytes_unref);
+	g_clear_pointer (&received, g_bytes_unref);
 }
 
 static void
 test_send_server_to_client (Test *test,
                             gconstpointer data)
 {
+	GBytes *sent;
 	GBytes *received = NULL;
 	const char *contents;
 	gsize len;
@@ -417,8 +428,16 @@ test_send_server_to_client (Test *test,
 	contents = g_bytes_get_data (received, &len);
 	g_assert_cmpstr (contents, ==, TEST_STRING);
 	g_assert_cmpint (len, ==, strlen (TEST_STRING));
+	g_clear_pointer (&received, g_bytes_unref);
 
-	g_bytes_unref (received);
+	sent = g_bytes_new_static (TEST_STRING_WITH_NULL, sizeof (TEST_STRING_WITH_NULL));
+        soup_websocket_connection_send_message (test->server, SOUP_WEBSOCKET_DATA_TEXT, sent);
+
+        WAIT_UNTIL (received != NULL);
+
+        g_assert (g_bytes_equal (sent, received));
+        g_clear_pointer (&sent, g_bytes_unref);
+        g_clear_pointer (&received, g_bytes_unref);
 }
 
 static void

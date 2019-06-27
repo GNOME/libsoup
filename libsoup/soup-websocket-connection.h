@@ -102,6 +102,10 @@ SOUP_AVAILABLE_IN_2_50
 void                soup_websocket_connection_send_binary    (SoupWebsocketConnection *self,
 							      gconstpointer data,
 							      gsize length);
+SOUP_AVAILABLE_IN_2_68
+void                soup_websocket_connection_send_message   (SoupWebsocketConnection *self,
+							      SoupWebsocketDataType type,
+							      GBytes *message);
 
 SOUP_AVAILABLE_IN_2_50
 void                soup_websocket_connection_close          (SoupWebsocketConnection *self,
