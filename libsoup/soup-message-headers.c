@@ -666,7 +666,7 @@ transfer_encoding_setter (SoupMessageHeaders *hdrs, const char *value)
 	if (value) {
 		if (g_ascii_strcasecmp (value, "chunked") == 0)
 			hdrs->encoding = SOUP_ENCODING_CHUNKED;
-		else
+		else if (g_ascii_strcasecmp (value, "identity") != 0)
 			hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
 	} else
 		hdrs->encoding = -1;
