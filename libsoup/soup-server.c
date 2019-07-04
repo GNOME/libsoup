@@ -21,6 +21,7 @@
 #include "soup-socket-private.h"
 #include "soup-websocket.h"
 #include "soup-websocket-connection.h"
+#include "soup-websocket-extension-deflate.h"
 
 /**
  * SECTION:soup-server
@@ -156,6 +157,7 @@ typedef struct {
 
 	char                         *websocket_origin;
 	char                        **websocket_protocols;
+	GList                        *websocket_extensions;
 	SoupServerWebsocketCallback   websocket_callback;
 	GDestroyNotify                websocket_destroy;
 	gpointer                      websocket_user_data;
@@ -183,6 +185,8 @@ typedef struct {
 	SoupAddress       *legacy_iface;
 	int                legacy_port;
 
+	GPtrArray         *websocket_extension_types;
+
 	gboolean           disposed;
 
 } SoupServerPrivate;
@@ -204,6 +208,8 @@ enum {
 	PROP_SERVER_HEADER,
 	PROP_HTTP_ALIASES,
 	PROP_HTTPS_ALIASES,
+	PROP_ADD_WEBSOCKET_EXTENSION,
+	PROP_REMOVE_WEBSOCKET_EXTENSION,
 
 	LAST_PROP
 };
@@ -219,6 +225,7 @@ free_handler (SoupServerHandler *handler)
 	g_free (handler->path);
 	g_free (handler->websocket_origin);
 	g_strfreev (handler->websocket_protocols);
+	g_list_free_full (handler->websocket_extensions, g_object_unref);
 	if (handler->early_destroy)
 		handler->early_destroy (handler->early_user_data);
 	if (handler->destroy)
@@ -240,6 +247,11 @@ soup_server_init (SoupServer *server)
 	priv->http_aliases[1] = NULL;
 
 	priv->legacy_port = -1;
+
+	priv->websocket_extension_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
+
+	/* Use permessage-deflate extension by default */
+	g_ptr_array_add (priv->websocket_extension_types, g_type_class_ref (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE));
 }
 
 static void
@@ -277,6 +289,8 @@ soup_server_finalize (GObject *object)
 
 	g_free (priv->http_aliases);
 	g_free (priv->https_aliases);
+
+	g_ptr_array_free (priv->websocket_extension_types, TRUE);
 
 	G_OBJECT_CLASS (soup_server_parent_class)->finalize (object);
 }
@@ -465,6 +479,12 @@ soup_server_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_HTTPS_ALIASES:
 		set_aliases (&priv->https_aliases, g_value_get_boxed (value));
+		break;
+	case PROP_ADD_WEBSOCKET_EXTENSION:
+		soup_server_add_websocket_extension (server, g_value_get_gtype (value));
+		break;
+	case PROP_REMOVE_WEBSOCKET_EXTENSION:
+		soup_server_remove_websocket_extension (server, g_value_get_gtype (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -927,6 +947,51 @@ soup_server_class_init (SoupServerClass *server_class)
 				    "URI schemes that are considered aliases for 'https'",
 				    G_TYPE_STRV,
 				    G_PARAM_READWRITE));
+
+        /**
+         * SoupServer:add-websocket-extension: (skip)
+         *
+         * Add support for #SoupWebsocketExtension of the given type.
+         * (Shortcut for calling soup_server_add_websocket_extension().)
+         *
+         * Since: 2.68
+         **/
+        /**
+         * SOUP_SERVER_ADD_WEBSOCKET_EXTENSION: (skip)
+         *
+         * Alias for the #SoupServer:add-websocket-extension property, qv.
+         *
+         * Since: 2.68
+         **/
+        g_object_class_install_property (
+                object_class, PROP_ADD_WEBSOCKET_EXTENSION,
+                g_param_spec_gtype (SOUP_SERVER_ADD_WEBSOCKET_EXTENSION,
+                                    "Add support for a WebSocket extension",
+                                    "Add support for a WebSocket extension of the given type",
+                                    SOUP_TYPE_WEBSOCKET_EXTENSION,
+                                    G_PARAM_WRITABLE));
+        /**
+         * SoupServer:remove-websocket-extension: (skip)
+         *
+         * Remove support for #SoupWebsocketExtension of the given type. (Shortcut for
+         * calling soup_server_remove_websocket_extension().)
+         *
+         * Since: 2.68
+         **/
+        /**
+         * SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION: (skip)
+         *
+         * Alias for the #SoupServer:remove-websocket-extension property, qv.
+         *
+         * Since: 2.68
+         **/
+        g_object_class_install_property (
+                object_class, PROP_REMOVE_WEBSOCKET_EXTENSION,
+                g_param_spec_gtype (SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION,
+                                    "Remove support for a WebSocket extension",
+                                    "Remove support for a WebSocket extension of the given type",
+                                    SOUP_TYPE_WEBSOCKET_EXTENSION,
+                                    G_PARAM_WRITABLE));
 }
 
 /**
@@ -1367,10 +1432,12 @@ complete_websocket_upgrade (SoupMessage *msg, gpointer user_data)
 
 	soup_client_context_ref (client);
 	stream = soup_client_context_steal_connection (client);
-	conn = soup_websocket_connection_new (stream, uri,
-					      SOUP_WEBSOCKET_CONNECTION_SERVER,
-					      soup_message_headers_get_one (msg->request_headers, "Origin"),
-					      soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Protocol"));
+	conn = soup_websocket_connection_new_with_extensions (stream, uri,
+							      SOUP_WEBSOCKET_CONNECTION_SERVER,
+							      soup_message_headers_get_one (msg->request_headers, "Origin"),
+							      soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Protocol"),
+							      handler->websocket_extensions);
+	handler->websocket_extensions = NULL;
 	g_object_unref (stream);
 	soup_client_context_unref (client);
 
@@ -1402,9 +1469,14 @@ got_body (SoupMessage *msg, SoupClientContext *client)
 		return;
 
 	if (handler->websocket_callback) {
-		if (soup_websocket_server_process_handshake (msg,
-							     handler->websocket_origin,
-							     handler->websocket_protocols)) {
+		SoupServerPrivate *priv;
+
+		priv = soup_server_get_instance_private (server);
+		if (soup_websocket_server_process_handshake_with_extensions (msg,
+									     handler->websocket_origin,
+									     handler->websocket_protocols,
+									     priv->websocket_extension_types,
+									     &handler->websocket_extensions)) {
 			g_signal_connect (msg, "wrote-informational",
 					  G_CALLBACK (complete_websocket_upgrade),
 					  soup_client_context_ref (client));
@@ -2696,12 +2768,14 @@ soup_server_add_websocket_handler (SoupServer                   *server,
 		g_free (handler->websocket_origin);
 	if (handler->websocket_protocols)
 		g_strfreev (handler->websocket_protocols);
+	g_list_free_full (handler->websocket_extensions, g_object_unref);
 
 	handler->websocket_callback   = callback;
 	handler->websocket_destroy    = destroy;
 	handler->websocket_user_data  = user_data;
 	handler->websocket_origin     = g_strdup (origin);
 	handler->websocket_protocols  = g_strdupv (protocols);
+	handler->websocket_extensions = NULL;
 }
 
 /**
@@ -2816,4 +2890,73 @@ soup_server_unpause_message (SoupServer *server,
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	soup_message_io_unpause (msg);
+}
+
+/**
+ * soup_server_add_websocket_extension:
+ * @server: a #SoupServer
+ * @extension_type: a #GType
+ *
+ * Add support for a WebSocket extension of the given @extension_type.
+ * When a WebSocket client requests an extension of @extension_type,
+ * a new #SoupWebsocketExtension of type @extension_type will be created
+ * to handle the request.
+ *
+ * You can also add support for a WebSocket extension to the server at
+ * construct time by using the %SOUP_SERVER_ADD_WEBSOCKET_EXTENSION property.
+ * Note that #SoupWebsocketExtensionDeflate is supported by default, use
+ * soup_server_remove_websocket_extension() if you want to disable it.
+ *
+ * Since: 2.68
+ */
+void
+soup_server_add_websocket_extension (SoupServer *server, GType extension_type)
+{
+        SoupServerPrivate *priv;
+
+        g_return_if_fail (SOUP_IS_SERVER (server));
+
+        priv = soup_server_get_instance_private (server);
+        if (!g_type_is_a (extension_type, SOUP_TYPE_WEBSOCKET_EXTENSION)) {
+                g_warning ("Type '%s' is not a SoupWebsocketExtension", g_type_name (extension_type));
+                return;
+        }
+
+        g_ptr_array_add (priv->websocket_extension_types, g_type_class_ref (extension_type));
+}
+
+/**
+ * soup_server_remove_websocket_extension:
+ * @server: a #SoupServer
+ * @extension_type: a #GType
+ *
+ * Removes support for WebSocket extension of type @extension_type (or any subclass of
+ * @extension_type) from @server. You can also remove extensions enabled by default
+ * from the server at construct time by using the %SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION
+ * property.
+ *
+ * Since: 2.68
+ */
+void
+soup_server_remove_websocket_extension (SoupServer *server, GType extension_type)
+{
+        SoupServerPrivate *priv;
+        SoupWebsocketExtensionClass *extension_class;
+        guint i;
+
+        g_return_if_fail (SOUP_IS_SERVER (server));
+
+        priv = soup_server_get_instance_private (server);
+        if (!g_type_is_a (extension_type, SOUP_TYPE_WEBSOCKET_EXTENSION)) {
+                g_warning ("Type '%s' is not a SoupWebsocketExtension", g_type_name (extension_type));
+                return;
+        }
+
+        extension_class = g_type_class_peek (extension_type);
+        for (i = 0; i < priv->websocket_extension_types->len; i++) {
+                if (priv->websocket_extension_types->pdata[i] == (gpointer)extension_class) {
+                        g_ptr_array_remove_index (priv->websocket_extension_types, i);
+                        break;
+                }
+        }
 }

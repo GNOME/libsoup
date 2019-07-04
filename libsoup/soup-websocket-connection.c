@@ -26,6 +26,7 @@
 #include "soup-enum-types.h"
 #include "soup-io-stream.h"
 #include "soup-uri.h"
+#include "soup-websocket-extension.h"
 
 /*
  * SECTION:websocketconnection
@@ -84,6 +85,7 @@ enum {
 	PROP_STATE,
 	PROP_MAX_INCOMING_PAYLOAD_SIZE,
 	PROP_KEEPALIVE_INTERVAL,
+	PROP_EXTENSIONS
 };
 
 enum {
@@ -145,6 +147,8 @@ struct _SoupWebsocketConnectionPrivate {
 	GByteArray *message_data;
 
 	GSource *keepalive_timeout;
+
+	GList *extensions;
 };
 
 #define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
@@ -153,6 +157,9 @@ G_DEFINE_TYPE_WITH_PRIVATE (SoupWebsocketConnection, soup_websocket_connection, 
 
 static void queue_frame (SoupWebsocketConnection *self, SoupWebsocketQueueFlags flags,
 			 gpointer data, gsize len, gsize amount);
+
+static void emit_error_and_close (SoupWebsocketConnection *self,
+				  GError *error, gboolean prejudice);
 
 static void protocol_error_and_close (SoupWebsocketConnection *self);
 
@@ -427,12 +434,15 @@ send_message (SoupWebsocketConnection *self,
 	      const guint8 *data,
 	      gsize length)
 {
-	gsize buffered_amount = length;
+	gsize buffered_amount;
 	GByteArray *bytes;
 	gsize frame_len;
 	guint8 *outer;
 	guint8 *mask = 0;
 	guint8 *at;
+	GBytes *filtered_bytes;
+	GList *l;
+	GError *error = NULL;
 
 	if (!(soup_websocket_connection_get_state (self) == SOUP_WEBSOCKET_STATE_OPEN)) {
 		g_debug ("Ignoring message since the connection is closed or is closing");
@@ -442,6 +452,21 @@ send_message (SoupWebsocketConnection *self,
 	bytes = g_byte_array_sized_new (14 + length);
 	outer = bytes->data;
 	outer[0] = 0x80 | opcode;
+
+	filtered_bytes = g_bytes_new_static (data, length);
+	for (l = self->pv->extensions; l != NULL; l = g_list_next (l)) {
+		SoupWebsocketExtension *extension;
+
+		extension = (SoupWebsocketExtension *)l->data;
+		filtered_bytes = soup_websocket_extension_process_outgoing_message (extension, outer, filtered_bytes, &error);
+		if (error) {
+			emit_error_and_close (self, error, FALSE);
+			return;
+		}
+	}
+
+	data = g_bytes_get_data (filtered_bytes, &length);
+	buffered_amount = length;
 
 	/* If control message, check payload size */
 	if (opcode & 0x08) {
@@ -499,6 +524,7 @@ send_message (SoupWebsocketConnection *self,
 	frame_len = bytes->len;
 	queue_frame (self, flags, g_byte_array_free (bytes, FALSE),
 		     frame_len, buffered_amount);
+	g_bytes_unref (filtered_bytes);
 	g_debug ("queued %d frame of len %u", (int)opcode, (guint)frame_len);
 }
 
@@ -771,11 +797,14 @@ process_contents (SoupWebsocketConnection *self,
 		  gboolean control,
 		  gboolean fin,
 		  guint8 opcode,
-		  gconstpointer payload,
-		  gsize payload_len)
+		  GBytes *payload_data)
 {
 	SoupWebsocketConnectionPrivate *pv = self->pv;
 	GBytes *message;
+	gconstpointer payload;
+	gsize payload_len;
+
+	payload = g_bytes_get_data (payload_data, &payload_len);
 
 	if (pv->close_sent && pv->close_received)
 		return;
@@ -909,6 +938,9 @@ process_frame (SoupWebsocketConnection *self)
 	guint8 opcode;
 	gsize len;
 	gsize at;
+	GBytes *filtered_bytes;
+	GList *l;
+	GError *error = NULL;
 
 	len = self->pv->incoming->len;
 	if (len < 2)
@@ -937,12 +969,6 @@ process_frame (SoupWebsocketConnection *self)
 		protocol_error_and_close (self);
                 return FALSE;
         }
-
-	/* We do not support extensions, reserved bits must be 0 */
-	if (header[0] & 0x70) {
-		protocol_error_and_close (self);
-		return FALSE;
-	}
 
 	switch (header[1] & 0x7f) {
 	case 126:
@@ -1013,13 +1039,37 @@ process_frame (SoupWebsocketConnection *self)
 		xor_with_mask (mask, payload, payload_len);
 	}
 
+	filtered_bytes = g_bytes_new_static (payload, payload_len);
+	for (l = self->pv->extensions; l != NULL; l = g_list_next (l)) {
+		SoupWebsocketExtension *extension;
+
+		extension = (SoupWebsocketExtension *)l->data;
+		filtered_bytes = soup_websocket_extension_process_incoming_message (extension, self->pv->incoming->data, filtered_bytes, &error);
+		if (error) {
+			emit_error_and_close (self, error, FALSE);
+			g_bytes_unref (filtered_bytes);
+
+			return FALSE;
+		}
+	}
+
+	/* After being processed by extensions reserved bits must be 0 */
+	if (header[0] & 0x70) {
+		protocol_error_and_close (self);
+		g_bytes_unref (filtered_bytes);
+
+		return FALSE;
+	}
+
 	/* Note that now that we've unmasked, we've modified the buffer, we can
 	 * only return below via discarding or processing the message
 	 */
-	process_contents (self, control, fin, opcode, payload, payload_len);
+	process_contents (self, control, fin, opcode, filtered_bytes);
+	g_bytes_unref (filtered_bytes);
 
 	/* Move past the parsed frame */
 	g_byte_array_remove_range (self->pv->incoming, 0, at + payload_len);
+
 	return TRUE;
 }
 
@@ -1271,6 +1321,10 @@ soup_websocket_connection_get_property (GObject *object,
 		g_value_set_uint (value, pv->keepalive_interval);
 		break;
 
+	case PROP_EXTENSIONS:
+		g_value_set_pointer (value, pv->extensions);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -1320,6 +1374,10 @@ soup_websocket_connection_set_property (GObject *object,
 		                                                  g_value_get_uint (value));
 		break;
 
+	case PROP_EXTENSIONS:
+		pv->extensions = g_value_get_pointer (value);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -1367,6 +1425,8 @@ soup_websocket_connection_finalize (GObject *object)
 		soup_uri_free (pv->uri);
 	g_free (pv->origin);
 	g_free (pv->protocol);
+
+	g_list_free_full (pv->extensions, g_object_unref);
 
 	G_OBJECT_CLASS (soup_websocket_connection_parent_class)->finalize (object);
 }
@@ -1525,6 +1585,21 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 					                    G_PARAM_CONSTRUCT |
 					                    G_PARAM_STATIC_STRINGS));
 
+        /**
+         * SoupWebsocketConnection:extensions:
+         *
+         * List of #SoupWebsocketExtension objects that are active in the connection.
+         *
+         * Since: 2.68
+         */
+        g_object_class_install_property (gobject_class, PROP_EXTENSIONS,
+                                         g_param_spec_pointer ("extensions",
+                                                               "Active extensions",
+                                                               "The list of active extensions",
+                                                               G_PARAM_READWRITE |
+                                                               G_PARAM_CONSTRUCT_ONLY |
+                                                               G_PARAM_STATIC_STRINGS));
+
 	/**
 	 * SoupWebsocketConnection::message:
 	 * @self: the WebSocket
@@ -1644,17 +1719,46 @@ soup_websocket_connection_new (GIOStream                    *stream,
 			       const char                   *origin,
 			       const char                   *protocol)
 {
-	g_return_val_if_fail (G_IS_IO_STREAM (stream), NULL);
-	g_return_val_if_fail (uri != NULL, NULL);
-	g_return_val_if_fail (type != SOUP_WEBSOCKET_CONNECTION_UNKNOWN, NULL);
+	return soup_websocket_connection_new_with_extensions (stream, uri, type, origin, protocol, NULL);
+}
 
-	return g_object_new (SOUP_TYPE_WEBSOCKET_CONNECTION,
-			     "io-stream", stream,
-			     "uri", uri,
-			     "connection-type", type,
-			     "origin", origin,
-			     "protocol", protocol,
-			     NULL);
+/**
+ * soup_websocket_connection_new_with_extensions:
+ * @stream: a #GIOStream connected to the WebSocket server
+ * @uri: the URI of the connection
+ * @type: the type of connection (client/side)
+ * @origin: (allow-none): the Origin of the client
+ * @protocol: (allow-none): the subprotocol in use
+ * @extensions: (element-type SoupWebsocketExtension) (transfer full): a #GList of #SoupWebsocketExtension objects
+ *
+ * Creates a #SoupWebsocketConnection on @stream with the given active @extensions.
+ * This should be called after completing the handshake to begin using the WebSocket
+ * protocol.
+ *
+ * Returns: a new #SoupWebsocketConnection
+ *
+ * Since: 2.68
+ */
+SoupWebsocketConnection *
+soup_websocket_connection_new_with_extensions (GIOStream                    *stream,
+                                               SoupURI                      *uri,
+                                               SoupWebsocketConnectionType   type,
+                                               const char                   *origin,
+                                               const char                   *protocol,
+                                               GList                        *extensions)
+{
+        g_return_val_if_fail (G_IS_IO_STREAM (stream), NULL);
+        g_return_val_if_fail (uri != NULL, NULL);
+        g_return_val_if_fail (type != SOUP_WEBSOCKET_CONNECTION_UNKNOWN, NULL);
+
+        return g_object_new (SOUP_TYPE_WEBSOCKET_CONNECTION,
+                             "io-stream", stream,
+                             "uri", uri,
+                             "connection-type", type,
+                             "origin", origin,
+                             "protocol", protocol,
+                             "extensions", extensions,
+                             NULL);
 }
 
 /**
@@ -1748,6 +1852,24 @@ soup_websocket_connection_get_protocol (SoupWebsocketConnection *self)
 	g_return_val_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self), NULL);
 
 	return self->pv->protocol;
+}
+
+/**
+ * soup_websocket_connection_get_extensions:
+ * @self: the WebSocket
+ *
+ * Get the extensions chosen via negotiation with the peer.
+ *
+ * Returns: (element-type SoupWebsocketExtension) (transfer none): a #GList of #SoupWebsocketExtension objects
+ *
+ * Since: 2.68
+ */
+GList *
+soup_websocket_connection_get_extensions (SoupWebsocketConnection *self)
+{
+        g_return_val_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self), NULL);
+
+        return self->pv->extensions;
 }
 
 /**

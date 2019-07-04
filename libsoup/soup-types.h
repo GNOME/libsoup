@@ -32,7 +32,7 @@ typedef struct _SoupSessionSync         SoupSessionSync;
 typedef struct _SoupSocket              SoupSocket;
 typedef struct _SoupURI                 SoupURI;
 typedef struct _SoupWebsocketConnection SoupWebsocketConnection;
-
+typedef struct _SoupWebsocketExtension  SoupWebsocketExtension;
 
 /*< private >*/
 typedef struct _SoupConnection        SoupConnection;
