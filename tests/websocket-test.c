@@ -507,11 +507,11 @@ test_send_bad_data (Test *test,
 	io = soup_websocket_connection_get_io_stream (test->client);
 
 	/* Bad UTF-8 frame */
-	frame = "\x81\x04\xEE\xEE\xEE\xEE";
+	frame = "\x81\x84\x00\x00\x00\x00\xEE\xEE\xEE\xEE";
 	if (!g_output_stream_write_all (g_io_stream_get_output_stream (io),
-					frame, 6, &written, NULL, NULL))
+					frame, 10, &written, NULL, NULL))
 		g_assert_not_reached ();
-	g_assert_cmpuint (written, ==, 6);
+	g_assert_cmpuint (written, ==, 10);
 
 	WAIT_UNTIL (error != NULL);
 	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
@@ -1028,6 +1028,40 @@ test_client_receive_masked_frame (Test *test,
 }
 
 static void
+test_server_receive_unmasked_frame (Test *test,
+				    gconstpointer data)
+{
+	GError *error = NULL;
+	GIOStream *io;
+	gsize written;
+	const char *frame;
+	gboolean close_event = FALSE;
+
+	g_signal_handlers_disconnect_by_func (test->server, on_error_not_reached, NULL);
+	g_signal_connect (test->server, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	io = soup_websocket_connection_get_io_stream (test->client);
+
+	/* Unmasked frame */
+	frame = "\x81\x0bHello World";
+	if (!g_output_stream_write_all (g_io_stream_get_output_stream (io),
+					frame, 13, &written, NULL, NULL))
+		g_assert_not_reached ();
+	g_assert_cmpuint (written, ==, 13);
+
+	WAIT_UNTIL (error != NULL);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
+	g_clear_error (&error);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert (close_event);
+
+	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
+
+}
+
+static void
 test_client_context_got_server_connection (SoupServer              *server,
 					   SoupWebsocketConnection *connection,
 					   const char              *path,
@@ -1213,6 +1247,15 @@ main (int argc,
 		    setup_half_direct_connection,
 		    test_client_receive_masked_frame,
 		    teardown_direct_connection);
+
+	g_test_add ("/websocket/direct/server-receive-unmasked-frame", Test, NULL,
+		    setup_direct_connection,
+		    test_server_receive_unmasked_frame,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/server-receive-unmasked-frame", Test, NULL,
+		    setup_soup_connection,
+		    test_server_receive_unmasked_frame,
+		    teardown_soup_connection);
 
 	if (g_test_slow ()) {
 		g_test_add ("/websocket/direct/close-after-timeout", Test, NULL,
