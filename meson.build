@@ -159,6 +159,21 @@ if enable_tls_check
   endif
 endif
 
+libz_dep = dependency('zlib', required : false)
+if not libz_dep.found()
+  if cc.get_id() != 'msvc'
+    libz_dep = cc.find_library('z', required : false)
+  else
+    libz_dep = cc.find_library('zlib1', required : false)
+    if not libz_dep.found()
+      libz_dep = cc.find_library('zlib', required : false)
+    endif
+  endif
+  if not libz_dep.found() or not cc.has_header('zlib.h')
+    libz_dep = subproject('zlib').get_variable('zlib_dep')
+  endif
+endif
+
 #################################
 # Regression tests dependencies #
 #################################

@@ -40,6 +40,7 @@ ignore_headers = [
   'soup-cache-client-input-stream.h',
   'soup-socket-private.h',
   'soup-value-utils.h',
+  'soup-websocket-extension-manager-private.h',
   'soup-xmlrpc-old.h'
 ]
 

@@ -75,6 +75,9 @@ soup_sources = [
   'soup-version.c',
   'soup-websocket.c',
   'soup-websocket-connection.c',
+  'soup-websocket-extension.c',
+  'soup-websocket-extension-deflate.c',
+  'soup-websocket-extension-manager.c',
   'soup-xmlrpc.c',
   'soup-xmlrpc-old.c',
 ]
@@ -106,6 +109,7 @@ soup_headers = [
   'soup-proxy-resolver-wrapper.h',
   'soup-session-private.h',
   'soup-socket-private.h',
+  'soup-websocket-extension-manager-private.h',
 ]
 
 soup_introspection_headers = [
@@ -160,6 +164,9 @@ soup_introspection_headers = [
   'soup-value-utils.h',
   'soup-websocket.h',
   'soup-websocket-connection.h',
+  'soup-websocket-extension.h',
+  'soup-websocket-extension-deflate.h',
+  'soup-websocket-extension-manager.h',
   'soup-xmlrpc.h',
   'soup-xmlrpc-old.h',
 ]
@@ -234,6 +241,7 @@ deps = [
   libpsl_dep,
   brotlidec_dep,
   platform_deps,
+  libz_dep,
 ]
 
 libsoup = library('soup-@0@'.format(apiversion),

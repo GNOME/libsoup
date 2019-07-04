@@ -70,6 +70,13 @@ SoupWebsocketConnection *soup_websocket_connection_new (GIOStream               
 							SoupWebsocketConnectionType   type,
 							const char                   *origin,
 							const char                   *protocol);
+SOUP_AVAILABLE_IN_2_68
+SoupWebsocketConnection *soup_websocket_connection_new_with_extensions (GIOStream                    *stream,
+                                                                        SoupURI                      *uri,
+                                                                        SoupWebsocketConnectionType   type,
+                                                                        const char                   *origin,
+                                                                        const char                   *protocol,
+                                                                        GList                        *extensions);
 
 SOUP_AVAILABLE_IN_2_50
 GIOStream *         soup_websocket_connection_get_io_stream  (SoupWebsocketConnection *self);
@@ -85,6 +92,9 @@ const char *        soup_websocket_connection_get_origin     (SoupWebsocketConne
 
 SOUP_AVAILABLE_IN_2_50
 const char *        soup_websocket_connection_get_protocol   (SoupWebsocketConnection *self);
+
+SOUP_AVAILABLE_IN_2_68
+GList *             soup_websocket_connection_get_extensions (SoupWebsocketConnection *self);
 
 SOUP_AVAILABLE_IN_2_50
 SoupWebsocketState  soup_websocket_connection_get_state      (SoupWebsocketConnection *self);
