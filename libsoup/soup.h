@@ -58,6 +58,9 @@ extern "C" {
 #include <libsoup/soup-version.h>
 #include <libsoup/soup-websocket.h>
 #include <libsoup/soup-websocket-connection.h>
+#include <libsoup/soup-websocket-extension.h>
+#include <libsoup/soup-websocket-extension-deflate.h>
+#include <libsoup/soup-websocket-extension-manager.h>
 #include <libsoup/soup-xmlrpc.h>
 #include <libsoup/soup-xmlrpc-old.h>
 

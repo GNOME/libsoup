@@ -138,6 +138,9 @@ void            soup_server_add_early_handler  (SoupServer         *server,
 						gpointer            user_data,
 						GDestroyNotify      destroy);
 
+#define SOUP_SERVER_ADD_WEBSOCKET_EXTENSION    "add-websocket-extension"
+#define SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION "remove-websocket-extension"
+
 typedef void (*SoupServerWebsocketCallback) (SoupServer              *server,
 					     SoupWebsocketConnection *connection,
 					     const char              *path,
@@ -151,6 +154,12 @@ void            soup_server_add_websocket_handler (SoupServer                   
 						   SoupServerWebsocketCallback   callback,
 						   gpointer                      user_data,
 						   GDestroyNotify                destroy);
+SOUP_AVAILABLE_IN_2_68
+void            soup_server_add_websocket_extension    (SoupServer *server,
+							GType       extension_type);
+SOUP_AVAILABLE_IN_2_68
+void            soup_server_remove_websocket_extension (SoupServer *server,
+							GType       extension_type);
 
 SOUP_AVAILABLE_IN_2_4
 void            soup_server_remove_handler     (SoupServer         *server,
