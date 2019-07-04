@@ -1860,6 +1860,23 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
 	return FALSE;
 }
 
+gboolean
+soup_message_disables_feature_by_type (SoupMessage *msg, GType feature_type)
+{
+        SoupMessagePrivate *priv;
+        GSList *f;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+
+        priv = soup_message_get_instance_private (msg);
+
+        for (f = priv->disabled_features; f; f = f->next) {
+                if (g_type_is_a ((GType)GPOINTER_TO_SIZE (f->data), feature_type))
+                        return TRUE;
+        }
+        return FALSE;
+}
+
 GSList *
 soup_message_get_disabled_features (SoupMessage *msg)
 {
