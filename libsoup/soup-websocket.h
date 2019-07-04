@@ -72,21 +72,45 @@ SOUP_AVAILABLE_IN_2_50
 void     soup_websocket_client_prepare_handshake (SoupMessage  *msg,
 						  const char   *origin,
 						  char        **protocols);
+SOUP_AVAILABLE_IN_2_68
+void     soup_websocket_client_prepare_handshake_with_extensions (SoupMessage *msg,
+                                                                  const char  *origin,
+                                                                  char       **protocols,
+                                                                  GPtrArray   *supported_extensions);
 
 SOUP_AVAILABLE_IN_2_50
 gboolean soup_websocket_client_verify_handshake  (SoupMessage  *msg,
 						  GError      **error);
+SOUP_AVAILABLE_IN_2_68
+gboolean soup_websocket_client_verify_handshake_with_extensions (SoupMessage *msg,
+                                                                 GPtrArray   *supported_extensions,
+                                                                 GList      **accepted_extensions,
+                                                                 GError     **error);
 
 SOUP_AVAILABLE_IN_2_50
 gboolean soup_websocket_server_check_handshake   (SoupMessage  *msg,
 						  const char   *origin,
 						  char        **protocols,
 						  GError      **error);
+SOUP_AVAILABLE_IN_2_68
+gboolean
+soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
+                                                       const char   *origin,
+                                                       char        **protocols,
+                                                       GPtrArray    *supported_extensions,
+                                                       GError      **error);
 
 SOUP_AVAILABLE_IN_2_50
 gboolean soup_websocket_server_process_handshake (SoupMessage  *msg,
 						  const char   *expected_origin,
 						  char        **protocols);
+SOUP_AVAILABLE_IN_2_68
+gboolean
+soup_websocket_server_process_handshake_with_extensions (SoupMessage  *msg,
+                                                         const char   *expected_origin,
+                                                         char        **protocols,
+                                                         GPtrArray    *supported_extensions,
+                                                         GList       **accepted_extensions);
 
 G_END_DECLS
 
