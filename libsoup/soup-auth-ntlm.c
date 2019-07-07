@@ -960,7 +960,7 @@ soup_ntlm_response (const char *nonce,
 	memset (&resp, 0, sizeof (resp));
 	memcpy (resp.header, NTLM_RESPONSE_HEADER, sizeof (resp.header));
 	resp.flags = GUINT32_TO_LE (NTLM_RESPONSE_FLAGS);
-	if (ntlmv2_session && !negotiate_target)
+	if (ntlmv2_session)
 		resp.flags |= GUINT32_TO_LE (NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
 	if (negotiate_target)
 			resp.flags |= GUINT32_TO_LE (NTLM_FLAGS_REQUEST_TARGET);
