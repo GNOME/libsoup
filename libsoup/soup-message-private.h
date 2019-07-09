@@ -44,7 +44,6 @@ typedef struct {
 
 	SoupMessagePriority priority;
 } SoupMessagePrivate;
-#define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
 void             soup_message_cleanup_response (SoupMessage      *msg);
 
@@ -142,6 +141,8 @@ GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
 gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);
 
+GSList *soup_message_get_disabled_features (SoupMessage *msg);
+
 void soup_message_set_https_status (SoupMessage    *msg,
 				    SoupConnection *conn);
 
@@ -160,5 +161,19 @@ void soup_message_set_soup_request (SoupMessage *msg,
 SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
 					     SoupConnection *conn);
+
+gpointer        soup_message_get_io_data (SoupMessage       *msg);
+void            soup_message_set_io_data (SoupMessage       *msg,
+					  gpointer           io);
+
+SoupContentSniffer *soup_message_get_content_sniffer    (SoupMessage        *msg);
+void                soup_message_set_content_sniffer    (SoupMessage        *msg,
+							 SoupContentSniffer *sniffer);
+void                soup_message_set_bytes_for_sniffing (SoupMessage        *msg,
+							 gsize               bytes);
+
+gboolean    soup_message_has_chunk_allocator (SoupMessage *msg);
+SoupBuffer *soup_message_allocate_chunk      (SoupMessage *msg,
+					      goffset      read_length);
 
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

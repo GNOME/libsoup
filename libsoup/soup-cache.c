@@ -1354,7 +1354,6 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	SoupURI *uri;
 	SoupCacheEntry *entry;
 	const char *last_modified, *etag;
-	SoupMessagePrivate *origpriv;
 	GSList *f;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
@@ -1382,8 +1381,7 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 				      (SoupMessageHeadersForeachFunc)copy_headers,
 				      msg->request_headers);
 
-	origpriv = SOUP_MESSAGE_GET_PRIVATE (original);
-	for (f = origpriv->disabled_features; f; f = f->next)
+	for (f = soup_message_get_disabled_features (original); f; f = f->next)
 		soup_message_disable_feature (msg, (GType) GPOINTER_TO_SIZE (f->data));
 
 	if (last_modified)

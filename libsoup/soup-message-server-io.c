@@ -45,7 +45,6 @@ static guint
 parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		       SoupEncoding *encoding, gpointer sock, GError **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	char *req_method, *req_path, *url;
 	SoupHTTPVersion version;
 	const char *req_host;
@@ -109,7 +108,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 				       req_host, req_path);
 		uri = soup_uri_new (url);
 		g_free (url);
-	} else if (priv->http_version == SOUP_HTTP_1_0) {
+	} else if (soup_message_get_http_version (msg) == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
 		SoupAddress *addr = soup_socket_get_local_address (sock);
 

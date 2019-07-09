@@ -842,9 +842,7 @@ soup_content_sniffer_real_get_buffer_size (SoupContentSniffer *sniffer)
 static void
 soup_content_sniffer_got_headers_cb (SoupMessage *msg, SoupContentSniffer *sniffer)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	priv->bytes_for_sniffing = soup_content_sniffer_get_buffer_size (sniffer);
+	soup_message_set_bytes_for_sniffing (msg, soup_content_sniffer_get_buffer_size (sniffer));
 }
 
 static void
@@ -852,9 +850,7 @@ soup_content_sniffer_request_queued (SoupSessionFeature *feature,
 				     SoupSession *session,
 				     SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	priv->sniffer = g_object_ref (SOUP_CONTENT_SNIFFER (feature));
+	soup_message_set_content_sniffer (msg, SOUP_CONTENT_SNIFFER (feature));
 	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (soup_content_sniffer_got_headers_cb),
 			  feature);
@@ -865,10 +861,7 @@ soup_content_sniffer_request_unqueued (SoupSessionFeature *feature,
 				       SoupSession *session,
 				       SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	g_object_unref (priv->sniffer);
-	priv->sniffer = NULL;
+	soup_message_set_content_sniffer (msg, NULL);
 
 	g_signal_handlers_disconnect_by_func (msg, soup_content_sniffer_got_headers_cb, feature);
 }
