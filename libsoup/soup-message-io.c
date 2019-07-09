@@ -99,15 +99,14 @@ static void io_run (SoupMessage *msg, gboolean blocking);
 void
 soup_message_io_cleanup (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
 
 	soup_message_io_stop (msg);
 
-	io = priv->io_data;
+	io = soup_message_get_io_data (msg);
 	if (!io)
 		return;
-	priv->io_data = NULL;
+	soup_message_set_io_data (msg, NULL);
 
 	if (io->iostream)
 		g_object_unref (io->iostream);
@@ -138,8 +137,7 @@ soup_message_io_cleanup (SoupMessage *msg)
 void
 soup_message_io_stop (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 
 	if (!io)
 		return;
@@ -160,12 +158,12 @@ soup_message_io_stop (SoupMessage *msg)
 void
 soup_message_io_finished (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io;
 	SoupMessageCompletionFn completion_cb;
 	gpointer completion_data;
 	SoupMessageIOCompletion completion;
 
+	io = soup_message_get_io_data (msg);
 	if (!io)
 		return;
 
@@ -188,12 +186,12 @@ soup_message_io_finished (SoupMessage *msg)
 GIOStream *
 soup_message_io_steal (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io;
 	SoupMessageCompletionFn completion_cb;
 	gpointer completion_data;
 	GIOStream *iostream;
 
+	io = soup_message_get_io_data (msg);
 	if (!io || !io->iostream)
 		return NULL;
 
@@ -214,11 +212,11 @@ static gboolean
 read_headers (SoupMessage *msg, gboolean blocking,
 	      GCancellable *cancellable, GError **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io;
 	gssize nread, old_len;
 	gboolean got_lf;
 
+	io = soup_message_get_io_data (msg);
 	while (1) {
 		old_len = io->read_header_buf->len;
 		g_byte_array_set_size (io->read_header_buf, old_len + RESPONSE_BLOCK_SIZE);
@@ -325,10 +323,10 @@ closed_async (GObject      *source,
 {
 	GOutputStream *body_ostream = G_OUTPUT_STREAM (source);
 	SoupMessage *msg = user_data;
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io;
 	GCancellable *async_close_wait;
 
+	io = soup_message_get_io_data (msg);
 	if (!io || !io->async_close_wait || io->body_ostream != body_ostream) {
 		g_object_unref (msg);
 		return;
@@ -381,8 +379,7 @@ static gboolean
 io_write (SoupMessage *msg, gboolean blocking,
 	  GCancellable *cancellable, GError **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	SoupBuffer *chunk;
 	gssize nwrote;
 
@@ -450,7 +447,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 			/* If this was "101 Switching Protocols", then
 			 * the server probably stole the connection...
 			 */
-			if (io != priv->io_data)
+			if (io != soup_message_get_io_data (msg))
 				return FALSE;
 
 			soup_message_cleanup_response (msg);
@@ -544,7 +541,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 		}
 
 		if (io->mode == SOUP_MESSAGE_IO_SERVER ||
-		    priv->msg_flags & SOUP_MESSAGE_CAN_REBUILD)
+		    soup_message_get_flags (msg) & SOUP_MESSAGE_CAN_REBUILD)
 			soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
 		io->write_body_offset += io->write_chunk->length;
 		soup_buffer_free (io->write_chunk);
@@ -608,8 +605,7 @@ static gboolean
 io_read (SoupMessage *msg, gboolean blocking,
 	 GCancellable *cancellable, GError **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	guchar *stack_buf = NULL;
 	gssize nread;
 	SoupBuffer *buffer;
@@ -663,7 +659,7 @@ io_read (SoupMessage *msg, gboolean blocking,
 			/* If this was "101 Switching Protocols", then
 			 * the session may have stolen the connection...
 			 */
-			if (io != priv->io_data)
+			if (io != soup_message_get_io_data (msg))
 				return FALSE;
 
 			soup_message_cleanup_response (msg);
@@ -730,7 +726,7 @@ io_read (SoupMessage *msg, gboolean blocking,
 			}
 		}
 
-		if (priv->sniffer) {
+		if (soup_message_get_content_sniffer (msg)) {
 			SoupContentSnifferStream *sniffer_stream = SOUP_CONTENT_SNIFFER_STREAM (io->body_istream);
 			const char *content_type;
 			GHashTable *params;
@@ -748,8 +744,8 @@ io_read (SoupMessage *msg, gboolean blocking,
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
-		if (priv->chunk_allocator) {
-			buffer = priv->chunk_allocator (msg, io->read_length, priv->chunk_allocator_data);
+		if (soup_message_has_chunk_allocator (msg)) {
+			buffer = soup_message_allocate_chunk (msg, io->read_length);
 			if (!buffer) {
 				g_return_val_if_fail (!io->item || !io->item->new_api, FALSE);
 				soup_message_io_pause (msg);
@@ -818,8 +814,7 @@ message_source_check (GSource *source)
 	SoupMessageSource *message_source = (SoupMessageSource *)source;
 
 	if (message_source->paused) {
-		SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (message_source->msg);
-		SoupMessageIOData *io = priv->io_data;
+		SoupMessageIOData *io = soup_message_get_io_data (message_source->msg);
 
 		if (io && io->paused)
 			return FALSE;
@@ -893,8 +888,7 @@ GSource *
 soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
 			    SoupMessageSourceFunc callback, gpointer user_data)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	GSource *base_source, *source;
 	SoupMessageSource *message_source;
 
@@ -942,8 +936,7 @@ soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
 static gboolean
 request_is_restartable (SoupMessage *msg, GError *error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 
 	if (!io)
 		return FALSE;
@@ -963,8 +956,7 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 	      SoupMessageIOState read_state, SoupMessageIOState write_state,
 	      GCancellable *cancellable, GError **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	gboolean progress = TRUE, done;
 	GError *my_error = NULL;
 
@@ -979,7 +971,7 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 
 	g_object_ref (msg);
 
-	while (progress && priv->io_data == io && !io->paused && !io->async_close_wait &&
+	while (progress && soup_message_get_io_data (msg) == io && !io->paused && !io->async_close_wait &&
 	       (io->read_state < read_state || io->write_state < write_state)) {
 
 		if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->read_state))
@@ -1003,7 +995,7 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 		g_propagate_error (error, my_error);
 		g_object_unref (msg);
 		return FALSE;
-	} else if (priv->io_data != io) {
+	} else if (soup_message_get_io_data (msg) != io) {
 		g_set_error_literal (error, G_IO_ERROR,
 				     G_IO_ERROR_CANCELLED,
 				     _("Operation was cancelled"));
@@ -1040,8 +1032,7 @@ io_run_ready (SoupMessage *msg, gpointer user_data)
 static void
 io_run (SoupMessage *msg, gboolean blocking)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	GError *error = NULL;
 	GCancellable *cancellable;
 
@@ -1063,7 +1054,7 @@ io_run (SoupMessage *msg, gboolean blocking)
 		g_clear_error (&error);
 		io->io_source = soup_message_io_get_source (msg, NULL, io_run_ready, msg);
 		g_source_attach (io->io_source, io->async_context);
-	} else if (error && priv->io_data == io) {
+	} else if (error && soup_message_get_io_data (msg) == io) {
 		if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN))
 			io->item->state = SOUP_MESSAGE_RESTARTING;
 		else if (error->domain == G_TLS_ERROR) {
@@ -1108,8 +1099,7 @@ soup_message_io_run_until_finish (SoupMessage   *msg,
 				  GCancellable  *cancellable,
 				  GError       **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	gboolean success;
 
 	g_object_ref (msg);
@@ -1134,8 +1124,7 @@ static void
 client_stream_eof (SoupClientInputStream *stream, gpointer user_data)
 {
 	SoupMessage *msg = user_data;
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 
 	if (io && io->read_state == SOUP_MESSAGE_IO_STATE_BODY)
 		io->read_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
@@ -1145,8 +1134,7 @@ GInputStream *
 soup_message_io_get_response_istream (SoupMessage  *msg,
 				      GError      **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	GInputStream *client_stream;
 
 	g_return_val_if_fail (io->mode == SOUP_MESSAGE_IO_CLIENT, NULL);
@@ -1174,7 +1162,6 @@ new_iostate (SoupMessage *msg, GIOStream *iostream,
 	     SoupMessageCompletionFn completion_cb,
 	     gpointer completion_data)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
 
 	io = g_slice_new0 (SoupMessageIOData);
@@ -1198,9 +1185,9 @@ new_iostate (SoupMessage *msg, GIOStream *iostream,
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 
-	if (priv->io_data)
+	if (soup_message_get_io_data (msg))
 		soup_message_io_cleanup (msg);
-	priv->io_data = io;
+	soup_message_set_io_data (msg, io);
 	return io;
 }
 
@@ -1264,8 +1251,7 @@ soup_message_io_server (SoupMessage *msg,
 void  
 soup_message_io_pause (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 
 	g_return_if_fail (io != NULL);
 
@@ -1290,8 +1276,7 @@ soup_message_io_pause (SoupMessage *msg)
 static gboolean
 io_unpause_internal (gpointer msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 
 	g_return_val_if_fail (io != NULL, FALSE);
 
@@ -1308,8 +1293,7 @@ io_unpause_internal (gpointer msg)
 void
 soup_message_io_unpause (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
 
 	g_return_if_fail (io != NULL);
 
@@ -1336,7 +1320,5 @@ soup_message_io_unpause (SoupMessage *msg)
 gboolean
 soup_message_io_in_progress (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	return priv->io_data != NULL;
+	return soup_message_get_io_data (msg) != NULL;
 }

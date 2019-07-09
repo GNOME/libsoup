@@ -1860,6 +1860,14 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
 	return FALSE;
 }
 
+GSList *
+soup_message_get_disabled_features (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	return priv->disabled_features;
+}
+
 /**
  * soup_message_get_first_party:
  * @msg: a #SoupMessage
@@ -2115,4 +2123,64 @@ soup_message_get_priority (SoupMessage *msg)
 	priv = soup_message_get_instance_private (msg);
 
 	return priv->priority;
+}
+
+gpointer
+soup_message_get_io_data (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	return priv->io_data;
+}
+
+void
+soup_message_set_io_data (SoupMessage *msg, gpointer io)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	priv->io_data = io;
+}
+
+SoupContentSniffer *
+soup_message_get_content_sniffer (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	return priv->sniffer;
+}
+
+void
+soup_message_set_content_sniffer (SoupMessage *msg, SoupContentSniffer *sniffer)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	if (priv->sniffer)
+		g_object_unref (priv->sniffer);
+
+	priv->sniffer = sniffer ? g_object_ref (sniffer): NULL;
+}
+
+void
+soup_message_set_bytes_for_sniffing (SoupMessage *msg, gsize bytes)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	priv->bytes_for_sniffing = bytes;
+}
+
+gboolean
+soup_message_has_chunk_allocator (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	return priv->chunk_allocator != NULL;
+}
+
+SoupBuffer *
+soup_message_allocate_chunk (SoupMessage *msg,
+			     goffset read_length)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	return priv->chunk_allocator (msg, read_length, priv->chunk_allocator_data);
 }

@@ -15,7 +15,6 @@
 
 #include "soup.h"
 #include "soup-connection.h"
-#include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-socket-private.h"
 
@@ -26,7 +25,6 @@ parse_response_headers (SoupMessage *msg,
 			gpointer user_data,
 			GError **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupHTTPVersion version;
 
 	g_free(msg->reason_phrase);
@@ -45,10 +43,8 @@ parse_response_headers (SoupMessage *msg,
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
 
-	if (version < priv->http_version) {
-		priv->http_version = version;
-		g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
-	}
+	if (version < soup_message_get_http_version (msg))
+		soup_message_set_http_version (msg, version);
 
 	if ((msg->method == SOUP_METHOD_HEAD ||
 	     msg->status_code  == SOUP_STATUS_NO_CONTENT ||
@@ -74,7 +70,6 @@ static void
 get_request_headers (SoupMessage *msg, GString *header,
 		     SoupEncoding *encoding, gpointer user_data)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageQueueItem *item = user_data;
 	SoupURI *uri = soup_message_get_uri (msg);
 	char *uri_host;
@@ -110,7 +105,7 @@ get_request_headers (SoupMessage *msg, GString *header,
 
 	g_string_append_printf (header, "%s %s HTTP/1.%d\r\n",
 				msg->method, uri_string,
-				(priv->http_version == SOUP_HTTP_1_0) ? 0 : 1);
+				(soup_message_get_http_version (msg) == SOUP_HTTP_1_0) ? 0 : 1);
 
 	if (!soup_message_headers_get_one (msg->request_headers, "Host")) {
 		if (soup_uri_uses_default_port (uri)) {
