@@ -674,7 +674,7 @@ close_connection (SoupWebsocketConnection *self,
 		g_debug ("responding to close request");
 
 	flags = 0;
-	if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER && pv->close_received)
+	if (pv->close_received)
 		flags |= SOUP_WEBSOCKET_QUEUE_LAST;
 	send_close (self, flags, code, data);
 	close_io_after_timeout (self);
