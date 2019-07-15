@@ -400,6 +400,97 @@ do_persistent_connection_timeout_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+cancel_cancellable_handler (SoupSession *session, SoupMessage *msg,
+			    SoupSocket *socket, gpointer user_data)
+{
+	g_cancellable_cancel (user_data);
+}
+
+static void
+do_persistent_connection_timeout_test_with_cancellation (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
+	SoupURI *timeout_uri;
+	GCancellable *cancellable;
+	GInputStream *response;
+	int i;
+	char buf[8192];
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (request_started_socket_collector),
+			  &sockets);
+
+	debug_printf (1, "    First message\n");
+	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
+	msg = soup_message_new_from_uri ("GET", timeout_uri);
+	cancellable = g_cancellable_new ();
+	soup_uri_free (timeout_uri);
+	response = soup_session_send (session, msg, cancellable, NULL);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+	if (sockets[1]) {
+		soup_test_assert (sockets[1] == NULL, "Message was retried");
+		sockets[1] = sockets[2] = sockets[3] = NULL;
+	}
+	g_object_unref (msg);
+
+	soup_test_assert (response, "No response received");
+
+	while (g_input_stream_read (response, buf, sizeof (buf), NULL, NULL))
+		debug_printf (1, "Reading response\n");
+
+	soup_test_assert (!g_cancellable_is_cancelled (cancellable),
+			  "User-supplied cancellable was cancelled");
+
+	g_object_unref (response);
+
+	/* The server will grab server_mutex before returning the response,
+	 * and release it when it's ready for us to send the second request.
+	 */
+	g_mutex_lock (&server_mutex);
+	g_mutex_unlock (&server_mutex);
+
+	debug_printf (1, "    Second message\n");
+	msg = soup_message_new_from_uri ("GET", base_uri);
+
+	/* Cancel the cancellable in the signal handler, and then check that it
+	 * was not reset below */
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (cancel_cancellable_handler),
+			  cancellable);
+
+	response = soup_session_send (session, msg, cancellable, NULL);
+
+	soup_test_assert (response == NULL, "Unexpected response");
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_NONE);
+
+	soup_test_assert (sockets[1] == sockets[0],
+			  "Message was not retried on existing connection");
+	soup_test_assert (sockets[2] != sockets[1],
+			  "Message was retried on closed connection");
+	soup_test_assert (sockets[3] == NULL,
+			  "Message was retried again");
+	g_object_unref (msg);
+
+	/* cancellable should not have been reset, it should still be in the
+	 * cancelled state */
+	soup_test_assert (g_cancellable_is_cancelled (cancellable),
+			  "User-supplied cancellable was reset");
+
+	for (i = 0; sockets[i]; i++)
+		g_object_unref (sockets[i]);
+
+	g_object_unref (cancellable);
+
+	soup_test_session_abort_unref (session);
+}
+
 static GMainLoop *max_conns_loop;
 static int msgs_done;
 static guint quit_loop_timeout;
@@ -1108,6 +1199,8 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/connection/content-length-framing", do_content_length_framing_test);
 	g_test_add_func ("/connection/persistent-connection-timeout", do_persistent_connection_timeout_test);
+	g_test_add_func ("/connection/persistent-connection-timeout-with-cancellable",
+			 do_persistent_connection_timeout_test_with_cancellation);
 	g_test_add_func ("/connection/max-conns", do_max_conns_test);
 	g_test_add_func ("/connection/non-persistent", do_non_persistent_connection_test);
 	g_test_add_func ("/connection/non-idempotent", do_non_idempotent_connection_test);
