@@ -4245,6 +4245,12 @@ async_respond_from_cache (SoupSession          *session,
 		return FALSE;
 }
 
+static void
+cancel_cancellable (G_GNUC_UNUSED GCancellable *cancellable, GCancellable *chained_cancellable)
+{
+	g_cancellable_cancel (chained_cancellable);
+}
+
 /**
  * soup_session_send_async:
  * @session: a #SoupSession
@@ -4298,8 +4304,9 @@ soup_session_send_async (SoupSession         *session,
 			  G_CALLBACK (async_send_request_finished), item);
 
 	if (cancellable) {
-		g_object_unref (item->cancellable);
-		item->cancellable = g_object_ref (cancellable);
+		g_cancellable_connect (cancellable, G_CALLBACK (cancel_cancellable),
+					g_object_ref (item->cancellable),
+					(GDestroyNotify) g_object_unref);
 	}
 
 	item->new_api = TRUE;
@@ -4421,8 +4428,9 @@ soup_session_send (SoupSession   *session,
 
 	item->new_api = TRUE;
 	if (cancellable) {
-		g_object_unref (item->cancellable);
-		item->cancellable = g_object_ref (cancellable);
+		g_cancellable_connect (cancellable, G_CALLBACK (cancel_cancellable),
+					g_object_ref (item->cancellable),
+					(GDestroyNotify) g_object_unref);
 	}
 
 	while (!stream) {
