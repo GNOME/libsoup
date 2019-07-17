@@ -1,3 +1,19 @@
+Changes in libsoup from 2.67.2 to 2.67.3:
+
+        * WebSockets: allow sending empty binary data [Carlos Garcia Campos]
+
+        * WebSockets: fail and load the connection on invalid payload length  [Carlos Garcia Campos]
+
+        * WebSockets: allow NULL characters in text messages data [Carlos Garcia Campos]
+
+        * WebSockets: Close connection on wrongly masked/unmasked frame as per RFC [Carlos Garcia Campos]
+
+        * WebSockets: other code fixes [Carlos Garcia Campos]
+
+        * NTLM: Fix NTLMv2 authentication [Thibaut Robert]
+
+        * SoupMessage: fix several deprecation warnings related to private data [Claudio Saavedra]
+
 Changes in libsoup from 2.67.1 to 2.67.2:
 
         * gobject-introspection: Fix annotation for soup_auth_new()
