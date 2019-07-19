@@ -772,6 +772,9 @@ process_contents (SoupWebsocketConnection *self,
 	SoupWebsocketConnectionPrivate *pv = self->pv;
 	GBytes *message;
 
+	if (pv->close_sent && pv->close_received)
+		return;
+
 	if (control) {
 		/* Control frames must never be fragmented */
 		if (!fin) {
