@@ -660,6 +660,10 @@ close_connection (SoupWebsocketConnection *self,
 			         code);
 		}
 		break;
+	case SOUP_WEBSOCKET_CLOSE_NO_STATUS:
+		/* This is special case to send a close message with no body */
+		code = 0;
+		break;
 	default:
 		if (code < 3000) {
 			g_debug ("Wrong closing code %d received", code);
@@ -695,6 +699,7 @@ receive_close (SoupWebsocketConnection *self,
 	switch (len) {
 	case 0:
 		/* Send a clean close when having an empty payload */
+		pv->peer_close_code = SOUP_WEBSOCKET_CLOSE_NO_STATUS;
 		close_connection (self, 1000, NULL);
 		return;
 	case 1:
@@ -1910,6 +1915,7 @@ soup_websocket_connection_send_message (SoupWebsocketConnection *self,
  * main loop runs.
  *
  * The @code and @data are sent to the peer along with the close request.
+ * If @code is %SOUP_WEBSOCKET_CLOSE_NO_STATUS a close message with no body is sent.
  * Note that the @data must be UTF-8 valid.
  *
  * Since: 2.50
@@ -1925,8 +1931,7 @@ soup_websocket_connection_close (SoupWebsocketConnection *self,
 	pv = self->pv;
 	g_return_if_fail (!pv->close_sent);
 
-	g_return_if_fail (code != SOUP_WEBSOCKET_CLOSE_NO_STATUS &&
-			  code != SOUP_WEBSOCKET_CLOSE_ABNORMAL &&
+	g_return_if_fail (code != SOUP_WEBSOCKET_CLOSE_ABNORMAL &&
 			  code != SOUP_WEBSOCKET_CLOSE_TLS_HANDSHAKE);
 	if (pv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER)
 		g_return_if_fail (code != SOUP_WEBSOCKET_CLOSE_NO_EXTENSION);
