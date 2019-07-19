@@ -824,6 +824,49 @@ test_message_after_closing (Test *test,
 }
 
 static gpointer
+close_after_close_server_thread (gpointer user_data)
+{
+	Test *test = user_data;
+	gsize written;
+	const char frames[] =
+		"\x88\x09\x03\xe8""reason1"
+		"\x88\x09\x03\xe8""reason2";
+	GError *error = NULL;
+
+	g_mutex_lock (&test->mutex);
+	g_mutex_unlock (&test->mutex);
+
+	g_output_stream_write_all (g_io_stream_get_output_stream (test->raw_server),
+				   frames, sizeof (frames) -1, &written, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpuint (written, ==, sizeof (frames) - 1);
+	g_io_stream_close (test->raw_server, NULL, &error);
+	g_assert_no_error (error);
+
+	return NULL;
+}
+
+static void
+test_close_after_close (Test *test,
+			gconstpointer data)
+{
+	GThread *thread;
+
+	g_mutex_lock (&test->mutex);
+
+	thread = g_thread_new ("close-after-close-thread", close_after_close_server_thread, test);
+
+	soup_websocket_connection_close (test->client, SOUP_WEBSOCKET_CLOSE_NORMAL, "reason1");
+	g_mutex_unlock (&test->mutex);
+
+	g_thread_join (thread);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_NORMAL);
+	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->client), ==, "reason1");
+}
+
+static gpointer
 timeout_server_thread (gpointer user_data)
 {
 	Test *test = user_data;
@@ -1216,6 +1259,11 @@ main (int argc,
 		    setup_soup_connection,
 		    test_message_after_closing,
 		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/close-after-close", Test, NULL,
+		    setup_half_direct_connection,
+		    test_close_after_close,
+		    teardown_direct_connection);
 
 
 	g_test_add ("/websocket/direct/protocol-negotiate", Test, NULL, NULL,
