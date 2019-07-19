@@ -714,9 +714,28 @@ test_protocol_client_any_soup (Test *test,
 	g_assert_cmpstr (soup_message_headers_get_one (test->msg->response_headers, "Sec-WebSocket-Protocol"), ==, NULL);
 }
 
+static const struct {
+	gushort code;
+	const char *reason;
+	gushort expected_sender_code;
+	const char *expected_sender_reason;
+	gushort expected_receiver_code;
+	const char *expected_receiver_reason;
+} close_clean_tests[] = {
+	{ SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL", SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL", SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL" },
+	{ SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY", SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY", SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY" },
+	{ SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL },
+	{ SOUP_WEBSOCKET_CLOSE_NO_STATUS, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NO_STATUS, NULL },
+};
+
 static void
-test_close_clean_client (Test *test,
-                         gconstpointer data)
+do_close_clean_client (Test *test,
+		       gushort code,
+		       const char *reason,
+		       gushort expected_sender_code,
+		       const char *expected_sender_reason,
+		       gushort expected_receiver_code,
+		       const char *expected_receiver_reason)
 {
 	gboolean close_event_client = FALSE;
 	gboolean close_event_server = FALSE;
@@ -724,7 +743,7 @@ test_close_clean_client (Test *test,
 	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event_client);
 	g_signal_connect (test->server, "closed", G_CALLBACK (on_close_set_flag), &close_event_server);
 
-	soup_websocket_connection_close (test->client, SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "give me a reason");
+	soup_websocket_connection_close (test->client, code, reason);
 	g_assert_cmpint (soup_websocket_connection_get_state (test->client), ==, SOUP_WEBSOCKET_STATE_CLOSING);
 
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->server) == SOUP_WEBSOCKET_STATE_CLOSED);
@@ -733,14 +752,62 @@ test_close_clean_client (Test *test,
 	g_assert (close_event_client);
 	g_assert (close_event_server);
 
-	g_assert_cmpint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_GOING_AWAY);
-	g_assert_cmpint (soup_websocket_connection_get_close_code (test->server), ==, SOUP_WEBSOCKET_CLOSE_GOING_AWAY);
-	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->server), ==, "give me a reason");
+	g_assert_cmpint (soup_websocket_connection_get_close_code (test->client), ==, expected_sender_code);
+	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->client), ==, expected_sender_reason);
+	g_assert_cmpint (soup_websocket_connection_get_close_code (test->server), ==, expected_receiver_code);
+	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->server), ==, expected_receiver_reason);
 }
 
 static void
-test_close_clean_server (Test *test,
-                         gconstpointer data)
+test_close_clean_client_soup (Test *test,
+			      gconstpointer data)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+		setup_soup_connection (test, data);
+
+		do_close_clean_client (test,
+				       close_clean_tests[i].code,
+				       close_clean_tests[i].reason,
+				       close_clean_tests[i].expected_sender_code,
+				       close_clean_tests[i].expected_sender_reason,
+				       close_clean_tests[i].expected_receiver_code,
+				       close_clean_tests[i].expected_receiver_reason);
+
+		teardown_soup_connection (test, data);
+	}
+}
+
+static void
+test_close_clean_client_direct (Test *test,
+				gconstpointer data)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+		setup_direct_connection (test, data);
+
+		do_close_clean_client (test,
+				       close_clean_tests[i].code,
+				       close_clean_tests[i].reason,
+				       close_clean_tests[i].expected_sender_code,
+				       close_clean_tests[i].expected_sender_reason,
+				       close_clean_tests[i].expected_receiver_code,
+				       close_clean_tests[i].expected_receiver_reason);
+
+		teardown_direct_connection (test, data);
+	}
+}
+
+static void
+do_close_clean_server (Test *test,
+		       gushort code,
+		       const char *reason,
+		       gushort expected_sender_code,
+		       const char *expected_sender_reason,
+		       gushort expected_receiver_code,
+		       const char *expected_receiver_reason)
 {
 	gboolean close_event_client = FALSE;
 	gboolean close_event_server = FALSE;
@@ -748,7 +815,7 @@ test_close_clean_server (Test *test,
 	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event_client);
 	g_signal_connect (test->server, "closed", G_CALLBACK (on_close_set_flag), &close_event_server);
 
-	soup_websocket_connection_close (test->server, SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "another reason");
+	soup_websocket_connection_close (test->server, code, reason);
 	g_assert_cmpint (soup_websocket_connection_get_state (test->server), ==, SOUP_WEBSOCKET_STATE_CLOSING);
 
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->server) == SOUP_WEBSOCKET_STATE_CLOSED);
@@ -757,9 +824,52 @@ test_close_clean_server (Test *test,
 	g_assert (close_event_client);
 	g_assert (close_event_server);
 
-	g_assert_cmpint (soup_websocket_connection_get_close_code (test->server), ==, SOUP_WEBSOCKET_CLOSE_GOING_AWAY);
-	g_assert_cmpint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_GOING_AWAY);
-	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->client), ==, "another reason");
+	g_assert_cmpint (soup_websocket_connection_get_close_code (test->server), ==, expected_sender_code);
+	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->server), ==, expected_sender_reason);
+	g_assert_cmpint (soup_websocket_connection_get_close_code (test->client), ==, expected_receiver_code);
+	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->client), ==, expected_receiver_reason);
+}
+
+static void
+test_close_clean_server_soup (Test *test,
+			      gconstpointer data)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+		setup_direct_connection (test, data);
+
+		do_close_clean_server (test,
+				       close_clean_tests[i].code,
+				       close_clean_tests[i].reason,
+				       close_clean_tests[i].expected_sender_code,
+				       close_clean_tests[i].expected_sender_reason,
+				       close_clean_tests[i].expected_receiver_code,
+				       close_clean_tests[i].expected_receiver_reason);
+
+		teardown_direct_connection (test, data);
+	}
+}
+
+static void
+test_close_clean_server_direct (Test *test,
+				gconstpointer data)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+		setup_direct_connection (test, data);
+
+		do_close_clean_server (test,
+				       close_clean_tests[i].code,
+				       close_clean_tests[i].reason,
+				       close_clean_tests[i].expected_sender_code,
+				       close_clean_tests[i].expected_sender_reason,
+				       close_clean_tests[i].expected_receiver_code,
+				       close_clean_tests[i].expected_receiver_reason);
+
+		teardown_direct_connection (test, data);
+	}
 }
 
 static gboolean
@@ -1214,23 +1324,19 @@ main (int argc,
 		    test_send_bad_data,
 		    teardown_soup_connection);
 
-	g_test_add ("/websocket/direct/close-clean-client", Test, NULL,
-		    setup_direct_connection,
-		    test_close_clean_client,
-		    teardown_direct_connection);
-	g_test_add ("/websocket/soup/close-clean-client", Test, NULL,
-		    setup_soup_connection,
-		    test_close_clean_client,
-		    teardown_soup_connection);
+	g_test_add ("/websocket/direct/close-clean-client", Test, NULL, NULL,
+		    test_close_clean_client_direct,
+		    NULL);
+	g_test_add ("/websocket/soup/close-clean-client", Test, NULL, NULL,
+		    test_close_clean_client_soup,
+		    NULL);
 
-	g_test_add ("/websocket/direct/close-clean-server", Test, NULL,
-		    setup_direct_connection,
-		    test_close_clean_server,
-		    teardown_direct_connection);
-	g_test_add ("/websocket/soup/close-clean-server", Test, NULL,
-		    setup_soup_connection,
-		    test_close_clean_server,
-		    teardown_soup_connection);
+	g_test_add ("/websocket/direct/close-clean-server", Test, NULL, NULL,
+		    test_close_clean_server_direct,
+		    NULL);
+	g_test_add ("/websocket/soup/close-clean-server", Test, NULL, NULL,
+		    test_close_clean_server_soup,
+		    NULL);
 
 	g_test_add ("/websocket/direct/message-after-closing", Test, NULL,
 		    setup_direct_connection,
