@@ -1,6 +1,6 @@
 option('gssapi',
-  type : 'boolean',
-  value : true,
+  type : 'feature',
+  value : 'auto',
   description : 'Build with GSSAPI support'
 )
 
@@ -11,8 +11,8 @@ option('krb5_config',
 )
 
 option('ntlm',
-  type : 'boolean',
-  value : false,
+  type : 'feature',
+  value : 'auto',
   description : 'Build with NTLM support'
 )
 
@@ -23,8 +23,8 @@ option('ntlm_auth',
 )
 
 option('brotli',
-  type : 'boolean',
-  value : true,
+  type : 'feature',
+  value : 'auto',
   description : 'Build with Brotli decompression support'
 )
 
@@ -41,14 +41,15 @@ option('gnome',
 )
 
 option('introspection',
-  type : 'boolean',
-  value : true,
+  type : 'feature',
+  value : 'auto',
+  yield : true,
   description : 'Build GObject Introspection data'
 )
 
 option('vapi',
-  type : 'boolean',
-  value : true,
+  type : 'feature',
+  value : 'auto',
   description : 'Build Vala bindings'
 )
 
