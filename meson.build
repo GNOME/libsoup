@@ -155,7 +155,7 @@ if enable_tls_check
     '''
 
     assert(cc.run(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_deps),
-          'libsoup requires glib-networking or glib-openssl for TLS support')
+          'libsoup requires glib-networking for TLS support')
   endif
 endif
 
