@@ -256,8 +256,10 @@ if cc.get_id() == 'msvc'
       add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
   endif
 else
-  krb5_config_option = get_option('krb5_config')
-  krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
+  krb5_config_path = get_option('krb5_config')
+  if not meson.is_cross_build() and krb5_config_path == ''
+    krb5_config_path = 'krb5-config'
+  endif
   krb5_config = find_program(krb5_config_path, required : gssapi_opt)
   if krb5_config.found()
     libs_output = run_command (krb5_config, '--libs', 'gssapi', check: gssapi_opt.enabled())
