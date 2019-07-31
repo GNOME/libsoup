@@ -26,7 +26,8 @@
 
 #include "soup-websocket.h"
 #include "soup-headers.h"
-#include "soup-message.h"
+#include "soup-message-private.h"
+#include "soup-websocket-extension.h"
 
 #define FIXED_DIGEST_LEN 20
 
@@ -254,6 +255,9 @@ choose_subprotocol (SoupMessage  *msg,
  * handshake. The message body and non-WebSocket-related headers are
  * not modified.
  *
+ * Use soup_websocket_client_prepare_handshake_with_extensions() if you
+ * want to include "Sec-WebSocket-Extensions" header in the request.
+ *
  * This is a low-level function; if you use
  * soup_session_websocket_connect_async() to create a WebSocket
  * connection, it will call this for you.
@@ -265,8 +269,39 @@ soup_websocket_client_prepare_handshake (SoupMessage  *msg,
 					 const char   *origin,
 					 char        **protocols)
 {
+	soup_websocket_client_prepare_handshake_with_extensions (msg, origin, protocols, NULL);
+}
+
+/**
+ * soup_websocket_client_prepare_handshake_with_extensions:
+ * @msg: a #SoupMessage
+ * @origin: (nullable): the "Origin" header to set
+ * @protocols: (nullable) (array zero-terminated=1): list of
+ *   protocols to offer
+ * @supported_extensions: (nullable) (element-type GObject.TypeClass): list
+ *   of supported extension types
+ *
+ * Adds the necessary headers to @msg to request a WebSocket
+ * handshake including supported WebSocket extensions.
+ * The message body and non-WebSocket-related headers are
+ * not modified.
+ *
+ * This is a low-level function; if you use
+ * soup_session_websocket_connect_async() to create a WebSocket
+ * connection, it will call this for you.
+ *
+ * Since: 2.68
+ */
+void
+soup_websocket_client_prepare_handshake_with_extensions (SoupMessage *msg,
+                                                         const char  *origin,
+                                                         char       **protocols,
+                                                         GPtrArray   *supported_extensions)
+{
 	guint32 raw[4];
 	char *key;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	soup_message_headers_replace (msg->request_headers, "Upgrade", "websocket");
 	soup_message_headers_append (msg->request_headers, "Connection", "Upgrade");
@@ -292,6 +327,47 @@ soup_websocket_client_prepare_handshake (SoupMessage  *msg,
 					      "Sec-WebSocket-Protocol", protocols_str);
 		g_free (protocols_str);
 	}
+
+	if (supported_extensions && supported_extensions->len > 0) {
+		guint i;
+		GString *extensions;
+
+		extensions = g_string_new (NULL);
+
+		for (i = 0; i < supported_extensions->len; i++) {
+			SoupWebsocketExtensionClass *extension_class = (SoupWebsocketExtensionClass *)supported_extensions->pdata[i];
+
+			if (soup_message_disables_feature_by_type (msg, G_TYPE_FROM_CLASS (extension_class)))
+				continue;
+
+			if (i != 0)
+				extensions = g_string_append (extensions, ", ");
+			extensions = g_string_append (extensions, extension_class->name);
+
+			if (extension_class->get_request_params) {
+				SoupWebsocketExtension *websocket_extension;
+				gchar *params;
+
+				websocket_extension = g_object_new (G_TYPE_FROM_CLASS (extension_class), NULL);
+				params = soup_websocket_extension_get_request_params (websocket_extension);
+				if (params) {
+					extensions = g_string_append (extensions, params);
+					g_free (params);
+				}
+				g_object_unref (websocket_extension);
+			}
+		}
+
+		if (extensions->len > 0) {
+			soup_message_headers_replace (msg->request_headers,
+						      "Sec-WebSocket-Extensions",
+						      extensions->str);
+		} else {
+			soup_message_headers_remove (msg->request_headers,
+						     "Sec-WebSocket-Extensions");
+		}
+		g_string_free (extensions, TRUE);
+	}
 }
 
 /**
@@ -309,6 +385,12 @@ soup_websocket_client_prepare_handshake (SoupMessage  *msg,
  * "Origin" header will be accepted. If @protocols is non-%NULL, then
  * only requests containing a compatible "Sec-WebSocket-Protocols"
  * header will be accepted.
+ *
+ * Requests containing "Sec-WebSocket-Extensions" header will be
+ * accepted even if the header is not valid. To check a request
+ * with extensions you need to use
+ * soup_websocket_server_check_handshake_with_extensions() and provide
+ * the list of supported extension types.
  *
  * Normally soup_websocket_server_process_handshake() will take care
  * of this for you, and if you use soup_server_add_websocket_handler()
@@ -328,8 +410,246 @@ soup_websocket_server_check_handshake (SoupMessage  *msg,
 				       char        **protocols,
 				       GError      **error)
 {
+	return soup_websocket_server_check_handshake_with_extensions (msg, expected_origin, protocols, NULL, error);
+}
+
+static gboolean
+websocket_extension_class_equal (gconstpointer a,
+                                 gconstpointer b)
+{
+        return g_str_equal (((const SoupWebsocketExtensionClass *)a)->name, (const char *)b);
+}
+
+static GHashTable *
+extract_extension_names_from_request (SoupMessage *msg)
+{
+        const char *extensions;
+        GSList *extension_list, *l;
+        GHashTable *return_value = NULL;
+
+        extensions = soup_message_headers_get_list (msg->request_headers, "Sec-WebSocket-Extensions");
+        if (!extensions || !*extensions)
+                return NULL;
+
+        extension_list = soup_header_parse_list (extensions);
+        for (l = extension_list; l != NULL; l = g_slist_next (l)) {
+                char *extension = (char *)l->data;
+                char *p, *end;
+
+                while (g_ascii_isspace (*extension))
+                        extension++;
+
+                if (!*extension)
+                        continue;
+
+                p = strstr (extension, ";");
+                end = p ? p : extension + strlen (extension);
+                while (end > extension && g_ascii_isspace (*(end - 1)))
+                        end--;
+                *end = '\0';
+
+                if (!return_value)
+                        return_value = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+                g_hash_table_add (return_value, g_strdup (extension));
+        }
+
+        soup_header_free_list (extension_list);
+
+        return return_value;
+}
+
+static gboolean
+process_extensions (SoupMessage *msg,
+                    const char  *extensions,
+                    gboolean     is_server,
+                    GPtrArray   *supported_extensions,
+                    GList      **accepted_extensions,
+                    GError     **error)
+{
+        GSList *extension_list, *l;
+        GHashTable *requested_extensions = NULL;
+
+        if (!supported_extensions || supported_extensions->len == 0) {
+                if (is_server)
+                        return TRUE;
+
+                g_set_error_literal (error,
+                                     SOUP_WEBSOCKET_ERROR,
+                                     SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
+                                     _("Server requested unsupported extension"));
+                return FALSE;
+        }
+
+        if (!is_server)
+                requested_extensions = extract_extension_names_from_request (msg);
+
+        extension_list = soup_header_parse_list (extensions);
+        for (l = extension_list; l != NULL; l = g_slist_next (l)) {
+                char *extension = (char *)l->data;
+                char *p, *end;
+                guint index;
+                GHashTable *params = NULL;
+                SoupWebsocketExtension *websocket_extension;
+
+                while (g_ascii_isspace (*extension))
+                        extension++;
+
+                if (!*extension) {
+                        g_set_error (error,
+                                     SOUP_WEBSOCKET_ERROR,
+                                     SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
+                                     is_server ?
+                                     _("Incorrect WebSocket “%s” header") :
+                                     _("Server returned incorrect “%s” key"),
+                                     "Sec-WebSocket-Extensions");
+                        if (accepted_extensions)
+                                g_list_free_full (*accepted_extensions, g_object_unref);
+                        g_clear_pointer (&requested_extensions, g_hash_table_destroy);
+                        soup_header_free_list (extension_list);
+
+                        return FALSE;
+                }
+
+                p = strstr (extension, ";");
+                end = p ? p : extension + strlen (extension);
+                while (end > extension && g_ascii_isspace (*(end - 1)))
+                        end--;
+                *end = '\0';
+
+                if (requested_extensions && !g_hash_table_contains (requested_extensions, extension)) {
+                        g_set_error_literal (error,
+                                             SOUP_WEBSOCKET_ERROR,
+                                             SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
+                                             _("Server requested unsupported extension"));
+                        if (accepted_extensions)
+                                g_list_free_full (*accepted_extensions, g_object_unref);
+                        g_clear_pointer (&requested_extensions, g_hash_table_destroy);
+                        soup_header_free_list (extension_list);
+
+                        return FALSE;
+                }
+
+                if (!g_ptr_array_find_with_equal_func (supported_extensions, extension, websocket_extension_class_equal, &index)) {
+                        if (is_server)
+                                continue;
+
+                        g_set_error_literal (error,
+                                             SOUP_WEBSOCKET_ERROR,
+                                             SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
+                                             _("Server requested unsupported extension"));
+                        if (accepted_extensions)
+                                g_list_free_full (*accepted_extensions, g_object_unref);
+                        g_clear_pointer (&requested_extensions, g_hash_table_destroy);
+                        soup_header_free_list (extension_list);
+
+                        return FALSE;
+                }
+
+                /* If we are just checking headers in server side
+                 * and there's no parameters, it's enough to know
+                 * the extension is supported.
+                 */
+                if (is_server && !accepted_extensions && !p)
+                        continue;
+
+                websocket_extension = g_object_new (G_TYPE_FROM_CLASS (supported_extensions->pdata[index]), NULL);
+                if (accepted_extensions)
+                        *accepted_extensions = g_list_prepend (*accepted_extensions, websocket_extension);
+
+                if (p) {
+                        params = soup_header_parse_semi_param_list_strict (p + 1);
+                        if (!params) {
+                                g_set_error (error,
+                                             SOUP_WEBSOCKET_ERROR,
+                                             SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
+                                             is_server ?
+                                             _("Duplicated parameter in “%s” WebSocket extension header") :
+                                             _("Server returned a duplicated parameter in “%s” WebSocket extension header"),
+                                             extension);
+                                if (accepted_extensions)
+                                        g_list_free_full (*accepted_extensions, g_object_unref);
+                                else
+                                        g_object_unref (websocket_extension);
+                                g_clear_pointer (&requested_extensions, g_hash_table_destroy);
+                                soup_header_free_list (extension_list);
+
+                                return FALSE;
+                        }
+                }
+
+                if (!soup_websocket_extension_configure (websocket_extension,
+                                                         is_server ? SOUP_WEBSOCKET_CONNECTION_SERVER : SOUP_WEBSOCKET_CONNECTION_CLIENT,
+                                                         params,
+                                                         error)) {
+                        g_clear_pointer (&params, g_hash_table_destroy);
+                        if (accepted_extensions)
+                                g_list_free_full (*accepted_extensions, g_object_unref);
+                        else
+                                g_object_unref (websocket_extension);
+                        g_clear_pointer (&requested_extensions, g_hash_table_destroy);
+                        soup_header_free_list (extension_list);
+
+                        return FALSE;
+                }
+                g_clear_pointer (&params, g_hash_table_destroy);
+                if (!accepted_extensions)
+                        g_object_unref (websocket_extension);
+        }
+
+        soup_header_free_list (extension_list);
+        g_clear_pointer (&requested_extensions, g_hash_table_destroy);
+
+        if (accepted_extensions)
+                *accepted_extensions = g_list_reverse (*accepted_extensions);
+
+        return TRUE;
+}
+
+/**
+ * soup_websocket_server_check_handshake_with_extensions:
+ * @msg: #SoupMessage containing the client side of a WebSocket handshake
+ * @origin: (nullable): expected Origin header
+ * @protocols: (nullable) (array zero-terminated=1): allowed WebSocket
+ *   protocols.
+ * @supported_extensions: (nullable) (element-type GObject.TypeClass): list
+ *   of supported extension types
+ * @error: return location for a #GError
+ *
+ * Examines the method and request headers in @msg and determines
+ * whether @msg contains a valid handshake request.
+ *
+ * If @origin is non-%NULL, then only requests containing a matching
+ * "Origin" header will be accepted. If @protocols is non-%NULL, then
+ * only requests containing a compatible "Sec-WebSocket-Protocols"
+ * header will be accepted. If @supported_extensions is non-%NULL, then
+ * only requests containing valid supported extensions in
+ * "Sec-WebSocket-Extensions" header will be accepted.
+ *
+ * Normally soup_websocket_server_process_handshake_with_extensioins()
+ * will take care of this for you, and if you use
+ * soup_server_add_websocket_handler() to handle accepting WebSocket
+ * connections, it will call that for you. However, this function may
+ * be useful if you need to perform more complicated validation; eg,
+ * accepting multiple different Origins, or handling different protocols
+ * depending on the path.
+ *
+ * Returns: %TRUE if @msg contained a valid WebSocket handshake,
+ *   %FALSE and an error if not.
+ *
+ * Since: 2.68
+ */
+gboolean
+soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
+                                                       const char   *expected_origin,
+                                                       char        **protocols,
+                                                       GPtrArray   *supported_extensions,
+                                                       GError      **error)
+{
 	const char *origin;
 	const char *key;
+	const char *extensions;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
 	if (msg->method != SOUP_METHOD_GET) {
 		g_set_error_literal (error,
@@ -384,6 +704,12 @@ soup_websocket_server_check_handshake (SoupMessage  *msg,
 		return FALSE;
 	}
 
+	extensions = soup_message_headers_get_list (msg->request_headers, "Sec-WebSocket-Extensions");
+	if (extensions && *extensions) {
+		if (!process_extensions (msg, extensions, TRUE, supported_extensions, NULL, error))
+			return FALSE;
+	}
+
 	return TRUE;
 }
 
@@ -430,6 +756,12 @@ respond_handshake_bad (SoupMessage *msg, const char *why)
  * only requests containing a compatible "Sec-WebSocket-Protocols"
  * header will be accepted.
  *
+ * Requests containing "Sec-WebSocket-Extensions" header will be
+ * accepted even if the header is not valid. To process a request
+ * with extensions you need to use
+ * soup_websocket_server_process_handshake_with_extensions() and provide
+ * the list of supported extension types.
+ *
  * This is a low-level function; if you use
  * soup_server_add_websocket_handler() to handle accepting WebSocket
  * connections, it will call this for you.
@@ -444,12 +776,57 @@ soup_websocket_server_process_handshake (SoupMessage  *msg,
 					 const char   *expected_origin,
 					 char        **protocols)
 {
+	return soup_websocket_server_process_handshake_with_extensions (msg, expected_origin, protocols, NULL, NULL);
+}
+
+/**
+ * soup_websocket_server_process_handshake_with_extensions:
+ * @msg: #SoupMessage containing the client side of a WebSocket handshake
+ * @expected_origin: (nullable): expected Origin header
+ * @protocols: (nullable) (array zero-terminated=1): allowed WebSocket
+ *   protocols.
+ * @supported_extensions: (nullable) (element-type GObject.TypeClass): list
+ *   of supported extension types
+ * @accepted_extensions: (out) (optional) (element-type SoupWebsocketExtension): a
+ *   #GList of #SoupWebsocketExtension objects
+ *
+ * Examines the method and request headers in @msg and (assuming @msg
+ * contains a valid handshake request), fills in the handshake
+ * response.
+ *
+ * If @expected_origin is non-%NULL, then only requests containing a matching
+ * "Origin" header will be accepted. If @protocols is non-%NULL, then
+ * only requests containing a compatible "Sec-WebSocket-Protocols"
+ * header will be accepted. If @supported_extensions is non-%NULL, then
+ * only requests containing valid supported extensions in
+ * "Sec-WebSocket-Extensions" header will be accepted. The accepted extensions
+ * will be returned in @accepted_extensions parameter if non-%NULL.
+ *
+ * This is a low-level function; if you use
+ * soup_server_add_websocket_handler() to handle accepting WebSocket
+ * connections, it will call this for you.
+ *
+ * Returns: %TRUE if @msg contained a valid WebSocket handshake
+ *   request and was updated to contain a handshake response. %FALSE if not.
+ *
+ * Since: 2.68
+ */
+gboolean
+soup_websocket_server_process_handshake_with_extensions (SoupMessage  *msg,
+                                                         const char   *expected_origin,
+                                                         char        **protocols,
+                                                         GPtrArray    *supported_extensions,
+                                                         GList       **accepted_extensions)
+{
 	const char *chosen_protocol = NULL;
 	const char *key;
+	const char *extensions;
 	char *accept_key;
 	GError *error = NULL;
 
-	if (!soup_websocket_server_check_handshake (msg, expected_origin, protocols, &error)) {
+	g_return_val_if_fail (accepted_extensions == NULL || *accepted_extensions == NULL, FALSE);
+
+	if (!soup_websocket_server_check_handshake_with_extensions (msg, expected_origin, protocols, supported_extensions, &error)) {
 		if (g_error_matches (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_BAD_ORIGIN))
@@ -473,6 +850,49 @@ soup_websocket_server_process_handshake (SoupMessage  *msg,
 	if (chosen_protocol)
 		soup_message_headers_append (msg->response_headers, "Sec-WebSocket-Protocol", chosen_protocol);
 
+	extensions = soup_message_headers_get_list (msg->request_headers, "Sec-WebSocket-Extensions");
+	if (extensions && *extensions) {
+		GList *websocket_extensions = NULL;
+		GList *l;
+
+		process_extensions (msg, extensions, TRUE, supported_extensions, &websocket_extensions, NULL);
+		if (websocket_extensions) {
+			GString *response_extensions;
+
+			response_extensions = g_string_new (NULL);
+
+			for (l = websocket_extensions; l && l->data; l = g_list_next (l)) {
+				SoupWebsocketExtension *websocket_extension;
+				gchar *params;
+
+				websocket_extension = (SoupWebsocketExtension *)l->data;
+				if (response_extensions->len > 0)
+					response_extensions = g_string_append (response_extensions, ", ");
+				response_extensions = g_string_append (response_extensions, SOUP_WEBSOCKET_EXTENSION_GET_CLASS (websocket_extension)->name);
+				params = soup_websocket_extension_get_response_params (websocket_extension);
+				if (params) {
+					response_extensions = g_string_append (response_extensions, params);
+					g_free (params);
+				}
+			}
+
+			if (response_extensions->len > 0) {
+				soup_message_headers_replace (msg->response_headers,
+							      "Sec-WebSocket-Extensions",
+							      response_extensions->str);
+			} else {
+				soup_message_headers_remove (msg->response_headers,
+							     "Sec-WebSocket-Extensions");
+			}
+			g_string_free (response_extensions, TRUE);
+
+			if (accepted_extensions)
+				*accepted_extensions = websocket_extensions;
+			else
+				g_list_free_full (websocket_extensions, g_object_unref);
+		}
+	}
+
 	return TRUE;
 }
 
@@ -485,6 +905,11 @@ soup_websocket_server_process_handshake (SoupMessage  *msg,
  * Looks at the response status code and headers in @msg and
  * determines if they contain a valid WebSocket handshake response
  * (given the handshake request in @msg's request headers).
+ *
+ * If the response contains the "Sec-WebSocket-Extensions" header,
+ * the handshake will be considered invalid. You need to use
+ * soup_websocket_client_verify_handshake_with_extensions() to handle
+ * responses with extensions.
  *
  * This is a low-level function; if you use
  * soup_session_websocket_connect_async() to create a WebSocket
@@ -499,9 +924,49 @@ gboolean
 soup_websocket_client_verify_handshake (SoupMessage  *msg,
 					GError      **error)
 {
+	return soup_websocket_client_verify_handshake_with_extensions (msg, NULL, NULL, error);
+}
+
+/**
+ * soup_websocket_client_verify_handshake_with_extensions:
+ * @msg: #SoupMessage containing both client and server sides of a
+ *   WebSocket handshake
+ * @supported_extensions: (nullable) (element-type GObject.TypeClass): list
+ *   of supported extension types
+ * @accepted_extensions: (out) (optional) (element-type SoupWebsocketExtension): a
+ *   #GList of #SoupWebsocketExtension objects
+ * @error: return location for a #GError
+ *
+ * Looks at the response status code and headers in @msg and
+ * determines if they contain a valid WebSocket handshake response
+ * (given the handshake request in @msg's request headers).
+ *
+ * If @supported_extensions is non-%NULL, extensions included in the
+ * response "Sec-WebSocket-Extensions" are verified too. Accepted
+ * extensions are returned in @accepted_extensions parameter if non-%NULL.
+ *
+ * This is a low-level function; if you use
+ * soup_session_websocket_connect_async() to create a WebSocket
+ * connection, it will call this for you.
+ *
+ * Returns: %TRUE if @msg contains a completed valid WebSocket
+ *   handshake, %FALSE and an error if not.
+ *
+ * Since: 2.68
+ */
+gboolean
+soup_websocket_client_verify_handshake_with_extensions (SoupMessage *msg,
+                                                        GPtrArray   *supported_extensions,
+                                                        GList      **accepted_extensions,
+                                                        GError     **error)
+{
 	const char *protocol, *request_protocols, *extensions, *accept_key;
 	char *expected_accept_key;
 	gboolean key_ok;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+	g_return_val_if_fail (accepted_extensions == NULL || *accepted_extensions == NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	if (msg->status_code == SOUP_STATUS_BAD_REQUEST) {
 		g_set_error_literal (error,
@@ -543,11 +1008,8 @@ soup_websocket_client_verify_handshake (SoupMessage  *msg,
 
 	extensions = soup_message_headers_get_list (msg->response_headers, "Sec-WebSocket-Extensions");
 	if (extensions && *extensions) {
-		g_set_error_literal (error,
-				     SOUP_WEBSOCKET_ERROR,
-				     SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
-				     _("Server requested unsupported extension"));
-		return FALSE;
+		if (!process_extensions (msg, extensions, FALSE, supported_extensions, accepted_extensions, error))
+			return FALSE;
 	}
 
 	accept_key = soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Accept");

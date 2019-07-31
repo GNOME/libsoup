@@ -20,6 +20,8 @@
 
 #include "test-utils.h"
 
+#include <zlib.h>
+
 typedef struct {
 	GSocket *listener;
 	gushort port;
@@ -34,6 +36,9 @@ typedef struct {
 
 	gboolean no_server;
 	GIOStream *raw_server;
+
+	gboolean enable_extensions;
+	gboolean disable_deflate_in_message;
 
 	GMutex mutex;
 } Test;
@@ -100,15 +105,26 @@ direct_connection_complete (GObject *object,
 	GSocketConnection *conn;
 	SoupURI *uri;
 	GError *error = NULL;
+	GList *extensions = NULL;
 
 	conn = g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (object),
 						       result, &error);
 	g_assert_no_error (error);
 
 	uri = soup_uri_new ("http://127.0.0.1/");
-	test->client = soup_websocket_connection_new (G_IO_STREAM (conn), uri,
-						      SOUP_WEBSOCKET_CONNECTION_CLIENT,
-						      NULL, NULL);
+	if (test->enable_extensions) {
+		SoupWebsocketExtension *extension;
+
+		extension = g_object_new (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE, NULL);
+		g_assert_true (soup_websocket_extension_configure (extension,
+								   SOUP_WEBSOCKET_CONNECTION_CLIENT,
+								   NULL, NULL));
+		extensions = g_list_prepend (extensions, extension);
+	}
+	test->client = soup_websocket_connection_new_with_extensions (G_IO_STREAM (conn), uri,
+								      SOUP_WEBSOCKET_CONNECTION_CLIENT,
+								      NULL, NULL,
+								      extensions);
 	soup_uri_free (uri);
 	g_object_unref (conn);
 }
@@ -122,6 +138,7 @@ got_connection (GSocket *listener,
 	GSocket *sock;
 	GSocketConnection *conn;
 	SoupURI *uri;
+	GList *extensions = NULL;
 	GError *error = NULL;
 
 	sock = g_socket_accept (listener, NULL, &error);
@@ -135,9 +152,19 @@ got_connection (GSocket *listener,
 		test->raw_server = G_IO_STREAM (conn);
 	else {
 		uri = soup_uri_new ("http://127.0.0.1/");
-		test->server = soup_websocket_connection_new (G_IO_STREAM (conn), uri,
-							      SOUP_WEBSOCKET_CONNECTION_SERVER,
-							      NULL, NULL);
+		if (test->enable_extensions) {
+			SoupWebsocketExtension *extension;
+
+			extension = g_object_new (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE, NULL);
+			g_assert_true (soup_websocket_extension_configure (extension,
+									   SOUP_WEBSOCKET_CONNECTION_SERVER,
+									   NULL, NULL));
+			extensions = g_list_prepend (extensions, extension);
+		}
+		test->server = soup_websocket_connection_new_with_extensions (G_IO_STREAM (conn), uri,
+									      SOUP_WEBSOCKET_CONNECTION_SERVER,
+									      NULL, NULL,
+									      extensions);
 		soup_uri_free (uri);
 		g_object_unref (conn);
 	}
@@ -171,11 +198,27 @@ setup_direct_connection (Test *test,
 }
 
 static void
+setup_direct_connection_with_extensions (Test *test,
+					 gconstpointer data)
+{
+	test->enable_extensions = TRUE;
+	setup_direct_connection (test, data);
+}
+
+static void
 setup_half_direct_connection (Test *test,
 			      gconstpointer data)
 {
 	test->no_server = TRUE;
 	setup_direct_connection (test, data);
+}
+
+static void
+setup_half_direct_connection_with_extensions (Test *test,
+					      gconstpointer data)
+{
+	test->no_server = TRUE;
+	setup_direct_connection_with_extensions (test, data);
 }
 
 static void
@@ -200,6 +243,8 @@ setup_soup_server (Test *test,
 	setup_listener (test);
 
 	test->soup_server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	if (!test->enable_extensions)
+		soup_server_remove_websocket_extension (test->soup_server, SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE);
 	soup_server_listen_socket (test->soup_server, test->listener, 0, &error);
 	g_assert_no_error (error);
 
@@ -217,11 +262,14 @@ client_connect (Test *test,
 {
 	char *url;
 
-	if (!test->session)
-		test->session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	test->session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	if (test->enable_extensions)
+		soup_session_add_feature_by_type (test->session, SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER);
 
 	url = g_strdup_printf ("ws://127.0.0.1:%u/unix", test->port);
 	test->msg = soup_message_new ("GET", url);
+	if (test->disable_deflate_in_message)
+		soup_message_disable_feature (test->msg, SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE);
 	g_free (url);
 
 	soup_session_websocket_connect_async (test->session, test->msg,
@@ -261,6 +309,14 @@ setup_soup_connection (Test *test,
 	WAIT_UNTIL (test->server != NULL);
 	WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
 	g_assert_no_error (test->client_error);
+}
+
+static void
+setup_soup_connection_with_extensions (Test *test,
+				       gconstpointer data)
+{
+	test->enable_extensions = TRUE;
+	setup_soup_connection (test, data);
 }
 
 static void
@@ -323,7 +379,27 @@ test_handshake (Test *test,
                 gconstpointer data)
 {
 	g_assert_cmpint (soup_websocket_connection_get_state (test->client), ==, SOUP_WEBSOCKET_STATE_OPEN);
+	if (test->enable_extensions) {
+		GList *extensions = soup_websocket_connection_get_extensions (test->client);
+
+		g_assert_nonnull (extensions);
+		g_assert_cmpuint (g_list_length (extensions), ==, 1);
+		g_assert (SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE (extensions->data));
+	} else {
+		g_assert_null (soup_websocket_connection_get_extensions (test->client));
+	}
+
 	g_assert_cmpint (soup_websocket_connection_get_state (test->server), ==, SOUP_WEBSOCKET_STATE_OPEN);
+	if (test->enable_extensions) {
+                GList *extensions = soup_websocket_connection_get_extensions (test->server);
+
+                g_assert_nonnull (extensions);
+                g_assert_cmpuint (g_list_length (extensions), ==, 1);
+                g_assert (SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE (extensions->data));
+        } else {
+		g_assert_null (soup_websocket_connection_get_extensions (test->server));
+	}
+
 }
 
 static void
@@ -1041,6 +1117,78 @@ send_fragments_server_thread (gpointer user_data)
 }
 
 static void
+do_deflate (z_stream *zstream,
+            const char *str,
+            guint8 *buffer,
+            gsize *length)
+{
+        zstream->next_in = (void *)str;
+        zstream->avail_in = strlen (str);
+        zstream->next_out = buffer;
+        zstream->avail_out = 512;
+
+        g_assert_cmpint (deflate(zstream, Z_NO_FLUSH), ==, Z_OK);
+        g_assert_cmpint (zstream->avail_in, ==, 0);
+        g_assert_cmpint (deflate(zstream, Z_SYNC_FLUSH), ==, Z_OK);
+        g_assert_cmpint (deflate(zstream, Z_SYNC_FLUSH), ==, Z_BUF_ERROR);
+
+        *length = 512 - zstream->avail_out;
+        g_assert_cmpuint (*length, <, 126);
+}
+
+static gpointer
+send_compressed_fragments_server_thread (gpointer user_data)
+{
+        Test *test = user_data;
+        gsize written;
+        z_stream zstream;
+        GByteArray *data;
+        guint8 byte;
+        guint8 buffer[512];
+        gsize buffer_length;
+        GError *error = NULL;
+
+        memset (&zstream, 0, sizeof(z_stream));
+        g_assert (deflateInit2 (&zstream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) == Z_OK);
+
+        data = g_byte_array_new ();
+
+        do_deflate (&zstream, "one ", buffer, &buffer_length);
+        byte = 0x00 | 0x01 | 0x40; /* !fin | opcode | compressed */
+        data = g_byte_array_append (data, &byte, 1);
+        byte = (0xFF & buffer_length); /* mask | 7-bit-len */
+        data = g_byte_array_append (data, &byte, 1);
+        data = g_byte_array_append (data, buffer, buffer_length);
+
+        do_deflate (&zstream, "two ", buffer, &buffer_length);
+        byte = 0x00; /* !fin | no opcode */
+        data = g_byte_array_append (data, &byte, 1);
+        byte = (0xFF & buffer_length); /* mask | 7-bit-len */
+        data = g_byte_array_append (data, &byte, 1);
+        data = g_byte_array_append (data, buffer, buffer_length);
+
+        do_deflate (&zstream, "three", buffer, &buffer_length);
+        g_assert_cmpuint (buffer_length, >=, 4);
+        buffer_length -= 4;
+        byte = 0x80; /* fin | no opcode */
+        data = g_byte_array_append (data, &byte, 1);
+        byte = (0xFF & buffer_length); /* mask | 7-bit-len */
+        data = g_byte_array_append (data, &byte, 1);
+        data = g_byte_array_append (data, buffer, buffer_length);
+
+        g_output_stream_write_all (g_io_stream_get_output_stream (test->raw_server),
+                                   data->data, data->len, &written, NULL, &error);
+        g_assert_no_error (error);
+        g_assert_cmpuint (written, ==, data->len);
+        g_io_stream_close (test->raw_server, NULL, &error);
+        g_assert_no_error (error);
+
+        deflateEnd (&zstream);
+
+        return NULL;
+}
+
+static void
 test_receive_fragmented (Test *test,
 			 gconstpointer data)
 {
@@ -1048,7 +1196,11 @@ test_receive_fragmented (Test *test,
 	GBytes *received = NULL;
 	GBytes *expect;
 
-	thread = g_thread_new ("fragment-thread", send_fragments_server_thread, test);
+	thread = g_thread_new ("fragment-thread",
+			       test->enable_extensions ?
+			       send_compressed_fragments_server_thread :
+			       send_fragments_server_thread,
+			       test);
 
 	g_signal_connect (test->client, "error", G_CALLBACK (on_error_not_reached), NULL);
 	g_signal_connect (test->client, "message", G_CALLBACK (on_text_message), &received);
@@ -1281,6 +1433,331 @@ test_client_context (Test *test,
 	g_assert_no_error (test->client_error);
 }
 
+static struct {
+	const char *client_extension;
+	gboolean expected_prepare_result;
+	gboolean server_supports_extensions;
+	gboolean expected_check_result;
+	gboolean expected_accepted_extension;
+	gboolean expected_verify_result;
+	const char *server_extension;
+} deflate_negotiate_tests[] = {
+	{ "permessage-deflate",
+	  /* prepare supported check accepted verify */
+	    TRUE,      TRUE,   TRUE,  TRUE,   TRUE,
+	  "permessage-deflate"
+	},
+	{ "permessage-deflate",
+	  /* prepare supported check accepted verify */
+	      TRUE,    FALSE,  TRUE,  FALSE,  TRUE,
+	  "permessage-deflate"
+	},
+	{ "permessage-deflate; server_no_context_takeover",
+	  /* prepare supported check accepted verify */
+              TRUE,    TRUE,   TRUE,  TRUE,   TRUE,
+	  "permessage-deflate; server_no_context_takeover"
+	},
+	{ "permessage-deflate; client_no_context_takeover",
+	  /* prepare supported check accepted verify */
+              TRUE,    TRUE,   TRUE,  TRUE,   TRUE,
+	  "permessage-deflate; client_no_context_takeover"
+	},
+	{ "permessage-deflate; server_max_window_bits=8",
+	  /* prepare supported check accepted verify */
+	      TRUE,    TRUE,   TRUE,  TRUE,   TRUE,
+	  "permessage-deflate; server_max_window_bits=8"
+	},
+	{ "permessage-deflate; client_max_window_bits",
+	  /* prepare supported check accepted verify */
+              TRUE,    TRUE,   TRUE,  TRUE,   TRUE,
+	  "permessage-deflate; client_max_window_bits"
+	},
+	{ "permessage-deflate; client_max_window_bits=10",
+	  /* prepare supported check accepted verify */
+              TRUE,    TRUE,   TRUE,  TRUE,   TRUE,
+	  "permessage-deflate; client_max_window_bits=10"
+	},
+	{ "permessage-deflate; client_no_context_takeover; server_max_window_bits=10",
+	  /* prepare supported check accepted verify */
+              TRUE,    TRUE,   TRUE,  TRUE,   TRUE,
+	  "permessage-deflate; client_no_context_takeover; server_max_window_bits=10"
+	},
+	{ "permessage-deflate; unknown_parameter",
+	  /* prepare supported check accepted verify */
+	      TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+	  NULL
+	},
+	{ "permessage-deflate; client_no_context_takeover; client_no_context_takeover",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+	  NULL
+        },
+	{ "permessage-deflate; server_max_window_bits=10; server_max_window_bits=15",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+	  NULL
+        },
+	{ "permessage-deflate; client_no_context_takeover=15",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; server_no_context_takeover=15",
+	  /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; server_max_window_bits",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; server_max_window_bits=7",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; server_max_window_bits=16",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; client_max_window_bits=7",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+        { "permessage-deflate; client_max_window_bits=16",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; client_max_window_bits=foo",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; server_max_window_bits=bar",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+	{ "permessage-deflate; client_max_window_bits=15foo",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+        { "permessage-deflate; server_max_window_bits=10bar",
+          /* prepare supported check accepted verify */
+              TRUE,    TRUE,   FALSE,  FALSE,  FALSE,
+          NULL
+        },
+};
+
+static void
+test_deflate_negotiate_direct (Test *test,
+			       gconstpointer unused)
+{
+	GPtrArray *supported_extensions;
+	guint i;
+
+	supported_extensions = g_ptr_array_new_full (1, g_type_class_unref);
+	g_ptr_array_add (supported_extensions, g_type_class_ref (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE));
+
+	for (i = 0; i < G_N_ELEMENTS (deflate_negotiate_tests); i++) {
+		SoupMessage *msg;
+		gboolean result;
+		GList *accepted_extensions = NULL;
+		GError *error = NULL;
+
+		msg = soup_message_new ("GET", "http://127.0.0.1");
+
+		soup_websocket_client_prepare_handshake (msg, NULL, NULL);
+		soup_message_headers_append (msg->request_headers, "Sec-WebSocket-Extensions", deflate_negotiate_tests[i].client_extension);
+		result = soup_websocket_server_check_handshake_with_extensions (msg, NULL, NULL,
+										deflate_negotiate_tests[i].server_supports_extensions ?
+										supported_extensions : NULL,
+										&error);
+		g_assert (result == deflate_negotiate_tests[i].expected_check_result);
+		if (result) {
+			g_assert_no_error (error);
+		} else {
+			g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE);
+			g_clear_error (&error);
+		}
+
+		result = soup_websocket_server_process_handshake_with_extensions (msg, NULL, NULL,
+										  deflate_negotiate_tests[i].server_supports_extensions ?
+										  supported_extensions : NULL,
+										  &accepted_extensions);
+		g_assert (result == deflate_negotiate_tests[i].expected_check_result);
+		if (deflate_negotiate_tests[i].expected_accepted_extension) {
+			const char *extension;
+
+			extension = soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Extensions");
+			g_assert_cmpstr (extension, ==, deflate_negotiate_tests[i].server_extension);
+			g_assert_nonnull (accepted_extensions);
+			g_assert_cmpuint (g_list_length (accepted_extensions), ==, 1);
+			g_assert (SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE (accepted_extensions->data));
+			g_list_free_full (accepted_extensions, g_object_unref);
+			accepted_extensions = NULL;
+		} else {
+			g_assert_null (accepted_extensions);
+		}
+
+		result = soup_websocket_client_verify_handshake_with_extensions (msg, supported_extensions, &accepted_extensions, &error);
+		g_assert (result == deflate_negotiate_tests[i].expected_verify_result);
+		if (result) {
+                        g_assert_no_error (error);
+                } else {
+                        g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE);
+                        g_clear_error (&error);
+                }
+		if (deflate_negotiate_tests[i].expected_accepted_extension) {
+			g_assert_nonnull (accepted_extensions);
+                        g_assert_cmpuint (g_list_length (accepted_extensions), ==, 1);
+                        g_assert (SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE (accepted_extensions->data));
+                        g_list_free_full (accepted_extensions, g_object_unref);
+                        accepted_extensions = NULL;
+                } else {
+                        g_assert_null (accepted_extensions);
+                }
+
+		g_object_unref (msg);
+        }
+
+	g_ptr_array_unref (supported_extensions);
+}
+
+static void
+test_deflate_disabled_in_message_direct (Test *test,
+					 gconstpointer unused)
+{
+	SoupMessage *msg;
+	GPtrArray *supported_extensions;
+	GList *accepted_extensions = NULL;
+	GError *error = NULL;
+
+	supported_extensions = g_ptr_array_new_full (1, g_type_class_unref);
+        g_ptr_array_add (supported_extensions, g_type_class_ref (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE));
+
+	msg = soup_message_new ("GET", "http://127.0.0.1");
+	soup_message_disable_feature (msg, SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE);
+	soup_websocket_client_prepare_handshake_with_extensions (msg, NULL, NULL, supported_extensions);
+	g_assert_cmpstr (soup_message_headers_get_one (msg->request_headers, "Sec-WebSocket-Extensions"), ==, NULL);
+
+	g_assert_true (soup_websocket_server_check_handshake_with_extensions (msg, NULL, NULL, supported_extensions, &error));
+	g_assert_no_error (error);
+
+	g_assert_true (soup_websocket_server_process_handshake_with_extensions (msg, NULL, NULL, supported_extensions, &accepted_extensions));
+	g_assert_null (accepted_extensions);
+	g_assert_cmpstr (soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Extensions"), ==, NULL);
+
+	g_assert_true (soup_websocket_client_verify_handshake_with_extensions (msg, supported_extensions, &accepted_extensions, &error));
+	g_assert_no_error (error);
+	g_assert_null (accepted_extensions);
+
+	g_object_unref (msg);
+	g_ptr_array_unref (supported_extensions);
+}
+
+static void
+test_deflate_disabled_in_message_soup (Test *test,
+				       gconstpointer unused)
+{
+	test->enable_extensions = TRUE;
+	test->disable_deflate_in_message = TRUE;
+	setup_soup_server (test, NULL, NULL, got_server_connection, test);
+	client_connect (test, NULL, NULL, got_client_connection, test);
+	WAIT_UNTIL (test->server != NULL);
+	WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+	g_assert_no_error (test->client_error);
+
+	g_assert_cmpstr (soup_message_headers_get_one (test->msg->request_headers, "Sec-WebSocket-Extensions"), ==, NULL);
+	g_assert_cmpstr (soup_message_headers_get_one (test->msg->response_headers, "Sec-WebSocket-Extensions"), ==, NULL);
+}
+
+static gpointer
+send_compressed_fragments_error_server_thread (gpointer user_data)
+{
+        Test *test = user_data;
+        gsize written;
+        z_stream zstream;
+        GByteArray *data;
+        guint8 byte;
+        guint8 buffer[512];
+        gsize buffer_length;
+        GError *error = NULL;
+
+        memset (&zstream, 0, sizeof(z_stream));
+        g_assert (deflateInit2 (&zstream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) == Z_OK);
+
+        data = g_byte_array_new ();
+
+        do_deflate (&zstream, "one ", buffer, &buffer_length);
+        byte = 0x00 | 0x01 | 0x40; /* !fin | opcode | compressed */
+        data = g_byte_array_append (data, &byte, 1);
+        byte = (0xFF & buffer_length); /* mask | 7-bit-len */
+        data = g_byte_array_append (data, &byte, 1);
+        data = g_byte_array_append (data, buffer, buffer_length);
+
+	/* Only the first fragment should include the compressed bit set. */
+        do_deflate (&zstream, "two ", buffer, &buffer_length);
+        byte = 0x00 | 0x00 | 0x40; /* !fin | no opcode | compressed */
+        data = g_byte_array_append (data, &byte, 1);
+        byte = (0xFF & buffer_length); /* mask | 7-bit-len */
+        data = g_byte_array_append (data, &byte, 1);
+        data = g_byte_array_append (data, buffer, buffer_length);
+
+        do_deflate (&zstream, "three", buffer, &buffer_length);
+        g_assert_cmpuint (buffer_length, >=, 4);
+        buffer_length -= 4;
+        byte = 0x80; /* fin | no opcode */
+        data = g_byte_array_append (data, &byte, 1);
+        byte = (0xFF & buffer_length); /* mask | 7-bit-len */
+        data = g_byte_array_append (data, &byte, 1);
+        data = g_byte_array_append (data, buffer, buffer_length);
+
+        g_output_stream_write_all (g_io_stream_get_output_stream (test->raw_server),
+                                   data->data, data->len, &written, NULL, &error);
+        g_assert_no_error (error);
+        g_assert_cmpuint (written, ==, data->len);
+        g_io_stream_close (test->raw_server, NULL, &error);
+        g_assert_no_error (error);
+
+        deflateEnd (&zstream);
+
+        return NULL;
+}
+
+static void
+test_deflate_receive_fragmented_error (Test *test,
+				       gconstpointer data)
+{
+	GThread *thread;
+	GBytes *received = NULL;
+	gboolean close_event = FALSE;
+	GError *error = NULL;
+
+	thread = g_thread_new ("deflate-fragment-error-thread",
+			       send_compressed_fragments_error_server_thread,
+			       test);
+
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "message", G_CALLBACK (on_text_message), &received);
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	WAIT_UNTIL (error != NULL || received != NULL);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
+	g_clear_error (&error);
+	g_assert_null (received);
+
+	g_thread_join (thread);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert (close_event);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -1429,6 +1906,67 @@ main (int argc,
 		    setup_soup_connection,
 		    test_server_receive_unmasked_frame,
 		    teardown_soup_connection);
+
+	g_test_add ("/websocket/soup/deflate-handshake", Test, NULL,
+		    setup_soup_connection_with_extensions,
+		    test_handshake,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/deflate-negotiate", Test, NULL, NULL,
+		    test_deflate_negotiate_direct,
+		    NULL);
+
+	g_test_add ("/websocket/direct/deflate-disabled-in-message", Test, NULL, NULL,
+		    test_deflate_disabled_in_message_direct,
+		    NULL);
+	g_test_add ("/websocket/soup/deflate-disabled-in-message", Test, NULL, NULL,
+		    test_deflate_disabled_in_message_soup,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/deflate-send-client-to-server", Test, NULL,
+		    setup_direct_connection_with_extensions,
+		    test_send_client_to_server,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/deflate-send-client-to-server", Test, NULL,
+		    setup_soup_connection_with_extensions,
+		    test_send_client_to_server,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/deflate-send-server-to-client", Test, NULL,
+		    setup_direct_connection_with_extensions,
+		    test_send_server_to_client,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/deflate-send-server-to-client", Test, NULL,
+		    setup_soup_connection_with_extensions,
+		    test_send_server_to_client,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/deflate-send-big-packets", Test, NULL,
+		    setup_direct_connection_with_extensions,
+		    test_send_big_packets,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/deflate-send-big-packets", Test, NULL,
+		    setup_soup_connection_with_extensions,
+		    test_send_big_packets,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/deflate-send-empty-packets", Test, NULL,
+		    setup_direct_connection_with_extensions,
+		    test_send_empty_packets,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/deflate-send-empty-packets", Test, NULL,
+		    setup_soup_connection_with_extensions,
+		    test_send_empty_packets,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/deflate-receive-fragmented", Test, NULL,
+		    setup_half_direct_connection_with_extensions,
+		    test_receive_fragmented,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/direct/deflate-receive-fragmented-error", Test, NULL,
+		    setup_half_direct_connection_with_extensions,
+		    test_deflate_receive_fragmented_error,
+		    teardown_direct_connection);
 
 	if (g_test_slow ()) {
 		g_test_add ("/websocket/direct/close-after-timeout", Test, NULL,

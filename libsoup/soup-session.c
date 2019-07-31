@@ -24,6 +24,7 @@
 #include "soup-socket-private.h"
 #include "soup-websocket.h"
 #include "soup-websocket-connection.h"
+#include "soup-websocket-extension-manager-private.h"
 
 #define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
 
@@ -4775,6 +4776,19 @@ soup_session_steal_connection (SoupSession *session,
 	return stream;
 }
 
+static GPtrArray *
+soup_session_get_supported_websocket_extensions_for_message (SoupSession *session,
+							     SoupMessage *msg)
+{
+        SoupSessionFeature *extension_manager;
+
+        extension_manager = soup_session_get_feature_for_message (session, SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER, msg);
+        if (!extension_manager)
+                return NULL;
+
+        return soup_websocket_extension_manager_get_supported_extensions (SOUP_WEBSOCKET_EXTENSION_MANAGER (extension_manager));
+}
+
 static void websocket_connect_async_stop (SoupMessage *msg, gpointer user_data);
 
 static void
@@ -4799,6 +4813,9 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 	SoupMessageQueueItem *item = g_task_get_task_data (task);
 	GIOStream *stream;
 	SoupWebsocketConnection *client;
+	SoupSession *session = g_task_get_source_object (task);
+	GPtrArray *supported_extensions;
+	GList *accepted_extensions = NULL;
 	GError *error = NULL;
 
 	/* Disconnect websocket_connect_async_stop() handler. */
@@ -4807,20 +4824,24 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 	/* Ensure websocket_connect_async_complete is not called either. */
 	item->callback = NULL;
 
-	if (soup_websocket_client_verify_handshake (item->msg, &error)){
+	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
+	if (soup_websocket_client_verify_handshake_with_extensions (item->msg, supported_extensions, &accepted_extensions, &error)) {
 		stream = soup_session_steal_connection (item->session, item->msg);
-		client = soup_websocket_connection_new (stream, 
-							soup_message_get_uri (item->msg),
-							SOUP_WEBSOCKET_CONNECTION_CLIENT,
-							soup_message_headers_get_one (msg->request_headers, "Origin"),
-							soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Protocol"));
+		client = soup_websocket_connection_new_with_extensions (stream,
+									soup_message_get_uri (item->msg),
+									SOUP_WEBSOCKET_CONNECTION_CLIENT,
+									soup_message_headers_get_one (msg->request_headers, "Origin"),
+									soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Protocol"),
+									accepted_extensions);
 		g_object_unref (stream);
-
 		g_task_return_pointer (task, client, g_object_unref);
-	} else {
-		soup_message_io_finished (item->msg);
-		g_task_return_error (task, error);
+		g_object_unref (task);
+
+		return;
 	}
+
+	soup_message_io_finished (item->msg);
+	g_task_return_error (task, error);
 	g_object_unref (task);
 }
 
@@ -4868,12 +4889,14 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	GTask *task;
+	GPtrArray *supported_extensions;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (priv->use_thread_context);
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	soup_websocket_client_prepare_handshake (msg, origin, protocols);
+	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
+	soup_websocket_client_prepare_handshake_with_extensions (msg, origin, protocols, supported_extensions);
 
 	task = g_task_new (session, cancellable, callback, user_data);
 	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,

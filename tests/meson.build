@@ -12,53 +12,53 @@ test_resources = gnome.compile_resources('soup-tests',
   'soup-tests.gresource.xml',
   gresource_bundle : true)
 
-# ['name', is_parallel]
+# ['name', is_parallel, extra_deps]
 tests = [
-  ['cache', true],
-  ['chunk', true],
-  ['chunk-io', true],
-  ['coding', true],
-  ['context', true],
-  ['continue', true],
-  ['cookies', true],
-  ['date', true],
-  ['forms', true],
-  ['header-parsing', true],
-  ['hsts', true],
-  ['hsts-db', true],
-  ['misc', true],
-  ['multipart', true],
-  ['no-ssl', true],
-  ['ntlm', true],
-  ['redirect', true],
-  ['requester', true],
-  ['resource', true],
-  ['session', true],
-  ['server-auth', true],
-  ['server', true],
-  ['sniffing', true],
-  ['socket', true],
-  ['ssl', true],
-  ['streaming', true],
-  ['timeout', true],
-  ['tld', true],
-  ['uri-parsing', true],
-  ['websocket', true]
+  ['cache', true, []],
+  ['chunk', true, []],
+  ['chunk-io', true, []],
+  ['coding', true, []],
+  ['context', true, []],
+  ['continue', true, []],
+  ['cookies', true, []],
+  ['date', true, []],
+  ['forms', true, []],
+  ['header-parsing', true, []],
+  ['hsts', true, []],
+  ['hsts-db', true, []],
+  ['misc', true, []],
+  ['multipart', true, []],
+  ['no-ssl', true, []],
+  ['ntlm', true, []],
+  ['redirect', true, []],
+  ['requester', true, []],
+  ['resource', true, []],
+  ['session', true, []],
+  ['server-auth', true, []],
+  ['server', true, []],
+  ['sniffing', true, []],
+  ['socket', true, []],
+  ['ssl', true, []],
+  ['streaming', true, []],
+  ['timeout', true, []],
+  ['tld', true, []],
+  ['uri-parsing', true, []],
+  ['websocket', true, [libz_dep]]
 ]
 
 if brotlidec_dep.found()
   tests += [
-    ['brotli-decompressor', true],
+    ['brotli-decompressor', true, []],
   ]
 endif
 
 if have_apache
   tests += [
-    ['auth', false],
-    ['connection', false],
-    ['range', false],
-    ['proxy', false],
-    ['pull-api', false],
+    ['auth', false, []],
+    ['connection', false, []],
+    ['range', false, []],
+    ['proxy', false, []],
+    ['pull-api', false, []],
   ]
 
   configure_file(output : 'httpd.conf',
@@ -90,10 +90,10 @@ endif
 
 if have_php_xmlrpc
   tests += [
-    ['xmlrpc-old-server', true, have_php_xmlrpc],
-    ['xmlrpc-old', false, have_php_xmlrpc],
-    ['xmlrpc-server', true, have_php_xmlrpc],
-    ['xmlrpc', false, have_php_xmlrpc]
+    ['xmlrpc-old-server', true, []],
+    ['xmlrpc-old', false, []],
+    ['xmlrpc-server', true, []],
+    ['xmlrpc', false, []]
   ]
 
   configure_file(input : 'xmlrpc-server.php',
@@ -113,10 +113,11 @@ env.set('MALLOC_PERTURB_', '')
 
 foreach test: tests
   test_name = '@0@-test'.format(test[0])
+  test_deps = [ libsoup_dep ] + test[2]
   test_target = executable(test_name,
     sources : [ test_name + '.c', test_resources ],
     link_with : test_utils,
-    dependencies : libsoup_dep)
+    dependencies : test_deps)
   # Increase the timeout as on some architectures the tests could be slower
   # than the default 30 seconds.
   test(test_name, test_target, env : env, is_parallel : test[1], timeout : 60)
