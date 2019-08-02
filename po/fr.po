@@ -1,5 +1,5 @@
 # French translation for libsoup.
-# Copyright (C) 2012-2017 libsoup's COPYRIGHT HOLDER
+# Copyright (C) 2012-2019 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 #
 # Pierre Henry <pierrehenry73@yahoo.fr>, 2012.
@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2018-09-24 14:21+0000\n"
-"PO-Revision-Date: 2018-11-15 21:15+0100\n"
+"POT-Creation-Date: 2019-07-31 12:10+0000\n"
+"PO-Revision-Date: 2019-08-02 09:33+0200\n"
 "Last-Translator: Charles Monzat <charles.monzat@numericable.fr>\n"
 "Language-Team: français <gnomefr@traduc.org>\n"
 "Language: fr\n"
@@ -23,7 +23,7 @@ msgstr ""
 "X-Generator: Gtranslator 3.30.0\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
 msgid "Connection terminated unexpectedly"
 msgstr "La connexion a été interrompue de manière inattendue"
 
@@ -48,27 +48,27 @@ msgstr "Impossible de mettre la ressource totalement en cache"
 msgid "Output buffer is too small"
 msgstr "La mémoire tampon de sortie est trop petite"
 
-#: libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:39
 msgid "Could not parse HTTP response"
 msgstr "Impossible d’analyser la réponse HTTP"
 
-#: libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codage de réponse HTTP inconnu"
 
-#: libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:261
 msgid "Header too big"
 msgstr "En-tête trop grand"
 
-#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
 msgstr "L’opération aurait bloqué"
 
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
 msgid "Operation was cancelled"
 msgstr "L’opération a été annulée"
 
-#: libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
 msgstr "Impossible d’analyser la requête HTTP"
 
@@ -82,31 +82,31 @@ msgstr "Aucun URI fourni"
 msgid "Invalid “%s” URI: %s"
 msgstr "URI « %s » non valide : %s"
 
-#: libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1797
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impossible de créer un serveur TLS sans un certificat TLS"
 
-#: libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1814
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impossible d’écouter l’adresse %s sur le port %d : "
 
-#: libsoup/soup-session.c:4534
+#: libsoup/soup-session.c:4535
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Impossible d’analyser l’URI « %s »"
 
-#: libsoup/soup-session.c:4571
+#: libsoup/soup-session.c:4572
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Le schéma d’URI « %s » n’est pas pris en charge"
 
-#: libsoup/soup-session.c:4593
+#: libsoup/soup-session.c:4594
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ce n’est pas un URI HTTP"
 
-#: libsoup/soup-session.c:4791
+#: libsoup/soup-session.c:4805
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Le serveur n’a pas accepté la négociation WebSocket."
 
@@ -122,47 +122,61 @@ msgstr "Impossible d’importer le connecteur réseau existant : "
 msgid "Can’t import unconnected socket"
 msgstr "Impossible d’importer le connecteur réseau non connecté"
 
-#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "Négociation WebSocket attendue"
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "Le serveur a demandé une extension non prise en charge"
 
-#: libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "Version de WebSocket non prise en charge"
-
-#: libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "Clé WebSocket non valable"
-
-#: libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "En-tête WebSocket « %s » incorrect"
 
-#: libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "Sous-protocole de WebSocket non pris en charge"
-
-#: libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "Le serveur a rejeté la négociation WebSocket"
-
-#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "Le serveur a ignoré la négociation WebSocket"
-
-#: libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "Le serveur a demandé un protocole non pris en charge"
-
-#: libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "Le serveur a demandé une extension non prise en charge"
-
-#: libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Le serveur a renvoyé une clé « %s » incorrecte"
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Paramètre à double dans l’en-tête d’extension WebSocket « %s »"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Le serveur a renvoyé un paramètre à double dans l’en-tête d’extension "
+"WebSocket « %s »"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "Négociation WebSocket attendue"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "Version de WebSocket non prise en charge"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "Clé WebSocket non valable"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Sous-protocole de WebSocket non pris en charge"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "Le serveur a rejeté la négociation WebSocket"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "Le serveur a ignoré la négociation WebSocket"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "Le serveur a demandé un protocole non pris en charge"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
