@@ -79,6 +79,9 @@ void		  soup_hsts_enforcer_set_policy			   (SoupHSTSEnforcer *hsts_enforcer,
 SOUP_AVAILABLE_IN_2_68
 GList            *soup_hsts_enforcer_get_domains                   (SoupHSTSEnforcer *hsts_enforcer);
 
+SOUP_AVAILABLE_IN_2_68
+GList            *soup_hsts_enforcer_all_policies                  (SoupHSTSEnforcer *hsts_enforcer);
+
 G_END_DECLS
 
 #endif /* __SOUP_HSTS_ENFORCER_H__ */
