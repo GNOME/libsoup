@@ -461,6 +461,32 @@ do_hsts_idna_addresses_test (void)
 	g_object_unref (enforcer);
 }
 
+static void
+do_hsts_get_domains_test (void)
+{
+	SoupHSTSEnforcer *enforcer = soup_hsts_enforcer_new ();
+	SoupHSTSPolicy *policy = soup_hsts_policy_new ("gnome.org", 3600, FALSE);
+	GList* domains;
+
+	g_assert_nonnull (policy);
+	g_assert_null (soup_hsts_enforcer_get_domains (enforcer));
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	domains = soup_hsts_enforcer_get_domains (enforcer);
+	g_assert_nonnull (domains);
+	g_assert_cmpint (g_list_length (domains), ==, 1);
+	g_assert_cmpstr ((char*)domains->data, ==, "gnome.org");
+	g_list_free_full (domains, g_free);
+
+	policy = soup_hsts_policy_new ("gnome.org", SOUP_HSTS_POLICY_MAX_AGE_PAST, FALSE);
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	g_assert_null (soup_hsts_enforcer_get_domains (enforcer));
+	g_object_unref(enforcer);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -506,6 +532,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/utf8-address", do_hsts_utf8_address_test);
 	g_test_add_func ("/hsts/session-policy", do_hsts_session_policy_test);
 	g_test_add_func ("/hsts/idna-addresses", do_hsts_idna_addresses_test);
+	g_test_add_func ("/hsts/get-domains", do_hsts_get_domains_test);
 
 	ret = g_test_run ();
 
