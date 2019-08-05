@@ -503,6 +503,50 @@ do_hsts_get_domains_test (void)
 	g_object_unref (enforcer);
 }
 
+static void
+do_hsts_get_policies_test (void)
+{
+	SoupHSTSEnforcer *enforcer = soup_hsts_enforcer_new ();
+	SoupHSTSPolicy *policy;
+	GList* policies;
+
+	g_assert_null (soup_hsts_enforcer_get_policies (enforcer, TRUE));
+	g_assert_null (soup_hsts_enforcer_get_policies (enforcer, FALSE));
+
+	policy = soup_hsts_policy_new ("gnome.org", 3600, FALSE);
+	g_assert_nonnull (policy);
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	policy = soup_hsts_policy_new_session_policy ("freedesktop.org", FALSE);
+	g_assert_nonnull (policy);
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	policies = soup_hsts_enforcer_get_policies (enforcer, TRUE);
+	g_assert_nonnull (policies);
+	g_assert_cmpint (g_list_length (policies), ==, 2);
+	g_list_free_full (policies, (GDestroyNotify)soup_hsts_policy_free);
+
+	policies = soup_hsts_enforcer_get_policies (enforcer, FALSE);
+	g_assert_nonnull (policies);
+	g_assert_cmpint (g_list_length (policies), ==, 1);
+	policy = (SoupHSTSPolicy*)policies->data;
+	g_assert_cmpstr (policy->domain, ==, "gnome.org");
+	g_list_free_full (policies, (GDestroyNotify)soup_hsts_policy_free);
+
+	policy = soup_hsts_policy_new ("gnome.org", SOUP_HSTS_POLICY_MAX_AGE_PAST, FALSE);
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	policies = soup_hsts_enforcer_get_policies (enforcer, TRUE);
+	g_assert_cmpint (g_list_length (policies), ==, 1);
+	policy = (SoupHSTSPolicy*)policies->data;
+	g_assert_cmpstr (policy->domain, ==, "freedesktop.org");
+	g_list_free_full (policies, (GDestroyNotify)soup_hsts_policy_free);
+	g_object_unref(enforcer);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -549,6 +593,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/session-policy", do_hsts_session_policy_test);
 	g_test_add_func ("/hsts/idna-addresses", do_hsts_idna_addresses_test);
 	g_test_add_func ("/hsts/get-domains", do_hsts_get_domains_test);
+	g_test_add_func ("/hsts/get-policies", do_hsts_get_policies_test);
 
 	ret = g_test_run ();
 
