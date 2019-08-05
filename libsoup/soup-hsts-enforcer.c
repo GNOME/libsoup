@@ -686,3 +686,41 @@ soup_hsts_enforcer_get_domains (SoupHSTSEnforcer *hsts_enforcer,
 
 	return domains;
 }
+
+static void
+add_policy_to_list (gpointer key,
+		    gpointer value,
+		    gpointer data)
+{
+	GList **policies = (GList **) data;
+	*policies = g_list_prepend (*policies, soup_hsts_policy_copy ((SoupHSTSPolicy*)value));
+}
+
+/**
+ * soup_hsts_enforcer_all_policies:
+ * @hsts_enforcer: a #SoupHSTSEnforcer
+ * @session_policies: whether to include session policies
+ *
+ * Gets a list with the policies in @enforcer.
+ *
+ * Returns: (element-type SoupHSTSPolicy) (transfer full): a newly
+ * allocated list of policies. Use g_list_free_full() and
+ * soup_hsts_policy_free() to free the list.
+ *
+ * Since: 2.68
+ *
+ **/
+GList*
+soup_hsts_enforcer_get_policies (SoupHSTSEnforcer *hsts_enforcer,
+				 gboolean          session_policies)
+{
+	GList *policies = NULL;
+
+	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), NULL);
+
+	g_hash_table_foreach (hsts_enforcer->priv->host_policies, add_policy_to_list, &policies);
+	if (session_policies)
+		g_hash_table_foreach (hsts_enforcer->priv->session_policies, add_policy_to_list, &policies);
+
+	return policies;
+}

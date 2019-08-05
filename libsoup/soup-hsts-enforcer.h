@@ -80,6 +80,10 @@ SOUP_AVAILABLE_IN_2_68
 GList            *soup_hsts_enforcer_get_domains                   (SoupHSTSEnforcer *hsts_enforcer,
 								    gboolean          session_policies);
 
+SOUP_AVAILABLE_IN_2_68
+GList            *soup_hsts_enforcer_get_policies                  (SoupHSTSEnforcer *hsts_enforcer,
+								    gboolean          session_policies);
+
 G_END_DECLS
 
 #endif /* __SOUP_HSTS_ENFORCER_H__ */
