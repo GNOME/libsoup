@@ -1,3 +1,10 @@
+Changes in libsoup from 2.67.90 to 2.67.91:
+
+        * HSTS: New API to retrieve information about existing HSTS policies
+          [Claudio Saavedra]
+
+        * Updated translations: French, Romanian, Spanish
+
 Changes in libsoup from 2.67.3 to 2.67.90a:
 
         * WebSockets: add support for WebSocket extensions via new
