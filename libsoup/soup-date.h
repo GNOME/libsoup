@@ -58,9 +58,17 @@ char     *soup_date_to_string       (SoupDate       *date,
 				     SoupDateFormat  format);
 SOUP_AVAILABLE_IN_2_24
 time_t    soup_date_to_time_t       (SoupDate       *date);
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 SOUP_AVAILABLE_IN_2_24
 void      soup_date_to_timeval      (SoupDate       *date,
 				     GTimeVal       *time);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 SOUP_AVAILABLE_IN_2_24
 gboolean  soup_date_is_past         (SoupDate       *date);
