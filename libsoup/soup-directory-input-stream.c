@@ -42,7 +42,9 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 	GString *string;
 	const char *file_name;
 	char *escaped, *path, *xml_string, *size, *time;
+#if !GLIB_CHECK_VERSION (2, 61, 2)
 	GTimeVal modified;
+#endif
 	GDateTime *modification_time;
 
 	if (!g_file_info_get_name (info))
@@ -61,8 +63,12 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 	escaped = g_uri_escape_string (file_name, NULL, FALSE);
 	path = g_strconcat (stream->uri, G_DIR_SEPARATOR_S, escaped, NULL);
 	size = g_format_size (g_file_info_get_size (info));
+#if GLIB_CHECK_VERSION (2, 61, 2)
+	modification_time = g_file_info_get_modification_date_time (info);
+#else
 	g_file_info_get_modification_time (info, &modified);
 	modification_time = g_date_time_new_from_timeval_local (&modified);
+#endif
 	time = g_date_time_format (modification_time, "%X %x");
 	g_date_time_unref (modification_time);
 
