@@ -682,9 +682,10 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
  *
  * Converts @date to a <type>time_t</type>.
  *
- * If @date is not representable as a <type>time_t</type>, it will be
- * clamped into range. (In particular, some HTTP cookies have
- * expiration dates after "Y2.038k" (2038-01-19T03:14:07Z).)
+ * During the conversion, this method assumes @date to be in UTC.
+ * Please note that <type>time_t</type> is not Y2038-safe and this
+ * method doesn't aim to be either. Expect it to be deprecated soon
+ * and do not use it in new code.
  *
  * Return value: @date as a <type>time_t</type>
  **/
@@ -692,29 +693,22 @@ time_t
 soup_date_to_time_t (SoupDate *date)
 {
 	time_t tt;
-	GTimeVal val;
+	struct tm time;
 
-	g_return_val_if_fail (date != NULL, 0);
+	time.tm_sec = date->second;
+	time.tm_min = date->minute;
+	time.tm_hour = date->hour;
+	time.tm_mday = date->day;
+	/* tm_mon is 0 to 11 whereas SoupDate.month is 1 to 12. */
+	time.tm_mon = date->month - 1;
+	/* tm_year is years since 1900. */
+	time.tm_year = date->year - 1900;
+	time.tm_isdst = 0;
 
-	/* FIXME: offset, etc */
+	/* mktime sets the timezone to the local one, use timegm()
+	   instead. */
+	tt = timegm (&time);
 
-	if (date->year < 1970)
-		return 0;
-
-	/* If the year is later than 2038, we're guaranteed to
-	 * overflow a 32-bit time_t. (If it's exactly 2038, we'll
-	 * *probably* overflow, but only by a little, and it's easiest
-	 * to test that at the end by seeing if the result has turned
-	 * negative.)
-	 */
-	if (sizeof (time_t) == 4 && date->year > 2038)
-		return (time_t)0x7fffffff;
-
-	soup_date_to_timeval (date, &val);
-	tt = val.tv_sec;
-
-	if (sizeof (time_t) == 4 && tt < 0)
-		return (time_t)0x7fffffff;
 	return tt;
 }
 
