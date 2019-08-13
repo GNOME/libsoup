@@ -62,17 +62,21 @@ static char *
 generate_boundary (void)
 {
 	static int counter;
+	GDateTime *datetime;
+
 	struct {
-		GTimeVal timeval;
+		guint hash;
 		int counter;
 	} data;
 
 	/* avoid valgrind warning */
-	if (sizeof (data) != sizeof (data.timeval) + sizeof (data.counter))
+	if (sizeof (data) != sizeof (data.hash) + sizeof (data.counter))
 		memset (&data, 0, sizeof (data));
 
-	g_get_current_time (&data.timeval);
+	datetime = g_date_time_new_now_local ();
+	data.hash = g_date_time_hash (datetime);
 	data.counter = counter++;
+	g_date_time_unref (datetime);
 
 	/* The maximum boundary string length is 69 characters, and a
 	 * stringified SHA256 checksum is 64 bytes long.
