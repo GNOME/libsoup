@@ -697,7 +697,7 @@ add_policy_to_list (gpointer key,
 }
 
 /**
- * soup_hsts_enforcer_all_policies:
+ * soup_hsts_enforcer_get_policies:
  * @hsts_enforcer: a #SoupHSTSEnforcer
  * @session_policies: whether to include session policies
  *
