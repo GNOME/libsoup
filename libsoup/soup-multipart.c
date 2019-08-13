@@ -61,18 +61,21 @@ soup_multipart_new_internal (char *mime_type, char *boundary)
 static char *
 generate_boundary (void)
 {
-	static int counter;
+	GDateTime *datetime;
+
 	struct {
-		GTimeVal timeval;
-		int counter;
+		guint hash;
+		guint32 salt;
 	} data;
 
 	/* avoid valgrind warning */
-	if (sizeof (data) != sizeof (data.timeval) + sizeof (data.counter))
+	if (sizeof (data) != sizeof (data.hash) + sizeof (data.salt))
 		memset (&data, 0, sizeof (data));
 
-	g_get_current_time (&data.timeval);
-	data.counter = counter++;
+	datetime = g_date_time_new_now_local ();
+	data.hash = g_date_time_hash (datetime);
+	data.salt = g_random_int ();
+	g_date_time_unref (datetime);
 
 	/* The maximum boundary string length is 69 characters, and a
 	 * stringified SHA256 checksum is 64 bytes long.
