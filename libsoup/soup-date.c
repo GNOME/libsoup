@@ -680,7 +680,8 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
  * soup_date_to_time_t:
  * @date: a #SoupDate
  *
- * Converts @date to a <type>time_t</type>.
+ * Converts @date to a <type>time_t</type>, assumming it to be in
+ * UTC.
  *
  * If @date is not representable as a <type>time_t</type>, it will be
  * clamped into range. (In particular, some HTTP cookies have
@@ -691,12 +692,10 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
 time_t
 soup_date_to_time_t (SoupDate *date)
 {
-	time_t tt;
-	GTimeVal val;
+	GDateTime *datetime;
+	gint64 seconds;
 
 	g_return_val_if_fail (date != NULL, 0);
-
-	/* FIXME: offset, etc */
 
 	if (date->year < 1970)
 		return 0;
@@ -704,18 +703,23 @@ soup_date_to_time_t (SoupDate *date)
 	/* If the year is later than 2038, we're guaranteed to
 	 * overflow a 32-bit time_t. (If it's exactly 2038, we'll
 	 * *probably* overflow, but only by a little, and it's easiest
-	 * to test that at the end by seeing if the result has turned
-	 * negative.)
+	 * to just clamp down the value if it's above G_MAXINT32.
 	 */
 	if (sizeof (time_t) == 4 && date->year > 2038)
-		return (time_t)0x7fffffff;
+		return (time_t)G_MAXINT32;
 
-	soup_date_to_timeval (date, &val);
-	tt = val.tv_sec;
+	datetime = g_date_time_new_utc (date->year,
+					date->month,
+					date->day,
+					date->hour,
+					date->minute,
+					date->second);
 
-	if (sizeof (time_t) == 4 && tt < 0)
-		return (time_t)0x7fffffff;
-	return tt;
+	seconds = g_date_time_to_unix (datetime);
+
+	g_date_time_unref (datetime);
+
+	return (time_t) (sizeof (time_t) == 4 ? MIN(seconds, G_MAXINT32) : seconds);
 }
 
 /**

@@ -171,6 +171,8 @@ check_ok_time_t (void)
 	g_assert_cmpint (date->minute, ==, 9);
 	g_assert_cmpint (date->second, ==, 7);
 
+	g_assert_cmpuint (TIME_T, ==, soup_date_to_time_t (date));
+
 	soup_date_free (date);
 }
 
