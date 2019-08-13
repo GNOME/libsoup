@@ -692,7 +692,8 @@ time_t
 soup_date_to_time_t (SoupDate *date)
 {
 	time_t tt;
-	GTimeVal val;
+	GDateTime *datetime;
+	GTimeZone *timezone;
 
 	g_return_val_if_fail (date != NULL, 0);
 
@@ -710,8 +711,19 @@ soup_date_to_time_t (SoupDate *date)
 	if (sizeof (time_t) == 4 && date->year > 2038)
 		return (time_t)0x7fffffff;
 
-	soup_date_to_timeval (date, &val);
-	tt = val.tv_sec;
+	timezone = g_time_zone_new_offset (date->utc ? 0 : date->offset * 60);
+	datetime = g_date_time_new (timezone,
+				    date->year,
+				    date->month,
+				    date->day,
+				    date->hour,
+				    date->minute,
+				    date->second);
+
+	tt = g_date_time_to_unix (datetime);
+
+	g_date_time_unref (datetime);
+	g_time_zone_unref (timezone);
 
 	if (sizeof (time_t) == 4 && tt < 0)
 		return (time_t)0x7fffffff;
