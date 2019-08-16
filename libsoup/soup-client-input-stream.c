@@ -15,6 +15,9 @@
 
 struct _SoupClientInputStreamPrivate {
 	SoupMessage  *msg;
+
+	goffset offset;
+	goffset request_offset;
 };
 
 enum {
@@ -31,12 +34,17 @@ enum {
 };
 
 static GPollableInputStreamInterface *soup_client_input_stream_parent_pollable_interface;
+static GSeekableIface *soup_client_input_stream_seekable_interface;
+
 static void soup_client_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
+static void soup_client_input_stream_seekable_init (GSeekableIface *seekable_interface, gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SoupClientInputStream, soup_client_input_stream, SOUP_TYPE_FILTER_INPUT_STREAM,
                          G_ADD_PRIVATE (SoupClientInputStream)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_client_input_stream_pollable_init))
+						soup_client_input_stream_pollable_init)
+			 G_IMPLEMENT_INTERFACE (G_TYPE_SEEKABLE,
+						soup_client_input_stream_seekable_init))
 
 static void
 soup_client_input_stream_init (SoupClientInputStream *stream)
@@ -93,10 +101,14 @@ soup_client_input_stream_read_fn (GInputStream  *stream,
 				  GCancellable  *cancellable,
 				  GError       **error)
 {
+	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
 	gssize nread;
 
 	nread = G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->
 		read_fn (stream, buffer, count, cancellable, error);
+
+	if (nread >= 0)
+		cistream->priv->offset += nread;
 
 	if (nread == 0)
 		g_signal_emit (stream, signals[SIGNAL_EOF], 0);
@@ -110,10 +122,14 @@ soup_client_input_stream_read_nonblocking (GPollableInputStream  *stream,
 					   gsize                  count,
 					   GError               **error)
 {
+	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
 	gssize nread;
 
 	nread = soup_client_input_stream_parent_pollable_interface->
 		read_nonblocking (stream, buffer, count, error);
+
+	if (nread >= 0)
+		cistream->priv->offset += nread;
 
 	if (nread == 0)
 		g_signal_emit (stream, signals[SIGNAL_EOF], 0);
@@ -249,6 +265,102 @@ soup_client_input_stream_pollable_init (GPollableInputStreamInterface *pollable_
 		g_type_interface_peek_parent (pollable_interface);
 
 	pollable_interface->read_nonblocking = soup_client_input_stream_read_nonblocking;
+}
+
+static goffset
+soup_client_input_stream_tell (GSeekable *seekable)
+{
+	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (seekable);
+
+	return cistream->priv->offset;
+}
+
+static gboolean
+soup_client_input_stream_can_seek (GSeekable *seekable)
+{
+	return TRUE;
+}
+
+static gboolean
+soup_client_input_stream_seek (GSeekable *seekable,
+			       goffset offset,
+			       GSeekType type,
+			       GCancellable *cancellable,
+			       GError **error)
+{
+	GInputStream *stream = G_INPUT_STREAM (seekable);
+	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (seekable);
+
+	if (type == G_SEEK_END && cistream->priv->msg) {
+		goffset content_length =
+			soup_message_headers_get_content_length (cistream->priv->msg->response_headers);
+
+		if (content_length >= 0) {
+			type = G_SEEK_SET;
+			offset = cistream->priv->request_offset + content_length + offset;
+		}
+	}
+
+	if (type == G_SEEK_END) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+				     "G_SEEK_END not supported");
+		return FALSE;
+	}
+
+	if (!g_input_stream_set_pending (stream, error))
+		return FALSE;
+
+	switch (type) {
+		case G_SEEK_CUR:
+			offset += cistream->priv->offset;
+			/* fall through */
+
+		case G_SEEK_SET:
+			cistream->priv->request_offset = offset;
+			cistream->priv->offset = offset;
+			break;
+
+		case G_SEEK_END:
+			g_return_val_if_reached (FALSE);
+			break;
+
+		default:
+			g_return_val_if_reached (FALSE);
+	}
+
+	g_input_stream_clear_pending (stream);
+	return TRUE;
+}
+
+static gboolean
+soup_client_input_stream_can_truncate (GSeekable *seekable)
+{
+	return FALSE;
+}
+
+static gboolean
+soup_client_input_stream_truncate_fn (GSeekable *seekable,
+				      goffset offset,
+				      GCancellable *cancellable,
+				      GError **error)
+{
+	g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+			     "Truncate not allowed on input stream");
+
+	return FALSE;
+}
+
+static void
+soup_client_input_stream_seekable_init (GSeekableIface *seekable_interface,
+					gpointer interface_data)
+{
+	soup_client_input_stream_seekable_interface = seekable_interface;
+
+	seekable_interface->tell = soup_client_input_stream_tell;
+	seekable_interface->can_seek = soup_client_input_stream_can_seek;
+	seekable_interface->seek = soup_client_input_stream_seek;
+	seekable_interface->can_truncate = soup_client_input_stream_can_truncate;
+	seekable_interface->truncate_fn = soup_client_input_stream_truncate_fn;
 }
 
 GInputStream *
