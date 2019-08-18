@@ -1,14 +1,14 @@
 # Lithuanian translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Aurimas Černius <aurisc4@gmail.com>, 2012, 2013, 2014, 2015, 2018.
+# Aurimas Černius <aurisc4@gmail.com>, 2012-2019.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2018-07-01 06:42+0000\n"
-"PO-Revision-Date: 2018-08-05 23:36+0300\n"
+"POT-Creation-Date: 2019-07-31 12:10+0000\n"
+"PO-Revision-Date: 2019-08-18 22:19+0300\n"
 "Last-Translator: Aurimas Černius <aurisc4@gmail.com>\n"
 "Language-Team: Lietuvių <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
@@ -16,11 +16,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
-"%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Gtranslator 2.91.7\n"
+"%100<10 || n%100>=20) ? 1 : 2)\n"
+"X-Generator: Gtranslator 3.32.1\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
 msgid "Connection terminated unexpectedly"
 msgstr "Ryšys netikėtai nutrūko"
 
@@ -45,27 +45,27 @@ msgstr "Nepavyko visiškai patalpinti resurso į podėlį"
 msgid "Output buffer is too small"
 msgstr "Išvesties buferis yra per mažas"
 
-#: libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:39
 msgid "Could not parse HTTP response"
 msgstr "Nepavyko perskaityti URI „%s“Nepavyko perskaityti HTTP atsako"
 
-#: libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neatpažinta HTTP atsako koduotė"
 
-#: libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:261
 msgid "Header too big"
 msgstr "Antraštė yra per didelė"
 
-#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
 msgstr "Veiksmas blokuosis"
 
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
 msgid "Operation was cancelled"
 msgstr "Veiksmas buvo nutrauktas"
 
-#: libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
 msgstr "Nepavyko perskaityti HTTP užklausos"
 
@@ -79,31 +79,31 @@ msgstr "Nepateiktas URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "Netinkamas „%s“ URI: %s"
 
-#: libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1797
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Negalima sukurti TLS serverio be TLS liudijimo"
 
-#: libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1814
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepavyksta klausytis adreso %s, prievadu %d: "
 
-#: libsoup/soup-session.c:4534
+#: libsoup/soup-session.c:4535
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nepavyko išanalizuoti URI „%s“"
 
-#: libsoup/soup-session.c:4571
+#: libsoup/soup-session.c:4572
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nepalaikoma URI schema „%s“"
 
-#: libsoup/soup-session.c:4593
+#: libsoup/soup-session.c:4594
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ne HTTP URI"
 
-#: libsoup/soup-session.c:4791
+#: libsoup/soup-session.c:4805
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveris nepriėmė WebSocket rankos paspaudimo."
 
@@ -119,47 +119,60 @@ msgstr "Nepavyko importuoti esamo lizdo: "
 msgid "Can’t import unconnected socket"
 msgstr "Negalima importuoti neprijungto lizdo"
 
-#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "Tikėtasi WebSocket rankos paspaudimo"
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "Serveris paprašė nepalaikomo plėtinio"
 
-#: libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "Nepalaikoma WebSocket versija"
-
-#: libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "Netinkamas WebSocket raktas"
-
-#: libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Neteisinga WebSocket „%s“ antraštė"
 
-#: libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "Nepalaikomas WebSocket paprotokolis"
-
-#: libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "Serveris atmetė WebSocket rankos paspaudimą"
-
-#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "Serveris nepaisė WebSocket rankos paspaudimo"
-
-#: libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "Serveris paprašė nepalaikomo protokolo"
-
-#: libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "Serveris paprašė nepalaikomo plėtinio"
-
-#: libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Serveris grąžino neteisingą „%s“ raktą"
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Dubliuotas parametras „%s“ WebSocket plėtinio antraštėje"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Serveris grąžino dubliuotą parametrą „%s“ WebSocket plėtinio antraštėje"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "Tikėtasi WebSocket rankos paspaudimo"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "Nepalaikoma WebSocket versija"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "Netinkamas WebSocket raktas"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Nepalaikomas WebSocket paprotokolis"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "Serveris atmetė WebSocket rankos paspaudimą"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "Serveris nepaisė WebSocket rankos paspaudimo"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "Serveris paprašė nepalaikomo protokolo"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
