@@ -2329,13 +2329,13 @@ soup_session_real_kick_queue (SoupSession *session)
 					GWeakRef *wref = g_slice_new (GWeakRef);
 					GSource *source;
 
+					item->async_pending = TRUE;
 					g_weak_ref_init (wref, session);
 					source = soup_add_completion_reffed (context, idle_run_queue, wref, idle_run_queue_dnotify);
 					g_source_unref (source);
 				}
 				g_hash_table_add (async_pending, context);
 			}
-			item->async_pending = TRUE;
 		} else
 			have_sync_items = TRUE;
 	}
