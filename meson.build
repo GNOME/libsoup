@@ -31,6 +31,11 @@ default_source_flag = [
 
 add_project_arguments(default_source_flag, language: 'c')
 
+if host_system == 'sunos'
+      add_project_arguments('-D__EXTENSIONS__', language: 'c')
+      add_project_link_arguments('-lsocket', language: 'c')
+endif
+
 common_flags = [
   '-DHAVE_CONFIG_H',
 ]
