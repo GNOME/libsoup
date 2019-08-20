@@ -1,3 +1,22 @@
+Changes in libsoup from 2.67.91 to 2.67.92:
+
+        * Silence GTimeVal deprecation warnings. [Michael Catanzaro]
+
+        * API documentation and annotation fixes [Дилян Палаузов, Claudio Saavedra]
+
+        * Plug a couple of NTLM authentication memory leaks [#156, Claudio Saavedra]
+
+        * Fix build in SmartOS/SunOS [#157, Juraj Lutter]
+
+        * Meson: Use feature options [Xavier Claessens]
+
+        * Meson: Do not fallback to system krb5-config for cross-compilation
+          [Xavier Claessens]
+
+        * NTLM: Fix build with NTLM enabled [Claudio Saavedra]
+
+        * Updated translations: Basque, Czech, Indonesian, Lithuanian, Swedish
+
 Changes in libsoup from 2.67.90 to 2.67.91:
 
         * HSTS: New API to retrieve information about existing HSTS policies
