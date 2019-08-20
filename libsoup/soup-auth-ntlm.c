@@ -847,15 +847,17 @@ calc_ntlmv2_response (const char *user, const char *domain,
 	guchar *nonce_blob, *blob, *p_blob;
 	unsigned char nonce_blob_hash[HMAC_MD5_LENGTH];
 	unsigned char nonce_client_nonce[16], nonce_client_nonce_hash[HMAC_MD5_LENGTH];
-	gchar *user_domain, *user_domain_conv;
+	gchar *user_uppercase, *user_domain, *user_domain_conv;
 	gsize user_domain_conv_sz;
 	size_t blob_sz;
 	int i;
 
 	/* create HMAC-MD5 hash of Unicode uppercase username and Unicode domain */
-	user_domain = g_strconcat ((const gchar *) g_utf8_strup ((const gchar *) user, (gsize) strlen(user)), (gchar *) domain, NULL);
+	user_uppercase = g_utf8_strup (user, strlen (user));
+	user_domain = g_strconcat (user_uppercase, domain, NULL);
 	user_domain_conv = g_convert (user_domain, -1, "UCS-2LE", "UTF-8", NULL, &user_domain_conv_sz, NULL);
 	calc_hmac_md5 (ntv2_hash, nt_hash, nt_hash_sz, (const guchar *)user_domain_conv, user_domain_conv_sz);
+	g_free (user_uppercase);
 	g_free (user_domain);
 	g_free (user_domain_conv);
 
