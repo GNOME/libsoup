@@ -291,6 +291,7 @@ soup_auth_ntlm_free_connection_state (SoupConnectionAuth *auth,
 
 	g_free (conn->nonce);
 	g_free (conn->response_header);
+	g_free (conn->target_info);
 	g_slice_free (SoupNTLMConnectionState, conn);
 }
 
