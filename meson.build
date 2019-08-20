@@ -315,7 +315,7 @@ if host_machine.system() != 'windows'
 
   if ntlm_auth.found()
     add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
-    add_project_arguments('-DNTLM_AUTH=' + ntlm_auth.path(), language : 'c')
+    add_project_arguments('-DNTLM_AUTH="' + ntlm_auth.path() + '"', language : 'c')
   endif
 endif
 
