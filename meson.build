@@ -113,11 +113,9 @@ endif
 
 cdata = configuration_data()
 
-if get_option('brotli')
-  brotlidec_dep = dependency('libbrotlidec')
+brotlidec_dep = dependency('libbrotlidec', required : get_option('brotli'))
+if brotlidec_dep.found()
   cdata.set('WITH_BROTLI', true)
-else
-  brotlidec_dep = dependency('', required: false)
 endif
 
 platform_deps = []
@@ -272,39 +270,40 @@ cdata.set('HAVE_CURL', find_program('curl', required : false).found())
 ##################
 # GSSAPI support #
 ##################
-enable_gssapi = get_option('gssapi')
-if enable_gssapi
-  if cc.get_id() == 'msvc'
-    if host_machine.cpu_family() == 'x86'
-      gssapi_lib_type = '32'
-    else
-      gssapi_lib_type = '64'
-    endif
-    if cc.has_header('gssapi/gssapi.h', required: false)
-      gssapi_lib = cc.find_library('gssapi' + gssapi_lib_type, required: false)
-      assert(gssapi_lib.found(), 'GSSAPI support requested, but the MIT Kerberos 5 headers and libraries are not found')
-      add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
-    endif
+gssapi_opt = get_option('gssapi')
+enable_gssapi = false
+if cc.get_id() == 'msvc'
+  if host_machine.cpu_family() == 'x86'
+    gssapi_lib_type = '32'
   else
-    krb5_config_option = get_option('krb5_config')
-
-    krb5_config_path = krb5_config_option != '' ? krb5_config_option : 'krb5-config'
-    krb5_config = find_program(krb5_config_path, required : false)
-
-    assert(krb5_config.found(), 'GSSAPI support requested, but krb5-config not found. Please specify its path with -Dkrb5-config=PATH')
-
-    krb5_config_output = run_command (krb5_config, '--libs', 'gssapi')
-    assert(krb5_config_output.returncode() == 0, 'Failed to obtain cflags for GSSAPI from krb5-config')
-    add_project_link_arguments(krb5_config_output.stdout().split(), language : 'c')
-
-    krb5_config_output = run_command (krb5_config, '--cflags', 'gssapi')
-    assert(krb5_config_output.returncode() == 0, 'Failed to obtain cflags for GSSAPI from krb5-config')
-    add_project_arguments(krb5_config_output.stdout().split(), language : 'c')
+    gssapi_lib_type = '64'
   endif
-
-  if enable_gssapi
-    add_project_arguments('-DLIBSOUP_HAVE_GSSAPI=1', language : 'c')
+  gssapi_lib = cc.find_library('gssapi' + gssapi_lib_type,
+    has_headers: 'gssapi/gssapi.h',
+    required: gssapi_opt)
+  if gssapi_lib.found()
+      enable_gssapi = true
+      add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
   endif
+else
+  krb5_config_path = get_option('krb5_config')
+  if not meson.is_cross_build() and krb5_config_path == ''
+    krb5_config_path = 'krb5-config'
+  endif
+  krb5_config = find_program(krb5_config_path, required : gssapi_opt)
+  if krb5_config.found()
+    libs_output = run_command (krb5_config, '--libs', 'gssapi', check: gssapi_opt.enabled())
+    cflags_output = run_command (krb5_config, '--cflags', 'gssapi', check: gssapi_opt.enabled())
+    if libs_output.returncode() == 0 and cflags_output.returncode() == 0
+      enable_gssapi = true
+      add_project_link_arguments(libs_output.stdout().split(), language : 'c')
+      add_project_arguments(cflags_output.stdout().split(), language : 'c')
+    endif
+  endif
+endif
+
+if enable_gssapi
+  add_project_arguments('-DLIBSOUP_HAVE_GSSAPI=1', language : 'c')
 endif
 
 ################
@@ -312,14 +311,11 @@ endif
 ################
 # NTLM not supported on Windows
 if host_machine.system() != 'windows'
-  enable_ntlm = get_option('ntlm')
-  if enable_ntlm
-    ntlm_auth = find_program(get_option('ntlm_auth'), required: false)
+  ntlm_auth = find_program(get_option('ntlm_auth'), required: get_option('ntlm'))
 
-    if ntlm_auth.found()
-      add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
-      add_project_arguments('-DNTLM_AUTH=' + ntlm_auth.path(), language : 'c')
-    endif
+  if ntlm_auth.found()
+    add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
+    add_project_arguments('-DNTLM_AUTH=' + ntlm_auth.path(), language : 'c')
   endif
 endif
 
@@ -331,18 +327,19 @@ enable_gnome = get_option('gnome') and host_machine.system() != 'windows'
 #########################
 # GObject introspection #
 #########################
-# FIXME: once we start to require meson 0.49.0+ and gnome-introspection 1.58.1+
-# the we can enable the introspection even for the static build. See
-# https://github.com/mesonbuild/meson/pull/4478.
-enable_introspection = get_option('introspection') and find_program('g-ir-scanner', required: false).found() and not meson.is_cross_build() and not is_static_library
+gir = find_program('g-ir-scanner', required: get_option('introspection'))
+enable_introspection = gir.found() and not meson.is_cross_build()
 
 ############
 # Vala API #
 ############
-enable_vapi = get_option('vapi')
-if enable_vapi
-  assert(enable_introspection, 'vapi support was requested, but introspection support is mandatory.')
-  assert(add_languages('vala', required: false), 'vapi support was requested, but vala not found.')
+vapi_opt = get_option('vapi')
+enable_vapi = add_languages('vala', required: vapi_opt)
+if enable_vapi and not enable_introspection
+  enable_vapi = false
+  if vapi_opt.enabled()
+    error('vapi support was requested, but introspection support is mandatory.')
+  endif
 endif
 
 configinc = include_directories('.')
