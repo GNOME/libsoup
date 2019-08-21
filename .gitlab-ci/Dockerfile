@@ -14,6 +14,7 @@ RUN dnf update -y \
                       redhat-rpm-config \
                       meson \
                       brotli-devel \
+                      samba-winbind-clients \
     && dnf clean all
 
 ARG HOST_USER_ID=5555
