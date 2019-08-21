@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2018-09-24 14:21+0000\n"
-"PO-Revision-Date: 2018-09-29 11:58+0200\n"
+"POT-Creation-Date: 2019-07-31 12:10+0000\n"
+"PO-Revision-Date: 2019-08-21 23:26+0200\n"
 "Last-Translator: Марко М. Костић <marko.m.kostic@gmail.com>\n"
 "Language-Team: Serbian <(nothing)>\n"
 "Language: sr\n"
@@ -17,10 +17,10 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=n==1? 3 : n%10==1 && n%100!=11 ? 0 : n"
 "%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Project-Style: gnome\n"
-"X-Generator: Poedit 2.0.6\n"
+"X-Generator: Poedit 2.2.3\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
 msgid "Connection terminated unexpectedly"
 msgstr "Веза је неочекивано затворена"
 
@@ -45,27 +45,27 @@ msgstr "Нисам успео у потпуности да сместим изв
 msgid "Output buffer is too small"
 msgstr "Међумеморија излаза је премала"
 
-#: libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:39
 msgid "Could not parse HTTP response"
 msgstr "Не могу да обрадим ХТТП одговор"
 
-#: libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
 msgstr "Непознато кодирање ХТТП одговора"
 
-#: libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:261
 msgid "Header too big"
 msgstr "Заглавље је превелико"
 
-#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
 msgstr "Поступак би блокирао"
 
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
 msgid "Operation was cancelled"
 msgstr "Радња је отказана"
 
-#: libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
 msgstr "Не могу да обрадим ХТТП захтев"
 
@@ -79,31 +79,31 @@ msgstr "Није наведена путања"
 msgid "Invalid “%s” URI: %s"
 msgstr "Неисправна „%s“ путања: %s"
 
-#: libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1797
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Не могу да направим ТЛС сервер без ТЛС уверења"
 
-#: libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1814
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Не могу да ослушкујем на адреси „%s“, прикључник %d: "
 
-#: libsoup/soup-session.c:4534
+#: libsoup/soup-session.c:4535
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Не могу да обрадим путању „%s“"
 
-#: libsoup/soup-session.c:4571
+#: libsoup/soup-session.c:4572
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Неподржана „%s“ шема путање"
 
-#: libsoup/soup-session.c:4593
+#: libsoup/soup-session.c:4594
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Није ХТТП путања"
 
-#: libsoup/soup-session.c:4791
+#: libsoup/soup-session.c:4805
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Сервер не прихвата руковање Веб прикључнице."
 
@@ -119,47 +119,60 @@ msgstr "Не могу да увезем постојећу прикључниц�
 msgid "Can’t import unconnected socket"
 msgstr "Не могу да увезем неповезану прикључницу"
 
-#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "Очекивано је руковање Веб прикључнице"
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "Сервер је затражио неподржано проширење"
 
-#: libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "Неподржано издање Веб прикључнице"
-
-#: libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "Неисправан кључ Веб прикључнице"
-
-#: libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Неисправно заглавље „%s“ Веб прикључнице"
 
-#: libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "Неподржан подпротокол Веб прикључнице"
-
-#: libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "Сервер је одбацио руковање Веб прикључнице"
-
-#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "Сервер је занемарио руковање Веб прикључнице"
-
-#: libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "Сервер је затражио неподржани протокол"
-
-#: libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "Сервер је затражио неподржано проширење"
-
-#: libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Сервер је вратио неисправан кључ „%s“"
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Удвостручен параметар у „%s“ заглављу вебсокет проширења"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Сервер је вратио удвостручен параметар у „%s“ заглављу вебсокет проширења"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "Очекивано је руковање Веб прикључнице"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "Неподржано издање Веб прикључнице"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "Неисправан кључ Веб прикључнице"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Неподржан подпротокол Веб прикључнице"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "Сервер је одбацио руковање Веб прикључнице"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "Сервер је занемарио руковање Веб прикључнице"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "Сервер је затражио неподржани протокол"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
