@@ -664,9 +664,15 @@ static void
 transfer_encoding_setter (SoupMessageHeaders *hdrs, const char *value)
 {
 	if (value) {
+		/* "identity" is a wrong value according to RFC errata 408,
+		 * and RFC 7230 does not list it as valid transfer-coding.
+		 * Nevertheless, the obsolete RFC 2616 stated "identity"
+		 * as valid, so we can't handle it as unrecognized here
+		 * for compatibility reasons.
+		 */
 		if (g_ascii_strcasecmp (value, "chunked") == 0)
 			hdrs->encoding = SOUP_ENCODING_CHUNKED;
-		else
+		else if (g_ascii_strcasecmp (value, "identity") != 0)
 			hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
 	} else
 		hdrs->encoding = -1;
