@@ -439,7 +439,7 @@ send_message (SoupWebsocketConnection *self,
 	gsize frame_len;
 	guint8 *outer;
 	guint8 *mask = 0;
-	guint8 *at;
+	guint at;
 	GBytes *filtered_bytes;
 	GList *l;
 	GError *error = NULL;
@@ -515,11 +515,11 @@ send_message (SoupWebsocketConnection *self,
 		bytes->len += 4;
 	}
 
-	at = bytes->data + bytes->len;
+	at = bytes->len;
 	g_byte_array_append (bytes, data, length);
 
 	if (self->pv->connection_type == SOUP_WEBSOCKET_CONNECTION_CLIENT)
-		xor_with_mask (mask, at, length);
+		xor_with_mask (mask, bytes->data + at, length);
 
 	frame_len = bytes->len;
 	queue_frame (self, flags, g_byte_array_free (bytes, FALSE),
