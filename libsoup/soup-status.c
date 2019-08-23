@@ -160,14 +160,6 @@
  * have always had the names they have now.
  **/
 
-/**
- * SOUP_HTTP_ERROR:
- *
- * A #GError domain representing an HTTP status. Use a #SoupStatus for
- * the <structfield>code</structfield> value.
- **/
-
-
 /* The reason_phrases are not localized because:
  *
  * 1. Only ASCII can be used portably in the HTTP Status-Line, so we
@@ -312,11 +304,4 @@ soup_status_proxify (guint status_code)
 		return status_code;
 }
 
-GQuark
-soup_http_error_quark (void)
-{
-	static GQuark error;
-	if (!error)
-		error = g_quark_from_static_string ("soup_http_error_quark");
-	return error;
-}
+G_DEFINE_QUARK (soup-http-error-quark, soup_http_error)

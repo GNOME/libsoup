@@ -98,7 +98,13 @@ const char *soup_status_get_phrase (guint status_code);
 SOUP_AVAILABLE_IN_2_26
 guint       soup_status_proxify    (guint status_code);
 
-#define SOUP_HTTP_ERROR soup_http_error_quark()
+/**
+ * SOUP_HTTP_ERROR:
+ *
+ * A #GError domain representing an HTTP status. Use a #SoupStatus for
+ * the <structfield>code</structfield> value.
+ **/
+#define SOUP_HTTP_ERROR (soup_http_error_quark())
 SOUP_AVAILABLE_IN_2_4
 GQuark soup_http_error_quark (void);
 
