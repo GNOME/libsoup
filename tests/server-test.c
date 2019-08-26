@@ -275,6 +275,72 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
+	uri = soup_uri_new_with_base (sd->base_uri, "/%2e%2e%2ftest");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+#ifdef G_OS_WIN32
+	uri = soup_uri_new_with_base (sd->base_uri, "\\..%5Ctest");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+	uri = soup_uri_new_with_base (sd->base_uri, "\\../test");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+	uri = soup_uri_new_with_base (sd->base_uri, "%5C..%2ftest");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+	uri = soup_uri_new_with_base (sd->base_uri, "/..\\test");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+	uri = soup_uri_new_with_base (sd->base_uri, "%2f..%5Ctest");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+	uri = soup_uri_new_with_base (sd->base_uri, "\\%2e%2e%5ctest");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+	uri = soup_uri_new_with_base (sd->base_uri, "\\..%%35%63..%%35%63test");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+#endif
+
 	soup_test_session_abort_unref (session);
 }
 
