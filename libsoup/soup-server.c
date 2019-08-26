@@ -1368,7 +1368,15 @@ got_headers (SoupMessage *msg, SoupClientContext *client)
 		decoded_path = soup_uri_decode (uri->path);
 
 		if (strstr (decoded_path, "/../") ||
-		    g_str_has_suffix (decoded_path, "/..")) {
+		    g_str_has_suffix (decoded_path, "/..")
+#ifdef G_OS_WIN32
+		    ||
+		    strstr (decoded_path, "\\..\\") ||
+		    strstr (decoded_path, "/..\\") ||
+		    strstr (decoded_path, "\\../") ||
+		    g_str_has_suffix (decoded_path, "\\..")
+#endif
+		    ) {
 			/* Introducing new ".." segments is not allowed */
 			g_free (decoded_path);
 			soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
