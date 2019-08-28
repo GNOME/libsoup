@@ -64,3 +64,9 @@ option('tests',
   value: true,
   description: 'Enable unit tests compilation'
 )
+
+option('installed_tests',
+  type: 'boolean',
+  value: false,
+  description: 'Install tests for as-installed testing'
+)
