@@ -922,6 +922,7 @@ close_after_close_server_thread (gpointer user_data)
 	const char frames[] =
 		"\x88\x09\x03\xe8""reason1"
 		"\x88\x09\x03\xe8""reason2";
+	GSocket *socket;
 	GError *error = NULL;
 
 	g_mutex_lock (&test->mutex);
@@ -931,7 +932,8 @@ close_after_close_server_thread (gpointer user_data)
 				   frames, sizeof (frames) -1, &written, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_cmpuint (written, ==, sizeof (frames) - 1);
-	g_io_stream_close (test->raw_server, NULL, &error);
+	socket = g_socket_connection_get_socket (G_SOCKET_CONNECTION (test->raw_server));
+	g_socket_shutdown (socket, FALSE, TRUE, &error);
 	g_assert_no_error (error);
 
 	return NULL;
@@ -955,6 +957,7 @@ test_close_after_close (Test *test,
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_NORMAL);
 	g_assert_cmpstr (soup_websocket_connection_get_close_data (test->client), ==, "reason1");
+	g_io_stream_close (test->raw_server, NULL, NULL);
 }
 
 static gpointer
