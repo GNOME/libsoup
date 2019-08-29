@@ -714,6 +714,10 @@ soup_cookie_jar_request_queued (SoupSessionFeature *feature,
 					 "Set-Cookie",
 					 G_CALLBACK (process_set_cookie_header),
 					 feature);
+        soup_message_add_status_code_handler (msg, "got-informational",
+                                              SOUP_STATUS_SWITCHING_PROTOCOLS,
+                                              G_CALLBACK (process_set_cookie_header),
+                                              feature);
 }
 
 static void
