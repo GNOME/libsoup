@@ -40,6 +40,8 @@ typedef struct {
 	gboolean enable_extensions;
 	gboolean disable_deflate_in_message;
 
+	GList *initial_cookies;
+
 	GMutex mutex;
 } Test;
 
@@ -261,10 +263,20 @@ client_connect (Test *test,
 		gpointer user_data)
 {
 	char *url;
+	SoupCookieJar *jar;
+	GList *l;
 
 	test->session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	if (test->enable_extensions)
 		soup_session_add_feature_by_type (test->session, SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER);
+
+	jar = soup_cookie_jar_new ();
+	soup_cookie_jar_set_accept_policy (jar, SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY);
+	soup_session_add_feature (test->session, SOUP_SESSION_FEATURE (jar));
+	for (l = test->initial_cookies; l; l = g_list_next (l))
+		soup_cookie_jar_add_cookie (jar, (SoupCookie *)l->data);
+	g_clear_pointer (&test->initial_cookies, g_list_free);
+	g_object_unref (jar);
 
 	url = g_strdup_printf ("ws://127.0.0.1:%u/unix", test->port);
 	test->msg = soup_message_new ("GET", url);
@@ -1761,6 +1773,64 @@ test_deflate_receive_fragmented_error (Test *test,
 	g_assert (close_event);
 }
 
+static void
+test_cookies_in_request (Test *test,
+                         gconstpointer data)
+{
+        SoupCookie *cookie;
+        const char *cookie_header;
+        SoupCookie *requested_cookie;
+
+        cookie = soup_cookie_new ("foo", "bar", "127.0.0.1", "/", -1);
+        test->initial_cookies = g_list_prepend (test->initial_cookies, soup_cookie_copy (cookie));
+
+        setup_soup_server (test, NULL, NULL, got_server_connection, test);
+        client_connect (test, NULL, NULL, got_client_connection, test);
+        WAIT_UNTIL (test->server != NULL);
+        WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+        g_assert_no_error (test->client_error);
+
+        cookie_header = soup_message_headers_get_one (test->msg->request_headers, "Cookie");
+        requested_cookie = soup_cookie_parse (cookie_header, NULL);
+        g_assert_true (soup_cookie_equal (cookie, requested_cookie));
+        soup_cookie_free (cookie);
+        soup_cookie_free (requested_cookie);
+}
+
+static void
+cookies_test_websocket_server_request_started (SoupServer *server, SoupMessage *msg,
+                                               SoupClientContext *client, gpointer user_data)
+{
+        soup_message_headers_append (msg->response_headers, "Set-Cookie", "foo=bar; Path=/");
+}
+
+static void
+test_cookies_in_response (Test *test,
+                          gconstpointer data)
+{
+        SoupCookieJar *jar;
+        GSList *cookies;
+        SoupCookie *cookie;
+
+        setup_soup_server (test, NULL, NULL, got_server_connection, test);
+        g_signal_connect (test->soup_server, "request-started",
+                          G_CALLBACK (cookies_test_websocket_server_request_started),
+                          NULL);
+        client_connect (test, NULL, NULL, got_client_connection, test);
+        WAIT_UNTIL (test->server != NULL);
+        WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+        g_assert_no_error (test->client_error);
+
+        jar = SOUP_COOKIE_JAR (soup_session_get_feature (test->session, SOUP_TYPE_COOKIE_JAR));
+        cookies = soup_cookie_jar_all_cookies (jar);
+        g_assert_nonnull (cookies);
+        g_assert_cmpuint (g_slist_length (cookies), ==, 1);
+        cookie = soup_cookie_new ("foo", "bar", "127.0.0.1", "/", -1);
+        g_assert_true (soup_cookie_equal (cookie, (SoupCookie *)cookies->data));
+        g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+        soup_cookie_free (cookie);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -1981,6 +2051,13 @@ main (int argc,
 	g_test_add ("/websocket/soup/client-context", Test, NULL, NULL,
 		    test_client_context,
 		    teardown_soup_connection);
+
+        g_test_add ("/websocket/soup/cookies-in-request", Test, NULL, NULL,
+                    test_cookies_in_request,
+                    teardown_soup_connection);
+        g_test_add ("/websocket/soup/cookies-in-response", Test, NULL, NULL,
+                    test_cookies_in_response,
+                    teardown_soup_connection);
 
 	ret = g_test_run ();
 
