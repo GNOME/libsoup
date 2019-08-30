@@ -355,6 +355,8 @@ soup_websocket_extension_deflate_process_outgoing_message (SoupWebsocketExtensio
                 bytes_written += write_remaining - priv->deflater.zstream.avail_out;
         } while (result == Z_OK);
 
+        g_bytes_unref (payload);
+
         if (result != Z_BUF_ERROR || bytes_written < 4) {
                 g_set_error_literal (error,
                                      SOUP_WEBSOCKET_ERROR,
@@ -367,8 +369,6 @@ soup_websocket_extension_deflate_process_outgoing_message (SoupWebsocketExtensio
 
         /* Remove 4 octets (that are 0x00 0x00 0xff 0xff) from the tail end. */
         g_byte_array_set_size (buffer, bytes_written - 4);
-
-        g_bytes_unref (payload);
 
         deflater_reset (&priv->deflater);
 
@@ -410,6 +410,7 @@ soup_websocket_extension_deflate_process_incoming_message (SoupWebsocketExtensio
                                      SOUP_WEBSOCKET_ERROR,
                                      SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR,
                                      "Received a non-first frame with RSV1 flag set");
+                g_bytes_unref (payload);
                 return NULL;
         }
 
@@ -467,6 +468,8 @@ soup_websocket_extension_deflate_process_incoming_message (SoupWebsocketExtensio
                         break;
         } while (result == Z_OK || result == Z_BUF_ERROR);
 
+        g_bytes_unref (payload);
+
         if (result != Z_OK && result != Z_BUF_ERROR) {
                 priv->inflater.uncompress_ongoing = FALSE;
                 g_set_error_literal (error,
@@ -479,8 +482,6 @@ soup_websocket_extension_deflate_process_incoming_message (SoupWebsocketExtensio
         }
 
         g_byte_array_set_size (buffer, bytes_written);
-
-        g_bytes_unref (payload);
 
         return g_byte_array_free_to_bytes (buffer);
 }
