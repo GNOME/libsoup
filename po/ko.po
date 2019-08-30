@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # eukim <eukim@redhat.com>, 2012.
-# Changwoo Ryu <cwryu@debian.org>, 2013-2015, 2017-2018.
+# Changwoo Ryu <cwryu@debian.org>, 2013-2015, 2017-2019.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2018-07-01 06:42+0000\n"
-"PO-Revision-Date: 2018-08-26 14:48+0900\n"
+"POT-Creation-Date: 2019-07-31 12:10+0000\n"
+"PO-Revision-Date: 2019-08-26 19:57+0900\n"
 "Last-Translator: Changwoo Ryu <cwryu@debian.org>\n"
 "Language-Team: Korean <gnome-kr@googlegroups.com>\n"
 "Language: ko\n"
@@ -21,7 +21,7 @@ msgstr ""
 "X-Generator: Lokalize 1.0\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
 msgid "Connection terminated unexpectedly"
 msgstr "예상치 않게 연결이 중지됨"
 
@@ -46,27 +46,27 @@ msgstr "리소스를 완전히 캐시에 저장하는데 실패했습니다"
 msgid "Output buffer is too small"
 msgstr "출력 버퍼가 너무 작습니다"
 
-#: libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:39
 msgid "Could not parse HTTP response"
 msgstr "HTTP 응답을 구문 분석할 수 없습니다"
 
-#: libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
 msgstr "HTTP 응답 인코딩을 알 수 없습니다"
 
-#: libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:261
 msgid "Header too big"
 msgstr "헤더가 너무 큽니다"
 
-#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
 msgstr "작업이 블럭되었습니다"
 
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
 msgid "Operation was cancelled"
 msgstr "작업이 취소되었습니다"
 
-#: libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
 msgstr "HTTP 요청을 구문 분석할 수 없습니다"
 
@@ -80,31 +80,31 @@ msgstr "URI가 없습니다"
 msgid "Invalid “%s” URI: %s"
 msgstr "잘못된 “%s” URI: %s"
 
-#: libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1797
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "TLS 인증서 없이 TLS 서버를 만들 수 없습니다"
 
-#: libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1814
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "주소 %s, 포트 %d번에 연결을 받을 수 없습니다: "
 
-#: libsoup/soup-session.c:4534
+#: libsoup/soup-session.c:4535
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "“%s” URI를 구문 분석할 수 없습니다"
 
-#: libsoup/soup-session.c:4571
+#: libsoup/soup-session.c:4572
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "“%s” URI 스킴을 지원하지 않습니다"
 
-#: libsoup/soup-session.c:4593
+#: libsoup/soup-session.c:4594
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI가 아닙니다"
 
-#: libsoup/soup-session.c:4791
+#: libsoup/soup-session.c:4805
 msgid "The server did not accept the WebSocket handshake."
 msgstr "서버에서 웹소켓 핸드셰이크를 받아들이지 않습니다."
 
@@ -120,47 +120,59 @@ msgstr "기존 소켓을 가져올 수 없습니다: "
 msgid "Can’t import unconnected socket"
 msgstr "연결하지 않은 소켓을 가져올 수 없습니다"
 
-#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "웹소켓 핸드셰이크가 와야 합니다"
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "서버에서 지원하지 않는 확장 기능을 요청했습니다"
 
-#: libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "웹소켓 버전을 지원하지 않습니다"
-
-#: libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "웹소켓 키가 올바르지 않습니다"
-
-#: libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "웹소켓 “%s” 헤더가 올바르지 않습니다"
 
-#: libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "웹소켓 서브프로토콜을 지원하지 않습니다"
-
-#: libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "서버에서 웹소켓 핸드셰이크를 거부했습니다"
-
-#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "서버에서 웹소켓 핸드셰이크를 무시헀습니다"
-
-#: libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "서버에서 지원하지 않는 프로토콜을 요청했습니다"
-
-#: libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "서버에서 지원하지 않는 확장 기능을 요청했습니다"
-
-#: libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "서버에서 올바르지 않은 “%s” 키를 리턴했습니다"
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "“%s” WebSocket 확장 헤더에 중복된 인수"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "서버에서 “%s” WebSocket 확장 헤더에 중복된 인수를 리턴했습니다"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "웹소켓 핸드셰이크가 와야 합니다"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "웹소켓 버전을 지원하지 않습니다"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "웹소켓 키가 올바르지 않습니다"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "웹소켓 서브프로토콜을 지원하지 않습니다"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "서버에서 웹소켓 핸드셰이크를 거부했습니다"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "서버에서 웹소켓 핸드셰이크를 무시헀습니다"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "서버에서 지원하지 않는 프로토콜을 요청했습니다"
 
 # publicsuffix.org
 #: libsoup/soup-tld.c:150
