@@ -1077,8 +1077,6 @@ process_frame (SoupWebsocketConnection *self)
 		filtered_bytes = soup_websocket_extension_process_incoming_message (extension, self->pv->incoming->data, filtered_bytes, &error);
 		if (error) {
 			emit_error_and_close (self, error, FALSE);
-			g_bytes_unref (filtered_bytes);
-
 			return FALSE;
 		}
 	}
