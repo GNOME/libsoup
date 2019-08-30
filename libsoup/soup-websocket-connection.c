@@ -492,6 +492,7 @@ send_message (SoupWebsocketConnection *self,
 		extension = (SoupWebsocketExtension *)l->data;
 		filtered_bytes = soup_websocket_extension_process_outgoing_message (extension, outer, filtered_bytes, &error);
 		if (error) {
+			g_byte_array_free (bytes, TRUE);
 			emit_error_and_close (self, error, FALSE);
 			return;
 		}
@@ -505,6 +506,7 @@ send_message (SoupWebsocketConnection *self,
 		if (length > 125) {
 			g_warning ("WebSocket control message payload exceeds size limit");
 			protocol_error_and_close (self);
+			g_byte_array_free (bytes, TRUE);
 			g_bytes_unref (filtered_bytes);
 			return;
 		}
