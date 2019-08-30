@@ -149,6 +149,7 @@ struct _SoupWebsocketConnectionPrivate {
 
 #define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
 #define READ_BUFFER_SIZE 1024
+#define MASK_LENGTH 4
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupWebsocketConnection, soup_websocket_connection, G_TYPE_OBJECT)
 
@@ -463,8 +464,7 @@ send_message (SoupWebsocketConnection *self,
 	GByteArray *bytes;
 	gsize frame_len;
 	guint8 *outer;
-	guint8 *mask = 0;
-	guint at;
+	guint8 mask_offset;
 
 	if (!(soup_websocket_connection_get_state (self) == SOUP_WEBSOCKET_STATE_OPEN)) {
 		g_debug ("Ignoring message since the connection is closed or is closing");
@@ -517,16 +517,15 @@ send_message (SoupWebsocketConnection *self,
 	if (self->pv->connection_type == SOUP_WEBSOCKET_CONNECTION_CLIENT) {
 		guint32 rnd = g_random_int ();
 		outer[1] |= 0x80;
-		mask = outer + bytes->len;
-		memcpy (mask, &rnd, sizeof (rnd));
-		bytes->len += 4;
+		mask_offset = bytes->len;
+		memcpy (outer + mask_offset, &rnd, sizeof (rnd));
+		bytes->len += MASK_LENGTH;
 	}
 
-	at = bytes->len;
 	g_byte_array_append (bytes, data, length);
 
 	if (self->pv->connection_type == SOUP_WEBSOCKET_CONNECTION_CLIENT)
-		xor_with_mask (mask, bytes->data + at, length);
+		xor_with_mask (bytes->data + mask_offset, bytes->data + mask_offset + MASK_LENGTH, length);
 
 	frame_len = bytes->len;
 	queue_frame (self, flags, g_byte_array_free (bytes, FALSE),
