@@ -360,6 +360,7 @@ subdir('examples')
 
 if get_option('tests')
   subdir('tests')
+  subdir('tests/autobahn')
  endif
 
 if get_option('gtk_doc')
