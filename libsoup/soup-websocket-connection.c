@@ -480,6 +480,7 @@ send_message (SoupWebsocketConnection *self,
 		if (length > 125) {
 			g_warning ("WebSocket control message payload exceeds size limit");
 			protocol_error_and_close (self);
+			g_byte_array_free (bytes, TRUE);
 			return;
 		}
 
