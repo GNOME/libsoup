@@ -159,7 +159,7 @@ soup_websocket_extension_get_response_params (SoupWebsocketExtension *extension)
  *
  * Extensions using reserved bits of the header will change them in @header.
  *
- * Returns: (transfer full): the message payload data
+ * Returns: (transfer full): the message payload data, or %NULL in case of error
  *
  * Since: 2.68
  */
@@ -196,7 +196,7 @@ soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension *exten
  *
  * Extensions using reserved bits of the header will reset them in @header.
  *
- * Returns: (transfer full): the message payload data
+ * Returns: (transfer full): the message payload data, or %NULL in case of error
  *
  * Since: 2.68
  */
