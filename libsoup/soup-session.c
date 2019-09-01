@@ -113,6 +113,8 @@ typedef struct {
 	SoupSocketProperties *socket_props;
 
 	SoupMessageQueue *queue;
+	GHashTable *pending_contexts;
+	GMutex pending_contexts_lock;
 
 	char *user_agent;
 	char *accept_language;
@@ -220,6 +222,8 @@ soup_session_init (SoupSession *session)
 	SoupAuthManager *auth_manager;
 
 	priv->queue = soup_message_queue_new (session);
+	priv->pending_contexts = g_hash_table_new (NULL, NULL);
+	g_mutex_init (&priv->pending_contexts_lock);
 
 	g_mutex_init (&priv->conn_lock);
 	g_cond_init (&priv->conn_cond);
@@ -324,6 +328,8 @@ soup_session_finalize (GObject *object)
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	soup_message_queue_destroy (priv->queue);
+	g_hash_table_destroy (priv->pending_contexts);
+	g_mutex_clear (&priv->pending_contexts_lock);
 
 	g_mutex_clear (&priv->conn_lock);
 	g_cond_clear (&priv->conn_cond);
@@ -2061,9 +2067,15 @@ async_run_queue (SoupSession *session)
 	SoupMessageQueueItem *item;
 	SoupMessage *msg;
 	gboolean try_cleanup = TRUE, should_cleanup = FALSE;
+	GMainContext *this_context;
 
 	g_object_ref (session);
 	soup_session_cleanup_connections (session, FALSE);
+
+	this_context = g_source_get_context (g_main_current_source ());
+	g_mutex_lock (&priv->pending_contexts_lock);
+	g_hash_table_remove (priv->pending_contexts, this_context);
+	g_mutex_unlock (&priv->pending_contexts_lock);
 
  try_again:
 	for (item = soup_message_queue_first (priv->queue);
@@ -2079,7 +2091,6 @@ async_run_queue (SoupSession *session)
 		    item->async_context != soup_session_get_async_context (session))
 			continue;
 
-		item->async_pending = FALSE;
 		soup_session_process_queue_item (session, item, &should_cleanup, TRUE);
 	}
 
@@ -2311,35 +2322,32 @@ soup_session_real_kick_queue (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
-	GHashTable *async_pending;
 	gboolean have_sync_items = FALSE;
 
 	if (priv->disposed)
 		return;
 
-	async_pending = g_hash_table_new (NULL, NULL);
+	g_mutex_lock (&priv->pending_contexts_lock);
 	for (item = soup_message_queue_first (priv->queue);
 	     item;
 	     item = soup_message_queue_next (priv->queue, item)) {
 		if (item->async) {
 			GMainContext *context = item->async_context ? item->async_context : g_main_context_default ();
 
-			if (!g_hash_table_contains (async_pending, context)) {
-				if (!item->async_pending) {
-					GWeakRef *wref = g_slice_new (GWeakRef);
-					GSource *source;
+			if (!g_hash_table_contains (priv->pending_contexts, context)) {
+				GWeakRef *wref = g_slice_new (GWeakRef);
+				GSource *source;
 
-					g_weak_ref_init (wref, session);
-					source = soup_add_completion_reffed (context, idle_run_queue, wref, idle_run_queue_dnotify);
-					g_source_unref (source);
-				}
-				g_hash_table_add (async_pending, context);
+				g_weak_ref_init (wref, session);
+				source = soup_add_completion_reffed (context, idle_run_queue, wref, idle_run_queue_dnotify);
+				g_source_unref (source);
+
+				g_hash_table_add (priv->pending_contexts, context);
 			}
-			item->async_pending = TRUE;
 		} else
 			have_sync_items = TRUE;
 	}
-	g_hash_table_unref (async_pending);
+	g_mutex_unlock (&priv->pending_contexts_lock);
 
 	if (have_sync_items) {
 		g_mutex_lock (&priv->conn_lock);
