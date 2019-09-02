@@ -1,3 +1,33 @@
+Changes in libsoup from 2.67.92 to 2.67.93:
+
+        * SoupMessage: Handle Transfer-Encoding: identity for
+          compatibility reasons [#148, Thomas Bluemel, Normen Bolling]
+
+        * WebSockets: Only poll IO stream when needed [Carlos Garcia
+          Campos]
+
+        * WebSockets: Properly set cookies received during handshake
+          [Carlos Garcia Campos]
+
+        * WebSockets: Plug a couple of memory leaks and fix a few
+          read-after-free memory errors [Claudio Saavedra]
+
+        * WebSockets: document how web socket extensions should treat
+          buffers in case of error [Claudio Saavedrə]
+
+        * SoupSession: Don't reset user GCancellable internally [Tom
+          Bailey]
+
+        * Tests: Make tests installable [Simon McVittie]
+
+        * Remove deprecate GTimeVal internal usage [Claudio Saavedra]
+
+        * CI: increase coverage by enabling all features during
+          testing [Claudio Saavedra]
+
+        * Updated translations: Korean, German, Galician, Hungarian,
+          Slovenian, Latvian, Finnish, Serbian, Catalan, Polish
+
 Changes in libsoup from 2.67.91 to 2.67.92:
 
         * Silence GTimeVal deprecation warnings. [Michael Catanzaro]
