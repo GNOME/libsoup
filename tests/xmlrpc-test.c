@@ -473,6 +473,7 @@ verify_serialization_fail (GVariant *value)
 	body = soup_xmlrpc_build_request ("MyMethod", value, &error);
 	g_assert (body == NULL);
 	g_assert (error != NULL);
+	g_clear_error (&error);
 }
 
 static void
@@ -565,6 +566,7 @@ verify_deserialization (GVariant *expected_variant,
 
 	soup_xmlrpc_params_free (out_params);
 	g_variant_unref (variant);
+	g_variant_unref (expected_variant);
 	g_free (method_name);
 	g_free (body);
 }
@@ -591,6 +593,8 @@ verify_deserialization_fail (const char *signature,
 	g_assert (variant == NULL);
 
 	g_free (body);
+	g_free (method_name);
+	g_clear_error (&error);
 	soup_xmlrpc_params_free (out_params);
 }
 
