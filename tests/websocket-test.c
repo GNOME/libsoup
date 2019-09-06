@@ -1199,6 +1199,7 @@ send_compressed_fragments_server_thread (gpointer user_data)
         g_assert_no_error (error);
 
         deflateEnd (&zstream);
+        g_byte_array_free (data, TRUE);
 
         return NULL;
 }
@@ -1741,6 +1742,7 @@ send_compressed_fragments_error_server_thread (gpointer user_data)
         g_assert_no_error (error);
 
         deflateEnd (&zstream);
+        g_byte_array_free (data, TRUE);
 
         return NULL;
 }
