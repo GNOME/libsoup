@@ -199,6 +199,7 @@ main (int argc, char **argv)
 	SoupURI *proxy_uri, *parsed;
 	GError *error = NULL;
 	SoupLogger *logger = NULL;
+	char *help;
 
 	opts = g_option_context_new (NULL);
 	g_option_context_add_main_entries (opts, entries, NULL);
@@ -213,8 +214,9 @@ main (int argc, char **argv)
 	}
 
 	if (argc != 2) {
-		g_printerr ("%s",
-			    g_option_context_get_help (opts, TRUE, NULL));
+		help = g_option_context_get_help (opts, TRUE, NULL);
+		g_printerr ("%s", help);
+		g_free (help);
 		exit (1);
 	}
 	g_option_context_free (opts);
