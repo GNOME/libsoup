@@ -1,3 +1,8 @@
+Changes in libsoup from 2.67.93 to 2.68.0:
+
+        * Updated translations: Brazilian Portuguese, Croatian,
+          Friulian, Italian, Turkish
+
 Changes in libsoup from 2.67.92 to 2.67.93:
 
         * SoupMessage: Handle Transfer-Encoding: identity for
