@@ -1,3 +1,9 @@
+Changes in libsoup from 2.66.2 to 2.66.3:
+
+        * docs: varios gtk-doc fixes [Claudio Saavedra]
+
+        * SoupServer: Fixes to Windows path handling [Ignacio Casal Quinteiro]
+
 Changes in libsoup from 2.66.1 to 2.66.2:
 
 	* Make gettext optional (might not be available in Windows)
