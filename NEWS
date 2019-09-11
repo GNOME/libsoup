@@ -1,3 +1,9 @@
+Changes in libsoup from 2.68.0 to 2.68.1:
+
+        * Several memory leaks fixed in tests, examples, and parsing code [Claudio Saavedra]
+
+        * SoupServer: Fixes to Windows path handling [Ignacio Casal Quinteiro]
+
 Changes in libsoup from 2.67.93 to 2.68.0:
 
         * Updated translations: Brazilian Portuguese, Croatian,
