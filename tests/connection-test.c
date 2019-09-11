@@ -1075,9 +1075,11 @@ do_one_connection_connect_fail_test (SoupSession *session, SoupURI *uri, GQuark 
                                     (GAsyncReadyCallback)connect_finished,
                                     &data);
         g_main_loop_run (data.loop);
+        g_main_loop_unref (data.loop);
 
         g_assert (!data.stream);
         g_assert_error (data.error, domain, code);
+        g_clear_error (&data.error);
 
         while (*data.events) {
                 soup_test_assert (!*data.events,

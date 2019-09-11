@@ -110,6 +110,7 @@ hsts_db_session_new (void)
 						      SOUP_SESSION_ADD_FEATURE, hsts_db,
 						      NULL);
 	g_signal_connect (session, "request-queued", G_CALLBACK (on_request_queued), NULL);
+	g_object_unref (hsts_db);
 
 	return session;
 }

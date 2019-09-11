@@ -150,13 +150,18 @@ static SoupSession *
 hsts_session_new (SoupHSTSEnforcer *enforcer)
 {
 	SoupSession *session;
-	if (!enforcer)
-		enforcer = soup_hsts_enforcer_new ();
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					SOUP_SESSION_ADD_FEATURE, enforcer,
-					NULL);
+	if (enforcer)
+		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+						 SOUP_SESSION_ADD_FEATURE, enforcer,
+						 NULL);
+	else
+		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+						 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_HSTS_ENFORCER,
+						 NULL);
+
 	g_signal_connect (session, "request-queued", G_CALLBACK (on_request_queued), NULL);
 
 	return session;
@@ -306,6 +311,7 @@ do_hsts_superdomain_test (void)
 	/* This should work, as we have a long-lasting policy in place. If it fails,
 	   the subdomain policy has modified the superdomain's policy, which is wrong. */
 	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	g_object_unref (enforcer);
 }
 
 static void

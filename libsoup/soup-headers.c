@@ -756,7 +756,7 @@ parse_param_list (const char *header, char delim, gboolean strict)
 		if (strict && duplicated) {
 			soup_header_free_param_list (params);
 			params = NULL;
-			g_free (item);
+			g_slist_foreach (iter, (GFunc)g_free, NULL);
 			break;
 		} else if (override || !duplicated)
 			g_hash_table_replace (params, item, value);

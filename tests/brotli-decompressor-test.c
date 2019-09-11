@@ -61,6 +61,7 @@ test_brotli (void)
         g_byte_array_free (out_bytes, TRUE);
         g_object_unref (dec);
         g_free (compressed_filename);
+        g_free (uncompressed_filename);
         g_free (contents);
 }
 
