@@ -44,8 +44,7 @@ typedef enum {
         PARAM_SERVER_NO_CONTEXT_TAKEOVER   = 1 << 0,
         PARAM_CLIENT_NO_CONTEXT_TAKEOVER   = 1 << 1,
         PARAM_SERVER_MAX_WINDOW_BITS       = 1 << 2,
-        PARAM_CLIENT_MAX_WINDOW_BITS       = 1 << 3,
-        PARAM_CLIENT_MAX_WINDOW_BITS_VALUE = 1 << 4
+        PARAM_CLIENT_MAX_WINDOW_BITS       = 1 << 3
 } ParamFlags;
 
 typedef struct {
@@ -180,8 +179,6 @@ parse_params (GHashTable *params,
                         if (value) {
                                 if (!parse_window_bits ((char *)value, &out->client_max_window_bits))
                                         return return_invalid_param_value_error(error, "client_max_window_bits");
-
-                                out->flags |= PARAM_CLIENT_MAX_WINDOW_BITS_VALUE;
                         } else {
                                 out->client_max_window_bits = 15;
                         }
@@ -274,12 +271,8 @@ soup_websocket_extension_deflate_get_response_params (SoupWebsocketExtension *ex
                 params = g_string_append (params, "; client_no_context_takeover");
         if (priv->params.flags & PARAM_SERVER_MAX_WINDOW_BITS)
                 g_string_append_printf (params, "; server_max_window_bits=%u", priv->params.server_max_window_bits);
-        if (priv->params.flags & PARAM_CLIENT_MAX_WINDOW_BITS) {
-                if (priv->params.flags & PARAM_CLIENT_MAX_WINDOW_BITS_VALUE)
-                        g_string_append_printf (params, "; client_max_window_bits=%u", priv->params.client_max_window_bits);
-                else
-                        params = g_string_append (params, "; client_max_window_bits");
-        }
+        if (priv->params.flags & PARAM_CLIENT_MAX_WINDOW_BITS)
+		g_string_append_printf (params, "; client_max_window_bits=%u", priv->params.client_max_window_bits);
 
         return g_string_free (params, FALSE);
 }
