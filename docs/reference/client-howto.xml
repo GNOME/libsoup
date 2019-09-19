@@ -361,7 +361,7 @@ my_callback (GObject *object, GAsyncResult *result, gpointer user_data)
 <para>
 The message will be added to the session's queue, and eventually (when
 control is returned back to the main loop), it will be sent and the
-response be will be read. When the message has been sent, and its
+response will be read. When the message has been sent, and its
 headers received, the callback will be invoked, in the standard
 <link linkend="GAsyncReadyCallback"><type>GAsyncReadyCallback</type></link>
 style.
