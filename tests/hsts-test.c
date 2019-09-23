@@ -194,7 +194,7 @@ do_hsts_expire_test (void)
 	session_get_uri (session, "https://localhost/two-seconds", SOUP_STATUS_OK);
 	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
 	/* Wait for the policy to expire. */
-	sleep (3);
+	g_usleep (3 * G_USEC_PER_SEC);
 	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
 
 	soup_test_session_abort_unref (session);
@@ -220,7 +220,7 @@ do_hsts_replace_test (void)
 	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
 	session_get_uri (session, "https://localhost/two-seconds", SOUP_STATUS_OK);
 	/* Wait for the policy to expire. */
-	sleep (3);
+	g_usleep (3 * G_USEC_PER_SEC);
 	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
 
 	soup_test_session_abort_unref (session);
@@ -231,9 +231,9 @@ do_hsts_update_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 	session_get_uri (session, "https://localhost/three-seconds", SOUP_STATUS_OK);
-	sleep (2);
+	g_usleep (2 * G_USEC_PER_SEC);
 	session_get_uri (session, "https://localhost/three-seconds", SOUP_STATUS_OK);
-	sleep (2);
+	g_usleep (2 * G_USEC_PER_SEC);
 
 	/* At this point, 4 seconds have elapsed since setting the 3 seconds HSTS
 	   rule for the first time, and it should have expired by now, but since it
@@ -319,7 +319,7 @@ do_hsts_multiple_headers_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 	session_get_uri (session, "https://localhost/multiple-headers", SOUP_STATUS_OK);
-	sleep(2);
+	g_usleep(2 * G_USEC_PER_SEC);
 	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
 	soup_test_session_abort_unref (session);
 }
