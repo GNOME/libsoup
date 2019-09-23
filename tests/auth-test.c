@@ -5,13 +5,6 @@
 static const char *base_uri;
 static GMainLoop *loop;
 
-#if defined (G_OS_WIN32) && defined (_MSC_VER)
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#define sleep(x) Sleep (x * 1000)
-#endif
-
 typedef struct {
 	/* Explanation of what you should see */
 	const char *explanation;
@@ -471,12 +464,12 @@ do_digest_expiration_test (void)
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 	do_digest_nonce_test (session, "First", uri, TRUE, TRUE, TRUE);
 	g_free (uri);
-	sleep (2);
+	g_usleep (2 * G_USEC_PER_SEC);
 	uri = g_strconcat (base_uri, "Digest/realm1/expire/", NULL);
 	do_digest_nonce_test (session, "Second", uri, TRUE, TRUE, FALSE);
-	sleep (1);
+	g_usleep (1 * G_USEC_PER_SEC);
 	do_digest_nonce_test (session, "Third", uri, TRUE, FALSE, FALSE);
-	sleep (1);
+	g_usleep (1 * G_USEC_PER_SEC);
 	do_digest_nonce_test (session, "Fourth", uri, TRUE, FALSE, FALSE);
 	g_free (uri);
 
