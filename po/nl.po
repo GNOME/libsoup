@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-01-12 13:57+0000\n"
-"PO-Revision-Date: 2019-02-24 12:28+0100\n"
+"POT-Creation-Date: 2019-09-21 11:44+0000\n"
+"PO-Revision-Date: 2019-09-25 12:49+0200\n"
 "Last-Translator: Nathan Follens <nthn@unseen.is>\n"
 "Language-Team: Dutch <vertaling@vrijschrift.org>\n"
 "Language: nl\n"
@@ -17,11 +17,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.2.1\n"
+"X-Generator: Poedit 2.2.3\n"
 "X-Project-Style: gnome\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
 msgid "Connection terminated unexpectedly"
 msgstr "Verbinding werd onverwacht verbroken"
 
@@ -46,27 +46,27 @@ msgstr "Volledig bufferen van de bron is mislukt"
 msgid "Output buffer is too small"
 msgstr "Uitvoerbuffer is te klein"
 
-#: libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:39
 msgid "Could not parse HTTP response"
 msgstr "Kan HTTP-antwoord niet verwerken"
 
-#: libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
 msgstr "Niet-herkende HTTP-antwoordcodering"
 
-#: libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:261
 msgid "Header too big"
 msgstr "Hoofding te groot"
 
-#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
 msgstr "Bewerking zou blokkeren"
 
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
 msgid "Operation was cancelled"
 msgstr "Bewerking is geannuleerd"
 
-#: libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
 msgstr "Kan HTTP-aanvraag niet verwerken"
 
@@ -80,31 +80,31 @@ msgstr "Geen URI aangeleverd"
 msgid "Invalid “%s” URI: %s"
 msgstr "Ongeldige ‘%s’-URI: %s"
 
-#: libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1805
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Kan geen TLS-server aanmaken zonder een TLS-certificaat"
 
-#: libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1822
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Kan niet luisteren op adres %s, poort %d: "
 
-#: libsoup/soup-session.c:4534
+#: libsoup/soup-session.c:4543
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Kon URI ‘%s’ niet verwerken"
 
-#: libsoup/soup-session.c:4571
+#: libsoup/soup-session.c:4580
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Niet-ondersteund URI-schema ‘%s’"
 
-#: libsoup/soup-session.c:4593
+#: libsoup/soup-session.c:4602
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Geen HTTP-URI"
 
-#: libsoup/soup-session.c:4791
+#: libsoup/soup-session.c:4813
 msgid "The server did not accept the WebSocket handshake."
 msgstr "De server aanvaardde de WebSocket-handdruk niet."
 
@@ -120,47 +120,58 @@ msgstr "Kan bestaande socket niet importeren: "
 msgid "Can’t import unconnected socket"
 msgstr "Kan niet-verbonden socket niet importeren"
 
-#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "WebSocket-handdruk verwacht"
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "Niet-ondersteunde uitbreiding aangevraagd door server"
 
-#: libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "Niet-ondersteunde WebSocket-versie"
-
-#: libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "Ongeldige WebSocket-sleutel"
-
-#: libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Onjuiste WebSocket ‘%s’-hoofding"
 
-#: libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "Niet-ondersteund WebSocket subprotocol"
-
-#: libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "WebSocket-handdruk geweigerd door server"
-
-#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "WebSocket-handdruk genegeerd door server"
-
-#: libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "Niet-ondersteund protocol aangevraagd door server"
-
-#: libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "Niet-ondersteunde uitbreiding aangevraagd door server"
-
-#: libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Onjuiste ‘%s’-sleutel weergegeven door server"
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Gedupliceerde parameter in ‘%s’-WebSocket-extensiehoofding"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "Server gaf een gedupliceerde parameter in de ‘%s’-WebSocket-extensiehoofding weer"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "WebSocket-handdruk verwacht"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "Niet-ondersteunde WebSocket-versie"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "Ongeldige WebSocket-sleutel"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Niet-ondersteund WebSocket subprotocol"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "WebSocket-handdruk geweigerd door server"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "WebSocket-handdruk genegeerd door server"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "Niet-ondersteund protocol aangevraagd door server"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
