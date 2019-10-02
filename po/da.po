@@ -1,15 +1,15 @@
 # Danish translation for libsoup.
-# Copyright (C) 2013-15, 2018 libsoup's COPYRIGHT HOLDER
+# Copyright (C) 2013-15, 2018-19 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Ask Hjorth Larsen <asklarsen@gmail.com>, 2012, 2014-15, 2018.
+# Ask Hjorth Larsen <asklarsen@gmail.com>, 2012, 2014-15, 2018-19.
 # Joe Hansen (joedalton2@yahoo.dk), 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2018-07-01 06:42+0000\n"
-"PO-Revision-Date: 2018-08-30 20:59+0200\n"
+"POT-Creation-Date: 2019-07-31 12:10+0000\n"
+"PO-Revision-Date: 2019-09-09 01:00+0200\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
 "Language: da\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
 msgid "Connection terminated unexpectedly"
 msgstr "Forbindelsen blev uventet afbrudt"
 
@@ -45,27 +45,27 @@ msgstr "Kunne ikke lave fuldt mellemlager for ressourcen"
 msgid "Output buffer is too small"
 msgstr "Outputbuffer er for lille"
 
-#: libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:39
 msgid "Could not parse HTTP response"
 msgstr "Kunne ikke fortolke HTTP-svar"
 
-#: libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
 msgstr "Ej genkendt HTTP-svarkodning"
 
-#: libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:261
 msgid "Header too big"
 msgstr "Teksthovedet er for stort"
 
-#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
 msgstr "Operationen ville blokere"
 
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
 msgid "Operation was cancelled"
 msgstr "Operationen blev annulleret"
 
-#: libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
 msgstr "Kunne ikke fortolke HTTP-forespørgsel"
 
@@ -79,31 +79,31 @@ msgstr "Ingen URI givet"
 msgid "Invalid “%s” URI: %s"
 msgstr "Ugyldig “%s”-URI: %s"
 
-#: libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1797
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Kan ikke oprette en TLS-server uden et TLS-certifikat"
 
-#: libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1814
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Kunne ikke lytte på adresse %s, port %d: "
 
-#: libsoup/soup-session.c:4534
+#: libsoup/soup-session.c:4535
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Kunne ikke fortolke URI “%s”"
 
-#: libsoup/soup-session.c:4571
+#: libsoup/soup-session.c:4572
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Uunderstøttet URI-skema “%s”"
 
-#: libsoup/soup-session.c:4593
+#: libsoup/soup-session.c:4594
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ikke en HTTP URI"
 
-#: libsoup/soup-session.c:4791
+#: libsoup/soup-session.c:4805
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveren accepterede ikke WebSocket-håndtrykket."
 
@@ -119,47 +119,59 @@ msgstr "Kunne ikke importere eksisterende sokkel: "
 msgid "Can’t import unconnected socket"
 msgstr "Kan ikke importere uforbundet sokkel"
 
-#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "WebSocket-håndtryk forventet"
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "Serveren forespurgte om en udvidelse som ikke understøttes"
 
-#: libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "Version af WebSocket understøttes ikke"
-
-#: libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "Igyldig WebSocket-nøgle"
-
-#: libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Forkert “%s”-header for WebSocket"
 
-#: libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "Underprotokol for WebSocket understøttes ikke"
-
-#: libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "Serveren afviste WebSocket-håndtryk"
-
-#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "Serveren ignorerede WebSocket-håndtryk"
-
-#: libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "Serveren forespurgte om en protokol som ikke understøttes"
-
-#: libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "Serveren forespurgte om en udvidelse som ikke understøttes"
-
-#: libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Serveren returnerede forkert “%s”-nøgle"
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Duplikeret parameter i WebSocket-udvidelsesheaderen “%s”"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "Server returnerede en duplikeret parameter i WebSocket-udvidelsesheaderen “%s”"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "WebSocket-håndtryk forventet"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "Version af WebSocket understøttes ikke"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "Igyldig WebSocket-nøgle"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Underprotokol for WebSocket understøttes ikke"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "Serveren afviste WebSocket-håndtryk"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "Serveren ignorerede WebSocket-håndtryk"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "Serveren forespurgte om en protokol som ikke understøttes"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
