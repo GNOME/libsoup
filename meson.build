@@ -157,8 +157,13 @@ if enable_tls_check
     }
     '''
 
-    rres = cc.run(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_deps)
-    assert(rres.compiled() and rres.returncode() == 0, 'libsoup requires glib-networking for TLS support')
+    if meson.is_cross_build()
+      assert(cc.compiles(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_deps), 'libsoup requires glib-networking for TLS support')
+    else
+      rres = cc.run(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_deps)
+      assert(rres.compiled() and rres.returncode() == 0, 'libsoup requires glib-networking for TLS support')
+    endif
+
   endif
 endif
 
