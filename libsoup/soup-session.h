@@ -55,8 +55,10 @@ typedef struct {
 
 	void  (*kick)            (SoupSession *session);
 
-	/* Padding for future expansion */
-	void (*_libsoup_reserved4) (void);
+	/* signals */
+	gboolean (*accept_certificate) (SoupSession *session,
+		GTlsCertificate *peer_cert, GTlsCertificateFlags errors,
+		GSocketConnectable *identity);
 } SoupSessionClass;
 
 SOUP_AVAILABLE_IN_2_42
