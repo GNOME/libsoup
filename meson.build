@@ -233,10 +233,17 @@ if have_apache
     apache_modules_dirs = apache_modules_dirs_out.stdout().split(':')
     message('Apache modules directory: ' + apache_modules_dirs[0])
     cdata.set('APACHE_MODULE_DIR', apache_modules_dirs[0])
+    message('Apache SSL module directory: ' + apache_modules_dirs[1])
     cdata.set('APACHE_SSL_MODULE_DIR', apache_modules_dirs[1])
+    message('Apache PHP module file: ' + apache_modules_dirs[2])
     cdata.set('APACHE_PHP_MODULE_FILE', apache_modules_dirs[2])
+    message('Apache mod_unixd module directory: ' + (apache_modules_dirs[3] != '' ? apache_modules_dirs[3] : '(none)'))
     cdata.set('IF_HAVE_MOD_UNIXD', apache_modules_dirs[3] != '' ? '' : '#')
     cdata.set('HAVE_APACHE', have_apache)
+  else
+    message('Failed to locate necessary Apache modules for full test coverage')
+    message('stdout: ' + apache_modules_dirs_out.stdout())
+    message('stderr: ' + apache_modules_dirs_out.stderr())
   endif
 endif
 
