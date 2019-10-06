@@ -344,6 +344,12 @@ main (int argc, char **argv)
 		g_free (out);
 
 		for (i = 0; tests[i] && *tests[i]; i++) {
+			if (tests[i][0] == '#') {
+				continue;
+			}
+			if (g_str_has_prefix (tests[i], "1..")) {
+				continue;
+			}
 			g_assert_true (g_str_has_prefix (tests[i], "/xmlrpc-old/"));
 			path = g_strdup_printf ("/xmlrpc-old-server/%s", tests[i] + strlen ("/xmlrpc-old/"));
 			g_test_add_data_func (path, tests[i], do_one_xmlrpc_test);
