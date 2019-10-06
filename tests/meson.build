@@ -163,6 +163,7 @@ foreach test: tests
     test_conf.set('installed_tests_dir', abs_installed_tests_execdir)
     test_conf.set('program', test_name)
     test_conf.set('env', '')
+    test_conf.set('type', test[1] ? 'session' : 'session-exclusive')
     configure_file(
       input : installed_tests_template_tap,
       output : test_name + '.test',
