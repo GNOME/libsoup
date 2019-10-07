@@ -118,6 +118,8 @@ typedef struct {
 	char *accept_language;
 	gboolean accept_language_auto;
 
+	char *unix_socket_path;
+
 	GSList *features;
 	GHashTable *features_cache;
 
@@ -209,6 +211,7 @@ enum {
 	PROP_HTTPS_ALIASES,
 	PROP_LOCAL_ADDRESS,
 	PROP_TLS_INTERACTION,
+	PROP_UNIX_SOCKET_PATH,
 
 	LAST_PROP
 };
@@ -333,6 +336,8 @@ soup_session_finalize (GObject *object)
 
 	g_free (priv->user_agent);
 	g_free (priv->accept_language);
+
+	g_free (priv->unix_socket_path);
 
 	g_clear_object (&priv->tlsdb);
 	g_clear_object (&priv->tls_interaction);
@@ -768,6 +773,10 @@ soup_session_set_property (GObject *object, guint prop_id,
 	case PROP_HTTPS_ALIASES:
 		set_aliases (&priv->https_aliases, g_value_get_boxed (value));
 		break;
+	case PROP_UNIX_SOCKET_PATH:
+		g_free (priv->unix_socket_path);
+		priv->unix_socket_path = g_strdup (g_value_get_string (value));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -866,6 +875,9 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_HTTPS_ALIASES:
 		g_value_set_boxed (value, priv->https_aliases);
+		break;
+	case PROP_UNIX_SOCKET_PATH:
+		g_value_set_string (value, priv->unix_socket_path);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -978,12 +990,12 @@ static SoupSessionHost *
 soup_session_host_new (SoupSession *session, SoupURI *uri)
 {
 	SoupSessionHost *host;
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	host = g_slice_new0 (SoupSessionHost);
 	host->uri = soup_uri_copy_host (uri);
 	if (host->uri->scheme != SOUP_URI_SCHEME_HTTP &&
 	    host->uri->scheme != SOUP_URI_SCHEME_HTTPS) {
-		SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 		if (soup_uri_is_https (host->uri, priv->https_aliases))
 			host->uri->scheme = SOUP_URI_SCHEME_HTTPS;
@@ -991,11 +1003,20 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 			host->uri->scheme = SOUP_URI_SCHEME_HTTP;
 	}
 
-	host->addr = g_object_new (SOUP_TYPE_ADDRESS,
-				   SOUP_ADDRESS_NAME, host->uri->host,
-				   SOUP_ADDRESS_PORT, host->uri->port,
-				   SOUP_ADDRESS_PROTOCOL, host->uri->scheme,
-				   NULL);
+	if (priv->unix_socket_path) {
+		host->addr = g_object_new (SOUP_TYPE_ADDRESS,
+					   SOUP_ADDRESS_FAMILY, SOUP_ADDRESS_FAMILY_UNIX,
+					   SOUP_ADDRESS_NAME, priv->unix_socket_path,
+					   SOUP_ADDRESS_PROTOCOL, host->uri->scheme,
+					   NULL);
+	} else {
+		host->addr = g_object_new (SOUP_TYPE_ADDRESS,
+					   SOUP_ADDRESS_NAME, host->uri->host,
+					   SOUP_ADDRESS_PORT, host->uri->port,
+					   SOUP_ADDRESS_PROTOCOL, host->uri->scheme,
+					   NULL);
+	}
+
 	host->keep_alive_src = NULL;
 	host->session = session;
 
@@ -1854,6 +1875,7 @@ get_connection_for_host (SoupSession *session,
 			     SOUP_CONNECTION_REMOTE_URI, host->uri,
 			     SOUP_CONNECTION_SSL, soup_uri_is_https (host->uri, priv->https_aliases),
 			     SOUP_CONNECTION_SOCKET_PROPERTIES, priv->socket_props,
+			     SOUP_CONNECTION_UNIX_SOCKET_PATH, priv->unix_socket_path,
 			     NULL);
 
 	g_signal_connect (conn, "disconnected",
@@ -3838,6 +3860,31 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "TLS Interaction",
 				     "TLS interaction to use",
 				     G_TYPE_TLS_INTERACTION,
+				     G_PARAM_READWRITE));
+
+	/**
+	 * SOUP_SESSION_UNIX_SOCKET_PATH:
+	 *
+	 * Alias for the #SoupSession:unix-socket-path property, qv.
+	 *
+	 * Since: 2.64.0
+	 **/
+	/**
+	 * SoupSession:unix-socket-path:
+	 *
+	 * Enables the use of Unix domain sockets as connection endpoint.
+	 * If it is NULL, then Unix domain sockets are disabled.
+	 * An empty string will result in an error at some point,
+	 * it will not disable use of Unix domain sockets.
+	 *
+	 * Since: 2.64.0
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_UNIX_SOCKET_PATH,
+		g_param_spec_string (SOUP_SESSION_UNIX_SOCKET_PATH,
+				     "Unix Socket Path",
+				     "Path to the unix socket",
+				     NULL,
 				     G_PARAM_READWRITE));
 }
 

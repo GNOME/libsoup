@@ -21,6 +21,7 @@ typedef struct {
 
 	SoupURI *remote_uri, *proxy_uri;
 	gboolean ssl;
+	gchar *unix_socket_path;
 
 	SoupMessage *current_msg;
 	SoupConnectionState state;
@@ -46,6 +47,7 @@ enum {
 	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
 	PROP_SSL,
+	PROP_UNIX_SOCKET_PATH,
 
 	LAST_PROP
 };
@@ -71,6 +73,7 @@ soup_connection_finalize (GObject *object)
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 	g_clear_object (&priv->current_msg);
+	g_free (priv->unix_socket_path);
 
 	if (priv->socket) {
 		g_signal_handlers_disconnect_by_data (priv->socket, object);
@@ -110,6 +113,9 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	case PROP_SSL:
 		priv->ssl = g_value_get_boolean (value);
 		break;
+	case PROP_UNIX_SOCKET_PATH:
+		priv->unix_socket_path = g_strdup (g_value_get_string (value));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -134,6 +140,9 @@ soup_connection_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL:
 		g_value_set_boolean (value, priv->ssl);
+		break;
+	case PROP_UNIX_SOCKET_PATH:
+		g_value_set_string (value, priv->unix_socket_path);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -200,6 +209,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "Connection uses TLS",
 				      "Whether the connection should use TLS",
 				      FALSE, G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_UNIX_SOCKET_PATH,
+		g_param_spec_string (SOUP_CONNECTION_UNIX_SOCKET_PATH,
+				     "Unix Socket Path",
+				     "Path to the unix socket",
+				     NULL,
+				     G_PARAM_READWRITE));
 }
 
 static void
@@ -396,12 +412,21 @@ soup_connection_connect_async (SoupConnection      *conn,
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
 	/* Set the protocol to ensure correct proxy resolution. */
-	remote_addr =
-		g_object_new (SOUP_TYPE_ADDRESS,
-			      SOUP_ADDRESS_NAME, priv->remote_uri->host,
-			      SOUP_ADDRESS_PORT, priv->remote_uri->port,
-			      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
-			      NULL);
+	if (!priv->unix_socket_path) {
+		remote_addr =
+			g_object_new (SOUP_TYPE_ADDRESS,
+				      SOUP_ADDRESS_NAME, priv->remote_uri->host,
+				      SOUP_ADDRESS_PORT, priv->remote_uri->port,
+				      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+				      NULL);
+	} else {
+		remote_addr =
+			g_object_new (SOUP_TYPE_ADDRESS,
+				      SOUP_ADDRESS_FAMILY, SOUP_ADDRESS_FAMILY_UNIX,
+				      SOUP_ADDRESS_NAME, priv->unix_socket_path,
+				      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+				      NULL);
+	}
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
@@ -443,12 +468,21 @@ soup_connection_connect_sync (SoupConnection  *conn,
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
 	/* Set the protocol to ensure correct proxy resolution. */
-	remote_addr =
-		g_object_new (SOUP_TYPE_ADDRESS,
-			      SOUP_ADDRESS_NAME, priv->remote_uri->host,
-			      SOUP_ADDRESS_PORT, priv->remote_uri->port,
-			      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
-			      NULL);
+	if (!priv->unix_socket_path) {
+		remote_addr =
+			g_object_new (SOUP_TYPE_ADDRESS,
+				      SOUP_ADDRESS_NAME, priv->remote_uri->host,
+				      SOUP_ADDRESS_PORT, priv->remote_uri->port,
+				      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+				      NULL);
+	} else {
+		remote_addr =
+			g_object_new (SOUP_TYPE_ADDRESS,
+				      SOUP_ADDRESS_FAMILY, SOUP_ADDRESS_FAMILY_UNIX,
+				      SOUP_ADDRESS_NAME, priv->unix_socket_path,
+				      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+				      NULL);
+	}
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,

@@ -39,6 +39,7 @@ GType soup_connection_get_type (void);
 #define SOUP_CONNECTION_SOCKET_PROPERTIES "socket-properties"
 #define SOUP_CONNECTION_STATE             "state"
 #define SOUP_CONNECTION_SSL               "ssl"
+#define SOUP_CONNECTION_UNIX_SOCKET_PATH  "unix-socket-path"
 
 void            soup_connection_connect_async    (SoupConnection       *conn,
 						  GCancellable         *cancellable,
