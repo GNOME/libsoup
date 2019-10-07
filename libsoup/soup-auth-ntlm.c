@@ -731,6 +731,12 @@ soup_ntlm_parse_challenge (const char *challenge,
 	*ntlmv2_session = (flags & NTLM_FLAGS_NEGOTIATE_NTLMV2) ? TRUE : FALSE;
 	/* To know if NTLMv2 responses should be calculated */
 	*negotiate_target = (flags & NTLM_FLAGS_NEGOTIATE_TARGET_INFORMATION ) ? TRUE : FALSE;
+        if (*negotiate_target && target_info) {
+            if (clen < NTLM_CHALLENGE_TARGET_INFORMATION_OFFSET + sizeof (target)) {
+                g_free (chall);
+                return FALSE;
+            }
+        }
 
 	if (default_domain) {
 		memcpy (&domain, chall + NTLM_CHALLENGE_DOMAIN_STRING_OFFSET, sizeof (domain));
