@@ -1486,7 +1486,7 @@ static struct {
 	{ "permessage-deflate; client_max_window_bits",
 	  /* prepare supported check accepted verify */
               TRUE,    TRUE,   TRUE,  TRUE,   TRUE,
-	  "permessage-deflate; client_max_window_bits"
+	  "permessage-deflate; client_max_window_bits=15"
 	},
 	{ "permessage-deflate; client_max_window_bits=10",
 	  /* prepare supported check accepted verify */
