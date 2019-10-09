@@ -1,3 +1,7 @@
+Changes in libsoup from 2.66.3 to 2.66.4:
+
+        * NTLM: Make v2 authentication more robust [Claudio Saavedra]
+
 Changes in libsoup from 2.66.2 to 2.66.3:
 
         * docs: varios gtk-doc fixes [Claudio Saavedra]
