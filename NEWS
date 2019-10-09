@@ -1,3 +1,17 @@
+Changes in libsoup from 2.68.1 to 2.68.2:
+
+        * Documentation fixes [Sonny Piers]
+
+        * Windows compatibility test fixes [Ignacio Casal Quinteiro]
+
+        * WebSockets: client_max_window_bits in server must have a value [Carlos Garcia Campos]
+
+        * build: improve diagnostics when detecting Apache [Simon McVittie]
+
+        * NTLM: Make v2 authentication more robust [Claudio Saavedra]
+
+        * Updated translations: British English, Chinese (Taiwan), Danish, Dutch
+
 Changes in libsoup from 2.68.0 to 2.68.1:
 
         * Several memory leaks fixed in tests, examples, and parsing code [Claudio Saavedra]
