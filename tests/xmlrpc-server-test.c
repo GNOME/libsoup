@@ -344,6 +344,13 @@ main (int argc, char **argv)
 		g_free (out);
 
 		for (i = 0; tests[i] && *tests[i]; i++) {
+			/* GLib >= 2.62 defaults to TAP output for tests, and
+			 * this adds TAP diagnostics "#..." and the test count
+			 * "1..N", even in the output of "some-test -l".
+			 * Ignore those. */
+			if (tests[i][0] == '#' || g_str_has_prefix (tests[i], "1.."))
+				continue;
+
 			g_assert_true (g_str_has_prefix (tests[i], "/xmlrpc/"));
 			path = g_strdup_printf ("/xmlrpc-server/%s", tests[i] + strlen ("/xmlrpc/"));
 			g_test_add_data_func (path, tests[i], do_one_xmlrpc_test);
