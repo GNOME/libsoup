@@ -38,6 +38,7 @@ endif
 
 common_flags = [
   '-DHAVE_CONFIG_H',
+  '-DG_LOG_USE_STRUCTURED=1',
 ]
 
 cc = meson.get_compiler('c')
