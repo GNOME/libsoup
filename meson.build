@@ -335,7 +335,7 @@ enable_gnome = get_option('gnome') and host_machine.system() != 'windows'
 # GObject introspection #
 #########################
 gir = find_program('g-ir-scanner', required: get_option('introspection'))
-enable_introspection = gir.found() and not meson.is_cross_build()
+enable_introspection = gir.found()
 
 ############
 # Vala API #
