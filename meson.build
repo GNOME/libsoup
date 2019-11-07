@@ -329,7 +329,7 @@ endif
 #################
 # GNOME support #
 #################
-enable_gnome = get_option('gnome') and host_machine.system() != 'windows'
+enable_gnome = get_option('gnome')
 
 #########################
 # GObject introspection #
