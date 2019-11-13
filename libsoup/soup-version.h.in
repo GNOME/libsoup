@@ -399,10 +399,17 @@ G_BEGIN_DECLS
 
 #if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_70
 # define SOUP_DEPRECATED_IN_2_70                G_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_70_FOR(f)         G_DEPRECATED_FOR(f)
 #else
 # define SOUP_DEPRECATED_IN_2_70
+# define SOUP_DEPRECATED_IN_2_70_FOR(f)
 #endif
 
+#if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_70
+# define SOUP_AVAILABLE_IN_2_70                 G_UNAVAILABLE(2, 70) _SOUP_EXTERN
+#else
+# define SOUP_AVAILABLE_IN_2_70                 _SOUP_EXTERN
+#endif
 SOUP_AVAILABLE_IN_2_42
 guint    soup_get_major_version (void);
 
