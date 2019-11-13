@@ -278,13 +278,13 @@ do_cookies_parsing_test (void)
 
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
 	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
-				     "two=2; HttpOnly; max-age=100");
+				     "two=2; HttpOnly; max-age=100; SameSite=Invalid");
 	soup_session_send_message (session, msg);
 	g_object_unref (msg);
 
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
 	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
-				     "three=3; httpONLY=Wednesday; max-age=100");
+				     "three=3; httpONLY=Wednesday; max-age=100; SameSite=Lax");
 	soup_session_send_message (session, msg);
 	g_object_unref (msg);
 
@@ -302,10 +302,12 @@ do_cookies_parsing_test (void)
 			got2 = TRUE;
 			g_assert_true (soup_cookie_get_http_only (cookie));
 			g_assert_true (soup_cookie_get_expires (cookie) != NULL);
+			g_assert_cmpint (soup_cookie_get_same_site_policy (cookie), ==, SOUP_SAME_SITE_POLICY_NONE);
 		} else if (!strcmp (soup_cookie_get_name (cookie), "three")) {
 			got3 = TRUE;
 			g_assert_true (soup_cookie_get_http_only (cookie));
 			g_assert_true (soup_cookie_get_expires (cookie) != NULL);
+			g_assert_cmpint (soup_cookie_get_same_site_policy (cookie), ==, SOUP_SAME_SITE_POLICY_LAX);
 		} else {
 			soup_test_assert (FALSE, "got unexpected cookie '%s'",
 					  soup_cookie_get_name (cookie));

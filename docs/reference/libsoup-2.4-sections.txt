@@ -41,6 +41,11 @@ SoupMessagePriority
 soup_message_get_priority
 soup_message_set_priority
 <SUBSECTION>
+soup_message_get_site_for_cookies
+soup_message_set_site_for_cookies
+soup_message_get_is_top_level_navigation
+soup_message_set_is_top_level_navigation
+<SUBSECTION>
 SOUP_MESSAGE_METHOD
 SOUP_MESSAGE_URI
 SOUP_MESSAGE_HTTP_VERSION
@@ -924,6 +929,10 @@ soup_cookie_get_secure
 soup_cookie_set_http_only
 soup_cookie_get_http_only
 <SUBSECTION>
+SoupSameSitePolicy
+soup_cookie_set_same_site_policy
+soup_cookie_get_same_site_policy
+<SUBSECTION>
 soup_cookie_applies_to_uri
 soup_cookie_domain_matches
 <SUBSECTION>
@@ -950,6 +959,7 @@ SoupCookieJar
 soup_cookie_jar_new
 soup_cookie_jar_get_cookies
 soup_cookie_jar_get_cookie_list
+soup_cookie_jar_get_cookie_list_with_same_site_info
 soup_cookie_jar_set_cookie
 soup_cookie_jar_set_cookie_with_first_party
 <SUBSECTION>
