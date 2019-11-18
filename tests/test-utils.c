@@ -428,6 +428,20 @@ run_server_thread (gpointer user_data)
 	return NULL;
 }
 
+void
+soup_test_server_run_in_thread (SoupServer *server)
+{
+	GThread *thread;
+
+	g_mutex_lock (&server_start_mutex);
+
+	thread = g_thread_new ("server_thread", run_server_thread, server);
+	g_cond_wait (&server_start_cond, &server_start_mutex);
+	g_mutex_unlock (&server_start_mutex);
+
+	g_object_set_data (G_OBJECT (server), "thread", thread);
+}
+
 SoupServer *
 soup_test_server_new (SoupTestServerOptions options)
 {
@@ -457,17 +471,9 @@ soup_test_server_new (SoupTestServerOptions options)
 
 	g_object_set_data (G_OBJECT (server), "options", GUINT_TO_POINTER (options));
 
-	if (options & SOUP_TEST_SERVER_IN_THREAD) {
-		GThread *thread;
-
-		g_mutex_lock (&server_start_mutex);
-
-		thread = g_thread_new ("server_thread", run_server_thread, server);
-		g_cond_wait (&server_start_cond, &server_start_mutex);
-		g_mutex_unlock (&server_start_mutex);
-
-		g_object_set_data (G_OBJECT (server), "thread", thread);
-	} else if (!(options & SOUP_TEST_SERVER_NO_DEFAULT_LISTENER))
+	if (options & SOUP_TEST_SERVER_IN_THREAD)
+		soup_test_server_run_in_thread (server);
+	else if (!(options & SOUP_TEST_SERVER_NO_DEFAULT_LISTENER))
 		server_listen (server);
 
 	return server;

@@ -65,6 +65,7 @@ typedef enum {
 } SoupTestServerOptions;
 
 SoupServer  *soup_test_server_new            (SoupTestServerOptions  options);
+void         soup_test_server_run_in_thread  (SoupServer            *server);
 GUri        *soup_test_server_get_uri        (SoupServer            *server,
 					      const char            *scheme,
 					      const char            *host);
