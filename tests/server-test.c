@@ -126,7 +126,6 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	const char *handled_by;
 
 	g_test_bug ("590751");
 
@@ -141,9 +140,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
-	handled_by = soup_message_headers_get_one (soup_message_get_response_headers (msg),
-						   "X-Handled-By");
-	g_assert_cmpstr (handled_by, ==, NULL);
+	soup_test_assert_handled_by (msg, NULL);
 	g_object_unref (msg);
 
 	server_add_handler (sd, "*", server_star_callback, NULL, NULL);
@@ -157,9 +154,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	handled_by = soup_message_headers_get_one (soup_message_get_response_headers (msg),
-						   "X-Handled-By");
-	g_assert_cmpstr (handled_by, ==, "star_callback");
+	soup_test_assert_handled_by (msg, "star_callback");
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -1393,7 +1388,6 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 	GUri *proxy_uri;
 	char *proxy_uri_str;
 	GProxyResolver *resolver;
-	const char *handled_by;
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
@@ -1409,8 +1403,7 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	handled_by = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Handled-By");
-	g_assert_cmpstr (handled_by, ==, "server_callback");
+	soup_test_assert_handled_by (msg, "server_callback");
 
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);

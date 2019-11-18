@@ -126,6 +126,24 @@ G_STMT_START {								\
 	}								\
 } G_STMT_END
 
+#define soup_test_assert_handled_by(msg, string)			\
+G_STMT_START {								\
+	SoupMessage *_msg = (msg);					\
+	const char *_handled_by;					\
+	const char *_expected = (char *) (string);			\
+	char *_message;							\
+	_handled_by = soup_message_headers_get_one (soup_message_get_response_headers (_msg), \
+	                                            "X-Handled-By"); 	\
+	if (G_UNLIKELY (g_strcmp0 (_handled_by, _expected) != 0)) {	\
+		_message = g_strdup_printf ("Request was handled by %s (expected %s)", \
+		                            _handled_by, _expected);	\
+		g_assertion_message (G_LOG_DOMAIN,			\
+		                     __FILE__, __LINE__, G_STRFUNC,	\
+		                     _message);				\
+		g_free (_message);					\
+	}								\
+} G_STMT_END
+
 #define soup_assert_cmpmem(s1, l1, s2, l2)				\
 G_STMT_START {								\
 	int __l1 = l1, __l2 = l2;					\
