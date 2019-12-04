@@ -1,3 +1,13 @@
+Changes in libsoup from 2.68.2 to 2.68.3:
+
+        * Fixes to testing infrastructure [Simon McVittie]
+
+        * Enable GNOME support in mingw [Fabiano Fidêncio]
+
+        * Allow introspection in cross builds [Ross Burton]
+
+        * Updated translations: Chinese (Taiwan)
+
 Changes in libsoup from 2.68.1 to 2.68.2:
 
         * Documentation fixes [Sonny Piers]
