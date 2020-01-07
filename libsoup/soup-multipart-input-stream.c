@@ -303,7 +303,8 @@ soup_multipart_input_stream_class_init (SoupMultipartInputStreamClass *multipart
 				     "Message",
 				     "The SoupMessage",
 				     SOUP_TYPE_MESSAGE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 
 }
 

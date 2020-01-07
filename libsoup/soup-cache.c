@@ -1008,7 +1008,8 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 							      "Cache directory",
 							      "The directory to store the cache files",
 							      NULL,
-							      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+							      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+							      G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property (gobject_class, PROP_CACHE_TYPE,
 					 g_param_spec_enum ("cache-type",
@@ -1016,7 +1017,8 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 							    "Whether the cache is private or shared",
 							    SOUP_TYPE_CACHE_TYPE,
 							    SOUP_CACHE_SINGLE_USER,
-							    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+							    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+							    G_PARAM_STATIC_STRINGS));
 }
 
 /**

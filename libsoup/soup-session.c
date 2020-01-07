@@ -3229,7 +3229,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "Proxy URI",
 				    "The HTTP Proxy to use for this session",
 				    SOUP_TYPE_URI,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:proxy-resolver:
 	 *
@@ -3257,7 +3258,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "Proxy Resolver",
 				     "The GProxyResolver to use for this session",
 				     G_TYPE_PROXY_RESOLVER,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SESSION_MAX_CONNS:
 	 *
@@ -3271,7 +3273,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  1,
 				  G_MAXINT,
 				  SOUP_SESSION_MAX_CONNS_DEFAULT,
-				  G_PARAM_READWRITE));
+				  G_PARAM_READWRITE |
+				  G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SESSION_MAX_CONNS_PER_HOST:
 	 *
@@ -3285,7 +3288,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  1,
 				  G_MAXINT,
 				  SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT,
-				  G_PARAM_READWRITE));
+				  G_PARAM_READWRITE |
+				  G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:idle-timeout:
 	 *
@@ -3318,7 +3322,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   "Idle Timeout",
 				   "Connection lifetime when idle",
 				   0, G_MAXUINT, 60,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:use-ntlm:
 	 *
@@ -3338,7 +3343,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Use NTLM",
 				      "Whether or not to use NTLM authentication",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_DEPRECATED));
+				      G_PARAM_READWRITE | G_PARAM_DEPRECATED |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:ssl-ca-file:
 	 *
@@ -3364,7 +3370,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "SSL CA file",
 				     "File containing SSL CA certificates",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_DEPRECATED));
+				     G_PARAM_READWRITE | G_PARAM_DEPRECATED |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE:
 	 *
@@ -3401,7 +3408,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Use system CA file",
 				      "Use the system certificate database",
 				      TRUE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SESSION_TLS_DATABASE:
 	 *
@@ -3437,7 +3445,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "TLS Database",
 				     "TLS database to use",
 				     G_TYPE_TLS_DATABASE,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SESSION_SSL_STRICT:
 	 *
@@ -3479,7 +3488,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Strictly validate SSL certificates",
 				      "Whether certificate errors should be considered a connection error",
 				      TRUE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:async-context:
 	 *
@@ -3507,7 +3517,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 		g_param_spec_pointer (SOUP_SESSION_ASYNC_CONTEXT,
 				      "Async GMainContext",
 				      "The GMainContext to dispatch async I/O in",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SESSION_USE_THREAD_CONTEXT:
 	 *
@@ -3532,7 +3543,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Use thread-default GMainContext",
 				      "Whether to use thread-default main contexts",
 				      FALSE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:timeout:
 	 *
@@ -3566,7 +3578,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   "Timeout value",
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupSession:user-agent:
@@ -3606,7 +3619,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "User-Agent string",
 				     "User-Agent string",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupSession:accept-language:
@@ -3632,7 +3646,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "Accept-Language string",
 				     "Accept-Language string",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupSession:accept-language-auto:
@@ -3659,7 +3674,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Accept-Language automatic mode",
 				      "Accept-Language automatic mode",
 				      FALSE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupSession:add-feature: (skip)
@@ -3682,7 +3698,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "Add Feature",
 				     "Add a feature object to the session",
 				     SOUP_TYPE_SESSION_FEATURE,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:add-feature-by-type: (skip)
 	 *
@@ -3704,7 +3721,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "Add Feature By Type",
 				    "Add a feature object of the given type to the session",
 				    G_TYPE_OBJECT,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:remove-feature-by-type: (skip)
 	 *
@@ -3727,7 +3745,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "Remove Feature By Type",
 				    "Remove features of the given type from the session",
 				    G_TYPE_OBJECT,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:http-aliases:
 	 *
@@ -3762,7 +3781,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "http aliases",
 				    "URI schemes that are considered aliases for 'http'",
 				    G_TYPE_STRV,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:https-aliases:
 	 *
@@ -3788,7 +3808,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "https aliases",
 				    "URI schemes that are considered aliases for 'https'",
 				    G_TYPE_STRV,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SOUP_SESSION_LOCAL_ADDRESS:
@@ -3814,7 +3835,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "Local address",
 				     "Address of local end of socket",
 				     SOUP_TYPE_ADDRESS,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SOUP_SESSION_TLS_INTERACTION:
@@ -3838,7 +3860,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "TLS Interaction",
 				     "TLS interaction to use",
 				     G_TYPE_TLS_INTERACTION,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 }
 
 

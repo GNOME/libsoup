@@ -698,7 +698,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "Method",
 				     "The message's HTTP method",
 				     SOUP_METHOD_GET,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_URI:
 	 *
@@ -711,7 +712,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "URI",
 				    "The message's Request-URI",
 				    SOUP_TYPE_URI,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_HTTP_VERSION:
 	 *
@@ -725,7 +727,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   "The HTTP protocol version to use",
 				   SOUP_TYPE_HTTP_VERSION,
 				   SOUP_HTTP_1_1,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_FLAGS:
 	 *
@@ -739,7 +742,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Various message options",
 				    SOUP_TYPE_MESSAGE_FLAGS,
 				    0,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_SERVER_SIDE:
 	 *
@@ -752,7 +756,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				      "Server-side",
 				      "Whether or not the message is server-side rather than client-side",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_STATUS_CODE:
 	 *
@@ -765,7 +770,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   "Status code",
 				   "The HTTP response status code",
 				   0, 999, 0,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_REASON_PHRASE:
 	 *
@@ -778,7 +784,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "Reason phrase",
 				     "The HTTP response reason phrase",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_FIRST_PARTY:
 	 *
@@ -802,7 +809,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "First party",
 				    "The URI loaded in the application when the message was requested.",
 				    SOUP_TYPE_URI,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_REQUEST_BODY:
 	 *
@@ -815,7 +823,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Request Body",
 				    "The HTTP request content",
 				    SOUP_TYPE_MESSAGE_BODY,
-				    G_PARAM_READABLE));
+				    G_PARAM_READABLE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_REQUEST_BODY_DATA:
 	 *
@@ -837,7 +846,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Request Body Data",
 				    "The HTTP request body",
 				    G_TYPE_BYTES,
-				    G_PARAM_READABLE));
+				    G_PARAM_READABLE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_REQUEST_HEADERS:
 	 *
@@ -850,7 +860,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Request Headers",
 				    "The HTTP request headers",
 				    SOUP_TYPE_MESSAGE_HEADERS,
-				    G_PARAM_READABLE));
+				    G_PARAM_READABLE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_RESPONSE_BODY:
 	 *
@@ -863,7 +874,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Response Body",
 				    "The HTTP response content",
 				    SOUP_TYPE_MESSAGE_BODY,
-				    G_PARAM_READABLE));
+				    G_PARAM_READABLE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_RESPONSE_BODY_DATA:
 	 *
@@ -885,7 +897,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Response Body Data",
 				    "The HTTP response body",
 				    G_TYPE_BYTES,
-				    G_PARAM_READABLE));
+				    G_PARAM_READABLE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_RESPONSE_HEADERS:
 	 *
@@ -898,7 +911,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Response Headers",
 				     "The HTTP response headers",
 				    SOUP_TYPE_MESSAGE_HEADERS,
-				    G_PARAM_READABLE));
+				    G_PARAM_READABLE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_TLS_CERTIFICATE:
 	 *
@@ -920,7 +934,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "TLS Certificate",
 				     "The TLS certificate associated with the message",
 				     G_TYPE_TLS_CERTIFICATE,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_TLS_ERRORS:
 	 *
@@ -942,7 +957,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "TLS Errors",
 				    "The verification errors on the message's TLS certificate",
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE |
+				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_MESSAGE_PRIORITY:
 	 *
@@ -958,7 +974,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   "The priority of the message",
 				   SOUP_TYPE_MESSAGE_PRIORITY,
 				   SOUP_MESSAGE_PRIORITY_NORMAL,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 }
 
 

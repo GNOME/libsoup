@@ -333,5 +333,6 @@ soup_hsts_enforcer_db_class_init (SoupHSTSEnforcerDBClass *db_class)
 				     "Filename",
 				     "HSTS policy storage filename",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 }

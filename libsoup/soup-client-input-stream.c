@@ -238,7 +238,8 @@ soup_client_input_stream_class_init (SoupClientInputStreamClass *stream_class)
 				     "Message",
 				     "Message",
 				     SOUP_TYPE_MESSAGE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 }
 
 static void

@@ -179,27 +179,31 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				    "Remote URI",
 				    "The URI of the HTTP server",
 				    SOUP_TYPE_URI,
-				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				    G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_SOCKET_PROPERTIES,
 		g_param_spec_boxed (SOUP_CONNECTION_SOCKET_PROPERTIES,
 				    "Socket properties",
 				    "Socket properties",
 				    SOUP_TYPE_SOCKET_PROPERTIES,
-				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				    G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_STATE,
 		g_param_spec_enum (SOUP_CONNECTION_STATE,
 				   "Connection state",
 				   "Current state of connection",
 				   SOUP_TYPE_CONNECTION_STATE, SOUP_CONNECTION_NEW,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_SSL,
 		g_param_spec_boolean (SOUP_CONNECTION_SSL,
 				      "Connection uses TLS",
 				      "Whether the connection should use TLS",
-				      FALSE, G_PARAM_READWRITE));
+				      FALSE,G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 }
 
 static void

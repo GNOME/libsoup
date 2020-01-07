@@ -114,7 +114,8 @@ soup_proxy_resolver_default_class_init (SoupProxyResolverDefaultClass *klass)
 				     "GProxyResolver",
 				     "The underlying GProxyResolver",
 				     G_TYPE_PROXY_RESOLVER,
-				     G_PARAM_WRITABLE));
+				     G_PARAM_WRITABLE |
+				     G_PARAM_STATIC_STRINGS));
 }
 
 typedef struct {

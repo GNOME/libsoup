@@ -300,7 +300,8 @@ soup_request_class_init (SoupRequestClass *request_class)
 				     "URI",
 				     "The request URI",
 				     SOUP_TYPE_URI,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_REQUEST_SESSION:
 	 *
@@ -321,7 +322,8 @@ soup_request_class_init (SoupRequestClass *request_class)
 				      "Session",
 				      "The request's session",
 				      SOUP_TYPE_SESSION,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 }
 
 static void

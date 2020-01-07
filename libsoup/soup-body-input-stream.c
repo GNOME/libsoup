@@ -391,14 +391,14 @@ soup_body_input_stream_class_init (SoupBodyInputStreamClass *stream_class)
 				   "Message body encoding",
 				   SOUP_TYPE_ENCODING,
 				   SOUP_ENCODING_NONE,
-				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_CONTENT_LENGTH,
 		g_param_spec_int64 ("content-length",
 				    "Content-Length",
 				    "Message body Content-Length",
 				    -1, G_MAXINT64, -1,
-				    G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+				    G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 }
 
 static void

@@ -543,21 +543,24 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				   "FD",
 				   "The socket's file descriptor",
 				   -1, G_MAXINT, -1,
-				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				   G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		 object_class, PROP_GSOCKET,
 		 g_param_spec_object (SOUP_SOCKET_GSOCKET,
 				      "GSocket",
 				      "The socket's underlying GSocket",
 				      G_TYPE_SOCKET,
-				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		 object_class, PROP_IOSTREAM,
 		 g_param_spec_object (SOUP_SOCKET_IOSTREAM,
 				      "GIOStream",
 				      "The socket's underlying GIOStream",
 				      G_TYPE_IO_STREAM,
-				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SOUP_SOCKET_LOCAL_ADDRESS:
@@ -571,7 +574,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Local address",
 				     "Address of local end of socket",
 				     SOUP_TYPE_ADDRESS,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_REMOTE_ADDRESS:
 	 *
@@ -584,7 +588,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Remote address",
 				     "Address of remote end of socket",
 				     SOUP_TYPE_ADDRESS,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSocket:non-blocking:
 	 *
@@ -621,14 +626,16 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Non-blocking",
 				      "Whether or not the socket uses non-blocking I/O",
 				      TRUE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_IPV6_ONLY,
 		g_param_spec_boolean (SOUP_SOCKET_IPV6_ONLY,
 				      "IPv6 only",
 				      "IPv6 only",
 				      FALSE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_IS_SERVER:
 	 *
@@ -651,7 +658,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Server",
 				      "Whether or not the socket is a server socket",
 				      FALSE,
-				      G_PARAM_READABLE));
+				      G_PARAM_READABLE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_SSL_CREDENTIALS:
 	 *
@@ -667,7 +675,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_param_spec_pointer (SOUP_SOCKET_SSL_CREDENTIALS,
 				      "SSL credentials",
 				      "SSL credential information, passed from the session to the SSL implementation",
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_SSL_STRICT:
 	 *
@@ -679,7 +688,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Strictly validate SSL certificates",
 				      "Whether certificate errors should be considered a connection error",
 				      TRUE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_SSL_FALLBACK:
 	 *
@@ -691,7 +701,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "SSLv3 fallback",
 				      "Use SSLv3 instead of TLS (client-side only)",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_TRUSTED_CERTIFICATE:
 	 *
@@ -704,7 +715,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Trusted Certificate",
 				     "Whether the server certificate is trusted, if this is an SSL socket",
 				     FALSE,
-				     G_PARAM_READABLE));
+				     G_PARAM_READABLE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_ASYNC_CONTEXT:
 	 *
@@ -716,7 +728,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_param_spec_pointer (SOUP_SOCKET_ASYNC_CONTEXT,
 				      "Async GMainContext",
 				      "The GMainContext to dispatch this socket's async I/O in",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SOUP_SOCKET_USE_THREAD_CONTEXT:
@@ -739,7 +752,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Use thread context",
 				      "Use g_main_context_get_thread_default",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SOUP_SOCKET_TIMEOUT:
@@ -753,7 +767,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				   "Timeout value",
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SOUP_SOCKET_TLS_CERTIFICATE:
@@ -771,7 +786,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "TLS certificate",
 				     "The peer's TLS certificate",
 				     G_TYPE_TLS_CERTIFICATE,
-				     G_PARAM_READABLE));
+				     G_PARAM_READABLE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SOCKET_TLS_ERRORS:
 	 *
@@ -788,7 +804,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				    "TLS errors",
 				    "Errors with the peer's TLS certificate",
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
-				    G_PARAM_READABLE));
+				    G_PARAM_READABLE |
+				    G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property (
 		 object_class, PROP_SOCKET_PROPERTIES,
@@ -796,7 +813,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Socket properties",
 				     "Socket properties",
 				     SOUP_TYPE_SOCKET_PROPERTIES,
-				     G_PARAM_WRITABLE));
+				     G_PARAM_WRITABLE |
+				     G_PARAM_STATIC_STRINGS));
 }
 
 static void

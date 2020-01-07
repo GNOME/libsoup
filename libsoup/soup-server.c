@@ -686,6 +686,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				   0, 65536, 0,
 				   G_PARAM_READWRITE |
 				   G_PARAM_CONSTRUCT_ONLY |
+				   G_PARAM_STATIC_STRINGS |
 				   G_PARAM_DEPRECATED));
 	/**
 	 * SoupServer:interface:
@@ -718,6 +719,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				     SOUP_TYPE_ADDRESS,
 				     G_PARAM_READWRITE |
 				     G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS |
 				     G_PARAM_DEPRECATED));
 	/**
 	 * SOUP_SERVER_SSL_CERT_FILE:
@@ -749,7 +751,8 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "File containing server TLS (aka SSL) certificate",
 				     NULL,
 				     G_PARAM_READWRITE |
-				     G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SERVER_SSL_KEY_FILE:
 	 *
@@ -775,7 +778,8 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "File containing server TLS (aka SSL) key",
 				     NULL,
 				     G_PARAM_READWRITE |
-				     G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_SERVER_TLS_CERTIFICATE:
 	 *
@@ -801,7 +805,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "TLS certificate",
 				     "GTlsCertificate to use for https",
 				     G_TYPE_TLS_CERTIFICATE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupServer:async-context:
 	 *
@@ -829,6 +833,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				      "The GMainContext to dispatch async I/O in",
 				      G_PARAM_READWRITE |
 				      G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS |
 				      G_PARAM_DEPRECATED));
 	/**
 	 * SOUP_SERVER_RAW_PATHS:
@@ -843,7 +848,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				      "Raw paths",
 				      "If %TRUE, percent-encoding in the Request-URI path will not be automatically decoded.",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupServer:server-header:
@@ -884,7 +889,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "Server header",
 				     "Server header",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupServer:http-aliases:
@@ -920,7 +925,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				    "http aliases",
 				    "URI schemes that are considered aliases for 'http'",
 				    G_TYPE_STRV,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupServer:https-aliases:
 	 *
@@ -946,7 +951,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				    "https aliases",
 				    "URI schemes that are considered aliases for 'https'",
 				    G_TYPE_STRV,
-				    G_PARAM_READWRITE));
+				    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * SoupServer:add-websocket-extension: (skip)
@@ -969,7 +974,7 @@ soup_server_class_init (SoupServerClass *server_class)
                                     "Add support for a WebSocket extension",
                                     "Add support for a WebSocket extension of the given type",
                                     SOUP_TYPE_WEBSOCKET_EXTENSION,
-                                    G_PARAM_WRITABLE));
+                                    G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
         /**
          * SoupServer:remove-websocket-extension: (skip)
          *
@@ -991,7 +996,7 @@ soup_server_class_init (SoupServerClass *server_class)
                                     "Remove support for a WebSocket extension",
                                     "Remove support for a WebSocket extension of the given type",
                                     SOUP_TYPE_WEBSOCKET_EXTENSION,
-                                    G_PARAM_WRITABLE));
+                                    G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 }
 
 /**

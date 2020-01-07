@@ -314,14 +314,14 @@ soup_content_sniffer_stream_class_init (SoupContentSnifferStreamClass *sniffer_c
 				     "Sniffer",
 				     "The stream's SoupContentSniffer",
 				     SOUP_TYPE_CONTENT_SNIFFER,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_MESSAGE,
 		g_param_spec_object ("message",
 				     "Message",
 				     "The stream's SoupMessage",
 				     SOUP_TYPE_MESSAGE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 }
 
 static void

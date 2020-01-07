@@ -192,7 +192,8 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 				      "Read-only",
 				      "Whether or not the cookie jar is read-only",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SOUP_COOKIE_JAR_ACCEPT_POLICY:
@@ -215,7 +216,8 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 				   "The policy the jar should follow to accept or reject cookies",
 				   SOUP_TYPE_COOKIE_JAR_ACCEPT_POLICY,
 				   SOUP_COOKIE_JAR_ACCEPT_ALWAYS,
-				   G_PARAM_READWRITE));
+				   G_PARAM_READWRITE |
+				   G_PARAM_STATIC_STRINGS));
 }
 
 /**

@@ -197,7 +197,8 @@ soup_io_stream_class_init (SoupIOStreamClass *stream_class)
 				     "Base GIOStream",
 				     G_TYPE_IO_STREAM,
 				     G_PARAM_READWRITE |
-				     G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_CLOSE_ON_DISPOSE,
 		g_param_spec_boolean ("close-on-dispose",
@@ -205,7 +206,8 @@ soup_io_stream_class_init (SoupIOStreamClass *stream_class)
 				      "Close base GIOStream when closing",
 				      TRUE,
 				      G_PARAM_READWRITE |
-				      G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 }
 
 GIOStream *

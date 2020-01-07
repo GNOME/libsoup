@@ -196,7 +196,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				     "Realm",
 				     "The realm of this auth domain",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_PROXY:
 	 *
@@ -209,7 +210,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				      "Proxy",
 				      "Whether or not this is a proxy auth domain",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_ADD_PATH:
 	 *
@@ -222,7 +224,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				     "Add a path",
 				     "Add a path covered by this auth domain",
 				     NULL,
-				     G_PARAM_WRITABLE));
+				     G_PARAM_WRITABLE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_REMOVE_PATH:
 	 *
@@ -235,7 +238,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				     "Remove a path",
 				     "Remove a path covered by this auth domain",
 				     NULL,
-				     G_PARAM_WRITABLE));
+				     G_PARAM_WRITABLE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_FILTER:
 	 *
@@ -252,7 +256,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_FILTER,
 				      "Filter",
 				      "A filter for deciding whether or not to require authentication",
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_FILTER_DATA:
 	 *
@@ -269,7 +274,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_FILTER_DATA,
 				      "Filter data",
 				      "Data to pass to filter",
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK:
 	 *
@@ -281,7 +287,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK,
 				      "Generic authentication callback",
 				      "An authentication callback that can be used with any SoupAuthDomain subclass",
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA:
 	 *
@@ -293,7 +300,8 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA,
 				      "Authentication callback data",
 				      "Data to pass to auth callback",
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 }
 
 /**

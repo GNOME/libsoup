@@ -329,5 +329,6 @@ soup_cookie_jar_db_class_init (SoupCookieJarDBClass *db_class)
 				     "Filename",
 				     "Cookie-storage filename",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 }

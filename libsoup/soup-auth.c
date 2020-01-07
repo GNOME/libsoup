@@ -154,7 +154,8 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Scheme name",
 				     "Authentication scheme name",
 				     NULL,
-				     G_PARAM_READABLE));
+				     G_PARAM_READABLE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_REALM:
 	 *
@@ -167,7 +168,8 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Realm",
 				     "Authentication realm",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_HOST:
 	 *
@@ -180,7 +182,8 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Host",
 				     "Authentication host",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_IS_FOR_PROXY:
 	 *
@@ -193,7 +196,8 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				      "For Proxy",
 				      "Whether or not the auth is for a proxy server",
 				      FALSE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_IS_AUTHENTICATED:
 	 *
@@ -206,7 +210,8 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				      "Authenticated",
 				      "Whether or not the auth is authenticated",
 				      FALSE,
-				      G_PARAM_READABLE));
+				      G_PARAM_READABLE |
+				      G_PARAM_STATIC_STRINGS));
 }
 
 /**

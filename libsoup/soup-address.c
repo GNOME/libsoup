@@ -268,7 +268,8 @@ soup_address_class_init (SoupAddressClass *address_class)
 				     "Name",
 				     "Hostname for this address",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_ADDRESS_FAMILY:
 	 *
@@ -282,7 +283,8 @@ soup_address_class_init (SoupAddressClass *address_class)
 				   "Address family for this address",
 				   SOUP_TYPE_ADDRESS_FAMILY,
 				   SOUP_ADDRESS_FAMILY_INVALID,
-				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				   G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_ADDRESS_PORT:
 	 *
@@ -295,7 +297,8 @@ soup_address_class_init (SoupAddressClass *address_class)
 				  "Port",
 				  "Port for this address",
 				  -1, 65535, -1,
-				  G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				  G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				  G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_ADDRESS_PROTOCOL:
 	 *
@@ -308,7 +311,8 @@ soup_address_class_init (SoupAddressClass *address_class)
 				     "Protocol",
 				     "URI scheme for this address",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_ADDRESS_PHYSICAL:
 	 *
@@ -321,7 +325,8 @@ soup_address_class_init (SoupAddressClass *address_class)
 				     "Physical address",
 				     "IP address for this address",
 				     NULL,
-				     G_PARAM_READABLE));
+				     G_PARAM_READABLE |
+				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_ADDRESS_SOCKADDR:
 	 *
@@ -333,7 +338,8 @@ soup_address_class_init (SoupAddressClass *address_class)
 		g_param_spec_pointer (SOUP_ADDRESS_SOCKADDR,
 				      "sockaddr",
 				      "struct sockaddr for this address",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				      G_PARAM_STATIC_STRINGS));
 }
 
 /**

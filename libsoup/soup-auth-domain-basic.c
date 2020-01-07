@@ -321,7 +321,8 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK,
 				      "Authentication callback",
 				      "Password-checking callback",
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 	/**
 	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA:
 	 *
@@ -338,5 +339,6 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA,
 				      "Authentication callback data",
 				      "Data to pass to authentication callback",
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 }

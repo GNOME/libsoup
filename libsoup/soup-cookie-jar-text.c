@@ -356,5 +356,6 @@ soup_cookie_jar_text_class_init (SoupCookieJarTextClass *text_class)
 				     "Filename",
 				     "Cookie-storage filename",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 }
