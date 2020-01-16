@@ -760,7 +760,7 @@ soup_date_is_past (SoupDate *date)
 	g_return_val_if_fail (date != NULL, TRUE);
 
 	/* optimization */
-	if (date->year < 2010)
+	if (date->year < 2020)
 		return TRUE;
 
 	return soup_date_to_time_t (date) < time (NULL);
