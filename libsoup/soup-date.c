@@ -722,12 +722,15 @@ soup_date_to_time_t (SoupDate *date)
 	return (time_t) (sizeof (time_t) == 4 ? MIN(seconds, G_MAXINT32) : seconds);
 }
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 /**
  * soup_date_to_timeval:
  * @date: a #SoupDate
  * @time: (out): a #GTimeVal structure in which to store the converted time.
  *
  * Converts @date to a #GTimeVal.
+ *
+ * Deprecated: Do not use #GTimeVal, as it's not Y2038-safe.
  *
  * Since: 2.24
  */
@@ -743,6 +746,7 @@ soup_date_to_timeval (SoupDate *date, GTimeVal *time)
 	time->tv_sec = ((((time->tv_sec * 24) + date->hour) * 60) + date->minute) * 60 + date->second;
 	time->tv_usec = 0;
 }
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 /**
  * soup_date_is_past:
