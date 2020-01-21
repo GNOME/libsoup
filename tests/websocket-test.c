@@ -1067,6 +1067,34 @@ test_close_after_close (Test *test,
 	g_io_stream_close (test->raw_server, NULL, NULL);
 }
 
+static gboolean
+on_close_unref_connection (SoupWebsocketConnection *ws,
+			   gpointer user_data)
+{
+	Test *test = user_data;
+
+	g_assert_true (test->server == ws);
+	g_clear_object (&test->server);
+	return TRUE;
+}
+
+static void
+test_server_unref_connection_on_close (Test *test,
+				       gconstpointer data)
+{
+	gboolean close_event_client = FALSE;
+
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event_client);
+	g_signal_connect (test->server, "closed", G_CALLBACK (on_close_unref_connection), test);
+	soup_websocket_connection_close (test->client, SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "client closed");
+	g_assert_cmpint (soup_websocket_connection_get_state (test->client), ==, SOUP_WEBSOCKET_STATE_CLOSING);
+
+	WAIT_UNTIL (test->server == NULL);
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+
+	g_assert_true (close_event_client);
+}
+
 static gpointer
 timeout_server_thread (gpointer user_data)
 {
@@ -1922,6 +1950,11 @@ main (int argc,
 		    setup_half_direct_connection,
 		    test_close_after_close,
 		    teardown_direct_connection);
+
+	g_test_add ("/websocket/soup/server-unref-connection-on-close", Test, NULL,
+		    setup_soup_connection,
+		    test_server_unref_connection_on_close,
+		    teardown_soup_connection);
 
 
 	g_test_add ("/websocket/direct/protocol-negotiate", Test, NULL, NULL,
