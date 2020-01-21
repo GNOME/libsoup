@@ -1156,7 +1156,8 @@ soup_websocket_connection_read (SoupWebsocketConnection *self)
 		return;
 	}
 
-	soup_websocket_connection_start_input_source (self);
+	if (!pv->io_closing)
+		soup_websocket_connection_start_input_source (self);
 }
 
 static gboolean
