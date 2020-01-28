@@ -4921,6 +4921,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	SoupMessageQueueItem *item;
 	GTask *task;
 	GPtrArray *supported_extensions;
+	SoupMessageFlags flags;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (priv->use_thread_context);
@@ -4928,6 +4929,15 @@ soup_session_websocket_connect_async (SoupSession          *session,
 
 	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
 	soup_websocket_client_prepare_handshake_with_extensions (msg, origin, protocols, supported_extensions);
+
+	/* When the client is to _Establish a WebSocket Connection_ given a set
+	 * of (/host/, /port/, /resource name/, and /secure/ flag), along with a
+	 * list of /protocols/ and /extensions/ to be used, and an /origin/ in
+	 * the case of web browsers, it MUST open a connection, send an opening
+	 * handshake, and read the server's handshake in response.
+	 */
+	flags = soup_message_get_flags (msg);
+	soup_message_set_flags (msg, flags | SOUP_MESSAGE_NEW_CONNECTION);
 
 	task = g_task_new (session, cancellable, callback, user_data);
 	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
