@@ -65,8 +65,8 @@ GSList        *           soup_cookie_jar_get_cookie_list_with_same_site_info (
 	                                                               SoupURI                   *uri,
 								       SoupURI                   *top_level,
 								       SoupURI                   *site_for_cookies,
-								       const char                *method,
 								       gboolean                   for_http,
+								       gboolean                   is_safe_method,
 								       gboolean                   is_top_level_navigation);
 SOUP_AVAILABLE_IN_2_24
 void                      soup_cookie_jar_set_cookie                  (SoupCookieJar             *jar,

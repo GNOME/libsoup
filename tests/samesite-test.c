@@ -82,8 +82,8 @@ same_site_test (SameSiteFixture *fixture, gconstpointer user_data)
 	fixture->cookies = soup_cookie_jar_get_cookie_list_with_same_site_info (fixture->jar, fixture->origin_uri,
 	                                                                        test->cross_origin ? fixture->cross_uri : fixture->origin_uri,
 	                                                                        test->cookie_uri_is_origin ? fixture->origin_uri : NULL,
-	                                                                        test->unsafe_method ? "POST" : "GET",
 	                                                                        test->javascript ? FALSE : TRUE,
+	                                                                        !test->unsafe_method,
 	                                                                        test->top_level_nav);
 	assert_highest_policy_visible (fixture->cookies, test->visible_policy);
 }
