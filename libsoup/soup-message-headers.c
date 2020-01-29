@@ -453,32 +453,6 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
 }
 
 /**
- * soup_message_headers_get:
- * @hdrs: a #SoupMessageHeaders
- * @name: header name
- * 
- * Gets the value of header @name in @hdrs.
- *
- * This method was supposed to work correctly for both single-valued
- * and list-valued headers, but because some HTTP clients/servers
- * mistakenly send multiple copies of headers that are supposed to be
- * single-valued, it sometimes returns incorrect results. To fix this,
- * the methods soup_message_headers_get_one() and
- * soup_message_headers_get_list() were introduced, so callers can
- * explicitly state which behavior they are expecting.
- *
- * Return value: (nullable): as with soup_message_headers_get_list().
- * 
- * Deprecated: Use soup_message_headers_get_one() or
- * soup_message_headers_get_list() instead.
- **/
-const char *
-soup_message_headers_get (SoupMessageHeaders *hdrs, const char *name)
-{
-	return soup_message_headers_get_list (hdrs, name);
-}
-
-/**
  * SoupMessageHeadersIter:
  *
  * An opaque type used to iterate over a %SoupMessageHeaders
