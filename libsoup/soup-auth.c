@@ -552,32 +552,3 @@ soup_auth_free_protection_space (SoupAuth *auth, GSList *space)
 {
 	g_slist_free_full (space, g_free);
 }
-
-/**
- * soup_auth_get_saved_users:
- *
- * Return value: (transfer full) (element-type utf8):
- */
-GSList *
-soup_auth_get_saved_users (SoupAuth *auth)
-{
-	return NULL;
-}
-
-const char *
-soup_auth_get_saved_password (SoupAuth *auth, const char *user)
-{
-	return NULL;
-}
-
-void
-soup_auth_has_saved_password (SoupAuth *auth, const char *username,
-			      const char *password)
-{
-}
-
-void
-soup_auth_save_password (SoupAuth *auth, const char *username,
-			 const char *password)
-{
-}

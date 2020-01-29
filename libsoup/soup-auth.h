@@ -122,25 +122,6 @@ GType soup_auth_ntlm_get_type   (void);
 SOUP_AVAILABLE_IN_2_54
 GType soup_auth_negotiate_get_type   (void);
 
-/* Deprecated SoupPasswordManager-related APIs: all are now no-ops */
-SOUP_AVAILABLE_IN_2_28
-SOUP_DEPRECATED_IN_2_28
-GSList     *soup_auth_get_saved_users    (SoupAuth   *auth);
-SOUP_AVAILABLE_IN_2_28
-SOUP_DEPRECATED_IN_2_28
-const char *soup_auth_get_saved_password (SoupAuth   *auth,
-					  const char *user);
-SOUP_AVAILABLE_IN_2_28
-SOUP_DEPRECATED_IN_2_28
-void        soup_auth_save_password      (SoupAuth   *auth,
-					  const char *username,
-					  const char *password);
-SOUP_AVAILABLE_IN_2_28
-SOUP_DEPRECATED_IN_2_28
-void        soup_auth_has_saved_password (SoupAuth   *auth,
-					  const char *username,
-					  const char *password);
-
 SOUP_AVAILABLE_IN_2_54
 gboolean    soup_auth_negotiate_supported   (void);
 
