@@ -21,12 +21,14 @@ gboolean soup_uri_is_https (SoupURI *uri, char **aliases);
 #define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \
 				     method == SOUP_METHOD_HEAD || \
 				     method == SOUP_METHOD_OPTIONS || \
-				     method == SOUP_METHOD_PROPFIND)
+				     method == SOUP_METHOD_PROPFIND || \
+				     method == SOUP_METHOD_TRACE)
 
 #define SOUP_METHOD_IS_IDEMPOTENT(method) (method == SOUP_METHOD_GET || \
 					   method == SOUP_METHOD_HEAD || \
 					   method == SOUP_METHOD_OPTIONS || \
 					   method == SOUP_METHOD_PROPFIND || \
+					   method == SOUP_METHOD_TRACE || \
 					   method == SOUP_METHOD_PUT || \
 					   method == SOUP_METHOD_DELETE)
 
