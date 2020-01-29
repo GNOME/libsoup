@@ -182,27 +182,6 @@ soup_installed_headers = soup_introspection_headers + [
   'soup.h'
 ]
 
-soup_gnome_sources = [
-  'soup-cookie-jar-sqlite.c',
-  'soup-gnome-features.c',
-  'soup-password-manager-gnome.c',
-  'soup-proxy-resolver-gnome.c'
-]
-
-soup_gnome_headers = [
-  'soup-proxy-resolver-gnome.h',
-  'soup-password-manager-gnome.h'
-]
-
-soup_gnome_introspection_headers = [
-  'soup-cookie-jar-sqlite.h',
-  'soup-gnome-features.h'
-]
-
-soup_gnome_installed_headers = soup_gnome_introspection_headers + [
-  'soup-gnome.h'
-]
-
 if brotlidec_dep.found()
   soup_sources += 'soup-brotli-decompressor.c'
   soup_headers += 'soup-brotli-decompressor.h'
@@ -224,10 +203,7 @@ soup_version_h = configure_file(input : 'soup-version.h.in',
 
 enum_types = 'soup-enum-types'
 soup_enums = gnome.mkenums('soup-enum-types',
-  sources : [
-    soup_installed_headers,
-    soup_gnome_installed_headers
-  ],
+  sources : soup_installed_headers,
   h_template : enum_types + '.h.template',
   c_template : enum_types + '.c.template',
   install_header : true,
@@ -277,36 +253,6 @@ libsoup_dep = declare_dependency(link_with : libsoup,
   sources : soup_enum_h,
   dependencies : [ platform_deps, glib_deps ])
 
-if enable_gnome
-  soup_gnome_api_name = 'soup-gnome-' + apiversion
-  libsoup_gnome_api_name = 'lib' + soup_gnome_api_name
-
-  includedir = join_paths(libsoup_gnome_api_name, meson.project_name())
-  install_headers(
-    soup_gnome_installed_headers,
-    subdir : includedir)
-
-  libsoup_gnome = library(soup_gnome_api_name,
-    soup_gnome_sources + soup_gnome_headers,
-    version : libversion,
-    soversion : soversion,
-    darwin_versions: darwin_versions,
-    c_args : libsoup_c_args + hidden_visibility_flag,
-    include_directories : configinc,
-    install : true,
-    dependencies : deps + [libsoup_dep])
-
-  pkg.generate(
-    libraries : libsoup_gnome,
-    version : soup_version,
-    name : meson.project_name(),
-    description : 'A glib-based HTTP library',
-    filebase : libsoup_gnome_api_name,
-    requires : libsoup_api_name,
-    subdirs: libsoup_gnome_api_name,
-    variables: 'exec_prefix=${prefix}')
-endif
-
 if enable_introspection or enable_vapi
   soup_gir_args = libsoup_c_args + ['-DLIBSOUP_USE_UNSTABLE_REQUEST_API']
 
@@ -345,28 +291,6 @@ if enable_introspection or enable_vapi
       ],
       packages : 'gio-2.0',
       install : true,
-    )
-  endif
-
-  if enable_gnome
-    soup_gnome_gir_args = libsoup_c_args + [
-      '--include-uninstalled=' + soup_gir_gen_sources[0].full_path()
-    ]
-
-    gnome.generate_gir(libsoup_gnome,
-      sources : [
-        soup_gnome_sources,
-        soup_gnome_introspection_headers
-      ],
-      nsversion : apiversion,
-      namespace : 'SoupGNOME',
-      symbol_prefix : soup_ns.to_lower(),
-      identifier_prefix : soup_ns,
-      export_packages : libsoup_gnome_api_name,
-      extra_args : soup_gnome_gir_args,
-      dependencies : soup_gir_gen_dep,
-      install : true,
-      header: join_paths(meson.project_name(), 'soup-gnome.h'),
     )
   endif
 endif

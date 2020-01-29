@@ -34,12 +34,6 @@ option('tls_check',
   description : 'Enable TLS support through glib-networking. If you are building a package, you can disable this to allow building libsoup anyway (since glib-networking is not actually required at compile time), but you should be sure to add a runtime dependency on it.'
 )
 
-option('gnome',
-  type : 'boolean',
-  value : true,
-  description : 'Build libsoup with GNOME support'
-)
-
 option('introspection',
   type : 'feature',
   value : 'auto',
