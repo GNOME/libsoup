@@ -237,24 +237,6 @@ soup_cookie_jar_new (void)
 	return g_object_new (SOUP_TYPE_COOKIE_JAR, NULL);
 }
 
-/**
- * soup_cookie_jar_save:
- * @jar: a #SoupCookieJar
- *
- * This function exists for backward compatibility, but does not do
- * anything any more; cookie jars are saved automatically when they
- * are changed.
- *
- * Since: 2.24
- *
- * Deprecated: This is a no-op.
- */
-void
-soup_cookie_jar_save (SoupCookieJar *jar)
-{
-	/* Does nothing, obsolete */
-}
-
 static void
 soup_cookie_jar_changed (SoupCookieJar *jar,
 			 SoupCookie *old, SoupCookie *new)

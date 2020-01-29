@@ -981,7 +981,6 @@ SOUP_IS_COOKIE_JAR
 SOUP_IS_COOKIE_JAR_CLASS
 SOUP_TYPE_COOKIE_JAR
 soup_cookie_jar_get_type
-soup_cookie_jar_save
 </SECTION>
 
 <SECTION>
