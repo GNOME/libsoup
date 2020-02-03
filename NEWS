@@ -1,3 +1,22 @@
+Changes in libsoup from 2.68.3 to 2.69.90:
+
+	* Add new API to expose support for same-site cookies [Patrick Griffis]
+
+	* Fix TRACE method not being considered safe and idempotent internally [Patrick
+	  Griffis]
+
+	* WebSockets: ensure a new connection is created for WebSocket requests [Carlos
+	  Garcia Campos]
+
+	* WebSockets: do not start the input source when IO is closing [Carlos Garcia
+	  Campos]
+
+	* Deprecate soup_date_to_timeval() [Claudio Saavedra]
+
+	* build: Update glib requirement to 2.58 [Xavier Claessens]
+
+	* Updated translations: Malay [Umarzuki Mochlis]
+
 Changes in libsoup from 2.68.2 to 2.68.3:
 
         * Fixes to testing infrastructure [Simon McVittie]
