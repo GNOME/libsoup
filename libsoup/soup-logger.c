@@ -437,43 +437,6 @@ soup_logger_set_id (SoupLogger *logger, gpointer object)
 	return GPOINTER_TO_UINT (id);
 }
 
-/**
- * soup_logger_attach:
- * @logger: a #SoupLogger
- * @session: a #SoupSession
- *
- * Sets @logger to watch @session and print debug information for
- * its messages.
- *
- * (The session will take a reference on @logger, which will be
- * removed when you call soup_logger_detach(), or when the session is
- * destroyed.)
- *
- * Deprecated: Use soup_session_add_feature() instead.
- **/
-void
-soup_logger_attach (SoupLogger  *logger,
-		    SoupSession *session)
-{
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
-}
-
-/**
- * soup_logger_detach:
- * @logger: a #SoupLogger
- * @session: a #SoupSession
- *
- * Stops @logger from watching @session.
- *
- * Deprecated: Use soup_session_remove_feature() instead.
- **/
-void
-soup_logger_detach (SoupLogger  *logger,
-		    SoupSession *session)
-{
-	soup_session_remove_feature (session, SOUP_SESSION_FEATURE (logger));
-}
-
 static void soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 			       char direction, const char *format, ...) G_GNUC_PRINTF (4, 5);
 
