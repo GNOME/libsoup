@@ -167,7 +167,6 @@ typedef struct {
 	GSList            *listeners;
 	GSList            *clients;
 
-	char              *ssl_cert_file, *ssl_key_file;
 	GTlsCertificate   *tls_cert;
 
 	char              *server_header;
@@ -196,14 +195,9 @@ typedef struct {
 enum {
 	PROP_0,
 
-	PROP_PORT,
-	PROP_INTERFACE,
-	PROP_SSL_CERT_FILE,
-	PROP_SSL_KEY_FILE,
 	PROP_TLS_CERT_FILE,
 	PROP_TLS_KEY_FILE,
 	PROP_TLS_CERTIFICATE,
-	PROP_ASYNC_CONTEXT,
 	PROP_RAW_PATHS,
 	PROP_SERVER_HEADER,
 	PROP_HTTP_ALIASES,
@@ -246,8 +240,6 @@ soup_server_init (SoupServer *server)
 	priv->http_aliases[0] = (char *)g_intern_string ("*");
 	priv->http_aliases[1] = NULL;
 
-	priv->legacy_port = -1;
-
 	priv->websocket_extension_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
 
 	/* Use permessage-deflate extension by default */
@@ -272,10 +264,6 @@ soup_server_finalize (GObject *object)
 	SoupServer *server = SOUP_SERVER (object);
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
-	g_clear_object (&priv->legacy_iface);
-
-	g_free (priv->ssl_cert_file);
-	g_free (priv->ssl_key_file);
 	g_clear_object (&priv->tls_cert);
 
 	g_free (priv->server_header);
@@ -285,7 +273,6 @@ soup_server_finalize (GObject *object)
 	g_slist_free_full (priv->auth_domains, g_object_unref);
 
 	g_clear_pointer (&priv->loop, g_main_loop_unref);
-	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
 	g_free (priv->http_aliases);
 	g_free (priv->https_aliases);
@@ -295,104 +282,13 @@ soup_server_finalize (GObject *object)
 	G_OBJECT_CLASS (soup_server_parent_class)->finalize (object);
 }
 
-static gboolean
-soup_server_ensure_listening (SoupServer *server)
-{
-	SoupServerPrivate *priv = soup_server_get_instance_private (server);
-	SoupSocket *listener;
-
-	if (priv->listeners)
-		return TRUE;
-
-	if (!priv->legacy_iface) {
-		priv->legacy_iface =
-			soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4,
-					      priv->legacy_port);
-	}
-
-	listener = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->legacy_iface,
-				    SOUP_SOCKET_SSL_CREDENTIALS, priv->tls_cert,
-				    SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
-				    NULL);
-	if (!soup_socket_listen (listener)) {
-		g_object_unref (listener);
-		return FALSE;
-	}
-
-	/* Re-resolve the interface address, in particular in case
-	 * the passed-in address had SOUP_ADDRESS_ANY_PORT.
-	 */
-	g_object_unref (priv->legacy_iface);
-	priv->legacy_iface = soup_socket_get_local_address (listener);
-	g_object_ref (priv->legacy_iface);
-	priv->legacy_port = soup_address_get_port (priv->legacy_iface);
-
-	priv->listeners = g_slist_prepend (priv->listeners, listener);
-	return TRUE;
-}
-
 static GObject *
 soup_server_constructor (GType                  type,
 			 guint                  n_construct_properties,
 			 GObjectConstructParam *construct_properties)
 {
-	GObject *server;
-	SoupServerPrivate *priv;
-	gboolean legacy_port_set;
-
-	server = G_OBJECT_CLASS (soup_server_parent_class)->
+	return G_OBJECT_CLASS (soup_server_parent_class)->
 		constructor (type, n_construct_properties, construct_properties);
-	priv = soup_server_get_instance_private (SOUP_SERVER (server));
-
-	/* For backward compatibility, we have to process the
-	 * :ssl-cert-file, :ssl-key-file, :interface, and :port
-	 * properties now, and return NULL if they are
-	 * invalid/unsatisfiable.
-	 */
-	if (priv->ssl_cert_file && priv->ssl_key_file) {
-		GError *error = NULL;
-
-		if (priv->tls_cert)
-			g_object_unref (priv->tls_cert);
-		priv->tls_cert = g_tls_certificate_new_from_files (priv->ssl_cert_file, priv->ssl_key_file, &error);
-		if (!priv->tls_cert) {
-			g_warning ("Could not read TLS certificate from '%s': %s",
-				   priv->ssl_cert_file, error->message);
-			g_error_free (error);
-			g_object_unref (server);
-			return NULL;
-		}
-	}
-
-	if (priv->legacy_port != -1)
-		legacy_port_set = TRUE;
-	else {
-		legacy_port_set = FALSE;
-		priv->legacy_port = 0;
-	}
-
-	if (legacy_port_set || priv->legacy_iface) {
-		if (!soup_server_ensure_listening (SOUP_SERVER (server))) {
-			g_object_unref (server);
-			return NULL;
-		}
-	} else {
-		/* If neither port nor iface was specified, then
-		 * either: (a) the caller is planning to use the new
-		 * listen APIs, so we don't have to do anything now,
-		 * or (b) the caller is using the legacy APIs but
-		 * wants the default values for interface and port
-		 * (address 0.0.0.0, port 0), in which case a later
-		 * call to soup_server_ensure_listening() will set it
-		 * up just-in-time; we don't have to worry about it
-		 * failing in that case, because it can't (unless you
-		 * have no IPv4 addresses configured [even localhost],
-		 * or there are already listeners on all 65,535 ports.
-		 * We assume neither of these will happen.)
-		 */
-	}
-
-	return server;
 }
 
 /* priv->http_aliases and priv->https_aliases are stored as arrays of
@@ -427,34 +323,10 @@ soup_server_set_property (GObject *object, guint prop_id,
 	const char *header;
 
 	switch (prop_id) {
-	case PROP_PORT:
-		if (g_value_get_uint (value) != 0)
-			priv->legacy_port = g_value_get_uint (value);
-		break;
-	case PROP_INTERFACE:
-		if (priv->legacy_iface)
-			g_object_unref (priv->legacy_iface);
-		priv->legacy_iface = g_value_get_object (value);
-		if (priv->legacy_iface)
-			g_object_ref (priv->legacy_iface);
-		break;
-	case PROP_SSL_CERT_FILE:
-		g_free (priv->ssl_cert_file);
-		priv->ssl_cert_file = g_value_dup_string (value);
-		break;
-	case PROP_SSL_KEY_FILE:
-		g_free (priv->ssl_key_file);
-		priv->ssl_key_file = g_value_dup_string (value);
-		break;
 	case PROP_TLS_CERTIFICATE:
 		if (priv->tls_cert)
 			g_object_unref (priv->tls_cert);
 		priv->tls_cert = g_value_dup_object (value);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		priv->async_context = g_value_get_pointer (value);
-		if (priv->async_context)
-			g_main_context_ref (priv->async_context);
 		break;
 	case PROP_RAW_PATHS:
 		priv->raw_paths = g_value_get_boolean (value);
@@ -500,25 +372,8 @@ soup_server_get_property (GObject *object, guint prop_id,
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	switch (prop_id) {
-	case PROP_PORT:
-		soup_server_ensure_listening (server);
-		g_value_set_uint (value, priv->legacy_port > 0 ? priv->legacy_port : 0);
-		break;
-	case PROP_INTERFACE:
-		soup_server_ensure_listening (server);
-		g_value_set_object (value, priv->legacy_iface);
-		break;
-	case PROP_SSL_CERT_FILE:
-		g_value_set_string (value, priv->ssl_cert_file);
-		break;
-	case PROP_SSL_KEY_FILE:
-		g_value_set_string (value, priv->ssl_key_file);
-		break;
 	case PROP_TLS_CERTIFICATE:
 		g_value_set_object (value, priv->tls_cert);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
 		break;
 	case PROP_RAW_PATHS:
 		g_value_set_boolean (value, priv->raw_paths);
@@ -657,130 +512,6 @@ soup_server_class_init (SoupServerClass *server_class)
 
 	/* properties */
 	/**
-	 * SoupServer:port:
-	 *
-	 * The port the server is listening on, if you are using the
-	 * old #SoupServer API. (This will not be set if you use
-	 * soup_server_listen(), etc.)
-	 *
-	 * Deprecated: #SoupServers can listen on multiple interfaces
-	 * at once now. Use soup_server_listen(), etc, to listen on a
-	 * port, and soup_server_get_uris() to see what ports are
-	 * being listened on.
-	 */
-	/**
-	 * SOUP_SERVER_PORT:
-	 *
-	 * Alias for the deprecated #SoupServer:port property, qv.
-	 *
-	 * Deprecated: #SoupServers can listen on multiple interfaces
-	 * at once now. Use soup_server_listen(), etc, to listen on a
-	 * port, and soup_server_get_uris() to see what ports are
-	 * being listened on.
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_PORT,
-		g_param_spec_uint (SOUP_SERVER_PORT,
-				   "Port",
-				   "Port to listen on (Deprecated)",
-				   0, 65536, 0,
-				   G_PARAM_READWRITE |
-				   G_PARAM_CONSTRUCT_ONLY |
-				   G_PARAM_STATIC_STRINGS |
-				   G_PARAM_DEPRECATED));
-	/**
-	 * SoupServer:interface:
-	 *
-	 * The address of the network interface the server is
-	 * listening on, if you are using the old #SoupServer API.
-	 * (This will not be set if you use soup_server_listen(),
-	 * etc.)
-	 *
-	 * Deprecated: #SoupServers can listen on multiple interfaces
-	 * at once now. Use soup_server_listen(), etc, to listen on an
-	 * interface, and soup_server_get_uris() to see what addresses
-	 * are being listened on.
-	 */
-	/**
-	 * SOUP_SERVER_INTERFACE:
-	 *
-	 * Alias for the #SoupServer:interface property, qv.
-	 *
-	 * Deprecated: #SoupServers can listen on multiple interfaces
-	 * at once now. Use soup_server_listen(), etc, to listen on an
-	 * interface, and soup_server_get_uris() to see what addresses
-	 * are being listened on.
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_INTERFACE,
-		g_param_spec_object (SOUP_SERVER_INTERFACE,
-				     "Interface",
-				     "Address of interface to listen on (Deprecated)",
-				     SOUP_TYPE_ADDRESS,
-				     G_PARAM_READWRITE |
-				     G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS |
-				     G_PARAM_DEPRECATED));
-	/**
-	 * SOUP_SERVER_SSL_CERT_FILE:
-	 *
-	 * Alias for the #SoupServer:ssl-cert-file property, qv.
-	 *
-	 * Deprecated: use #SoupServer:tls-certificate or
-	 * soup_server_set_ssl_certificate().
-	 */
-	/**
-	 * SoupServer:ssl-cert-file:
-	 *
-	 * Path to a file containing a PEM-encoded certificate.
-	 *
-	 * If you set this property and #SoupServer:ssl-key-file at
-	 * construct time, then soup_server_new() will try to read the
-	 * files; if it cannot, it will return %NULL, with no explicit
-	 * indication of what went wrong (and logging a warning with
-	 * newer versions of glib, since returning %NULL from a
-	 * constructor is illegal).
-	 *
-	 * Deprecated: use #SoupServer:tls-certificate or
-	 * soup_server_set_ssl_certificate().
-	 */
-	g_object_class_install_property (
-		object_class, PROP_SSL_CERT_FILE,
-		g_param_spec_string (SOUP_SERVER_SSL_CERT_FILE,
-				     "TLS (aka SSL) certificate file",
-				     "File containing server TLS (aka SSL) certificate",
-				     NULL,
-				     G_PARAM_READWRITE |
-				     G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SERVER_SSL_KEY_FILE:
-	 *
-	 * Alias for the #SoupServer:ssl-key-file property, qv.
-	 *
-	 * Deprecated: use #SoupServer:tls-certificate or
-	 * soup_server_set_ssl_certificate().
-	 */
-	/**
-	 * SoupServer:ssl-key-file:
-	 *
-	 * Path to a file containing a PEM-encoded private key. See
-	 * #SoupServer:ssl-cert-file for more information about how this
-	 * is used.
-	 *
-	 * Deprecated: use #SoupServer:tls-certificate or
-	 * soup_server_set_ssl_certificate().
-	 */
-	g_object_class_install_property (
-		object_class, PROP_SSL_KEY_FILE,
-		g_param_spec_string (SOUP_SERVER_SSL_KEY_FILE,
-				     "TLS (aka SSL) key file",
-				     "File containing server TLS (aka SSL) key",
-				     NULL,
-				     G_PARAM_READWRITE |
-				     G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
-	/**
 	 * SOUP_SERVER_TLS_CERTIFICATE:
 	 *
 	 * Alias for the #SoupServer:tls-certificate property, qv.
@@ -806,35 +537,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "GTlsCertificate to use for https",
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupServer:async-context:
-	 *
-	 * The server's #GMainContext, if you are using the old API.
-	 * Servers created using soup_server_listen() will listen on
-	 * the #GMainContext that was the thread-default context at
-	 * the time soup_server_listen() was called.
-	 *
-	 * Deprecated: The new API uses the thread-default #GMainContext
-	 * rather than having an explicitly-specified one.
-	 */
-	/**
-	 * SOUP_SERVER_ASYNC_CONTEXT:
-	 *
-	 * Alias for the deprecated #SoupServer:async-context
-	 * property, qv.
-	 *
-	 * Deprecated: The new API uses the thread-default #GMainContext
-	 * rather than having an explicitly-specified one.
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_ASYNC_CONTEXT,
-		g_param_spec_pointer (SOUP_SERVER_ASYNC_CONTEXT,
-				      "Async GMainContext",
-				      "The GMainContext to dispatch async I/O in",
-				      G_PARAM_READWRITE |
-				      G_PARAM_CONSTRUCT_ONLY |
-				      G_PARAM_STATIC_STRINGS |
-				      G_PARAM_DEPRECATED));
+
 	/**
 	 * SOUP_SERVER_RAW_PATHS:
 	 *
@@ -1026,32 +729,6 @@ soup_server_new (const char *optname1, ...)
 }
 
 /**
- * soup_server_get_port:
- * @server: a #SoupServer
- *
- * Gets the TCP port that @server is listening on, if you are using
- * the old API.
- *
- * Return value: the port @server is listening on.
- *
- * Deprecated: If you are using soup_server_listen(), etc, then use
- * soup_server_get_uris() to get a list of all listening addresses.
- **/
-guint
-soup_server_get_port (SoupServer *server)
-{
-	SoupServerPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
-	priv = soup_server_get_instance_private (server);
-
-	soup_server_ensure_listening (server);
-	g_return_val_if_fail (priv->legacy_iface != NULL, 0);
-
-	return priv->legacy_port;
-}
-
-/**
  * soup_server_set_ssl_cert_file:
  * @server: a #SoupServer
  * @ssl_cert_file: path to a file containing a PEM-encoded SSL/TLS
@@ -1084,14 +761,8 @@ soup_server_set_ssl_cert_file  (SoupServer  *server,
 	if (priv->tls_cert)
 		g_object_unref (priv->tls_cert);
 
-	g_free (priv->ssl_cert_file);
-	priv->ssl_cert_file = g_strdup (ssl_cert_file);
-
-	g_free (priv->ssl_key_file);
-	priv->ssl_key_file = g_strdup (ssl_key_file);
-
-	priv->tls_cert = g_tls_certificate_new_from_files (priv->ssl_cert_file,
-							   priv->ssl_key_file,
+	priv->tls_cert = g_tls_certificate_new_from_files (ssl_cert_file,
+							   ssl_key_file,
 							   error);
 	return priv->tls_cert != NULL;
 }
@@ -1126,35 +797,6 @@ soup_server_is_https (SoupServer *server)
 	priv = soup_server_get_instance_private (server);
 
 	return priv->tls_cert != NULL;
-}
-
-/**
- * soup_server_get_listener:
- * @server: a #SoupServer
- *
- * Gets @server's listening socket, if you are using the old API.
- *
- * You should treat this socket as read-only; writing to it or
- * modifiying it may cause @server to malfunction.
- *
- * Return value: (transfer none): the listening socket.
- *
- * Deprecated: If you are using soup_server_listen(), etc, then use
- * soup_server_get_listeners() to get a list of all listening sockets,
- * but note that that function returns #GSockets, not #SoupSockets.
- **/
-SoupSocket *
-soup_server_get_listener (SoupServer *server)
-{
-	SoupServerPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = soup_server_get_instance_private (server);
-
-	soup_server_ensure_listening (server);
-	g_return_val_if_fail (priv->legacy_iface != NULL, NULL);
-
-	return priv->listeners ? priv->listeners->data : NULL;
 }
 
 /**
@@ -1523,7 +1165,7 @@ start_request (SoupServer *server, SoupClientContext *client)
 		       msg, client);
 
 	soup_message_read_request (msg, client->sock,
-				   priv->legacy_iface == NULL,
+				   TRUE,
 				   request_finished, client);
 }
 
@@ -1610,122 +1252,6 @@ new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
 }
 
 /**
- * soup_server_run_async:
- * @server: a #SoupServer
- *
- * Starts @server, if you are using the old API, causing it to listen
- * for and process incoming connections.
- *
- * The server runs in @server's #GMainContext. It will not actually
- * perform any processing unless the appropriate main loop is running.
- * In the simple case where you did not set the server's
- * %SOUP_SERVER_ASYNC_CONTEXT property, this means the server will run
- * whenever the glib main loop is running.
- *
- * Deprecated: When using soup_server_listen(), etc, the server will
- * always listen for connections, and will process them whenever the
- * thread-default #GMainContext is running.
- **/
-void
-soup_server_run_async (SoupServer *server)
-{
-	SoupServerPrivate *priv;
-	SoupSocket *listener;
-
-	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = soup_server_get_instance_private (server);
-
-	soup_server_ensure_listening (server);
-
-	g_return_if_fail (priv->legacy_iface != NULL);
-
-	if (!priv->listeners) {
-		if (priv->loop) {
-			g_main_loop_unref (priv->loop);
-			priv->loop = NULL;
-		}
-		return;
-	}
-
-	listener = priv->listeners->data;
-	g_signal_connect (listener, "new_connection",
-			  G_CALLBACK (new_connection), server);
-
-	return;
-}
-
-/**
- * soup_server_run:
- * @server: a #SoupServer
- *
- * Starts @server, if you are using the old API, causing it to listen
- * for and process incoming connections. Unlike
- * soup_server_run_async(), this creates a #GMainLoop and runs it, and
- * it will not return until someone calls soup_server_quit() to stop
- * the server.
- *
- * Deprecated: When using soup_server_listen(), etc, the server will
- * always listen for connections, and will process them whenever the
- * thread-default #GMainContext is running.
- **/
-void
-soup_server_run (SoupServer *server)
-{
-	SoupServerPrivate *priv;
-
-	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = soup_server_get_instance_private (server);
-
-	if (!priv->loop) {
-		priv->loop = g_main_loop_new (priv->async_context, TRUE);
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-		soup_server_run_async (server);
-		G_GNUC_END_IGNORE_DEPRECATIONS;
-	}
-
-	if (priv->loop)
-		g_main_loop_run (priv->loop);
-}
-
-/**
- * soup_server_quit:
- * @server: a #SoupServer
- *
- * Stops processing for @server, if you are using the old API. Call
- * this to clean up after soup_server_run_async(), or to terminate a
- * call to soup_server_run().
- *
- * Note that messages currently in progress will continue to be
- * handled, if the main loop associated with the server is resumed or
- * kept running.
- *
- * @server is still in a working state after this call; you can start
- * and stop a server as many times as you want.
- *
- * Deprecated: When using soup_server_listen(), etc, the server will
- * always listen for connections, and will process them whenever the
- * thread-default #GMainContext is running.
- **/
-void
-soup_server_quit (SoupServer *server)
-{
-	SoupServerPrivate *priv;
-	SoupSocket *listener;
-
-	g_return_if_fail (SOUP_IS_SERVER (server));
-	priv = soup_server_get_instance_private (server);
-	g_return_if_fail (priv->legacy_iface != NULL);
-	g_return_if_fail (priv->listeners != NULL);
-
-	listener = priv->listeners->data;
-	g_signal_handlers_disconnect_by_func (listener,
-					      G_CALLBACK (new_connection),
-					      server);
-	if (priv->loop)
-		g_main_loop_quit (priv->loop);
-}
-
-/**
  * soup_server_disconnect:
  * @server: a #SoupServer
  *
@@ -1750,12 +1276,6 @@ soup_server_disconnect (SoupServer *server)
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = soup_server_get_instance_private (server);
-
-	if (priv->legacy_iface) {
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-		soup_server_quit (server);
-		G_GNUC_END_IGNORE_DEPRECATIONS;
-	}
 
 	clients = priv->clients;
 	priv->clients = NULL;
@@ -2232,35 +1752,6 @@ soup_server_get_uris (SoupServer *server)
 }
 
 /**
- * soup_server_get_async_context:
- * @server: a #SoupServer
- *
- * Gets @server's async_context, if you are using the old API. (With
- * the new API, the server runs in the thread's thread-default
- * #GMainContext, regardless of what this method returns.)
- *
- * This does not add a ref to the context, so you will need to ref it
- * yourself if you want it to outlive its server.
- *
- * Return value: (nullable) (transfer none): @server's #GMainContext,
- * which may be %NULL
- *
- * Deprecated: If you are using soup_server_listen(), etc, then
- * the server listens on the thread-default #GMainContext, and this
- * property is ignored.
- **/
-GMainContext *
-soup_server_get_async_context (SoupServer *server)
-{
-	SoupServerPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = soup_server_get_instance_private (server);
-
-	return priv->async_context;
-}
-
-/**
  * SoupClientContext:
  *
  * A #SoupClientContext provides additional information about the
@@ -2276,34 +1767,6 @@ soup_server_get_async_context (SoupServer *server)
  * requests are made on the same connection).
  **/
 G_DEFINE_BOXED_TYPE (SoupClientContext, soup_client_context, soup_client_context_ref, soup_client_context_unref)
-
-/**
- * soup_client_context_get_socket:
- * @client: a #SoupClientContext
- *
- * Retrieves the #SoupSocket that @client is associated with.
- *
- * If you are using this method to observe when multiple requests are
- * made on the same persistent HTTP connection (eg, as the ntlm-test
- * test program does), you will need to pay attention to socket
- * destruction as well (either by using weak references, or by
- * connecting to the #SoupSocket::disconnected signal), so that you do
- * not get fooled when the allocator reuses the memory address of a
- * previously-destroyed socket to represent a new socket.
- *
- * Return value: (transfer none): the #SoupSocket that @client is
- * associated with.
- *
- * Deprecated: use soup_client_context_get_gsocket(), which returns
- * a #GSocket.
- **/
-SoupSocket *
-soup_client_context_get_socket (SoupClientContext *client)
-{
-	g_return_val_if_fail (client != NULL, NULL);
-
-	return client->sock;
-}
 
 /**
  * soup_client_context_get_gsocket:
@@ -2329,28 +1792,6 @@ soup_client_context_get_gsocket (SoupClientContext *client)
 	g_return_val_if_fail (client != NULL, NULL);
 
 	return client->gsock;
-}
-
-/**
- * soup_client_context_get_address:
- * @client: a #SoupClientContext
- *
- * Retrieves the #SoupAddress associated with the remote end
- * of a connection.
- *
- * Return value: (nullable) (transfer none): the #SoupAddress
- * associated with the remote end of a connection, it may be
- * %NULL if you used soup_server_accept_iostream().
- *
- * Deprecated: Use soup_client_context_get_remote_address(), which returns
- * a #GSocketAddress.
- **/
-SoupAddress *
-soup_client_context_get_address (SoupClientContext *client)
-{
-	g_return_val_if_fail (client != NULL, NULL);
-
-	return soup_socket_get_remote_address (client->sock);
 }
 
 /**
@@ -2428,6 +1869,7 @@ soup_client_context_get_host (SoupClientContext *client)
 	if (client->remote_ip)
 		return client->remote_ip;
 
+	g_assert (client->gsock); /* FIXME: Always use gsock */
 	if (client->gsock) {
 		GSocketAddress *addr = soup_client_context_get_remote_address (client);
 		GInetAddress *iaddr;
@@ -2436,13 +1878,6 @@ soup_client_context_get_host (SoupClientContext *client)
 			return NULL;
 		iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
 		client->remote_ip = g_inet_address_to_string (iaddr);
-	} else {
-		SoupAddress *addr;
-
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-		addr = soup_client_context_get_address (client);
-		G_GNUC_END_IGNORE_DEPRECATIONS;
-		client->remote_ip = g_strdup (soup_address_get_physical (addr));
 	}
 
 	return client->remote_ip;

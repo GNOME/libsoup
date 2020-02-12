@@ -198,43 +198,6 @@ const char     *soup_client_context_get_auth_user      (SoupClientContext *clien
 SOUP_AVAILABLE_IN_2_50
 GIOStream      *soup_client_context_steal_connection   (SoupClientContext *client);
 
-/* Legacy API */
-
-#define SOUP_SERVER_PORT          "port"
-#define SOUP_SERVER_INTERFACE     "interface"
-#define SOUP_SERVER_ASYNC_CONTEXT "async-context"
-#define SOUP_SERVER_SSL_CERT_FILE "ssl-cert-file"
-#define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
-
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-guint         soup_server_get_port            (SoupServer        *server);
-
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-SoupSocket   *soup_server_get_listener        (SoupServer        *server);
-
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-GMainContext *soup_server_get_async_context   (SoupServer        *server);
-
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-void          soup_server_run                 (SoupServer        *server);
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-void          soup_server_run_async           (SoupServer        *server);
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-void          soup_server_quit                (SoupServer        *server);
-
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-SoupAddress  *soup_client_context_get_address (SoupClientContext *client);
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-SoupSocket   *soup_client_context_get_socket  (SoupClientContext *client);
-
 G_END_DECLS
 
 #endif /* __SOUP_SERVER_H__ */

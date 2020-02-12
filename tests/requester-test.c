@@ -36,7 +36,7 @@ static void
 slow_pause_message (SoupMessage *msg, gpointer server)
 {
 	soup_server_pause_message (server, msg);
-	soup_add_timeout (soup_server_get_async_context (server),
+	soup_add_timeout (NULL,
 			  1000, slow_finish_message, msg);
 }
 

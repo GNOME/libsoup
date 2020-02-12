@@ -286,26 +286,6 @@ soup_client_context_get_type
 </SECTION>
 
 <SECTION>
-<FILE>soup-server-deprecated</FILE>
-<TITLE>SoupServer deprecated API</TITLE>
-soup_server_get_port
-soup_server_get_listener
-soup_server_run
-soup_server_run_async
-soup_server_quit
-soup_server_get_async_context
-<SUBSECTION>
-soup_client_context_get_socket
-soup_client_context_get_address
-<SUBSECTION>
-SOUP_SERVER_PORT
-SOUP_SERVER_INTERFACE
-SOUP_SERVER_SSL_CERT_FILE
-SOUP_SERVER_SSL_KEY_FILE
-SOUP_SERVER_ASYNC_CONTEXT
-</SECTION>
-
-<SECTION>
 <FILE>soup-auth-domain</FILE>
 <TITLE>SoupAuthDomain</TITLE>
 SoupAuthDomain

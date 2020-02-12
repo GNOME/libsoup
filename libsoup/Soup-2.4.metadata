@@ -35,7 +35,6 @@ Message
 	.set_request.req_body type="uint8[]" array_length_idx=3
 Server
 	.new skip=false
-	.async_context type="GLib.MainContext"
 Session
 	.async_context type="GLib.MainContext"
 	.get_features type_arguments="weak Soup.SessionFeature"
