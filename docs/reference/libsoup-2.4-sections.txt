@@ -814,10 +814,6 @@ soup_form_request_new
 soup_form_request_new_from_datalist
 soup_form_request_new_from_hash
 soup_form_request_new_from_multipart
-<SUBSECTION Private>
-soup_form_decode_urlencoded
-soup_form_encode_urlencoded
-soup_form_encode_urlencoded_list
 </SECTION>
 
 <SECTION>

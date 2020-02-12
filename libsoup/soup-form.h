@@ -34,13 +34,6 @@ SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode_valist    (const char   *first_field,
 					 va_list       args);
 
-#ifndef SOUP_DISABLE_DEPRECATED
-/* Compatibility with libsoup 2.3.0 */
-#define soup_form_decode_urlencoded      soup_form_decode
-#define soup_form_encode_urlencoded      soup_form_encode_hash
-#define soup_form_encode_urlencoded_list soup_form_encode_datalist
-#endif
-
 SOUP_AVAILABLE_IN_2_4
 SoupMessage *soup_form_request_new                (const char     *method,
 						   const char     *uri,
