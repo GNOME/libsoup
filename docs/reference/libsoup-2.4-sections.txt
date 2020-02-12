@@ -766,7 +766,6 @@ soup_date_new_from_time_t
 soup_date_new_from_now
 soup_date_to_string
 soup_date_to_time_t
-soup_date_to_timeval
 soup_date_is_past
 soup_date_get_day
 soup_date_get_hour
