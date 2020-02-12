@@ -440,7 +440,6 @@ soup_session_websocket_connect_async
 soup_session_websocket_connect_finish
 <SUBSECTION>
 soup_session_prefetch_dns
-soup_session_prepare_for_uri
 soup_session_abort
 <SUBSECTION>
 soup_session_would_redirect
@@ -472,7 +471,6 @@ SOUP_SESSION_MAX_CONNS
 SOUP_SESSION_MAX_CONNS_PER_HOST
 SOUP_SESSION_TLS_DATABASE
 SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE
-SOUP_SESSION_SSL_CA_FILE
 SOUP_SESSION_SSL_STRICT
 SOUP_SESSION_TLS_INTERACTION
 SOUP_SESSION_ASYNC_CONTEXT

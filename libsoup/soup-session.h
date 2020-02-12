@@ -67,8 +67,6 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_PROXY_RESOLVER         "proxy-resolver"
 #define SOUP_SESSION_MAX_CONNS              "max-conns"
 #define SOUP_SESSION_MAX_CONNS_PER_HOST     "max-conns-per-host"
-#define SOUP_SESSION_USE_NTLM               "use-ntlm"
-#define SOUP_SESSION_SSL_CA_FILE            "ssl-ca-file"
 #define SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE "ssl-use-system-ca-file"
 #define SOUP_SESSION_TLS_DATABASE           "tls-database"
 #define SOUP_SESSION_SSL_STRICT             "ssl-strict"
@@ -138,13 +136,6 @@ GInputStream   *soup_session_send             (SoupSession           *session,
 					       SoupMessage           *msg,
 					       GCancellable          *cancellable,
 					       GError               **error);
-
-#ifndef SOUP_DISABLE_DEPRECATED
-SOUP_AVAILABLE_IN_2_30
-SOUP_DEPRECATED_IN_2_38_FOR (soup_session_prefetch_dns)
-void            soup_session_prepare_for_uri  (SoupSession           *session,
-					       SoupURI               *uri);
-#endif
 
 SOUP_AVAILABLE_IN_2_38
 void            soup_session_prefetch_dns     (SoupSession           *session,

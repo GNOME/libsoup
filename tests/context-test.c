@@ -233,8 +233,7 @@ idle_test2_fail (gpointer user_data)
 }
 
 static void
-multi_request_started (SoupSession *session, SoupMessage *msg,
-		       SoupSocket *socket, gpointer user_data)
+request_started (SoupMessage *msg, gpointer user_data)
 {
 	g_object_set_data (G_OBJECT (msg), "started", GUINT_TO_POINTER (TRUE));
 }
@@ -267,8 +266,6 @@ do_multicontext_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (multi_request_started), NULL);
 
 	context1 = g_main_context_new ();
 	loop1 = g_main_loop_new (context1, FALSE);
@@ -278,6 +275,7 @@ do_multicontext_test (void)
 	g_main_context_push_thread_default (context1);
 	msg1 = soup_message_new ("GET", base_uri);
 	g_object_ref (msg1);
+	g_signal_connect (msg1, "starting", G_CALLBACK (request_started), NULL);
 	soup_session_queue_message (session, msg1, multi_msg_finished, loop1);
 	g_signal_connect (msg1, "got-headers",
 			  G_CALLBACK (msg1_got_headers), loop1);
@@ -287,6 +285,7 @@ do_multicontext_test (void)
 	g_main_context_push_thread_default (context2);
 	msg2 = soup_message_new ("GET", base_uri);
 	g_object_ref (msg2);
+	g_signal_connect (msg2, "starting", G_CALLBACK (request_started), NULL);
 	soup_session_queue_message (session, msg2, multi_msg_finished, loop2);
 	g_main_context_pop_thread_default (context2);
 

@@ -61,8 +61,8 @@ authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-set_close_on_connect (SoupSession *session, SoupMessage *msg,
-		      SoupSocket *sock, gpointer user_data)
+set_close_on_connect (SoupMessage *msg,
+                      gpointer user_data)
 {
 	/* This is used to test that we can handle the server closing
 	 * the connection when returning a 407 in response to a
@@ -73,7 +73,6 @@ set_close_on_connect (SoupSession *session, SoupMessage *msg,
 					     "Connection", "close");
 	}
 }
-
 
 static void
 test_url (const char *url, int proxy, guint expected,
@@ -101,16 +100,17 @@ test_url (const char *url, int proxy, guint expected,
 					 NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
-	if (close) {
-		/* FIXME g_test_bug ("611663") */
-		g_signal_connect (session, "request-started",
-				  G_CALLBACK (set_close_on_connect), NULL);
-	}
 
 	msg = soup_message_new (SOUP_METHOD_GET, url);
 	if (!msg) {
 		g_printerr ("proxy-test: Could not parse URI\n");
 		exit (1);
+	}
+
+	if (close) {
+		/* FIXME g_test_bug ("611663") */
+		g_signal_connect (msg, "starting",
+				  G_CALLBACK (set_close_on_connect), NULL);
 	}
 
 	soup_session_send_message (session, msg);
@@ -153,14 +153,15 @@ test_url_new_api (const char *url, int proxy, guint expected,
 
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
-	if (close) {
-		/* FIXME g_test_bug ("611663") */
-		g_signal_connect (session, "request-started",
-				  G_CALLBACK (set_close_on_connect), NULL);
-	}
 
 	request = soup_session_request (session, url, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
+
+	if (close) {
+		/* FIXME g_test_bug ("611663") */
+		g_signal_connect (msg, "starting",
+				  G_CALLBACK (set_close_on_connect), NULL);
+	}
 
 	stream = soup_test_request_send (request, NULL, 0, &error);
 	g_assert_no_error (error);

@@ -98,7 +98,6 @@ typedef struct {
 
 	GTlsDatabase *tlsdb;
 	GTlsInteraction *tls_interaction;
-	char *ssl_ca_file;
 	gboolean ssl_strict;
 	gboolean tlsdb_use_default;
 
@@ -173,7 +172,6 @@ G_DEFINE_TYPE_WITH_PRIVATE (SoupSession, soup_session, G_TYPE_OBJECT)
 
 enum {
 	REQUEST_QUEUED,
-	REQUEST_STARTED,
 	REQUEST_UNQUEUED,
 	AUTHENTICATE,
 	CONNECTION_CREATED,
@@ -190,8 +188,6 @@ enum {
 	PROP_PROXY_RESOLVER,
 	PROP_MAX_CONNS,
 	PROP_MAX_CONNS_PER_HOST,
-	PROP_USE_NTLM,
-	PROP_SSL_CA_FILE,
 	PROP_SSL_USE_SYSTEM_CA_FILE,
 	PROP_TLS_DATABASE,
 	PROP_SSL_STRICT,
@@ -336,7 +332,6 @@ soup_session_finalize (GObject *object)
 
 	g_clear_object (&priv->tlsdb);
 	g_clear_object (&priv->tls_interaction);
-	g_free (priv->ssl_ca_file);
 
 	g_clear_pointer (&priv->async_context, g_main_context_unref);
 	g_clear_object (&priv->local_addr);
@@ -490,12 +485,6 @@ set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
 		g_object_unref (system_default);
 	}
 
-	if (priv->ssl_ca_file) {
-		g_free (priv->ssl_ca_file);
-		priv->ssl_ca_file = NULL;
-		g_object_notify (G_OBJECT (session), "ssl-ca-file");
-	}
-
 	if (priv->tlsdb)
 		g_object_unref (priv->tlsdb);
 	priv->tlsdb = tlsdb;
@@ -522,55 +511,6 @@ set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
 		set_tlsdb (session, NULL);
 
 	g_clear_object (&system_default);
-}
-
-static void
-set_ssl_ca_file (SoupSession *session, const char *ssl_ca_file)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GTlsDatabase *tlsdb;
-	GError *error = NULL;
-
-	priv->tlsdb_use_default = FALSE;
-	if (!g_strcmp0 (priv->ssl_ca_file, ssl_ca_file))
-		return;
-
-	g_object_freeze_notify (G_OBJECT (session));
-
-	if (g_path_is_absolute (ssl_ca_file))
-		tlsdb = g_tls_file_database_new (ssl_ca_file, &error);
-	else {
-		char *path, *cwd;
-
-		cwd = g_get_current_dir ();
-		path = g_build_filename (cwd, ssl_ca_file, NULL);
-		tlsdb = g_tls_file_database_new (path, &error);
-		g_free (path);
-		g_free (cwd);
-	}
-
-	if (error) {
-		if (!g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_UNAVAILABLE)) {
-			g_warning ("Could not set SSL credentials from '%s': %s",
-				   ssl_ca_file, error->message);
-
-			tlsdb = g_tls_file_database_new ("/dev/null", NULL);
-		}
-		g_error_free (error);
-	}
-
-	set_tlsdb (session, tlsdb);
-	if (tlsdb) {
-		g_object_unref (tlsdb);
-
-		priv->ssl_ca_file = g_strdup (ssl_ca_file);
-		g_object_notify (G_OBJECT (session), "ssl-ca-file");
-	} else if (priv->ssl_ca_file) {
-		g_clear_pointer (&priv->ssl_ca_file, g_free);
-		g_object_notify (G_OBJECT (session), "ssl-ca-file");
-	}
-
-	g_object_thaw_notify (G_OBJECT (session));
 }
 
 /* priv->http_aliases and priv->https_aliases are stored as arrays of
@@ -635,7 +575,6 @@ soup_session_set_property (GObject *object, guint prop_id,
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	const char *user_agent;
-	SoupSessionFeature *feature;
 	GMainContext *async_context;
 	gboolean socket_props_changed = FALSE;
 
@@ -660,21 +599,6 @@ soup_session_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_MAX_CONNS_PER_HOST:
 		priv->max_conns_per_host = g_value_get_int (value);
-		break;
-	case PROP_USE_NTLM:
-		g_return_if_fail (!SOUP_IS_PLAIN_SESSION (session));
-		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER);
-		if (feature) {
-			if (g_value_get_boolean (value))
-				soup_session_feature_add_feature (feature, SOUP_TYPE_AUTH_NTLM);
-			else
-				soup_session_feature_remove_feature (feature, SOUP_TYPE_AUTH_NTLM);
-		} else
-			g_warning ("Trying to set use-ntlm on session with no auth-manager");
-		break;
-	case PROP_SSL_CA_FILE:
-		set_ssl_ca_file (session, g_value_get_string (value));
-		socket_props_changed = TRUE;
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		set_use_system_ca_file (session, g_value_get_boolean (value));
@@ -789,7 +713,6 @@ soup_session_get_property (GObject *object, guint prop_id,
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupSessionFeature *feature;
 	GTlsDatabase *tlsdb;
 
 	switch (prop_id) {
@@ -810,16 +733,6 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_MAX_CONNS_PER_HOST:
 		g_value_set_int (value, priv->max_conns_per_host);
-		break;
-	case PROP_USE_NTLM:
-		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER);
-		if (feature)
-			g_value_set_boolean (value, soup_session_feature_has_feature (feature, SOUP_TYPE_AUTH_NTLM));
-		else
-			g_value_set_boolean (value, FALSE);
-		break;
-	case PROP_SSL_CA_FILE:
-		g_value_set_string (value, priv->ssl_ca_file);
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
@@ -1334,8 +1247,6 @@ soup_session_send_queue_item (SoupSession *session,
 					     "Connection", "Keep-Alive");
 	}
 
-	g_signal_emit (session, signals[REQUEST_STARTED], 0,
-		       item->msg, soup_connection_get_socket (item->conn));
 	soup_message_starting (item->msg);
 	if (item->state == SOUP_MESSAGE_RUNNING)
 		soup_connection_send_request (item->conn, item, completion_cb, item);
@@ -2599,32 +2510,6 @@ prefetch_uri (SoupSession *session, SoupURI *uri,
 }
 
 /**
- * soup_session_prepare_for_uri:
- * @session: a #SoupSession
- * @uri: a #SoupURI which may be required
- *
- * Tells @session that @uri may be requested shortly, and so the
- * session can try to prepare (resolving the domain name, obtaining
- * proxy address, etc.) in order to work more quickly once the URI is
- * actually requested.
- *
- * Since: 2.30
- *
- * Deprecated: 2.38: use soup_session_prefetch_dns() instead
- **/
-void
-soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
-{
-	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (uri != NULL);
-
-	if (!uri->host)
-		return;
-
-	prefetch_uri (session, uri, NULL, NULL, NULL);
-}
-
-/**
 * soup_session_prefetch_dns:
 * @session: a #SoupSession
 * @hostname: a hostname to be resolved
@@ -3043,12 +2928,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * is emitted, indicating that the session has become aware of
 	 * the request.
 	 *
-	 * Once a connection is available to send the request on, the
-	 * session emits #SoupSession::request_started. Then, various
+	 * After a connection is available to send the request various
 	 * #SoupMessage signals are emitted as the message is
 	 * processed. If the message is requeued, it will emit
-	 * #SoupMessage::restarted, which will then be followed by
-	 * another #SoupSession::request_started and another set of
+	 * #SoupMessage::restarted, which will then be followed by other
 	 * #SoupMessage signals when the message is re-sent.
 	 *
 	 * Eventually, the message will emit #SoupMessage::finished.
@@ -3056,8 +2939,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * processing. However, it is possible that the application
 	 * will requeue the message from the "finished" handler (or
 	 * equivalently, from the soup_session_queue_message()
-	 * callback). In that case, the process will loop back to
-	 * #SoupSession::request_started.
+	 * callback). In that case the process will loop back.
 	 *
 	 * Eventually, a message will reach "finished" and not be
 	 * requeued. At that point, the session will emit
@@ -3066,9 +2948,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * To sum up: #SoupSession::request_queued and
 	 * #SoupSession::request_unqueued are guaranteed to be emitted
-	 * exactly once, but #SoupSession::request_started and
-	 * #SoupMessage::finished (and all of the other #SoupMessage
-	 * signals) may be invoked multiple times for a given message.
+	 * exactly once, but #SoupMessage::finished (and all of the
+	 * other #SoupMessage signals) may be invoked multiple times
+	 * for a given message.
 	 *
 	 * Since: 2.24
 	 **/
@@ -3081,29 +2963,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      NULL,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
-
-	/**
-	 * SoupSession::request-started:
-	 * @session: the session
-	 * @msg: the request being sent
-	 * @socket: the socket the request is being sent on
-	 *
-	 * Emitted just before a request is sent. See
-	 * #SoupSession::request_queued for a detailed description of
-	 * the message lifecycle within a session.
-	 *
-	 * Deprecated: 2.50. Use #SoupMessage::starting instead.
-	 **/
-	signals[REQUEST_STARTED] =
-		g_signal_new ("request-started",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupSessionClass, request_started),
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 2,
-			      SOUP_TYPE_MESSAGE,
-			      SOUP_TYPE_SOCKET);
 
 	/**
 	 * SoupSession::request-unqueued:
@@ -3342,54 +3201,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   0, G_MAXUINT, 60,
 				   G_PARAM_READWRITE |
 				   G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupSession:use-ntlm:
-	 *
-	 * Whether or not to use NTLM authentication.
-	 *
-	 * Deprecated: use soup_session_add_feature_by_type() with
-	 * #SOUP_TYPE_AUTH_NTLM.
-	 **/
-	/**
-	 * SOUP_SESSION_USE_NTLM:
-	 *
-	 * Alias for the #SoupSession:use-ntlm property, qv.
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_USE_NTLM,
-		g_param_spec_boolean (SOUP_SESSION_USE_NTLM,
-				      "Use NTLM",
-				      "Whether or not to use NTLM authentication",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_DEPRECATED |
-				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupSession:ssl-ca-file:
-	 *
-	 * File containing SSL CA certificates.
-	 *
-	 * If the specified file does not exist or cannot be read,
-	 * then libsoup will print a warning, and then behave as
-	 * though it had read in a empty CA file, meaning that all SSL
-	 * certificates will be considered invalid.
-	 *
-	 * Deprecated: use #SoupSession:ssl-use-system-ca-file, or
-	 * else #SoupSession:tls-database with a #GTlsFileDatabase
-	 * (which allows you to do explicit error handling).
-	 **/
-	/**
-	 * SOUP_SESSION_SSL_CA_FILE:
-	 *
-	 * Alias for the #SoupSession:ssl-ca-file property, qv.
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_SSL_CA_FILE,
-		g_param_spec_string (SOUP_SESSION_SSL_CA_FILE,
-				     "SSL CA file",
-				     "File containing SSL CA certificates",
-				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_DEPRECATED |
-				     G_PARAM_STATIC_STRINGS));
+
 	/**
 	 * SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE:
 	 *

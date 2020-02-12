@@ -142,12 +142,10 @@ property_changed (GObject *object, GParamSpec *param, gpointer user_data)
 static void
 do_session_property_tests (void)
 {
-	gboolean use_system_changed, tlsdb_changed, ca_file_changed;
+	gboolean use_system_changed, tlsdb_changed;
 	gboolean use_system;
 	GTlsDatabase *tlsdb;
-	char *ca_file;
 	SoupSession *session;
-	GParamSpec *pspec;
 
 	g_test_bug ("673678");
 
@@ -157,38 +155,27 @@ do_session_property_tests (void)
 	session = soup_session_async_new ();
 	G_GNUC_END_IGNORE_DEPRECATIONS;
 
-	/* Temporarily undeprecate SOUP_SESSION_SSL_CA_FILE to avoid warnings. */
-	pspec = g_object_class_find_property (g_type_class_peek (SOUP_TYPE_SESSION),
-					      SOUP_SESSION_SSL_CA_FILE);
-	pspec->flags &= ~G_PARAM_DEPRECATED;
-
 	g_signal_connect (session, "notify::ssl-use-system-ca-file",
 			  G_CALLBACK (property_changed), &use_system_changed);
 	g_signal_connect (session, "notify::tls-database",
 			  G_CALLBACK (property_changed), &tlsdb_changed);
-	g_signal_connect (session, "notify::ssl-ca-file",
-			  G_CALLBACK (property_changed), &ca_file_changed);
 
 	g_object_get (G_OBJECT (session),
 		      "ssl-use-system-ca-file", &use_system,
 		      "tls-database", &tlsdb,
-		      "ssl-ca-file", &ca_file,
 		      NULL);
 	soup_test_assert (!use_system,
 			  "ssl-use-system-ca-file defaults to TRUE");
 	soup_test_assert (tlsdb == NULL,
 			  "tls-database set by default");
-	soup_test_assert (ca_file == NULL,
-			  "ca-file set by default");
 
-	use_system_changed = tlsdb_changed = ca_file_changed = FALSE;
+	use_system_changed = tlsdb_changed = FALSE;
 	g_object_set (G_OBJECT (session),
 		      "ssl-use-system-ca-file", TRUE,
 		      NULL);
 	g_object_get (G_OBJECT (session),
 		      "ssl-use-system-ca-file", &use_system,
 		      "tls-database", &tlsdb,
-		      "ssl-ca-file", &ca_file,
 		      NULL);
 	soup_test_assert (use_system,
 			  "setting ssl-use-system-ca-file failed");
@@ -197,54 +184,8 @@ do_session_property_tests (void)
 			  "setting ssl-use-system-ca-file didn't set tls-database");
 	g_assert_true (tlsdb_changed);
 	g_clear_object (&tlsdb);
-	soup_test_assert (ca_file == NULL,
-			  "setting ssl-use-system-ca-file set ssl-ca-file");
-	g_assert_false (ca_file_changed);
-
-	use_system_changed = tlsdb_changed = ca_file_changed = FALSE;
-	g_object_set (G_OBJECT (session),
-		      "ssl-ca-file", g_test_get_filename (G_TEST_DIST, "/test-cert.pem", NULL),
-		      NULL);
-	g_object_get (G_OBJECT (session),
-		      "ssl-use-system-ca-file", &use_system,
-		      "tls-database", &tlsdb,
-		      "ssl-ca-file", &ca_file,
-		      NULL);
-	soup_test_assert (!use_system,
-			  "setting ssl-ca-file left ssl-use-system-ca-file set");
-	g_assert_true (use_system_changed);
-	soup_test_assert (tlsdb != NULL,
-			  "setting ssl-ca-file didn't set tls-database");
-	g_assert_true (tlsdb_changed);
-	g_clear_object (&tlsdb);
-	soup_test_assert (ca_file != NULL,
-			  "setting ssl-ca-file failed");
-	g_assert_true (ca_file_changed);
-	g_free (ca_file);
-
-	use_system_changed = tlsdb_changed = ca_file_changed = FALSE;
-	g_object_set (G_OBJECT (session),
-		      "tls-database", NULL,
-		      NULL);
-	g_object_get (G_OBJECT (session),
-		      "ssl-use-system-ca-file", &use_system,
-		      "tls-database", &tlsdb,
-		      "ssl-ca-file", &ca_file,
-		      NULL);
-	soup_test_assert (!use_system,
-			  "setting tls-database NULL left ssl-use-system-ca-file set");
-	g_assert_false (use_system_changed);
-	soup_test_assert (tlsdb == NULL,
-			  "setting tls-database NULL failed");
-	g_assert_true (tlsdb_changed);
-	soup_test_assert (ca_file == NULL,
-			  "setting tls-database didn't clear ssl-ca-file");
-	g_assert_true (ca_file_changed);
 
 	soup_test_session_abort_unref (session);
-
-	/* Re-deprecate SOUP_SESSION_SSL_CA_FILE */
-	pspec->flags |= G_PARAM_DEPRECATED;
 }
 
 /* GTlsInteraction subclass for do_interaction_test */
