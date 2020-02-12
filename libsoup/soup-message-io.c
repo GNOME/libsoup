@@ -752,20 +752,11 @@ io_read (SoupMessage *msg, gboolean blocking,
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
-		if (soup_message_has_chunk_allocator (msg)) {
-			buffer = soup_message_allocate_chunk (msg, io->read_length);
-			if (!buffer) {
-				g_return_val_if_fail (!io->item || !io->item->new_api, FALSE);
-				soup_message_io_pause (msg);
-				return FALSE;
-			}
-		} else {
-			if (!stack_buf)
-				stack_buf = alloca (RESPONSE_BLOCK_SIZE);
-			buffer = soup_buffer_new (SOUP_MEMORY_TEMPORARY,
-						  stack_buf,
-						  RESPONSE_BLOCK_SIZE);
-		}
+		if (!stack_buf)
+			stack_buf = alloca (RESPONSE_BLOCK_SIZE);
+		buffer = soup_buffer_new (SOUP_MEMORY_TEMPORARY,
+						stack_buf,
+						RESPONSE_BLOCK_SIZE);
 
 		nread = g_pollable_stream_read (io->body_istream,
 						(guchar *)buffer->data,

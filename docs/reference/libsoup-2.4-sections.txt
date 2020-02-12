@@ -31,8 +31,6 @@ soup_message_add_status_code_handler
 SoupMessageFlags
 soup_message_set_flags
 soup_message_get_flags
-SoupChunkAllocator
-soup_message_set_chunk_allocator
 <SUBSECTION>
 soup_message_disable_feature
 soup_message_is_feature_disabled

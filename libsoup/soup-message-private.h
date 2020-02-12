@@ -15,10 +15,6 @@
 typedef struct {
 	gpointer           io_data;
 
-	SoupChunkAllocator chunk_allocator;
-	gpointer           chunk_allocator_data;
-	GDestroyNotify     chunk_allocator_dnotify;
-
 	guint              msg_flags;
 	gboolean           server_side;
 
@@ -174,9 +170,5 @@ void                soup_message_set_content_sniffer    (SoupMessage        *msg
 							 SoupContentSniffer *sniffer);
 void                soup_message_set_bytes_for_sniffing (SoupMessage        *msg,
 							 gsize               bytes);
-
-gboolean    soup_message_has_chunk_allocator (SoupMessage *msg);
-SoupBuffer *soup_message_allocate_chunk      (SoupMessage *msg,
-					      goffset      read_length);
 
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

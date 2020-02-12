@@ -211,76 +211,6 @@ do_request_test (gconstpointer data)
 	soup_uri_free (uri);
 }
 
-typedef struct {
-	SoupBuffer *current_chunk;
-	GChecksum *check;
-	int length;
-} GetTestData;
-
-static SoupBuffer *
-chunk_allocator (SoupMessage *msg, gsize max_len, gpointer user_data)
-{
-	GetTestData *gtd = user_data;
-
-	debug_printf (2, "  allocating chunk\n");
-
-	soup_test_assert (gtd->current_chunk == NULL,
-			  "error: next chunk allocated before last one freed");
-	gtd->current_chunk = soup_buffer_new_with_owner (g_malloc (6), 6,
-							 &gtd->current_chunk,
-							 clear_buffer_ptr);
-	return gtd->current_chunk;
-}
-
-static void
-got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
-{
-	GetTestData *gtd = user_data;
-
-	debug_printf (2, "  got chunk, %d bytes\n",
-		      (int)chunk->length);
-	if (chunk != gtd->current_chunk) {
-		debug_printf (1, "chunk mismatch! %p vs %p\n",
-			      chunk, gtd->current_chunk);
-	}
-
-	g_checksum_update (gtd->check, (guchar *)chunk->data, chunk->length);
-	gtd->length += chunk->length;
-}
-
-static void
-do_response_test (void)
-{
-	GetTestData gtd;
-	SoupMessage *msg;
-	const char *client_md5, *server_md5;
-
-	gtd.current_chunk = NULL;
-	gtd.length = 0;
-	gtd.check = g_checksum_new (G_CHECKSUM_MD5);
-
-	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_message_body_set_accumulate (msg->response_body, FALSE);
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	soup_message_set_chunk_allocator (msg, chunk_allocator, &gtd, NULL);
-	G_GNUC_END_IGNORE_DEPRECATIONS;
-	g_signal_connect (msg, "got_chunk",
-			  G_CALLBACK (got_chunk), &gtd);
-	soup_session_send_message (session, msg);
-
-	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_null (msg->response_body->data);
-	g_assert_cmpint (soup_message_headers_get_content_length (msg->response_headers), ==, gtd.length);
-
-	client_md5 = g_checksum_get_string (gtd.check);
-	server_md5 = soup_message_headers_get_one (msg->response_headers,
-						   "Content-MD5");
-	g_assert_cmpstr (client_md5, ==, server_md5);
-
-	g_object_unref (msg);
-	g_checksum_free (gtd.check);
-}
-
 /* Make sure TEMPORARY buffers are handled properly with non-accumulating
  * message bodies.
  */
@@ -446,7 +376,6 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/chunks/request/proper-streaming/restart", GINT_TO_POINTER (PROPER_STREAMING | RESTART), do_request_test);
 	g_test_add_data_func ("/chunks/request/hacky-streaming", GINT_TO_POINTER (HACKY_STREAMING), do_request_test);
 	g_test_add_data_func ("/chunks/request/hacky-streaming/restart", GINT_TO_POINTER (HACKY_STREAMING | RESTART), do_request_test);
-	g_test_add_func ("/chunks/response", do_response_test);
 	g_test_add_func ("/chunks/temporary", do_temporary_test);
 	g_test_add_func ("/chunks/large", do_large_chunk_test);
 

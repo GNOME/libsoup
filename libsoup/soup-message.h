@@ -196,20 +196,6 @@ void           soup_message_set_redirect        (SoupMessage       *msg,
 						 guint              status_code,
 						 const char        *redirect_uri);
 
-/* I/O */
-#ifndef SOUP_DISABLE_DEPRECATED
-typedef SoupBuffer * (*SoupChunkAllocator)      (SoupMessage       *msg,
-						 gsize              max_len,
-						 gpointer           user_data);
-
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_42_FOR(SoupRequest)
-void           soup_message_set_chunk_allocator (SoupMessage       *msg,
-						 SoupChunkAllocator allocator,
-						 gpointer           user_data,
-						 GDestroyNotify     destroy_notify);
-#endif
-
 SOUP_AVAILABLE_IN_2_28
 void           soup_message_disable_feature     (SoupMessage       *msg,
 						 GType              feature_type);

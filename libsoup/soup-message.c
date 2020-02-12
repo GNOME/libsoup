@@ -171,8 +171,6 @@ soup_message_finalize (GObject *object)
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	soup_message_io_cleanup (msg);
-	if (priv->chunk_allocator_dnotify)
-		priv->chunk_allocator_dnotify (priv->chunk_allocator_data);
 
 	g_clear_pointer (&priv->uri, soup_uri_free);
 	g_clear_pointer (&priv->first_party, soup_uri_free);
@@ -1774,95 +1772,6 @@ soup_message_set_status_full (SoupMessage *msg,
 }
 
 /**
- * SoupChunkAllocator:
- * @msg: the #SoupMessage the chunk is being allocated for
- * @max_len: the maximum length that will be read, or 0.
- * @user_data: the data passed to soup_message_set_chunk_allocator()
- *
- * The prototype for a chunk allocation callback. This should allocate
- * a new #SoupBuffer and return it for the I/O layer to read message
- * body data off the network into.
- *
- * If @max_len is non-0, it indicates the maximum number of bytes that
- * could be read, based on what is known about the message size. Note
- * that this might be a very large number, and you should not simply
- * try to allocate that many bytes blindly. If @max_len is 0, that
- * means that libsoup does not know how many bytes remain to be read,
- * and the allocator should return a buffer of a size that it finds
- * convenient.
- *
- * If the allocator returns %NULL, the message will be paused. It is
- * up to the application to make sure that it gets unpaused when it
- * becomes possible to allocate a new buffer.
- *
- * Return value: (nullable): the new buffer (or %NULL)
- *
- * Deprecated: Use #SoupRequest if you want to read into your
- * own buffers.
- **/
-
-/**
- * soup_message_set_chunk_allocator:
- * @msg: a #SoupMessage
- * @allocator: the chunk allocator callback
- * @user_data: data to pass to @allocator
- * @destroy_notify: destroy notifier to free @user_data when @msg is
- * destroyed
- *
- * Sets an alternate chunk-allocation function to use when reading
- * @msg's body when using the traditional (ie,
- * non-#SoupRequest<!-- -->-based) API. Every time data is available
- * to read, libsoup will call @allocator, which should return a
- * #SoupBuffer. (See #SoupChunkAllocator for additional details.)
- * Libsoup will then read data from the network into that buffer, and
- * update the buffer's <literal>length</literal> to indicate how much
- * data it read.
- *
- * Generally, a custom chunk allocator would be used in conjunction
- * with soup_message_body_set_accumulate() %FALSE and
- * #SoupMessage::got_chunk, as part of a strategy to avoid unnecessary
- * copying of data. However, you cannot assume that every call to the
- * allocator will be followed by a call to your
- * #SoupMessage::got_chunk handler; if an I/O error occurs, then the
- * buffer will be unreffed without ever having been used. If your
- * buffer-allocation strategy requires special cleanup, use
- * soup_buffer_new_with_owner() rather than doing the cleanup from the
- * #SoupMessage::got_chunk handler.
- *
- * The other thing to remember when using non-accumulating message
- * bodies is that the buffer passed to the #SoupMessage::got_chunk
- * handler will be unreffed after the handler returns, just as it
- * would be in the non-custom-allocated case. If you want to hand the
- * chunk data off to some other part of your program to use later,
- * you'll need to ref the #SoupBuffer (or its owner, in the
- * soup_buffer_new_with_owner() case) to ensure that the data remains
- * valid.
- *
- * Deprecated: #SoupRequest provides a much simpler API that lets you
- * read the response directly into your own buffers without needing to
- * mess with callbacks, pausing/unpausing, etc.
- **/
-void
-soup_message_set_chunk_allocator (SoupMessage *msg,
-				  SoupChunkAllocator allocator,
-				  gpointer user_data,
-				  GDestroyNotify destroy_notify)
-{
-	SoupMessagePrivate *priv;
-
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-
-	priv = soup_message_get_instance_private (msg);
-
-	if (priv->chunk_allocator_dnotify)
-		priv->chunk_allocator_dnotify (priv->chunk_allocator_data);
-
-	priv->chunk_allocator         = allocator;
-	priv->chunk_allocator_data    = user_data;
-	priv->chunk_allocator_dnotify = destroy_notify;
-}
-
-/**
  * soup_message_disable_feature:
  * @msg: a #SoupMessage
  * @feature_type: the #GType of a #SoupSessionFeature
@@ -2363,21 +2272,4 @@ soup_message_set_bytes_for_sniffing (SoupMessage *msg, gsize bytes)
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	priv->bytes_for_sniffing = bytes;
-}
-
-gboolean
-soup_message_has_chunk_allocator (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-
-	return priv->chunk_allocator != NULL;
-}
-
-SoupBuffer *
-soup_message_allocate_chunk (SoupMessage *msg,
-			     goffset read_length)
-{
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-
-	return priv->chunk_allocator (msg, read_length, priv->chunk_allocator_data);
 }
