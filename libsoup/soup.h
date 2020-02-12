@@ -42,7 +42,6 @@ extern "C" {
 #include <libsoup/soup-proxy-resolver-default.h>
 #include <libsoup/soup-proxy-uri-resolver.h>
 #include <libsoup/soup-request.h>
-#include <libsoup/soup-requester.h>
 #include <libsoup/soup-request-data.h>
 #include <libsoup/soup-request-file.h>
 #include <libsoup/soup-request-http.h>

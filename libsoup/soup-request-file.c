@@ -30,7 +30,6 @@
 #include "soup-request-file.h"
 #include "soup.h"
 #include "soup-directory-input-stream.h"
-#include "soup-requester.h"
 
 /**
  * SECTION:soup-request-file

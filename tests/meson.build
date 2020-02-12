@@ -51,7 +51,6 @@ tests = [
   ['no-ssl', true, []],
   ['ntlm', true, []],
   ['redirect', true, []],
-  ['requester', true, []],
   ['resource', true, []],
   ['samesite', true, []],
   ['session', true, []],

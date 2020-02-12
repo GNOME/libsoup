@@ -29,7 +29,6 @@
 
 #include "soup-request.h"
 #include "soup.h"
-#include "soup-requester.h"
 
 /**
  * SECTION:soup-request

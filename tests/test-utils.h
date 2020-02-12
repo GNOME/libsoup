@@ -10,7 +10,6 @@
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
 
 #include "libsoup/soup.h"
-#include "libsoup/soup-requester.h"
 
 void test_init    (int argc, char **argv, GOptionEntry *entries);
 void test_cleanup (void);
