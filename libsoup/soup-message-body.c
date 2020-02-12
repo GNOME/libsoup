@@ -351,8 +351,7 @@ G_DEFINE_BOXED_TYPE (SoupBuffer, soup_buffer, soup_buffer_copy, soup_buffer_free
  * message body, @data is normally %NULL, and will only be filled in
  * after soup_message_body_flatten() is called. For client-side
  * messages, this automatically happens for the response body after it
- * has been fully read, unless you set the
- * %SOUP_MESSAGE_OVERWRITE_CHUNKS flags. Likewise, for server-side
+ * has been fully read. Likewise, for server-side
  * messages, the request body is automatically filled in after being
  * read.
  *
@@ -404,8 +403,6 @@ soup_message_body_new (void)
  * client-side message, or #SoupMessage:request_body of a server-side
  * message), this will cause each chunk of the body to be discarded
  * after its corresponding #SoupMessage::got_chunk signal is emitted.
- * (This is equivalent to setting the deprecated
- * %SOUP_MESSAGE_OVERWRITE_CHUNKS flag on the message.)
  *
  * If you set this flag to %FALSE on the #SoupMessage:response_body of
  * a server-side message, it will cause each chunk of the body to be

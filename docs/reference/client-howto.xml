@@ -541,11 +541,7 @@ A few sample programs are available in the
     <listitem><para>
 	<emphasis role="bold"><literal>simple-proxy</literal></emphasis> uses both the
 	client and server APIs to create a simple (and not very
-	RFC-compliant) proxy server. It shows how to use the <link
-	linkend="SoupMessageFlags"><literal>SOUP_MESSAGE_OVERWRITE_CHUNKS</literal></link>
-	flag when reading a message to save memory by processing each
-	chunk of the message as it is read, rather than accumulating
-	them all into a single buffer to process all at the end.
+	RFC-compliant) proxy server.
     </para></listitem>
 </itemizedlist>
 

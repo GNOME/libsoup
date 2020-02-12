@@ -1479,10 +1479,6 @@ soup_message_cleanup_response (SoupMessage *msg)
  * @SOUP_MESSAGE_CAN_REBUILD: The caller will rebuild the request
  *   body if the message is restarted; see
  *   soup_message_body_set_accumulate() for more details.
- * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Deprecated: equivalent to calling
- *   soup_message_body_set_accumulate() on the incoming message body
- *   (ie, #SoupMessage:response_body for a client-side request),
- *   passing %FALSE.
  * @SOUP_MESSAGE_CONTENT_DECODED: Set by #SoupContentDecoder to
  *   indicate that it has removed the Content-Encoding on a message (and
  *   so headers such as Content-Length may no longer accurately describe
@@ -1531,12 +1527,6 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	priv = soup_message_get_instance_private (msg);
-
-	if ((priv->msg_flags ^ flags) & SOUP_MESSAGE_OVERWRITE_CHUNKS) {
-		soup_message_body_set_accumulate (
-			priv->server_side ? msg->request_body : msg->response_body,
-			!(flags & SOUP_MESSAGE_OVERWRITE_CHUNKS));
-	}
 
 	priv->msg_flags = flags;
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FLAGS);
