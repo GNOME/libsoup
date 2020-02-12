@@ -7,7 +7,6 @@
 #define __SOUP_XMLRPC_H__ 1
 
 #include <libsoup/soup-types.h>
-#include <libsoup/soup-xmlrpc-old.h>
 
 G_BEGIN_DECLS
 

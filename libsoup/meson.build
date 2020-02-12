@@ -86,7 +86,6 @@ soup_sources = [
   'soup-websocket-extension-deflate.c',
   'soup-websocket-extension-manager.c',
   'soup-xmlrpc.c',
-  'soup-xmlrpc-old.c',
 ]
 
 soup_headers = [
@@ -175,7 +174,6 @@ soup_introspection_headers = [
   'soup-websocket-extension-deflate.h',
   'soup-websocket-extension-manager.h',
   'soup-xmlrpc.h',
-  'soup-xmlrpc-old.h',
 ]
 
 soup_installed_headers = soup_introspection_headers + [

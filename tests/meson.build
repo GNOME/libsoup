@@ -134,8 +134,6 @@ endif
 
 if have_php_xmlrpc
   tests += [
-    ['xmlrpc-old-server', true, []],
-    ['xmlrpc-old', false, []],
     ['xmlrpc-server', true, []],
     ['xmlrpc', false, []]
   ]
