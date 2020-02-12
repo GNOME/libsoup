@@ -131,7 +131,7 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 
 			/* Delete all but one SP */
 			*eol = ' ';
-			g_memmove (eol + 1, sol, strlen (sol) + 1);
+			memmove (eol + 1, sol, strlen (sol) + 1);
 		}
 
 		/* clip trailing whitespace */
