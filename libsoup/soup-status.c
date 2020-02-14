@@ -154,10 +154,6 @@
  * Note that no libsoup functions take or return this type directly;
  * any function that works with status codes will accept unrecognized
  * status codes as well.
- *
- * Prior to 2.44 this type was called
- * <literal>SoupKnownStatusCode</literal>, but the individual values
- * have always had the names they have now.
  **/
 
 /* The reason_phrases are not localized because:
