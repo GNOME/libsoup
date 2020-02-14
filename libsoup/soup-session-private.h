@@ -8,7 +8,6 @@
 
 #include "soup-session.h"
 #include "soup-message-private.h"
-#include "soup-proxy-uri-resolver.h"
 
 G_BEGIN_DECLS
 

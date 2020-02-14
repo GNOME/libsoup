@@ -267,7 +267,6 @@ do_property_tests (void)
 	SoupSession *session;
 	GProxyResolver *proxy_resolver, *default_proxy_resolver;
 	GTlsDatabase *tlsdb, *default_tlsdb;
-	SoupURI *uri;
 
 	g_test_bug ("708696");
 
@@ -297,36 +296,6 @@ do_property_tests (void)
 				 proxy_resolver, default_tlsdb);
 	g_object_unref (proxy_resolver);
 	g_object_unref (session);
-
-	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_PROXY_URI, NULL,
-				NULL);
-	test_session_properties ("Session with NULL :proxy-uri", session,
-				 NULL, default_tlsdb);
-	g_object_unref (session);
-
-	uri = soup_uri_new ("http://example.com/");
-	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_PROXY_URI, uri,
-				NULL);
-	g_object_get (G_OBJECT (session),
-		      SOUP_SESSION_PROXY_RESOLVER, &proxy_resolver,
-		      NULL);
-	test_session_properties ("Session with non-NULL :proxy-uri", session,
-				 proxy_resolver, default_tlsdb);
-	g_assert_cmpstr (G_OBJECT_TYPE_NAME (proxy_resolver), ==, "GSimpleProxyResolver");
-	g_object_unref (proxy_resolver);
-	g_object_unref (session);
-	soup_uri_free (uri);
-
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_REMOVE_FEATURE_BY_TYPE, SOUP_TYPE_PROXY_URI_RESOLVER,
-				NULL);
-	test_session_properties ("Session with removed proxy resolver feature", session,
-				 NULL, default_tlsdb);
-	g_object_unref (session);
-	G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	session = g_object_new (SOUP_TYPE_SESSION,
 				SOUP_SESSION_TLS_DATABASE, NULL,

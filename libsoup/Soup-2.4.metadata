@@ -10,10 +10,6 @@ XMLRPCFault errordomain parent="Soup.XMLRPC" name="Fault"
 XMLRPCError parent="Soup.XMLRPC" name="Error"
 HTTPVersion.http_* name="http_(.+)"
 
-// Backwards compatibility
-Requester deprecated_since="2.42" replacement="Session"
-ProxyResolver deprecated_since="2.28" replacement="ProxyURIResolver"
-
 // Report upstream
 add_* skip=false type="unowned GLib.TimeoutSource"
 Auth
@@ -45,7 +41,6 @@ Socket
 URI
 	.set_query_from_fields skip=false
 // uri_host_*.* type="Soup.URI"
-ProxyURIResolverCallback.user_data skip
 xmlrpc_* skip=false
 
 // Not enough GIR information

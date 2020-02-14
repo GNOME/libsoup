@@ -263,6 +263,7 @@ main (int argc, char **argv)
 	}
 
 	if (proxy) {
+		GProxyResolver *resolver;
 		proxy_uri = soup_uri_new (proxy);
 		if (!proxy_uri) {
 			g_printerr ("Could not parse '%s' as URI\n",
@@ -270,10 +271,12 @@ main (int argc, char **argv)
 			exit (1);
 		}
 
+		resolver = g_simple_proxy_resolver_new (proxy, NULL);
 		g_object_set (G_OBJECT (session),
-			      SOUP_SESSION_PROXY_URI, proxy_uri,
+			      SOUP_SESSION_PROXY_RESOLVER, resolver,
 			      NULL);
 		soup_uri_free (proxy_uri);
+		g_object_unref (resolver);
 	}
 
 #ifdef LIBSOUP_HAVE_GSSAPI

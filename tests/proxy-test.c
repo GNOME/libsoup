@@ -1,5 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
+#include <gio/gio.h>
 #include "test-utils.h"
 
 typedef struct {
@@ -265,16 +266,14 @@ do_proxy_fragment_test (gconstpointer data)
 {
 	SoupURI *base_uri = (SoupURI *)data;
 	SoupSession *session;
-	SoupURI *proxy_uri, *req_uri;
+	SoupURI *req_uri;
 	SoupMessage *msg;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	proxy_uri = soup_uri_new (proxies[SIMPLE_PROXY]);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
-	soup_uri_free (proxy_uri);
 
 	req_uri = soup_uri_new_with_base (base_uri, "/#foo");
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
@@ -291,7 +290,7 @@ static void
 do_proxy_redirect_test (void)
 {
 	SoupSession *session;
-	SoupURI *proxy_uri, *req_uri, *new_uri;
+	SoupURI *req_uri, *new_uri;
 	SoupMessage *msg;
 
 	g_test_bug ("631368");
@@ -299,11 +298,9 @@ do_proxy_redirect_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	proxy_uri = soup_uri_new (proxies[SIMPLE_PROXY]);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
-	soup_uri_free (proxy_uri);
 
 	req_uri = soup_uri_new (HTTPS_SERVER);
 	soup_uri_set_path (req_uri, "/redirected");

@@ -63,7 +63,6 @@ SOUP_AVAILABLE_IN_2_42
 GType soup_session_get_type (void);
 
 #define SOUP_SESSION_LOCAL_ADDRESS          "local-address"
-#define SOUP_SESSION_PROXY_URI              "proxy-uri"
 #define SOUP_SESSION_PROXY_RESOLVER         "proxy-resolver"
 #define SOUP_SESSION_MAX_CONNS              "max-conns"
 #define SOUP_SESSION_MAX_CONNS_PER_HOST     "max-conns-per-host"

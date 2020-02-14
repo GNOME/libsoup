@@ -1345,19 +1345,23 @@ static void
 do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupServer *proxy;
-	SoupURI *proxy_uri;
 	SoupSession *session;
 	SoupMessage *msg;
+	SoupURI *proxy_uri;
+	char *proxy_uri_str;
+	GProxyResolver *resolver;
 	const char *handled_by;
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
 	proxy = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
-	proxy_uri = soup_test_server_get_uri (proxy, SOUP_URI_SCHEME_HTTP, "127.0.0.1");
+        proxy_uri = soup_test_server_get_uri (proxy, SOUP_URI_SCHEME_HTTP, "127.0.0.1");
+	proxy_uri_str = soup_uri_to_string (proxy_uri, FALSE);
 	soup_server_add_handler (proxy, NULL, proxy_server_callback, NULL, NULL);
 
+	resolver = g_simple_proxy_resolver_new (proxy_uri_str, NULL);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 SOUP_SESSION_PROXY_RESOLVER, resolver,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", sd->ssl_base_uri);
 	soup_session_send_message (session, msg);
@@ -1370,7 +1374,9 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 	soup_test_session_abort_unref (session);
 
 	soup_test_server_quit_unref (proxy);
+	g_object_unref (resolver);
 	soup_uri_free (proxy_uri);
+	g_free (proxy_uri_str);
 }
 
 int

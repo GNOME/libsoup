@@ -38,9 +38,6 @@ extern "C" {
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-multipart.h>
 #include <libsoup/soup-multipart-input-stream.h>
-#include <libsoup/soup-proxy-resolver.h>
-#include <libsoup/soup-proxy-resolver-default.h>
-#include <libsoup/soup-proxy-uri-resolver.h>
 #include <libsoup/soup-request.h>
 #include <libsoup/soup-request-data.h>
 #include <libsoup/soup-request-file.h>

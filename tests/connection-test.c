@@ -813,7 +813,7 @@ static void
 do_connection_state_test_for_session (SoupSession *session)
 {
 	SoupConnectionState state;
-	SoupURI *proxy_uri;
+	GProxyResolver *resolver;
 
 	g_signal_connect (session, "connection-created",
 			  G_CALLBACK (connection_created),
@@ -828,11 +828,11 @@ do_connection_state_test_for_session (SoupSession *session)
 	} else
 		debug_printf (1, "    https -- SKIPPING\n");
 
-	proxy_uri = soup_uri_new (HTTP_PROXY);
+	resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_PROXY_URI, proxy_uri,
+		      SOUP_SESSION_PROXY_RESOLVER, resolver,
 		      NULL);
-	soup_uri_free (proxy_uri);
+	g_object_unref (resolver);
 
 	debug_printf (1, "    http with proxy\n");
 	do_one_connection_state_test (session, HTTP_SERVER);
@@ -960,7 +960,7 @@ do_one_connection_event_test (SoupSession *session, const char *uri,
 static void
 do_connection_event_test_for_session (SoupSession *session)
 {
-	SoupURI *proxy_uri;
+	GProxyResolver *resolver;
 
 	debug_printf (1, "    http\n");
 	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
@@ -971,11 +971,11 @@ do_connection_event_test_for_session (SoupSession *session)
 	} else
 		debug_printf (1, "    https -- SKIPPING\n");
 
-	proxy_uri = soup_uri_new (HTTP_PROXY);
+	resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_PROXY_URI, proxy_uri,
+		      SOUP_SESSION_PROXY_RESOLVER, resolver,
 		      NULL);
-	soup_uri_free (proxy_uri);
+	g_object_unref (resolver);
 
 	debug_printf (1, "    http with proxy\n");
 	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
@@ -1099,7 +1099,7 @@ do_connection_connect_test (void)
         SoupURI *wss_uri = NULL;
         SoupURI *file_uri;
         SoupURI *wrong_http_uri;
-        SoupURI *proxy_uri;
+	GProxyResolver *resolver;
 
         SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -1147,10 +1147,11 @@ do_connection_connect_test (void)
                                              G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED,
                                              "rRcr"); /* FIXME: why r again? GLib bug? */
 
-        proxy_uri = soup_uri_new (HTTP_PROXY);
-        g_object_set (G_OBJECT (session),
-                      SOUP_SESSION_PROXY_URI, proxy_uri,
-                      NULL);
+	resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
+	g_object_set (G_OBJECT (session),
+		      SOUP_SESSION_PROXY_RESOLVER, resolver,
+		      NULL);
+	g_object_unref (resolver);
 
         debug_printf (1, "    http with proxy\n");
         do_one_connection_connect_test (session, http_uri,
@@ -1182,7 +1183,6 @@ do_connection_connect_test (void)
                 soup_uri_free (wss_uri);
         soup_uri_free (file_uri);
         soup_uri_free (wrong_http_uri);
-        soup_uri_free (proxy_uri);
 
         soup_test_session_abort_unref (session);
 }

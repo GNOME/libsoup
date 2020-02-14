@@ -464,7 +464,6 @@ SoupSessionConnectProgressCallback
 soup_session_connect_async
 soup_session_connect_finish
 <SUBSECTION>
-SOUP_SESSION_PROXY_URI
 SOUP_SESSION_PROXY_RESOLVER
 SOUP_SESSION_MAX_CONNS
 SOUP_SESSION_MAX_CONNS_PER_HOST
@@ -1087,21 +1086,6 @@ SOUP_CONTENT_DECODER_GET_CLASS
 SoupContentDecoderClass
 SoupContentDecoderPrivate
 soup_content_decoder_get_type
-</SECTION>
-
-<SECTION>
-<FILE>soup-proxy-resolver-default</FILE>
-<TITLE>SoupProxyResolverDefault</TITLE>
-SoupProxyResolverDefault
-<SUBSECTION Standard>
-soup_proxy_resolver_default_get_type
-SoupProxyResolverDefaultClass
-SOUP_TYPE_PROXY_RESOLVER_DEFAULT
-SOUP_PROXY_RESOLVER_DEFAULT
-SOUP_PROXY_RESOLVER_DEFAULT_CLASS
-SOUP_PROXY_RESOLVER_DEFAULT_GET_CLASS
-SOUP_IS_PROXY_RESOLVER_DEFAULT
-SOUP_IS_PROXY_RESOLVER_DEFAULT_CLASS
 </SECTION>
 
 <SECTION>
