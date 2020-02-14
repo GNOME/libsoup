@@ -3217,6 +3217,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * <literal>localhost</literal>. If you need more control over
 	 * proxies, you can create a #GSimpleProxyResolver and set the
 	 * #SoupSession:proxy-resolver property.
+	 *
+	 * Deprecated: 2.70: Use SoupSession:proxy-resolver along with #GSimpleProxyResolver.
 	 */
 	/**
 	 * SOUP_SESSION_PROXY_URI:
@@ -3230,7 +3232,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "The HTTP Proxy to use for this session",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
+				    G_PARAM_STATIC_STRINGS |
+				    G_PARAM_DEPRECATED));
 	/**
 	 * SoupSession:proxy-resolver:
 	 *
