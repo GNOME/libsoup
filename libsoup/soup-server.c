@@ -1769,6 +1769,34 @@ soup_server_get_uris (SoupServer *server)
 G_DEFINE_BOXED_TYPE (SoupClientContext, soup_client_context, soup_client_context_ref, soup_client_context_unref)
 
 /**
+ * soup_client_context_get_socket:
+ * @client: a #SoupClientContext
+ *
+ * Retrieves the #SoupSocket that @client is associated with.
+ *
+ * If you are using this method to observe when multiple requests are
+ * made on the same persistent HTTP connection (eg, as the ntlm-test
+ * test program does), you will need to pay attention to socket
+ * destruction as well (either by using weak references, or by
+ * connecting to the #SoupSocket::disconnected signal), so that you do
+ * not get fooled when the allocator reuses the memory address of a
+ * previously-destroyed socket to represent a new socket.
+ *
+ * Return value: (transfer none): the #SoupSocket that @client is
+ * associated with.
+ *
+ * Deprecated: use soup_client_context_get_gsocket(), which returns
+ * a #GSocket.
+ **/
+SoupSocket *
+soup_client_context_get_socket (SoupClientContext *client)
+{
+	g_return_val_if_fail (client != NULL, NULL);
+
+	return client->sock;
+}
+
+/**
  * soup_client_context_get_gsocket:
  * @client: a #SoupClientContext
  *
@@ -1792,6 +1820,28 @@ soup_client_context_get_gsocket (SoupClientContext *client)
 	g_return_val_if_fail (client != NULL, NULL);
 
 	return client->gsock;
+}
+
+/**
+ * soup_client_context_get_address:
+ * @client: a #SoupClientContext
+ *
+ * Retrieves the #SoupAddress associated with the remote end
+ * of a connection.
+ *
+ * Return value: (nullable) (transfer none): the #SoupAddress
+ * associated with the remote end of a connection, it may be
+ * %NULL if you used soup_server_accept_iostream().
+ *
+ * Deprecated: Use soup_client_context_get_remote_address(), which returns
+ * a #GSocketAddress.
+ **/
+SoupAddress *
+soup_client_context_get_address (SoupClientContext *client)
+{
+	g_return_val_if_fail (client != NULL, NULL);
+
+	return soup_socket_get_remote_address (client->sock);
 }
 
 /**
@@ -1869,7 +1919,6 @@ soup_client_context_get_host (SoupClientContext *client)
 	if (client->remote_ip)
 		return client->remote_ip;
 
-	g_assert (client->gsock); /* FIXME: Always use gsock */
 	if (client->gsock) {
 		GSocketAddress *addr = soup_client_context_get_remote_address (client);
 		GInetAddress *iaddr;
@@ -1878,6 +1927,13 @@ soup_client_context_get_host (SoupClientContext *client)
 			return NULL;
 		iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
 		client->remote_ip = g_inet_address_to_string (iaddr);
+	} else {
+		SoupAddress *addr;
+
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+		addr = soup_client_context_get_address (client);
+		G_GNUC_END_IGNORE_DEPRECATIONS;
+		client->remote_ip = g_strdup (soup_address_get_physical (addr));
 	}
 
 	return client->remote_ip;
