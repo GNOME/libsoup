@@ -7,16 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-08-22 08:47+0000\n"
-"PO-Revision-Date: 2019-08-22 19:44+0300\n"
+"POT-Creation-Date: 2019-12-04 10:54+0000\n"
+"PO-Revision-Date: 2020-02-22 20:27+0200\n"
+"Last-Translator: Jiri Grönroos <jiri.gronroos+l10n@iki.fi>\n"
 "Language-Team: Finnish <lokalisointi-lista@googlegroups.com>\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Last-Translator: Jiri Grönroos <jiri.gronroos+l10n@iki.fi>\n"
-"X-Generator: Poedit 2.0.6\n"
+"X-Generator: Poedit 2.3\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -50,7 +50,7 @@ msgstr "HTTP-vastausta ei voitu jäsentää"
 
 #: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
-msgstr ""
+msgstr "Tunnistamaton HTTP-vastauksen merkistö"
 
 #: libsoup/soup-message-io.c:261
 msgid "Header too big"
@@ -62,7 +62,7 @@ msgstr ""
 
 #: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
 msgid "Operation was cancelled"
-msgstr ""
+msgstr "Toimenpide peruttiin"
 
 #: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
@@ -78,11 +78,11 @@ msgstr ""
 msgid "Invalid “%s” URI: %s"
 msgstr ""
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1805
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "TLS-palvelinta ei voi luoda ilman TLS-varmennetta"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1822
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Ei voitu kuunnella osoitteessa %s, portissa %d: "
@@ -104,7 +104,7 @@ msgstr "Ei HTTP URI"
 
 #: libsoup/soup-session.c:4813
 msgid "The server did not accept the WebSocket handshake."
-msgstr ""
+msgstr "Palvelin ei hyväksynyt WebSocket-kättelyä."
 
 #: libsoup/soup-socket.c:148
 msgid "Can’t import non-socket as SoupSocket"
@@ -121,7 +121,7 @@ msgstr ""
 #: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
 #: libsoup/soup-websocket.c:539
 msgid "Server requested unsupported extension"
-msgstr ""
+msgstr "Palvelin pyysi ei-tuettua laajennusta"
 
 #: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
@@ -131,7 +131,7 @@ msgstr "Virheellinen WebSocket “%s” -otsake"
 #: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
-msgstr ""
+msgstr "Palvelin palautti virheellisen “%s”-avaimen"
 
 #: libsoup/soup-websocket.c:566
 #, c-format
@@ -157,19 +157,19 @@ msgstr "Virheellinen WebSocket-avain"
 
 #: libsoup/soup-websocket.c:703
 msgid "Unsupported WebSocket subprotocol"
-msgstr ""
+msgstr "Ei-tuettu WebSocket-aliprotokolla"
 
 #: libsoup/soup-websocket.c:975
 msgid "Server rejected WebSocket handshake"
-msgstr ""
+msgstr "Palvelin hylkäsi WebSocket-kättelyn"
 
 #: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
 msgid "Server ignored WebSocket handshake"
-msgstr ""
+msgstr "Palvelin jätti huomiotta WebSocket-kättelyn"
 
 #: libsoup/soup-websocket.c:1004
 msgid "Server requested unsupported protocol"
-msgstr ""
+msgstr "Palvelin pyysi ei-tuettua protokollaa"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
