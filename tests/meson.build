@@ -176,7 +176,7 @@ foreach test: tests
     )
   endif
 
-  test_deps = [ libsoup_dep ] + test[2]
+  test_deps = [ libsoup_static_dep ] + test[2]
   test_target = executable(test_name,
     sources : [ test_name + '.c', test_resources ],
     link_with : test_utils,
