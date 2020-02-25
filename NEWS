@@ -1,3 +1,13 @@
+Changes in libsoup from 2.68.3 to 2.68.4:
+
+	* WebSockets: Ensure a new connection is created for WebSocket requests [Carlos
+	  Garcia Campos]
+
+	* WebSockets: Do not start the input source when IO is closing [Carlos Garcia
+	  Campos]
+
+	* build: Update glib requirement to 2.58 [Xavier Claessens]
+
 Changes in libsoup from 2.68.2 to 2.68.3:
 
         * Fixes to testing infrastructure [Simon McVittie]
