@@ -12,9 +12,17 @@ soup_version_major = version_arr[0]
 soup_version_minor = version_arr[1]
 soup_version_micro = version_arr[2]
 
-libversion = '1.8.0'
+# Before making a release, the libversion string should be modified.
+#
+#  * Bump the first component if binary compatibility has been broken; or
+#  * Bump the second component if new APIs are added; or
+#  * Bump the third component otherwise.
+#
+# When bumping the first component version, set the second and third components
+# to 0. When bumping the second version, set the third one to zero.
+libversion = '1.9.0'
 apiversion = '2.4'
-soversion = '1'
+soversion = libversion.split('.')[0]
 libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
 libversion_arr = libversion.split('.')
 darwin_version_major = libversion_arr[0].to_int()
