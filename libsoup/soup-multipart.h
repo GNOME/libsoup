@@ -6,9 +6,9 @@
 #ifndef __SOUP_MULTIPART_H__
 #define __SOUP_MULTIPART_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-message-body.h>
-#include <libsoup/soup-message-headers.h>
+#include "soup-types.h"
+#include "soup-message-body.h"
+#include "soup-message-headers.h"
 
 G_BEGIN_DECLS
 

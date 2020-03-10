@@ -67,6 +67,7 @@ else
       '-Werror=format=2',
       '-Wstrict-prototypes',
       '-Wno-format-zero-length',
+      '-Wno-missing-include-dirs',
   ]
 
   common_flags += cc.get_supported_arguments(test_cflags)

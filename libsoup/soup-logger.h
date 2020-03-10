@@ -6,7 +6,7 @@
 #ifndef __SOUP_LOGGER_H__
 #define __SOUP_LOGGER_H__ 1
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

@@ -13,17 +13,17 @@
 
 #include "soup-session.h"
 #include "soup.h"
-#include "soup-auth-manager.h"
-#include "soup-cache-private.h"
+#include "auth/soup-auth-manager.h"
+#include "cache/soup-cache-private.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
 #include "soup-misc-private.h"
 #include "soup-message-queue.h"
 #include "soup-session-private.h"
 #include "soup-socket-private.h"
-#include "soup-websocket.h"
-#include "soup-websocket-connection.h"
-#include "soup-websocket-extension-manager-private.h"
+#include "websocket/soup-websocket.h"
+#include "websocket/soup-websocket-connection.h"
+#include "websocket/soup-websocket-extension-manager-private.h"
 
 #define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
 

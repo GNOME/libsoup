@@ -24,7 +24,7 @@
 
 #include <gio/gio.h>
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

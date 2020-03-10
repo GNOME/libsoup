@@ -8,7 +8,7 @@
 
 #include <sys/types.h>
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

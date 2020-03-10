@@ -6,8 +6,8 @@
 #ifndef  __SOUP_FORM_H__
 #define  __SOUP_FORM_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-multipart.h>
+#include "soup-types.h"
+#include "soup-multipart.h"
 
 G_BEGIN_DECLS
 

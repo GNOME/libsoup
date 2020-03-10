@@ -7,7 +7,7 @@
 #define __SOUP_HEADERS_H__ 1
 
 #include <glib.h>
-#include <libsoup/soup-message.h>
+#include "soup-message.h"
 
 G_BEGIN_DECLS
 

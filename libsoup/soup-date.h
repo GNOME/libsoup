@@ -8,7 +8,7 @@
 #define __SOUP_DATE_H__ 1
 
 #include <time.h>
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

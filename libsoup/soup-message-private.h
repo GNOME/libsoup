@@ -7,9 +7,9 @@
 #define __SOUP_MESSAGE_PRIVATE_H__ 1
 
 #include "soup-message.h"
-#include "soup-auth.h"
-#include "soup-content-processor.h"
-#include "soup-content-sniffer.h"
+#include "auth/soup-auth.h"
+#include "content-sniffer/soup-content-processor.h"
+#include "content-sniffer/soup-content-sniffer.h"
 #include "soup-session.h"
 
 typedef struct {

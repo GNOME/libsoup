@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
+#include "soup-misc.h"
 
 #include <glib/gprintf.h>
 

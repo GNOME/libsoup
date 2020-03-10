@@ -6,9 +6,9 @@
 #ifndef __SOUP_SERVER_H__
 #define __SOUP_SERVER_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-uri.h>
-#include <libsoup/soup-websocket-connection.h>
+#include "soup-types.h"
+#include "soup-uri.h"
+#include "soup-websocket-connection.h"
 
 G_BEGIN_DECLS
 

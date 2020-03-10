@@ -6,8 +6,8 @@
 #ifndef __SOUP_MULTIPART_INPUT_STREAM_H__
 #define __SOUP_MULTIPART_INPUT_STREAM_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-message-headers.h>
+#include "soup-types.h"
+#include "soup-message-headers.h"
 
 G_BEGIN_DECLS
 

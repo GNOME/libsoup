@@ -19,9 +19,9 @@
 #include "soup-misc-private.h"
 #include "soup-path-map.h" 
 #include "soup-socket-private.h"
-#include "soup-websocket.h"
-#include "soup-websocket-connection.h"
-#include "soup-websocket-extension-deflate.h"
+#include "websocket/soup-websocket.h"
+#include "websocket/soup-websocket-connection.h"
+#include "websocket/soup-websocket-extension-deflate.h"
 
 /**
  * SECTION:soup-server

@@ -23,8 +23,8 @@
 #define __SOUP_DIRECTORY_INPUT_STREAM_H__ 1
 
 #include <gio/gio.h>
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-message-body.h>
+#include "soup-types.h"
+#include "soup-message-body.h"
 
 G_BEGIN_DECLS
 

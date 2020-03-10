@@ -4,6 +4,7 @@
  */
 
 #include "test-utils.h"
+#include "soup-misc.h"
 
 static char *base_uri;
 

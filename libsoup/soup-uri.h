@@ -8,8 +8,7 @@
 #ifndef __SOUP_URI_H__
 #define __SOUP_URI_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-misc.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

@@ -12,6 +12,7 @@
 #include "soup-client-input-stream.h"
 #include "soup.h"
 #include "soup-message-private.h"
+#include "soup-misc.h"
 
 struct _SoupClientInputStreamPrivate {
 	SoupMessage  *msg;

@@ -6,8 +6,8 @@
 #ifndef __SOUP_SESSION_ASYNC_H__
 #define __SOUP_SESSION_ASYNC_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-session.h>
+#include "soup-types.h"
+#include "soup-session.h"
 
 G_BEGIN_DECLS
 

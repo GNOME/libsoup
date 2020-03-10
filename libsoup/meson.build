@@ -1,3 +1,5 @@
+subdir('include')
+
 pkg = import('pkgconfig')
 
 resources = gnome.compile_resources('soup-resources',
@@ -8,40 +10,53 @@ resources = gnome.compile_resources('soup-resources',
 
 soup_sources = [
   resources,
+  'auth/soup-auth.c',
+  'auth/soup-auth-basic.c',
+  'auth/soup-auth-digest.c',
+  'auth/soup-auth-ntlm.c',
+  'auth/soup-auth-negotiate.c',
+  'auth/soup-auth-domain.c',
+  'auth/soup-auth-domain-basic.c',
+  'auth/soup-auth-domain-digest.c',
+  'auth/soup-auth-manager.c',
+  'auth/soup-connection-auth.c',
+
+  'cache/soup-cache.c',
+  'cache/soup-cache-client-input-stream.c',
+  'cache/soup-cache-input-stream.c',
+
+  'content-sniffer/soup-content-decoder.c',
+  'content-sniffer/soup-content-processor.c',
+  'content-sniffer/soup-content-sniffer.c',
+  'content-sniffer/soup-content-sniffer-stream.c',
+  'content-sniffer/soup-converter-wrapper.c',
+
+  'cookies/soup-cookie.c',
+  'cookies/soup-cookie-jar.c',
+  'cookies/soup-cookie-jar-db.c',
+  'cookies/soup-cookie-jar-text.c',
+
+  'hsts/soup-hsts-enforcer.c',
+  'hsts/soup-hsts-enforcer-db.c',
+  'hsts/soup-hsts-policy.c',
+
+  'websocket/soup-websocket.c',
+  'websocket/soup-websocket-connection.c',
+  'websocket/soup-websocket-extension.c',
+  'websocket/soup-websocket-extension-deflate.c',
+  'websocket/soup-websocket-extension-manager.c',
+
+  'xmlrpc/soup-xmlrpc.c',
+
   'soup-address.c',
-  'soup-auth.c',
-  'soup-auth-basic.c',
-  'soup-auth-digest.c',
-  'soup-auth-ntlm.c',
-  'soup-auth-negotiate.c',
-  'soup-auth-domain.c',
-  'soup-auth-domain-basic.c',
-  'soup-auth-domain-digest.c',
-  'soup-auth-manager.c',
   'soup-body-input-stream.c',
   'soup-body-output-stream.c',
-  'soup-cache.c',
-  'soup-cache-client-input-stream.c',
-  'soup-cache-input-stream.c',
   'soup-client-input-stream.c',
   'soup-connection.c',
-  'soup-connection-auth.c',
-  'soup-content-decoder.c',
-  'soup-content-processor.c',
-  'soup-content-sniffer.c',
-  'soup-content-sniffer-stream.c',
-  'soup-converter-wrapper.c',
-  'soup-cookie.c',
-  'soup-cookie-jar.c',
-  'soup-cookie-jar-db.c',
-  'soup-cookie-jar-text.c',
   'soup-date.c',
   'soup-directory-input-stream.c',
   'soup-filter-input-stream.c',
   'soup-form.c',
-  'soup-hsts-enforcer.c',
-  'soup-hsts-enforcer-db.c',
-  'soup-hsts-policy.c',
   'soup-headers.c',
   'soup-init.c',
   'soup-io-stream.c',
@@ -73,31 +88,30 @@ soup_sources = [
   'soup-tld.c',
   'soup-uri.c',
   'soup-version.c',
-  'soup-websocket.c',
-  'soup-websocket-connection.c',
-  'soup-websocket-extension.c',
-  'soup-websocket-extension-deflate.c',
-  'soup-websocket-extension-manager.c',
-  'soup-xmlrpc.c',
 ]
 
 soup_headers = [
+  'auth/soup-auth-basic.h',
+  'auth/soup-auth-digest.h',
+  'auth/soup-auth-ntlm.h',
+  'auth/soup-auth-negotiate.h',
+  'auth/soup-connection-auth.h',
+
+  'cache/soup-cache-client-input-stream.h',
+  'cache/soup-cache-input-stream.h',
+  'cache/soup-cache-private.h',
+
+  'content-sniffer/soup-content-processor.h',
+  'content-sniffer/soup-content-sniffer-stream.h',
+  'content-sniffer/soup-converter-wrapper.h',
+
+  'websocket/soup-websocket-extension-manager-private.h',
+
   'gconstructor.h',
-  'soup-auth-basic.h',
-  'soup-auth-digest.h',
-  'soup-auth-ntlm.h',
-  'soup-auth-negotiate.h',
   'soup-body-input-stream.h',
   'soup-body-output-stream.h',
-  'soup-cache-client-input-stream.h',
-  'soup-cache-input-stream.h',
-  'soup-cache-private.h',
   'soup-client-input-stream.h',
   'soup-connection.h',
-  'soup-connection-auth.h',
-  'soup-content-processor.h',
-  'soup-content-sniffer-stream.h',
-  'soup-converter-wrapper.h',
   'soup-directory-input-stream.h',
   'soup-filter-input-stream.h',
   'soup-io-stream.h',
@@ -107,30 +121,46 @@ soup_headers = [
   'soup-path-map.h',
   'soup-session-private.h',
   'soup-socket-private.h',
-  'soup-websocket-extension-manager-private.h',
 ]
 
 soup_introspection_headers = [
+  'auth/soup-auth.h',
+  'auth/soup-auth-domain.h',
+  'auth/soup-auth-domain-basic.h',
+  'auth/soup-auth-domain-digest.h',
+  'auth/soup-auth-manager.h',
+  'auth/soup-auth-negotiate.h',
+  'auth/soup-auth-ntlm.h',
+  'auth/soup-connection-auth.h', # FIXME: Keep private
+
+  'cache/soup-cache.h',
+
+  'content-sniffer/soup-content-decoder.h',
+  'content-sniffer/soup-content-sniffer.h',
+
+  'cookies/soup-cookie.h',
+  'cookies/soup-cookie-jar.h',
+  'cookies/soup-cookie-jar-db.h',
+  'cookies/soup-cookie-jar-text.h',
+
+  'hsts/soup-hsts-enforcer.h',
+  'hsts/soup-hsts-enforcer-db.h',
+  'hsts/soup-hsts-policy.h',
+
+  'websocket/soup-websocket.h',
+  'websocket/soup-websocket-connection.h',
+  'websocket/soup-websocket-extension.h',
+  'websocket/soup-websocket-extension-deflate.h',
+  'websocket/soup-websocket-extension-manager.h',
+
+  'xmlrpc/soup-xmlrpc.h',
+
   'soup-address.h',
-  'soup-auth.h',
-  'soup-auth-domain.h',
-  'soup-auth-domain-basic.h',
-  'soup-auth-domain-digest.h',
-  'soup-auth-manager.h',
   'soup-autocleanups.h',
-  'soup-cache.h',
-  'soup-content-decoder.h',
-  'soup-content-sniffer.h',
-  'soup-cookie.h',
-  'soup-cookie-jar.h',
-  'soup-cookie-jar-db.h',
-  'soup-cookie-jar-text.h',
+
   'soup-date.h',
   'soup-form.h',
   'soup-headers.h',
-  'soup-hsts-enforcer.h',
-  'soup-hsts-enforcer-db.h',
-  'soup-hsts-policy.h',
   'soup-logger.h',
   'soup-message.h',
   'soup-message-body.h',
@@ -154,21 +184,13 @@ soup_introspection_headers = [
   'soup-tld.h',
   'soup-types.h',
   'soup-uri.h',
-  'soup-websocket.h',
-  'soup-websocket-connection.h',
-  'soup-websocket-extension.h',
-  'soup-websocket-extension-deflate.h',
-  'soup-websocket-extension-manager.h',
-  'soup-xmlrpc.h',
 ]
 
-soup_installed_headers = soup_introspection_headers + [
-  'soup.h'
-]
+soup_installed_headers = soup_introspection_headers
 
 if brotlidec_dep.found()
-  soup_sources += 'soup-brotli-decompressor.c'
-  soup_headers += 'soup-brotli-decompressor.h'
+  soup_sources += 'content-sniffer/soup-brotli-decompressor.c'
+  soup_headers += 'content-sniffer/soup-brotli-decompressor.h'
 endif
 
 
@@ -212,6 +234,17 @@ deps = [
   libz_dep,
 ]
 
+libsoup_includes = [
+  configinc,
+  include_directories([
+    'auth',
+    'cookies',
+    'hsts',
+    'websocket',
+    '.'
+  ]),
+]
+
 libsoup = library('soup-@0@'.format(apiversion),
   soup_sources,
   soup_headers,
@@ -220,7 +253,7 @@ libsoup = library('soup-@0@'.format(apiversion),
   soversion : soversion,
   darwin_versions: darwin_versions,
   c_args : libsoup_c_args,
-  include_directories : configinc,
+  include_directories : libsoup_includes,
   gnu_symbol_visibility: 'hidden',
   install : true,
   dependencies : deps)
@@ -232,7 +265,7 @@ libsoup_static = static_library('soup-static',
     soup_enums,
   ],
   c_args : libsoup_c_args,
-  include_directories : configinc,
+  include_directories : libsoup_includes,
   install : true,
   dependencies : deps,
 )
@@ -246,13 +279,13 @@ pkg.generate(libsoup,
   variables: 'exec_prefix=${prefix}')
 
 libsoup_dep = declare_dependency(link_with : libsoup,
-  include_directories : configinc,
+  include_directories : libsoup_includes,
   sources : soup_enum_h,
   dependencies : [ platform_deps, glib_deps ]
 )
 
 libsoup_static_dep = declare_dependency(link_with : libsoup_static,
-  include_directories : configinc,
+  include_directories : libsoup_includes,
   sources : soup_enum_h,
   dependencies : [ platform_deps, glib_deps ]
 )

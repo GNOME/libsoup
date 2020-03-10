@@ -6,10 +6,10 @@
 #ifndef __SOUP_SESSION_H__
 #define __SOUP_SESSION_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-address.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-websocket-connection.h>
+#include "soup-types.h"
+#include "soup-address.h"
+#include "soup-message.h"
+#include "websocket/soup-websocket-connection.h"
 
 G_BEGIN_DECLS
 

@@ -6,7 +6,7 @@
 #ifndef __SOUP_TLD_H__
 #define __SOUP_TLD_H__
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

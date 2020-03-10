@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-multipart.h"
+#include "soup-headers.h"
 #include "soup.h"
 
 /**

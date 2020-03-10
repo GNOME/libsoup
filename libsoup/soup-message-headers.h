@@ -6,7 +6,7 @@
 #ifndef __SOUP_MESSAGE_HEADERS_H__
 #define __SOUP_MESSAGE_HEADERS_H__ 1
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

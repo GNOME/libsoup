@@ -6,7 +6,7 @@
 #ifndef __SOUP_MISC_H__
 #define __SOUP_MISC_H__ 1
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 
@@ -38,8 +38,6 @@ guint              soup_str_case_hash        (gconstpointer key);
 SOUP_AVAILABLE_IN_2_4
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
-
-#define _SOUP_ATOMIC_INTERN_STRING(variable, value) ((const char *)(g_atomic_pointer_get (&(variable)) ? (variable) : (g_atomic_pointer_set (&(variable), (gpointer)g_intern_static_string (value)), (variable))))
 
 /* character classes */
 

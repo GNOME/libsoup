@@ -6,7 +6,7 @@
 #ifndef __SOUP_PORTABILITY_H__
 #define __SOUP_PORTABILITY_H__
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 #ifdef G_OS_WIN32
 

@@ -6,10 +6,10 @@
 #ifndef __SOUP_MESSAGE_H__
 #define __SOUP_MESSAGE_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-message-body.h>
-#include <libsoup/soup-message-headers.h>
-#include <libsoup/soup-method.h>
+#include "soup-types.h"
+#include "soup-message-body.h"
+#include "soup-message-headers.h"
+#include "soup-method.h"
 
 G_BEGIN_DECLS
 

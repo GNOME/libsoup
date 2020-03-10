@@ -6,8 +6,7 @@
 #ifndef __SOUP_METHOD_H__
 #define __SOUP_METHOD_H__ 1
 
-#include <libsoup/soup-types.h>
-#include <libsoup/soup-misc.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 

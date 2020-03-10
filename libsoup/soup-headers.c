@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "soup-misc.h"
 #include "soup-headers.h"
 #include "soup.h"
 
