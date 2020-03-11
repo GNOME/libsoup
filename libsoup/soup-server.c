@@ -1823,28 +1823,6 @@ soup_client_context_get_gsocket (SoupClientContext *client)
 }
 
 /**
- * soup_client_context_get_address:
- * @client: a #SoupClientContext
- *
- * Retrieves the #SoupAddress associated with the remote end
- * of a connection.
- *
- * Return value: (nullable) (transfer none): the #SoupAddress
- * associated with the remote end of a connection, it may be
- * %NULL if you used soup_server_accept_iostream().
- *
- * Deprecated: Use soup_client_context_get_remote_address(), which returns
- * a #GSocketAddress.
- **/
-SoupAddress *
-soup_client_context_get_address (SoupClientContext *client)
-{
-	g_return_val_if_fail (client != NULL, NULL);
-
-	return soup_socket_get_remote_address (client->sock);
-}
-
-/**
  * soup_client_context_get_remote_address:
  * @client: a #SoupClientContext
  *
@@ -1931,7 +1909,7 @@ soup_client_context_get_host (SoupClientContext *client)
 		SoupAddress *addr;
 
 		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-		addr = soup_client_context_get_address (client);
+		addr = soup_socket_get_remote_address (client->sock);
 		G_GNUC_END_IGNORE_DEPRECATIONS;
 		client->remote_ip = g_strdup (soup_address_get_physical (addr));
 	}
