@@ -189,7 +189,9 @@ apache_cmd (const char *cmd)
 void
 apache_init (void)
 {
-	if (g_getenv ("SOUP_TESTS_IN_MAKE_CHECK"))
+	/* Set this environment variable if you are already running a
+	 * suitably-configured Apache server */
+	if (g_getenv ("SOUP_TESTS_ALREADY_RUNNING_APACHE"))
 		return;
 
 	if (!apache_cmd ("start")) {
