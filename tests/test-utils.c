@@ -133,6 +133,20 @@ debug_printf (int level, const char *format, ...)
 
 #ifdef HAVE_APACHE
 
+gboolean
+check_apache (void)
+{
+	if (g_getenv ("SOUP_TESTS_ALREADY_RUNNING_APACHE"))
+		return TRUE;
+
+	if (!apache_running) {
+		g_test_skip ("Failed to start apache");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static gboolean
 apache_cmd (const char *cmd)
 {
@@ -186,19 +200,23 @@ apache_cmd (const char *cmd)
 	return ok;
 }
 
-void
+gboolean
 apache_init (void)
 {
 	/* Set this environment variable if you are already running a
 	 * suitably-configured Apache server */
 	if (g_getenv ("SOUP_TESTS_ALREADY_RUNNING_APACHE"))
-		return;
+		return TRUE;
 
 	if (!apache_cmd ("start")) {
 		g_printerr ("Could not start apache\n");
-		exit (1);
+		apache_running = FALSE;
 	}
-	apache_running = TRUE;
+	else {
+		apache_running = TRUE;
+	}
+
+	return apache_running;
 }
 
 void

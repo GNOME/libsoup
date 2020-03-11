@@ -511,11 +511,13 @@ main (int argc, char **argv)
 	int ret;
 
 	test_init (argc, argv, NULL);
-	apache_init ();
 
 	base_uri = "http://127.0.0.1:47524/";
+
 #ifdef HAVE_APACHE
-	get_correct_response (base_uri);
+	if (apache_init ()) {
+		get_correct_response (base_uri);
+	}
 #endif
 
 	g_test_add_data_func ("/pull-api/async/fast", base_uri, do_fast_async_test);
@@ -525,7 +527,9 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 #ifdef HAVE_APACHE
-	soup_buffer_free (correct_response);
+	if (correct_response != NULL) {
+		soup_buffer_free (correct_response);
+	}
 #endif
 
 	test_cleanup ();

@@ -12,13 +12,21 @@ static const char *uri = NULL;
 static gboolean server_test = FALSE;
 
 #ifdef HAVE_PHP_XMLRPC
-#define SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER
+#define SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER				\
+	G_STMT_START {							\
+		if (uri == default_uri) {				\
+			SOUP_TEST_SKIP_IF_NO_APACHE;			\
+		}							\
+	} G_STMT_END
 #else
 #define SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER				\
 	G_STMT_START {							\
 		if (!server_test) {					\
 			g_test_skip ("php-xmlrpc is not available");	\
 			return;						\
+		}							\
+		if (uri == default_uri) {				\
+			SOUP_TEST_SKIP_IF_NO_APACHE;			\
 		}							\
 	} G_STMT_END
 #endif

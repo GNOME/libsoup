@@ -29,11 +29,17 @@ void debug_printf (int level, const char *format, ...) G_GNUC_PRINTF (2, 3);
 	} G_STMT_END
 
 #ifdef HAVE_APACHE
-void apache_init    (void);
+gboolean apache_init (void);
 void apache_cleanup (void);
-#define SOUP_TEST_SKIP_IF_NO_APACHE
+gboolean check_apache (void);
+#define SOUP_TEST_SKIP_IF_NO_APACHE				\
+	G_STMT_START {						\
+		if (!check_apache ()) {				\
+			return;					\
+		}						\
+	} G_STMT_END
 #else
-#define apache_init()
+#define apache_init() FALSE
 #define apache_cleanup()
 #define SOUP_TEST_SKIP_IF_NO_APACHE				\
 	G_STMT_START {						\
