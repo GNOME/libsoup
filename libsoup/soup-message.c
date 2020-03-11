@@ -2273,3 +2273,17 @@ soup_message_set_bytes_for_sniffing (SoupMessage *msg, gsize bytes)
 
 	priv->bytes_for_sniffing = bytes;
 }
+
+const char *
+soup_http_version_to_string (SoupHTTPVersion version)
+{
+	switch (version) {
+	case SOUP_HTTP_1_0:
+		return "HTTP/1.0";
+	case SOUP_HTTP_1_1:
+		return "HTTP/1.1";
+	}
+
+	g_assert_not_reached ();
+	return "";
+}

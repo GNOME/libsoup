@@ -7,25 +7,23 @@
 #define __SOUP_MISC_H__ 1
 
 #include "soup-types.h"
+#include "soup-message.h"
+#include "soup-message-headers.h"
 
 G_BEGIN_DECLS
 
 /* Non-default-GMainContext operations */
-SOUP_AVAILABLE_IN_2_4
 GSource           *soup_add_io_watch         (GMainContext *async_context,
 					      GIOChannel   *chan,
 					      GIOCondition  condition,
 					      GIOFunc       function,
 					      gpointer      data);
-SOUP_AVAILABLE_IN_2_4
 GSource           *soup_add_idle             (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
-SOUP_AVAILABLE_IN_2_24
 GSource           *soup_add_completion	     (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
-SOUP_AVAILABLE_IN_2_4
 GSource           *soup_add_timeout          (GMainContext *async_context,
 					      guint         interval,
 					      GSourceFunc   function,
@@ -33,16 +31,13 @@ GSource           *soup_add_timeout          (GMainContext *async_context,
 
 /* Misc utils */
 
-SOUP_AVAILABLE_IN_2_4
 guint              soup_str_case_hash        (gconstpointer key);
-SOUP_AVAILABLE_IN_2_4
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
 
 /* character classes */
 
-SOUP_AVAILABLE_IN_2_4
-const char soup_char_attributes[];
+extern const char soup_char_attributes[];
 #define SOUP_CHAR_URI_PERCENT_ENCODED 0x01
 #define SOUP_CHAR_URI_GEN_DELIMS      0x02
 #define SOUP_CHAR_URI_SUB_DELIMS      0x04
@@ -55,20 +50,44 @@ const char soup_char_attributes[];
 #define soup_char_is_uri_unreserved(ch)      (!(soup_char_attributes[(guchar)ch] & (SOUP_CHAR_URI_PERCENT_ENCODED | SOUP_CHAR_URI_GEN_DELIMS | SOUP_CHAR_URI_SUB_DELIMS)))
 #define soup_char_is_token(ch)               (!(soup_char_attributes[(guchar)ch] & (SOUP_CHAR_HTTP_SEPARATOR | SOUP_CHAR_HTTP_CTL)))
 
-/* SSL stuff */
-SOUP_AVAILABLE_IN_2_4
-const gboolean soup_ssl_supported;
+char *soup_uri_decoded_copy (const char *str, int length, int *decoded_length);
+char *soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
+				   gboolean include_password, gboolean force_port);
+gboolean soup_uri_is_http (SoupURI *uri, char **aliases);
+gboolean soup_uri_is_https (SoupURI *uri, char **aliases);
 
-/* Part of a debugging API */
+/* At some point it might be possible to mark additional methods
+ * safe or idempotent...
+ */
+#define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \
+				     method == SOUP_METHOD_HEAD || \
+				     method == SOUP_METHOD_OPTIONS || \
+				     method == SOUP_METHOD_PROPFIND || \
+				     method == SOUP_METHOD_TRACE)
 
-typedef enum {
-	SOUP_CONNECTION_NEW,
-	SOUP_CONNECTION_CONNECTING,
-	SOUP_CONNECTION_IDLE,
-	SOUP_CONNECTION_IN_USE,
-	SOUP_CONNECTION_REMOTE_DISCONNECTED,
-	SOUP_CONNECTION_DISCONNECTED
-} SoupConnectionState;
+#define SOUP_METHOD_IS_IDEMPOTENT(method) (method == SOUP_METHOD_GET || \
+					   method == SOUP_METHOD_HEAD || \
+					   method == SOUP_METHOD_OPTIONS || \
+					   method == SOUP_METHOD_PROPFIND || \
+					   method == SOUP_METHOD_TRACE || \
+					   method == SOUP_METHOD_PUT || \
+					   method == SOUP_METHOD_DELETE)
+
+GSource *soup_add_completion_reffed (GMainContext   *async_context,
+				     GSourceFunc     function,
+				     gpointer        data,
+				     GDestroyNotify  dnotify);
+
+guint soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
+						goffset              total_length,
+						gboolean             check_satisfiable,
+						SoupRange          **ranges,
+						int                 *length);
+
+SoupAddress *soup_address_new_from_gsockaddr (GSocketAddress *addr);
+
+gboolean           soup_host_matches_host    (const gchar *host,
+					      const gchar *compare_with);
 
 G_END_DECLS
 

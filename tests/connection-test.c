@@ -5,6 +5,8 @@
 
 #include "test-utils.h"
 
+#include "soup-connection.h"
+
 #include <gio/gnetworking.h>
 
 SoupServer *server;

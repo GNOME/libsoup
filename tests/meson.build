@@ -7,10 +7,10 @@ abs_installed_tests_execdir = join_paths(prefix, installed_tests_execdir)
 
 if cc.get_id() == 'msvc'
   test_utils = static_library(test_utils_name, test_utils_name + '.c',
-    dependencies : libsoup_dep)
+    dependencies : libsoup_static_dep)
 else
   test_utils = library(test_utils_name, test_utils_name + '.c',
-    dependencies : libsoup_dep,
+    dependencies : libsoup_static_dep,
     install : installed_tests_enabled,
     install_dir : installed_tests_execdir,
   )

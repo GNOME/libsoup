@@ -34,6 +34,14 @@ typedef struct {
 
 GType soup_connection_get_type (void);
 
+typedef enum {
+	SOUP_CONNECTION_NEW,
+	SOUP_CONNECTION_CONNECTING,
+	SOUP_CONNECTION_IDLE,
+	SOUP_CONNECTION_IN_USE,
+	SOUP_CONNECTION_REMOTE_DISCONNECTED,
+	SOUP_CONNECTION_DISCONNECTED
+} SoupConnectionState;
 
 #define SOUP_CONNECTION_REMOTE_URI        "remote-uri"
 #define SOUP_CONNECTION_SOCKET_PROPERTIES "socket-properties"

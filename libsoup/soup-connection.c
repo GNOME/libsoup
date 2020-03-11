@@ -13,7 +13,7 @@
 #include "soup.h"
 #include "soup-message-queue.h"
 #include "soup-socket-private.h"
-#include "soup-misc-private.h"
+#include "soup-private-enum-types.h"
 
 typedef struct {
 	SoupSocket  *socket;

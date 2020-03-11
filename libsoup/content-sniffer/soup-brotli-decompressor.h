@@ -29,7 +29,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_68
 G_DECLARE_FINAL_TYPE (SoupBrotliDecompressor, soup_brotli_decompressor, SOUP, BROTLI_DECOMPRESSOR, GObject)
 
-SOUP_AVAILABLE_IN_2_68
 SoupBrotliDecompressor *soup_brotli_decompressor_new (void);
 
 G_END_DECLS

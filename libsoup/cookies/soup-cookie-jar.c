@@ -13,7 +13,7 @@
 
 #include "soup-cookie-jar.h"
 #include "soup-message-private.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 #include "soup.h"
 
 /**

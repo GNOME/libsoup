@@ -12,15 +12,12 @@
 #include <string.h>
 
 #include "soup-misc.h"
-#include "soup-misc-private.h"
 
 /**
  * SECTION:soup-misc
  * @short_description: Miscellaneous functions
  *
  **/
-
-const gboolean soup_ssl_supported = TRUE;
 
 /**
  * soup_str_case_hash:

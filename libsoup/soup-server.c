@@ -16,7 +16,7 @@
 #include "soup-server.h"
 #include "soup.h"
 #include "soup-message-private.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 #include "soup-path-map.h" 
 #include "soup-socket-private.h"
 #include "websocket/soup-websocket.h"

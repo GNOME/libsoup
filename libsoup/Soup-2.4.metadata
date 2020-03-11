@@ -11,7 +11,6 @@ XMLRPCError parent="Soup.XMLRPC" name="Error"
 HTTPVersion.http_* name="http_(.+)"
 
 // Report upstream
-add_* skip=false type="unowned GLib.TimeoutSource"
 Auth
 	// Factory method
 	.new symbol_type="function"

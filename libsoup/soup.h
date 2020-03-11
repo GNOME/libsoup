@@ -35,7 +35,6 @@ extern "C" {
 #include "soup-logger.h"
 #include "soup-message.h"
 #include "soup-method.h"
-#include "soup-misc.h"
 #include "soup-multipart.h"
 #include "soup-multipart-input-stream.h"
 #include "soup-request.h"

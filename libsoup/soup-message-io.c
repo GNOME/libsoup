@@ -25,7 +25,7 @@
 #include "soup-filter-input-stream.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_CLIENT,

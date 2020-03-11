@@ -17,6 +17,7 @@
 #include "soup-logger.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
+#include "soup-misc.h"
 #include "soup.h"
 
 /**

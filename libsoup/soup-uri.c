@@ -14,7 +14,7 @@
 
 #include "soup-uri.h"
 #include "soup.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 
 /**
  * SECTION:soup-uri

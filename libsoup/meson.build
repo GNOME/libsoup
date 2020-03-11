@@ -90,7 +90,7 @@ soup_sources = [
   'soup-version.c',
 ]
 
-soup_headers = [
+soup_installed_headers = [
   'auth/soup-auth-basic.h',
   'auth/soup-auth-digest.h',
   'auth/soup-auth-ntlm.h',
@@ -121,6 +121,10 @@ soup_headers = [
   'soup-path-map.h',
   'soup-session-private.h',
   'soup-socket-private.h',
+]
+
+soup_private_enum_headers = [
+  'soup-connection.h',
 ]
 
 soup_introspection_headers = [
@@ -166,7 +170,6 @@ soup_introspection_headers = [
   'soup-message-body.h',
   'soup-message-headers.h',
   'soup-method.h',
-  'soup-misc.h',
   'soup-multipart.h',
   'soup-multipart-input-stream.h',
   'soup-request.h',
@@ -189,7 +192,6 @@ soup_installed_headers = soup_introspection_headers
 
 if brotlidec_dep.found()
   soup_sources += 'content-sniffer/soup-brotli-decompressor.c'
-  soup_headers += 'content-sniffer/soup-brotli-decompressor.h'
 endif
 
 
@@ -216,6 +218,10 @@ soup_enums = gnome.mkenums('soup-enum-types',
 
 soup_enum_h = soup_enums[1]
 soup_enum_c = soup_enums[0]
+
+soup_private_enums = gnome.mkenums_simple('soup-private-enum-types',
+  sources : soup_private_enum_headers,
+)
 
 libsoup_c_args  = [
   '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
@@ -245,9 +251,11 @@ libsoup_includes = [
 ]
 
 libsoup = library('soup-@0@'.format(apiversion),
-  soup_sources,
-  soup_headers,
-  soup_enums,
+  sources : [
+    soup_sources,
+    soup_private_enums,
+    soup_enums,
+  ],
   version : libversion,
   soversion : soversion,
   darwin_versions: darwin_versions,
@@ -260,7 +268,7 @@ libsoup = library('soup-@0@'.format(apiversion),
 libsoup_static = static_library('soup-static',
   sources : [
     soup_sources,
-    soup_headers,
+    soup_private_enums,
     soup_enums,
   ],
   c_args : libsoup_c_args,

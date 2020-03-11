@@ -16,6 +16,7 @@
 #include "soup.h"
 #include "soup-connection.h"
 #include "soup-message-queue.h"
+#include "soup-misc.h"
 #include "soup-socket-private.h"
 
 static guint

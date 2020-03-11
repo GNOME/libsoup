@@ -20,7 +20,7 @@
 #include "soup-headers.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 #include "soup-uri.h"
 
 /**

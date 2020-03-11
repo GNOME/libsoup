@@ -171,4 +171,7 @@ void                soup_message_set_content_sniffer    (SoupMessage        *msg
 void                soup_message_set_bytes_for_sniffing (SoupMessage        *msg,
 							 gsize               bytes);
 
+const char *soup_http_version_to_string      (SoupHTTPVersion version);
+
+
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

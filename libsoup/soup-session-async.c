@@ -14,7 +14,7 @@
 #include "soup-session-private.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 
 /**
  * SECTION:soup-session-async

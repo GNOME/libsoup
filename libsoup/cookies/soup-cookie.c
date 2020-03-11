@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "soup-cookie.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 #include "soup.h"
 
 /**

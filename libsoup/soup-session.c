@@ -17,7 +17,7 @@
 #include "cache/soup-cache-private.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
-#include "soup-misc-private.h"
+#include "soup-misc.h"
 #include "soup-message-queue.h"
 #include "soup-session-private.h"
 #include "soup-socket-private.h"
