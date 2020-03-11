@@ -224,24 +224,6 @@ SoupWebsocketConnection *soup_session_websocket_connect_finish (SoupSession     
 								GAsyncResult         *result,
 								GError              **error);
 
-typedef void (*SoupSessionConnectProgressCallback) (SoupSession        *session,
-						    GSocketClientEvent  event,
-						    GIOStream          *connection,
-						    gpointer            user_data);
-
-SOUP_AVAILABLE_IN_2_62
-void       soup_session_connect_async  (SoupSession                       *session,
-					SoupURI                           *uri,
-					GCancellable                      *cancellable,
-					SoupSessionConnectProgressCallback progress_callback,
-					GAsyncReadyCallback                callback,
-					gpointer                           user_data);
-
-SOUP_AVAILABLE_IN_2_62
-GIOStream *soup_session_connect_finish (SoupSession                       *session,
-					GAsyncResult                      *result,
-					GError                           **error);
-
 G_END_DECLS
 
 #endif /* __SOUP_SESSION_H__ */
