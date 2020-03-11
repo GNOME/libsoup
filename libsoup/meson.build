@@ -169,7 +169,6 @@ soup_introspection_headers = [
   'soup-misc.h',
   'soup-multipart.h',
   'soup-multipart-input-stream.h',
-  'soup-portability.h',
   'soup-request.h',
   'soup-request-data.h',
   'soup-request-file.h',
