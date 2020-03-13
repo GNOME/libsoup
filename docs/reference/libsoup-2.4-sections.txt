@@ -520,23 +520,6 @@ soup_session_async_get_type
 </SECTION>
 
 <SECTION>
-<FILE>soup-session-sync</FILE>
-<TITLE>SoupSessionSync</TITLE>
-SoupSessionSync
-soup_session_sync_new
-soup_session_sync_new_with_options
-<SUBSECTION Standard>
-SOUP_IS_SESSION_SYNC
-SOUP_IS_SESSION_SYNC_CLASS
-SOUP_SESSION_SYNC
-SOUP_SESSION_SYNC_CLASS
-SOUP_SESSION_SYNC_GET_CLASS
-SOUP_TYPE_SESSION_SYNC
-SoupSessionSyncClass
-soup_session_sync_get_type
-</SECTION>
-
-<SECTION>
 <FILE>soup-session-feature</FILE>
 <TITLE>SoupSessionFeature</TITLE>
 SoupSessionFeature

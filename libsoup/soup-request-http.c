@@ -137,8 +137,6 @@ soup_request_http_send_async (SoupRequest          *request,
 	SoupSession *session = soup_request_get_session (request);
 	GTask *task;
 
-	g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
-
 	task = g_task_new (request, cancellable, callback, user_data);
 	soup_session_send_async (session, http->priv->msg, cancellable,
 				 http_input_stream_ready_cb, task);

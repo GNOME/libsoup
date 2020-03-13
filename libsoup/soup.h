@@ -44,7 +44,6 @@ extern "C" {
 #include "soup-server.h"
 #include "soup-session-async.h"
 #include "soup-session-feature.h"
-#include "soup-session-sync.h"
 #include "soup-socket.h"
 #include "soup-status.h"
 #include "soup-tld.h"

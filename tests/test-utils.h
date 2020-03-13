@@ -55,8 +55,6 @@ typedef enum {
 
 #undef SOUP_TYPE_SESSION_ASYNC
 #define SOUP_TYPE_SESSION_ASYNC (_soup_session_async_get_type_undeprecated ())
-#undef SOUP_TYPE_SESSION_SYNC
-#define SOUP_TYPE_SESSION_SYNC (_soup_session_sync_get_type_undeprecated ())
 
 SoupSession *soup_test_session_new         (GType type, ...);
 void         soup_test_session_abort_unref (SoupSession *session);

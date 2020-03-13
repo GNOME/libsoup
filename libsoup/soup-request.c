@@ -229,9 +229,6 @@ soup_request_send (SoupRequest          *request,
  * Begins an asynchronously request for the URI pointed to by
  * @request.
  *
- * Note that you cannot use this method with #SoupRequests attached to
- * a #SoupSessionSync.
- *
  * Since: 2.42
  */
 void

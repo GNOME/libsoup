@@ -568,13 +568,11 @@ io_write (SoupMessage *msg, gboolean blocking,
 				g_clear_object (&io->body_ostream);
 			} else {
 				io->async_close_wait = g_cancellable_new ();
-				if (io->async_context)
-					g_main_context_push_thread_default (io->async_context);
+				g_main_context_push_thread_default (io->async_context);
 				g_output_stream_close_async (io->body_ostream,
 							     G_PRIORITY_DEFAULT, cancellable,
 							     closed_async, g_object_ref (msg));
-				if (io->async_context)
-					g_main_context_pop_thread_default (io->async_context);
+				g_main_context_pop_thread_default (io->async_context);
 			}
 		}
 
@@ -1200,9 +1198,7 @@ new_iostate (SoupMessage *msg, GIOStream *iostream,
 	io->iostream = g_object_ref (iostream);
 	io->istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (iostream));
 	io->ostream = g_io_stream_get_output_stream (iostream);
-
-	if (async_context)
-		io->async_context = g_main_context_ref (async_context);
+	io->async_context = g_main_context_ref (async_context);
 
 	io->read_header_buf = g_byte_array_new ();
 	io->write_buf       = g_string_new (NULL);
@@ -1248,9 +1244,7 @@ soup_message_io_client (SoupMessageQueueItem *item,
 	io->write_state     = SOUP_MESSAGE_IO_STATE_HEADERS;
 
 	if (!item->new_api) {
-		gboolean blocking =
-			SOUP_IS_SESSION_SYNC (item->session) ||
-			(!SOUP_IS_SESSION_ASYNC (item->session) && !item->async);
+		gboolean blocking = !SOUP_IS_SESSION_ASYNC (item->session) && !item->async;
 		io_run (item->msg, blocking);
 	}
 }

@@ -27,8 +27,7 @@
  * incoming ones. Currently it supports the "gzip", "deflate", and "br"
  * content codings.
  *
- * If you are using a plain #SoupSession (ie, not #SoupSessionAsync or
- * #SoupSessionSync), then a #SoupContentDecoder will automatically be
+ * A #SoupContentDecoder will automatically be
  * added to the session by default. (You can use
  * %SOUP_SESSION_REMOVE_FEATURE_BY_TYPE at construct time if you don't
  * want this.) If you are using one of the deprecated #SoupSession

@@ -632,14 +632,6 @@ cancel_request_timeout (gpointer data)
 	return FALSE;
 }
 
-static gpointer
-cancel_request_thread (gpointer data)
-{
-	g_usleep (100000); /* .1s */
-	cancel_message_or_cancellable ((CancelData *) data);
-	return NULL;
-}
-
 GInputStream *
 soup_test_request_send (SoupRequest   *req,
 			GCancellable  *cancellable,
@@ -649,18 +641,6 @@ soup_test_request_send (SoupRequest   *req,
 	AsyncAsSyncData data;
 	GInputStream *stream;
 	CancelData *cancel_data = create_cancel_data (req, cancellable, flags);
-
-	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req))) {
-		GThread *thread;
-
-		if (cancel_data)
-			thread = g_thread_new ("cancel_request_thread", cancel_request_thread,
-					       cancel_data);
-		stream = soup_request_send (req, cancellable, error);
-		if (cancel_data)
-			g_thread_unref (thread);
-		return stream;
-	}
 
 	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
 	if (cancel_data &&
@@ -701,27 +681,18 @@ soup_test_request_read_all (SoupRequest   *req,
 	AsyncAsSyncData data;
 	gsize nread;
 
-	if (!SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
-		data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
-	else
-		data.loop = NULL;
+        data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
 
 	do {
-		if (!data.loop) {
-			nread = g_input_stream_read (stream, buf, sizeof (buf),
-						     cancellable, error);
-		} else {
-			g_input_stream_read_async (stream, buf, sizeof (buf),
-						   G_PRIORITY_DEFAULT, cancellable,
-						   async_as_sync_callback, &data);
-			g_main_loop_run (data.loop);
-			nread = g_input_stream_read_finish (stream, data.result, error);
-			g_object_unref (data.result);
-		}
+                g_input_stream_read_async (stream, buf, sizeof (buf),
+                                                G_PRIORITY_DEFAULT, cancellable,
+                                                async_as_sync_callback, &data);
+                g_main_loop_run (data.loop);
+                nread = g_input_stream_read_finish (stream, data.result, error);
+                g_object_unref (data.result);
 	} while (nread > 0);
 
-	if (data.loop)
-		g_main_loop_unref (data.loop);
+	g_main_loop_unref (data.loop);
 
 	return nread == 0;
 }
@@ -734,9 +705,6 @@ soup_test_request_close_stream (SoupRequest   *req,
 {
 	AsyncAsSyncData data;
 	gboolean ok;
-
-	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
-		return g_input_stream_close (stream, cancellable, error);
 
 	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
 
