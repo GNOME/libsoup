@@ -497,7 +497,7 @@ main (int argc, char **argv)
 	/* FIXME: I had to raise the number of connections allowed here, otherwise I
 	 * was hitting the limit, which indicates some connections are not dying.
 	 */
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 "use-thread-context", TRUE,
 					 "max-conns", 20,
 					 "max-conns-per-host", 20,

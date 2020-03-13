@@ -34,7 +34,7 @@ do_message_to_session (SoupSession *session, SoupURI *uri,
 
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (message_finished), &finished);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, expected_status);
 	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
@@ -212,11 +212,11 @@ do_async_timeout_tests (gconstpointer data)
 	} else
 		extra_slow = FALSE;
 
-	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION,
 						 SOUP_SESSION_TIMEOUT, extra_slow ? 3 : 1,
 						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 						 NULL);
-	idle_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	idle_session = soup_test_session_new (SOUP_TYPE_SESSION,
 					      SOUP_SESSION_IDLE_TIMEOUT, extra_slow ? 2 : 1,
 					      SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					      NULL);
@@ -224,7 +224,7 @@ do_async_timeout_tests (gconstpointer data)
 	 * than the test takes, so for our purposes it should behave like
 	 * it has no timeout.
 	 */
-	plain_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	plain_session = soup_test_session_new (SOUP_TYPE_SESSION,
 					       SOUP_SESSION_IDLE_TIMEOUT, 20,
 					       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					       NULL);

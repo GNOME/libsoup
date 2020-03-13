@@ -296,7 +296,7 @@ do_pipelined_auth_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	authenticated = FALSE;
 	g_signal_connect (session, "authenticate",
@@ -459,7 +459,7 @@ do_digest_expiration_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 	do_digest_nonce_test (session, "First", uri, TRUE, TRUE, TRUE);
@@ -563,7 +563,7 @@ do_async_auth_good_password_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 
@@ -650,7 +650,7 @@ do_async_auth_bad_password_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 	auth = NULL;
@@ -703,7 +703,7 @@ do_async_auth_no_password_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 
@@ -791,7 +791,7 @@ select_auth_test_one (SoupURI *uri,
 	SoupMessage *msg;
 	SoupSession *session;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	if (disable_digest)
 		soup_session_remove_feature_by_type (session, SOUP_TYPE_AUTH_DIGEST);
 
@@ -1039,13 +1039,13 @@ do_auth_close_test (void)
 	g_signal_connect (server, "request-started",
 			  G_CALLBACK (auth_close_request_started), NULL);
 
-	acd.session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	acd.session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	g_signal_connect (acd.session, "authenticate",
 			  G_CALLBACK (auth_close_authenticate), &acd);
 
 	acd.msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
-	soup_session_send_message (acd.session, acd.msg);
+	soup_test_session_async_send_message (acd.session, acd.msg);
 
 	soup_test_assert_message_status (acd.msg, SOUP_STATUS_OK);
 
@@ -1078,7 +1078,7 @@ do_infinite_auth_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (infinite_authenticate), NULL);
 
@@ -1149,14 +1149,14 @@ do_disappearing_auth_test (void)
 	g_signal_connect (server, "request-read",
 			  G_CALLBACK (disappear_request_read), NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	counter = 0;
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (disappear_authenticate), &counter);
 
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 
 	soup_test_assert (counter <= 2,
 			  "Got stuck in loop");
@@ -1219,7 +1219,7 @@ do_batch_tests (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	base = soup_uri_new (base_uri);
 
 	for (i = 0; current_tests[i].url; i++) {
@@ -1388,7 +1388,7 @@ do_async_message_do_not_use_auth_cache_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 
 	msg = soup_message_new ("GET", uri);

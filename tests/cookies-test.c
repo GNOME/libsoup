@@ -58,7 +58,7 @@ do_cookies_accept_policy_test (void)
 	GSList *l, *p;
 	int i;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 	jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));
 
@@ -294,7 +294,7 @@ do_cookies_parsing_test (void)
 
 	g_test_bug ("678753");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 	jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));
 

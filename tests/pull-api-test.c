@@ -19,7 +19,7 @@ get_correct_response (const char *uri)
 	SoupSession *session;
 	SoupMessage *msg;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	soup_session_send_message (session, msg);
 	if (msg->status_code != SOUP_STATUS_OK) {
@@ -236,7 +236,7 @@ do_fast_async_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
@@ -256,7 +256,7 @@ do_slow_async_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
@@ -491,7 +491,7 @@ do_sync_async_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_synchronously_async_test (session, base_uri, "/",

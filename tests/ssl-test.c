@@ -262,11 +262,11 @@ do_tls_interaction_test (void)
 	soup_uri_set_port (test_uri, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (bound_address)));
 	g_object_unref (bound_address);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_SSL_FAILED);
 	g_object_unref (msg);
 
@@ -278,7 +278,7 @@ do_tls_interaction_test (void)
 
 	/* With a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_true (soup_message_get_https_status (msg, NULL, NULL));
 	g_object_unref (msg);

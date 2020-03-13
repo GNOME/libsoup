@@ -86,24 +86,22 @@ static GMutex test1_mutex;
 static GMainLoop *test1_loop;
 
 static void
-do_test1 (gconstpointer data)
+do_test1 (void)
 {
-	gboolean use_thread_context = GPOINTER_TO_INT (data);
-
 	test1_loop = g_main_loop_new (NULL, FALSE);
-	g_idle_add (idle_start_test1_thread, GINT_TO_POINTER (use_thread_context));
+	g_idle_add (idle_start_test1_thread, NULL);
 	g_main_loop_run (test1_loop);
 	g_main_loop_unref (test1_loop);
 }
 
 static gboolean
-idle_start_test1_thread (gpointer use_thread_context)
+idle_start_test1_thread (gpointer user_data)
 {
 	guint64 time;
 	GThread *thread;
 
 	g_mutex_lock (&test1_mutex);
-	thread = g_thread_new ("test1_thread", test1_thread, use_thread_context);
+	thread = g_thread_new ("test1_thread", test1_thread, NULL);
 
 	time = g_get_monotonic_time () + 5000000;
 	if (g_cond_wait_until (&test1_cond, &test1_mutex, time))
@@ -125,7 +123,7 @@ test1_finished (SoupSession *session, SoupMessage *msg, gpointer loop)
 }
 
 static gpointer
-test1_thread (gpointer use_thread_context)
+test1_thread (gpointer user_data)
 {
 	SoupSession *session;
 	GMainContext *async_context;
@@ -137,17 +135,10 @@ test1_thread (gpointer use_thread_context)
 	g_mutex_lock (&test1_mutex);
 	g_mutex_unlock (&test1_mutex);
 
-	async_context = g_main_context_new ();
-	if (use_thread_context) {
-		g_main_context_push_thread_default (async_context);
-		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-						 NULL);
-	} else {
-		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-						 SOUP_SESSION_ASYNC_CONTEXT, async_context,
-						 NULL);
-	}
+        async_context = g_main_context_new ();
+        g_main_context_push_thread_default (async_context);
+        session = soup_test_session_new (SOUP_TYPE_SESSION,
+					 NULL);
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
@@ -173,8 +164,7 @@ test1_thread (gpointer use_thread_context)
 
 	g_cond_signal (&test1_cond);
 
-	if (use_thread_context)
-		g_main_context_pop_thread_default (async_context);
+	g_main_context_pop_thread_default (async_context);
 	return NULL;
 }
 
@@ -185,9 +175,8 @@ test1_thread (gpointer use_thread_context)
 static gboolean idle_test2_fail (gpointer user_data);
 
 static void
-do_test2 (gconstpointer data)
+do_test2 (void)
 {
-	gboolean use_thread_context = GPOINTER_TO_INT (data);
 	guint idle;
 	GMainContext *async_context;
 	SoupSession *session;
@@ -197,16 +186,10 @@ do_test2 (gconstpointer data)
 	idle = g_idle_add_full (G_PRIORITY_HIGH, idle_test2_fail, NULL, NULL);
 
 	async_context = g_main_context_new ();
-	if (use_thread_context) {
-		g_main_context_push_thread_default (async_context);
-		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-						 NULL);
-	} else {
-		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-						 SOUP_SESSION_ASYNC_CONTEXT, async_context,
-						 NULL);
-	}
+        g_main_context_push_thread_default (async_context);
+        session = soup_test_session_new (SOUP_TYPE_SESSION,
+                                         SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+                                         NULL);
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
@@ -222,8 +205,7 @@ do_test2 (gconstpointer data)
 
 	g_source_remove (idle);
 
-	if (use_thread_context)
-		g_main_context_pop_thread_default (async_context);
+	g_main_context_pop_thread_default (async_context);
 }
 
 static gboolean
@@ -264,7 +246,7 @@ do_multicontext_test (void)
 	GMainContext *context1, *context2;
 	GMainLoop *loop1, *loop2;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 
@@ -341,10 +323,8 @@ main (int argc, char **argv)
 	base_uri = soup_uri_to_string (uri, FALSE);
 	soup_uri_free (uri);
 
-	g_test_add_data_func ("/context/blocking/explicit", GINT_TO_POINTER (FALSE), do_test1);
-	g_test_add_data_func ("/context/blocking/thread-default", GINT_TO_POINTER (TRUE), do_test1);
-	g_test_add_data_func ("/context/nested/explicit", GINT_TO_POINTER (FALSE), do_test2);
-	g_test_add_data_func ("/context/nested/thread-default", GINT_TO_POINTER (TRUE), do_test2);
+	g_test_add_func ("/context/blocking/thread-default", do_test1);
+	g_test_add_func ("/context/nested/thread-default", do_test2);
 	g_test_add_func ("/context/multiple", do_multicontext_test);
 
 	ret = g_test_run ();

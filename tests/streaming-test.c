@@ -84,7 +84,7 @@ do_request (SoupSession *session, SoupURI *base_uri, char *path)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpint (msg->response_body->length, ==, full_response->length);
@@ -104,7 +104,7 @@ do_chunked_test (gconstpointer data)
 	SoupURI *base_uri = (SoupURI *)data;
 	SoupSession *session;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_request (session, base_uri, "chunked");
 	soup_test_session_abort_unref (session);
 }
@@ -115,7 +115,7 @@ do_content_length_test (gconstpointer data)
 	SoupURI *base_uri = (SoupURI *)data;
 	SoupSession *session;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_request (session, base_uri, "content-length");
 	soup_test_session_abort_unref (session);
 }
@@ -128,7 +128,7 @@ do_eof_test (gconstpointer data)
 
 	g_test_bug ("572153");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_request (session, base_uri, "eof");
 	soup_test_session_abort_unref (session);
 }

@@ -180,7 +180,7 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 	SoupMessage *msg;
 	SoupURI *uri;
 
-	data->session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	data->session = soup_test_session_new (SOUP_TYPE_SESSION,
 					       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					       NULL);
 
@@ -206,8 +206,9 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 		data->msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	if (! (test_type & CODING_TEST_NO_DECODER))
-		soup_session_add_feature_by_type (data->session, SOUP_TYPE_CONTENT_DECODER);
+	if (test_type & CODING_TEST_NO_DECODER)
+		soup_session_remove_feature_by_type (data->session, SOUP_TYPE_CONTENT_DECODER);
+                
 }
 
 static void

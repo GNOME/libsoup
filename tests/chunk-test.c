@@ -34,7 +34,6 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 		ptd->next++;
 	} else
 		soup_message_body_complete (msg->request_body);
-	soup_session_unpause_message (ptd->session, msg);
 }
 
 /* This is not a supported part of the API. Use SOUP_MESSAGE_CAN_REBUILD
@@ -369,7 +368,7 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	g_test_add_data_func ("/chunks/request/unstreamed", GINT_TO_POINTER (0), do_request_test);
 	g_test_add_data_func ("/chunks/request/proper-streaming", GINT_TO_POINTER (PROPER_STREAMING), do_request_test);

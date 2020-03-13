@@ -206,7 +206,7 @@ do_md5_test_libsoup (gconstpointer data)
 	msg = soup_form_request_new_from_multipart (uri, multipart);
 	soup_multipart_free (multipart);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	soup_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);

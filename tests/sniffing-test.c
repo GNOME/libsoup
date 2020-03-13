@@ -237,7 +237,7 @@ do_signals_test (gboolean should_content_sniff,
 			  "signal::content_sniffed", content_sniffed, GINT_TO_POINTER (should_pause),
 			  NULL);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 
 	if (should_content_sniff) {
 		soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") != NULL,
@@ -352,7 +352,7 @@ test_sniffing (const char *path, const char *expected_type)
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 	g_assert_cmpstr (sniffed_type, ==, expected_type);
 	g_free (sniffed_type);
 	g_object_unref (msg);
@@ -410,7 +410,7 @@ test_disabled (gconstpointer data)
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send_message (session, msg);
 
 	g_assert_null (sniffed_type);
 	g_object_unref (msg);
@@ -448,7 +448,7 @@ main (int argc, char **argv)
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
