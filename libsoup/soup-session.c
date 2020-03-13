@@ -384,86 +384,6 @@ ensure_socket_props (SoupSession *session)
 							 priv->idle_timeout);
 }
 
-/* Converts a language in POSIX format and to be RFC2616 compliant    */
-/* Based on code from epiphany-webkit (ephy_langs_append_languages()) */
-static gchar *
-posix_lang_to_rfc2616 (const gchar *language)
-{
-	/* Don't include charset variants, etc */
-	if (strchr (language, '.') || strchr (language, '@'))
-		return NULL;
-
-	/* Ignore "C" locale, which g_get_language_names() always
-	 * includes as a fallback.
-	 */
-	if (!strcmp (language, "C"))
-		return NULL;
-
-	return g_strdelimit (g_ascii_strdown (language, -1), "_", '-');
-}
-
-/* Converts @quality from 0-100 to 0.0-1.0 and appends to @str */
-static gchar *
-add_quality_value (const gchar *str, int quality)
-{
-	g_return_val_if_fail (str != NULL, NULL);
-
-	if (quality >= 0 && quality < 100) {
-		/* We don't use %.02g because of "." vs "," locale issues */
-		if (quality % 10)
-			return g_strdup_printf ("%s;q=0.%02d", str, quality);
-		else
-			return g_strdup_printf ("%s;q=0.%d", str, quality / 10);
-	} else
-		return g_strdup (str);
-}
-
-/* Returns a RFC2616 compliant languages list from system locales */
-static gchar *
-accept_languages_from_system (void)
-{
-	const char * const * lang_names;
-	GPtrArray *langs = NULL;
-	char *lang, *langs_str;
-	int delta;
-	guint i;
-
-	lang_names = g_get_language_names ();
-	g_return_val_if_fail (lang_names != NULL, NULL);
-
-	/* Build the array of languages */
-	langs = g_ptr_array_new_with_free_func (g_free);
-	for (i = 0; lang_names[i] != NULL; i++) {
-		lang = posix_lang_to_rfc2616 (lang_names[i]);
-		if (lang)
-			g_ptr_array_add (langs, lang);
-	}
-
-	/* Add quality values */
-	if (langs->len < 10)
-		delta = 10;
-	else if (langs->len < 20)
-		delta = 5;
-	else
-		delta = 1;
-
-	for (i = 0; i < langs->len; i++) {
-		lang = langs->pdata[i];
-		langs->pdata[i] = add_quality_value (lang, 100 - i * delta);
-		g_free (lang);
-	}
-
-	/* Fallback: add "en" if list is empty */
-	if (langs->len == 0)
-		g_ptr_array_add (langs, g_strdup ("en"));
-
-	g_ptr_array_add (langs, NULL);
-	langs_str = g_strjoinv (", ", (char **)langs->pdata);
-	g_ptr_array_free (langs, TRUE);
-
-	return langs_str;
-}
-
 static void
 set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
 {
@@ -653,7 +573,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 
 		/* Get languages from system if needed */
 		if (priv->accept_language_auto)
-			priv->accept_language = accept_languages_from_system ();
+			priv->accept_language = soup_get_accept_languages_from_system ();
 		break;
 	case PROP_IDLE_TIMEOUT:
 		priv->idle_timeout = g_value_get_uint (value);

@@ -89,6 +89,8 @@ SoupAddress *soup_address_new_from_gsockaddr (GSocketAddress *addr);
 gboolean           soup_host_matches_host    (const gchar *host,
 					      const gchar *compare_with);
 
+gchar *soup_get_accept_languages_from_system (void);
+
 G_END_DECLS
 
 #endif /* __SOUP_MISC_H__ */
