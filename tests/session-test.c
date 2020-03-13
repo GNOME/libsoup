@@ -158,28 +158,6 @@ do_plain_tests (gconstpointer data)
 }
 
 static void
-do_async_tests (gconstpointer data)
-{
-	SoupURI *uri = (SoupURI *)data;
-	SoupSession *session;
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_test_for_session (session, uri, TRUE, FALSE, TRUE);
-	soup_test_session_abort_unref (session);
-}
-
-static void
-do_sync_tests (gconstpointer data)
-{
-	SoupURI *uri = (SoupURI *)data;
-	SoupSession *session;
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	do_test_for_session (session, uri, FALSE, TRUE, FALSE);
-	soup_test_session_abort_unref (session);
-}
-
-static void
 priority_test_finished_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	guint *finished_count = user_data;
@@ -208,7 +186,7 @@ do_priority_tests (gconstpointer data)
 
 	g_test_bug ("696277");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	g_object_set (session, "max-conns", 1, NULL);
 
 	expected_priorities[0] = SOUP_MESSAGE_PRIORITY_HIGH;
@@ -393,8 +371,6 @@ main (int argc, char **argv)
 	uri = soup_test_server_get_uri (server, "http", NULL);
 
 	g_test_add_data_func ("/session/SoupSession", uri, do_plain_tests);
-	g_test_add_data_func ("/session/SoupSessionAsync", uri, do_async_tests);
-	g_test_add_data_func ("/session/SoupSessionSync", uri, do_sync_tests);
 	g_test_add_data_func ("/session/priority", uri, do_priority_tests);
 	g_test_add_func ("/session/property", do_property_tests);
 	g_test_add_func ("/session/features", do_features_test);

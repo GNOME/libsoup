@@ -124,7 +124,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 
 	g_test_bug ("590751");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	star_uri = soup_uri_copy (sd->base_uri);
 	soup_uri_set_path (star_uri, "*");
 
@@ -265,7 +265,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 
 	g_test_bug ("667635");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	uri = soup_uri_new_with_base (sd->base_uri, "/..%2ftest");
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -984,7 +984,7 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 
 	server_add_early_handler (sd, NULL, early_stream_callback, NULL, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	msg = soup_message_new_from_uri ("POST", sd->base_uri);
 
@@ -1022,7 +1022,7 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 
 	server_add_early_handler (sd, NULL, early_respond_callback, NULL, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	/* The early handler will intercept, and the normal handler will be skipped */
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
@@ -1083,7 +1083,7 @@ do_early_multi_test (ServerData *sd, gconstpointer test_data)
 	server_add_handler (sd, "/both", server_callback, NULL, NULL);
 	server_add_early_handler (sd, "/both", early_multi_callback, NULL, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	for (i = 0; i < G_N_ELEMENTS (multi_tests); i++) {
 		uri = soup_uri_new_with_base (sd->base_uri, multi_tests[i].path);

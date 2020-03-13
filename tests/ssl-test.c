@@ -4,86 +4,22 @@
 
 SoupURI *uri;
 
-static void
-do_properties_test_for_session (SoupSession *session)
-{
-	SoupMessage *msg;
-	GTlsCertificate *cert;
-	GTlsCertificateFlags flags;
-
-	msg = soup_message_new_from_uri ("GET", uri);
-	soup_session_send_message (session, msg);
-	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-
-	if (soup_message_get_https_status (msg, &cert, &flags)) {
-		g_assert_true (G_IS_TLS_CERTIFICATE (cert));
-		g_assert_cmpuint (flags, ==, G_TLS_CERTIFICATE_UNKNOWN_CA);
-	} else
-		soup_test_assert (FALSE, "Response not https");
-
-	g_test_bug ("665182");
-	g_assert_false (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
-
-	g_object_unref (msg);
-}
-
-static void
-do_async_properties_tests (void)
-{
-	SoupSession *session;
-
-	SOUP_TEST_SKIP_IF_NO_TLS;
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
-		      SOUP_SESSION_SSL_STRICT, FALSE,
-		      NULL);
-	do_properties_test_for_session (session);
-	soup_test_session_abort_unref (session);
-}
-
-static void
-do_sync_properties_tests (void)
-{
-	SoupSession *session;
-
-	SOUP_TEST_SKIP_IF_NO_TLS;
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
-		      SOUP_SESSION_SSL_STRICT, FALSE,
-		      NULL);
-	do_properties_test_for_session (session);
-	soup_test_session_abort_unref (session);
-}
-
 typedef struct {
 	const char *name;
-	gboolean sync;
 	gboolean strict;
 	gboolean with_ca_list;
 	guint expected_status;
 } StrictnessTest;
 
 static const StrictnessTest strictness_tests[] = {
-	{ "/ssl/strictness/async/strict/with-ca",
-	  FALSE, TRUE, TRUE, SOUP_STATUS_OK },
-	{ "/ssl/strictness/async/strict/without-ca",
-	  FALSE, TRUE, FALSE, SOUP_STATUS_SSL_FAILED },
-	{ "/ssl/strictness/async/non-strict/with-ca",
-	  FALSE, FALSE, TRUE, SOUP_STATUS_OK },
-	{ "/ssl/strictness/async/non-strict/without-ca",
-	  FALSE, FALSE, FALSE, SOUP_STATUS_OK },
-	{ "/ssl/strictness/sync/strict/with-ca",
-	  TRUE, TRUE, TRUE, SOUP_STATUS_OK },
-	{ "/ssl/strictness/sync/strict/without-ca",
-	  TRUE, TRUE, FALSE, SOUP_STATUS_SSL_FAILED },
-	{ "/ssl/strictness/sync/non-strict/with-ca",
-	  TRUE, FALSE, TRUE, SOUP_STATUS_OK },
-	{ "/ssl/strictness/sync/non-strict/without-ca",
-	  TRUE, FALSE, FALSE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/strict/with-ca",
+	  TRUE, TRUE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/strict/without-ca",
+	  TRUE, FALSE, SOUP_STATUS_SSL_FAILED },
+	{ "/ssl/strictness/non-strict/with-ca",
+	  FALSE, TRUE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/non-strict/without-ca",
+	  FALSE, FALSE, SOUP_STATUS_OK },
 };
 
 static void
@@ -96,7 +32,7 @@ do_strictness_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	session = soup_test_session_new (test->sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 NULL);
 	if (!test->strict) {
 		g_object_set (G_OBJECT (session),
@@ -384,8 +320,6 @@ main (int argc, char **argv)
 		uri = NULL;
 
 	g_test_add_func ("/ssl/session-properties", do_session_property_tests);
-	g_test_add_func ("/ssl/message-properties/async", do_async_properties_tests);
-	g_test_add_func ("/ssl/message-properties/sync", do_sync_properties_tests);
 	g_test_add_func ("/ssl/tls-interaction", do_tls_interaction_test);
 
 	for (i = 0; i < G_N_ELEMENTS (strictness_tests); i++) {

@@ -101,7 +101,7 @@ do_host_test (void)
 
 	g_test_bug ("539803");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	one = soup_message_new_from_uri ("GET", base_uri);
 	two = soup_message_new_from_uri ("GET", base_uri);
@@ -133,7 +133,7 @@ do_host_big_header (void)
 
 	g_test_bug ("792173");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	for (i = 0; i < 2048; i++) {
@@ -624,7 +624,7 @@ do_one_accept_language_test (const char *language, const char *expected_header)
 
 	debug_printf (1, "  LANGUAGE=%s\n", language);
 	g_setenv ("LANGUAGE", language, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
@@ -732,13 +732,7 @@ do_cancel_while_reading_test (void)
 	g_test_bug ("637741");
 	g_test_bug ("676038");
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_cancel_while_reading_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_cancel_while_reading_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -775,15 +769,8 @@ do_cancel_while_reading_immediate_req_test (void)
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					 NULL);
-	do_cancel_while_reading_req_test_for_session (session, flags);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
@@ -797,15 +784,8 @@ do_cancel_while_reading_delayed_req_test (void)
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_SOON;
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					 NULL);
-	do_cancel_while_reading_req_test_for_session (session, flags);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
@@ -821,15 +801,8 @@ do_cancel_while_reading_preemptive_req_test (void)
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					 NULL);
-	do_cancel_while_reading_req_test_for_session (session, flags);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);

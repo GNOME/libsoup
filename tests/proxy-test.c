@@ -76,8 +76,7 @@ set_close_on_connect (SoupMessage *msg,
 }
 
 static void
-test_url (const char *url, int proxy, guint expected,
-	  gboolean sync, gboolean close)
+test_url (const char *url, int proxy, guint expected, gboolean close)
 {
 	SoupSession *session;
 	SoupMessage *msg;
@@ -94,7 +93,7 @@ test_url (const char *url, int proxy, guint expected,
 	/* We create a new session for each request to ensure that
 	 * connections/auth aren't cached between tests.
 	 */
-	session = soup_test_session_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_SSL_STRICT, FALSE,
@@ -124,8 +123,7 @@ test_url (const char *url, int proxy, guint expected,
 }
 
 static void
-test_url_new_api (const char *url, int proxy, guint expected,
-		  gboolean sync, gboolean close)
+test_url_new_api (const char *url, int proxy, guint expected, gboolean close)
 {
 	SoupSession *session;
 	SoupMessage *msg;
@@ -146,7 +144,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	/* We create a new session for each request to ensure that
 	 * connections/auth aren't cached between tests.
 	 */
-	session = soup_test_session_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
 					 SOUP_SESSION_SSL_STRICT, FALSE,
@@ -185,7 +183,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 }
 
 static void
-do_proxy_test (SoupProxyTest *test, gboolean sync)
+do_proxy_test (SoupProxyTest *test)
 {
 	char *http_url, *https_url;
 
@@ -210,22 +208,22 @@ do_proxy_test (SoupProxyTest *test, gboolean sync)
 		https_url = g_strconcat (HTTPS_SERVER, test->url, NULL);
 	}
 
-	test_url (http_url, SIMPLE_PROXY, test->final_status, sync, FALSE);
-	test_url_new_api (http_url, SIMPLE_PROXY, test->final_status, sync, FALSE);
-	test_url (https_url, SIMPLE_PROXY, test->final_status, sync, FALSE);
-	test_url_new_api (https_url, SIMPLE_PROXY, test->final_status, sync, FALSE);
+	test_url (http_url, SIMPLE_PROXY, test->final_status, FALSE);
+	test_url_new_api (http_url, SIMPLE_PROXY, test->final_status, FALSE);
+	test_url (https_url, SIMPLE_PROXY, test->final_status, FALSE);
+	test_url_new_api (https_url, SIMPLE_PROXY, test->final_status, FALSE);
 
-	test_url (http_url, AUTH_PROXY, test->final_status, sync, FALSE);
-	test_url_new_api (http_url, AUTH_PROXY, test->final_status, sync, FALSE);
-	test_url (https_url, AUTH_PROXY, test->final_status, sync, FALSE);
-	test_url_new_api (https_url, AUTH_PROXY, test->final_status, sync, FALSE);
-	test_url (https_url, AUTH_PROXY, test->final_status, sync, TRUE);
-	test_url_new_api (https_url, AUTH_PROXY, test->final_status, sync, TRUE);
+	test_url (http_url, AUTH_PROXY, test->final_status, FALSE);
+	test_url_new_api (http_url, AUTH_PROXY, test->final_status, FALSE);
+	test_url (https_url, AUTH_PROXY, test->final_status, FALSE);
+	test_url_new_api (https_url, AUTH_PROXY, test->final_status, FALSE);
+	test_url (https_url, AUTH_PROXY, test->final_status, TRUE);
+	test_url_new_api (https_url, AUTH_PROXY, test->final_status, TRUE);
 
-	test_url (http_url, UNAUTH_PROXY, test->final_status, sync, FALSE);
-	test_url_new_api (http_url, UNAUTH_PROXY, test->final_status, sync, FALSE);
-	test_url (https_url, UNAUTH_PROXY, test->final_status, sync, FALSE);
-	test_url_new_api (https_url, UNAUTH_PROXY, test->final_status, sync, FALSE);
+	test_url (http_url, UNAUTH_PROXY, test->final_status, FALSE);
+	test_url_new_api (http_url, UNAUTH_PROXY, test->final_status, FALSE);
+	test_url (https_url, UNAUTH_PROXY, test->final_status, FALSE);
+	test_url_new_api (https_url, UNAUTH_PROXY, test->final_status, FALSE);
 
 	g_free (http_url);
 	g_free (https_url);
@@ -238,17 +236,7 @@ do_async_proxy_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	do_proxy_test (test, FALSE);
-}
-
-static void
-do_sync_proxy_test (gconstpointer data)
-{
-	SoupProxyTest *test = (SoupProxyTest *)data;
-
-	SOUP_TEST_SKIP_IF_NO_APACHE;
-
-	do_proxy_test (test, TRUE);
+	do_proxy_test (test);
 }
 
 static void
@@ -271,7 +259,7 @@ do_proxy_fragment_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
@@ -298,7 +286,7 @@ do_proxy_redirect_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
@@ -376,7 +364,7 @@ do_proxy_auth_cache_test (void)
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	g_free (cache_dir);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[AUTH_PROXY],
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
@@ -419,13 +407,8 @@ main (int argc, char **argv)
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	for (i = 0; i < ntests; i++) {
-		path = g_strdup_printf ("/proxy/async/%s", tests[i].explanation);
+		path = g_strdup_printf ("/proxy/%s", tests[i].explanation);
 		g_test_add_data_func (path, &tests[i], do_async_proxy_test);
-		g_free (path);
-	}
-	for (i = 0; i < ntests; i++) {
-		path = g_strdup_printf ("/proxy/sync/%s", tests[i].explanation);
-		g_test_add_data_func (path, &tests[i], do_sync_proxy_test);
 		g_free (path);
 	}
 

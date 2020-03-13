@@ -7,7 +7,7 @@
 
 SoupURI *base_uri;
 char *server2_uri;
-SoupSession *async_session, *sync_session;
+SoupSession *async_session;
 
 typedef struct {
 	const char *method;
@@ -284,18 +284,6 @@ do_async_req_api_test (gconstpointer test)
 }
 
 static void
-do_sync_msg_api_test (gconstpointer test)
-{
-	do_message_api_test (sync_session, (TestCase *)test);
-}
-
-static void
-do_sync_req_api_test (gconstpointer test)
-{
-	do_request_api_test (sync_session, (TestCase *)test);
-}
-
-static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
@@ -418,34 +406,21 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 
-	async_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	async_session = soup_test_session_new (SOUP_TYPE_SESSION,
 					       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					       NULL);
-	sync_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
 	for (n = 0; n < n_tests; n++) {
-		path = g_strdup_printf ("/redirect/async/msg/%d-%s-%d", n,
+		path = g_strdup_printf ("/redirect/msg/%d-%s-%d", n,
 					tests[n].requests[0].method,
 					tests[n].requests[0].status_code);
 		g_test_add_data_func (path, &tests[n], do_async_msg_api_test);
 		g_free (path);
 
-		path = g_strdup_printf ("/redirect/async/req/%d-%s-%d", n,
+		path = g_strdup_printf ("/redirect/req/%d-%s-%d", n,
 					tests[n].requests[0].method,
 					tests[n].requests[0].status_code);
 		g_test_add_data_func (path, &tests[n], do_async_req_api_test);
-		g_free (path);
-
-		path = g_strdup_printf ("/redirect/sync/msg/%d-%s-%d", n,
-					tests[n].requests[0].method,
-					tests[n].requests[0].status_code);
-		g_test_add_data_func (path, &tests[n], do_sync_msg_api_test);
-		g_free (path);
-
-		path = g_strdup_printf ("/redirect/sync/req/%d-%s-%d", n,
-					tests[n].requests[0].method,
-					tests[n].requests[0].status_code);
-		g_test_add_data_func (path, &tests[n], do_sync_req_api_test);
 		g_free (path);
 	}
 
@@ -458,7 +433,6 @@ main (int argc, char **argv)
 	soup_test_server_quit_unref (server2);
 
 	soup_test_session_abort_unref (async_session);
-	soup_test_session_abort_unref (sync_session);
 
 	test_cleanup ();
 	return ret;

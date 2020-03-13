@@ -255,11 +255,11 @@ do_sync_timeout_tests (gconstpointer data)
 	} else
 		extra_slow = FALSE;
 
-	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION,
 						 SOUP_SESSION_TIMEOUT, extra_slow ? 3 : 1,
 						 NULL);
 	/* SOUP_SESSION_TIMEOUT doesn't work with sync sessions */
-	plain_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+	plain_session = soup_test_session_new (SOUP_TYPE_SESSION,
 					       NULL);
 	do_msg_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);
 	do_req_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);

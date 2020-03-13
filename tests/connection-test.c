@@ -180,7 +180,7 @@ do_content_length_framing_test (void)
 
 	g_test_bug ("611481");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	debug_printf (1, "  Content-Length larger than message body length\n");
 	request_uri = soup_uri_new_with_base (base_uri, "/content-length/long");
@@ -379,25 +379,15 @@ do_persistent_connection_timeout_test (void)
 
 	g_test_bug ("631525");
 
-	debug_printf (1, "  Async session, message API\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	debug_printf (1, "  Normal session, message API\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_timeout_test_for_session (session);
 	soup_test_session_abort_unref (session);
 
-	debug_printf (1, "  Async session, request API\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	debug_printf (1, "  Normal session, request API\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	do_timeout_req_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session, message API\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	do_timeout_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session, request API\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	do_timeout_req_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -421,7 +411,7 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 	int i;
 	char buf[8192];
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	g_signal_connect (session, "request-started",
 			  G_CALLBACK (request_started_socket_collector),
@@ -608,15 +598,7 @@ do_max_conns_test (void)
 
 	g_test_bug ("634422");
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_MAX_CONNS, MAX_CONNS,
-					 NULL);
-	do_max_conns_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_MAX_CONNS, MAX_CONNS,
 					 NULL);
 	do_max_conns_test_for_session (session);
@@ -687,13 +669,7 @@ do_non_persistent_connection_test (void)
 
 	g_test_bug ("578990");
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_non_persistent_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_non_persistent_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -739,13 +715,7 @@ do_non_idempotent_connection_test (void)
 {
 	SoupSession *session;
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_non_idempotent_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_non_idempotent_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -853,13 +823,7 @@ do_connection_state_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_connection_state_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_connection_state_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -996,13 +960,7 @@ do_connection_event_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "  Async session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_connection_event_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Sync session\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_connection_event_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }

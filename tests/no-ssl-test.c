@@ -31,18 +31,7 @@ do_ssl_tests (gconstpointer data)
 
 	g_test_bug ("700518");
 
-	debug_printf (1, "  plain\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	do_ssl_test_for_session (session, uri);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  async\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_ssl_test_for_session (session, uri);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  sync\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	do_ssl_test_for_session (session, uri);
 	soup_test_session_abort_unref (session);
 }

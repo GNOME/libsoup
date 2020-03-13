@@ -90,43 +90,6 @@ do_async_request (SoupRequest *request)
 }
 
 static void
-do_sync_request (SoupRequest *request)
-{
-	GInputStream *in;
-	GString *body;
-	char buffer[1024];
-	gssize nread;
-	GError *error = NULL;
-
-	in = soup_request_send (request, NULL, &error);
-	if (!in) {
-		g_assert_no_error (error);
-		g_clear_error (&error);
-		return;
-	}
-
-	body = g_string_new (NULL);
-	do {
-		nread = g_input_stream_read (in, buffer, sizeof (buffer),
-					     NULL, &error);
-		if (nread == -1) {
-			g_assert_no_error (error);
-			g_clear_error (&error);
-			break;
-		}
-		g_string_append_len (body, buffer, nread);
-	} while (nread > 0);
-
-	g_input_stream_close (in, NULL, &error);
-	g_assert_no_error (error);
-	g_clear_error (&error);
-	g_object_unref (in);
-
-	soup_assert_cmpmem (body->str, body->len, index_buffer->data, index_buffer->length);
-	g_string_free (body, TRUE);
-}
-
-static void
 do_request (const char *uri_string, gconstpointer type)
 {
 	SoupSession *session;
@@ -140,10 +103,7 @@ do_request (const char *uri_string, gconstpointer type)
 	request = soup_session_request (session, uri_string, &error);
 	g_assert_no_error (error);
 
-	if (SOUP_IS_SESSION_ASYNC (session))
-		do_async_request (request);
-	else
-		do_sync_request (request);
+	do_async_request (request);
 
 	g_object_unref (request);
 	soup_test_session_abort_unref (session);
@@ -193,24 +153,14 @@ main (int argc, char **argv)
 	index_buffer = soup_test_get_index ();
 	soup_test_register_resources ();
 
-	g_test_add_data_func ("/resource/sync/file",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION_SYNC),
+	g_test_add_data_func ("/resource/file",
+			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION),
 			      do_request_file_test);
-	g_test_add_data_func ("/resource/sync/data",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION_SYNC),
+	g_test_add_data_func ("/resource/data",
+			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION),
 			      do_request_data_test);
-	g_test_add_data_func ("/resource/sync/gresource",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION_SYNC),
-			      do_request_gresource_test);
-
-	g_test_add_data_func ("/resource/async/file",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION_ASYNC),
-			      do_request_file_test);
-	g_test_add_data_func ("/resource/async/data",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION_ASYNC),
-			      do_request_data_test);
-	g_test_add_data_func ("/resource/async/gresource",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION_ASYNC),
+	g_test_add_data_func ("/resource/gresource",
+			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION),
 			      do_request_gresource_test);
 
 	ret = g_test_run ();

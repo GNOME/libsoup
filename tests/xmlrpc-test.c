@@ -717,7 +717,7 @@ main (int argc, char **argv)
 		uri = default_uri;
 	}
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	g_test_add_func ("/xmlrpc/variant/serializer", test_serializer);
 	g_test_add_func ("/xmlrpc/variant/deserializer", test_deserializer);
