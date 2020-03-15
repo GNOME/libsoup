@@ -281,23 +281,13 @@ get_response_headers (SoupMessage *msg, GString *headers,
 void
 soup_message_read_request (SoupMessage               *msg,
 			   SoupSocket                *sock,
-			   gboolean                   use_thread_context,
 			   SoupMessageCompletionFn    completion_cb,
 			   gpointer                   user_data)
 {
 	GMainContext *async_context;
 	GIOStream *iostream;
 
-	if (use_thread_context)
-		async_context = g_main_context_ref_thread_default ();
-	else {
-		g_object_get (sock,
-			      SOUP_SOCKET_ASYNC_CONTEXT, &async_context,
-			      NULL);
-		if (!async_context)
-			async_context = g_main_context_ref (g_main_context_default ());
-	}
-
+	async_context = g_main_context_ref_thread_default ();
 	iostream = soup_socket_get_iostream (sock);
 
 	soup_message_io_server (msg, iostream, async_context,

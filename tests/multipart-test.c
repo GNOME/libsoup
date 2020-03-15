@@ -498,7 +498,6 @@ main (int argc, char **argv)
 	 * was hitting the limit, which indicates some connections are not dying.
 	 */
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "use-thread-context", TRUE,
 					 "max-conns", 20,
 					 "max-conns-per-host", 20,
 					 NULL);

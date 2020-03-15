@@ -80,7 +80,7 @@ do_async_request (SoupRequest *request)
 	data.body = g_string_new (NULL);
 	soup_request_send_async (request, NULL, async_request_sent, &data);
 
-	data.loop = g_main_loop_new (soup_session_get_async_context (soup_request_get_session (request)), TRUE);
+	data.loop = g_main_loop_new (g_main_context_get_thread_default (), TRUE);
 	g_main_loop_run (data.loop);
 	g_main_loop_unref (data.loop);
 
@@ -97,7 +97,6 @@ do_request (const char *uri_string, gconstpointer type)
 	GError *error = NULL;
 
 	session = soup_test_session_new (GPOINTER_TO_SIZE (type),
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 
 	request = soup_session_request (session, uri_string, &error);

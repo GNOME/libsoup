@@ -282,7 +282,6 @@ do_callback_unref_req_test (void)
 	soup_test_server_quit_unref (bad_server);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	g_object_add_weak_pointer (G_OBJECT (session), (gpointer *)&session);
 
@@ -564,7 +563,6 @@ do_early_abort_req_test (void)
 	GCancellable *cancellable;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	req = soup_session_request_uri (session, base_uri, NULL);
 
@@ -580,7 +578,6 @@ do_early_abort_req_test (void)
 	soup_test_session_abort_unref (session);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	req = soup_session_request_uri (session, base_uri, NULL);
 
@@ -596,7 +593,6 @@ do_early_abort_req_test (void)
 	soup_test_session_abort_unref (session);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	req = soup_session_request_uri (session, base_uri, NULL);
 
@@ -751,7 +747,6 @@ do_cancel_while_reading_immediate_req_test (void)
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
@@ -766,7 +761,6 @@ do_cancel_while_reading_delayed_req_test (void)
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_SOON;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
@@ -783,7 +777,6 @@ do_cancel_while_reading_preemptive_req_test (void)
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);

@@ -146,7 +146,7 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 	GMainContext *async_context;
 	GIOStream *iostream;
 
-        async_context = soup_session_get_async_context (item->session);
+        async_context = g_main_context_get_thread_default ();
         if (!async_context)
                 async_context = g_main_context_default ();
 

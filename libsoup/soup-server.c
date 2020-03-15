@@ -1165,7 +1165,6 @@ start_request (SoupServer *server, SoupClientContext *client)
 		       msg, client);
 
 	soup_message_read_request (msg, client->sock,
-				   TRUE,
 				   request_finished, client);
 }
 
@@ -1412,7 +1411,6 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 
 	saddr = soup_address_new_from_gsockaddr (address);
 	listener = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, saddr,
-				    SOUP_SOCKET_USE_THREAD_CONTEXT, TRUE,
 				    SOUP_SOCKET_IPV6_ONLY, TRUE,
 				    NULL);
 
@@ -1641,7 +1639,6 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
 
 	listener = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
 				   SOUP_SOCKET_GSOCKET, socket,
-				   SOUP_SOCKET_USE_THREAD_CONTEXT, TRUE,
 				   SOUP_SOCKET_IPV6_ONLY, TRUE,
 				   NULL);
 	if (!listener)
@@ -1691,7 +1688,6 @@ soup_server_listen_fd (SoupServer *server, int fd,
 
 	listener = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
 				   SOUP_SOCKET_FD, fd,
-				   SOUP_SOCKET_USE_THREAD_CONTEXT, TRUE,
 				   SOUP_SOCKET_IPV6_ONLY, TRUE,
 				   NULL);
 	if (!listener)

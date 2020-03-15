@@ -153,12 +153,10 @@ hsts_session_new (SoupHSTSEnforcer *enforcer)
 
 	if (enforcer)
 		session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 						 SOUP_SESSION_ADD_FEATURE, enforcer,
 						 NULL);
 	else
 		session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 						 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_HSTS_ENFORCER,
 						 NULL);
 

@@ -95,7 +95,6 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 	 */
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_SSL_STRICT, FALSE,
 					 NULL);
 	g_signal_connect (session, "authenticate",
@@ -145,7 +144,6 @@ test_url_new_api (const char *url, int proxy, guint expected, gboolean close)
 	 * connections/auth aren't cached between tests.
 	 */
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
 					 SOUP_SESSION_SSL_STRICT, FALSE,
 					 NULL);
@@ -366,7 +364,6 @@ do_proxy_auth_cache_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[AUTH_PROXY],
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 	g_signal_connect (session, "authenticate",

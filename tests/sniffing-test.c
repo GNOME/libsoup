@@ -449,7 +449,6 @@ main (int argc, char **argv)
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 

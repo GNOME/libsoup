@@ -30,12 +30,10 @@ Message
 Server
 	.new skip=false
 Session
-	.async_context type="GLib.MainContext"
 	.get_features type_arguments="weak Soup.SessionFeature"
 	.send_async.cancellable#parameter default=null
 Session*.new_with_options skip=false
 Socket
-	.async_context type="GLib.MainContext"
 	.new skip=false
 URI
 	.set_query_from_fields skip=false

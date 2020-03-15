@@ -105,8 +105,6 @@ soup_request_http_send (SoupRequest          *request,
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
 	SoupSession *session = soup_request_get_session (request);
 
-	g_return_val_if_fail (!SOUP_IS_SESSION_ASYNC (session), NULL);
-
 	return soup_session_send (session, http->priv->msg,
 				  cancellable, error);
 }

@@ -234,7 +234,7 @@ start_idle_timer (SoupConnection *conn)
 
 	if (priv->socket_props->idle_timeout > 0 && !priv->idle_timeout_src) {
 		priv->idle_timeout_src =
-			soup_add_timeout (priv->socket_props->async_context,
+			soup_add_timeout (g_main_context_get_thread_default (),
 					  priv->socket_props->idle_timeout * 1000,
 					  idle_timeout, conn);
 	}
@@ -416,12 +416,10 @@ soup_connection_connect_async (SoupConnection      *conn,
 	g_signal_connect (priv->socket, "event",
 			  G_CALLBACK (re_emit_socket_event), conn);
 
-	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
 
 	soup_socket_connect_async_internal (priv->socket, cancellable,
 					    socket_connect_complete, task);
-	soup_socket_properties_pop_async_context (priv->socket_props);
 }
 
 gboolean
@@ -544,13 +542,10 @@ soup_connection_start_ssl_async (SoupConnection      *conn,
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = soup_connection_get_instance_private (conn);
 
-	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
 
 	soup_socket_handshake_async (priv->socket, priv->remote_uri->host,
 				     cancellable, start_ssl_completed, task);
-
-	soup_socket_properties_pop_async_context (priv->socket_props);
 }
 
 gboolean

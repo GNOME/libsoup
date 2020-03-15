@@ -386,7 +386,6 @@ do_persistent_connection_timeout_test (void)
 
 	debug_printf (1, "  Normal session, request API\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	do_timeout_req_test_for_session (session);
 	soup_test_session_abort_unref (session);

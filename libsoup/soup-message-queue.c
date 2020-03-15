@@ -81,7 +81,7 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 
 	item = g_slice_new0 (SoupMessageQueueItem);
 	item->session = g_object_ref (queue->session);
-	item->async_context = soup_session_get_async_context (item->session);
+	item->async_context = g_main_context_get_thread_default ();
 	if (item->async_context)
 		g_main_context_ref (item->async_context);
 	item->queue = queue;

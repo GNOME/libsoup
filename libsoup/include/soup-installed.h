@@ -42,7 +42,6 @@ extern "C" {
 #include <libsoup/soup-request-file.h>
 #include <libsoup/soup-request-http.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-session-async.h>
 #include <libsoup/soup-session-feature.h>
 #include <libsoup/soup-socket.h>
 #include <libsoup/soup-status.h>

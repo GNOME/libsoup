@@ -188,7 +188,6 @@ do_test2 (void)
 	async_context = g_main_context_new ();
         g_main_context_push_thread_default (async_context);
         session = soup_test_session_new (SOUP_TYPE_SESSION,
-                                         SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
                                          NULL);
 	g_main_context_unref (async_context);
 
@@ -247,7 +246,6 @@ do_multicontext_test (void)
 	GMainLoop *loop1, *loop2;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 
 	context1 = g_main_context_new ();

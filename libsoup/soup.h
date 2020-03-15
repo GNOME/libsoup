@@ -42,7 +42,7 @@ extern "C" {
 #include "soup-request-file.h"
 #include "soup-request-http.h"
 #include "soup-server.h"
-#include "soup-session-async.h"
+#include "soup-session.h"
 #include "soup-session-feature.h"
 #include "soup-socket.h"
 #include "soup-status.h"

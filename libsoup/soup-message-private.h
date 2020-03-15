@@ -72,7 +72,6 @@ void soup_message_send_request (SoupMessageQueueItem      *item,
 				gpointer                   user_data);
 void soup_message_read_request (SoupMessage               *msg,
 				SoupSocket                *sock,
-				gboolean                   use_thread_context,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);
 

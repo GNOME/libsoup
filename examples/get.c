@@ -35,12 +35,9 @@ get_url (const char *url)
 	msg = soup_message_new (head ? "HEAD" : "GET", url);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
-	if (loop) {
-		g_object_ref (msg);
-		soup_session_queue_message (session, msg, finished, loop);
-		g_main_loop_run (loop);
-	} else
-		soup_session_send_message (session, msg);
+        g_object_ref (msg);
+        soup_session_queue_message (session, msg, finished, loop);
+        g_main_loop_run (loop);
 
 	name = soup_message_get_uri (msg)->path;
 
@@ -147,7 +144,7 @@ _get_tls_cert_interaction_new (GTlsCertificate *cert)
 
 static const char *ca_file, *proxy;
 static char *client_cert_file, *client_key_file;
-static gboolean synchronous, ntlm;
+static gboolean ntlm;
 static gboolean negotiate;
 
 static GOptionEntry entries[] = {
@@ -178,9 +175,6 @@ static GOptionEntry entries[] = {
 	{ "quiet", 'q', 0,
 	  G_OPTION_ARG_NONE, &quiet,
 	  "Don't show HTTP status code", NULL },
-	{ "sync", 's', 0,
-	  G_OPTION_ARG_NONE, &synchronous,
-	  "Use SoupSessionSync rather than SoupSessionAsync", NULL },
 	{ NULL }
 };
 
@@ -286,13 +280,11 @@ main (int argc, char **argv)
 	}
 #endif /* LIBSOUP_HAVE_GSSAPI */
 
-	if (!synchronous)
-		loop = g_main_loop_new (NULL, TRUE);
+	loop = g_main_loop_new (NULL, TRUE);
 
 	get_url (url);
 
-	if (!synchronous)
-		g_main_loop_unref (loop);
+	g_main_loop_unref (loop);
 
 	g_object_unref (session);
 

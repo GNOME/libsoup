@@ -214,11 +214,9 @@ do_async_timeout_tests (gconstpointer data)
 
 	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION,
 						 SOUP_SESSION_TIMEOUT, extra_slow ? 3 : 1,
-						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 						 NULL);
 	idle_session = soup_test_session_new (SOUP_TYPE_SESSION,
 					      SOUP_SESSION_IDLE_TIMEOUT, extra_slow ? 2 : 1,
-					      SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					      NULL);
 	/* The "plain" session also has an idle timeout, but it's longer
 	 * than the test takes, so for our purposes it should behave like
@@ -226,7 +224,6 @@ do_async_timeout_tests (gconstpointer data)
 	 */
 	plain_session = soup_test_session_new (SOUP_TYPE_SESSION,
 					       SOUP_SESSION_IDLE_TIMEOUT, 20,
-					       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					       NULL);
 
 	do_msg_tests_for_session (timeout_session, idle_session, plain_session,

@@ -67,63 +67,6 @@ do_strictness_test (gconstpointer data)
 	soup_test_session_abort_unref (session);
 }
 
-static void
-property_changed (GObject *object, GParamSpec *param, gpointer user_data)
-{
-	gboolean *changed = user_data;
-
-	*changed = TRUE;
-}
-
-static void
-do_session_property_tests (void)
-{
-	gboolean use_system_changed, tlsdb_changed;
-	gboolean use_system;
-	GTlsDatabase *tlsdb;
-	SoupSession *session;
-
-	g_test_bug ("673678");
-
-	SOUP_TEST_SKIP_IF_NO_TLS;
-
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	session = soup_session_async_new ();
-	G_GNUC_END_IGNORE_DEPRECATIONS;
-
-	g_signal_connect (session, "notify::ssl-use-system-ca-file",
-			  G_CALLBACK (property_changed), &use_system_changed);
-	g_signal_connect (session, "notify::tls-database",
-			  G_CALLBACK (property_changed), &tlsdb_changed);
-
-	g_object_get (G_OBJECT (session),
-		      "ssl-use-system-ca-file", &use_system,
-		      "tls-database", &tlsdb,
-		      NULL);
-	soup_test_assert (!use_system,
-			  "ssl-use-system-ca-file defaults to TRUE");
-	soup_test_assert (tlsdb == NULL,
-			  "tls-database set by default");
-
-	use_system_changed = tlsdb_changed = FALSE;
-	g_object_set (G_OBJECT (session),
-		      "ssl-use-system-ca-file", TRUE,
-		      NULL);
-	g_object_get (G_OBJECT (session),
-		      "ssl-use-system-ca-file", &use_system,
-		      "tls-database", &tlsdb,
-		      NULL);
-	soup_test_assert (use_system,
-			  "setting ssl-use-system-ca-file failed");
-	g_assert_true (use_system_changed);
-	soup_test_assert (tlsdb != NULL,
-			  "setting ssl-use-system-ca-file didn't set tls-database");
-	g_assert_true (tlsdb_changed);
-	g_clear_object (&tlsdb);
-
-	soup_test_session_abort_unref (session);
-}
-
 /* GTlsInteraction subclass for do_interaction_test */
 typedef GTlsInteraction TestTlsInteraction;
 typedef GTlsInteractionClass TestTlsInteractionClass;
@@ -319,7 +262,6 @@ main (int argc, char **argv)
 	} else
 		uri = NULL;
 
-	g_test_add_func ("/ssl/session-properties", do_session_property_tests);
 	g_test_add_func ("/ssl/tls-interaction", do_tls_interaction_test);
 
 	for (i = 0; i < G_N_ELEMENTS (strictness_tests); i++) {

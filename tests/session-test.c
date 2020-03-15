@@ -331,7 +331,7 @@ do_features_test (void)
 	GSList *features;
 	SoupSessionFeature *feature;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	features = soup_session_get_features (session, SOUP_TYPE_SESSION_FEATURE);
 	/* SoupAuthManager is always added */

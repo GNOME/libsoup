@@ -37,39 +37,6 @@ do_ssl_tests (gconstpointer data)
 }
 
 static void
-do_session_property_tests (void)
-{
-	gboolean use_system;
-	GTlsDatabase *tlsdb;
-	SoupSession *session;
-
-	g_test_bug ("700518");
-
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	session = soup_session_async_new ();
-	G_GNUC_END_IGNORE_DEPRECATIONS;
-
-	g_object_get (G_OBJECT (session),
-		      "ssl-use-system-ca-file", &use_system,
-		      "tls-database", &tlsdb,
-		      NULL);
-	soup_test_assert (!use_system, "ssl-use-system-ca-file defaults to TRUE");
-	soup_test_assert (tlsdb == NULL, "tls-database set by default");
-
-	g_object_set (G_OBJECT (session),
-		      "tls-database", NULL,
-		      NULL);
-	g_object_get (G_OBJECT (session),
-		      "ssl-use-system-ca-file", &use_system,
-		      "tls-database", &tlsdb,
-		      NULL);
-	soup_test_assert (tlsdb == NULL, "setting tls-database NULL failed");
-	soup_test_assert (!use_system, "setting tls-database NULL set ssl-use-system-ca-file");
-
-	soup_test_session_abort_unref (session);
-}
-
-static void
 server_handler (SoupServer        *server,
 		SoupMessage       *msg,
 		const char        *path,
@@ -107,7 +74,6 @@ main (int argc, char **argv)
 	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTPS);
 	soup_uri_set_port (uri, port);
 
-	g_test_add_func ("/no-ssl/session-properties", do_session_property_tests);
 	g_test_add_data_func ("/no-ssl/request-error", uri, do_ssl_tests);
 
 	ret = g_test_run ();

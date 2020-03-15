@@ -1269,7 +1269,7 @@ soup_cache_flush (SoupCache *cache)
 
 	session = cache->priv->session;
 	g_return_if_fail (SOUP_IS_SESSION (session));
-	async_context = soup_session_get_async_context (session);
+	async_context = g_main_context_get_thread_default ();
 
 	/* We give cache 10 secs to finish */
 	timeout = soup_add_timeout (async_context, 10000, force_flush_timeout, &forced);

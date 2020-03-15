@@ -51,9 +51,6 @@ gboolean   soup_socket_listen_full             (SoupSocket           *sock,
 
 
 typedef struct {
-	GMainContext *async_context;
-	gboolean use_thread_context;
-
 	GProxyResolver *proxy_resolver;
 	SoupAddress *local_addr;
 
@@ -71,9 +68,7 @@ typedef struct {
 GType soup_socket_properties_get_type (void);
 #define SOUP_TYPE_SOCKET_PROPERTIES (soup_socket_properties_get_type ())
 
-SoupSocketProperties *soup_socket_properties_new   (GMainContext    *async_context,
-						    gboolean         use_thread_context,
-						    GProxyResolver  *proxy_resolver,
+SoupSocketProperties *soup_socket_properties_new   (GProxyResolver  *proxy_resolver,
 						    SoupAddress     *local_addr,
 						    GTlsDatabase    *tlsdb,
 						    GTlsInteraction *tls_interaction,
@@ -83,8 +78,5 @@ SoupSocketProperties *soup_socket_properties_new   (GMainContext    *async_conte
 
 SoupSocketProperties *soup_socket_properties_ref   (SoupSocketProperties *props);
 void                  soup_socket_properties_unref (SoupSocketProperties *props);
-
-void soup_socket_properties_push_async_context (SoupSocketProperties *props);
-void soup_socket_properties_pop_async_context  (SoupSocketProperties *props);
 
 #endif /* __SOUP_SOCKET_PRIVATE_H__ */

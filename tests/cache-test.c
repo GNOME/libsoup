@@ -294,7 +294,6 @@ do_basics_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 
@@ -489,7 +488,6 @@ do_cancel_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 	g_signal_connect (session, "request-unqueued",
@@ -523,7 +521,6 @@ do_cancel_test (gconstpointer data)
 	soup_test_session_abort_unref (session);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 	g_signal_connect (session, "request-unqueued",
@@ -585,7 +582,6 @@ do_refcounting_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 
@@ -641,7 +637,6 @@ do_headers_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 
@@ -719,7 +714,6 @@ do_leaks_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 

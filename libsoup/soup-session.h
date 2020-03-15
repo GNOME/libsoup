@@ -39,21 +39,8 @@ typedef struct {
 				 SoupAuth *auth, gboolean retrying);
 
 	/* methods */
-	void  (*queue_message)   (SoupSession *session, SoupMessage *msg,
-				  SoupSessionCallback callback,
-				  gpointer user_data);
-	void  (*requeue_message) (SoupSession *session, SoupMessage *msg);
-	guint (*send_message)    (SoupSession *session, SoupMessage *msg);
-
-	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg,
-				  guint status_code);
-
 	void  (*auth_required)   (SoupSession *session, SoupMessage *msg,
 				  SoupAuth *auth, gboolean retrying);
-
-	void  (*flush_queue)     (SoupSession *session);
-
-	void  (*kick)            (SoupSession *session);
 
 	/* Padding for future expansion */
 	void (*_libsoup_reserved4) (void);
@@ -70,8 +57,6 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_TLS_DATABASE           "tls-database"
 #define SOUP_SESSION_SSL_STRICT             "ssl-strict"
 #define SOUP_SESSION_TLS_INTERACTION        "tls-interaction"
-#define SOUP_SESSION_ASYNC_CONTEXT          "async-context"
-#define SOUP_SESSION_USE_THREAD_CONTEXT     "use-thread-context"
 #define SOUP_SESSION_TIMEOUT                "timeout"
 #define SOUP_SESSION_USER_AGENT             "user-agent"
 #define SOUP_SESSION_ACCEPT_LANGUAGE        "accept-language"
@@ -116,9 +101,6 @@ void            soup_session_cancel_message   (SoupSession           *session,
 					       guint                  status_code);
 SOUP_AVAILABLE_IN_2_4
 void            soup_session_abort            (SoupSession           *session);
-
-SOUP_AVAILABLE_IN_2_4
-GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
 SOUP_AVAILABLE_IN_2_42
 void            soup_session_send_async       (SoupSession           *session,

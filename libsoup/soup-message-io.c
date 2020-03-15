@@ -1244,8 +1244,7 @@ soup_message_io_client (SoupMessageQueueItem *item,
 	io->write_state     = SOUP_MESSAGE_IO_STATE_HEADERS;
 
 	if (!item->new_api) {
-		gboolean blocking = !SOUP_IS_SESSION_ASYNC (item->session) && !item->async;
-		io_run (item->msg, blocking);
+		io_run (item->msg, !item->async);
 	}
 }
 

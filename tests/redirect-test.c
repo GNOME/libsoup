@@ -407,7 +407,6 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	async_session = soup_test_session_new (SOUP_TYPE_SESSION,
-					       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					       NULL);
 
 	for (n = 0; n < n_tests; n++) {
