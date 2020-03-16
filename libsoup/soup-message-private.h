@@ -103,10 +103,6 @@ SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 /* I/O */
 void       soup_message_io_stop        (SoupMessage *msg);
 void       soup_message_io_finished    (SoupMessage *msg);
-/* This is supposed to be private, but there are programs that rely on it
- * being exported. See bug #687758, #687468.
- */
-SOUP_AVAILABLE_IN_2_4
 void       soup_message_io_cleanup     (SoupMessage *msg);
 void       soup_message_io_pause       (SoupMessage *msg);
 void       soup_message_io_unpause     (SoupMessage *msg);
