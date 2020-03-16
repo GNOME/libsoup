@@ -5,6 +5,7 @@
 
 #include "test-utils.h"
 #include "soup-connection.h"
+#include "soup-session-private.h"
 
 SoupServer *server, *ssl_server;
 SoupURI *base_uri, *ssl_base_uri;

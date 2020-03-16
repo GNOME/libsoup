@@ -42,6 +42,10 @@ void                  soup_session_process_queue_item   (SoupSession          *s
 							 gboolean             *should_prune,
 							 gboolean              loop);
 
+GIOStream *           soup_session_steal_connection     (SoupSession          *session,
+                                                         SoupMessage          *msg);
+
+
 G_END_DECLS
 
 #endif /* __SOUP_SESSION_PRIVATE_H__ */

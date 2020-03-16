@@ -189,10 +189,6 @@ typedef enum {
 } SoupRequestError;
 
 SOUP_AVAILABLE_IN_2_50
-GIOStream *soup_session_steal_connection (SoupSession *session,
-					  SoupMessage *msg);
-
-SOUP_AVAILABLE_IN_2_50
 void                     soup_session_websocket_connect_async  (SoupSession          *session,
 								SoupMessage          *msg,
 								const char           *origin,
