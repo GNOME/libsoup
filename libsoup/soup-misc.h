@@ -84,8 +84,6 @@ guint soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 						SoupRange          **ranges,
 						int                 *length);
 
-SoupAddress *soup_address_new_from_gsockaddr (GSocketAddress *addr);
-
 gboolean           soup_host_matches_host    (const gchar *host,
 					      const gchar *compare_with);
 

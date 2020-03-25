@@ -181,9 +181,6 @@ typedef struct {
 
 	char             **http_aliases, **https_aliases;
 
-	SoupAddress       *legacy_iface;
-	int                legacy_port;
-
 	GPtrArray         *websocket_extension_types;
 
 	gboolean           disposed;
@@ -1217,21 +1214,12 @@ soup_server_accept_iostream   (SoupServer     *server,
 			       GError        **error)
 {
 	SoupSocket *sock;
-	SoupAddress *local = NULL, *remote = NULL;
-
-	if (local_addr)
-		local = soup_address_new_from_gsockaddr (local_addr);
-	if (remote_addr)
-		remote = soup_address_new_from_gsockaddr (remote_addr);
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
 			       "iostream", stream,
-			       "local-address", local,
-			       "remote-address", remote,
+			       SOUP_SOCKET_LOCAL_ADDRESS, local_addr,
+			       SOUP_SOCKET_REMOTE_CONNECTABLE, remote_addr,
 			       NULL);
-
-	g_clear_object (&local);
-	g_clear_object (&remote);
 
 	if (!sock)
 		return FALSE;
@@ -1340,12 +1328,15 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 		      NULL);
 	if (!is_listening) {
 		if (!soup_socket_listen_full (listener, error)) {
-			SoupAddress *saddr = soup_socket_get_local_address (listener);
+			GInetSocketAddress *addr =  soup_socket_get_local_address (listener);
+			GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
+			char *local_ip = g_inet_address_to_string (inet_addr);
 
 			g_prefix_error (error,
 					_("Could not listen on address %s, port %d: "),
-					soup_address_get_physical (saddr),
-					soup_address_get_port (saddr));
+					local_ip,
+					g_inet_socket_address_get_port (addr));
+			g_free (local_ip);
 			return FALSE;
 		}
 	}
@@ -1399,7 +1390,6 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 {
 	SoupServerPrivate *priv;
 	SoupSocket *listener;
-	SoupAddress *saddr;
 	gboolean success;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), FALSE);
@@ -1409,14 +1399,12 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 	priv = soup_server_get_instance_private (server);
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
-	saddr = soup_address_new_from_gsockaddr (address);
-	listener = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, saddr,
+	listener = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, address,
 				    SOUP_SOCKET_IPV6_ONLY, TRUE,
 				    NULL);
 
 	success = soup_server_listen_internal (server, listener, options, error);
 	g_object_unref (listener);
-	g_object_unref (saddr);
 
 	return success;
 }
@@ -1449,7 +1437,7 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
 		g_object_unref (addr4);
 
 		v4sock = priv->listeners->data;
-		v4port = soup_address_get_port (soup_socket_get_local_address (v4sock));
+		v4port = g_inet_socket_address_get_port (soup_socket_get_local_address (v4sock));
 	} else {
 		v4sock = NULL;
 		v4port = port;
@@ -1723,7 +1711,9 @@ soup_server_get_uris (SoupServer *server)
 	SoupServerPrivate *priv;
 	GSList *uris, *l;
 	SoupSocket *listener;
-	SoupAddress *addr;
+	GInetSocketAddress *addr;
+	GInetAddress *inet_addr;
+	char *ip;
 	SoupURI *uri;
 	gpointer creds;
 
@@ -1733,15 +1723,19 @@ soup_server_get_uris (SoupServer *server)
 	for (l = priv->listeners, uris = NULL; l; l = l->next) {
 		listener = l->data;
 		addr = soup_socket_get_local_address (listener);
+		inet_addr = g_inet_socket_address_get_address (addr);
+		ip = g_inet_address_to_string (inet_addr);
 		g_object_get (G_OBJECT (listener), SOUP_SOCKET_SSL_CREDENTIALS, &creds, NULL);
 
 		uri = soup_uri_new (NULL);
 		soup_uri_set_scheme (uri, creds ? "https" : "http");
-		soup_uri_set_host (uri, soup_address_get_physical (addr));
-		soup_uri_set_port (uri, soup_address_get_port (addr));
+		soup_uri_set_host (uri, ip);
+		soup_uri_set_port (uri, g_inet_socket_address_get_port (addr));
 		soup_uri_set_path (uri, "/");
 
 		uris = g_slist_prepend (uris, uri);
+
+		g_free (ip);
 	}
 
 	return uris;
@@ -1841,7 +1835,7 @@ soup_client_context_get_remote_address (SoupClientContext *client)
 
 	client->remote_addr = client->gsock ?
 		g_socket_get_remote_address (client->gsock, NULL) :
-		soup_address_get_gsockaddr (soup_socket_get_remote_address (client->sock));
+		G_SOCKET_ADDRESS (g_object_ref (soup_socket_get_remote_address (client->sock)));
 
 	return client->remote_addr;
 }
@@ -1869,7 +1863,7 @@ soup_client_context_get_local_address (SoupClientContext *client)
 
 	client->local_addr = client->gsock ?
 		g_socket_get_local_address (client->gsock, NULL) :
-		soup_address_get_gsockaddr (soup_socket_get_local_address (client->sock));
+		G_SOCKET_ADDRESS (g_object_ref (soup_socket_get_local_address (client->sock)));
 
 	return client->local_addr;
 }
@@ -1902,12 +1896,9 @@ soup_client_context_get_host (SoupClientContext *client)
 		iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
 		client->remote_ip = g_inet_address_to_string (iaddr);
 	} else {
-		SoupAddress *addr;
-
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-		addr = soup_socket_get_remote_address (client->sock);
-		G_GNUC_END_IGNORE_DEPRECATIONS;
-		client->remote_ip = g_strdup (soup_address_get_physical (addr));
+		GInetSocketAddress *addr = G_INET_SOCKET_ADDRESS (soup_socket_get_remote_address (client->sock));
+                GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
+		client->remote_ip = g_inet_address_to_string (inet_addr);
 	}
 
 	return client->remote_ip;

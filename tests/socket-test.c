@@ -15,26 +15,25 @@
 #endif
 
 static void
+assert_host_equals (GInetSocketAddress *addr, const char *host)
+{
+        char *addr_host = g_inet_address_to_string (g_inet_socket_address_get_address (addr));
+        g_assert_cmpstr (addr_host, ==, host);
+        g_free (addr_host);
+}
+
+static void
 do_unconnected_socket_test (void)
 {
-	SoupAddress *localhost;
+	GInetSocketAddress *addr;
+        GSocketAddress *localhost;
 	SoupSocket *sock;
 	SoupSocket *client;
-	SoupAddress *addr;
 	guint res;
-	struct sockaddr_in in_localhost;
 
 	g_test_bug ("673083");
 
-	in_localhost.sin_family = AF_INET;
-	in_localhost.sin_port = 0;
-	in_localhost.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-
-	localhost = soup_address_new_from_sockaddr (
-		(struct sockaddr *) &in_localhost, sizeof (in_localhost));
-	g_assert_true (localhost != NULL);
-	res = soup_address_resolve_sync (localhost, NULL);
-	g_assert_cmpuint (res, ==, SOUP_STATUS_OK);
+        localhost = g_inet_socket_address_new_from_string ("127.0.0.1", 0);
 
 	sock = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, localhost,
 				NULL);
@@ -42,8 +41,8 @@ do_unconnected_socket_test (void)
 
 	addr = soup_socket_get_local_address (sock);
 	g_assert_true (addr != NULL);
-	g_assert_cmpstr (soup_address_get_physical (addr), ==, "127.0.0.1");
-	g_assert_cmpuint (soup_address_get_port (addr), ==, 0);
+	assert_host_equals (addr, "127.0.0.1");
+	g_assert_cmpuint (g_inet_socket_address_get_port (addr), ==, 0);
 
 	/* fails with ENOTCONN */
 	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
@@ -57,11 +56,10 @@ do_unconnected_socket_test (void)
 
 	addr = soup_socket_get_local_address (sock);
 	g_assert_true (addr != NULL);
-	g_assert_cmpstr (soup_address_get_physical (addr), ==, "127.0.0.1");
-	g_assert_cmpuint (soup_address_get_port (addr), >, 0);
+	assert_host_equals (addr, "127.0.0.1");
+	g_assert_cmpuint (g_inet_socket_address_get_port (addr), >, 0);
 
-	client = soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS,
-				  soup_socket_get_local_address (sock),
+	client = soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, soup_socket_get_local_address (sock),
 				  NULL);
 	res = soup_socket_connect_sync (client, NULL);
 	g_assert_cmpuint (res, ==, SOUP_STATUS_OK);
@@ -69,12 +67,11 @@ do_unconnected_socket_test (void)
 	g_assert_true (addr != NULL);
 	addr = soup_socket_get_remote_address (client);
 	g_assert_true (addr != NULL);
-	g_assert_cmpstr (soup_address_get_physical (addr), ==, "127.0.0.1");
-	g_assert_cmpuint (soup_address_get_port (addr), >, 0);
+	assert_host_equals (addr, "127.0.0.1");
+	g_assert_cmpuint (g_inet_socket_address_get_port (addr), >, 0);
 	g_object_unref (client);
 
-	client = soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS,
-				  soup_socket_get_local_address (sock),
+	client = soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, soup_socket_get_local_address (sock),
 				  NULL);
 	/* save it for later */
 
@@ -125,7 +122,7 @@ do_socket_from_fd_client_test (void)
 	SoupURI *uri;
 	GSocket *gsock;
 	SoupSocket *sock;
-	SoupAddress *local, *remote;
+	GInetSocketAddress *local, *remote;
 	GSocketAddress *gaddr;
 	gboolean is_server;
 	GError *error = NULL;
@@ -149,7 +146,7 @@ do_socket_from_fd_client_test (void)
 	g_assert_no_error (error);
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-			       SOUP_SOCKET_FD, g_socket_get_fd (gsock),
+                               SOUP_SOCKET_GSOCKET, gsock,
 			       NULL);
 	g_assert_no_error (error);
 	g_assert_nonnull (sock);
@@ -163,10 +160,10 @@ do_socket_from_fd_client_test (void)
 	g_assert_false (is_server);
 	g_assert_true (soup_socket_is_connected (sock));
 
-	g_assert_cmpstr (soup_address_get_physical (local), ==, "127.0.0.1");
-	g_assert_cmpint (soup_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
-	g_assert_cmpstr (soup_address_get_physical (remote), ==, "127.0.0.1");
-	g_assert_cmpint (soup_address_get_port (remote), ==, uri->port);
+	assert_host_equals (local, "127.0.0.1");
+	g_assert_cmpint (g_inet_socket_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
+        assert_host_equals (remote, "127.0.0.1");
+	g_assert_cmpint (g_inet_socket_address_get_port (remote), ==, uri->port);
 
 	g_object_unref (local);
 	g_object_unref (remote);
@@ -184,7 +181,7 @@ do_socket_from_fd_server_test (void)
 {
 	GSocket *gsock;
 	SoupSocket *sock;
-	SoupAddress *local;
+	GInetSocketAddress *local;
 	GSocketAddress *gaddr;
 	gboolean is_server;
 	GError *error = NULL;
@@ -220,8 +217,8 @@ do_socket_from_fd_server_test (void)
 	g_assert_true (is_server);
 	g_assert_true (soup_socket_is_connected (sock));
 
-	g_assert_cmpstr (soup_address_get_physical (local), ==, "127.0.0.1");
-	g_assert_cmpint (soup_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
+	assert_host_equals (local, "127.0.0.1");
+	g_assert_cmpint (g_inet_socket_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
 	g_object_unref (local);
 	g_object_unref (gaddr);
 
@@ -238,7 +235,7 @@ do_socket_from_fd_bad_test (void)
 {
 	GSocket *gsock, *gsock2, *gsockcli;
 	SoupSocket *sock, *sock2;
-	SoupAddress *local, *remote;
+	GInetSocketAddress *local, *remote;
 	GSocketAddress *gaddr;
 	gboolean is_server;
 	int fd;
@@ -322,14 +319,14 @@ do_socket_from_fd_bad_test (void)
 	/* This is wrong, but can't be helped. */
 	g_assert_false (is_server);
 
-	g_assert_cmpstr (soup_address_get_physical (local), ==, "127.0.0.1");
-	g_assert_cmpint (soup_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
+	assert_host_equals (local, "127.0.0.1");
+	g_assert_cmpint (g_inet_socket_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
 	g_object_unref (gaddr);
 
 	gaddr = g_socket_get_local_address (gsockcli, &error);
 	g_assert_no_error (error);
-	g_assert_cmpstr (soup_address_get_physical (remote), ==, "127.0.0.1");
-	g_assert_cmpint (soup_address_get_port (remote), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
+	assert_host_equals (remote, "127.0.0.1");
+	g_assert_cmpint (g_inet_socket_address_get_port (remote), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
 	g_object_unref (gaddr);
 
 	g_object_unref (local);

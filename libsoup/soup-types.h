@@ -15,7 +15,6 @@ G_BEGIN_DECLS
 
 #define _SOUP_ATOMIC_INTERN_STRING(variable, value) ((const char *)(g_atomic_pointer_get (&(variable)) ? (variable) : (g_atomic_pointer_set (&(variable), (gpointer)g_intern_static_string (value)), (variable))))
 
-typedef struct _SoupAddress             SoupAddress;
 typedef struct _SoupAuth                SoupAuth;
 typedef struct _SoupAuthDomain          SoupAuthDomain;
 typedef struct _SoupCookie              SoupCookie;

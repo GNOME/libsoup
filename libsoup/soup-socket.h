@@ -41,6 +41,7 @@ typedef struct {
 
 #define SOUP_SOCKET_LOCAL_ADDRESS       "local-address"
 #define SOUP_SOCKET_REMOTE_ADDRESS      "remote-address"
+#define SOUP_SOCKET_REMOTE_CONNECTABLE  "remote-connectable"
 #define SOUP_SOCKET_FLAG_NONBLOCKING    "non-blocking"
 #define SOUP_SOCKET_IS_SERVER           "is-server"
 #define SOUP_SOCKET_SSL_CREDENTIALS     "ssl-creds"
@@ -92,9 +93,9 @@ SOUP_AVAILABLE_IN_2_4
 gboolean       soup_socket_is_connected       (SoupSocket         *sock);
 
 SOUP_AVAILABLE_IN_2_4
-SoupAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
+GInetSocketAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
 SOUP_AVAILABLE_IN_2_4
-SoupAddress   *soup_socket_get_remote_address (SoupSocket         *sock);
+GInetSocketAddress   *soup_socket_get_remote_address (SoupSocket         *sock);
 
 typedef enum {
 	SOUP_SOCKET_OK,

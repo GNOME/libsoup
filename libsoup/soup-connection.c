@@ -390,7 +390,7 @@ soup_connection_connect_async (SoupConnection      *conn,
 			       gpointer             user_data)
 {
 	SoupConnectionPrivate *priv;
-	SoupAddress *remote_addr;
+	GInetSocketAddress *remote_addr;
 	GTask *task;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
@@ -401,14 +401,14 @@ soup_connection_connect_async (SoupConnection      *conn,
 
 	/* Set the protocol to ensure correct proxy resolution. */
 	remote_addr =
-		g_object_new (SOUP_TYPE_ADDRESS,
-			      SOUP_ADDRESS_NAME, priv->remote_uri->host,
-			      SOUP_ADDRESS_PORT, priv->remote_uri->port,
-			      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+		g_object_new (G_TYPE_NETWORK_ADDRESS,
+			      "hostname", priv->remote_uri->host,
+			      "port", priv->remote_uri->port,
+			      "scheme", priv->remote_uri->scheme,
 			      NULL);
 
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
+		soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, remote_addr,
 				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
 				 NULL);
 	g_object_unref (remote_addr);
@@ -436,7 +436,7 @@ soup_connection_connect_sync (SoupConnection  *conn,
 			      GError         **error)
 {
 	SoupConnectionPrivate *priv;
-	SoupAddress *remote_addr;
+	GNetworkAddress *remote_addr;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 	priv = soup_connection_get_instance_private (conn);
@@ -446,14 +446,14 @@ soup_connection_connect_sync (SoupConnection  *conn,
 
 	/* Set the protocol to ensure correct proxy resolution. */
 	remote_addr =
-		g_object_new (SOUP_TYPE_ADDRESS,
-			      SOUP_ADDRESS_NAME, priv->remote_uri->host,
-			      SOUP_ADDRESS_PORT, priv->remote_uri->port,
-			      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+		g_object_new (G_TYPE_NETWORK_ADDRESS,
+			      "hostname", priv->remote_uri->host,
+			      "port", priv->remote_uri->port,
+			      "scheme", priv->remote_uri->scheme,
 			      NULL);
 
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
+		soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, remote_addr,
 				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 NULL);

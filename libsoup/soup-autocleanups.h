@@ -26,7 +26,6 @@
 #ifndef __GI_SCANNER__
 #ifdef G_DEFINE_AUTOPTR_CLEANUP_FUNC
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupAddress, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupAuth, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupAuthDomain, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupAuthDomainBasic, g_object_unref)

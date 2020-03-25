@@ -120,9 +120,6 @@ SoupURI         *soup_message_get_uri             (SoupMessage       *msg);
 SOUP_AVAILABLE_IN_2_4
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   SoupURI           *uri);
-SOUP_AVAILABLE_IN_2_26
-SoupAddress     *soup_message_get_address         (SoupMessage       *msg);
-
 SOUP_AVAILABLE_IN_2_30
 SoupURI         *soup_message_get_first_party     (SoupMessage       *msg);
 SOUP_AVAILABLE_IN_2_30

@@ -175,7 +175,6 @@ soup_message_finalize (GObject *object)
 	g_clear_pointer (&priv->uri, soup_uri_free);
 	g_clear_pointer (&priv->first_party, soup_uri_free);
 	g_clear_pointer (&priv->site_for_cookies, soup_uri_free);
-	g_clear_object (&priv->addr);
 
 	g_clear_object (&priv->auth);
 	g_clear_object (&priv->proxy_auth);
@@ -1668,10 +1667,6 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);
-	if (priv->addr) {
-		g_object_unref (priv->addr);
-		priv->addr = NULL;
-	}
 	priv->uri = soup_uri_copy (uri);
 
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_URI);
@@ -1695,33 +1690,6 @@ soup_message_get_uri (SoupMessage *msg)
 	priv = soup_message_get_instance_private (msg);
 
 	return priv->uri;
-}
-
-/**
- * soup_message_get_address:
- * @msg: a #SoupMessage
- *
- * Gets the address @msg's URI points to. After first setting the
- * URI on a message, this will be unresolved, although the message's
- * session will resolve it before sending the message.
- *
- * Return value: (transfer none): the address @msg's URI points to
- *
- * Since: 2.26
- **/
-SoupAddress *
-soup_message_get_address (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-
-	priv = soup_message_get_instance_private (msg);
-	if (!priv->addr) {
-		priv->addr = soup_address_new (priv->uri->host,
-					       priv->uri->port);
-	}
-	return priv->addr;
 }
 
 /**

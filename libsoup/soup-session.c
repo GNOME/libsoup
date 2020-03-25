@@ -67,8 +67,8 @@
  **/
 
 typedef struct {
-	SoupURI     *uri;
-	SoupAddress *addr;
+	SoupURI         *uri;
+	GNetworkAddress *addr;
 
 	GSList      *connections;      /* CONTAINS: SoupConnection */
 	guint        num_conns;
@@ -90,7 +90,7 @@ typedef struct {
 	gboolean tlsdb_use_default;
 
 	guint io_timeout, idle_timeout;
-	SoupAddress *local_addr;
+	GInetSocketAddress *local_addr;
 
 	GResolver *resolver;
 	GProxyResolver *proxy_resolver;
@@ -702,10 +702,10 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 			host->uri->scheme = SOUP_URI_SCHEME_HTTP;
 	}
 
-	host->addr = g_object_new (SOUP_TYPE_ADDRESS,
-				   SOUP_ADDRESS_NAME, host->uri->host,
-				   SOUP_ADDRESS_PORT, host->uri->port,
-				   SOUP_ADDRESS_PROTOCOL, host->uri->scheme,
+	host->addr = g_object_new (G_TYPE_NETWORK_ADDRESS,
+				   "hostname", host->uri->host,
+				   "port", host->uri->port,
+				   "scheme", host->uri->scheme,
 				   NULL);
 	host->keep_alive_src = NULL;
 	host->session = session;
@@ -1128,7 +1128,7 @@ drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *co
 		host->connections = g_slist_remove (host->connections, conn);
 		host->num_conns--;
 
-		/* Free the SoupHost (and its SoupAddress) if there
+		/* Free the SoupHost (and its GNetworkAddress) if there
 		 * has not been any new connection to the host during
 		 * the last HOST_KEEP_ALIVE msecs.
 		 */
@@ -2193,25 +2193,10 @@ soup_session_abort (SoupSession *session)
 }
 
 static void
-prefetch_uri (SoupSession *session, SoupURI *uri,
-	      GCancellable *cancellable,
-	      SoupAddressCallback callback, gpointer user_data)
+on_prefetch_finish (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	SoupSessionPrivate *priv;
-	SoupSessionHost *host;
-	SoupAddress *addr;
-
-	priv = soup_session_get_instance_private (session);
-
-	g_mutex_lock (&priv->conn_lock);
-	host = get_host_for_uri (session, uri);
-	addr = g_object_ref (host->addr);
-	g_mutex_unlock (&priv->conn_lock);
-
-	soup_address_resolve_async (addr,
-				    priv->async_context,
-				    cancellable, callback, user_data);
-	g_object_unref (addr);
+        GList *addresses = g_resolver_lookup_by_name_finish (G_RESOLVER (source), result, NULL);
+        g_clear_pointer (&addresses, g_resolver_free_addresses);
 }
 
 /**
@@ -2219,9 +2204,6 @@ prefetch_uri (SoupSession *session, SoupURI *uri,
 * @session: a #SoupSession
 * @hostname: a hostname to be resolved
 * @cancellable: (allow-none): a #GCancellable object, or %NULL
-* @callback: (scope async) (allow-none): callback to call with the
-*     result, or %NULL
-* @user_data: data for @callback
 *
 * Tells @session that an URI from the given @hostname may be requested
 * shortly, and so the session can try to prepare by resolving the
@@ -2229,29 +2211,21 @@ prefetch_uri (SoupSession *session, SoupURI *uri,
 * is actually requested.
 *
 * If @cancellable is non-%NULL, it can be used to cancel the
-* resolution. @callback will still be invoked in this case, with a
-* status of %SOUP_STATUS_CANCELLED.
+* resolution.
 *
 * Since: 2.38
 **/
 void
-soup_session_prefetch_dns (SoupSession *session, const char *hostname,
-			   GCancellable *cancellable,
-			   SoupAddressCallback callback, gpointer user_data)
+soup_session_prefetch_dns (SoupSession *session,
+                           const char *hostname,
+			   GCancellable *cancellable)
 {
-	SoupURI *uri;
+        g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (hostname);
 
-	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (hostname != NULL);
-
-	/* FIXME: Prefetching should work for both HTTP and HTTPS */
-	uri = soup_uri_new (NULL);
-	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTP);
-	soup_uri_set_host (uri, hostname);
-	soup_uri_set_path (uri, "");
-
-	prefetch_uri (session, uri, cancellable, callback, user_data);
-	soup_uri_free (uri);
+        GResolver *resolver = g_resolver_get_default ();
+        g_resolver_lookup_by_name_async (resolver, hostname, cancellable, on_prefetch_finish, NULL);
+        g_object_unref (resolver);
 }
 
 /**
@@ -3224,7 +3198,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:local-address:
 	 *
-	 * Sets the #SoupAddress to use for the client side of
+	 * Sets the #GInetSocketAddress to use for the client side of
 	 * the connection.
 	 *
 	 * Use this property if you want for instance to bind the
@@ -3237,7 +3211,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 		g_param_spec_object (SOUP_SESSION_LOCAL_ADDRESS,
 				     "Local address",
 				     "Address of local end of socket",
-				     SOUP_TYPE_ADDRESS,
+				     G_TYPE_INET_SOCKET_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS));
 

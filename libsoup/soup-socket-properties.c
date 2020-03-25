@@ -11,13 +11,13 @@
 #include "soup.h"
 
 SoupSocketProperties *
-soup_socket_properties_new (GProxyResolver  *proxy_resolver,
-			    SoupAddress     *local_addr,
-			    GTlsDatabase    *tlsdb,
-			    GTlsInteraction *tls_interaction,
-			    gboolean         ssl_strict,
-			    guint            io_timeout,
-			    guint            idle_timeout)
+soup_socket_properties_new (GProxyResolver     *proxy_resolver,
+			    GInetSocketAddress *local_addr,
+			    GTlsDatabase       *tlsdb,
+			    GTlsInteraction    *tls_interaction,
+			    gboolean            ssl_strict,
+			    guint               io_timeout,
+			    guint               idle_timeout)
 {
 	SoupSocketProperties *props;
 

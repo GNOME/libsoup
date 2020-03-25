@@ -7,7 +7,6 @@
 #define __SOUP_SESSION_H__ 1
 
 #include "soup-types.h"
-#include "soup-address.h"
 #include "soup-message.h"
 #include "websocket/soup-websocket-connection.h"
 
@@ -121,9 +120,7 @@ GInputStream   *soup_session_send             (SoupSession           *session,
 SOUP_AVAILABLE_IN_2_38
 void            soup_session_prefetch_dns     (SoupSession           *session,
 					       const char            *hostname,
-					       GCancellable          *cancellable,
-					       SoupAddressCallback    callback,
-					       gpointer               user_data);
+					       GCancellable          *cancellable);
 
 SOUP_AVAILABLE_IN_2_38
 gboolean        soup_session_would_redirect   (SoupSession           *session,

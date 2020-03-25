@@ -12,7 +12,6 @@ extern "C" {
 
 #define __SOUP_H_INSIDE__
 
-#include "soup-address.h"
 #include "auth/soup-auth.h"
 #include "auth/soup-auth-domain.h"
 #include "auth/soup-auth-domain-basic.h"

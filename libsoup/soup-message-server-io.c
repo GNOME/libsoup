@@ -110,15 +110,18 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		g_free (url);
 	} else if (soup_message_get_http_version (msg) == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
-		SoupAddress *addr = soup_socket_get_local_address (sock);
+		GInetSocketAddress *addr = soup_socket_get_local_address (sock);
+                GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
+                char *local_ip = g_inet_address_to_string (inet_addr);
 
 		uri = soup_uri_new (NULL);
 		soup_uri_set_scheme (uri, soup_socket_is_ssl (sock) ?
 				     SOUP_URI_SCHEME_HTTPS :
 				     SOUP_URI_SCHEME_HTTP);
-		soup_uri_set_host (uri, soup_address_get_physical (addr));
-		soup_uri_set_port (uri, soup_address_get_port (addr));
+		soup_uri_set_host (uri, local_ip);
+		soup_uri_set_port (uri, g_inet_socket_address_get_port (addr));
 		soup_uri_set_path (uri, req_path);
+		g_free (local_ip);
 	} else
 		uri = NULL;
 

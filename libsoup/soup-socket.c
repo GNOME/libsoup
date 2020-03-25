@@ -48,7 +48,8 @@ enum {
 	PROP_GSOCKET,
 	PROP_IOSTREAM,
 	PROP_LOCAL_ADDRESS,
-	PROP_REMOTE_ADDRESS,
+        PROP_REMOTE_ADDRESS,
+	PROP_REMOTE_CONNECTABLE,
 	PROP_NON_BLOCKING,
 	PROP_IPV6_ONLY,
 	PROP_IS_SERVER,
@@ -65,7 +66,8 @@ enum {
 };
 
 typedef struct {
-	SoupAddress *local_addr, *remote_addr;
+	GInetSocketAddress *local_addr, *remote_addr;
+        GSocketConnectable *remote_connectable;
 	GIOStream *conn, *iostream;
 	GSocket *gsock;
 	GInputStream *istream;
@@ -87,7 +89,7 @@ typedef struct {
 	GSource        *watch_src;
 	GSource        *read_src, *write_src;
 
-	GMutex iolock, addrlock;
+	GMutex iolock;
 	guint timeout;
 
 	GCancellable *connect_cancel;
@@ -114,7 +116,6 @@ soup_socket_init (SoupSocket *sock)
 
 	priv->non_blocking = TRUE;
 	priv->fd = -1;
-	g_mutex_init (&priv->addrlock);
 	g_mutex_init (&priv->iolock);
 
         priv->async_context = g_main_context_ref_thread_default ();
@@ -225,6 +226,7 @@ soup_socket_finalize (GObject *object)
 
 	g_clear_object (&priv->local_addr);
 	g_clear_object (&priv->remote_addr);
+        g_clear_object (&priv->remote_connectable);
 
 	g_clear_object (&priv->tls_interaction);
 	g_clear_object (&priv->proxy_resolver);
@@ -237,7 +239,6 @@ soup_socket_finalize (GObject *object)
 	}
 	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
-	g_mutex_clear (&priv->addrlock);
 	g_mutex_clear (&priv->iolock);
 
 	G_OBJECT_CLASS (soup_socket_parent_class)->finalize (object);
@@ -288,8 +289,11 @@ soup_socket_set_property (GObject *object, guint prop_id,
 	case PROP_LOCAL_ADDRESS:
 		priv->local_addr = g_value_dup_object (value);
 		break;
-	case PROP_REMOTE_ADDRESS:
-		priv->remote_addr = g_value_dup_object (value);
+        case PROP_REMOTE_ADDRESS:
+                priv->remote_addr = g_value_dup_object (value);
+                break;
+	case PROP_REMOTE_CONNECTABLE:
+		priv->remote_connectable = g_value_dup_object (value);
 		break;
 	case PROP_NON_BLOCKING:
 		priv->non_blocking = g_value_get_boolean (value);
@@ -358,10 +362,13 @@ soup_socket_get_property (GObject *object, guint prop_id,
 		g_value_set_int (value, priv->fd);
 		break;
 	case PROP_LOCAL_ADDRESS:
-		g_value_set_object (value, soup_socket_get_local_address (SOUP_SOCKET (object)));
+		g_value_set_object (value, soup_socket_get_local_address (sock));
 		break;
-	case PROP_REMOTE_ADDRESS:
-		g_value_set_object (value, soup_socket_get_remote_address (SOUP_SOCKET (object)));
+        case PROP_REMOTE_ADDRESS:
+                g_value_set_object (value, soup_socket_get_remote_address (sock));
+                break;
+	case PROP_REMOTE_CONNECTABLE:
+		g_value_set_object (value, priv->remote_connectable);
 		break;
 	case PROP_NON_BLOCKING:
 		g_value_set_boolean (value, priv->non_blocking);
@@ -543,7 +550,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_param_spec_object (SOUP_SOCKET_LOCAL_ADDRESS,
 				     "Local address",
 				     "Address of local end of socket",
-				     SOUP_TYPE_ADDRESS,
+				     G_TYPE_INET_SOCKET_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS));
 	/**
@@ -557,7 +564,22 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_param_spec_object (SOUP_SOCKET_REMOTE_ADDRESS,
 				     "Remote address",
 				     "Address of remote end of socket",
-				     SOUP_TYPE_ADDRESS,
+				     G_TYPE_SOCKET_ADDRESS,
+				     G_PARAM_READABLE |
+				     G_PARAM_STATIC_STRINGS));
+
+	/**
+	 * SOUP_SOCKET_REMOTE_CONNECTABLE:
+	 *
+	 * Alias for the #SoupSocket:remote-connectable property. (Address
+	 * to connect to.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_REMOTE_CONNECTABLE,
+		g_param_spec_object (SOUP_SOCKET_REMOTE_CONNECTABLE,
+				     "Remote address",
+				     "Address to connect to",
+				     G_TYPE_SOCKET_CONNECTABLE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS));
 	/**
@@ -797,6 +819,22 @@ re_emit_socket_client_event (GSocketClient       *client,
 			     gpointer             user_data)
 {
 	SoupSocket *sock = user_data;
+	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
+
+        switch (event) {
+        case G_SOCKET_CLIENT_CONNECTING: {
+                GError *error = NULL;
+                g_clear_object (&priv->remote_addr);
+                priv->remote_addr = G_INET_SOCKET_ADDRESS (g_socket_connection_get_remote_address (G_SOCKET_CONNECTION (connection), &error));
+                if (error) {
+                        g_warning ("Failed to set remote address: %s", error->message);
+                        g_error_free (error);
+                }
+                break;
+        }
+        default:
+                break;
+        }
 
 	soup_socket_event (sock, event, connection);
 }
@@ -848,14 +886,8 @@ new_socket_client (SoupSocket *sock)
 		g_socket_client_set_enable_proxy (client, FALSE);
 	if (priv->timeout)
 		g_socket_client_set_timeout (client, priv->timeout);
-
-	if (priv->local_addr) {
-		GSocketAddress *addr;
-
-		addr = soup_address_get_gsockaddr (priv->local_addr);
-		g_socket_client_set_local_address (client, addr);
-		g_object_unref (addr);
-	}
+	if (priv->local_addr)
+		g_socket_client_set_local_address (client, G_SOCKET_ADDRESS (priv->local_addr));
 
 	return client;
 }
@@ -899,14 +931,14 @@ soup_socket_connect_async_internal (SoupSocket          *sock,
 	priv = soup_socket_get_instance_private (sock);
 	g_return_if_fail (!priv->is_server);
 	g_return_if_fail (priv->gsock == NULL);
-	g_return_if_fail (priv->remote_addr != NULL);
+	g_return_if_fail (priv->remote_connectable != NULL);
 
 	priv->connect_cancel = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 	task = g_task_new (sock, priv->connect_cancel, callback, user_data);
 
 	client = new_socket_client (sock);
 	g_socket_client_connect_async (client,
-				       G_SOCKET_CONNECTABLE (priv->remote_addr),
+				       G_SOCKET_CONNECTABLE (priv->remote_connectable),
 				       priv->connect_cancel,
 				       async_connected, task);
 	g_object_unref (client);
@@ -973,7 +1005,7 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 	priv = soup_socket_get_instance_private (sock);
 	g_return_if_fail (!priv->is_server);
 	g_return_if_fail (priv->gsock == NULL);
-	g_return_if_fail (priv->remote_addr != NULL);
+	g_return_if_fail (priv->remote_connectable != NULL);
 
 	sacd = g_slice_new0 (SoupSocketAsyncConnectData);
 	sacd->sock = g_object_ref (sock);
@@ -998,13 +1030,13 @@ soup_socket_connect_sync_internal (SoupSocket    *sock,
 	priv = soup_socket_get_instance_private (sock);
 	g_return_val_if_fail (!priv->is_server, SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (priv->gsock == NULL, SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (priv->remote_addr != NULL, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (priv->remote_connectable != NULL, SOUP_STATUS_MALFORMED);
 
 	priv->connect_cancel = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 
 	client = new_socket_client (sock);
 	conn = g_socket_client_connect (client,
-					G_SOCKET_CONNECTABLE (priv->remote_addr),
+					G_SOCKET_CONNECTABLE (priv->remote_connectable),
 					priv->connect_cancel, error);
 	g_object_unref (client);
 
@@ -1034,7 +1066,7 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 	priv = soup_socket_get_instance_private (sock);
 	g_return_val_if_fail (!priv->is_server, SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (priv->gsock == NULL, SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (priv->remote_addr != NULL, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (priv->remote_connectable != NULL, SOUP_STATUS_MALFORMED);
 
 	if (soup_socket_connect_sync_internal (sock, cancellable, &error))
 		return SOUP_STATUS_OK;
@@ -1086,8 +1118,7 @@ soup_socket_steal_gsocket (SoupSocket *sock)
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 	priv = soup_socket_get_instance_private (sock);
 
-	gsock = priv->gsock;
-	priv->gsock = NULL;
+	gsock = g_steal_pointer (&priv->gsock);
 	g_clear_object (&priv->conn);
 	g_clear_object (&priv->iostream);
 
@@ -1216,7 +1247,6 @@ soup_socket_listen_full (SoupSocket *sock,
 
 {
 	SoupSocketPrivate *priv;
-	GSocketAddress *addr;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
 	priv = soup_socket_get_instance_private (sock);
@@ -1229,10 +1259,9 @@ soup_socket_listen_full (SoupSocket *sock,
 	 * have to make a new addr by calling getsockname(), which
 	 * will have the right port number.
 	 */
-	addr = soup_address_get_gsockaddr (priv->local_addr);
-	g_return_val_if_fail (addr != NULL, FALSE);
+	g_return_val_if_fail (priv->local_addr != NULL, FALSE);
 
-	priv->gsock = g_socket_new (g_socket_address_get_family (addr),
+	priv->gsock = g_socket_new (g_socket_address_get_family (G_SOCKET_ADDRESS (priv->local_addr)),
 				    G_SOCKET_TYPE_STREAM,
 				    G_SOCKET_PROTOCOL_DEFAULT,
 				    error);
@@ -1252,24 +1281,20 @@ soup_socket_listen_full (SoupSocket *sock,
 #endif
 
 	/* Bind */
-	if (!g_socket_bind (priv->gsock, addr, TRUE, error))
+	if (!g_socket_bind (priv->gsock, G_SOCKET_ADDRESS (priv->local_addr), TRUE, error))
 		goto cant_listen;
 	/* Force local_addr to be re-resolved now */
-	g_object_unref (priv->local_addr);
-	priv->local_addr = NULL;
+        g_clear_object (&priv->local_addr);
 
 	/* Listen */
 	if (!g_socket_listen (priv->gsock, error))
 		goto cant_listen;
 	finish_listener_setup (sock);
-
-	g_object_unref (addr);
 	return TRUE;
 
  cant_listen:
 	if (priv->conn)
 		disconnect_internal (sock, TRUE);
-	g_object_unref (addr);
 
 	return FALSE;
 }
@@ -1387,9 +1412,20 @@ gboolean
 soup_socket_start_ssl (SoupSocket *sock, GCancellable *cancellable)
 {
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
+        char *hostname = NULL;
+        gboolean ret;
 
-	return soup_socket_setup_ssl (sock, soup_address_get_name (priv->remote_addr),
-				      cancellable, NULL);
+        if (G_IS_NETWORK_ADDRESS (priv->remote_connectable))
+                hostname = g_strdup (g_network_address_get_hostname (G_NETWORK_ADDRESS (priv->remote_connectable)));
+        else if (G_IS_INET_SOCKET_ADDRESS (priv->remote_connectable)) {
+                GInetAddress *addr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (priv->remote_connectable));
+                hostname = g_inet_address_to_string (addr);
+        } else
+                g_assert_not_reached ();
+
+	ret = soup_socket_setup_ssl (sock, hostname, cancellable, NULL);
+        g_free (hostname);
+        return ret;
 }
 
 /**
@@ -1580,14 +1616,14 @@ soup_socket_is_connected (SoupSocket *sock)
  * soup_socket_get_local_address:
  * @sock: a #SoupSocket
  *
- * Returns the #SoupAddress corresponding to the local end of @sock.
+ * Returns the #GInetSocketAddress corresponding to the local end of @sock.
  *
  * Calling this method on an unconnected socket is considered to be
  * an error, and produces undefined results.
  *
- * Return value: (transfer none): the #SoupAddress
+ * Return value: (transfer none): the #GInetSocketAddress
  **/
-SoupAddress *
+GInetSocketAddress *
 soup_socket_get_local_address (SoupSocket *sock)
 {
 	SoupSocketPrivate *priv;
@@ -1595,31 +1631,21 @@ soup_socket_get_local_address (SoupSocket *sock)
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 	priv = soup_socket_get_instance_private (sock);
 
-	g_mutex_lock (&priv->addrlock);
 	if (!priv->local_addr) {
-		GSocketAddress *addr;
-		struct sockaddr_storage sa;
-		gssize sa_len;
 		GError *error = NULL;
 
 		if (priv->gsock == NULL) {
 			g_warning ("%s: socket not connected", G_STRLOC);
-			goto unlock;
+			return NULL;
 		}
 
-		addr = g_socket_get_local_address (priv->gsock, &error);
-		if (addr == NULL) {
+		priv->local_addr = G_INET_SOCKET_ADDRESS (g_socket_get_local_address (priv->gsock, &error));
+		if (priv->local_addr == NULL) {
 			g_warning ("%s: %s", G_STRLOC, error->message);
 			g_error_free (error);
-			goto unlock;
+                        return NULL;
 		}
-		sa_len = g_socket_address_get_native_size (addr);
-		g_socket_address_to_native (addr, &sa, sa_len, NULL);
-		priv->local_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
-		g_object_unref (addr);
 	}
-unlock:
-	g_mutex_unlock (&priv->addrlock);
 
 	return priv->local_addr;
 }
@@ -1628,14 +1654,14 @@ unlock:
  * soup_socket_get_remote_address:
  * @sock: a #SoupSocket
  *
- * Returns the #SoupAddress corresponding to the remote end of @sock.
+ * Returns the #GInetSocketAddress corresponding to the remote end of @sock.
  *
  * Calling this method on an unconnected socket is considered to be
  * an error, and produces undefined results.
  *
- * Return value: (transfer none): the #SoupAddress
+ * Return value: (transfer none): the #GInetSocketAddress
  **/
-SoupAddress *
+GInetSocketAddress *
 soup_socket_get_remote_address (SoupSocket *sock)
 {
 	SoupSocketPrivate *priv;
@@ -1643,33 +1669,29 @@ soup_socket_get_remote_address (SoupSocket *sock)
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 	priv = soup_socket_get_instance_private (sock);
 
-	g_mutex_lock (&priv->addrlock);
-	if (!priv->remote_addr) {
-		GSocketAddress *addr;
-		struct sockaddr_storage sa;
-		gssize sa_len;
-		GError *error = NULL;
+        if (!priv->remote_addr) {
+                GError *error = NULL;
 
-		if (priv->gsock == NULL) {
-			g_warning ("%s: socket not connected", G_STRLOC);
-			goto unlock;
-		}
+                // We may be conencting to a socket address rather than a network address
+                if (G_IS_INET_SOCKET_ADDRESS (priv->remote_connectable)) {
+                        priv->remote_addr = g_object_ref (G_INET_SOCKET_ADDRESS (priv->remote_connectable));
+                        return priv->remote_addr;
+                }
 
-		addr = g_socket_get_remote_address (priv->gsock, &error);
-		if (addr == NULL) {
-			g_warning ("%s: %s", G_STRLOC, error->message);
-			g_error_free (error);
-			goto unlock;
-		}
-		sa_len = g_socket_address_get_native_size (addr);
-		g_socket_address_to_native (addr, &sa, sa_len, NULL);
-		priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
-		g_object_unref (addr);
-	}
-unlock:
-	g_mutex_unlock (&priv->addrlock);
+                if (priv->gsock == NULL) {
+		        g_warning ("%s: socket not connected", G_STRLOC);
+                        return NULL;
+                }
 
-	return priv->remote_addr;
+                priv->remote_addr = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (priv->gsock, &error));
+                if (priv->remote_addr == NULL) {
+                        g_warning ("%s: %s", G_STRLOC, error->message);
+                        g_error_free (error);
+                        return NULL;
+                }
+        }
+
+        return priv->remote_addr;
 }
 
 SoupURI *
