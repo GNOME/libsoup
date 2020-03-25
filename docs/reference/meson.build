@@ -1,6 +1,5 @@
 ignore_headers = [
   'soup.h',
-  'soup-autocleanups.h',
   'soup-enum-types.h',
   'soup-message-private.h',
   'soup-session-private.h',

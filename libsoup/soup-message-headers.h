@@ -3,8 +3,7 @@
  * Copyright (C) 2005 Novell, Inc.
  */
 
-#ifndef __SOUP_MESSAGE_HEADERS_H__
-#define __SOUP_MESSAGE_HEADERS_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
@@ -170,6 +169,6 @@ void     soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs
 						       const char          *disposition,
 						       GHashTable          *params);
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageHeaders, soup_message_headers_free)
 
-#endif /* __SOUP_MESSAGE_HEADERS_H__ */
+G_END_DECLS

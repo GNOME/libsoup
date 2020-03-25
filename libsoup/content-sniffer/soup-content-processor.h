@@ -3,18 +3,14 @@
  * Copyright (C) 2012 Igalia, S.L.
  */
 
-
-#ifndef __SOUP_CONTENT_PROCESSOR_H__
-#define __SOUP_CONTENT_PROCESSOR_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_CONTENT_PROCESSOR                 (soup_content_processor_get_type ())
-#define SOUP_CONTENT_PROCESSOR(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_CONTENT_PROCESSOR, SoupContentProcessor))
-#define SOUP_IS_CONTENT_PROCESSOR(obj)              (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_CONTENT_PROCESSOR))
-#define SOUP_CONTENT_PROCESSOR_GET_INTERFACE(inst)  (G_TYPE_INSTANCE_GET_INTERFACE ((inst), SOUP_TYPE_CONTENT_PROCESSOR, SoupContentProcessorInterface))
+#define SOUP_TYPE_CONTENT_PROCESSOR (soup_content_processor_get_type ())
+G_DECLARE_INTERFACE (SoupContentProcessor, soup_content_processor, SOUP, CONTENT_PROCESSOR, GObject)
 
 typedef enum {
 	SOUP_STAGE_INVALID,
@@ -25,9 +21,6 @@ typedef enum {
 	SOUP_STAGE_CONTENT_ENCODING,  /* SoupContentDecoder works here */
 	SOUP_STAGE_BODY_DATA          /* Actual body data */
 } SoupProcessingStage;
-
-typedef struct _SoupContentProcessor             SoupContentProcessor;
-typedef struct _SoupContentProcessorInterface    SoupContentProcessorInterface;
 
 struct _SoupContentProcessorInterface {
 	GTypeInterface parent;
@@ -41,8 +34,6 @@ struct _SoupContentProcessorInterface {
 						       GError              **error);
 };
 
-GType soup_content_processor_get_type (void);
-
 GInputStream       *soup_content_processor_wrap_input           (SoupContentProcessor *processor,
 								 GInputStream         *base_stream,
 								 SoupMessage          *msg,
@@ -51,5 +42,3 @@ GInputStream       *soup_content_processor_wrap_input           (SoupContentProc
 SoupProcessingStage soup_content_processor_get_processing_stage (SoupContentProcessor *processor);
 
 G_END_DECLS
-
-#endif /* __SOUP_CONTENT_PROCESSOR_H__ */

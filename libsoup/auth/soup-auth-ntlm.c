@@ -69,6 +69,10 @@ typedef enum {
 	SOUP_NTLM_PASSWORD_REJECTED
 } SoupNTLMPasswordState;
 
+struct _SoupAuthNTLM {
+	SoupConnectionAuth parent;
+};
+
 typedef struct {
 	char *username, *domain;
 	guchar nt_hash[21], lm_hash[21];

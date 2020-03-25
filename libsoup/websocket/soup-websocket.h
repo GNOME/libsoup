@@ -18,8 +18,7 @@
  * along with this library; If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __SOUP_WEBSOCKET_H__
-#define __SOUP_WEBSOCKET_H__
+#pragma once
 
 #include "soup-types.h"
 
@@ -113,5 +112,3 @@ soup_websocket_server_process_handshake_with_extensions (SoupMessage  *msg,
                                                          GList       **accepted_extensions);
 
 G_END_DECLS
-
-#endif /* __SOUP_WEBSOCKET_H__ */

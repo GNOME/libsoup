@@ -18,18 +18,18 @@
 #include "soup-connection.h"
 #include "soup-message-private.h"
 
-struct SoupConnectionAuthPrivate {
+typedef struct {
 	GHashTable *conns;
-};
+} SoupConnectionAuthPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupConnectionAuth, soup_connection_auth, SOUP_TYPE_AUTH)
 
 static void
 soup_connection_auth_init (SoupConnectionAuth *auth)
 {
-	auth->priv = soup_connection_auth_get_instance_private (auth);
+	SoupConnectionAuthPrivate *priv = soup_connection_auth_get_instance_private (auth);
 
-	auth->priv->conns = g_hash_table_new (NULL, NULL);
+	priv->conns = g_hash_table_new (NULL, NULL);
 }
 
 static void connection_disconnected (SoupConnection *conn, gpointer user_data);
@@ -47,10 +47,11 @@ static void
 connection_disconnected (SoupConnection *conn, gpointer user_data)
 {
 	SoupConnectionAuth *auth = user_data;
+        SoupConnectionAuthPrivate *priv = soup_connection_auth_get_instance_private (auth);
 	gpointer state;
 
-	state = g_hash_table_lookup (auth->priv->conns, conn);
-	g_hash_table_remove (auth->priv->conns, conn);
+	state = g_hash_table_lookup (priv->conns, conn);
+	g_hash_table_remove (priv->conns, conn);
 	soup_connection_auth_free_connection_state (auth, conn, state);
 }
 
@@ -58,15 +59,16 @@ static void
 soup_connection_auth_finalize (GObject *object)
 {
 	SoupConnectionAuth *auth = SOUP_CONNECTION_AUTH (object);
+        SoupConnectionAuthPrivate *priv = soup_connection_auth_get_instance_private (auth);
 	GHashTableIter iter;
 	gpointer conn, state;
 
-	g_hash_table_iter_init (&iter, auth->priv->conns);
+	g_hash_table_iter_init (&iter, priv->conns);
 	while (g_hash_table_iter_next (&iter, &conn, &state)) {
 		soup_connection_auth_free_connection_state (auth, conn, state);
 		g_hash_table_iter_remove (&iter);
 	}
-	g_hash_table_destroy (auth->priv->conns);
+	g_hash_table_destroy (priv->conns);
 
 	G_OBJECT_CLASS (soup_connection_auth_parent_class)->finalize (object);
 }
@@ -90,6 +92,7 @@ gpointer
 soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,
 						       SoupMessage *msg)
 {
+        SoupConnectionAuthPrivate *priv = soup_connection_auth_get_instance_private (auth);
 	SoupConnection *conn;
 	gpointer state;
 
@@ -97,7 +100,7 @@ soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	conn = soup_message_get_connection (msg);
-	state = g_hash_table_lookup (auth->priv->conns, conn);
+	state = g_hash_table_lookup (priv->conns, conn);
 	if (state)
 		return state;
 
@@ -107,7 +110,7 @@ soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,
 				  G_CALLBACK (connection_disconnected), auth);
 	}
 
-	g_hash_table_insert (auth->priv->conns, conn, state);
+	g_hash_table_insert (priv->conns, conn, state);
 	return state;
 }
 

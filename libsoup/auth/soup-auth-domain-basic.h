@@ -3,40 +3,18 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#ifndef __SOUP_AUTH_DOMAIN_BASIC_H__
-#define __SOUP_AUTH_DOMAIN_BASIC_H__ 1
+#pragma once
 
 #include "soup-auth-domain.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_AUTH_DOMAIN_BASIC            (soup_auth_domain_basic_get_type ())
-#define SOUP_AUTH_DOMAIN_BASIC(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH_DOMAIN_BASIC, SoupAuthDomainBasic))
-#define SOUP_AUTH_DOMAIN_BASIC_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_DOMAIN_BASIC, SoupAuthDomainBasicClass))
-#define SOUP_IS_AUTH_DOMAIN_BASIC(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_AUTH_DOMAIN_BASIC))
-#define SOUP_IS_AUTH_DOMAIN_BASIC_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH_DOMAIN_BASIC))
-#define SOUP_AUTH_DOMAIN_BASIC_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH_DOMAIN_BASIC, SoupAuthDomainBasicClass))
-
-typedef struct {
-	SoupAuthDomain parent;
-
-} SoupAuthDomainBasic;
-
-typedef struct {
-	SoupAuthDomainClass parent_class;
-
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupAuthDomainBasicClass;
+#define SOUP_TYPE_AUTH_DOMAIN_BASIC (soup_auth_domain_basic_get_type ())
+SOUP_AVAILABLE_IN_2_4
+G_DECLARE_FINAL_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP, AUTH_DOMAIN_BASIC, SoupAuthDomain)
 
 #define SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK "auth-callback"
 #define SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA     "auth-data"
-
-SOUP_AVAILABLE_IN_2_4
-GType soup_auth_domain_basic_get_type (void);
 
 SOUP_AVAILABLE_IN_2_4
 SoupAuthDomain *soup_auth_domain_basic_new (const char *optname1,
@@ -55,5 +33,3 @@ void      soup_auth_domain_basic_set_auth_callback  (SoupAuthDomain *domain,
 						     GDestroyNotify  dnotify);
 
 G_END_DECLS
-
-#endif /* __SOUP_AUTH_DOMAIN_BASIC_H__ */

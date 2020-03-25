@@ -4,8 +4,7 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#ifndef __SOUP_DATE_H__
-#define __SOUP_DATE_H__ 1
+#pragma once
 
 #include <time.h>
 #include "soup-types.h"
@@ -84,6 +83,6 @@ SoupDate *soup_date_copy            (SoupDate       *date);
 SOUP_AVAILABLE_IN_2_24
 void      soup_date_free            (SoupDate       *date);
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupDate, soup_date_free)
 
-#endif /* __SOUP_DATE_H__ */
+G_END_DECLS

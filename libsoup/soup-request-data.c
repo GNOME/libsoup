@@ -38,26 +38,29 @@
  * #SoupRequestData implements #SoupRequest for "data" URIs.
  */
 
+struct _SoupRequestData {
+	SoupRequest parent;
+};
 
-struct _SoupRequestDataPrivate {
+typedef struct {
 	gsize content_length;
 	char *content_type;
-};
+} SoupRequestDataPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupRequestData, soup_request_data, SOUP_TYPE_REQUEST)
 
 static void
 soup_request_data_init (SoupRequestData *data)
 {
-	data->priv = soup_request_data_get_instance_private (data);
 }
 
 static void
 soup_request_data_finalize (GObject *object)
 {
 	SoupRequestData *data = SOUP_REQUEST_DATA (object);
+        SoupRequestDataPrivate *priv = soup_request_data_get_instance_private (data);
 
-	g_free (data->priv->content_type);
+	g_free (priv->content_type);
 
 	G_OBJECT_CLASS (soup_request_data_parent_class)->finalize (object);
 }
@@ -79,6 +82,7 @@ soup_request_data_send (SoupRequest   *request,
 			GError       **error)
 {
 	SoupRequestData *data = SOUP_REQUEST_DATA (request);
+        SoupRequestDataPrivate *priv = soup_request_data_get_instance_private (data);
 	SoupURI *uri = soup_request_get_uri (request);
 	GInputStream *memstream;
 	const char *comma, *start, *end;
@@ -97,7 +101,7 @@ soup_request_data_send (SoupRequest   *request,
 			end = comma;
 
 		if (end != start)
-			data->priv->content_type = soup_uri_decoded_copy (start, end - start, NULL);
+			priv->content_type = soup_uri_decoded_copy (start, end - start, NULL);
 	}
 
 	memstream = g_memory_input_stream_new ();
@@ -111,12 +115,12 @@ soup_request_data_send (SoupRequest   *request,
 								&decoded_length);
 
 		if (base64)
-			buf = g_base64_decode_inplace ((gchar*) buf, &data->priv->content_length);
+			buf = g_base64_decode_inplace ((gchar*) buf, &priv->content_length);
 		else
-			data->priv->content_length = decoded_length;
+			priv->content_length = decoded_length;
 
 		g_memory_input_stream_add_data (G_MEMORY_INPUT_STREAM (memstream),
-						buf, data->priv->content_length,
+						buf, priv->content_length,
 						g_free);
 	}
 	g_free (uristr);
@@ -128,17 +132,19 @@ static goffset
 soup_request_data_get_content_length (SoupRequest *request)
 {
 	SoupRequestData *data = SOUP_REQUEST_DATA (request);
+        SoupRequestDataPrivate *priv = soup_request_data_get_instance_private (data);
 
-	return data->priv->content_length;
+	return priv->content_length;
 }
 
 static const char *
 soup_request_data_get_content_type (SoupRequest *request)
 {
 	SoupRequestData *data = SOUP_REQUEST_DATA (request);
+        SoupRequestDataPrivate *priv = soup_request_data_get_instance_private (data);
 
-	if (data->priv->content_type)
-		return data->priv->content_type;
+	if (priv->content_type)
+		return priv->content_type;
 	else
 		return "text/plain;charset=US-ASCII";
 }

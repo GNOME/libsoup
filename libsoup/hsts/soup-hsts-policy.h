@@ -4,8 +4,7 @@
  * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
-#ifndef __SOUP_HSTS_POLICY_H__
-#define __SOUP_HSTS_POLICY_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
@@ -56,6 +55,6 @@ gboolean	 soup_hsts_policy_is_session_policy	(SoupHSTSPolicy *policy);
 SOUP_AVAILABLE_IN_2_68
 void		 soup_hsts_policy_free			(SoupHSTSPolicy *policy);
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupHSTSPolicy, soup_hsts_policy_free)
 
-#endif /* __SOUP_HSTS_POLICY_H__ */
+G_END_DECLS

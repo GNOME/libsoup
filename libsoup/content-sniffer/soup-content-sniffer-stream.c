@@ -21,7 +21,11 @@ enum {
 	PROP_MESSAGE,
 };
 
-struct _SoupContentSnifferStreamPrivate {
+struct _SoupContentSnifferStream {
+	GFilterInputStream parent_instance;
+};
+
+typedef struct {
 	SoupContentSniffer *sniffer;
 	SoupMessage *msg;
 
@@ -32,7 +36,7 @@ struct _SoupContentSnifferStreamPrivate {
 
 	char *sniffed_type;
 	GHashTable *sniffed_params;
-};
+} SoupContentSnifferStreamPrivate;
 
 static void soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
@@ -45,13 +49,14 @@ static void
 soup_content_sniffer_stream_finalize (GObject *object)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (object);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 
-	g_clear_object (&sniffer->priv->sniffer);
-	g_clear_object (&sniffer->priv->msg);
-	g_free (sniffer->priv->buffer);
-	g_clear_error (&sniffer->priv->error);
-	g_free (sniffer->priv->sniffed_type);
-	g_clear_pointer (&sniffer->priv->sniffed_params, g_hash_table_unref);
+	g_clear_object (&priv->sniffer);
+	g_clear_object (&priv->msg);
+	g_free (priv->buffer);
+	g_clear_error (&priv->error);
+	g_free (priv->sniffed_type);
+	g_clear_pointer (&priv->sniffed_params, g_hash_table_unref);
 
 	G_OBJECT_CLASS (soup_content_sniffer_stream_parent_class)->finalize (object);
 }
@@ -61,16 +66,17 @@ soup_content_sniffer_stream_set_property (GObject *object, guint prop_id,
 					  const GValue *value, GParamSpec *pspec)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (object);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 
 	switch (prop_id) {
 	case PROP_SNIFFER:
-		sniffer->priv->sniffer = g_value_dup_object (value);
+		priv->sniffer = g_value_dup_object (value);
 		/* FIXME: supposed to wait until after got-headers for this */
-		sniffer->priv->buffer_size = soup_content_sniffer_get_buffer_size (sniffer->priv->sniffer);
-		sniffer->priv->buffer = g_malloc (sniffer->priv->buffer_size);
+		priv->buffer_size = soup_content_sniffer_get_buffer_size (priv->sniffer);
+		priv->buffer = g_malloc (priv->buffer_size);
 		break;
 	case PROP_MESSAGE:
-		sniffer->priv->msg = g_value_dup_object (value);
+		priv->msg = g_value_dup_object (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -83,13 +89,14 @@ soup_content_sniffer_stream_get_property (GObject *object, guint prop_id,
 					  GValue *value, GParamSpec *pspec)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (object);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 
 	switch (prop_id) {
 	case PROP_SNIFFER:
-		g_value_set_object (value, sniffer->priv->sniffer);
+		g_value_set_object (value, priv->sniffer);
 		break;
 	case PROP_MESSAGE:
-		g_value_set_object (value, sniffer->priv->msg);
+		g_value_set_object (value, priv->msg);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -101,7 +108,8 @@ static gssize
 read_and_sniff (GInputStream *stream, gboolean blocking,
 		GCancellable *cancellable, GError **error)
 {
-	SoupContentSnifferStreamPrivate *priv = SOUP_CONTENT_SNIFFER_STREAM (stream)->priv;
+	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (stream);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 	gssize nread;
 	GError *my_error = NULL;
 	SoupBuffer *buf;
@@ -151,33 +159,34 @@ read_internal (GInputStream  *stream,
 	       GError       **error)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (stream);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 	gssize nread;
 
-	if (sniffer->priv->error) {
-		g_propagate_error (error, sniffer->priv->error);
-		sniffer->priv->error = NULL;
+	if (priv->error) {
+		g_propagate_error (error, priv->error);
+		priv->error = NULL;
 		return -1;
 	}
 
-	if (sniffer->priv->sniffing) {
+	if (priv->sniffing) {
 		nread = read_and_sniff (stream, blocking, cancellable, error);
 		if (nread <= 0)
 			return nread;
 	}
 
-	if (sniffer->priv->buffer) {
-		nread = MIN (count, sniffer->priv->buffer_nread);
+	if (priv->buffer) {
+		nread = MIN (count, priv->buffer_nread);
 		if (buffer)
-			memcpy (buffer, sniffer->priv->buffer, nread);
-		if (nread == sniffer->priv->buffer_nread) {
-			g_free (sniffer->priv->buffer);
-			sniffer->priv->buffer = NULL;
+			memcpy (buffer, priv->buffer, nread);
+		if (nread == priv->buffer_nread) {
+			g_free (priv->buffer);
+			priv->buffer = NULL;
 		} else {
 			/* FIXME, inefficient */
-			memmove (sniffer->priv->buffer,
-				 sniffer->priv->buffer + nread,
-				 sniffer->priv->buffer_nread - nread);
-			sniffer->priv->buffer_nread -= nread;
+			memmove (priv->buffer,
+				 priv->buffer + nread,
+				 priv->buffer_nread - nread);
+			priv->buffer_nread -= nread;
 		}
 	} else {
 		nread = g_pollable_stream_read (G_FILTER_INPUT_STREAM (stream)->base_stream,
@@ -205,9 +214,10 @@ soup_content_sniffer_stream_skip (GInputStream  *stream,
 				  GError       **error)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (stream);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 	gssize nskipped;
 
-	if (sniffer->priv->sniffing) {
+	if (priv->sniffing) {
 		/* Read into the internal buffer... */
 		nskipped = soup_content_sniffer_stream_read (stream, NULL, 0, cancellable, error);
 		if (nskipped == -1)
@@ -215,17 +225,17 @@ soup_content_sniffer_stream_skip (GInputStream  *stream,
 		/* Now fall through */
 	}
 
-	if (sniffer->priv->buffer) {
-		nskipped = MIN (count, sniffer->priv->buffer_nread);
-		if (nskipped == sniffer->priv->buffer_nread) {
-			g_free (sniffer->priv->buffer);
-			sniffer->priv->buffer = NULL;
+	if (priv->buffer) {
+		nskipped = MIN (count, priv->buffer_nread);
+		if (nskipped == priv->buffer_nread) {
+			g_free (priv->buffer);
+			priv->buffer = NULL;
 		} else {
 			/* FIXME */
-			memmove (sniffer->priv->buffer,
-				 sniffer->priv->buffer + nskipped,
-				 sniffer->priv->buffer_nread - nskipped);
-			sniffer->priv->buffer_nread -= nskipped;
+			memmove (priv->buffer,
+				 priv->buffer + nskipped,
+				 priv->buffer_nread - nskipped);
+			priv->buffer_nread -= nskipped;
 		}
 	} else {
 		nskipped = G_INPUT_STREAM_CLASS (soup_content_sniffer_stream_parent_class)->
@@ -248,9 +258,10 @@ static gboolean
 soup_content_sniffer_stream_is_readable (GPollableInputStream *stream)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (stream);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 
-	if (sniffer->priv->error ||
-	    (!sniffer->priv->sniffing && sniffer->priv->buffer))
+	if (priv->error ||
+	    (!priv->sniffing && priv->buffer))
 		return TRUE;
 
 	return g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (G_FILTER_INPUT_STREAM (stream)->base_stream));
@@ -271,10 +282,11 @@ soup_content_sniffer_stream_create_source (GPollableInputStream *stream,
 					   GCancellable         *cancellable)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (stream);
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 	GSource *base_source, *pollable_source;
 
-	if (sniffer->priv->error ||
-	    (!sniffer->priv->sniffing && sniffer->priv->buffer))
+	if (priv->error ||
+	    (!priv->sniffing && priv->buffer))
 		base_source = g_timeout_source_new (0);
 	else
 		base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (G_FILTER_INPUT_STREAM (stream)->base_stream), cancellable);
@@ -290,8 +302,8 @@ soup_content_sniffer_stream_create_source (GPollableInputStream *stream,
 static void
 soup_content_sniffer_stream_init (SoupContentSnifferStream *sniffer)
 {
-	sniffer->priv = soup_content_sniffer_stream_get_instance_private (sniffer);
-	sniffer->priv->sniffing = TRUE;
+	SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
+	priv->sniffing = TRUE;
 }
 
 static void
@@ -340,7 +352,9 @@ soup_content_sniffer_stream_is_ready (SoupContentSnifferStream  *sniffer,
 				      GCancellable              *cancellable,
 				      GError                   **error)
 {
-	if (!sniffer->priv->sniffing)
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
+
+	if (!priv->sniffing)
 		return TRUE;
 
 	return read_and_sniff (G_INPUT_STREAM (sniffer), blocking,
@@ -351,7 +365,9 @@ const char *
 soup_content_sniffer_stream_sniff (SoupContentSnifferStream  *sniffer,
 				   GHashTable               **params)
 {
+        SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
+
 	if (params)
-		*params = sniffer->priv->sniffed_params;
-	return sniffer->priv->sniffed_type;
+		*params = priv->sniffed_params;
+	return priv->sniffed_type;
 }

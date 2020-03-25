@@ -38,6 +38,11 @@ enum {
 	LAST_PROP
 };
 
+struct _SoupCookieJarDB {
+	SoupCookieJar parent;
+};
+
+
 typedef struct {
 	char *filename;
 	sqlite3 *db;

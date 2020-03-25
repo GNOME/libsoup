@@ -3,8 +3,7 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_MESSAGE_BODY_H__
-#define __SOUP_MESSAGE_BODY_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
@@ -109,6 +108,7 @@ void             soup_message_body_wrote_chunk   (SoupMessageBody *body,
 SOUP_AVAILABLE_IN_2_4
 void             soup_message_body_free          (SoupMessageBody *body);
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupBuffer, soup_buffer_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageBody, soup_message_body_free)
 
-#endif /* __SOUP_MESSAGE_BODY_H__ */
+G_END_DECLS

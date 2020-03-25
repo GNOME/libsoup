@@ -5,8 +5,7 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_STATUS_H__
-#define __SOUP_STATUS_H__ 1
+#pragma once
 
 #include "soup-version.h"
 
@@ -110,5 +109,3 @@ SOUP_AVAILABLE_IN_2_4
 GQuark soup_http_error_quark (void);
 
 G_END_DECLS
-
-#endif /* __SOUP_STATUS_H__ */

@@ -37,7 +37,7 @@ soup_content_processor_wrap_input (SoupContentProcessor *processor,
 {
 	g_return_val_if_fail (SOUP_IS_CONTENT_PROCESSOR (processor), NULL);
 
-	return SOUP_CONTENT_PROCESSOR_GET_INTERFACE (processor)->wrap_input (processor, base_stream, msg, error);
+	return SOUP_CONTENT_PROCESSOR_GET_IFACE (processor)->wrap_input (processor, base_stream, msg, error);
 }
 
 SoupProcessingStage
@@ -45,5 +45,5 @@ soup_content_processor_get_processing_stage (SoupContentProcessor *processor)
 {
 	g_return_val_if_fail (SOUP_IS_CONTENT_PROCESSOR (processor), SOUP_STAGE_INVALID);
 
-	return SOUP_CONTENT_PROCESSOR_GET_INTERFACE (processor)->processing_stage;
+	return SOUP_CONTENT_PROCESSOR_GET_IFACE (processor)->processing_stage;
 }

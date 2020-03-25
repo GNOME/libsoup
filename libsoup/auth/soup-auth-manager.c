@@ -61,7 +61,7 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0 };
 
 
-struct SoupAuthManagerPrivate {
+typedef struct {
 	SoupSession *session;
 	GPtrArray *auth_types;
 	gboolean auto_ntlm;
@@ -69,7 +69,7 @@ struct SoupAuthManagerPrivate {
 	GMutex lock;
 	SoupAuth *proxy_auth;
 	GHashTable *auth_hosts;
-};
+} SoupAuthManagerPrivate;
 
 typedef struct {
 	SoupURI     *uri;
@@ -90,9 +90,7 @@ static SoupAuth *record_auth_for_uri (SoupAuthManagerPrivate *priv,
 static void
 soup_auth_manager_init (SoupAuthManager *manager)
 {
-	SoupAuthManagerPrivate *priv;
-
-	priv = manager->priv = soup_auth_manager_get_instance_private (manager);
+	SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 
 	priv->auth_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
 	priv->auth_hosts = g_hash_table_new_full (soup_uri_host_hash,
@@ -105,7 +103,7 @@ soup_auth_manager_init (SoupAuthManager *manager)
 static void
 soup_auth_manager_finalize (GObject *object)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (object)->priv;
+	SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private ((SoupAuthManager*)object);
 
 	g_ptr_array_free (priv->auth_types, TRUE);
 
@@ -165,7 +163,7 @@ auth_type_compare_func (gconstpointer a, gconstpointer b)
 static gboolean
 soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private ((SoupAuthManager*)feature);
 	SoupAuthClass *auth_class;
 
 	if (!g_type_is_a (type, SOUP_TYPE_AUTH))
@@ -188,7 +186,7 @@ soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 static gboolean
 soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private ((SoupAuthManager*)feature);
 	SoupAuthClass *auth_class;
 	guint i;
 
@@ -213,7 +211,7 @@ soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 static gboolean
 soup_auth_manager_has_feature (SoupSessionFeature *feature, GType type)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private ((SoupAuthManager*)feature);
 	SoupAuthClass *auth_class;
 	guint i;
 
@@ -231,7 +229,7 @@ soup_auth_manager_has_feature (SoupSessionFeature *feature, GType type)
 static void
 soup_auth_manager_attach (SoupSessionFeature *feature, SoupSession *session)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private ((SoupAuthManager*)feature);
 
 	/* FIXME: should support multiple sessions */
 	priv->session = session;
@@ -518,7 +516,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
 		   gboolean proxy, gboolean can_interact)
 {
-	SoupAuthManagerPrivate *priv = manager->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupURI *uri;
 
 	if (!soup_auth_can_authenticate (auth))
@@ -607,7 +605,7 @@ record_auth_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri,
 static void
 auth_got_headers (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupAuth *auth, *prior_auth;
 	gboolean prior_auth_failed = FALSE;
 
@@ -647,7 +645,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 static void
 auth_got_body (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupAuth *auth;
 
 	g_mutex_lock (&priv->lock);
@@ -674,7 +672,7 @@ auth_got_body (SoupMessage *msg, gpointer manager)
 static void
 proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupAuth *auth = NULL, *prior_auth;
 	gboolean prior_auth_failed = FALSE;
 
@@ -711,7 +709,7 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 static void
 proxy_auth_got_body (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupAuth *auth;
 
 	g_mutex_lock (&priv->lock);
@@ -732,7 +730,7 @@ proxy_auth_got_body (SoupMessage *msg, gpointer manager)
 static void
 auth_msg_starting (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupAuth *auth;
 
 	if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
@@ -818,7 +816,7 @@ soup_auth_manager_use_auth (SoupAuthManager *manager,
 			    SoupURI         *uri,
 			    SoupAuth        *auth)
 {
-	SoupAuthManagerPrivate *priv = manager->priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 
 	g_mutex_lock (&priv->lock);
 	record_auth_for_uri (priv, uri, auth, FALSE);
@@ -836,11 +834,10 @@ soup_auth_manager_use_auth (SoupAuthManager *manager,
 void
 soup_auth_manager_clear_cached_credentials (SoupAuthManager *manager)
 {
-	SoupAuthManagerPrivate *priv;
+        SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 
 	g_return_if_fail (SOUP_IS_AUTH_MANAGER (manager));
 
-	priv = manager->priv;
 	g_mutex_lock (&priv->lock);
 	g_hash_table_remove_all (priv->auth_hosts);
 	g_mutex_unlock (&priv->lock);

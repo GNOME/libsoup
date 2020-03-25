@@ -3,8 +3,7 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef __SOUP_MULTIPART_H__
-#define __SOUP_MULTIPART_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "soup-message-body.h"
@@ -56,6 +55,6 @@ void     soup_multipart_to_message         (SoupMultipart       *multipart,
 SOUP_AVAILABLE_IN_2_26
 void     soup_multipart_free               (SoupMultipart       *multipart);
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMultipart, soup_multipart_free)
 
-#endif /* __SOUP_MULTIPART_H__ */
+G_END_DECLS

@@ -3,8 +3,7 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_SERVER_H__
-#define __SOUP_SERVER_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "soup-uri.h"
@@ -12,12 +11,9 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_SERVER            (soup_server_get_type ())
-#define SOUP_SERVER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SERVER, SoupServer))
-#define SOUP_SERVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SERVER, SoupServerClass))
-#define SOUP_IS_SERVER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SERVER))
-#define SOUP_IS_SERVER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SERVER))
-#define SOUP_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SERVER, SoupServerClass))
+#define SOUP_TYPE_SERVER (soup_server_get_type ())
+SOUP_AVAILABLE_IN_2_4
+G_DECLARE_DERIVABLE_TYPE (SoupServer, soup_server, SOUP, SERVER, GObject)
 
 typedef struct SoupClientContext SoupClientContext;
 SOUP_AVAILABLE_IN_2_4
@@ -30,12 +26,7 @@ typedef enum {
 	SOUP_SERVER_LISTEN_IPV6_ONLY = (1 << 2)
 } SoupServerListenOptions;
 
-struct _SoupServer {
-	GObject parent;
-
-};
-
-typedef struct {
+struct _SoupServerClass {
 	GObjectClass parent_class;
 
 	/* signals */
@@ -48,15 +39,8 @@ typedef struct {
 	void (*request_aborted)  (SoupServer *server, SoupMessage *msg,
 				  SoupClientContext *client);
 
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupServerClass;
-
-SOUP_AVAILABLE_IN_2_4
-GType soup_server_get_type (void);
+	gpointer padding[6];
+};
 
 #define SOUP_SERVER_TLS_CERTIFICATE "tls-certificate"
 #define SOUP_SERVER_RAW_PATHS       "raw-paths"
@@ -194,5 +178,3 @@ SOUP_AVAILABLE_IN_2_50
 GIOStream      *soup_client_context_steal_connection   (SoupClientContext *client);
 
 G_END_DECLS
-
-#endif /* __SOUP_SERVER_H__ */

@@ -3,8 +3,7 @@
  * Copyright (C) 2012 Igalia S.L.
  */
 
-#ifndef __SOUP_TLD_H__
-#define __SOUP_TLD_H__
+#pragma once
 
 #include "soup-types.h"
 
@@ -31,5 +30,3 @@ typedef enum {
 } SoupTLDError;
 
 G_END_DECLS
-
-#endif /* __SOUP_TLD_H__ */

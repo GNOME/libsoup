@@ -3,8 +3,7 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_SESSION_H__
-#define __SOUP_SESSION_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "soup-message.h"
@@ -12,41 +11,13 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_SESSION            (soup_session_get_type ())
-#define SOUP_SESSION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SESSION, SoupSession))
-#define SOUP_SESSION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SESSION, SoupSessionClass))
-#define SOUP_IS_SESSION(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SESSION))
-#define SOUP_IS_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SESSION))
-#define SOUP_SESSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SESSION, SoupSessionClass))
+#define SOUP_TYPE_SESSION soup_session_get_type ()
+SOUP_AVAILABLE_IN_2_42
+G_DECLARE_FINAL_TYPE (SoupSession, soup_session, SOUP, SESSION, GObject)
 
 typedef void (*SoupSessionCallback) (SoupSession           *session,
 				     SoupMessage           *msg,
 				     gpointer               user_data);
-
-struct _SoupSession {
-	GObject parent;
-
-};
-
-typedef struct {
-	GObjectClass parent_class;
-
-	/* signals */
-	void (*request_started) (SoupSession *session, SoupMessage *msg,
-				 SoupSocket *socket);
-	void (*authenticate)    (SoupSession *session, SoupMessage *msg,
-				 SoupAuth *auth, gboolean retrying);
-
-	/* methods */
-	void  (*auth_required)   (SoupSession *session, SoupMessage *msg,
-				  SoupAuth *auth, gboolean retrying);
-
-	/* Padding for future expansion */
-	void (*_libsoup_reserved4) (void);
-} SoupSessionClass;
-
-SOUP_AVAILABLE_IN_2_42
-GType soup_session_get_type (void);
 
 #define SOUP_SESSION_LOCAL_ADDRESS          "local-address"
 #define SOUP_SESSION_PROXY_RESOLVER         "proxy-resolver"
@@ -200,5 +171,3 @@ SoupWebsocketConnection *soup_session_websocket_connect_finish (SoupSession     
 								GError              **error);
 
 G_END_DECLS
-
-#endif /* __SOUP_SESSION_H__ */

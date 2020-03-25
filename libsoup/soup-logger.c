@@ -89,6 +89,12 @@
  * event of the #SoupMessage::finished signal.
  **/
 
+struct _SoupLogger {
+	GObject parent;
+
+};
+
+
 typedef struct {
 	/* We use a mutex so that if requests are being run in
 	 * multiple threads, we don't mix up the output.

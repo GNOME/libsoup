@@ -67,8 +67,8 @@ request_queued (SoupSession *session, SoupMessage *msg, gpointer feature)
 		return;
 
 	g_object_ref (feature);
-	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_queued) {
-		SOUP_SESSION_FEATURE_GET_CLASS (feature)->
+	if (SOUP_SESSION_FEATURE_GET_IFACE (feature)->request_queued) {
+		SOUP_SESSION_FEATURE_GET_IFACE (feature)->
 			request_queued (feature, session, msg);
 	}
 }
@@ -79,7 +79,7 @@ request_started (SoupSession *session, SoupMessage *msg, gpointer feature)
 	if (soup_message_disables_feature (msg, feature))
 		return;
 
-	SOUP_SESSION_FEATURE_GET_CLASS (feature)->
+	SOUP_SESSION_FEATURE_GET_IFACE (feature)->
 		request_started (feature, session, msg);
 }
 
@@ -89,8 +89,8 @@ request_unqueued (SoupSession *session, SoupMessage *msg, gpointer feature)
 	if (soup_message_disables_feature (msg, feature))
 		return;
 
-	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_unqueued) {
-		SOUP_SESSION_FEATURE_GET_CLASS (feature)->
+	if (SOUP_SESSION_FEATURE_GET_IFACE (feature)->request_unqueued) {
+		SOUP_SESSION_FEATURE_GET_IFACE (feature)->
 			request_unqueued (feature, session, msg);
 	}
 	g_object_unref (feature);
@@ -105,7 +105,7 @@ soup_session_feature_real_attach (SoupSessionFeature *feature, SoupSession *sess
 	g_signal_connect (session, "request_queued",
 			  G_CALLBACK (request_queued), feature);
 
-	if (SOUP_SESSION_FEATURE_GET_CLASS (feature)->request_started) {
+	if (SOUP_SESSION_FEATURE_GET_IFACE (feature)->request_started) {
 		g_signal_connect (session, "request_started",
 				  G_CALLBACK (request_started), feature);
 	}
@@ -121,7 +121,7 @@ soup_session_feature_attach (SoupSessionFeature *feature,
 	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
-	SOUP_SESSION_FEATURE_GET_CLASS (feature)->attach (feature, session);
+	SOUP_SESSION_FEATURE_GET_IFACE (feature)->attach (feature, session);
 }
 
 static void
@@ -143,7 +143,7 @@ soup_session_feature_detach (SoupSessionFeature *feature,
 	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
-	SOUP_SESSION_FEATURE_GET_CLASS (feature)->detach (feature, session);
+	SOUP_SESSION_FEATURE_GET_IFACE (feature)->detach (feature, session);
 }
 
 static void
@@ -172,7 +172,7 @@ soup_session_feature_add_feature (SoupSessionFeature *feature,
 				  GType               type)
 {
 	SoupSessionFeatureInterface *feature_iface =
-              SOUP_SESSION_FEATURE_GET_CLASS (feature);
+              SOUP_SESSION_FEATURE_GET_IFACE (feature);
 
 	if (feature_iface->add_feature)
 		return feature_iface->add_feature (feature, type);
@@ -197,7 +197,7 @@ soup_session_feature_remove_feature (SoupSessionFeature *feature,
 				     GType               type)
 {
 	SoupSessionFeatureInterface *feature_iface =
-              SOUP_SESSION_FEATURE_GET_CLASS (feature);
+              SOUP_SESSION_FEATURE_GET_IFACE (feature);
 
 	if (feature_iface->remove_feature)
 		return feature_iface->remove_feature (feature, type);
@@ -222,7 +222,7 @@ soup_session_feature_has_feature (SoupSessionFeature *feature,
 				  GType               type)
 {
 	SoupSessionFeatureInterface *feature_iface =
-              SOUP_SESSION_FEATURE_GET_CLASS (feature);
+              SOUP_SESSION_FEATURE_GET_IFACE (feature);
 
 	if (feature_iface->has_feature)
 		return feature_iface->has_feature (feature, type);

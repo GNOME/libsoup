@@ -20,8 +20,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __SOUP_CACHE_PRIVATE_H__
-#define __SOUP_CACHE_PRIVATE_H__ 1
+#pragma once
 
 #include "cache/soup-cache.h"
 #include "soup-message.h"
@@ -42,5 +41,3 @@ void               soup_cache_update_from_conditional_request (SoupCache   *cach
 							       SoupMessage *msg);
 
 G_END_DECLS
-
-#endif /* __SOUP_CACHE_PRIVATE_H__ */

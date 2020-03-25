@@ -3,25 +3,14 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_AUTH_BASIC_H__
-#define __SOUP_AUTH_BASIC_H__ 1
+#pragma once
 
 #include "soup-auth.h"
 
-#define SOUP_AUTH_BASIC(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_AUTH_BASIC, SoupAuthBasic))
-#define SOUP_AUTH_BASIC_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicClass))
-#define SOUP_IS_AUTH_BASIC(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), SOUP_TYPE_AUTH_BASIC))
-#define SOUP_IS_AUTH_BASIC_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_AUTH_BASIC))
-#define SOUP_AUTH_BASIC_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicClass))
+G_BEGIN_DECLS
 
-typedef struct {
-	SoupAuth parent;
+#define SOUP_TYPE_AUTH_BASIC (soup_auth_basic_get_type ())
+SOUP_AVAILABLE_IN_2_4
+G_DECLARE_FINAL_TYPE (SoupAuthBasic, soup_auth_basic, SOUP, AUTH_BASIC, SoupAuth)
 
-} SoupAuthBasic;
-
-typedef struct {
-	SoupAuthClass  parent_class;
-
-} SoupAuthBasicClass;
-
-#endif /* __SOUP_AUTH_BASIC_H__ */
+G_END_DECLS

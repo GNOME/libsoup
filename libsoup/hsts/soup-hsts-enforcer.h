@@ -4,27 +4,15 @@
  * Copyright (C) 2017, 2018 Metrological Group B.V.
  */
 
-#ifndef __SOUP_HSTS_ENFORCER_H__
-#define __SOUP_HSTS_ENFORCER_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_HSTS_ENFORCER		   (soup_hsts_enforcer_get_type ())
-#define SOUP_HSTS_ENFORCER(obj)		   (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_HSTS_ENFORCER, SoupHSTSEnforcer))
-#define SOUP_HSTS_ENFORCER_CLASS(klass)	   (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_HSTS_ENFORCER, SoupHSTSEnforcerClass))
-#define SOUP_IS_HSTS_ENFORCER(obj)	   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_HSTS_ENFORCER))
-#define SOUP_IS_HSTS_ENFORCER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_HSTS_ENFORCER))
-#define SOUP_HSTS_ENFORCER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_HSTS_ENFORCER, SoupHSTSEnforcerClass))
-
-typedef struct _SoupHSTSEnforcerPrivate SoupHSTSEnforcerPrivate;
-
-struct _SoupHSTSEnforcer {
-	GObject parent;
-
-	SoupHSTSEnforcerPrivate *priv;
-};
+#define SOUP_TYPE_HSTS_ENFORCER (soup_hsts_enforcer_get_type ())
+SOUP_AVAILABLE_IN_2_68
+G_DECLARE_DERIVABLE_TYPE (SoupHSTSEnforcer, soup_hsts_enforcer, SOUP, HSTS_ENFORCER, GObject)
 
 /**
  * SoupHSTSEnforcerClass:
@@ -38,7 +26,7 @@ struct _SoupHSTSEnforcer {
  * policies.
  * @changed: the class closure for the #SoupHSTSEnforcer::changed signal.
  **/
-typedef struct {
+struct _SoupHSTSEnforcerClass {
 	GObjectClass parent_class;
 
 	gboolean (*is_persistent) (SoupHSTSEnforcer *hsts_enforcer);
@@ -52,15 +40,9 @@ typedef struct {
 	void (*hsts_enforced) (SoupHSTSEnforcer *enforcer,
 			       SoupMessage      *message);
 
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupHSTSEnforcerClass;
+	gpointer padding[4];
+};
 
-SOUP_AVAILABLE_IN_2_68
-GType		  soup_hsts_enforcer_get_type			   (void);
 SOUP_AVAILABLE_IN_2_68
 SoupHSTSEnforcer *soup_hsts_enforcer_new			   (void);
 SOUP_AVAILABLE_IN_2_68
@@ -85,5 +67,3 @@ GList            *soup_hsts_enforcer_get_policies                  (SoupHSTSEnfo
 								    gboolean          session_policies);
 
 G_END_DECLS
-
-#endif /* __SOUP_HSTS_ENFORCER_H__ */

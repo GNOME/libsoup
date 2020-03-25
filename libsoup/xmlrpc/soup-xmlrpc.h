@@ -3,8 +3,7 @@
  * Copyright 2015 - Collabora Ltd.
  */
 
-#ifndef __SOUP_XMLRPC_H__
-#define __SOUP_XMLRPC_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
@@ -91,6 +90,6 @@ typedef enum {
 	SOUP_XMLRPC_FAULT_TRANSPORT_ERROR = -32300
 } SoupXMLRPCFault;
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupXMLRPCParams, soup_xmlrpc_params_free)
 
-#endif /* __SOUP_XMLRPC_H__ */
+G_END_DECLS

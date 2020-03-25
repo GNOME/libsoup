@@ -52,10 +52,10 @@ enum {
 	PROP_SESSION
 };
 
-struct _SoupRequestPrivate {
+typedef struct {
 	SoupURI *uri;
 	SoupSession *session;
-};
+} SoupRequestPrivate;
 
 static void soup_request_initable_interface_init (GInitableIface *initable_interface);
 
@@ -67,16 +67,16 @@ G_DEFINE_TYPE_WITH_CODE (SoupRequest, soup_request, G_TYPE_OBJECT,
 static void
 soup_request_init (SoupRequest *request)
 {
-	request->priv = soup_request_get_instance_private (request);
 }
 
 static void
 soup_request_finalize (GObject *object)
 {
 	SoupRequest *request = SOUP_REQUEST (object);
+        SoupRequestPrivate *priv = soup_request_get_instance_private (request);
 
-	g_clear_pointer (&request->priv->uri, soup_uri_free);
-	g_clear_object (&request->priv->session);
+	g_clear_pointer (&priv->uri, soup_uri_free);
+	g_clear_object (&priv->session);
 
 	G_OBJECT_CLASS (soup_request_parent_class)->finalize (object);
 }
@@ -88,17 +88,18 @@ soup_request_set_property (GObject      *object,
 			   GParamSpec   *pspec)
 {
 	SoupRequest *request = SOUP_REQUEST (object);
+        SoupRequestPrivate *priv = soup_request_get_instance_private (request);
 
 	switch (prop_id) {
 	case PROP_URI:
-		if (request->priv->uri)
-			soup_uri_free (request->priv->uri);
-		request->priv->uri = g_value_dup_boxed (value);
+		if (priv->uri)
+			soup_uri_free (priv->uri);
+		priv->uri = g_value_dup_boxed (value);
 		break;
 	case PROP_SESSION:
-		if (request->priv->session)
-			g_object_unref (request->priv->session);
-		request->priv->session = g_value_dup_object (value);
+		if (priv->session)
+			g_object_unref (priv->session);
+		priv->session = g_value_dup_object (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -113,13 +114,14 @@ soup_request_get_property (GObject    *object,
 			   GParamSpec *pspec)
 {
 	SoupRequest *request = SOUP_REQUEST (object);
+        SoupRequestPrivate *priv = soup_request_get_instance_private (request);
 
 	switch (prop_id) {
 	case PROP_URI:
-		g_value_set_boxed (value, request->priv->uri);
+		g_value_set_boxed (value, priv->uri);
 		break;
 	case PROP_SESSION:
-		g_value_set_object (value, request->priv->session);
+		g_value_set_object (value, priv->session);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -133,22 +135,23 @@ soup_request_initable_init (GInitable     *initable,
 			    GError       **error)
 {
 	SoupRequest *request = SOUP_REQUEST (initable);
+        SoupRequestPrivate *priv = soup_request_get_instance_private (request);
 	gboolean ok;
 
-	if (!request->priv->uri) {
+	if (!priv->uri) {
 		g_set_error (error, SOUP_REQUEST_ERROR, SOUP_REQUEST_ERROR_BAD_URI,
 			     _("No URI provided"));
 		return FALSE;
 	}
 
 	ok = SOUP_REQUEST_GET_CLASS (initable)->
-		check_uri (request, request->priv->uri, error);
+		check_uri (request, priv->uri, error);
 
 	if (!ok && error && !*error) {
-		char *uri_string = soup_uri_to_string (request->priv->uri, FALSE);
+		char *uri_string = soup_uri_to_string (priv->uri, FALSE);
 		g_set_error (error, SOUP_REQUEST_ERROR, SOUP_REQUEST_ERROR_BAD_URI,
 			     _("Invalid “%s” URI: %s"),
-			     request->priv->uri->scheme,
+			     priv->uri->scheme,
 			     uri_string);
 		g_free (uri_string);
 	}
@@ -341,7 +344,8 @@ soup_request_initable_interface_init (GInitableIface *initable_interface)
 SoupURI *
 soup_request_get_uri (SoupRequest *request)
 {
-	return request->priv->uri;
+        SoupRequestPrivate *priv = soup_request_get_instance_private (request);
+	return priv->uri;
 }
 
 /**
@@ -357,7 +361,8 @@ soup_request_get_uri (SoupRequest *request)
 SoupSession *
 soup_request_get_session (SoupRequest *request)
 {
-	return request->priv->session;
+        SoupRequestPrivate *priv = soup_request_get_instance_private (request);
+	return priv->session;
 }
 
 /**

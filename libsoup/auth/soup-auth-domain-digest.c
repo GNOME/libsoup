@@ -14,7 +14,7 @@
 
 #include "soup-auth-domain-digest.h"
 #include "soup.h"
-#include "soup-auth-digest.h"
+#include "auth/soup-auth-digest-private.h"
 
 /**
  * SECTION:soup-auth-domain-digest
@@ -31,6 +31,10 @@ enum {
 	PROP_AUTH_DATA,
 
 	LAST_PROP
+};
+
+struct _SoupAuthDomainDigest {
+	SoupAuthDomain parent;
 };
 
 typedef struct {

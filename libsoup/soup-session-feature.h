@@ -3,21 +3,17 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef __SOUP_SESSION_FEATURE_H__
-#define __SOUP_SESSION_FEATURE_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_SESSION_FEATURE            (soup_session_feature_get_type ())
-#define SOUP_SESSION_FEATURE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SESSION_FEATURE, SoupSessionFeature))
-#define SOUP_SESSION_FEATURE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SESSION_FEATURE, SoupSessionFeatureInterface))
-#define SOUP_IS_SESSION_FEATURE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SESSION_FEATURE))
-#define SOUP_IS_SESSION_FEATURE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_SESSION_FEATURE))
-#define SOUP_SESSION_FEATURE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_INTERFACE ((obj), SOUP_TYPE_SESSION_FEATURE, SoupSessionFeatureInterface))
+#define SOUP_TYPE_SESSION_FEATURE (soup_session_feature_get_type ())
+SOUP_AVAILABLE_IN_2_24
+G_DECLARE_INTERFACE (SoupSessionFeature, soup_session_feature, SOUP, SESSION_FEATURE, GObject)
 
-typedef struct {
+struct _SoupSessionFeatureInterface {
 	GTypeInterface parent;
 
 	/* methods */
@@ -43,10 +39,7 @@ typedef struct {
 	gboolean (*has_feature)      (SoupSessionFeature *feature,
 				      GType               type);
 
-} SoupSessionFeatureInterface;
-
-SOUP_AVAILABLE_IN_2_24
-GType    soup_session_feature_get_type       (void);
+};
 
 SOUP_AVAILABLE_IN_2_24
 void     soup_session_feature_attach         (SoupSessionFeature *feature,
@@ -66,5 +59,3 @@ gboolean soup_session_feature_has_feature    (SoupSessionFeature *feature,
 					      GType               type);
 
 G_END_DECLS
-
-#endif /* __SOUP_SESSION_FEATURE_H__ */

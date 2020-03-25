@@ -31,6 +31,10 @@ enum {
 	LAST_PROP
 };
 
+struct _SoupAuthDomainBasic {
+	SoupAuthDomain parent;
+};
+
 typedef struct {
 	SoupAuthDomainBasicAuthCallback auth_callback;
 	gpointer auth_data;

@@ -20,22 +20,15 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __SOUP_CACHE_H__
-#define __SOUP_CACHE_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_CACHE            (soup_cache_get_type ())
-#define SOUP_CACHE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_CACHE, SoupCache))
-#define SOUP_CACHE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_CACHE, SoupCacheClass))
-#define SOUP_IS_CACHE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_CACHE))
-#define SOUP_IS_CACHE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_CACHE))
-#define SOUP_CACHE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_CACHE, SoupCacheClass))
-
-typedef struct _SoupCache SoupCache;
-typedef struct _SoupCachePrivate SoupCachePrivate;
+#define SOUP_TYPE_CACHE (soup_cache_get_type ())
+SOUP_AVAILABLE_IN_2_34
+G_DECLARE_DERIVABLE_TYPE (SoupCache, soup_cache, SOUP, CACHE, GObject)
 
 typedef enum {
 	SOUP_CACHE_CACHEABLE = (1 << 0),
@@ -55,27 +48,15 @@ typedef enum {
 	SOUP_CACHE_SHARED
 } SoupCacheType;
 
-struct _SoupCache {
-	GObject parent_instance;
-
-	SoupCachePrivate *priv;
-};
-
-typedef struct {
+struct _SoupCacheClass {
 	GObjectClass parent_class;
 
 	/* methods */
 	SoupCacheability (*get_cacheability) (SoupCache   *cache,
 					      SoupMessage *msg);
+        gpointer padding[4];
+};
 
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1)(void);
-	void (*_libsoup_reserved2)(void);
-	void (*_libsoup_reserved3)(void);
-} SoupCacheClass;
-
-SOUP_AVAILABLE_IN_2_34
-GType      soup_cache_get_type     (void);
 SOUP_AVAILABLE_IN_2_34
 SoupCache *soup_cache_new          (const char    *cache_dir,
 				    SoupCacheType  cache_type);
@@ -96,6 +77,3 @@ SOUP_AVAILABLE_IN_2_34
 guint      soup_cache_get_max_size (SoupCache     *cache);
 
 G_END_DECLS
-
-#endif /* __SOUP_CACHE_H__ */
-

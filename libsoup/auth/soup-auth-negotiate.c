@@ -66,6 +66,11 @@ typedef struct {
 	SoupNegotiateState state;
 } SoupNegotiateConnectionState;
 
+
+struct _SoupAuthNegotiate {
+	SoupConnectionAuth parent;
+};
+
 typedef struct {
 	gboolean is_authenticated;
 } SoupAuthNegotiatePrivate;

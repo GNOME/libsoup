@@ -44,10 +44,14 @@
  * #SoupMessage.
  */
 
-struct _SoupRequestHTTPPrivate {
+struct _SoupRequestHTTP {
+	SoupRequest parent;
+};
+
+typedef struct {
 	SoupMessage *msg;
 	char *content_type;
-};
+} SoupRequestHTTPPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
 
@@ -59,7 +63,6 @@ static void content_sniffed (SoupMessage *msg,
 static void
 soup_request_http_init (SoupRequestHTTP *http)
 {
-	http->priv = soup_request_http_get_instance_private (http);
 }
 
 static gboolean
@@ -68,14 +71,15 @@ soup_request_http_check_uri (SoupRequest  *request,
 			     GError      **error)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 
 	if (!SOUP_URI_VALID_FOR_HTTP (uri))
 		return FALSE;
 
-	http->priv->msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
-	soup_message_set_soup_request (http->priv->msg, request);
+	priv->msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+	soup_message_set_soup_request (priv->msg, request);
 
-	g_signal_connect (http->priv->msg, "content-sniffed",
+	g_signal_connect (priv->msg, "content-sniffed",
 			  G_CALLBACK (content_sniffed), http);
 	return TRUE;
 }
@@ -84,15 +88,16 @@ static void
 soup_request_http_finalize (GObject *object)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (object);
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 
-	if (http->priv->msg) {
-		g_signal_handlers_disconnect_by_func (http->priv->msg,
+	if (priv->msg) {
+		g_signal_handlers_disconnect_by_func (priv->msg,
 						      G_CALLBACK (content_sniffed),
 						      http);
-		g_object_unref (http->priv->msg);
+		g_object_unref (priv->msg);
 	}
 
-	g_free (http->priv->content_type);
+	g_free (priv->content_type);
 
 	G_OBJECT_CLASS (soup_request_http_parent_class)->finalize (object);
 }
@@ -103,9 +108,10 @@ soup_request_http_send (SoupRequest          *request,
 			GError              **error)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 	SoupSession *session = soup_request_get_session (request);
 
-	return soup_session_send (session, http->priv->msg,
+	return soup_session_send (session, priv->msg,
 				  cancellable, error);
 }
 
@@ -132,11 +138,12 @@ soup_request_http_send_async (SoupRequest          *request,
 			      gpointer              user_data)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 	SoupSession *session = soup_request_get_session (request);
 	GTask *task;
 
 	task = g_task_new (request, cancellable, callback, user_data);
-	soup_session_send_async (session, http->priv->msg, cancellable,
+	soup_session_send_async (session, priv->msg, cancellable,
 				 http_input_stream_ready_cb, task);
 }
 
@@ -154,8 +161,9 @@ static goffset
 soup_request_http_get_content_length (SoupRequest *request)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 
-	return soup_message_headers_get_content_length (http->priv->msg->response_headers);
+	return soup_message_headers_get_content_length (priv->msg->response_headers);
 }
 
 static void
@@ -165,6 +173,7 @@ content_sniffed (SoupMessage *msg,
 		 gpointer     user_data)
 {
 	SoupRequestHTTP *http = user_data;
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 	GString *sniffed_type;
 
 	sniffed_type = g_string_new (content_type);
@@ -178,16 +187,17 @@ content_sniffed (SoupMessage *msg,
 			soup_header_g_string_append_param (sniffed_type, key, value);
 		}
 	}
-	g_free (http->priv->content_type);
-	http->priv->content_type = g_string_free (sniffed_type, FALSE);
+	g_free (priv->content_type);
+	priv->content_type = g_string_free (sniffed_type, FALSE);
 }
 
 static const char *
 soup_request_http_get_content_type (SoupRequest *request)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 
-	return http->priv->content_type;
+	return priv->content_type;
 }
 
 static const char *http_schemes[] = { "http", "https", NULL };
@@ -225,6 +235,7 @@ SoupMessage *
 soup_request_http_get_message (SoupRequestHTTP *http)
 {
 	g_return_val_if_fail (SOUP_IS_REQUEST_HTTP (http), NULL);
+        SoupRequestHTTPPrivate *priv = soup_request_http_get_instance_private (http);
 
-	return g_object_ref (http->priv->msg);
+	return g_object_ref (priv->msg);
 }

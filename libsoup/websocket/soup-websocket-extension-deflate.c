@@ -53,6 +53,10 @@ typedef struct {
         gushort client_max_window_bits;
 } Params;
 
+struct _SoupWebsocketExtensionDeflate {
+	SoupWebsocketExtension parent;
+};
+
 typedef struct {
         Params params;
 

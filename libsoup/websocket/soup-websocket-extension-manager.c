@@ -62,6 +62,10 @@
 
 static void soup_websocket_extension_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
+struct _SoupWebsocketExtensionManager {
+	GObject parent;
+};
+
 typedef struct {
         GPtrArray *extension_types;
 } SoupWebsocketExtensionManagerPrivate;

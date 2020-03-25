@@ -3,26 +3,17 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef __SOUP_COOKIE_JAR_H__
-#define __SOUP_COOKIE_JAR_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_COOKIE_JAR            (soup_cookie_jar_get_type ())
-#define SOUP_COOKIE_JAR(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_COOKIE_JAR, SoupCookieJar))
-#define SOUP_COOKIE_JAR_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_COOKIE_JAR, SoupCookieJarClass))
-#define SOUP_IS_COOKIE_JAR(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_COOKIE_JAR))
-#define SOUP_IS_COOKIE_JAR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_COOKIE_JAR))
-#define SOUP_COOKIE_JAR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_COOKIE_JAR, SoupCookieJarClass))
+SOUP_AVAILABLE_IN_2_24
+G_DECLARE_DERIVABLE_TYPE (SoupCookieJar, soup_cookie_jar, SOUP, COOKIE_JAR, GObject)
 
-struct _SoupCookieJar {
-	GObject parent;
-
-};
-
-typedef struct {
+struct _SoupCookieJarClass {
 	GObjectClass parent_class;
 
 	void     (*save)          (SoupCookieJar *jar);
@@ -34,9 +25,8 @@ typedef struct {
 			 SoupCookie    *new_cookie);
 
 	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-} SoupCookieJarClass;
+	gpointer padding[6];
+};
 
 #define SOUP_COOKIE_JAR_READ_ONLY "read-only"
 #define SOUP_COOKIE_JAR_ACCEPT_POLICY "accept-policy"
@@ -48,8 +38,6 @@ typedef enum {
 	SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY
 } SoupCookieJarAcceptPolicy;
 
-SOUP_AVAILABLE_IN_2_24
-GType                     soup_cookie_jar_get_type                    (void);
 SOUP_AVAILABLE_IN_2_24
 SoupCookieJar *           soup_cookie_jar_new                         (void);
 SOUP_AVAILABLE_IN_2_24
@@ -104,5 +92,3 @@ SOUP_AVAILABLE_IN_2_40
 gboolean                  soup_cookie_jar_is_persistent               (SoupCookieJar             *jar);
 
 G_END_DECLS
-
-#endif /* __SOUP_COOKIE_JAR_H__ */

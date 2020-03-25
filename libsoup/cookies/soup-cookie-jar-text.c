@@ -32,6 +32,12 @@ enum {
 	LAST_PROP
 };
 
+struct _SoupCookieJarText {
+	SoupCookieJar parent;
+
+};
+
+
 typedef struct {
 	char *filename;
 

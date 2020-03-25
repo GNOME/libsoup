@@ -277,10 +277,10 @@ read_headers (SoupMessage *msg, gboolean blocking,
 
 static gint
 processing_stage_cmp (gconstpointer a,
-		    gconstpointer b)
+                      gconstpointer b)
 {
-	SoupProcessingStage stage_a = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR (a));
-	SoupProcessingStage stage_b = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR (b));
+	SoupProcessingStage stage_a = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR ((gpointer)a));
+	SoupProcessingStage stage_b = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR ((gpointer)b));
 
 	if (stage_a > stage_b)
 		return 1;

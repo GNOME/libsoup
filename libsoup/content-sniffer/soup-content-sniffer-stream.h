@@ -3,38 +3,15 @@
  * Copyright (C) 2010 Red Hat, Inc.
  */
 
-#ifndef __SOUP_CONTENT_SNIFFER_STREAM_H__
-#define __SOUP_CONTENT_SNIFFER_STREAM_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "content-sniffer/soup-content-sniffer.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_CONTENT_SNIFFER_STREAM         (soup_content_sniffer_stream_get_type ())
-#define SOUP_CONTENT_SNIFFER_STREAM(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), SOUP_TYPE_CONTENT_SNIFFER_STREAM, SoupContentSnifferStream))
-#define SOUP_CONTENT_SNIFFER_STREAM_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST((k), SOUP_TYPE_CONTENT_SNIFFER_STREAM, SoupContentSnifferStreamClass))
-#define SOUP_IS_CONTENT_SNIFFER_STREAM(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), SOUP_TYPE_CONTENT_SNIFFER_STREAM))
-#define SOUP_IS_CONTENT_SNIFFER_STREAM_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), SOUP_TYPE_CONTENT_SNIFFER_STREAM))
-#define SOUP_CONTENT_SNIFFER_STREAM_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), SOUP_TYPE_CONTENT_SNIFFER_STREAM, SoupContentSnifferStreamClass))
-
-typedef struct _SoupContentSnifferStream        SoupContentSnifferStream;
-typedef struct _SoupContentSnifferStreamPrivate SoupContentSnifferStreamPrivate;
-typedef struct _SoupContentSnifferStreamClass   SoupContentSnifferStreamClass;
-
-struct _SoupContentSnifferStream {
-	GFilterInputStream parent_instance;
-
-	/*< private >*/
-	SoupContentSnifferStreamPrivate *priv;
-};
-
-struct _SoupContentSnifferStreamClass {
-	GFilterInputStreamClass parent_class;
-
-};
-
-GType soup_content_sniffer_stream_get_type (void) G_GNUC_CONST;
+#define SOUP_TYPE_CONTENT_SNIFFER_STREAM (soup_content_sniffer_stream_get_type ())
+G_DECLARE_FINAL_TYPE (SoupContentSnifferStream, soup_content_sniffer_stream, SOUP, CONTENT_SNIFFER_STREAM, GFilterInputStream)
 
 gboolean      soup_content_sniffer_stream_is_ready (SoupContentSnifferStream  *sniffer,
 						    gboolean                   blocking,
@@ -45,5 +22,3 @@ const char   *soup_content_sniffer_stream_sniff    (SoupContentSnifferStream  *s
 
 
 G_END_DECLS
-
-#endif /* __SOUP_CONTENT_SNIFFER_STREAM_H__ */

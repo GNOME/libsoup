@@ -34,14 +34,18 @@ enum {
 	PROP_MESSAGE
 };
 
-struct _SoupConverterWrapperPrivate
-{
+struct _SoupConverterWrapper {
+	GObject parent;
+};
+
+
+typedef struct {
 	GConverter *base_converter;
 	SoupMessage *msg;
 	gboolean try_deflate_fallback;
 	gboolean started;
 	gboolean discarding;
-};
+} SoupConverterWrapperPrivate;
 
 static void soup_converter_wrapper_iface_init (GConverterIface *iface);
 
@@ -53,13 +57,13 @@ G_DEFINE_TYPE_WITH_CODE (SoupConverterWrapper, soup_converter_wrapper, G_TYPE_OB
 static void
 soup_converter_wrapper_init (SoupConverterWrapper *converter)
 {
-	converter->priv = soup_converter_wrapper_get_instance_private (converter);
 }
 
 static void
 soup_converter_wrapper_finalize (GObject *object)
 {
-	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (object)->priv;
+        SoupConverterWrapper *converter = (SoupConverterWrapper*)object;
+	SoupConverterWrapperPrivate *priv = soup_converter_wrapper_get_instance_private (converter);
 
 	g_clear_object (&priv->base_converter);
 	g_clear_object (&priv->msg);
@@ -74,7 +78,8 @@ soup_converter_wrapper_set_property (GObject      *object,
 				     const GValue *value,
 				     GParamSpec   *pspec)
 {
-	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (object)->priv;
+        SoupConverterWrapper *converter = (SoupConverterWrapper*)object;
+	SoupConverterWrapperPrivate *priv = soup_converter_wrapper_get_instance_private (converter);
 
 	switch (prop_id) {
 	case PROP_BASE_CONVERTER:
@@ -106,7 +111,8 @@ soup_converter_wrapper_get_property (GObject    *object,
 				     GValue     *value,
 				     GParamSpec *pspec)
 {
-	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (object)->priv;
+        SoupConverterWrapper *converter = (SoupConverterWrapper*)object;
+	SoupConverterWrapperPrivate *priv = soup_converter_wrapper_get_instance_private (converter);
 
 	switch (prop_id) {
 	case PROP_BASE_CONVERTER:
@@ -165,7 +171,7 @@ soup_converter_wrapper_new (GConverter  *base_converter,
 static void
 soup_converter_wrapper_reset (GConverter *converter)
 {
-	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (converter)->priv;
+	SoupConverterWrapperPrivate *priv = soup_converter_wrapper_get_instance_private (SOUP_CONVERTER_WRAPPER (converter));
 
 	if (priv->base_converter)
 		g_converter_reset (priv->base_converter);
@@ -182,7 +188,7 @@ soup_converter_wrapper_fallback_convert (GConverter *converter,
 					 gsize      *bytes_written,
 					 GError    **error)
 {
-	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (converter)->priv;
+	SoupConverterWrapperPrivate *priv = soup_converter_wrapper_get_instance_private (SOUP_CONVERTER_WRAPPER (converter));
 
 	if (outbuf_size == 0) {
 		g_set_error (error, G_IO_ERROR, G_IO_ERROR_NO_SPACE,
@@ -232,7 +238,7 @@ soup_converter_wrapper_real_convert (GConverter *converter,
 				     gsize      *bytes_written,
 				     GError    **error)
 {
-	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (converter)->priv;
+	SoupConverterWrapperPrivate *priv = soup_converter_wrapper_get_instance_private (SOUP_CONVERTER_WRAPPER (converter));
 	GConverterResult result;
 	GError *my_error = NULL;
 
@@ -320,7 +326,7 @@ soup_converter_wrapper_convert (GConverter *converter,
 				gsize      *bytes_written,
 				GError    **error)
 {
-	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (converter)->priv;
+	SoupConverterWrapperPrivate *priv = soup_converter_wrapper_get_instance_private (SOUP_CONVERTER_WRAPPER (converter));
 
 	if (priv->base_converter) {
 		return soup_converter_wrapper_real_convert (converter,

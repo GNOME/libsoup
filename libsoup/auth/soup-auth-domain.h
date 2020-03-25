@@ -3,26 +3,17 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#ifndef __SOUP_AUTH_DOMAIN_H__
-#define __SOUP_AUTH_DOMAIN_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_AUTH_DOMAIN            (soup_auth_domain_get_type ())
-#define SOUP_AUTH_DOMAIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomain))
-#define SOUP_AUTH_DOMAIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomainClass))
-#define SOUP_IS_AUTH_DOMAIN(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_AUTH_DOMAIN))
-#define SOUP_IS_AUTH_DOMAIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH_DOMAIN))
-#define SOUP_AUTH_DOMAIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomainClass))
+#define SOUP_TYPE_AUTH_DOMAIN (soup_auth_domain_get_type ())
+SOUP_AVAILABLE_IN_2_4
+G_DECLARE_DERIVABLE_TYPE (SoupAuthDomain, soup_auth_domain, SOUP, AUTH_DOMAIN, GObject)
 
-struct _SoupAuthDomain {
-	GObject parent;
-
-};
-
-typedef struct {
+struct _SoupAuthDomainClass {
 	GObjectClass parent_class;
 
 	char *   (*accepts)        (SoupAuthDomain *domain,
@@ -34,12 +25,8 @@ typedef struct {
 				    SoupMessage    *msg,
 				    const char     *username,
 				    const char     *password);
-
-	/* Padding for future expansion */
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupAuthDomainClass;
+	gpointer padding[6];
+};
 
 #define SOUP_AUTH_DOMAIN_REALM       "realm"
 #define SOUP_AUTH_DOMAIN_PROXY       "proxy"
@@ -58,9 +45,6 @@ typedef gboolean (*SoupAuthDomainGenericAuthCallback) (SoupAuthDomain *domain,
 						       SoupMessage    *msg,
 						       const char     *username,
 						       gpointer        user_data);
-
-SOUP_AVAILABLE_IN_2_4
-GType       soup_auth_domain_get_type    (void);
 
 SOUP_AVAILABLE_IN_2_4
 void        soup_auth_domain_add_path    (SoupAuthDomain       *domain,
@@ -106,5 +90,3 @@ gboolean    soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
 							const char     *username);
 
 G_END_DECLS
-
-#endif /* __SOUP_AUTH_DOMAIN_H__ */

@@ -19,38 +19,17 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __SOUP_REQUEST_HTTP_H__
-#define __SOUP_REQUEST_HTTP_H__ 1
+#pragma once
 
 #include "soup-request.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_REQUEST_HTTP            (soup_request_http_get_type ())
-#define SOUP_REQUEST_HTTP(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_REQUEST_HTTP, SoupRequestHTTP))
-#define SOUP_REQUEST_HTTP_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_REQUEST_HTTP, SoupRequestHTTPClass))
-#define SOUP_IS_REQUEST_HTTP(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), SOUP_TYPE_REQUEST_HTTP))
-#define SOUP_IS_REQUEST_HTTP_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_REQUEST_HTTP))
-#define SOUP_REQUEST_HTTP_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_REQUEST_HTTP, SoupRequestHTTPClass))
-
-typedef struct _SoupRequestHTTPPrivate SoupRequestHTTPPrivate;
-
-struct _SoupRequestHTTP {
-	SoupRequest parent;
-
-	SoupRequestHTTPPrivate *priv;
-};
-
-typedef struct {
-	SoupRequestClass parent;
-} SoupRequestHTTPClass;
-
+#define SOUP_TYPE_REQUEST_HTTP (soup_request_http_get_type ())
 SOUP_AVAILABLE_IN_2_34
-GType soup_request_http_get_type (void);
+G_DECLARE_FINAL_TYPE (SoupRequestHTTP, soup_request_http, SOUP, REQUEST_HTTP, SoupRequest)
 
 SOUP_AVAILABLE_IN_2_34
 SoupMessage *soup_request_http_get_message (SoupRequestHTTP *http);
 
 G_END_DECLS
-
-#endif /* __SOUP_REQUEST_HTTP_H__ */

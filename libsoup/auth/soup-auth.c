@@ -35,8 +35,9 @@
  **/
 
 typedef struct {
-	gboolean proxy;
+        char *realm;
 	char *host;
+	gboolean proxy;
 } SoupAuthPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupAuth, soup_auth, G_TYPE_OBJECT)
@@ -64,7 +65,7 @@ soup_auth_finalize (GObject *object)
 	SoupAuth *auth = SOUP_AUTH (object);
 	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	g_free (auth->realm);
+	g_free (priv->realm);
 	g_free (priv->host);
 
 	G_OBJECT_CLASS (soup_auth_parent_class)->finalize (object);
@@ -79,8 +80,8 @@ soup_auth_set_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_REALM:
-		g_free (auth->realm);
-		auth->realm = g_value_dup_string (value);
+		g_free (priv->realm);
+		priv->realm = g_value_dup_string (value);
 		break;
 	case PROP_HOST:
 		g_free (priv->host);
@@ -234,7 +235,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 {
 	SoupAuth *auth;
 	GHashTable *params;
-	const char *scheme, *realm;
+	const char *scheme;
 
 	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
@@ -244,6 +245,8 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 			     SOUP_AUTH_IS_FOR_PROXY, (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
 			     SOUP_AUTH_HOST, soup_message_get_uri (msg)->host,
 			     NULL);
+
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	scheme = soup_auth_get_scheme_name (auth);
 	if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0) {
@@ -255,9 +258,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	if (!params)
 		params = g_hash_table_new (NULL, NULL);
 
-	realm = g_hash_table_lookup (params, "realm");
-	if (realm)
-		auth->realm = g_strdup (realm);
+	priv->realm = g_strdup (g_hash_table_lookup (params, "realm"));
 
 	if (!SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params)) {
 		g_object_unref (auth);
@@ -287,6 +288,7 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	GHashTable *params;
 	const char *scheme, *realm;
 	gboolean was_authenticated, success;
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
@@ -301,7 +303,7 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 		params = g_hash_table_new (NULL, NULL);
 
 	realm = g_hash_table_lookup (params, "realm");
-	if (realm && auth->realm && strcmp (realm, auth->realm) != 0) {
+	if (realm && priv->realm && strcmp (realm, priv->realm) != 0) {
 		soup_header_free_param_list (params);
 		return FALSE;
 	}
@@ -405,9 +407,11 @@ soup_auth_get_host (SoupAuth *auth)
 const char *
 soup_auth_get_realm (SoupAuth *auth)
 {
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return auth->realm;
+	return priv->realm;
 }
 
 /**
@@ -424,6 +428,8 @@ soup_auth_get_realm (SoupAuth *auth)
 char *
 soup_auth_get_info (SoupAuth *auth)
 {
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
 	if (SOUP_IS_CONNECTION_AUTH (auth))
@@ -431,7 +437,7 @@ soup_auth_get_info (SoupAuth *auth)
 	else {
 		return g_strdup_printf ("%s:%s",
 					SOUP_AUTH_GET_CLASS (auth)->scheme_name,
-					auth->realm);
+					priv->realm);
 	}
 }
 

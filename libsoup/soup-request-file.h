@@ -19,38 +19,17 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __SOUP_REQUEST_FILE_H__
-#define __SOUP_REQUEST_FILE_H__ 1
+#pragma once
 
 #include "soup-request.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_REQUEST_FILE            (soup_request_file_get_type ())
-#define SOUP_REQUEST_FILE(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_REQUEST_FILE, SoupRequestFile))
-#define SOUP_REQUEST_FILE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_REQUEST_FILE, SoupRequestFileClass))
-#define SOUP_IS_REQUEST_FILE(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), SOUP_TYPE_REQUEST_FILE))
-#define SOUP_IS_REQUEST_FILE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_REQUEST_FILE))
-#define SOUP_REQUEST_FILE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_REQUEST_FILE, SoupRequestFileClass))
-
-typedef struct _SoupRequestFilePrivate SoupRequestFilePrivate;
-
-typedef struct {
-	SoupRequest parent;
-
-	SoupRequestFilePrivate *priv;
-} SoupRequestFile;
-
-typedef struct {
-	SoupRequestClass parent;
-} SoupRequestFileClass;
-
+#define SOUP_TYPE_REQUEST_FILE (soup_request_file_get_type ())
 SOUP_AVAILABLE_IN_2_34
-GType  soup_request_file_get_type (void);
+G_DECLARE_FINAL_TYPE (SoupRequestFile, soup_request_file, SOUP, REQUEST_FILE, SoupRequest)
 
 SOUP_AVAILABLE_IN_2_34
 GFile *soup_request_file_get_file (SoupRequestFile *file);
 
 G_END_DECLS
-
-#endif /* __SOUP_REQUEST_FILE_H__ */

@@ -3,19 +3,15 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef __SOUP_LOGGER_H__
-#define __SOUP_LOGGER_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_LOGGER            (soup_logger_get_type ())
-#define SOUP_LOGGER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_LOGGER, SoupLogger))
-#define SOUP_LOGGER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_LOGGER, SoupLoggerClass))
-#define SOUP_IS_LOGGER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_LOGGER))
-#define SOUP_IS_LOGGER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_LOGGER))
-#define SOUP_LOGGER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_LOGGER, SoupLoggerClass))
+#define SOUP_TYPE_LOGGER (soup_logger_get_type ())
+SOUP_AVAILABLE_IN_2_4
+G_DECLARE_FINAL_TYPE (SoupLogger, soup_logger, SOUP, LOGGER, GObject)
 
 typedef enum {
 	SOUP_LOGGER_LOG_NONE,
@@ -23,21 +19,6 @@ typedef enum {
 	SOUP_LOGGER_LOG_HEADERS,
 	SOUP_LOGGER_LOG_BODY
 } SoupLoggerLogLevel;
-
-typedef struct {
-	GObject parent;
-
-} SoupLogger;
-
-typedef struct {
-	GObjectClass parent_class;
-
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupLoggerClass;
 
 typedef SoupLoggerLogLevel (*SoupLoggerFilter)  (SoupLogger         *logger,
 						 SoupMessage        *msg,
@@ -49,8 +30,6 @@ typedef void               (*SoupLoggerPrinter) (SoupLogger         *logger,
 						 const char         *data,
 						 gpointer            user_data);
 
-SOUP_AVAILABLE_IN_2_4
-GType       soup_logger_get_type    (void);
 
 #define SOUP_LOGGER_LEVEL         "level"
 #define SOUP_LOGGER_MAX_BODY_SIZE "max-body-size"
@@ -77,5 +56,3 @@ void        soup_logger_set_printer         (SoupLogger        *logger,
 					     GDestroyNotify     destroy);
 
 G_END_DECLS
-
-#endif /* __SOUP_LOGGER_H__ */

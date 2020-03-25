@@ -3,28 +3,18 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_AUTH_H__
-#define __SOUP_AUTH_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "soup-headers.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_AUTH            (soup_auth_get_type ())
-#define SOUP_AUTH(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH, SoupAuth))
-#define SOUP_AUTH_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH, SoupAuthClass))
-#define SOUP_IS_AUTH(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_AUTH))
-#define SOUP_IS_AUTH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH))
-#define SOUP_AUTH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH, SoupAuthClass))
+#define SOUP_TYPE_AUTH (soup_auth_get_type())
+SOUP_AVAILABLE_IN_2_4
+G_DECLARE_DERIVABLE_TYPE (SoupAuth, soup_auth, SOUP, AUTH, GObject)
 
-struct _SoupAuth {
-	GObject parent;
-
-	char *realm;
-};
-
-typedef struct {
+struct _SoupAuthClass {
 	GObjectClass parent_class;
 
 	const char  *scheme_name;
@@ -50,19 +40,14 @@ typedef struct {
 
 	gboolean     (*can_authenticate)     (SoupAuth      *auth);
 
-	/* Padding for future expansion */
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupAuthClass;
+	gpointer padding[6];
+};
 
 #define SOUP_AUTH_SCHEME_NAME      "scheme-name"
 #define SOUP_AUTH_REALM            "realm"
 #define SOUP_AUTH_HOST             "host"
 #define SOUP_AUTH_IS_FOR_PROXY     "is-for-proxy"
 #define SOUP_AUTH_IS_AUTHENTICATED "is-authenticated"
-
-SOUP_AVAILABLE_IN_2_4
-GType       soup_auth_get_type              (void);
 
 SOUP_AVAILABLE_IN_2_4
 SoupAuth   *soup_auth_new                   (GType          type,
@@ -107,24 +92,7 @@ SOUP_AVAILABLE_IN_2_4
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);
 
-/* The actual auth types, which can be added/removed as features */
-
-#define SOUP_TYPE_AUTH_BASIC  (soup_auth_basic_get_type ())
-SOUP_AVAILABLE_IN_2_4
-GType soup_auth_basic_get_type  (void);
-#define SOUP_TYPE_AUTH_DIGEST (soup_auth_digest_get_type ())
-SOUP_AVAILABLE_IN_2_4
-GType soup_auth_digest_get_type (void);
-#define SOUP_TYPE_AUTH_NTLM   (soup_auth_ntlm_get_type ())
-SOUP_AVAILABLE_IN_2_4
-GType soup_auth_ntlm_get_type   (void);
-#define SOUP_TYPE_AUTH_NEGOTIATE  (soup_auth_negotiate_get_type ())
-SOUP_AVAILABLE_IN_2_54
-GType soup_auth_negotiate_get_type   (void);
-
 SOUP_AVAILABLE_IN_2_54
 gboolean    soup_auth_negotiate_supported   (void);
 
 G_END_DECLS
-
-#endif /* __SOUP_AUTH_H__ */

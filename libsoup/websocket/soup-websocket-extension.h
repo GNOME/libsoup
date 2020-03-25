@@ -20,26 +20,18 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __SOUP_WEBSOCKET_EXTENSION_H__
-#define __SOUP_WEBSOCKET_EXTENSION_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "soup-websocket.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_WEBSOCKET_EXTENSION            (soup_websocket_extension_get_type ())
-#define SOUP_WEBSOCKET_EXTENSION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_WEBSOCKET_EXTENSION, SoupWebsocketExtension))
-#define SOUP_IS_WEBSOCKET_EXTENSION(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_WEBSOCKET_EXTENSION))
-#define SOUP_WEBSOCKET_EXTENSION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_WEBSOCKET_EXTENSION, SoupWebsocketExtensionClass))
-#define SOUP_IS_WEBSOCKET_EXTENSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_WEBSOCKET_EXTENSION))
-#define SOUP_WEBSOCKET_EXTENSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_WEBSOCKET_EXTENSION, SoupWebsocketExtensionClass))
+#define SOUP_TYPE_WEBSOCKET_EXTENSION (soup_websocket_extension_get_type ())
+SOUP_AVAILABLE_IN_2_68
+G_DECLARE_DERIVABLE_TYPE (SoupWebsocketExtension, soup_websocket_extension, SOUP, WEBSOCKET_EXTENSION, GObject)
 
-struct _SoupWebsocketExtension {
-	GObject parent;
-};
-
-typedef struct {
+struct _SoupWebsocketExtensionClass {
 	GObjectClass parent_class;
 
 	const char  *name;
@@ -63,15 +55,8 @@ typedef struct {
 					       GBytes                     *payload,
                                                GError                    **error);
 
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupWebsocketExtensionClass;
-
-SOUP_AVAILABLE_IN_2_68
-GType                    soup_websocket_extension_get_type                 (void);
+	gpointer padding[6];
+};
 
 SOUP_AVAILABLE_IN_2_68
 gboolean                 soup_websocket_extension_configure                (SoupWebsocketExtension     *extension,
@@ -96,5 +81,3 @@ GBytes                  *soup_websocket_extension_process_incoming_message (Soup
 									    GError                    **error);
 
 G_END_DECLS
-
-#endif /* __SOUP_WEBSOCKET_EXTENSION_H__ */

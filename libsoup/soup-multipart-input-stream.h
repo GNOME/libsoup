@@ -3,38 +3,16 @@
  * Copyright (C) 2012 Collabora Ltd.
  */
 
-#ifndef __SOUP_MULTIPART_INPUT_STREAM_H__
-#define __SOUP_MULTIPART_INPUT_STREAM_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "soup-message-headers.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_MULTIPART_INPUT_STREAM         (soup_multipart_input_stream_get_type ())
-#define SOUP_MULTIPART_INPUT_STREAM(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), SOUP_TYPE_MULTIPART_INPUT_STREAM, SoupMultipartInputStream))
-#define SOUP_MULTIPART_INPUT_STREAM_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST((k), SOUP_TYPE_MULTIPART_INPUT_STREAM, SoupMultipartInputStreamClass))
-#define SOUP_IS_MULTIPART_INPUT_STREAM(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), SOUP_TYPE_MULTIPART_INPUT_STREAM))
-#define SOUP_IS_MULTIPART_INPUT_STREAM_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), SOUP_TYPE_MULTIPART_INPUT_STREAM))
-#define SOUP_MULTIPART_INPUT_STREAM_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), SOUP_TYPE_MULTIPART_INPUT_STREAM, SoupMultipartInputStreamClass))
-
-typedef struct _SoupMultipartInputStream        SoupMultipartInputStream;
-typedef struct _SoupMultipartInputStreamPrivate SoupMultipartInputStreamPrivate;
-typedef struct _SoupMultipartInputStreamClass   SoupMultipartInputStreamClass;
-
-struct _SoupMultipartInputStream {
-	GFilterInputStream parent_instance;
-
-	/*< private >*/
-	SoupMultipartInputStreamPrivate *priv;
-};
-
-struct _SoupMultipartInputStreamClass {
-	GFilterInputStreamClass parent_class;
-};
-
+#define SOUP_TYPE_MULTIPART_INPUT_STREAM (soup_multipart_input_stream_get_type ())
 SOUP_AVAILABLE_IN_2_40
-GType                     soup_multipart_input_stream_get_type         (void) G_GNUC_CONST;
+G_DECLARE_FINAL_TYPE (SoupMultipartInputStream, soup_multipart_input_stream, SOUP, MULTIPART_INPUT_STREAM, GFilterInputStream)
 
 SOUP_AVAILABLE_IN_2_40
 SoupMultipartInputStream *soup_multipart_input_stream_new              (SoupMessage               *msg,
@@ -62,5 +40,3 @@ SoupMessageHeaders       *soup_multipart_input_stream_get_headers      (SoupMult
 
 
 G_END_DECLS
-
-#endif /* __SOUP_MULTIPART_INPUT_STREAM_H__ */

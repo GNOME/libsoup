@@ -18,31 +18,18 @@
  * along with this library; If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __SOUP_WEBSOCKET_CONNECTION_H__
-#define __SOUP_WEBSOCKET_CONNECTION_H__
+#pragma once
 
 #include "soup-types.h"
 #include "soup-websocket.h"
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_WEBSOCKET_CONNECTION         (soup_websocket_connection_get_type ())
-#define SOUP_WEBSOCKET_CONNECTION(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), SOUP_TYPE_WEBSOCKET_CONNECTION, SoupWebsocketConnection))
-#define SOUP_IS_WEBSOCKET_CONNECTION(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), SOUP_TYPE_WEBSOCKET_CONNECTION))
-#define SOUP_WEBSOCKET_CONNECTION_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), SOUP_TYPE_WEBSOCKET_CONNECTION, SoupWebsocketConnectionClass))
-#define SOUP_WEBSOCKET_CONNECTION_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), SOUP_TYPE_WEBSOCKET_CONNECTION, SoupWebsocketConnectionClass))
-#define SOUP_IS_WEBSOCKET_CONNECTION_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), SOUP_TYPE_WEBSOCKET_CONNECTION))
+#define SOUP_TYPE_WEBSOCKET_CONNECTION (soup_websocket_connection_get_type ())
+SOUP_AVAILABLE_IN_2_50
+G_DECLARE_DERIVABLE_TYPE (SoupWebsocketConnection, soup_websocket_connection, SOUP, WEBSOCKET_CONNECTION, GObject)
 
-typedef struct _SoupWebsocketConnectionPrivate  SoupWebsocketConnectionPrivate;
-
-struct _SoupWebsocketConnection {
-	GObject parent;
-
-	/*< private >*/
-	SoupWebsocketConnectionPrivate *pv;
-};
-
-typedef struct {
+struct _SoupWebsocketConnectionClass {
 	GObjectClass parent;
 
 	/* signals */
@@ -59,10 +46,7 @@ typedef struct {
 
 	void      (* pong)        (SoupWebsocketConnection *self,
 				   GBytes *message);
-} SoupWebsocketConnectionClass;
-
-SOUP_AVAILABLE_IN_2_50
-GType soup_websocket_connection_get_type (void) G_GNUC_CONST;
+};
 
 SOUP_AVAILABLE_IN_2_50
 SoupWebsocketConnection *soup_websocket_connection_new (GIOStream                    *stream,
@@ -137,5 +121,3 @@ void                soup_websocket_connection_set_keepalive_interval (SoupWebsoc
                                                                       guint                    interval);
 
 G_END_DECLS
-
-#endif /* __SOUP_WEBSOCKET_CONNECTION_H__ */

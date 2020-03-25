@@ -3,8 +3,7 @@
  * Copyright 2007, 2008 Red Hat, Inc.
  */
 
-#ifndef __SOUP_COOKIE_H__
-#define __SOUP_COOKIE_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
@@ -137,6 +136,6 @@ SOUP_AVAILABLE_IN_2_30
 gboolean    soup_cookie_domain_matches          (SoupCookie  *cookie,
 						 const char  *host);
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupCookie, soup_cookie_free)
 
-#endif /* __SOUP_COOKIE_H__ */
+G_END_DECLS

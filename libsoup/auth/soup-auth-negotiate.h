@@ -4,25 +4,14 @@
  * Copyright (C) 2016 Red Hat, Inc.
  */
 
-#ifndef __SOUP_AUTH_NEGOTIATE_H__
-#define __SOUP_AUTH_NEGOTIATE_H__ 1
+#pragma once
 
 #include "soup-connection-auth.h"
 
-#define SOUP_AUTH_NEGOTIATE(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_AUTH_NEGOTIATE, SoupAuthNegotiate))
-#define SOUP_AUTH_NEGOTIATE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_NEGOTIATE, SoupAuthNegotiateClass))
-#define SOUP_IS_AUTH_NEGOTIATE(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), SOUP_TYPE_AUTH_NEGOTIATE))
-#define SOUP_IS_AUTH_NEGOTIATE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_AUTH_NEGOTIATE))
-#define SOUP_AUTH_NEGOTIATE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH_NEGOTIATE, SoupAuthNegotiateClass))
+G_BEGIN_DECLS
 
-typedef struct {
-	SoupConnectionAuth parent;
+#define SOUP_TYPE_AUTH_NEGOTIATE (soup_auth_negotiate_get_type())
+SOUP_AVAILABLE_IN_2_54
+G_DECLARE_FINAL_TYPE (SoupAuthNegotiate, soup_auth_negotiate, SOUP, AUTH_NEGOTIATE, SoupConnectionAuth)
 
-} SoupAuthNegotiate;
-
-typedef struct {
-	SoupConnectionAuthClass parent_class;
-
-} SoupAuthNegotiateClass;
-
-#endif /* __SOUP_AUTH_NEGOTIATE_H__ */
+G_END_DECLS

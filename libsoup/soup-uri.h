@@ -5,8 +5,7 @@
  */
 
 
-#ifndef __SOUP_URI_H__
-#define __SOUP_URI_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
@@ -136,6 +135,6 @@ gboolean    soup_uri_host_equal            (gconstpointer v1,
 #define   SOUP_URI_IS_VALID(uri)       ((uri) && (uri)->scheme && (uri)->path)
 #define   SOUP_URI_VALID_FOR_HTTP(uri) ((uri) && ((uri)->scheme == SOUP_URI_SCHEME_HTTP || (uri)->scheme == SOUP_URI_SCHEME_HTTPS) && (uri)->host && (uri)->path)
 
-G_END_DECLS
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupURI, soup_uri_free)
 
-#endif /* __SOUP_URI_H__ */
+G_END_DECLS

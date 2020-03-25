@@ -53,9 +53,13 @@
  * Since: 2.30
  **/
 
-struct _SoupContentDecoderPrivate {
-	GHashTable *decoders;
+struct _SoupContentDecoder {
+	GObject parent;
 };
+
+typedef struct {
+	GHashTable *decoders;
+} SoupContentDecoderPrivate;
 
 typedef GConverter * (*SoupContentDecoderCreator) (void);
 
@@ -75,6 +79,7 @@ G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT
 static GSList *
 soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMessage *msg)
 {
+        SoupContentDecoderPrivate *priv = soup_content_decoder_get_instance_private (decoder);
 	const char *header;
 	GSList *encodings, *e, *decoders = NULL;
 	SoupContentDecoderCreator converter_creator;
@@ -104,14 +109,14 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 		return NULL;
 
 	for (e = encodings; e; e = e->next) {
-		if (!g_hash_table_lookup (decoder->priv->decoders, e->data)) {
+		if (!g_hash_table_lookup (priv->decoders, e->data)) {
 			soup_header_free_list (encodings);
 			return NULL;
 		}
 	}
 
 	for (e = encodings; e; e = e->next) {
-		converter_creator = g_hash_table_lookup (decoder->priv->decoders, e->data);
+		converter_creator = g_hash_table_lookup (priv->decoders, e->data);
 		converter = converter_creator ();
 
 		/* Content-Encoding lists the codings in the order
@@ -204,18 +209,18 @@ brotli_decoder_creator (void)
 static void
 soup_content_decoder_init (SoupContentDecoder *decoder)
 {
-	decoder->priv = soup_content_decoder_get_instance_private (decoder);
+        SoupContentDecoderPrivate *priv = soup_content_decoder_get_instance_private (decoder);
 
-	decoder->priv->decoders = g_hash_table_new (g_str_hash, g_str_equal);
+	priv->decoders = g_hash_table_new (g_str_hash, g_str_equal);
 	/* Hardcoded for now */
-	g_hash_table_insert (decoder->priv->decoders, "gzip",
+	g_hash_table_insert (priv->decoders, "gzip",
 			     gzip_decoder_creator);
-	g_hash_table_insert (decoder->priv->decoders, "x-gzip",
+	g_hash_table_insert (priv->decoders, "x-gzip",
 			     gzip_decoder_creator);
-	g_hash_table_insert (decoder->priv->decoders, "deflate",
+	g_hash_table_insert (priv->decoders, "deflate",
 			     zlib_decoder_creator);
 #ifdef WITH_BROTLI
-	g_hash_table_insert (decoder->priv->decoders, "br",
+	g_hash_table_insert (priv->decoders, "br",
 			     brotli_decoder_creator);
 #endif
 }
@@ -224,8 +229,9 @@ static void
 soup_content_decoder_finalize (GObject *object)
 {
 	SoupContentDecoder *decoder = SOUP_CONTENT_DECODER (object);
+        SoupContentDecoderPrivate *priv = soup_content_decoder_get_instance_private (decoder);
 
-	g_hash_table_destroy (decoder->priv->decoders);
+	g_hash_table_destroy (priv->decoders);
 
 	G_OBJECT_CLASS (soup_content_decoder_parent_class)->finalize (object);
 }

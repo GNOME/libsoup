@@ -39,30 +39,35 @@
  * URIs.
  */
 
-struct _SoupRequestFilePrivate {
+struct _SoupRequestFile {
+	SoupRequest parent;
+};
+
+typedef struct {
 	GFile *gfile;
 
 	char *mime_type;
 	goffset size;
-};
+} SoupRequestFilePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupRequestFile, soup_request_file, SOUP_TYPE_REQUEST)
 
 static void
 soup_request_file_init (SoupRequestFile *file)
 {
-	file->priv = soup_request_file_get_instance_private (file);
+	SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 
-	file->priv->size = -1;
+	priv->size = -1;
 }
 
 static void
 soup_request_file_finalize (GObject *object)
 {
 	SoupRequestFile *file = SOUP_REQUEST_FILE (object);
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 
-	g_clear_object (&file->priv->gfile);
-	g_free (file->priv->mime_type);
+	g_clear_object (&priv->gfile);
+	g_free (priv->mime_type);
 
 	G_OBJECT_CLASS (soup_request_file_parent_class)->finalize (object);
 }
@@ -121,10 +126,11 @@ soup_request_file_ensure_file (SoupRequestFile  *file,
 			       GCancellable     *cancellable,
 			       GError          **error)
 {
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 	SoupURI *uri;
 	char *decoded_path;
 
-	if (file->priv->gfile)
+	if (priv->gfile)
 		return TRUE;
 
 	uri = soup_request_get_uri (SOUP_REQUEST (file));
@@ -138,10 +144,10 @@ soup_request_file_ensure_file (SoupRequestFile  *file,
 		char *uri_str;
 
 		uri_str = g_strdup_printf ("resource://%s", decoded_path);
-		file->priv->gfile = g_file_new_for_uri (uri_str);
+		priv->gfile = g_file_new_for_uri (uri_str);
 		g_free (uri_str);
 	} else
-		file->priv->gfile = g_file_new_for_path (decoded_path);
+		priv->gfile = g_file_new_for_path (decoded_path);
 
 	g_free (decoded_path);
 	return TRUE;
@@ -153,19 +159,20 @@ soup_request_file_send (SoupRequest          *request,
 			GError              **error)
 {
 	SoupRequestFile *file = SOUP_REQUEST_FILE (request);
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 	GInputStream *stream;
 	GError *my_error = NULL;
 
 	if (!soup_request_file_ensure_file (file, cancellable, error))
 		return NULL;
 
-	stream = G_INPUT_STREAM (g_file_read (file->priv->gfile,
+	stream = G_INPUT_STREAM (g_file_read (priv->gfile,
 					      cancellable, &my_error));
 	if (stream == NULL) {
 		if (g_error_matches (my_error, G_IO_ERROR, G_IO_ERROR_IS_DIRECTORY)) {
 			GFileEnumerator *enumerator;
 			g_clear_error (&my_error);
-			enumerator = g_file_enumerate_children (file->priv->gfile,
+			enumerator = g_file_enumerate_children (priv->gfile,
 								"*",
 								G_FILE_QUERY_INFO_NONE,
 								cancellable,
@@ -174,22 +181,22 @@ soup_request_file_send (SoupRequest          *request,
 				stream = soup_directory_input_stream_new (enumerator,
 									  soup_request_get_uri (request));
 				g_object_unref (enumerator);
-				file->priv->mime_type = g_strdup ("text/html");
+				priv->mime_type = g_strdup ("text/html");
 			}
 		} else
 			g_propagate_error (error, my_error);
 	} else {
-		GFileInfo *info = g_file_query_info (file->priv->gfile,
+		GFileInfo *info = g_file_query_info (priv->gfile,
 						     G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
 						     G_FILE_ATTRIBUTE_STANDARD_SIZE,
 						     0, cancellable, NULL);
 		if (info) {
 			const char *content_type;
-			file->priv->size = g_file_info_get_size (info);
+			priv->size = g_file_info_get_size (info);
 			content_type = g_file_info_get_content_type (info);
 
 			if (content_type)
-				file->priv->mime_type = g_content_type_get_mime_type (content_type);
+				priv->mime_type = g_content_type_get_mime_type (content_type);
 			g_object_unref (info);
 		}
 	}
@@ -204,6 +211,7 @@ on_enumerate_children_ready (GObject      *source,
 {
 	GTask *task = G_TASK (user_data);
 	SoupRequestFile *file = SOUP_REQUEST_FILE (g_task_get_source_object (task));
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 	GFileEnumerator *enumerator;
 	GError *error = NULL;
 
@@ -216,7 +224,7 @@ on_enumerate_children_ready (GObject      *source,
 		stream = soup_directory_input_stream_new (enumerator,
 		                                          soup_request_get_uri (SOUP_REQUEST (file)));
 		g_object_unref (enumerator);
-		file->priv->mime_type = g_strdup ("text/html");
+		priv->mime_type = g_strdup ("text/html");
 
 		g_task_return_pointer (task, stream, g_object_unref);
 	}
@@ -231,6 +239,7 @@ on_query_info_ready (GObject      *source,
 {
 	GTask *task = G_TASK (user_data);
 	SoupRequestFile *file = SOUP_REQUEST_FILE (g_task_get_source_object (task));
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 	GInputStream *stream = G_INPUT_STREAM (g_task_get_task_data (task));
 	GFileInfo *info;
 	GError *error = NULL;
@@ -239,11 +248,11 @@ on_query_info_ready (GObject      *source,
 	if (info) {
 		const char *content_type;
 
-		file->priv->size = g_file_info_get_size (info);
+		priv->size = g_file_info_get_size (info);
 		content_type = g_file_info_get_content_type (info);
 
 		if (content_type)
-			file->priv->mime_type = g_content_type_get_mime_type (content_type);
+			priv->mime_type = g_content_type_get_mime_type (content_type);
 		g_object_unref (info);
 	}
 
@@ -258,13 +267,14 @@ on_read_file_ready (GObject      *source,
 {
 	GTask *task = G_TASK (user_data);
 	SoupRequestFile *file = SOUP_REQUEST_FILE (g_task_get_source_object (task));
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 	GInputStream *stream;
 	GError *error = NULL;
 
 	stream = G_INPUT_STREAM (g_file_read_finish (G_FILE (source), result, &error));
 	if (stream == NULL) {
 		if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_IS_DIRECTORY)) {
-			g_file_enumerate_children_async (file->priv->gfile,
+			g_file_enumerate_children_async (priv->gfile,
 			                                 "*",
 			                                 G_FILE_QUERY_INFO_NONE,
 			                                 G_PRIORITY_DEFAULT,
@@ -278,7 +288,7 @@ on_read_file_ready (GObject      *source,
 		}
 	} else {
 		g_task_set_task_data (task, stream, g_object_unref);
-		g_file_query_info_async (file->priv->gfile,
+		g_file_query_info_async (priv->gfile,
 		                         G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE ","
 		                         G_FILE_ATTRIBUTE_STANDARD_SIZE,
 		                         0,
@@ -296,6 +306,7 @@ soup_request_file_send_async (SoupRequest          *request,
 			      gpointer              user_data)
 {
 	SoupRequestFile *file = SOUP_REQUEST_FILE (request);
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 	GTask *task;
 	GError *error = NULL;
 
@@ -307,7 +318,7 @@ soup_request_file_send_async (SoupRequest          *request,
 		return;
 	}
 
-	g_file_read_async (file->priv->gfile,
+	g_file_read_async (priv->gfile,
 	                   G_PRIORITY_DEFAULT,
 	                   cancellable,
 	                   on_read_file_ready,
@@ -328,19 +339,20 @@ static goffset
 soup_request_file_get_content_length (SoupRequest *request)
 {
 	SoupRequestFile *file = SOUP_REQUEST_FILE (request);
-
-	return file->priv->size;
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
+	return priv->size;
 }
 
 static const char *
 soup_request_file_get_content_type (SoupRequest *request)
 {
 	SoupRequestFile *file = SOUP_REQUEST_FILE (request);
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
 
-	if (!file->priv->mime_type)
+	if (!priv->mime_type)
 		return "application/octet-stream";
 
-	return file->priv->mime_type;
+	return priv->mime_type;
 }
 
 static const char *file_schemes[] = { "file", "resource", NULL };
@@ -377,5 +389,6 @@ soup_request_file_class_init (SoupRequestFileClass *request_file_class)
 GFile *
 soup_request_file_get_file (SoupRequestFile *file)
 {
-	return g_object_ref (file->priv->gfile);
+        SoupRequestFilePrivate *priv = soup_request_file_get_instance_private (file);
+	return g_object_ref (priv->gfile);
 }

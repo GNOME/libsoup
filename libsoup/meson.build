@@ -93,6 +93,8 @@ soup_private_enum_headers = [
 
 soup_introspection_headers = [
   'auth/soup-auth.h',
+  'auth/soup-auth-basic.h',
+  'auth/soup-auth-digest.h',
   'auth/soup-auth-domain.h',
   'auth/soup-auth-domain-basic.h',
   'auth/soup-auth-domain-digest.h',
@@ -122,8 +124,6 @@ soup_introspection_headers = [
   'websocket/soup-websocket-extension-manager.h',
 
   'xmlrpc/soup-xmlrpc.h',
-
-  'soup-autocleanups.h',
 
   'soup-date.h',
   'soup-form.h',

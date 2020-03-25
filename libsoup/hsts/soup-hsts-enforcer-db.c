@@ -34,10 +34,14 @@ enum {
 	LAST_PROP
 };
 
-struct _SoupHSTSEnforcerDBPrivate {
+struct _SoupHSTSEnforcerDB {
+	SoupHSTSEnforcer parent;
+};
+
+typedef struct {
 	char *filename;
 	sqlite3 *db;
-};
+} SoupHSTSEnforcerDBPrivate;
 
 G_DEFINE_TYPE_WITH_CODE (SoupHSTSEnforcerDB, soup_hsts_enforcer_db, SOUP_TYPE_HSTS_ENFORCER,
 			 G_ADD_PRIVATE(SoupHSTSEnforcerDB))
@@ -47,13 +51,12 @@ static void load (SoupHSTSEnforcer *hsts_enforcer);
 static void
 soup_hsts_enforcer_db_init (SoupHSTSEnforcerDB *db)
 {
-	db->priv = soup_hsts_enforcer_db_get_instance_private (db);
 }
 
 static void
 soup_hsts_enforcer_db_finalize (GObject *object)
 {
-	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (object)->priv;
+        SoupHSTSEnforcerDBPrivate *priv = soup_hsts_enforcer_db_get_instance_private ((SoupHSTSEnforcerDB*)object);
 
 	g_free (priv->filename);
 	sqlite3_close (priv->db);
@@ -65,7 +68,7 @@ static void
 soup_hsts_enforcer_db_set_property (GObject *object, guint prop_id,
 				    const GValue *value, GParamSpec *pspec)
 {
-	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (object)->priv;
+        SoupHSTSEnforcerDBPrivate *priv = soup_hsts_enforcer_db_get_instance_private ((SoupHSTSEnforcerDB*)object);
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -82,7 +85,7 @@ static void
 soup_hsts_enforcer_db_get_property (GObject *object, guint prop_id,
 				    GValue *value, GParamSpec *pspec)
 {
-	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (object)->priv;
+        SoupHSTSEnforcerDBPrivate *priv = soup_hsts_enforcer_db_get_instance_private ((SoupHSTSEnforcerDB*)object);
 
 	switch (prop_id) {
 	case PROP_FILENAME:
@@ -212,7 +215,7 @@ try_exec:
 static gboolean
 open_db (SoupHSTSEnforcer *hsts_enforcer)
 {
-	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (hsts_enforcer)->priv;
+	SoupHSTSEnforcerDBPrivate *priv = soup_hsts_enforcer_db_get_instance_private ((SoupHSTSEnforcerDB*)hsts_enforcer);
 
 	char *error = NULL;
 
@@ -234,7 +237,7 @@ open_db (SoupHSTSEnforcer *hsts_enforcer)
 static void
 load (SoupHSTSEnforcer *hsts_enforcer)
 {
-	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (hsts_enforcer)->priv;
+	SoupHSTSEnforcerDBPrivate *priv = soup_hsts_enforcer_db_get_instance_private ((SoupHSTSEnforcerDB*)hsts_enforcer);
 
 	if (priv->db == NULL) {
 		if (open_db (hsts_enforcer))
@@ -249,7 +252,7 @@ soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
 			       SoupHSTSPolicy   *old_policy,
 			       SoupHSTSPolicy   *new_policy)
 {
-	SoupHSTSEnforcerDBPrivate *priv = SOUP_HSTS_ENFORCER_DB (hsts_enforcer)->priv;
+	SoupHSTSEnforcerDBPrivate *priv = soup_hsts_enforcer_db_get_instance_private ((SoupHSTSEnforcerDB*)hsts_enforcer);
 	char *query;
 
 	/* Session policies do not need to be stored in the database. */

@@ -110,7 +110,7 @@ typedef struct _SoupCacheEntry {
 	guint16 status_code;
 } SoupCacheEntry;
 
-struct _SoupCachePrivate {
+typedef struct {
 	char *cache_dir;
 	GHashTable *cache;
 	guint n_pending;
@@ -120,7 +120,7 @@ struct _SoupCachePrivate {
 	guint max_size;
 	guint max_entry_data_size; /* Computed value. Here for performance reasons */
 	GList *lru_start;
-};
+} SoupCachePrivate;
 
 enum {
 	PROP_0,
@@ -142,7 +142,8 @@ static gboolean cache_accepts_entries_of_size (SoupCache *cache, guint length_to
 static GFile *
 get_file_from_entry (SoupCache *cache, SoupCacheEntry *entry)
 {
-	char *filename = g_strdup_printf ("%s%s%u", cache->priv->cache_dir,
+        SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
+	char *filename = g_strdup_printf ("%s%s%u", priv->cache_dir,
 					  G_DIR_SEPARATOR_S, (guint) entry->key);
 	GFile *file = g_file_new_for_path (filename);
 	g_free (filename);
@@ -153,6 +154,7 @@ get_file_from_entry (SoupCache *cache, SoupCacheEntry *entry)
 static SoupCacheability
 get_cacheability (SoupCache *cache, SoupMessage *msg)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheability cacheability;
 	const char *cache_control, *content_type;
 	gboolean has_max_age = FALSE;
@@ -174,7 +176,6 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 	cache_control = soup_message_headers_get_list (msg->response_headers, "Cache-Control");
 	if (cache_control && *cache_control) {
 		GHashTable *hash;
-		SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 
 		hash = soup_header_parse_param_list (cache_control);
 
@@ -507,6 +508,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 static gboolean
 soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry, gboolean purge)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	GList *lru_item;
 
 	if (entry->dirty) {
@@ -515,19 +517,19 @@ soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry, gboolean purge
 	}
 
 	g_assert (!entry->dirty);
-	g_assert (g_list_length (cache->priv->lru_start) == g_hash_table_size (cache->priv->cache));
+	g_assert (g_list_length (priv->lru_start) == g_hash_table_size (priv->cache));
 
-	if (!g_hash_table_remove (cache->priv->cache, GUINT_TO_POINTER (entry->key)))
+	if (!g_hash_table_remove (priv->cache, GUINT_TO_POINTER (entry->key)))
 		return FALSE;
 
 	/* Remove from LRU */
-	lru_item = g_list_find (cache->priv->lru_start, entry);
-	cache->priv->lru_start = g_list_delete_link (cache->priv->lru_start, lru_item);
+	lru_item = g_list_find (priv->lru_start, entry);
+	priv->lru_start = g_list_delete_link (priv->lru_start, lru_item);
 
 	/* Adjust cache size */
-	cache->priv->size -= entry->length;
+	priv->size -= entry->length;
 
-	g_assert (g_list_length (cache->priv->lru_start) == g_hash_table_size (cache->priv->cache));
+	g_assert (g_list_length (priv->lru_start) == g_hash_table_size (priv->cache));
 
 	/* Free resources */
 	if (purge) {
@@ -572,16 +574,18 @@ lru_compare_func (gconstpointer a, gconstpointer b)
 static gboolean
 cache_accepts_entries_of_size (SoupCache *cache, guint length_to_add)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	/* We could add here some more heuristics. TODO: review how
 	   this is done by other HTTP caches */
 
-	return length_to_add <= cache->priv->max_entry_data_size;
+	return length_to_add <= priv->max_entry_data_size;
 }
 
 static void
 make_room_for_new_entry (SoupCache *cache, guint length_to_add)
 {
-	GList *lru_entry = cache->priv->lru_start;
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
+	GList *lru_entry = priv->lru_start;
 
 	/* Check that there is enough room for the new entry. This is
 	   an approximation as we're not working out the size of the
@@ -589,14 +593,14 @@ make_room_for_new_entry (SoupCache *cache, guint length_to_add)
 	   reasons. TODO: check if that would be really that expensive */
 
 	while (lru_entry &&
-	       (length_to_add + cache->priv->size > cache->priv->max_size)) {
+	       (length_to_add + priv->size > priv->max_size)) {
 		SoupCacheEntry *old_entry = (SoupCacheEntry *)lru_entry->data;
 
 		/* Discard entries. Once cancelled resources will be
 		 * freed in close_ready_cb
 		 */
 		if (soup_cache_entry_remove (cache, old_entry, TRUE))
-			lru_entry = cache->priv->lru_start;
+			lru_entry = priv->lru_start;
 		else
 			lru_entry = g_list_next (lru_entry);
 	}
@@ -607,6 +611,7 @@ soup_cache_entry_insert (SoupCache *cache,
 			 SoupCacheEntry *entry,
 			 gboolean sort)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	guint length_to_add = 0;
 	SoupCacheEntry *old_entry;
 
@@ -626,24 +631,24 @@ soup_cache_entry_insert (SoupCache *cache,
 	}
 
 	/* Remove any previous entry */
-	if ((old_entry = g_hash_table_lookup (cache->priv->cache, GUINT_TO_POINTER (entry->key))) != NULL) {
+	if ((old_entry = g_hash_table_lookup (priv->cache, GUINT_TO_POINTER (entry->key))) != NULL) {
 		if (!soup_cache_entry_remove (cache, old_entry, TRUE))
 			return FALSE;
 	}
 
 	/* Add to hash table */
-	g_hash_table_insert (cache->priv->cache, GUINT_TO_POINTER (entry->key), entry);
+	g_hash_table_insert (priv->cache, GUINT_TO_POINTER (entry->key), entry);
 
 	/* Compute new cache size */
-	cache->priv->size += length_to_add;
+	priv->size += length_to_add;
 
 	/* Update LRU */
 	if (sort)
-		cache->priv->lru_start = g_list_insert_sorted (cache->priv->lru_start, entry, lru_compare_func);
+		priv->lru_start = g_list_insert_sorted (priv->lru_start, entry, lru_compare_func);
 	else
-		cache->priv->lru_start = g_list_prepend (cache->priv->lru_start, entry);
+		priv->lru_start = g_list_prepend (priv->lru_start, entry);
 
-	g_assert (g_list_length (cache->priv->lru_start) == g_hash_table_size (cache->priv->cache));
+	g_assert (g_list_length (priv->lru_start) == g_hash_table_size (priv->cache));
 
 	return TRUE;
 }
@@ -652,6 +657,7 @@ static SoupCacheEntry*
 soup_cache_entry_lookup (SoupCache *cache,
 			 SoupMessage *msg)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry;
 	guint32 key;
 	char *uri = NULL;
@@ -659,7 +665,7 @@ soup_cache_entry_lookup (SoupCache *cache,
 	uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 	key = get_cache_key_from_uri ((const char *) uri);
 
-	entry = g_hash_table_lookup (cache->priv->cache, GUINT_TO_POINTER (key));
+	entry = g_hash_table_lookup (priv->cache, GUINT_TO_POINTER (key));
 
 	if (entry != NULL && (strcmp (entry->uri, uri) != 0))
 		entry = NULL;
@@ -671,6 +677,7 @@ soup_cache_entry_lookup (SoupCache *cache,
 GInputStream *
 soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry;
 	GInputStream *file_stream, *body_stream, *cache_stream, *client_stream;
 	GFile *file;
@@ -711,7 +718,7 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	/* Create the cache stream. */
 	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
 	cache_stream = soup_message_setup_body_istream (body_stream, msg,
-							cache->priv->session,
+							priv->session,
 							SOUP_STAGE_ENTITY_BODY);
 	g_object_unref (body_stream);
 
@@ -746,7 +753,8 @@ static void
 attach (SoupSessionFeature *feature, SoupSession *session)
 {
 	SoupCache *cache = SOUP_CACHE (feature);
-	cache->priv->session = session;
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
+	priv->session = session;
 
 	soup_cache_default_feature_interface->attach (feature, session);
 }
@@ -775,9 +783,10 @@ istream_caching_finished (SoupCacheInputStream *istream,
 {
 	StreamHelper *helper = (StreamHelper *) user_data;
 	SoupCache *cache = helper->cache;
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry = helper->entry;
 
-	--cache->priv->n_pending;
+	--priv->n_pending;
 
 	entry->dirty = FALSE;
 	entry->length = bytes_written;
@@ -786,7 +795,7 @@ istream_caching_finished (SoupCacheInputStream *istream,
 	if (error) {
 		/* Update cache size */
 		if (soup_message_headers_get_encoding (entry->headers) == SOUP_ENCODING_CONTENT_LENGTH)
-			cache->priv->size -= soup_message_headers_get_content_length (entry->headers);
+			priv->size -= soup_message_headers_get_content_length (entry->headers);
 
 		soup_cache_entry_remove (cache, entry, TRUE);
 		helper->entry = entry = NULL;
@@ -797,7 +806,7 @@ istream_caching_finished (SoupCacheInputStream *istream,
 
 		if (cache_accepts_entries_of_size (cache, entry->length)) {
 			make_room_for_new_entry (cache, entry->length);
-			cache->priv->size += entry->length;
+			priv->size += entry->length;
 		} else {
 			soup_cache_entry_remove (cache, entry, TRUE);
 			helper->entry = entry = NULL;
@@ -816,6 +825,7 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 					 GError **error)
 {
 	SoupCache *cache = (SoupCache*) processor;
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry;
 	SoupCacheability cacheability;
 	GInputStream *istream;
@@ -868,7 +878,7 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 	}
 
 	entry->cancellable = g_cancellable_new ();
-	++cache->priv->n_pending;
+	++priv->n_pending;
 
 	helper = g_slice_new (StreamHelper);
 	helper->cache = g_object_ref (cache);
@@ -897,9 +907,7 @@ soup_cache_content_processor_init (SoupContentProcessorInterface *processor_inte
 static void
 soup_cache_init (SoupCache *cache)
 {
-	SoupCachePrivate *priv;
-
-	priv = cache->priv = soup_cache_get_instance_private (cache);
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 
 	priv->cache = g_hash_table_new (g_direct_hash, g_direct_equal);
 	/* LRU */
@@ -924,10 +932,8 @@ remove_cache_item (gpointer data,
 static void
 soup_cache_finalize (GObject *object)
 {
-	SoupCachePrivate *priv;
+	SoupCachePrivate *priv = soup_cache_get_instance_private ((SoupCache*)object);
 	GList *entries;
-
-	priv = SOUP_CACHE (object)->priv;
 
 	/* Cannot use g_hash_table_foreach as callbacks must not modify the hash table */
 	entries = g_hash_table_get_values (priv->cache);
@@ -946,7 +952,7 @@ static void
 soup_cache_set_property (GObject *object, guint prop_id,
 				const GValue *value, GParamSpec *pspec)
 {
-	SoupCachePrivate *priv = SOUP_CACHE (object)->priv;
+	SoupCachePrivate *priv = soup_cache_get_instance_private ((SoupCache*)object);
 
 	switch (prop_id) {
 	case PROP_CACHE_DIR:
@@ -978,7 +984,7 @@ static void
 soup_cache_get_property (GObject *object, guint prop_id,
 			 GValue *value, GParamSpec *pspec)
 {
-	SoupCachePrivate *priv = SOUP_CACHE (object)->priv;
+	SoupCachePrivate *priv = soup_cache_get_instance_private ((SoupCache*)object);
 
 	switch (prop_id) {
 	case PROP_CACHE_DIR:
@@ -1072,6 +1078,7 @@ soup_cache_new (const char *cache_dir, SoupCacheType cache_type)
 SoupCacheResponse
 soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry;
 	const char *cache_control;
 	gpointer value;
@@ -1088,13 +1095,13 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* Increase hit count. Take sorting into account */
 	entry->hits++;
-	lru_item = g_list_find (cache->priv->lru_start, entry);
+	lru_item = g_list_find (priv->lru_start, entry);
 	item = lru_item;
 	while (item->next && lru_compare_func (item->data, item->next->data) > 0)
 		item = g_list_next (item);
 
 	if (item != lru_item) {
-		cache->priv->lru_start = g_list_remove_link (cache->priv->lru_start, lru_item);
+		priv->lru_start = g_list_remove_link (priv->lru_start, lru_item);
 		item = g_list_insert_sorted (item, lru_item->data, lru_compare_func);
 		g_list_free (lru_item);
 	}
@@ -1260,6 +1267,7 @@ force_flush_timeout (gpointer data)
 void
 soup_cache_flush (SoupCache *cache)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	GMainContext *async_context;
 	SoupSession *session;
 	GSource *timeout;
@@ -1267,20 +1275,20 @@ soup_cache_flush (SoupCache *cache)
 
 	g_return_if_fail (SOUP_IS_CACHE (cache));
 
-	session = cache->priv->session;
+	session = priv->session;
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	async_context = g_main_context_get_thread_default ();
 
 	/* We give cache 10 secs to finish */
 	timeout = soup_add_timeout (async_context, 10000, force_flush_timeout, &forced);
 
-	while (!forced && cache->priv->n_pending > 0)
+	while (!forced && priv->n_pending > 0)
 		g_main_context_iteration (async_context, FALSE);
 
 	if (!forced)
 		g_source_destroy (timeout);
 	else
-		g_warning ("Cache flush finished despite %d pending requests", cache->priv->n_pending);
+		g_warning ("Cache flush finished despite %d pending requests", priv->n_pending);
 }
 
 typedef void (* SoupCacheForeachFileFunc) (SoupCache *cache, const char *name, gpointer user_data);
@@ -1288,9 +1296,9 @@ typedef void (* SoupCacheForeachFileFunc) (SoupCache *cache, const char *name, g
 static void
 soup_cache_foreach_file (SoupCache *cache, SoupCacheForeachFileFunc func, gpointer user_data)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	GDir *dir;
 	const char *name;
-	SoupCachePrivate *priv = cache->priv;
 
 	dir = g_dir_open (priv->cache_dir, 0, NULL);
 	while ((name = g_dir_read_name (dir))) {
@@ -1312,9 +1320,10 @@ clear_cache_item (gpointer data,
 static void
 delete_cache_file (SoupCache *cache, const char *name, gpointer user_data)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	gchar *path;
 
-	path = g_build_filename (cache->priv->cache_dir, name, NULL);
+	path = g_build_filename (priv->cache_dir, name, NULL);
 	g_unlink (path);
 	g_free (path);
 }
@@ -1336,13 +1345,14 @@ clear_cache_files (SoupCache *cache)
 void
 soup_cache_clear (SoupCache *cache)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	GList *entries;
 
 	g_return_if_fail (SOUP_IS_CACHE (cache));
-	g_return_if_fail (cache->priv->cache);
+	g_return_if_fail (priv->cache);
 
 	/* Cannot use g_hash_table_foreach as callbacks must not modify the hash table */
-	entries = g_hash_table_get_values (cache->priv->cache);
+	entries = g_hash_table_get_values (priv->cache);
 	g_list_foreach (entries, clear_cache_item, cache);
 	g_list_free (entries);
 
@@ -1405,13 +1415,14 @@ void
 soup_cache_cancel_conditional_request (SoupCache   *cache,
 				       SoupMessage *msg)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry;
 
 	entry = soup_cache_entry_lookup (cache, msg);
 	if (entry)
 		entry->being_validated = FALSE;
 
-	soup_session_cancel_message (cache->priv->session, msg, SOUP_STATUS_CANCELLED);
+	soup_session_cancel_message (priv->session, msg, SOUP_STATUS_CANCELLED);
 }
 
 void
@@ -1490,14 +1501,14 @@ soup_cache_dump (SoupCache *cache)
 	GVariantBuilder entries_builder;
 	GVariant *cache_variant;
 
-	if (!g_list_length (cache->priv->lru_start))
+	if (!g_list_length (priv->lru_start))
 		return;
 
 	/* Create the builder and iterate over all entries */
 	g_variant_builder_init (&entries_builder, G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT));
 	g_variant_builder_add (&entries_builder, "q", SOUP_CACHE_CURRENT_VERSION);
 	g_variant_builder_open (&entries_builder, G_VARIANT_TYPE ("a" SOUP_CACHE_PHEADERS_FORMAT));
-	g_list_foreach (cache->priv->lru_start, pack_entry, &entries_builder);
+	g_list_foreach (priv->lru_start, pack_entry, &entries_builder);
 	g_variant_builder_close (&entries_builder);
 
 	/* Serialize and dump */
@@ -1522,9 +1533,10 @@ get_key_from_cache_filename (const char *name)
 static void
 insert_cache_file (SoupCache *cache, const char *name, GHashTable *leaked_entries)
 {
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	gchar *path;
 
-	path = g_build_filename (cache->priv->cache_dir, name, NULL);
+	path = g_build_filename (priv->cache_dir, name, NULL);
 	if (g_file_test (path, G_FILE_TEST_IS_REGULAR)) {
 		guint32 key = get_key_from_cache_filename (name);
 
@@ -1555,7 +1567,7 @@ soup_cache_load (SoupCache *cache)
 	GVariantIter *entries_iter = NULL, *headers_iter = NULL;
 	gsize length;
 	SoupCacheEntry *entry;
-	SoupCachePrivate *priv = cache->priv;
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	guint16 version, status_code;
 	GHashTable *leaked_entries = NULL;
 	GHashTableIter iter;
@@ -1628,7 +1640,7 @@ soup_cache_load (SoupCache *cache)
 		g_unlink ((char *)value);
 	g_hash_table_destroy (leaked_entries);
 
-	cache->priv->lru_start = g_list_reverse (cache->priv->lru_start);
+	priv->lru_start = g_list_reverse (priv->lru_start);
 
 	/* frees */
 	g_variant_iter_free (entries_iter);
@@ -1648,8 +1660,9 @@ void
 soup_cache_set_max_size (SoupCache *cache,
 			 guint      max_size)
 {
-	cache->priv->max_size = max_size;
-	cache->priv->max_entry_data_size = cache->priv->max_size / MAX_ENTRY_DATA_PERCENTAGE;
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
+	priv->max_size = max_size;
+	priv->max_entry_data_size = priv->max_size / MAX_ENTRY_DATA_PERCENTAGE;
 }
 
 /**
@@ -1665,5 +1678,6 @@ soup_cache_set_max_size (SoupCache *cache,
 guint
 soup_cache_get_max_size (SoupCache *cache)
 {
-	return cache->priv->max_size;
+	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
+	return priv->max_size;
 }

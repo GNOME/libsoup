@@ -3,8 +3,7 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#ifndef __SOUP_METHOD_H__
-#define __SOUP_METHOD_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
@@ -75,5 +74,3 @@ SOUP_VAR gpointer _SOUP_METHOD_LOCK;
 SOUP_VAR gpointer _SOUP_METHOD_UNLOCK;
 
 G_END_DECLS
-
-#endif /* __SOUP_METHOD_H__ */

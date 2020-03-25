@@ -13,10 +13,14 @@ extern "C" {
 #define __SOUP_H_INSIDE__
 
 #include "auth/soup-auth.h"
+#include "auth/soup-auth-basic.h"
+#include "auth/soup-auth-digest.h"
 #include "auth/soup-auth-domain.h"
 #include "auth/soup-auth-domain-basic.h"
 #include "auth/soup-auth-domain-digest.h"
 #include "auth/soup-auth-manager.h"
+#include "auth/soup-auth-negotiate.h"
+#include "auth/soup-auth-ntlm.h"
 #include "cache/soup-cache.h"
 #include "content-sniffer/soup-content-decoder.h"
 #include "content-sniffer/soup-content-sniffer.h"
@@ -54,8 +58,6 @@ extern "C" {
 #include "websocket/soup-websocket-extension-deflate.h"
 #include "websocket/soup-websocket-extension-manager.h"
 #include "xmlrpc/soup-xmlrpc.h"
-
-#include "soup-autocleanups.h"
 
 #undef __SOUP_H_INSIDE__
 

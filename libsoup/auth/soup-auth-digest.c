@@ -11,13 +11,17 @@
 
 #include <string.h>
 
-#include "soup-auth-digest.h"
+#include "auth/soup-auth-digest-private.h"
 #include "soup.h"
 #include "soup-message-private.h"
 
 #ifdef G_OS_WIN32
 #include <process.h>
 #endif
+
+struct _SoupAuthDigest {
+	SoupAuth parent;
+};
 
 typedef struct {
 	char                    *user;
@@ -309,7 +313,7 @@ soup_auth_digest_authenticate (SoupAuth *auth, const char *username,
 	priv->user = g_strdup (username);
 
 	/* compute "URP" (user:realm:password) */
-	soup_auth_digest_compute_hex_urp (username, auth->realm,
+	soup_auth_digest_compute_hex_urp (username, soup_auth_get_realm (auth),
 					  password ? password : "",
 					  priv->hex_urp);
 
@@ -428,7 +432,7 @@ soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 
 	soup_header_g_string_append_param_quoted (out, "username", priv->user);
 	g_string_append (out, ", ");
-	soup_header_g_string_append_param_quoted (out, "realm", auth->realm);
+	soup_header_g_string_append_param_quoted (out, "realm", soup_auth_get_realm (auth));
 	g_string_append (out, ", ");
 	soup_header_g_string_append_param_quoted (out, "nonce", priv->nonce);
 	g_string_append (out, ", ");

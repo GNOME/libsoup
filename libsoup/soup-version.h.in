@@ -5,8 +5,7 @@
  * Copyright (C) 2012 Igalia S.L.
  */
 
-#ifndef __SOUP_VERSION_H__
-#define __SOUP_VERSION_H__
+#pragma once
 
 #include <glib.h>
 
@@ -433,5 +432,3 @@ gboolean soup_check_version     (guint major,
 				 guint micro);
 
 G_END_DECLS
-
-#endif /* __SOUP_VERSION_H__ */

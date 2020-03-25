@@ -14,6 +14,10 @@
 #include "soup-auth-basic.h"
 #include "soup.h"
 
+struct _SoupAuthBasic {
+	SoupAuth parent;
+};
+
 typedef struct {
 	char *token;
 } SoupAuthBasicPrivate;
