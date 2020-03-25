@@ -13,7 +13,7 @@
 
 #include <glib/gi18n-lib.h>
 
-#include "soup-server.h"
+#include "soup-server-private.h"
 #include "soup.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"

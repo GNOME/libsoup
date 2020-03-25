@@ -56,42 +56,30 @@ typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
 					       guint               status,
 					       gpointer            user_data);
 
-SOUP_AVAILABLE_IN_2_4
 GType soup_socket_get_type (void);
 
-SOUP_AVAILABLE_IN_2_4
 SoupSocket    *soup_socket_new                (const char         *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
-SOUP_AVAILABLE_IN_2_4
 void           soup_socket_connect_async      (SoupSocket         *sock,
 					       GCancellable       *cancellable,
 					       SoupSocketCallback  callback,
 					       gpointer            user_data);
-SOUP_AVAILABLE_IN_2_4
 guint          soup_socket_connect_sync       (SoupSocket         *sock,
 					       GCancellable       *cancellable);
-SOUP_AVAILABLE_IN_2_4
 gboolean       soup_socket_listen             (SoupSocket         *sock);
 
-SOUP_AVAILABLE_IN_2_4
 gboolean       soup_socket_start_ssl          (SoupSocket         *sock,
 					       GCancellable       *cancellable);
-SOUP_AVAILABLE_IN_2_4
 gboolean       soup_socket_start_proxy_ssl    (SoupSocket         *sock,
 					       const char         *ssl_host,
 					       GCancellable       *cancellable);
-SOUP_AVAILABLE_IN_2_4
 gboolean       soup_socket_is_ssl             (SoupSocket         *sock);
 
-SOUP_AVAILABLE_IN_2_4
 void           soup_socket_disconnect         (SoupSocket         *sock);
-SOUP_AVAILABLE_IN_2_4
 gboolean       soup_socket_is_connected       (SoupSocket         *sock);
 
-SOUP_AVAILABLE_IN_2_4
 GInetSocketAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
-SOUP_AVAILABLE_IN_2_4
 GInetSocketAddress   *soup_socket_get_remote_address (SoupSocket         *sock);
 
 typedef enum {
@@ -101,14 +89,12 @@ typedef enum {
 	SOUP_SOCKET_ERROR
 } SoupSocketIOStatus;
 
-SOUP_AVAILABLE_IN_2_4
 SoupSocketIOStatus  soup_socket_read       (SoupSocket         *sock,
 					    gpointer            buffer,
 					    gsize               len,
 					    gsize              *nread,
 					    GCancellable       *cancellable,
 					    GError            **error);
-SOUP_AVAILABLE_IN_2_4
 SoupSocketIOStatus  soup_socket_read_until (SoupSocket         *sock,
 					    gpointer            buffer,
 					    gsize               len,
@@ -119,7 +105,6 @@ SoupSocketIOStatus  soup_socket_read_until (SoupSocket         *sock,
 					    GCancellable       *cancellable,
 					    GError            **error);
 
-SOUP_AVAILABLE_IN_2_4
 SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
 					    gconstpointer       buffer,
 					    gsize               len,

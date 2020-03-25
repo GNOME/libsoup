@@ -7,6 +7,7 @@
 
 #include "soup-connection.h"
 #include "soup-socket-private.h"
+#include "soup-server-private.h"
 
 #include <gio/gnetworking.h>
 
@@ -61,9 +62,7 @@ timeout_request_started (SoupServer *server, SoupMessage *msg,
 
 	g_signal_handlers_disconnect_by_func (server, timeout_request_started, NULL);
 
-	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	sock = soup_client_context_get_socket (client);
-	G_GNUC_END_IGNORE_DEPRECATIONS;
 	readable = g_signal_connect (sock, "readable",
 				    G_CALLBACK (timeout_socket), NULL);
 
@@ -141,9 +140,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			 * the declared Content-Length. Instead, we
 			 * forcibly close the socket at that point.
 			 */
-			G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			sock = soup_client_context_get_socket (context);
-			G_GNUC_END_IGNORE_DEPRECATIONS;
 			g_signal_connect (msg, "wrote-chunk",
 					  G_CALLBACK (close_socket), sock);
 		} else if (no_close) {
@@ -161,9 +158,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (!strcmp (path, "/timeout-persistent")) {
 		SoupSocket *sock;
 
-		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 		sock = soup_client_context_get_socket (context);
-		G_GNUC_END_IGNORE_DEPRECATIONS;
 		setup_timeout_persistent (server, sock);
 	}
 
@@ -217,10 +212,11 @@ do_content_length_framing_test (void)
 }
 
 static void
-request_started_socket_collector (SoupSession *session, SoupMessage *msg,
-				  SoupSocket *socket, gpointer user_data)
+request_started_socket_collector (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SoupSocket **sockets = user_data;
+        SoupConnection *conn = soup_message_get_connection (msg);
+        SoupSocket *socket = soup_connection_get_socket (conn);
 	int i;
 
 	debug_printf (2, "      msg %p => socket %p\n", msg, socket);
@@ -395,8 +391,7 @@ do_persistent_connection_timeout_test (void)
 }
 
 static void
-cancel_cancellable_handler (SoupSession *session, SoupMessage *msg,
-			    SoupSocket *socket, gpointer user_data)
+cancel_cancellable_handler (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	g_cancellable_cancel (user_data);
 }
@@ -507,8 +502,7 @@ quit_loop (gpointer data)
 }
 
 static void
-max_conns_request_started (SoupSession *session, SoupMessage *msg,
-			   SoupSocket *socket, gpointer user_data)
+max_conns_request_started (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	if (++msgs_done >= MAX_CONNS) {
 		if (quit_loop_timeout)
@@ -608,10 +602,11 @@ do_max_conns_test (void)
 }
 
 static void
-np_request_started (SoupSession *session, SoupMessage *msg,
-		    SoupSocket *socket, gpointer user_data)
+np_request_started (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SoupSocket **save_socket = user_data;
+        SoupConnection *conn = soup_message_get_connection (msg);
+        SoupSocket *socket = soup_connection_get_socket (conn);
 
 	*save_socket = g_object_ref (socket);
 }

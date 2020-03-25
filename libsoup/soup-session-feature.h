@@ -31,8 +31,7 @@ typedef struct {
 				      SoupMessage        *msg);
 	void     (*request_started)  (SoupSessionFeature *feature,
 				      SoupSession        *session,
-				      SoupMessage        *msg,
-				      SoupSocket         *socket);
+				      SoupMessage        *msg);
 	void     (*request_unqueued) (SoupSessionFeature *feature,
 				      SoupSession        *session,
 				      SoupMessage        *msg);

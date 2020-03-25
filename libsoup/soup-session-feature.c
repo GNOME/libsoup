@@ -74,14 +74,13 @@ request_queued (SoupSession *session, SoupMessage *msg, gpointer feature)
 }
 
 static void
-request_started (SoupSession *session, SoupMessage *msg,
-		 SoupSocket *socket, gpointer feature)
+request_started (SoupSession *session, SoupMessage *msg, gpointer feature)
 {
 	if (soup_message_disables_feature (msg, feature))
 		return;
 
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->
-		request_started (feature, session, msg, socket);
+		request_started (feature, session, msg);
 }
 
 static void

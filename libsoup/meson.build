@@ -175,7 +175,6 @@ soup_introspection_headers = [
   'soup-server.h',
   'soup-session.h',
   'soup-session-feature.h',
-  'soup-socket.h',
   'soup-status.h',
   'soup-tld.h',
   'soup-types.h',

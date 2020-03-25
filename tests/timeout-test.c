@@ -1,6 +1,8 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
+#include "soup-message-private.h"
+#include "soup-connection.h"
 
 static gboolean slow_https;
 
@@ -13,12 +15,12 @@ message_finished (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-request_started_cb (SoupSession *session, SoupMessage *msg,
-		    SoupSocket *socket, gpointer user_data)
+request_started_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SoupSocket **ret = user_data;
+        SoupConnection *conn = soup_message_get_connection (msg);
 
-	*ret = socket;
+	*ret = soup_connection_get_socket (conn);
 }
 
 static void

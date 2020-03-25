@@ -193,11 +193,6 @@ const char     *soup_client_context_get_auth_user      (SoupClientContext *clien
 SOUP_AVAILABLE_IN_2_50
 GIOStream      *soup_client_context_steal_connection   (SoupClientContext *client);
 
-/* Legacy API */
-SOUP_AVAILABLE_IN_2_4
-SOUP_DEPRECATED_IN_2_48
-SoupSocket   *soup_client_context_get_socket  (SoupClientContext *client);
-
 G_END_DECLS
 
 #endif /* __SOUP_SERVER_H__ */
