@@ -87,39 +87,6 @@ soup_sources = [
   'soup-version.c',
 ]
 
-soup_installed_headers = [
-  'auth/soup-auth-basic.h',
-  'auth/soup-auth-digest.h',
-  'auth/soup-auth-ntlm.h',
-  'auth/soup-auth-negotiate.h',
-  'auth/soup-connection-auth.h',
-
-  'cache/soup-cache-client-input-stream.h',
-  'cache/soup-cache-input-stream.h',
-  'cache/soup-cache-private.h',
-
-  'content-sniffer/soup-content-processor.h',
-  'content-sniffer/soup-content-sniffer-stream.h',
-  'content-sniffer/soup-converter-wrapper.h',
-
-  'websocket/soup-websocket-extension-manager-private.h',
-
-  'gconstructor.h',
-  'soup-body-input-stream.h',
-  'soup-body-output-stream.h',
-  'soup-client-input-stream.h',
-  'soup-connection.h',
-  'soup-directory-input-stream.h',
-  'soup-filter-input-stream.h',
-  'soup-io-stream.h',
-  'soup-message-private.h',
-  'soup-message-queue.h',
-  'soup-misc-private.h',
-  'soup-path-map.h',
-  'soup-session-private.h',
-  'soup-socket-private.h',
-]
-
 soup_private_enum_headers = [
   'soup-connection.h',
 ]
