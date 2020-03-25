@@ -1390,7 +1390,7 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 {
 	SoupServerPrivate *priv;
 	SoupSocket *listener;
-	gboolean success;
+	gboolean success, ipv6_only;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), FALSE);
 	g_return_val_if_fail (!(options & SOUP_SERVER_LISTEN_IPV4_ONLY) &&
@@ -1399,8 +1399,9 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 	priv = soup_server_get_instance_private (server);
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
+        ipv6_only = g_socket_address_get_family (address) == G_SOCKET_FAMILY_IPV6;
 	listener = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, address,
-				    SOUP_SOCKET_IPV6_ONLY, TRUE,
+				    SOUP_SOCKET_IPV6_ONLY, ipv6_only,
 				    NULL);
 
 	success = soup_server_listen_internal (server, listener, options, error);

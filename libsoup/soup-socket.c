@@ -1209,16 +1209,14 @@ soup_socket_listen_full (SoupSocket *sock,
 		goto cant_listen;
 	finish_socket_setup (sock);
 
-#if defined (IPPROTO_IPV6) && defined (IPV6_V6ONLY)
 	if (priv->ipv6_only) {
-		int fd, v6_only;
-
-		fd = g_socket_get_fd (priv->gsock);
-		v6_only = TRUE;
-		setsockopt (fd, IPPROTO_IPV6, IPV6_V6ONLY,
-			    &v6_only, sizeof (v6_only));
+                GError *error = NULL;
+                g_socket_set_option (priv->gsock, IPPROTO_IPV6, IPV6_V6ONLY, TRUE, &error);
+                if (error) {
+                        g_warning ("Failed to set IPv6 only on socket: %s", error->message);
+                        g_error_free (error);
+                }
 	}
-#endif
 
 	/* Bind */
 	if (!g_socket_bind (priv->gsock, G_SOCKET_ADDRESS (priv->local_addr), TRUE, error))
