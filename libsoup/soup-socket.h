@@ -72,9 +72,6 @@ SOUP_AVAILABLE_IN_2_4
 guint          soup_socket_connect_sync       (SoupSocket         *sock,
 					       GCancellable       *cancellable);
 SOUP_AVAILABLE_IN_2_4
-int            soup_socket_get_fd             (SoupSocket         *sock);
-
-SOUP_AVAILABLE_IN_2_4
 gboolean       soup_socket_listen             (SoupSocket         *sock);
 
 SOUP_AVAILABLE_IN_2_4

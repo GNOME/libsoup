@@ -9,7 +9,6 @@
 #include "soup-socket.h"
 
 #define SOUP_SOCKET_SOCKET_PROPERTIES "socket-properties"
-#define SOUP_SOCKET_FD                "fd"
 #define SOUP_SOCKET_GSOCKET           "gsocket"
 #define SOUP_SOCKET_IOSTREAM          "iostream"
 #define SOUP_SOCKET_IPV6_ONLY         "ipv6-only"

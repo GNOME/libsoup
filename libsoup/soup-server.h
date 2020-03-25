@@ -97,11 +97,6 @@ gboolean        soup_server_listen_socket      (SoupServer               *server
 					        SoupServerListenOptions   options,
 					        GError                  **error);
 SOUP_AVAILABLE_IN_2_48
-gboolean        soup_server_listen_fd          (SoupServer               *server,
-					        int                       fd,
-					        SoupServerListenOptions   options,
-					        GError                  **error);
-SOUP_AVAILABLE_IN_2_48
 GSList         *soup_server_get_uris           (SoupServer               *server);
 SOUP_AVAILABLE_IN_2_48
 GSList         *soup_server_get_listeners      (SoupServer               *server);

@@ -6,6 +6,7 @@
 #include "test-utils.h"
 
 #include "soup-connection.h"
+#include "soup-socket-private.h"
 
 #include <gio/gnetworking.h>
 
@@ -23,12 +24,14 @@ static void
 close_socket (SoupMessage *msg, gpointer user_data)
 {
 	SoupSocket *sock = user_data;
+        GSocket *gsocket;
 	int sockfd;
 
 	/* Actually calling soup_socket_disconnect() here would cause
 	 * us to leak memory, so just shutdown the socket instead.
 	 */
-	sockfd = soup_socket_get_fd (sock);
+        gsocket = soup_socket_get_gsocket (sock); 
+	sockfd = g_socket_get_fd (gsocket);
 #ifdef G_OS_WIN32
 	shutdown (sockfd, SD_SEND);
 #else

@@ -1639,55 +1639,6 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
 }
 
 /**
- * soup_server_listen_fd:
- * @server: a #SoupServer
- * @fd: the file descriptor of a listening socket
- * @options: listening options for this server
- * @error: return location for a #GError
- *
- * This attempts to set up @server to listen for connections on
- * @fd.
- *
- * See soup_server_listen() for more details.
- *
- * Note that @server will close @fd when you free it or call
- * soup_server_disconnect().
- *
- * Return value: %TRUE on success, %FALSE if an error occurred (in
- * which case @error will be set).
- *
- * Since: 2.48
- **/
-gboolean
-soup_server_listen_fd (SoupServer *server, int fd,
-		       SoupServerListenOptions options,
-		       GError **error)
-{
-	SoupServerPrivate *priv;
-	SoupSocket *listener;
-	gboolean success;
-
-	g_return_val_if_fail (SOUP_IS_SERVER (server), FALSE);
-	g_return_val_if_fail (!(options & SOUP_SERVER_LISTEN_IPV4_ONLY) &&
-			      !(options & SOUP_SERVER_LISTEN_IPV6_ONLY), FALSE);
-
-	priv = soup_server_get_instance_private (server);
-	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
-
-	listener = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
-				   SOUP_SOCKET_FD, fd,
-				   SOUP_SOCKET_IPV6_ONLY, TRUE,
-				   NULL);
-	if (!listener)
-		return FALSE;
-
-	success = soup_server_listen_internal (server, listener, options, error);
-	g_object_unref (listener);
-
-	return success;
-}
-
-/**
  * soup_server_get_uris:
  * @server: a #SoupServer
  *

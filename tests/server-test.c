@@ -678,7 +678,7 @@ do_fd_import_test (void)
 	g_assert_cmpint (g_slist_length (listeners), ==, 0);
 	g_slist_free (listeners);
 
-	soup_server_listen_fd (server, g_socket_get_fd (gsock), 0, &error);
+	soup_server_listen_socket (server, gsock, 0, &error);
 	g_assert_no_error (error);
 	listeners = soup_server_get_listeners (server);
 	g_assert_cmpint (g_slist_length (listeners), ==, 1);

@@ -115,6 +115,12 @@ do_unconnected_socket_test (void)
 	g_object_unref (sock);
 }
 
+static int
+socket_get_fd (SoupSocket *socket)
+{
+        return g_socket_get_fd (soup_socket_get_gsocket (socket));
+}
+
 static void
 do_socket_from_fd_client_test (void)
 {
@@ -156,7 +162,7 @@ do_socket_from_fd_client_test (void)
 		      SOUP_SOCKET_REMOTE_ADDRESS, &remote,
 		      SOUP_SOCKET_IS_SERVER, &is_server,
 		      NULL);
-	g_assert_cmpint (soup_socket_get_fd (sock), ==, g_socket_get_fd (gsock));
+	g_assert_cmpint (socket_get_fd (sock), ==, g_socket_get_fd (gsock));
 	g_assert_false (is_server);
 	g_assert_true (soup_socket_is_connected (sock));
 
@@ -213,7 +219,7 @@ do_socket_from_fd_server_test (void)
 		      SOUP_SOCKET_LOCAL_ADDRESS, &local,
 		      SOUP_SOCKET_IS_SERVER, &is_server,
 		      NULL);
-	g_assert_cmpint (soup_socket_get_fd (sock), ==, g_socket_get_fd (gsock));
+	g_assert_cmpint (socket_get_fd (sock), ==, g_socket_get_fd (gsock));
 	g_assert_true (is_server);
 	g_assert_true (soup_socket_is_connected (sock));
 
@@ -238,20 +244,7 @@ do_socket_from_fd_bad_test (void)
 	GInetSocketAddress *local, *remote;
 	GSocketAddress *gaddr;
 	gboolean is_server;
-	int fd;
 	GError *error = NULL;
-
-	/* Importing a non-socket fd gives an error */
-	fd = open (g_test_get_filename (G_TEST_DIST, "test-cert.pem", NULL), O_RDONLY);
-	g_assert_cmpint (fd, !=, -1);
-
-	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-			       SOUP_SOCKET_FD, fd,
-			       NULL);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
-	g_clear_error (&error);
-	g_assert_null (sock);
-	close (fd);
 
 	/* Importing an unconnected socket gives an error */
 	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
@@ -262,7 +255,7 @@ do_socket_from_fd_bad_test (void)
 	g_assert_false (g_socket_is_connected (gsock));
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-			       SOUP_SOCKET_FD, g_socket_get_fd (gsock),
+			       SOUP_SOCKET_GSOCKET, gsock,
 			       NULL);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
 	g_clear_error (&error);
@@ -314,7 +307,7 @@ do_socket_from_fd_bad_test (void)
 		      SOUP_SOCKET_REMOTE_ADDRESS, &remote,
 		      SOUP_SOCKET_IS_SERVER, &is_server,
 		      NULL);
-	g_assert_cmpint (soup_socket_get_fd (sock2), ==, g_socket_get_fd (gsock2));
+	g_assert_cmpint (socket_get_fd (sock2), ==, g_socket_get_fd (gsock2));
 	g_assert_true (soup_socket_is_connected (sock2));
 	/* This is wrong, but can't be helped. */
 	g_assert_false (is_server);

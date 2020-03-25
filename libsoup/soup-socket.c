@@ -44,7 +44,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
-	PROP_FD,
 	PROP_GSOCKET,
 	PROP_IOSTREAM,
 	PROP_LOCAL_ADDRESS,
@@ -115,7 +114,6 @@ soup_socket_init (SoupSocket *sock)
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
 
 	priv->non_blocking = TRUE;
-	priv->fd = -1;
 	g_mutex_init (&priv->iolock);
 
         priv->async_context = g_main_context_ref_thread_default ();
@@ -131,27 +129,8 @@ soup_socket_initable_init (GInitable     *initable,
 
 	if (priv->conn) {
 		g_warn_if_fail (priv->gsock == NULL);
-		g_warn_if_fail (priv->fd == -1);
 
 		finish_socket_setup (sock);
-	}
-
-	if (priv->fd != -1) {
-		guint type, len = sizeof (type);
-
-		g_warn_if_fail (priv->gsock == NULL);
-
-		/* GSocket will g_error() this, so we have to check ourselves. */
-		if (getsockopt (priv->fd, SOL_SOCKET, SO_TYPE,
-				(gpointer)&type, (gpointer)&len) == -1) {
-			g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-					     _("Can’t import non-socket as SoupSocket"));
-			return FALSE;
-		}
-
-		priv->gsock = g_socket_new_from_fd (priv->fd, error);
-		if (!priv->gsock)
-			return FALSE;
 	}
 
 	if (priv->gsock != NULL) {
@@ -277,9 +256,6 @@ soup_socket_set_property (GObject *object, guint prop_id,
 	SoupSocketProperties *props;
 
 	switch (prop_id) {
-	case PROP_FD:
-		priv->fd = g_value_get_int (value);
-		break;
 	case PROP_GSOCKET:
 		priv->gsock = g_value_dup_object (value);
 		break;
@@ -358,9 +334,6 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
 
 	switch (prop_id) {
-	case PROP_FD:
-		g_value_set_int (value, priv->fd);
-		break;
 	case PROP_LOCAL_ADDRESS:
 		g_value_set_object (value, soup_socket_get_local_address (sock));
 		break;
@@ -515,14 +488,6 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 
 	/* properties */
 	g_object_class_install_property (
-		 object_class, PROP_FD,
-		 g_param_spec_int (SOUP_SOCKET_FD,
-				   "FD",
-				   "The socket's file descriptor",
-				   -1, G_MAXINT, -1,
-				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				   G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
 		 object_class, PROP_GSOCKET,
 		 g_param_spec_object (SOUP_SOCKET_GSOCKET,
 				      "GSocket",
@@ -640,9 +605,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 *
 	 * Note that for "ordinary" #SoupSockets this will be set for
 	 * both listening sockets and the sockets emitted by
-	 * #SoupSocket::new-connection, but for sockets created by
-	 * setting #SoupSocket:fd, it will only be set for listening
-	 * sockets.
+	 * #SoupSocket::new-connection.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_SERVER,
@@ -1072,29 +1035,6 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 		return SOUP_STATUS_OK;
 	else
 		return socket_legacy_error (sock, error);
-}
-
-/**
- * soup_socket_get_fd:
- * @sock: a #SoupSocket
- *
- * Gets @sock's underlying file descriptor.
- *
- * Note that fiddling with the file descriptor may break the
- * #SoupSocket.
- *
- * Return value: @sock's file descriptor.
- */
-int
-soup_socket_get_fd (SoupSocket *sock)
-{
-	SoupSocketPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_SOCKET (sock), -1);
-
-	priv = soup_socket_get_instance_private (sock);
-
-	return g_socket_get_fd (priv->gsock);
 }
 
 GSocket *
