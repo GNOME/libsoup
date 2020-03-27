@@ -1,0 +1,8 @@
+---
+BasedOnStyle: WebKit
+IndentWidth: 8
+BreakBeforeBraces: WebKit
+AlignAfterOpenBracket: Align
+SpaceBeforeParens: Always
+PointerAlignment: Right
+---
