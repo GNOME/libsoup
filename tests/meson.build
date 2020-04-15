@@ -23,6 +23,15 @@ test_resources = gnome.compile_resources('soup-tests',
   install_dir : installed_tests_execdir,
 )
 
+if installed_tests_enabled
+  install_data(
+    'index.txt',
+    'test-cert.pem',
+    'test-key.pem',
+    install_dir : installed_tests_execdir
+  )
+endif
+
 # ['name', is_parallel, extra_deps]
 tests = [
   ['cache', true, []],
@@ -107,9 +116,6 @@ if have_apache
 
   if installed_tests_enabled
     install_data(
-      'index.txt',
-      'test-cert.pem',
-      'test-key.pem',
       'htdigest',
       'htpasswd',
       install_dir : installed_tests_execdir,
