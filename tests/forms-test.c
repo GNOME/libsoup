@@ -90,10 +90,10 @@ do_hello_tests (gconstpointer uri)
 {
 	int n;
 
-#ifndef HAVE_CURL
-	g_test_skip ("/usr/bin/curl is not available");
-	return;
-#endif
+	if (!have_curl()) {
+		g_test_skip ("curl is not available");
+		return;
+	}
 
 	for (n = 0; n < G_N_ELEMENTS (tests); n++) {
 		do_hello_test (n, FALSE, uri);
@@ -139,10 +139,10 @@ do_md5_test_curl (gconstpointer data)
 	char *file_arg, *str_stdout;
 	GError *error = NULL;
 
-#ifndef HAVE_CURL
-	g_test_skip ("/usr/bin/curl is not available");
-	return;
-#endif
+	if (!have_curl()) {
+		g_test_skip ("curl is not available");
+		return;
+	}
 
 	md5 = get_md5_data (NULL, NULL);
 	if (!md5)
@@ -226,10 +226,10 @@ do_form_decode_test (void)
 	const gchar *value;
 	gchar *tmp;
 
-#ifndef HAVE_CURL
-	g_test_skip ("/usr/bin/curl is not available");
-	return;
-#endif
+	if (!have_curl()) {
+		g_test_skip ("curl is not available");
+		return;
+	}
 
 	/*  Test that the code handles multiple values with the same key.  */
 	table = soup_form_decode ("foo=first&foo=second&foo=third");

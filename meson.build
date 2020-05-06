@@ -280,8 +280,6 @@ if not tests_ready
   warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
 endif
 
-cdata.set('HAVE_CURL', find_program('curl', required : false).found())
-
 ##################
 # GSSAPI support #
 ##################

@@ -109,10 +109,10 @@ do_server_auth_test (gconstpointer data)
 {
 	int i = GPOINTER_TO_INT (data);
 
-#ifndef HAVE_CURL
-	g_test_skip ("/usr/bin/curl is not available");
-	return;
-#endif
+	if (!have_curl()) {
+		g_test_skip ("curl is not available");
+		return;
+	}
 
 	/* 1. No auth required. The server will ignore the
 	 * Authorization headers completely, and the request

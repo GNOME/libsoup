@@ -42,6 +42,8 @@ void apache_cleanup (void);
 	} G_STMT_END
 #endif
 
+gboolean have_curl (void);
+
 typedef enum {
 	SOUP_TEST_REQUEST_NONE = 0,
 	SOUP_TEST_REQUEST_CANCEL_MESSAGE = (1 << 0),

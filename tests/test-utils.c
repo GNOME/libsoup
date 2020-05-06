@@ -131,6 +131,19 @@ debug_printf (int level, const char *format, ...)
 	va_end (args);
 }
 
+gboolean
+have_curl(void) {
+	char *found;
+
+	found = g_find_program_in_path ("curl");
+	if (found) {
+		g_free (found);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
 #ifdef HAVE_APACHE
 
 static gboolean
