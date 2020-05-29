@@ -25,11 +25,12 @@
 
 #include <string.h>
 
+#include <glib/gi18n-lib.h>
+
 #include "soup-directory-input-stream.h"
 #include "soup.h"
 
-#define INIT_STRING "<html>\n<body>\n<table><th align=\"left\">Name</th><th>Size</th><th>Date Modified</th>\n"
-#define ROW_FORMAT  "<td><a href=\"%s\">%s</a></td><td align=\"right\">%s</td><td align=\"right\" margin=8>%s</td>\n"
+#define ROW_FORMAT  "<td sortable-data=\"%s\"><a href=\"%s\">%s</a></td><td align=\"right\" sortable-data=\"%ld\">%s</td><td align=\"right\" sortable-data=\"%ld\">%s&ensp;%s</td>\n"
 #define EXIT_STRING "</table>\n</html>\n"
 
 G_DEFINE_TYPE (SoupDirectoryInputStream, soup_directory_input_stream, G_TYPE_INPUT_STREAM)
@@ -41,7 +42,9 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 	SoupBuffer *buffer;
 	GString *string;
 	const char *file_name;
-	char *escaped, *path, *xml_string, *size, *time;
+	char *escaped, *path, *xml_string, *size, *date, *time, *name;
+	goffset raw_size;
+	gint64 timestamp;
 #if !GLIB_CHECK_VERSION (2, 61, 2)
 	GTimeVal modified;
 #endif
@@ -62,21 +65,35 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 	xml_string = g_markup_escape_text (file_name, -1);
 	escaped = g_uri_escape_string (file_name, NULL, FALSE);
 	path = g_strconcat (stream->uri, G_DIR_SEPARATOR_S, escaped, NULL);
-	size = g_format_size (g_file_info_get_size (info));
+	raw_size = g_file_info_get_size (info);
+
+	if (g_file_info_get_file_type (info) == G_FILE_TYPE_REGULAR)
+		size = g_format_size (raw_size);
+	else
+		size = g_strdup("");
+
+	if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY)
+		name = g_strdup_printf("1.%s", path);
+	else
+		name = g_strdup_printf("%s", path);
+
 #if GLIB_CHECK_VERSION (2, 61, 2)
 	modification_time = g_file_info_get_modification_date_time (info);
 #else
 	g_file_info_get_modification_time (info, &modified);
 	modification_time = g_date_time_new_from_timeval_local (&modified);
 #endif
-	time = g_date_time_format (modification_time, "%X %x");
+	time = g_date_time_format (modification_time, "%X");
+	date = g_date_time_format (modification_time, "%x");
+	timestamp = g_date_time_to_unix (modification_time);
 	g_date_time_unref (modification_time);
 
-	g_string_append_printf (string, ROW_FORMAT, path, xml_string, size, time);
+	g_string_append_printf (string, ROW_FORMAT, name, path, xml_string, raw_size, size, timestamp, time, date);
 	g_string_append (string, "</tr>\n");
 	buffer = soup_buffer_new (SOUP_MEMORY_TAKE, string->str, string->len);
 
 	g_free (time);
+	g_free (date);
 	g_free (escaped);
 	g_free (size);
 	g_free (path);
@@ -190,12 +207,46 @@ soup_directory_input_stream_class_init (SoupDirectoryInputStreamClass *stream_cl
 	inputstream_class->close_fn = soup_directory_input_stream_close;
 }
 
+static
+char *soup_directory_input_stream_create_header (SoupDirectoryInputStream *stream)
+{
+	char *header;
+	GBytes *css = g_resources_lookup_data ("/org/gnome/libsoup/directory.css", G_RESOURCE_LOOKUP_FLAGS_NONE, NULL);
+	GBytes *js = g_resources_lookup_data ("/org/gnome/libsoup/directory.js", G_RESOURCE_LOOKUP_FLAGS_NONE, NULL);
+
+	header = g_strdup_printf ("<html><head>" \
+                            "<title>%s</title>" \
+                            "<meta http-equiv=\"Content-Type\" content=\"text/html;\" charset=\"UTF-8\">" \
+                            "<style>%s</style>" \
+                            "<script>%s</script>" \
+                            "</head>" \
+                            "<body>" \
+                            "<table>" \
+                            "<thead>" \
+                            "<th align=\"left\">%s</th><th align=\"right\">%s</th><th align=\"right\">%s</th>" \
+                            "</thead>",
+                            stream->uri,
+                            css ? (gchar *)g_bytes_get_data (css, NULL) : "",
+                            js ? (gchar *)g_bytes_get_data (js, NULL) : "",
+                            _("Name"),
+                            _("Size"),
+                            _("Date Modified"));
+	return header;
+}
+
 static void
 soup_directory_input_stream_init (SoupDirectoryInputStream *stream)
 {
-	stream->buffer = soup_buffer_new (SOUP_MEMORY_STATIC,
-					  INIT_STRING,
-					  sizeof (INIT_STRING));
+}
+
+static void
+soup_directory_input_stream_setup_buffer (SoupDirectoryInputStream *stream)
+{
+	char *init = soup_directory_input_stream_create_header (stream);
+
+	stream->buffer = soup_buffer_new (SOUP_MEMORY_TAKE,
+					  init,
+					  strlen (init));
 }
 
 GInputStream *
@@ -212,6 +263,7 @@ soup_directory_input_stream_new (GFileEnumerator *enumerator,
 	SOUP_DIRECTORY_INPUT_STREAM (stream)->enumerator = g_object_ref (enumerator);
 	SOUP_DIRECTORY_INPUT_STREAM (stream)->uri = soup_uri_to_string (uri, FALSE);
 
+	soup_directory_input_stream_setup_buffer (SOUP_DIRECTORY_INPUT_STREAM (stream));
+
 	return stream;
 }
-
