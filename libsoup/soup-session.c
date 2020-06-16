@@ -685,6 +685,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 		socket_props_changed = TRUE;
 		break;
 	case PROP_TLS_INTERACTION:
+		g_clear_object(&priv->tls_interaction);
 		priv->tls_interaction = g_value_dup_object (value);
 		socket_props_changed = TRUE;
 		break;
