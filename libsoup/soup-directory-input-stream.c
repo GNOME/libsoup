@@ -30,7 +30,7 @@
 #include "soup-directory-input-stream.h"
 #include "soup.h"
 
-#define ROW_FORMAT  "<td sortable-data=\"%s\"><a href=\"%s\">%s</a></td><td align=\"right\" sortable-data=\"%ld\">%s</td><td align=\"right\" sortable-data=\"%ld\">%s&ensp;%s</td>\n"
+#define ROW_FORMAT  "<td sortable-data=\"%s\"><a href=\"%s\">%s</a></td><td align=\"right\" sortable-data=\"%" G_GOFFSET_FORMAT "\">%s</td><td align=\"right\" sortable-data=\"%" G_GINT64_FORMAT "\">%s&ensp;%s</td>\n"
 #define EXIT_STRING "</table>\n</html>\n"
 
 G_DEFINE_TYPE (SoupDirectoryInputStream, soup_directory_input_stream, G_TYPE_INPUT_STREAM)
