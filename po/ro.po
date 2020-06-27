@@ -8,10 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-04 14:07+0300\n"
-"Last-Translator: Florentina Mușat <florentina.musat.28 [at] gmail [dot] "
-"com>\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-06-27 13:22+0300\n"
+"Last-Translator: Florentina Mușat <florentina.musat.28@gmail.com>\n"
 "Language-Team: Romanian <gnomero-list@lists.sourceforge.net>\n"
 "Language: ro\n"
 "MIME-Version: 1.0\n"
@@ -19,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2);;\n"
-"X-Generator: Poedit 2.2.3\n"
+"X-Generator: Poedit 2.3.1\n"
 "X-Project-Style: gnome\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
@@ -42,6 +41,18 @@ msgstr "Fluxul de rețea s-a închis neașteptat"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Nu s-a putut adăuga complet la cache resursa"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nume"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Dimensiune"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Dată modificat"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -82,31 +93,31 @@ msgstr "Nu s-a furnizat un URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "URI nevalid „%s”: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nu se poate crea un server TLS fără un certificat TLS"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nu s-a putut asculta la adresa %s, portul %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nu s-a putut parsa URI „%s”"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Schemă de URI nesuportată „%s”"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nu este un URI HTTP"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serverul nu a acceptat conectarea WebSocket."
 
