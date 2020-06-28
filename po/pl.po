@@ -1,15 +1,15 @@
 # Polish translation for libsoup.
-# Copyright © 2012-2019 the libsoup authors.
+# Copyright © 2012-2020 the libsoup authors.
 # This file is distributed under the same license as the libsoup package.
-# Piotr Drąg <piotrdrag@gmail.com>, 2012-2019.
-# Aviary.pl <community-poland@mozilla.org>, 2012-2019.
+# Piotr Drąg <piotrdrag@gmail.com>, 2012-2020.
+# Aviary.pl <community-poland@mozilla.org>, 2012-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-20 19:30+0200\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-06-28 13:02+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <community-poland@mozilla.org>\n"
 "Language: pl\n"
@@ -39,6 +39,18 @@ msgstr "Strumień sieciowy został nieoczekiwanie zamknięty"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Całkowite umieszczenie zasobu w pamięci podręcznej się nie powiodło"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nazwa"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Rozmiar"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Data modyfikacji"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -79,31 +91,31 @@ msgstr "Nie podano adresu URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "Nieprawidłowy adres URI „%s”: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nie można utworzyć serwera TLS bez certyfikatu TLS"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nie można nasłuchiwać na adresie %s, porcie %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nie można przetworzyć adresu URI „%s”"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nieobsługiwany schemat adresu URI „%s”"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nie jest adresem URI protokołu HTTP"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serwer nie przyjął powitania WebSocket."
 
