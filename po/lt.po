@@ -1,14 +1,14 @@
 # Lithuanian translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Aurimas Černius <aurisc4@gmail.com>, 2012-2019.
+# Aurimas Černius <aurisc4@gmail.com>, 2012-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-18 22:19+0300\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-06-28 22:21+0300\n"
 "Last-Translator: Aurimas Černius <aurisc4@gmail.com>\n"
 "Language-Team: Lietuvių <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
 "%100<10 || n%100>=20) ? 1 : 2)\n"
-"X-Generator: Gtranslator 3.32.1\n"
+"X-Generator: Gtranslator 3.36.0\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -39,6 +39,18 @@ msgstr "Tinklo srautas netikėtai užsivėrė"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Nepavyko visiškai patalpinti resurso į podėlį"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Pavadinimas"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Dydis"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Keitimo data"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -79,31 +91,31 @@ msgstr "Nepateiktas URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "Netinkamas „%s“ URI: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Negalima sukurti TLS serverio be TLS liudijimo"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepavyksta klausytis adreso %s, prievadu %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nepavyko išanalizuoti URI „%s“"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nepalaikoma URI schema „%s“"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ne HTTP URI"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveris nepriėmė WebSocket rankos paspaudimo."
 
