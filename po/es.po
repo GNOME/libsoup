@@ -2,14 +2,14 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# Daniel Mustieles <daniel.mustieles@gmail.com>, 2012-2019.
+# Daniel Mustieles <daniel.mustieles@gmail.com>, 2012-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-02 09:13+0200\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-06-29 15:46+0200\n"
 "Last-Translator: Daniel Mustieles <daniel.mustieles@gmail.com>\n"
 "Language-Team: Spanish - Spain <gnome-es-list@gnome.org>\n"
 "Language: es_ES\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Gtranslator 3.32.1\n"
+"X-Generator: Gtranslator 3.36.0\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -39,6 +39,18 @@ msgstr "El flujo de red se cerró inesperadamente"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Falló al cachear completamente el recurso"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nombre"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Tamaño"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Fecha de modificación"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -79,31 +91,31 @@ msgstr "No se ha proporcionado un URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "URI «%s» no válida: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "No se puede crear un servidor TLS sin un certificado TLS"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "No se puede escuchar en la dirección %s, puerto %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "No se pudo analizar el URI «%s»"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Esquema «%s» de URI no soportado"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No es un URI HTTP"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "El servidor no ha aceptado la negociación WebSocket."
 
