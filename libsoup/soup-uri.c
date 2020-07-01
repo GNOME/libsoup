@@ -754,6 +754,8 @@ soup_uri_encode (const char *part, const char *escape_extra)
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
 #define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
 
+/* length must be set (e.g. from strchr()) such that [part, part + length]
+ * contains no nul bytes */
 char *
 soup_uri_decoded_copy (const char *part, int length, int *decoded_length)
 {
@@ -766,7 +768,9 @@ soup_uri_decoded_copy (const char *part, int length, int *decoded_length)
 	s = d = (unsigned char *)decoded;
 	do {
 		if (*s == '%') {
-			if (!g_ascii_isxdigit (s[1]) ||
+			if (s[1] == '\0' ||
+			    s[2] == '\0' ||
+			    !g_ascii_isxdigit (s[1]) ||
 			    !g_ascii_isxdigit (s[2])) {
 				*d++ = *s;
 				continue;
@@ -803,6 +807,8 @@ soup_uri_decode (const char *part)
 	return soup_uri_decoded_copy (part, strlen (part), NULL);
 }
 
+/* length must be set (e.g. from strchr()) such that [part, part + length]
+ * contains no nul bytes */
 static char *
 uri_normalized_copy (const char *part, int length,
 		     const char *unescape_extra)
@@ -817,7 +823,9 @@ uri_normalized_copy (const char *part, int length,
 	s = d = (unsigned char *)normalized;
 	while (*s) {
 		if (*s == '%') {
-			if (!g_ascii_isxdigit (s[1]) ||
+			if (s[1] == '\0' ||
+			    s[2] == '\0' ||
+			    !g_ascii_isxdigit (s[1]) ||
 			    !g_ascii_isxdigit (s[2])) {
 				*d++ = *s++;
 				continue;

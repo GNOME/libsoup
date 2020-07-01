@@ -466,7 +466,8 @@ static struct {
 	{ "foo bar",          NULL, "foo%20bar" },
 	{ "foo bar",          " ",  "foo bar" },
 	{ "fo\xc3\xb6" "bar", NULL, "fo%C3%B6bar" },
-	{ "fo\xc3\xb6 bar",   " ",  "fo%C3%B6 bar" }
+	{ "fo\xc3\xb6 bar",   " ",  "fo%C3%B6 bar" },
+	{ "%",                NULL, "%" },
 };
 static int num_normalization_tests = G_N_ELEMENTS (normalization_tests);
 
@@ -563,6 +564,14 @@ do_data_tests (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+test_uri_decode (void)
+{
+	gchar *decoded = soup_uri_decode ("%");
+	g_assert_cmpstr (decoded, ==, "%");
+	g_free (decoded);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -576,6 +585,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/uri/null", do_soup_uri_null_tests);
 	g_test_add_func ("/uri/normalization", do_normalization_tests);
 	g_test_add_func ("/uri/data", do_data_tests);
+	g_test_add_func ("/uri/decode", test_uri_decode);
 
 	ret = g_test_run ();
 
