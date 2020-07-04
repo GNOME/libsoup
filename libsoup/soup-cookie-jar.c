@@ -522,11 +522,19 @@ normalize_cookie_domain (const char *domain)
 }
 
 static gboolean
-incoming_cookie_is_third_party (SoupCookie *cookie, SoupURI *first_party)
+incoming_cookie_is_third_party (SoupCookieJar            *jar,
+				SoupCookie               *cookie,
+				SoupURI                  *first_party,
+				SoupCookieJarAcceptPolicy policy)
 {
+	SoupCookieJarPrivate *priv;
 	const char *normalized_cookie_domain;
 	const char *cookie_base_domain;
 	const char *first_party_base_domain;
+
+	if (policy != SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
+	    policy != SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY)
+		return FALSE;
 
 	if (first_party == NULL || first_party->host == NULL)
 		return TRUE;
@@ -539,7 +547,21 @@ incoming_cookie_is_third_party (SoupCookie *cookie, SoupURI *first_party)
 	first_party_base_domain = soup_tld_get_base_domain (first_party->host, NULL);
 	if (first_party_base_domain == NULL)
 		first_party_base_domain = first_party->host;
-	return !soup_host_matches_host (cookie_base_domain, first_party_base_domain);
+
+	if (soup_host_matches_host (cookie_base_domain, first_party_base_domain))
+		return FALSE;
+
+	if (policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY)
+		return TRUE;
+
+	/* Now we know the cookie's base domain and the first party's base domain
+	 * are different, but for SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY
+	 * policy we want to grandfather in any domain that's already in the jar.
+	 * That is, we never want to block cookies from domains the user has
+	 * previously visited directly.
+	 */
+	priv = soup_cookie_jar_get_instance_private (jar);
+	return !g_hash_table_lookup (priv->domains, cookie->domain);
 }
 
 /**
@@ -582,14 +604,13 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
-	if (first_party != NULL) {
-		if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER ||
-                    (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
-		     incoming_cookie_is_third_party (cookie, first_party))) {
-			soup_cookie_free (cookie);
-			return;
-		}
-	}
+        if (first_party != NULL) {
+                if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER ||
+                    incoming_cookie_is_third_party (jar, cookie, first_party, priv->accept_policy)) {
+                        soup_cookie_free (cookie);
+                        return;
+                }
+        }
 
 	/* Cannot set a secure cookie over http */
 	if (uri != NULL && !soup_uri_is_https (uri, NULL) && soup_cookie_get_secure (cookie)) {
@@ -704,8 +725,9 @@ soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, SoupURI *first_
  * Adds @cookie to @jar, exactly as though it had appeared in a
  * Set-Cookie header returned from a request to @uri.
  *
- * Keep in mind that if the #SoupCookieJarAcceptPolicy
- * %SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY is set you'll need to use
+ * Keep in mind that if the #SoupCookieJarAcceptPolicy set is either
+ * %SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY or
+ * %SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY you'll need to use
  * soup_cookie_jar_set_cookie_with_first_party(), otherwise the jar
  * will have no way of knowing if the cookie is being set by a third
  * party or not.
@@ -730,7 +752,8 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
 		return;
 
-	g_return_if_fail (priv->accept_policy != SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY);
+	g_return_if_fail (priv->accept_policy != SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
+			  priv->accept_policy != SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY);
 
 	soup_cookie = soup_cookie_parse (cookie, uri);
 	if (soup_cookie) {
@@ -942,6 +965,19 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
  * on each outgoing #SoupMessage, setting the #SoupURI of the main
  * document. If no first party is set in a message when this policy is
  * in effect, cookies will be assumed to be third party by default.
+ * @SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY: accept all cookies
+ * set by the main document loaded in the application using libsoup, and
+ * from domains that have previously set at least one cookie when loaded
+ * as the main document. An example of the most common case, web browsers,
+ * would be: if http://www.example.com is the page loaded, accept all
+ * cookies set by example.com, but if a resource from http://www.third-party.com
+ * is loaded from that page, reject any cookie that it could try to
+ * set unless it already has a cookie in the cookie jar. For libsoup to
+ * be able to tell apart first party cookies from the rest, the
+ * application must call soup_message_set_first_party() on each outgoing
+ * #SoupMessage, setting the #SoupURI of the main document. If no first
+ * party is set in a message when this policy is in effect, cookies will
+ * be assumed to be third party by default. Since 2.72.
  *
  * The policy for accepting or rejecting cookies returned in
  * responses.
