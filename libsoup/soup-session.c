@@ -2878,8 +2878,21 @@ soup_session_has_feature (SoupSession *session,
 				return TRUE;
 		}
 	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
-		return g_hash_table_lookup (priv->request_types,
-					    GSIZE_TO_POINTER (feature_type)) != NULL;
+		SoupRequestClass *request_class;
+		int i;
+
+		request_class = g_type_class_peek (feature_type);
+		if (!request_class)
+			return FALSE;
+
+		for (i = 0; request_class->schemes[i]; i++) {
+			gpointer type;
+
+			type = g_hash_table_lookup (priv->request_types,
+						    request_class->schemes[i]);
+			if (type && g_type_is_a (GPOINTER_TO_SIZE (type), feature_type))
+				return TRUE;
+		}
 	} else {
 		for (f = priv->features; f; f = f->next) {
 			if (soup_session_feature_has_feature (f->data, feature_type))

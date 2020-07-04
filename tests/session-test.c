@@ -370,6 +370,46 @@ do_property_tests (void)
 	g_object_unref (session);
 }
 
+static gint
+compare_by_gtype (gconstpointer a,
+		  gconstpointer b)
+{
+	return G_TYPE_CHECK_INSTANCE_TYPE (a, GPOINTER_TO_SIZE (b)) ? 0 : 1;
+}
+
+static void
+do_features_test (void)
+{
+	SoupSession *session;
+	GSList *features;
+	SoupSessionFeature *feature;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	features = soup_session_get_features (session, SOUP_TYPE_SESSION_FEATURE);
+	/* SoupAuthManager is always added */
+	g_assert_cmpuint (g_slist_length (features), >=, 1);
+	g_assert_nonnull (g_slist_find_custom (features, GSIZE_TO_POINTER (SOUP_TYPE_AUTH_MANAGER), compare_by_gtype));
+	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_AUTH_MANAGER));
+	feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER);
+	g_assert_true (SOUP_IS_AUTH_MANAGER (feature));
+	soup_session_remove_feature (session, feature);
+	g_assert_false (soup_session_has_feature (session, SOUP_TYPE_AUTH_MANAGER));
+	g_assert_null (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
+	g_slist_free (features);
+
+	/* HTTP, File and Data requests are always added */
+	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_HTTP));
+	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_FILE));
+	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_DATA));
+	soup_session_remove_feature_by_type (session, SOUP_TYPE_REQUEST_FILE);
+	g_assert_false (soup_session_has_feature (session, SOUP_TYPE_REQUEST_FILE));
+	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_HTTP));
+	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_DATA));
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -388,6 +428,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/session/SoupSessionSync", uri, do_sync_tests);
 	g_test_add_data_func ("/session/priority", uri, do_priority_tests);
 	g_test_add_func ("/session/property", do_property_tests);
+	g_test_add_func ("/session/features", do_features_test);
 
 	ret = g_test_run ();
 
