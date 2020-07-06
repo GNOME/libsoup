@@ -403,7 +403,9 @@ test_disabled (gconstpointer data)
 	uri = soup_uri_new_with_base (base_uri, path);
 
 	msg = soup_message_new_from_uri ("GET", uri);
+	g_assert_false (soup_message_is_feature_disabled (msg, SOUP_TYPE_CONTENT_SNIFFER));
 	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
+	g_assert_true (soup_message_is_feature_disabled (msg, SOUP_TYPE_CONTENT_SNIFFER));
 
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
@@ -415,7 +417,9 @@ test_disabled (gconstpointer data)
 
 	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+	g_assert_false (soup_message_is_feature_disabled (msg, SOUP_TYPE_CONTENT_SNIFFER));
 	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
+	g_assert_true (soup_message_is_feature_disabled (msg, SOUP_TYPE_CONTENT_SNIFFER));
 	g_object_unref (msg);
 	stream = soup_test_request_send (req, NULL, 0, &error);
 	if (stream) {

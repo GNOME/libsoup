@@ -337,7 +337,7 @@ soup_websocket_client_prepare_handshake_with_extensions (SoupMessage *msg,
 		for (i = 0; i < supported_extensions->len; i++) {
 			SoupWebsocketExtensionClass *extension_class = (SoupWebsocketExtensionClass *)supported_extensions->pdata[i];
 
-			if (soup_message_disables_feature_by_type (msg, G_TYPE_FROM_CLASS (extension_class)))
+			if (soup_message_is_feature_disabled (msg, G_TYPE_FROM_CLASS (extension_class)))
 				continue;
 
 			if (i != 0)

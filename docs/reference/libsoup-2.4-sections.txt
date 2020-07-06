@@ -35,6 +35,7 @@ SoupChunkAllocator
 soup_message_set_chunk_allocator
 <SUBSECTION>
 soup_message_disable_feature
+soup_message_is_feature_disabled
 soup_message_get_soup_request
 <SUBSECTION>
 SoupMessagePriority

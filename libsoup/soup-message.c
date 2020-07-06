@@ -1927,8 +1927,21 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
         return FALSE;
 }
 
+/**
+ * soup_message_is_feature_disabled:
+ * @msg: a #SoupMessage
+ * @feature_type: the #GType of a #SoupSessionFeature
+ *
+ * Get whether #SoupSessionFeature<!-- -->s of the given @feature_type
+ * (or a subclass of that type) are disabled on @msg.
+ * See soup_message_disable_feature().
+ *
+ * Returns: %TRUE if feature is disabled, or %FALSE otherwise.
+ *
+ * Since: 2.72
+ */
 gboolean
-soup_message_disables_feature_by_type (SoupMessage *msg, GType feature_type)
+soup_message_is_feature_disabled (SoupMessage *msg, GType feature_type)
 {
         SoupMessagePrivate *priv;
         GHashTableIter iter;

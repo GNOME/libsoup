@@ -217,6 +217,10 @@ SOUP_AVAILABLE_IN_2_28
 void           soup_message_disable_feature     (SoupMessage       *msg,
 						 GType              feature_type);
 
+SOUP_AVAILABLE_IN_2_72
+gboolean       soup_message_is_feature_disabled (SoupMessage       *msg,
+						 GType              feature_type);
+
 SOUP_AVAILABLE_IN_2_42
 SoupRequest   *soup_message_get_soup_request    (SoupMessage       *msg);
 

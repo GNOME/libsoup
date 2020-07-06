@@ -69,6 +69,7 @@ G_BEGIN_DECLS
 #define SOUP_VERSION_2_66 (G_ENCODE_VERSION (2, 66))
 #define SOUP_VERSION_2_68 (G_ENCODE_VERSION (2, 68))
 #define SOUP_VERSION_2_70 (G_ENCODE_VERSION (2, 70))
+#define SOUP_VERSION_2_72 (G_ENCODE_VERSION (2, 72))
 
 /* evaluates to the current stable version; for development cycles,
  * this means the next stable target
@@ -410,6 +411,13 @@ G_BEGIN_DECLS
 #else
 # define SOUP_AVAILABLE_IN_2_70                 _SOUP_EXTERN
 #endif
+
+#if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_72
+# define SOUP_AVAILABLE_IN_2_72                 G_UNAVAILABLE(2, 72) _SOUP_EXTERN
+#else
+# define SOUP_AVAILABLE_IN_2_72                 _SOUP_EXTERN
+#endif
+
 SOUP_AVAILABLE_IN_2_42
 guint    soup_get_major_version (void);
 

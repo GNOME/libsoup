@@ -143,8 +143,6 @@ GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
 
 gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);
-gboolean soup_message_disables_feature_by_type (SoupMessage *msg,
-						GType        feature_type);
 
 GList *soup_message_get_disabled_features (SoupMessage *msg);
 
