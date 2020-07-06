@@ -182,7 +182,7 @@ soup_message_finalize (GObject *object)
 	g_clear_object (&priv->auth);
 	g_clear_object (&priv->proxy_auth);
 
-	g_slist_free (priv->disabled_features);
+	g_clear_pointer (&priv->disabled_features, g_hash_table_destroy);
 
 	g_clear_object (&priv->tls_certificate);
 
@@ -1899,50 +1899,62 @@ soup_message_disable_feature (SoupMessage *msg, GType feature_type)
 
 	priv = soup_message_get_instance_private (msg);
 
-	priv->disabled_features = g_slist_prepend (priv->disabled_features,
-						   GSIZE_TO_POINTER (feature_type));
+	if (!priv->disabled_features)
+		priv->disabled_features = g_hash_table_new (g_direct_hash, g_direct_equal);
+
+	g_hash_table_add (priv->disabled_features, GSIZE_TO_POINTER (feature_type));
 }
 
 gboolean
 soup_message_disables_feature (SoupMessage *msg, gpointer feature)
 {
 	SoupMessagePrivate *priv;
-	GSList *f;
+        GHashTableIter iter;
+        gpointer key;
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
 	priv = soup_message_get_instance_private (msg);
 
-	for (f = priv->disabled_features; f; f = f->next) {
-		if (G_TYPE_CHECK_INSTANCE_TYPE (feature, (GType) GPOINTER_TO_SIZE (f->data)))
-			return TRUE;
-	}
-	return FALSE;
+        if (!priv->disabled_features)
+                return FALSE;
+
+        g_hash_table_iter_init (&iter, priv->disabled_features);
+        while (g_hash_table_iter_next (&iter, &key, NULL)) {
+                if (G_TYPE_CHECK_INSTANCE_TYPE (feature, GPOINTER_TO_SIZE (key)))
+                        return TRUE;
+        }
+        return FALSE;
 }
 
 gboolean
 soup_message_disables_feature_by_type (SoupMessage *msg, GType feature_type)
 {
         SoupMessagePrivate *priv;
-        GSList *f;
+        GHashTableIter iter;
+        gpointer key;
 
         g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
         priv = soup_message_get_instance_private (msg);
 
-        for (f = priv->disabled_features; f; f = f->next) {
-                if (g_type_is_a ((GType)GPOINTER_TO_SIZE (f->data), feature_type))
+        if (!priv->disabled_features)
+                return FALSE;
+
+        g_hash_table_iter_init (&iter, priv->disabled_features);
+        while (g_hash_table_iter_next (&iter, &key, NULL)) {
+                if (g_type_is_a (GPOINTER_TO_SIZE (key), feature_type))
                         return TRUE;
         }
         return FALSE;
 }
 
-GSList *
+GList *
 soup_message_get_disabled_features (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	return priv->disabled_features;
+	return priv->disabled_features ? g_hash_table_get_keys (priv->disabled_features) : NULL;
 }
 
 /**

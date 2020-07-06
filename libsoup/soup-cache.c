@@ -1356,7 +1356,7 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	SoupURI *uri;
 	SoupCacheEntry *entry;
 	const char *last_modified, *etag;
-	GSList *f;
+	GList *disabled_features, *f;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (original), NULL);
@@ -1383,8 +1383,10 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 				      (SoupMessageHeadersForeachFunc)copy_headers,
 				      msg->request_headers);
 
-	for (f = soup_message_get_disabled_features (original); f; f = f->next)
+	disabled_features = soup_message_get_disabled_features (original);
+	for (f = disabled_features; f; f = f->next)
 		soup_message_disable_feature (msg, (GType) GPOINTER_TO_SIZE (f->data));
+	g_list_free (disabled_features);
 
 	if (last_modified)
 		soup_message_headers_append (msg->request_headers,
