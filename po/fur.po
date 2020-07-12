@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome-3-6\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-09-03 09:55+0200\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-07-12 18:29+0200\n"
 "Last-Translator: Fabio Tomat <f.t.public@gmail.com>\n"
 "Language-Team: Friulian <fur@li.org>\n"
 "Language: fur\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.2.3\n"
+"X-Generator: Poedit 2.3.1\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -37,6 +37,18 @@ msgstr "Flus di rêt sierât a colp"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Salvament in memorie de risorse falît"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Non"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Dimension"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Date di modifiche"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -77,33 +89,33 @@ msgstr "No'l è stât furnît un URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "URI “%s”no valit: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impussibil creâ un servidôr TLS cence un certificât TLS"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impussibil scoltâ te direzion %s, puarte %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "No puès analizâ il URI “%s”"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Scheme URI “%s” no supuartât"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No un URI HTTP"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
-msgstr "Il servidôr nol acete il handshake WebSocket"
+msgstr "Il servidôr nol acete il handshake WebSocket."
 
 #: libsoup/soup-socket.c:148
 msgid "Can’t import non-socket as SoupSocket"
@@ -139,8 +151,11 @@ msgstr "Parametri dopleât inte intestazion de estension dal WebSocket di “%s�
 
 #: libsoup/soup-websocket.c:567
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "Il servidôr al à tornât indaûr un parametri dopleât inte intestazion de estension dal WebSocket di “%s”"
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Il servidôr al à tornât indaûr un parametri dopleât inte intestazion de "
+"estension dal WebSocket di “%s”"
 
 #: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
 msgid "WebSocket handshake expected"
