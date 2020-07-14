@@ -58,6 +58,7 @@ typedef enum {
 	SOUP_STATUS_USE_PROXY                       = 305,
 	SOUP_STATUS_NOT_APPEARING_IN_THIS_PROTOCOL  = 306, /* (reserved) */
 	SOUP_STATUS_TEMPORARY_REDIRECT              = 307,
+	SOUP_STATUS_PERMANENT_REDIRECT              = 308,
 
 	SOUP_STATUS_BAD_REQUEST                     = 400,
 	SOUP_STATUS_UNAUTHORIZED                    = 401,

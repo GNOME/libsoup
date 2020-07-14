@@ -37,6 +37,9 @@ static TestCase tests[] = {
 	{ { { "GET", "/307", 307 },
 	    { "GET", "/", 200 },
 	    { NULL } }, 200, NULL },
+	{ { { "GET", "/308", 308 },
+	    { "GET", "/", 200 },
+	    { NULL } }, 200, NULL },
 	{ { { "HEAD", "/301", 301 },
 	    { "HEAD", "/", 200 },
 	    { NULL } }, 200, "551190" },
@@ -52,6 +55,9 @@ static TestCase tests[] = {
 	{ { { "HEAD", "/307", 307 },
 	    { "HEAD", "/", 200 },
 	    { NULL } }, 200, "551190" },
+	{ { { "HEAD", "/308", 308 },
+	    { "HEAD", "/", 200 },
+	    { NULL } }, 200, "551190" },
 
 	/* A non-redirecty response to a GET or HEAD should not */
 
@@ -63,8 +69,6 @@ static TestCase tests[] = {
 	    { NULL } }, 305, NULL },
 	{ { { "GET", "/306", 306 },
 	    { NULL } }, 306, NULL },
-	{ { { "GET", "/308", 308 },
-	    { NULL } }, 308, NULL },
 	{ { { "HEAD", "/300", 300 },
 	    { NULL } }, 300, "551190" },
 	{ { { "HEAD", "/304", 304 },
@@ -73,8 +77,6 @@ static TestCase tests[] = {
 	    { NULL } }, 305, "551190" },
 	{ { { "HEAD", "/306", 306 },
 	    { NULL } }, 306, "551190" },
-	{ { { "HEAD", "/308", 308 },
-	    { NULL } }, 308, "551190" },
 	
 	/* Test double-redirect */
 

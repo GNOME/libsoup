@@ -1076,6 +1076,7 @@ auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_SAFE(session, msg) \
 	(((msg)->status_code == SOUP_STATUS_MOVED_PERMANENTLY || \
+	  (msg)->status_code == SOUP_STATUS_PERMANENT_REDIRECT || \
 	  (msg)->status_code == SOUP_STATUS_TEMPORARY_REDIRECT || \
 	  (msg)->status_code == SOUP_STATUS_FOUND) && \
 	 SOUP_METHOD_IS_SAFE ((msg)->method))
