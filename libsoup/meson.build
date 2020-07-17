@@ -242,6 +242,7 @@ libsoup_c_args  = [
 ]
 
 deps = [
+  libsysprof_capture_dep,
   glib_deps,
   libxml_dep,
   sqlite_dep,

@@ -4,6 +4,7 @@ RUN dnf update -y \
     && dnf install -y 'dnf-command(builddep)' \
     && dnf builddep -y libsoup \
     && dnf install -y which \
+                      git \
                       gtk-doc \
                       libpsl-devel \
                       make \

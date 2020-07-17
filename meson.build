@@ -151,6 +151,22 @@ if cc.has_function('gmtime_r', prefix : '#include <time.h>', args : default_sour
     cdata.set('HAVE_GMTIME_R', '1')
 endif
 
+# sysprof support
+libsysprof_capture_dep = dependency('sysprof-capture-4',
+  required: get_option('sysprof'),
+  default_options: [
+    'enable_examples=false',
+    'enable_gtk=false',
+    'enable_tests=false',
+    'enable_tools=false',
+    'libsysprof=false',
+    'with_sysprofd=none',
+    'help=false',
+  ],
+  fallback: ['sysprof', 'libsysprof_capture_dep'],
+)
+cdata.set('HAVE_SYSPROF', libsysprof_capture_dep.found())
+
 ###################
 # GIO TLS support #
 ###################

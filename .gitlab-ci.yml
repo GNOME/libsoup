@@ -1,4 +1,4 @@
-image: registry.gitlab.gnome.org/gnome/libsoup/master:v3
+image: registry.gitlab.gnome.org/gnome/libsoup/master:v4
 
 .build:
   tags:

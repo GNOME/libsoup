@@ -11,6 +11,10 @@
 
 #include <glib/gi18n-lib.h>
 
+#ifdef HAVE_SYSPROF
+#include <sysprof-capture.h>
+#endif
+
 #include "soup.h"
 #include "soup-body-input-stream.h"
 #include "soup-body-output-stream.h"
@@ -89,6 +93,10 @@ typedef struct {
 	gpointer                  header_data;
 	SoupMessageCompletionFn   completion_cb;
 	gpointer                  completion_data;
+
+#ifdef HAVE_SYSPROF
+	gint64 begin_time_nsec;
+#endif
 } SoupMessageIOData;
 	
 static void io_run (SoupMessage *msg, gboolean blocking);
@@ -1018,6 +1026,32 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 		return FALSE;
 	}
 
+#ifdef HAVE_SYSPROF
+	/* Allow profiling of network requests. */
+	if (io->read_state == SOUP_MESSAGE_IO_STATE_DONE &&
+	    io->write_state == SOUP_MESSAGE_IO_STATE_DONE) {
+		SoupURI *uri = soup_message_get_uri (msg);
+		char *uri_str = soup_uri_to_string (uri, FALSE);
+		const gchar *last_modified = soup_message_headers_get_one (msg->request_headers, "Last-Modified");
+		const gchar *etag = soup_message_headers_get_one (msg->request_headers, "ETag");
+
+		/* FIXME: Expand and generalise sysprof support:
+		 * https://gitlab.gnome.org/GNOME/sysprof/-/issues/43 */
+		sysprof_collector_mark_printf (io->begin_time_nsec, SYSPROF_CAPTURE_CURRENT_TIME - io->begin_time_nsec,
+					       "libsoup", "message",
+					       "%s request/response to %s: "
+					       "read %" G_GOFFSET_FORMAT "B, "
+					       "wrote %" G_GOFFSET_FORMAT "B, "
+					       "Last-Modified: %s, "
+					       "ETag: %s",
+					       soup_message_get_https_status (msg, NULL, NULL) ? "HTTPS" : "HTTP",
+					       uri_str, io->read_length, io->write_length,
+					       (last_modified != NULL) ? last_modified : "(unset)",
+					       (etag != NULL) ? etag : "(unset)");
+		g_free (uri_str);
+	}
+#endif  /* HAVE_SYSPROF */
+
 	g_object_unref (msg);
 	return done;
 }
@@ -1188,6 +1222,11 @@ new_iostate (SoupMessage *msg, GIOStream *iostream,
 	if (soup_message_get_io_data (msg))
 		soup_message_io_cleanup (msg);
 	soup_message_set_io_data (msg, io);
+
+#ifdef HAVE_SYSPROF
+	io->begin_time_nsec = SYSPROF_CAPTURE_CURRENT_TIME;
+#endif
+
 	return io;
 }
 
