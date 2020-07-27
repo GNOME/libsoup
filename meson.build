@@ -95,7 +95,7 @@ sqlite_dep = dependency('sqlite3', required: false)
 # Fallback check for sqlite, not all platforms ship pkg-config file
 if not sqlite_dep.found()
   sqlite_dep = cc.find_library('sqlite3',
-    has_headers : ['sqlite3.h', 'sqlite3ext.h'],
+    has_headers : ['sqlite3.h'],
     required: false)
 endif
 
