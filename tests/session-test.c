@@ -2,7 +2,7 @@
 
 #include "test-utils.h"
 
-static SoupURI *base_uri;
+static GUri *base_uri;
 static gboolean server_processed_message;
 static gboolean timeout;
 static GMainLoop *loop;
@@ -72,17 +72,16 @@ do_test_for_session (SoupSession *session,
 	SoupMessage *msg;
 	gboolean finished, local_timeout;
 	guint timeout_id;
-	SoupURI *timeout_uri;
+	GUri *timeout_uri;
 	GBytes *body;
 
 	debug_printf (1, "  queue_message\n");
 	debug_printf (2, "    requesting timeout\n");
-	timeout_uri = soup_uri_new_with_base (base_uri, "/request-timeout");
+	timeout_uri = g_uri_parse_relative (base_uri, "/request-timeout", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", timeout_uri);
-	soup_uri_free (timeout_uri);
 	body = soup_test_session_send (session, msg, NULL, NULL);
 	g_bytes_unref (body);
-	g_object_unref (msg);
+	g_uri_unref (timeout_uri);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	server_processed_message = timeout = finished = FALSE;
@@ -210,14 +209,14 @@ do_priority_tests (void)
 	expected_priorities[2] = SOUP_MESSAGE_PRIORITY_LOW;
 
 	for (i = 0; i < 3; i++) {
-		SoupURI *msg_uri;
+		GUri *msg_uri;
 		SoupMessage *msg;
 		char buf[5];
 
 		g_snprintf (buf, sizeof (buf), "%d", i);
-		msg_uri = soup_uri_new_with_base (base_uri, buf);
+		msg_uri = g_uri_parse_relative (base_uri, buf, SOUP_HTTP_URI_FLAGS, NULL);
 		msg = soup_message_new_from_uri ("GET", msg_uri);
-		soup_uri_free (msg_uri);
+		g_uri_unref (msg_uri);
 
 		soup_message_set_priority (msg, priorities[i]);
 		g_signal_connect (msg, "finished",
@@ -433,7 +432,7 @@ load_uri_bytes_async_ready_cb (SoupSession  *session,
 static void
 do_read_uri_test (gconstpointer data)
 {
-        SoupURI *uri;
+        GUri *uri;
         char *uri_string;
         SoupSession *session;
         GBytes *body = NULL;
@@ -443,8 +442,8 @@ do_read_uri_test (gconstpointer data)
 
         session = soup_test_session_new (NULL);
 
-        uri = soup_uri_new_with_base (base_uri, "/index.txt");
-        uri_string = soup_uri_to_string (uri, FALSE);
+        uri = g_uri_parse_relative (base_uri, "/index.txt", SOUP_HTTP_URI_FLAGS, NULL);
+        uri_string = g_uri_to_string (uri);
 
         if (flags & SYNC) {
                 if (flags & STREAM) {
@@ -500,7 +499,7 @@ do_read_uri_test (gconstpointer data)
         g_bytes_unref (body);
         g_free (content_type);
         g_free (uri_string);
-        soup_uri_free (uri);
+        g_uri_unref (uri);
 
         soup_test_session_abort_unref (session);
 }
@@ -567,7 +566,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

@@ -209,7 +209,7 @@ static void
 try_tunnel (SoupServer *server, SoupMessage *msg, SoupClientContext *context)
 {
 	Tunnel *tunnel;
-	SoupURI *dest_uri;
+	GUri *dest_uri;
 	GSocketClient *sclient;
 
 	soup_server_pause_message (server, msg);
@@ -221,7 +221,7 @@ try_tunnel (SoupServer *server, SoupMessage *msg, SoupClientContext *context)
 
 	dest_uri = soup_message_get_uri (msg);
 	sclient = g_socket_client_new ();
-	g_socket_client_connect_to_host_async (sclient, dest_uri->host, dest_uri->port,
+	g_socket_client_connect_to_host_async (sclient, g_uri_get_host (dest_uri), g_uri_get_port (dest_uri),
 					       NULL, tunnel_connected_cb, tunnel);
 	g_object_unref (sclient);
 }
@@ -284,7 +284,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	SoupMessage *msg2;
 	char *uristr;
 
-	uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+	uristr = g_uri_to_string (soup_message_get_uri (msg));
 	g_print ("[%p] %s %s HTTP/1.%d\n", msg, soup_message_get_method (msg), uristr,
 		 soup_message_get_http_version (msg));
 
@@ -398,10 +398,10 @@ main (int argc, char **argv)
 
 	uris = soup_server_get_uris (server);
 	for (u = uris; u; u = u->next) {
-		str = soup_uri_to_string (u->data, FALSE);
+		str = g_uri_to_string (u->data);
 		g_print ("Listening on %s\n", str);
 		g_free (str);
-		soup_uri_free (u->data);
+		g_uri_unref (u->data);
 	}
 	g_slist_free (uris);
 

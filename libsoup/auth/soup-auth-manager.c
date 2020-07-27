@@ -79,7 +79,7 @@ typedef struct {
 } SoupAuthManagerPrivate;
 
 typedef struct {
-	SoupURI     *uri;
+	GUri        *uri;
 	SoupPathMap *auth_realms;      /* path -> scheme:realm */
 	GHashTable  *auths;            /* scheme:realm -> SoupAuth */
 } SoupAuthHost;
@@ -91,7 +91,7 @@ G_DEFINE_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
 
 static void soup_auth_host_free (SoupAuthHost *host);
 static SoupAuth *record_auth_for_uri (SoupAuthManagerPrivate *priv,
-				      SoupURI *uri, SoupAuth *auth,
+				      GUri *uri, SoupAuth *auth,
 				      gboolean prior_auth_failed);
 
 static void
@@ -402,7 +402,7 @@ check_auth (SoupMessage *msg, SoupAuth *auth)
 }
 
 static SoupAuthHost *
-get_auth_host_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri)
+get_auth_host_for_uri (SoupAuthManagerPrivate *priv, GUri *uri)
 {
 	SoupAuthHost *host;
 
@@ -423,7 +423,7 @@ soup_auth_host_free (SoupAuthHost *host)
 	g_clear_pointer (&host->auth_realms, soup_path_map_free);
 	g_clear_pointer (&host->auths, g_hash_table_destroy);
 
-	soup_uri_free (host->uri);
+	g_uri_unref (host->uri);
 	g_slice_free (SoupAuthHost, host);
 }
 
@@ -436,7 +436,7 @@ make_auto_ntlm_auth (SoupAuthManagerPrivate *priv, SoupAuthHost *host)
 		return FALSE;
 
 	auth = g_object_new (SOUP_TYPE_AUTH_NTLM,
-			     "host", host->uri->host,
+			     "host", g_uri_get_host (host->uri),
 			     NULL);
 	record_auth_for_uri (priv, host->uri, auth, FALSE);
 	g_object_unref (auth);
@@ -469,7 +469,7 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	SoupAuthHost *host;
 	const char *path, *realm;
 	SoupAuth *auth;
-	SoupURI *uri;
+	GUri *uri;
 
 	/* If the message already has a ready auth, use that instead */
 	auth = soup_message_get_auth (msg);
@@ -495,7 +495,7 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (!host->auth_realms)
 		return NULL;
 
-	path = uri->path;
+	path = g_uri_get_path (uri);
 	if (!path)
 		path = "/";
 	realm = soup_path_map_lookup (host->auth_realms, path);
@@ -542,7 +542,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   gboolean proxy, gboolean can_interact)
 {
         SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
-	SoupURI *uri;
+	GUri *uri;
 
 	if (!soup_auth_can_authenticate (auth))
 		return;
@@ -552,10 +552,11 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	/* If a password is specified explicitly in the URI, use it
 	 * even if the auth had previously already been authenticated.
 	 */
-	if (uri->password && uri->user) {
-		soup_auth_authenticate (auth, uri->user, uri->password);
-		soup_uri_set_password (uri, NULL);
-		soup_uri_set_user (uri, NULL);
+	if (g_uri_get_password (uri) && g_uri_get_user (uri)) {
+		soup_auth_authenticate (auth, g_uri_get_user (uri), g_uri_get_password (uri));
+                GUri *new_uri = soup_uri_copy_with_credentials (uri, NULL, NULL);
+                soup_message_set_uri (msg, new_uri); // QUESTION: This didn't emit a signal previously
+                g_uri_unref (new_uri);
 	} else if (!soup_auth_is_authenticated (auth) && can_interact) {
 		SoupMessage *original_msg;
 		gboolean handled;
@@ -579,7 +580,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 }
 
 static SoupAuth *
-record_auth_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri,
+record_auth_for_uri (SoupAuthManagerPrivate *priv, GUri *uri,
 		     SoupAuth *auth, gboolean prior_auth_failed)
 {
 	SoupAuthHost *host;
@@ -816,7 +817,7 @@ soup_auth_manager_request_unqueued (SoupSessionFeature *manager,
 /**
  * soup_auth_manager_use_auth:
  * @manager: a #SoupAuthManager
- * @uri: the #SoupURI under which @auth is to be used
+ * @uri: the #GUri under which @auth is to be used
  * @auth: the #SoupAuth to use
  *
  * Records that @auth is to be used under @uri, as though a
@@ -833,7 +834,7 @@ soup_auth_manager_request_unqueued (SoupSessionFeature *manager,
  */
 void
 soup_auth_manager_use_auth (SoupAuthManager *manager,
-			    SoupURI         *uri,
+			    GUri            *uri,
 			    SoupAuth        *auth)
 {
         SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);

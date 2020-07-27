@@ -6,7 +6,7 @@
 #include "test-utils.h"
 
 SoupSession *session;
-SoupURI *base_uri;
+GUri *base_uri;
 
 static void
 server_callback (SoupServer        *server,
@@ -91,7 +91,6 @@ server_callback (SoupServer        *server,
 
 	if (g_str_has_prefix (path, "/type/")) {
 		char **components = g_strsplit (path, "/", 4);
-		char *ptr;
 
 		char *base_name = g_path_get_basename (path);
 
@@ -100,7 +99,7 @@ server_callback (SoupServer        *server,
 		g_free (base_name);
 
 		/* Hack to allow passing type in the URI */
-		ptr = g_strrstr (components[2], "_");
+		char *ptr = g_strrstr (components[2], "_");
 		*ptr = '/';
 
 		soup_message_headers_append (response_headers,
@@ -160,12 +159,29 @@ got_headers (SoupMessage *msg)
 	g_object_set_data (G_OBJECT (msg), "got-headers", GINT_TO_POINTER (TRUE));
 }
 
+static GUri *
+uri_set_query (GUri *uri, const char *query)
+{
+        GUri *new_uri = g_uri_build (
+                g_uri_get_flags (uri),
+                g_uri_get_scheme (uri),
+                NULL,
+                g_uri_get_host (uri),
+                g_uri_get_port (uri),
+                g_uri_get_path (uri),
+                query,
+                g_uri_get_fragment (uri)
+        );
+        g_uri_unref (uri);
+        return new_uri;
+}
+
 static void
 do_signals_test (gboolean should_content_sniff,
 		 gboolean chunked_encoding,
 		 gboolean empty_response)
 {
-	SoupURI *uri = soup_uri_new_with_base (base_uri, "/mbox");
+	GUri *uri = g_uri_parse_relative (base_uri, "/mbox", SOUP_HTTP_URI_FLAGS, NULL);
 	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
 	GBytes *expected;
 	GError *error = NULL;
@@ -177,15 +193,15 @@ do_signals_test (gboolean should_content_sniff,
 		      empty_response ? "" : "!");
 
 	if (chunked_encoding)
-		soup_uri_set_query (uri, "chunked=yes");
+                uri = uri_set_query (uri, "chunked=yes");
 
 	if (empty_response) {
-		if (uri->query) {
-			char *tmp = uri->query;
-			uri->query = g_strdup_printf ("%s&empty_response=yes", tmp);
-			g_free (tmp);
+		if (g_uri_get_query (uri)) {
+			char *new_query = g_strdup_printf ("%s&empty_response=yes", g_uri_get_query (uri));
+                        uri = uri_set_query (uri, new_query);
+			g_free (new_query);
 		} else
-			soup_uri_set_query (uri, "empty_response=yes");
+			uri = uri_set_query (uri, "empty_response=yes");
 	}
 
 	soup_message_set_uri (msg, uri);
@@ -216,11 +232,11 @@ do_signals_test (gboolean should_content_sniff,
                 //g_message ("|||body (%zu): %s", g_bytes_get_size (body), (char*)g_bytes_get_data (body, NULL));
                 //g_message ("|||expected (%zu): %s", g_bytes_get_size (expected), (char*)g_bytes_get_data (expected, NULL));
                 g_assert_true (g_bytes_equal (body, expected));
-	}
+        }
 
 	g_bytes_unref (expected);
 	g_bytes_unref (body);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	g_object_unref (msg);
 }
 
@@ -271,14 +287,14 @@ sniffing_content_sniffed (SoupMessage *msg, const char *content_type,
 static void
 test_sniffing (const char *path, const char *expected_type)
 {
-	SoupURI *uri;
+	GUri *uri;
 	SoupMessage *msg;
 	GBytes *body;
 	char *sniffed_type = NULL;
 	char *uri_string;
 	GError *error = NULL;
 
-	uri = soup_uri_new_with_base (base_uri, path);
+	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
 
 	g_signal_connect (msg, "content-sniffed",
@@ -291,7 +307,7 @@ test_sniffing (const char *path, const char *expected_type)
 	g_object_unref (msg);
 
 	sniffed_type = NULL;
-	uri_string = soup_uri_to_string (uri, FALSE);
+	uri_string = g_uri_to_string (uri);
 	body = soup_session_load_uri_bytes (session, uri_string, NULL, &sniffed_type, &error);
 	g_assert_no_error (error);
 	g_assert_cmpstr (sniffed_type, ==, expected_type);
@@ -299,7 +315,7 @@ test_sniffing (const char *path, const char *expected_type)
 	g_free (uri_string);
 	g_bytes_unref (body);
 
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 }
 
 static void
@@ -319,14 +335,14 @@ static void
 test_disabled (gconstpointer data)
 {
 	const char *path = data;
-	SoupURI *uri;
+	GUri *uri;
 	SoupMessage *msg;
 	GBytes *body;
 	char *sniffed_type = NULL;
 
 	g_test_bug ("574773");
 
-	uri = soup_uri_new_with_base (base_uri, path);
+	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 
 	msg = soup_message_new_from_uri ("GET", uri);
 	g_assert_false (soup_message_is_feature_disabled (msg, SOUP_TYPE_CONTENT_SNIFFER));
@@ -341,7 +357,7 @@ test_disabled (gconstpointer data)
 	g_assert_null (sniffed_type);
 	g_bytes_unref (body);
 	g_object_unref (msg);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 }
 
 int
@@ -518,7 +534,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 
 	soup_test_session_abort_unref (session);
 	soup_test_server_quit_unref (server);

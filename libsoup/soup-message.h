@@ -22,7 +22,7 @@ SoupMessage   *soup_message_new                   (const char        *method,
 						   const char        *uri_string);
 SOUP_AVAILABLE_IN_2_4
 SoupMessage   *soup_message_new_from_uri          (const char        *method,
-						   SoupURI           *uri);
+						   GUri              *uri);
 
 SOUP_AVAILABLE_IN_ALL
 SoupMessage   *soup_message_new_from_encoded_form (const char        *method,
@@ -53,20 +53,20 @@ SOUP_AVAILABLE_IN_2_4
 gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 
 SOUP_AVAILABLE_IN_2_4
-SoupURI         *soup_message_get_uri             (SoupMessage       *msg);
+GUri           *soup_message_get_uri             (SoupMessage       *msg);
 SOUP_AVAILABLE_IN_2_4
 void             soup_message_set_uri             (SoupMessage       *msg,
-						   SoupURI           *uri);
+						   GUri              *uri);
 SOUP_AVAILABLE_IN_2_30
-SoupURI         *soup_message_get_first_party     (SoupMessage       *msg);
+GUri            *soup_message_get_first_party     (SoupMessage       *msg);
 SOUP_AVAILABLE_IN_2_30
 void             soup_message_set_first_party     (SoupMessage       *msg,
-						   SoupURI           *first_party);
+						   GUri              *first_party);
 SOUP_AVAILABLE_IN_2_70
-SoupURI         *soup_message_get_site_for_cookies (SoupMessage      *msg);
+GUri            *soup_message_get_site_for_cookies (SoupMessage      *msg);
 SOUP_AVAILABLE_IN_2_70
 void             soup_message_set_site_for_cookies (SoupMessage      *msg,
-						    SoupURI          *site_for_cookies);
+						    GUri             *site_for_cookies);
 SOUP_AVAILABLE_IN_2_70
 void             soup_message_set_is_top_level_navigation (SoupMessage      *msg,
 			                                   gboolean          is_top_level_navigation);

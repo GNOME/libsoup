@@ -51,8 +51,8 @@ void            soup_connection_disconnect     (SoupConnection   *conn);
 GSocket        *soup_connection_get_socket     (SoupConnection   *conn);
 GIOStream      *soup_connection_get_iostream   (SoupConnection   *conn);
 GIOStream      *soup_connection_steal_iostream (SoupConnection   *conn);
-SoupURI        *soup_connection_get_remote_uri (SoupConnection   *conn);
-SoupURI        *soup_connection_get_proxy_uri  (SoupConnection   *conn);
+GUri           *soup_connection_get_remote_uri (SoupConnection   *conn);
+GUri           *soup_connection_get_proxy_uri  (SoupConnection   *conn);
 gboolean        soup_connection_is_via_proxy   (SoupConnection   *conn);
 gboolean        soup_connection_is_tunnelled   (SoupConnection   *conn);
 gboolean        soup_connection_get_tls_info   (SoupConnection   *conn,

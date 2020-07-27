@@ -82,16 +82,16 @@ server_callback (SoupServer        *server,
 }
 
 static void
-do_request (SoupSession *session, SoupURI *base_uri, char *path)
+do_request (SoupSession *session, GUri *base_uri, char *path)
 {
-	SoupURI *uri;
+	GUri *uri;
 	SoupMessage *msg;
 	GBytes *body;
 	char *md5;
 
-	uri = soup_uri_new_with_base (base_uri, path);
+	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 
 	body = soup_test_session_async_send (session, msg);
 
@@ -111,7 +111,7 @@ do_request (SoupSession *session, SoupURI *base_uri, char *path)
 static void
 do_chunked_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 
 	session = soup_test_session_new (NULL);
@@ -122,7 +122,7 @@ do_chunked_test (gconstpointer data)
 static void
 do_content_length_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 
 	session = soup_test_session_new (NULL);
@@ -133,7 +133,7 @@ do_content_length_test (gconstpointer data)
 static void
 do_eof_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 
 	g_test_bug ("572153");
@@ -148,7 +148,7 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server;
-	SoupURI *base_uri;
+	GUri *base_uri;
 	int ret;
 
 	test_init (argc, argv, NULL);
@@ -170,7 +170,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	g_main_loop_unref (loop);
 
 	g_free (full_response_md5);

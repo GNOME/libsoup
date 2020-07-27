@@ -10,7 +10,7 @@ force_io_streams_init (void)
 {
 	SoupServer *server;
 	SoupSession *session;
-	SoupURI *base_uri;
+	GUri *base_uri;
 	SoupMessage *msg;
 
 	/* Poke libsoup enough to cause SoupBodyInputStream and
@@ -27,7 +27,7 @@ force_io_streams_init (void)
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 }
 

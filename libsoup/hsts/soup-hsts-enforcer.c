@@ -466,7 +466,7 @@ soup_hsts_enforcer_process_sts_header (SoupHSTSEnforcer *hsts_enforcer,
 				       SoupMessage *msg)
 {
 	SoupHSTSPolicy *policy;
-	SoupURI *uri;
+	GUri *uri;
 
 	uri = soup_message_get_uri (msg);
 
@@ -487,24 +487,39 @@ got_sts_header_cb (SoupMessage *msg, gpointer user_data)
 	soup_hsts_enforcer_process_sts_header (hsts_enforcer, msg);
 }
 
+static GUri *
+copy_uri_with_new_scheme (GUri *uri, const char *scheme, int port)
+{
+        return g_uri_build_with_user (
+                g_uri_get_flags (uri),
+                scheme,
+                g_uri_get_user (uri),
+                g_uri_get_password (uri),
+                g_uri_get_auth_params (uri),
+                g_uri_get_host (uri),
+                port,
+                g_uri_get_path (uri),
+                g_uri_get_query (uri),
+                g_uri_get_fragment (uri)
+        );
+}
+
 static void
 rewrite_message_uri_to_https (SoupMessage *msg)
 {
-	SoupURI *uri;
-	guint original_port;
+	GUri *uri, *new_uri;
+	int port;
 
-	uri = soup_uri_copy (soup_message_get_uri (msg));
-
-	original_port = soup_uri_get_port (uri);
-	/* This will unconditionally rewrite the port to 443. */
-	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTPS);
+	uri = soup_message_get_uri (msg);
+	port = soup_uri_get_port_with_default (uri);
 	/* From the RFC: "If the URI contains an explicit port component that
 	   is not equal to "80", the port component value MUST be preserved;" */
-	if (original_port != 80)
-		soup_uri_set_port (uri, original_port);
+	if (port == 80)
+                port = 443;
 
-	soup_message_set_uri (msg, uri);
-	soup_uri_free (uri);
+        new_uri = copy_uri_with_new_scheme (uri, "https", port);
+	soup_message_set_uri (msg, new_uri);
+	g_uri_unref (new_uri);
 }
 
 static void
@@ -525,19 +540,17 @@ on_sts_known_host_message_starting (SoupMessage *msg, SoupHSTSEnforcer *hsts_enf
 static void
 preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 {
-	SoupURI *uri;
-	const char *scheme;
+	GUri *uri;
 	const char *host;
 	char *canonicalized = NULL;
 
 	uri = soup_message_get_uri (msg);
-	host = soup_uri_get_host (uri);
+	host = g_uri_get_host (uri);
 
 	if (g_hostname_is_ip_address (host))
 		return;
 
-	scheme = soup_uri_get_scheme (uri);
-	if (scheme == SOUP_URI_SCHEME_HTTP) {
+	if (soup_uri_is_http (uri, NULL)) {
 		if (g_hostname_is_ascii_encoded (host)) {
 			canonicalized = g_hostname_to_unicode (host);
 			if (!canonicalized)
@@ -551,7 +564,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 			g_signal_emit (enforcer, signals[HSTS_ENFORCED], 0, msg);
 		}
 		g_free (canonicalized);
-	} else if (scheme == SOUP_URI_SCHEME_HTTPS) {
+	} else if (soup_uri_is_https (uri, NULL)) {
 		soup_message_add_header_handler (msg, "got-headers",
 						 "Strict-Transport-Security",
 						 G_CALLBACK (got_sts_header_cb),

@@ -186,12 +186,12 @@ soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 }
 
 static GSList *
-soup_auth_digest_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
+soup_auth_digest_get_protection_space (SoupAuth *auth, GUri *source_uri)
 {
 	SoupAuthDigest *auth_digest = SOUP_AUTH_DIGEST (auth);
 	SoupAuthDigestPrivate *priv = soup_auth_digest_get_instance_private (auth_digest);
 	GSList *space = NULL;
-	SoupURI *uri;
+	GUri *uri;
 	char **dvec, *d, *dir, *slash;
 	int dix;
 
@@ -208,15 +208,16 @@ soup_auth_digest_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 		if (*d == '/')
 			dir = g_strdup (d);
 		else {
-			uri = soup_uri_new (d);
-			if (uri && uri->scheme == source_uri->scheme &&
-			    uri->port == source_uri->port &&
-			    !strcmp (uri->host, source_uri->host))
-				dir = g_strdup (uri->path);
+			uri = g_uri_parse (d, SOUP_HTTP_URI_FLAGS, NULL);
+			if (uri &&
+                            g_strcmp0 (g_uri_get_scheme (uri), g_uri_get_scheme (source_uri)) == 0 &&
+			    soup_uri_get_port_with_default (uri) == soup_uri_get_port_with_default (source_uri) &&
+			    !strcmp (g_uri_get_host (uri), g_uri_get_host (source_uri)))
+				dir = g_strdup (g_uri_get_path (uri));
 			else
 				dir = NULL;
 			if (uri)
-				soup_uri_free (uri);
+				g_uri_unref (uri);
 		}
 
 		if (dir) {
@@ -417,11 +418,11 @@ soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 	char response[33], *token;
 	char *url, *algorithm;
 	GString *out;
-	SoupURI *uri;
+	GUri *uri;
 
 	uri = soup_message_get_uri (msg);
 	g_return_val_if_fail (uri != NULL, NULL);
-	url = soup_uri_to_string (uri, TRUE);
+	url = soup_uri_get_path_and_query (uri);
 
 	soup_auth_digest_compute_response (soup_message_get_method (msg), url, priv->hex_a1,
 					   priv->qop, priv->nonce,

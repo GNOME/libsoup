@@ -279,9 +279,9 @@ compare_cookies (gconstpointer a, gconstpointer b, gpointer jar)
 static gboolean
 cookie_is_valid_for_same_site_policy (SoupCookie *cookie,
                                       gboolean    is_safe_method,
-                                      SoupURI    *uri,
-                                      SoupURI    *top_level,
-                                      SoupURI    *cookie_uri,
+                                      GUri       *uri,
+                                      GUri       *top_level,
+                                      GUri       *cookie_uri,
                                       gboolean    is_top_level_navigation,
                                       gboolean    for_http)
 {
@@ -300,14 +300,14 @@ cookie_is_valid_for_same_site_policy (SoupCookie *cookie,
 	if (is_top_level_navigation && cookie_uri == NULL)
 		return FALSE;
 
-	return soup_host_matches_host (soup_uri_get_host (cookie_uri ? cookie_uri : top_level), soup_uri_get_host (uri));
+	return soup_host_matches_host (g_uri_get_host (cookie_uri ? cookie_uri : top_level), g_uri_get_host (uri));
 }
 
 static GSList *
 get_cookies (SoupCookieJar *jar,
-             SoupURI       *uri,
-             SoupURI       *top_level,
-             SoupURI       *site_for_cookies,
+             GUri          *uri,
+             GUri          *top_level,
+             GUri          *site_for_cookies,
              gboolean       is_safe_method,
              gboolean       for_http,
              gboolean       is_top_level_navigation,
@@ -317,19 +317,20 @@ get_cookies (SoupCookieJar *jar,
 	GSList *cookies, *domain_cookies;
 	char *domain, *cur, *next_domain;
 	GSList *new_head, *cookies_to_remove = NULL, *p;
+        const char *host = g_uri_get_host (uri);
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
-	if (!uri->host || !uri->host[0])
+	if (!host || !host[0])
 		return NULL;
 
 	/* The logic here is a little weird, but the plan is that if
-	 * uri->host is "www.foo.com", we will end up looking up
+	 * host is "www.foo.com", we will end up looking up
 	 * cookies for ".www.foo.com", "www.foo.com", ".foo.com", and
 	 * ".com", in that order. (Logic stolen from Mozilla.)
 	 */
 	cookies = NULL;
-	domain = cur = g_strdup_printf (".%s", uri->host);
+	domain = cur = g_strdup_printf (".%s", host);
 	next_domain = domain + 1;
 	do {
 		new_head = domain_cookies = g_hash_table_lookup (priv->domains, cur);
@@ -373,7 +374,7 @@ get_cookies (SoupCookieJar *jar,
 /**
  * soup_cookie_jar_get_cookies:
  * @jar: a #SoupCookieJar
- * @uri: a #SoupURI
+ * @uri: a #GUri
  * @for_http: whether or not the return value is being passed directly
  * to an HTTP operation
  *
@@ -394,7 +395,7 @@ get_cookies (SoupCookieJar *jar,
  * Since: 2.24
  **/
 char *
-soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
+soup_cookie_jar_get_cookies (SoupCookieJar *jar, GUri *uri,
 			     gboolean for_http)
 {
 	GSList *cookies;
@@ -420,7 +421,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 /**
  * soup_cookie_jar_get_cookie_list:
  * @jar: a #SoupCookieJar
- * @uri: a #SoupURI
+ * @uri: a #GUri
  * @for_http: whether or not the return value is being passed directly
  * to an HTTP operation
  *
@@ -441,7 +442,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
  * Since: 2.40
  **/
 GSList *
-soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, SoupURI *uri, gboolean for_http)
+soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, GUri *uri, gboolean for_http)
 {
 	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
 	g_return_val_if_fail (uri != NULL, NULL);
@@ -452,9 +453,9 @@ soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, SoupURI *uri, gboolean for_
 /**
  * soup_cookie_jar_get_cookie_list_with_same_site_info:
  * @jar: a #SoupCookieJar
- * @uri: a #SoupURI
- * @top_level: (nullable): a #SoupURI for the top level document
- * @site_for_cookies: (nullable): a #SoupURI indicating the origin to get cookies for
+ * @uri: a #GUri
+ * @top_level: (nullable): a #GUri for the top level document
+ * @site_for_cookies: (nullable): a #GUri indicating the origin to get cookies for
  * @for_http: whether or not the return value is being passed directly
  * to an HTTP operation
  * @is_safe_method: if the HTTP method is safe, as defined by RFC 7231, ignored when @for_http is %FALSE
@@ -473,9 +474,9 @@ soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, SoupURI *uri, gboolean for_
  */
 GSList *
 soup_cookie_jar_get_cookie_list_with_same_site_info (SoupCookieJar *jar,
-                                                     SoupURI       *uri,
-                                                     SoupURI       *top_level,
-                                                     SoupURI       *site_for_cookies,
+                                                     GUri          *uri,
+                                                     GUri          *top_level,
+                                                     GUri          *site_for_cookies,
                                                      gboolean       for_http,
                                                      gboolean       is_safe_method,
                                                      gboolean       is_top_level_navigation)
@@ -500,19 +501,24 @@ normalize_cookie_domain (const char *domain)
 static gboolean
 incoming_cookie_is_third_party (SoupCookieJar            *jar,
 				SoupCookie               *cookie,
-				SoupURI                  *first_party,
+				GUri                     *first_party,
 				SoupCookieJarAcceptPolicy policy)
 {
 	SoupCookieJarPrivate *priv;
 	const char *normalized_cookie_domain;
 	const char *cookie_base_domain;
 	const char *first_party_base_domain;
+        const char *first_party_host;
 
 	if (policy != SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
 	    policy != SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY)
 		return FALSE;
 
-	if (first_party == NULL || first_party->host == NULL)
+	if (first_party == NULL)
+                return TRUE;
+
+        first_party_host = g_uri_get_host (first_party);
+        if (first_party_host == NULL)
 		return TRUE;
 
 	normalized_cookie_domain = normalize_cookie_domain (soup_cookie_get_domain (cookie));
@@ -520,9 +526,9 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
 	if (cookie_base_domain == NULL)
 		cookie_base_domain = soup_cookie_get_domain (cookie);
 
-	first_party_base_domain = soup_tld_get_base_domain (first_party->host, NULL);
+	first_party_base_domain = soup_tld_get_base_domain (first_party_host, NULL);
 	if (first_party_base_domain == NULL)
-		first_party_base_domain = first_party->host;
+		first_party_base_domain = first_party_host;
 
 	if (soup_host_matches_host (cookie_base_domain, first_party_base_domain))
 		return FALSE;
@@ -562,7 +568,7 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
  * Since: 2.68
  **/
 void
-soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI *uri, SoupURI *first_party)
+soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *uri, GUri *first_party)
 {
 	SoupCookieJarPrivate *priv;
 	GSList *old_cookies, *oc, *last = NULL;
@@ -685,7 +691,7 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
  * Since: 2.40
  **/
 void
-soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, SoupURI *first_party, SoupCookie *cookie)
+soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, GUri *first_party, SoupCookie *cookie)
 {
 	g_return_if_fail (first_party != NULL);
 
@@ -711,7 +717,7 @@ soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, SoupURI *first_
  * Since: 2.24
  **/
 void
-soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
+soup_cookie_jar_set_cookie (SoupCookieJar *jar, GUri *uri,
 			    const char *cookie)
 {
 	SoupCookie *soup_cookie;
@@ -721,7 +727,7 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	g_return_if_fail (uri != NULL);
 	g_return_if_fail (cookie != NULL);
 
-	if (!uri->host)
+	if (!g_uri_get_host (uri))
 		return;
 
 	priv = soup_cookie_jar_get_instance_private (jar);
@@ -754,8 +760,8 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
  **/
 void
 soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
-					     SoupURI *uri,
-					     SoupURI *first_party,
+					     GUri *uri,
+					     GUri *first_party,
 					     const char *cookie)
 {
 	SoupCookie *soup_cookie;
@@ -765,7 +771,7 @@ soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
 	g_return_if_fail (first_party != NULL);
 	g_return_if_fail (cookie != NULL);
 
-	if (!uri->host)
+	if (!g_uri_get_host (uri))
 		return;
 
 	soup_cookie = soup_cookie_parse (cookie, uri);
@@ -780,7 +786,7 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 	SoupCookieJar *jar = user_data;
 	SoupCookieJarPrivate *priv = soup_cookie_jar_get_instance_private (jar);
 	GSList *new_cookies, *nc;
-	SoupURI *first_party, *uri;
+	GUri *first_party, *uri;
 
 	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
 		return;
@@ -936,7 +942,7 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
  * is loaded from that page reject any cookie that it could try to
  * set. For libsoup to be able to tell apart first party cookies from
  * the rest, the application must call soup_message_set_first_party()
- * on each outgoing #SoupMessage, setting the #SoupURI of the main
+ * on each outgoing #SoupMessage, setting the #GUri of the main
  * document. If no first party is set in a message when this policy is
  * in effect, cookies will be assumed to be third party by default.
  * @SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY: accept all cookies
@@ -949,7 +955,7 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
  * set unless it already has a cookie in the cookie jar. For libsoup to
  * be able to tell apart first party cookies from the rest, the
  * application must call soup_message_set_first_party() on each outgoing
- * #SoupMessage, setting the #SoupURI of the main document. If no first
+ * #SoupMessage, setting the #GUri of the main document. If no first
  * party is set in a message when this policy is in effect, cookies will
  * be assumed to be third party by default. Since 2.72.
  *

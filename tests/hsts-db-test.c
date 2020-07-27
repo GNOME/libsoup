@@ -6,8 +6,8 @@
 
 #define DB_FILE "hsts-db.sqlite"
 
-SoupURI *http_uri;
-SoupURI *https_uri;
+GUri *http_uri;
+GUri *https_uri;
 
 /* This server pseudo-implements the HSTS spec in order to allow us to
    test the Soup HSTS feature.
@@ -25,13 +25,11 @@ server_callback  (SoupServer        *server,
         response_headers = soup_server_message_get_response_headers (msg);
 
 	if (strcmp (server_protocol, "http") == 0) {
-		char *uri_string;
-		SoupURI *uri = soup_uri_new ("https://localhost");
-		soup_uri_set_path (uri, path);
-		uri_string = soup_uri_to_string (uri, FALSE);
+                GUri *uri = g_uri_build (SOUP_HTTP_URI_FLAGS, "https", NULL, "localhost", -1, path, NULL, NULL);
+		char *uri_string = g_uri_to_string (uri);
 		fprintf (stderr, "server is redirecting to HTTPS\n");
 		soup_server_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY, uri_string);
-		soup_uri_free (uri);
+		g_uri_unref (uri);
 		g_free (uri_string);
 	} else if (strcmp (server_protocol, "https") == 0) {
 		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
@@ -82,12 +80,15 @@ session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_stat
 static void
 rewrite_message_uri (SoupMessage *msg)
 {
-	if (soup_uri_get_scheme (soup_message_get_uri (msg)) == SOUP_URI_SCHEME_HTTP)
-		soup_uri_set_port (soup_message_get_uri (msg), soup_uri_get_port (http_uri));
-	else if (soup_uri_get_scheme (soup_message_get_uri (msg)) == SOUP_URI_SCHEME_HTTPS)
-		soup_uri_set_port (soup_message_get_uri (msg), soup_uri_get_port (https_uri));
+	GUri *new_uri;
+	if (soup_uri_is_http (soup_message_get_uri (msg), NULL))
+		new_uri = soup_test_uri_set_port (soup_message_get_uri (msg), g_uri_get_port (http_uri));
+	else if (soup_uri_is_https (soup_message_get_uri (msg), NULL))
+		new_uri = soup_test_uri_set_port (soup_message_get_uri (msg), g_uri_get_port (https_uri));
 	else
 		g_assert_not_reached();
+	soup_message_set_uri (msg, new_uri);
+	g_uri_unref (new_uri);
 }
 
 static void
@@ -190,11 +191,11 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (http_uri);
+	g_uri_unref (http_uri);
 	soup_test_server_quit_unref (server);
 
 	if (tls_available) {
-		soup_uri_free (https_uri);
+		g_uri_unref (https_uri);
 		soup_test_server_quit_unref (https_server);
 	}
 

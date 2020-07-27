@@ -105,7 +105,7 @@ direct_connection_complete (GObject *object,
 {
 	Test *test = user_data;
 	GSocketConnection *conn;
-	SoupURI *uri;
+	GUri *uri;
 	GError *error = NULL;
 	GList *extensions = NULL;
 
@@ -113,7 +113,7 @@ direct_connection_complete (GObject *object,
 						       result, &error);
 	g_assert_no_error (error);
 
-	uri = soup_uri_new ("http://127.0.0.1/");
+	uri = g_uri_parse ("http://127.0.0.1/", SOUP_HTTP_URI_FLAGS, NULL);
 	if (test->enable_extensions) {
 		SoupWebsocketExtension *extension;
 
@@ -127,7 +127,7 @@ direct_connection_complete (GObject *object,
 						      SOUP_WEBSOCKET_CONNECTION_CLIENT,
 						      NULL, NULL,
 						      extensions);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	g_object_unref (conn);
 }
 
@@ -139,7 +139,7 @@ got_connection (GSocket *listener,
 	Test *test = user_data;
 	GSocket *sock;
 	GSocketConnection *conn;
-	SoupURI *uri;
+	GUri *uri;
 	GList *extensions = NULL;
 	GError *error = NULL;
 
@@ -153,7 +153,7 @@ got_connection (GSocket *listener,
 	if (test->no_server)
 		test->raw_server = G_IO_STREAM (conn);
 	else {
-		uri = soup_uri_new ("http://127.0.0.1/");
+		uri = g_uri_parse ("http://127.0.0.1/", SOUP_HTTP_URI_FLAGS, NULL);
 		if (test->enable_extensions) {
 			SoupWebsocketExtension *extension;
 
@@ -167,7 +167,7 @@ got_connection (GSocket *listener,
 							      SOUP_WEBSOCKET_CONNECTION_SERVER,
 							      NULL, NULL,
 							      extensions);
-		soup_uri_free (uri);
+		g_uri_unref (uri);
 		g_object_unref (conn);
 	}
 

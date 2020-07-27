@@ -5,10 +5,8 @@
 
 #include "test-utils.h"
 
-SoupServer *server;
-SoupURI *first_party_uri, *third_party_uri;
-const char *first_party = "http://127.0.0.1/";
-const char *third_party = "http://localhost/";
+static SoupServer *server;
+static GUri *first_party_uri, *third_party_uri;
 
 static void
 server_callback (SoupServer        *server,
@@ -60,7 +58,7 @@ do_cookies_accept_policy_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupURI *uri;
+	GUri *uri;
 	SoupCookieJar *jar;
 	GSList *l, *p;
 	int i;
@@ -76,26 +74,26 @@ do_cookies_accept_policy_test (void)
 		 * test_server, so let's swap first and third party here
 		 * to simulate a cookie coming from a third party.
 		 */
-		uri = soup_uri_new_with_base (first_party_uri, "/foo.jpg");
+		uri = g_uri_parse_relative (first_party_uri, "/foo.jpg", SOUP_HTTP_URI_FLAGS, NULL);
 		msg = soup_message_new_from_uri ("GET", uri);
 		soup_message_set_first_party (msg, third_party_uri);
 		soup_test_session_send_message (session, msg);
-		soup_uri_free (uri);
+		g_uri_unref (uri);
 		g_object_unref (msg);
 
-		uri = soup_uri_new_with_base (first_party_uri, "/index.html");
+		uri = g_uri_parse_relative (first_party_uri, "/index.html", SOUP_HTTP_URI_FLAGS, NULL);
 		msg = soup_message_new_from_uri ("GET", uri);
 		soup_message_set_first_party (msg, first_party_uri);
 		soup_test_session_send_message (session, msg);
-		soup_uri_free (uri);
+		g_uri_unref (uri);
 		g_object_unref (msg);
-
+        
 		if (validResults[i].try_third_party_again) {
-			uri = soup_uri_new_with_base (first_party_uri, "/foo.jpg");
-			msg = soup_message_new_from_uri ("GET", uri);
+                        uri = g_uri_parse_relative (first_party_uri, "/foo.jpg", SOUP_HTTP_URI_FLAGS, NULL);
+                        msg = soup_message_new_from_uri ("GET", uri);
 			soup_message_set_first_party (msg, third_party_uri);
 			soup_test_session_send_message (session, msg);
-			soup_uri_free (uri);
+			g_uri_unref (uri);
 			g_object_unref (msg);
 		}
 
@@ -118,18 +116,18 @@ do_cookies_subdomain_policy_test (void)
 {
 	SoupCookieJar *jar;
 	GSList *cookies;
-	SoupURI *uri1;
-	SoupURI *uri2;
-	SoupURI *uri3;
+	GUri *uri1;
+	GUri *uri2;
+	GUri *uri3;
 
 	g_test_bug ("792130");
 
 	/* Only the base domain should be considered when deciding
 	 * whether a cookie is a third-party cookie.
 	 */
-	uri1 = soup_uri_new ("https://www.gnome.org");
-	uri2 = soup_uri_new ("https://foundation.gnome.org");
-	uri3 = soup_uri_new ("https://www.gnome.org.");
+	uri1 = g_uri_parse ("https://www.gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+	uri2 = g_uri_parse ("https://foundation.gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+	uri3 = g_uri_parse ("https://www.gnome.org.", SOUP_HTTP_URI_FLAGS, NULL);
 
 	/* We can't check subdomains with a test server running on
 	 * localhost, so we'll just check the cookie jar API itself.
@@ -239,9 +237,9 @@ do_cookies_subdomain_policy_test (void)
 	g_assert_cmpint (g_slist_length (cookies), ==, 7);
 	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 
-	soup_uri_free (uri1);
-	soup_uri_free (uri2);
-	soup_uri_free (uri3);
+	g_uri_unref (uri1);
+	g_uri_unref (uri2);
+	g_uri_unref (uri3);
 	g_object_unref (jar);
 }
 
@@ -250,11 +248,11 @@ do_cookies_strict_secure_test (void)
 {
 	SoupCookieJar *jar;
 	GSList *cookies;
-	SoupURI *insecure_uri;
-	SoupURI *secure_uri;
+	GUri *insecure_uri;
+	GUri *secure_uri;
 
-	insecure_uri = soup_uri_new ("http://gnome.org");
-	secure_uri = soup_uri_new ("https://gnome.org");
+	insecure_uri = g_uri_parse ("http://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+	secure_uri = g_uri_parse ("https://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
 	jar = soup_cookie_jar_new ();
 
 	/* Set a cookie from secure origin */
@@ -283,8 +281,8 @@ do_cookies_strict_secure_test (void)
 	g_assert_cmpint (g_slist_length (cookies), ==, 2);
 	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 
-	soup_uri_free (insecure_uri);
-	soup_uri_free (secure_uri);
+	g_uri_unref (insecure_uri);
+	g_uri_unref (secure_uri);
 	g_object_unref (jar);
 }
 
@@ -373,18 +371,18 @@ static void
 do_get_cookies_empty_host_test (void)
 {
 	SoupCookieJar *jar;
-	SoupURI *uri;
+	GUri *uri;
 	char *cookies;
 
 	jar = soup_cookie_jar_new ();
-	uri = soup_uri_new ("file:///whatever.html");
+	uri = g_uri_parse ("file:///whatever.html", SOUP_HTTP_URI_FLAGS, NULL);
 
 	cookies = soup_cookie_jar_get_cookies (jar, uri, FALSE);
 
 	g_assert_null (cookies);
 
 	g_object_unref (jar);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 }
 
 static void
@@ -400,12 +398,12 @@ do_remove_feature_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupURI *uri;
+	GUri *uri;
 	GMainLoop *loop;
 
 	session = soup_test_session_new (NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
-	uri = soup_uri_new_with_base (first_party_uri, "/index.html");
+	uri = g_uri_parse_relative (first_party_uri, "/index.html", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_message_set_first_party (msg, first_party_uri);
 
@@ -418,13 +416,13 @@ do_remove_feature_test (void)
 
 	g_main_loop_unref (loop);
 	g_object_unref (msg);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 }
 
 int
 main (int argc, char **argv)
 {
-	SoupURI *server_uri;
+	GUri *server_uri;
 	int ret;
 
 	test_init (argc, argv, NULL);
@@ -433,10 +431,10 @@ main (int argc, char **argv)
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	server_uri = soup_test_server_get_uri (server, "http", NULL);
 
-	first_party_uri = soup_uri_new (first_party);
-	third_party_uri = soup_uri_new (third_party);
-	soup_uri_set_port (first_party_uri, server_uri->port);
-	soup_uri_set_port (third_party_uri, server_uri->port);
+	first_party_uri = g_uri_build (SOUP_HTTP_URI_FLAGS, "http", NULL, "127.0.0.1",
+                                       g_uri_get_port (server_uri), "/", NULL, NULL);
+        third_party_uri = g_uri_build (SOUP_HTTP_URI_FLAGS, "http", NULL, "localhost",
+                                       g_uri_get_port (server_uri), "/", NULL, NULL);
 
 	g_test_add_func ("/cookies/accept-policy", do_cookies_accept_policy_test);
 	g_test_add_func ("/cookies/accept-policy-subdomains", do_cookies_subdomain_policy_test);
@@ -448,9 +446,9 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (first_party_uri);
-	soup_uri_free (third_party_uri);
-	soup_uri_free (server_uri);
+	g_uri_unref (first_party_uri);
+	g_uri_unref (third_party_uri);
+	g_uri_unref (server_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

@@ -173,13 +173,13 @@ parse_date (const char **val_p)
 }
 
 static SoupCookie *
-parse_one_cookie (const char *header, SoupURI *origin)
+parse_one_cookie (const char *header, GUri *origin)
 {
 	const char *start, *end, *p;
 	gboolean has_value;
 	SoupCookie *cookie;	
 
-	g_return_val_if_fail (origin == NULL || origin->host, NULL);
+        g_return_val_if_fail (origin == NULL || SOUP_URI_IS_VALID (origin), NULL);
 
 	cookie = g_slice_new0 (SoupCookie);
 
@@ -289,12 +289,12 @@ parse_one_cookie (const char *header, SoupURI *origin)
 	if (origin) {
 		/* Sanity-check domain */
 		if (cookie->domain) {
-			if (!soup_cookie_domain_matches (cookie, origin->host)) {
+			if (!soup_cookie_domain_matches (cookie, g_uri_get_host (origin))) {
 				soup_cookie_free (cookie);
 				return NULL;
 			}
 		} else
-			cookie->domain = g_strdup (origin->host);
+			cookie->domain = g_strdup (g_uri_get_host (origin));
 
 		/* The original cookie spec didn't say that pages
 		 * could only set cookies for paths they were under.
@@ -305,16 +305,21 @@ parse_one_cookie (const char *header, SoupURI *origin)
 		 */
 
 		if (!cookie->path) {
+                        GUri *normalized_origin = soup_uri_copy_with_normalized_flags (origin);
 			char *slash;
+                        const char *origin_path = g_uri_get_path (normalized_origin);
 
-			slash = strrchr (origin->path, '/');
-			if (!slash || slash == origin->path)
+			slash = strrchr (origin_path, '/');
+			if (!slash || slash == origin_path)
 				cookie->path = g_strdup ("/");
 			else {
-				cookie->path = g_strndup (origin->path,
-							  slash - origin->path);
+				cookie->path = g_strndup (origin_path,
+							  slash - origin_path);
 			}
+
+                        g_uri_unref (normalized_origin);
 		}
+
 	} else if (!cookie->path) {
 		cookie->path = g_strdup ("/");
 	}
@@ -411,7 +416,7 @@ soup_cookie_new (const char *name, const char *value,
  * Since: 2.24
  **/
 SoupCookie *
-soup_cookie_parse (const char *cookie, SoupURI *origin)
+soup_cookie_parse (const char *cookie, GUri *origin)
 {
 	return parse_one_cookie (cookie, origin);
 }
@@ -904,7 +909,7 @@ soup_cookie_free (SoupCookie *cookie)
 GSList *
 soup_cookies_from_response (SoupMessage *msg)
 {
-	SoupURI *origin;
+	GUri *origin;
 	const char *name, *value;
 	SoupCookie *cookie;
 	GSList *cookies = NULL;
@@ -1073,7 +1078,7 @@ soup_cookies_to_cookie_header (GSList *cookies)
 /**
  * soup_cookie_applies_to_uri:
  * @cookie: a #SoupCookie
- * @uri: a #SoupURI
+ * @uri: a #GUri
  *
  * Tests if @cookie should be sent to @uri.
  *
@@ -1087,9 +1092,11 @@ soup_cookies_to_cookie_header (GSList *cookies)
  * Since: 2.24
  **/
 gboolean
-soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
+soup_cookie_applies_to_uri (SoupCookie *cookie, GUri *uri)
 {
 	int plen;
+
+        g_return_val_if_fail (SOUP_URI_IS_VALID (uri), FALSE);
 
 	if (cookie->secure && !soup_uri_is_https (uri, NULL))
 		return FALSE;
@@ -1097,18 +1104,20 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	if (cookie->expires && soup_date_time_is_past (cookie->expires))
 		return FALSE;
 
-	/* uri->path is required to be non-NULL */
-	g_return_val_if_fail (uri->path != NULL, FALSE);
-
 	plen = strlen (cookie->path);
 	if (plen == 0)
 		return TRUE;
-	if (strncmp (cookie->path, uri->path, plen) != 0)
-		return FALSE;
-	if (cookie->path[plen - 1] != '/' &&
-	    uri->path[plen] && uri->path[plen] != '/')
-		return FALSE;
 
+        GUri *normalized_uri = soup_uri_copy_with_normalized_flags (uri);
+        const char *uri_path = g_uri_get_path (normalized_uri);
+	if (strncmp (cookie->path, uri_path, plen) != 0 ||
+	    (cookie->path[plen - 1] != '/' && uri_path[plen] &&
+             uri_path[plen] != '/')) {
+                     g_uri_unref (normalized_uri);
+                     return FALSE;
+        }
+
+        g_uri_unref (normalized_uri);
 	return TRUE;
 }
 

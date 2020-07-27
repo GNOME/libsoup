@@ -263,7 +263,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	SoupAuth *auth;
 	GHashTable *params;
 	const char *scheme;
-	SoupURI *uri;
+	GUri *uri;
 	char *authority;
 
 	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
@@ -274,7 +274,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	if (!uri)
 		return NULL;
 
-	authority = g_strdup_printf ("%s:%d", uri->host, uri->port);
+	authority = g_strdup_printf ("%s:%d", g_uri_get_host (uri), g_uri_get_port (uri));
 	auth = g_object_new (type,
 			     "is-for-proxy", (soup_message_get_status (msg) == SOUP_STATUS_PROXY_UNAUTHORIZED),
 			     "authority", authority,
@@ -642,12 +642,15 @@ soup_auth_can_authenticate (SoupAuth *auth)
  * paths, which can be freed with soup_auth_free_protection_space().
  **/
 GSList *
-soup_auth_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
+soup_auth_get_protection_space (SoupAuth *auth, GUri *source_uri)
 {
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
-	g_return_val_if_fail (source_uri != NULL, NULL);
+        g_return_val_if_fail (SOUP_URI_IS_VALID (source_uri), NULL);
 
-	return SOUP_AUTH_GET_CLASS (auth)->get_protection_space (auth, source_uri);
+        GUri *source_uri_normalized = soup_uri_copy_with_normalized_flags (source_uri);
+	GSList *ret = SOUP_AUTH_GET_CLASS (auth)->get_protection_space (auth, source_uri_normalized);
+        g_uri_unref (source_uri_normalized);
+        return ret;
 }
 
 /**

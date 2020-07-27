@@ -59,7 +59,7 @@ struct _SoupServerMessage {
         guint               status_code;
         char               *reason_phrase;
 
-        SoupURI            *uri;
+        GUri               *uri;
 
         SoupMessageBody    *request_body;
         SoupMessageHeaders *request_headers;
@@ -124,7 +124,7 @@ soup_server_message_finalize (GObject *object)
         g_clear_object (&msg->gsock);
         g_clear_pointer (&msg->remote_ip, g_free);
 
-        g_clear_pointer (&msg->uri, soup_uri_free);
+        g_clear_pointer (&msg->uri, g_uri_unref);
         g_free (msg->reason_phrase);
 
         soup_message_body_free (msg->request_body);
@@ -337,11 +337,11 @@ soup_server_message_new (SoupSocket *sock)
 
 void
 soup_server_message_set_uri (SoupServerMessage *msg,
-                             SoupURI           *uri)
+                             GUri              *uri)
 {
         if (msg->uri)
-                soup_uri_free (msg->uri);
-        msg->uri = soup_uri_copy (uri);
+                g_uri_unref (msg->uri);
+        msg->uri = soup_uri_copy_with_normalized_flags (uri);
 }
 
 SoupSocket *
@@ -654,9 +654,9 @@ soup_server_message_set_status (SoupServerMessage *msg,
  *
  * Get @msg's URI.
  *
- * Returns: (transfer none): a #SoupURI
+ * Returns: (transfer none): a #GUri
  */
-SoupURI *
+GUri *
 soup_server_message_get_uri (SoupServerMessage *msg)
 {
         g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), NULL);
@@ -720,20 +720,20 @@ soup_server_message_set_redirect (SoupServerMessage *msg,
                                   guint              status_code,
                                   const char        *redirect_uri)
 {
-        SoupURI *location;
-        char *location_str;
+	GUri *location;
+	char *location_str;
 
         g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
 
-        location = soup_uri_new_with_base (soup_server_message_get_uri (msg), redirect_uri);
-        g_return_if_fail (location != NULL);
+	location = g_uri_parse_relative (soup_server_message_get_uri (msg), redirect_uri, SOUP_HTTP_URI_FLAGS, NULL);
+	g_return_if_fail (location != NULL);
 
-        soup_server_message_set_status (msg, status_code, NULL);
-        location_str = soup_uri_to_string (location, FALSE);
-        soup_message_headers_replace (msg->response_headers, "Location",
-                                      location_str);
-        g_free (location_str);
-        soup_uri_free (location);
+	soup_server_message_set_status (msg, status_code, NULL);
+	location_str = g_uri_to_string (location);
+	soup_message_headers_replace (msg->response_headers, "Location",
+				      location_str);
+	g_free (location_str);
+	g_uri_unref (location);
 }
 
 /**

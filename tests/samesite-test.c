@@ -3,8 +3,8 @@
 #include "test-utils.h"
 
 typedef struct {
-	SoupURI *origin_uri;
-	SoupURI *cross_uri;
+	GUri *origin_uri;
+	GUri *cross_uri;
 	SoupCookieJar *jar;
 	GSList *cookies;
 } SameSiteFixture;
@@ -15,8 +15,8 @@ same_site_setup (SameSiteFixture *fixture,
 {
 	SoupCookie *cookie_none, *cookie_lax, *cookie_strict;
 
-	fixture->origin_uri = soup_uri_new ("http://127.0.0.1");
-	fixture->cross_uri = soup_uri_new ("http://localhost");
+	fixture->origin_uri = g_uri_parse ("http://127.0.0.1", SOUP_HTTP_URI_FLAGS, NULL);
+	fixture->cross_uri = g_uri_parse ("http://localhost", SOUP_HTTP_URI_FLAGS, NULL);
 	fixture->jar = soup_cookie_jar_new ();
 
 	cookie_none = soup_cookie_new ("none", "1", "127.0.0.1", "/", 1000);
@@ -35,8 +35,8 @@ same_site_teardown (SameSiteFixture *fixture,
                     gconstpointer    data)
 {
 	g_object_unref (fixture->jar);
-	soup_uri_free (fixture->origin_uri);
-	soup_uri_free (fixture->cross_uri);
+	g_uri_unref (fixture->origin_uri);
+	g_uri_unref (fixture->cross_uri);
 	g_slist_free_full (fixture->cookies, (GDestroyNotify) soup_cookie_free);
 }
 

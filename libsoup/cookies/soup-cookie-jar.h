@@ -39,42 +39,42 @@ SOUP_AVAILABLE_IN_2_24
 SoupCookieJar *           soup_cookie_jar_new                         (void);
 SOUP_AVAILABLE_IN_2_24
 char          *           soup_cookie_jar_get_cookies                 (SoupCookieJar             *jar,
-								       SoupURI                   *uri,
+								       GUri                      *uri,
 								       gboolean                   for_http);
 SOUP_AVAILABLE_IN_2_40
 GSList        *           soup_cookie_jar_get_cookie_list             (SoupCookieJar             *jar,
-								       SoupURI                   *uri,
+								       GUri                      *uri,
 								       gboolean                   for_http);
 SOUP_AVAILABLE_IN_2_70
 GSList        *           soup_cookie_jar_get_cookie_list_with_same_site_info (
 	                                                               SoupCookieJar             *jar,
-	                                                               SoupURI                   *uri,
-								       SoupURI                   *top_level,
-								       SoupURI                   *site_for_cookies,
+	                                                               GUri                      *uri,
+								       GUri                      *top_level,
+								       GUri                      *site_for_cookies,
 								       gboolean                   for_http,
 								       gboolean                   is_safe_method,
 								       gboolean                   is_top_level_navigation);
 SOUP_AVAILABLE_IN_2_24
 void                      soup_cookie_jar_set_cookie                  (SoupCookieJar             *jar,
-								       SoupURI                   *uri,
+								       GUri                      *uri,
 								       const char                *cookie);
 SOUP_AVAILABLE_IN_2_30
 void                      soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar             *jar,
-								       SoupURI                   *uri,
-								       SoupURI                   *first_party,
+								       GUri                      *uri,
+								       GUri                      *first_party,
 								       const char                *cookie);
 SOUP_AVAILABLE_IN_2_26
 void                      soup_cookie_jar_add_cookie                  (SoupCookieJar             *jar,
 								       SoupCookie                *cookie);
 SOUP_AVAILABLE_IN_2_40
 void                      soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar             *jar,
-								       SoupURI                   *first_party,
+								       GUri                      *first_party,
 								       SoupCookie                *cookie);
 SOUP_AVAILABLE_IN_2_68
 void                      soup_cookie_jar_add_cookie_full             (SoupCookieJar             *jar,
                                                                        SoupCookie                *cookie,
-								       SoupURI                   *uri,
-								       SoupURI                   *first_party);
+								       GUri                      *uri,
+								       GUri                      *first_party);
 SOUP_AVAILABLE_IN_2_26
 void                      soup_cookie_jar_delete_cookie               (SoupCookieJar             *jar,
 								       SoupCookie                *cookie);

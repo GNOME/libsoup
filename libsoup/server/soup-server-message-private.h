@@ -12,7 +12,7 @@
 
 SoupServerMessage *soup_server_message_new                 (SoupSocket               *sock);
 void               soup_server_message_set_uri             (SoupServerMessage        *msg,
-                                                            SoupURI                  *uri);
+                                                            GUri                     *uri);
 void               soup_server_message_set_method          (SoupServerMessage        *msg,
                                                             const char               *method);
 SoupSocket        *soup_server_message_get_soup_socket     (SoupServerMessage        *msg);

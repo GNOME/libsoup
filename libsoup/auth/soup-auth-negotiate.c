@@ -21,7 +21,7 @@
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
-#include "soup-uri.h"
+#include "soup-uri-utils-private.h"
 
 /**
  * soup_auth_negotiate_supported:
@@ -142,11 +142,11 @@ soup_auth_negotiate_free_connection_state (SoupConnectionAuth *auth,
 }
 
 static GSList *
-soup_auth_negotiate_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
+soup_auth_negotiate_get_protection_space (SoupAuth *auth, GUri *source_uri)
 {
 	char *space, *p;
 
-	space = g_strdup (source_uri->path);
+	space = g_strdup (g_uri_get_path (source_uri));
 
 	/* Strip filename component */
 	p = strrchr (space, '/');
@@ -399,18 +399,18 @@ check_server_response (SoupMessage *msg, gpointer auth)
 
 /* Check if scheme://host:port from message matches the given URI. */
 static gint
-match_base_uri (SoupURI *list_uri, SoupURI *msg_uri)
+match_base_uri (GUri *list_uri, GUri *msg_uri)
 {
-	if (msg_uri->scheme != list_uri->scheme)
-		return 1;
+        if (g_strcmp0 (g_uri_get_scheme (list_uri), g_uri_get_scheme (msg_uri)) != 0)
+                return 1;
 
-	if (list_uri->port && (msg_uri->port != list_uri->port))
-		return 1;
+        if (g_uri_get_port (list_uri) != -1 && g_uri_get_port (list_uri) != g_uri_get_port (msg_uri))
+                return 1;
 
-	if (list_uri->host)
-		return !soup_host_matches_host (msg_uri->host, list_uri->host);
+        if (g_uri_get_host (list_uri))
+                return !soup_host_matches_host (g_uri_get_host (msg_uri), g_uri_get_host (list_uri));
 
-	return 0;
+        return 0;
 }
 
 /* Parses a comma separated list of URIS from the environment. */
@@ -433,10 +433,10 @@ parse_uris_from_env_variable (const gchar *env_variable, GSList **list)
 
 	length = g_strv_length (uris);
 	for (i = 0; i < length; i++) {
-		SoupURI *uri;
+		GUri *uri;
 
 		/* If the supplied URI is valid, append it to the list */
-		if ((uri = soup_uri_new (uris[i])))
+		if ((uri = g_uri_parse (uris[i], SOUP_HTTP_URI_FLAGS, NULL)))
 			*list = g_slist_prepend (*list, uri);
 	}
 
@@ -446,7 +446,7 @@ parse_uris_from_env_variable (const gchar *env_variable, GSList **list)
 static gboolean
 check_auth_trusted_uri (SoupConnectionAuth *auth, SoupMessage *msg)
 {
-	SoupURI *msg_uri;
+	GUri *msg_uri;
 	GSList *matched = NULL;
 
 	g_return_val_if_fail (auth != NULL, FALSE);

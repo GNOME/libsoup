@@ -459,36 +459,36 @@ soup_test_server_new (SoupTestServerOptions options)
 	return server;
 }
 
-static SoupURI *
+static GUri *
 find_server_uri (SoupServer *server, const char *scheme, const char *host)
 {
 	GSList *uris, *u;
-	SoupURI *uri, *ret_uri = NULL;
+	GUri *uri, *ret_uri = NULL;
 
 	uris = soup_server_get_uris (server);
 	for (u = uris; u; u = u->next) {
 		uri = u->data;
 
-		if (scheme && strcmp (uri->scheme, scheme) != 0)
+		if (scheme && strcmp (g_uri_get_scheme (uri), scheme) != 0)
 			continue;
-		if (host && strcmp (uri->host, host) != 0)
+		if (host && strcmp (g_uri_get_host (uri), host) != 0)
 			continue;
 
-		ret_uri = soup_uri_copy (uri);
+		ret_uri = g_uri_ref (uri);
 		break;
 	}
-	g_slist_free_full (uris, (GDestroyNotify)soup_uri_free);
+	g_slist_free_full (uris, (GDestroyNotify)g_uri_unref);
 
 	return ret_uri;
 }
 
-static SoupURI *
+static GUri *
 add_listener (SoupServer *server, const char *scheme, const char *host)
 {
 	SoupServerListenOptions options = 0;
 	GError *error = NULL;
 
-	if (!g_strcmp0 (scheme, SOUP_URI_SCHEME_HTTPS))
+	if (!g_strcmp0 (scheme, "https"))
 		options |= SOUP_SERVER_LISTEN_HTTPS;
 	if (!g_strcmp0 (host, "127.0.0.1"))
 		options |= SOUP_SERVER_LISTEN_IPV4_ONLY;
@@ -509,7 +509,7 @@ typedef struct {
 	const char *scheme;
 	const char *host;
 
-	SoupURI *uri;
+	GUri *uri;
 } AddListenerData;
 
 static gboolean
@@ -525,12 +525,12 @@ add_listener_in_thread (gpointer user_data)
 	return FALSE;
 }
 
-SoupURI *
+GUri *
 soup_test_server_get_uri (SoupServer    *server,
 			  const char    *scheme,
 			  const char    *host)
 {
-	SoupURI *uri;
+	GUri *uri;
 	GMainLoop *loop;
 
 	uri = find_server_uri (server, scheme, host);
@@ -896,3 +896,21 @@ soup_test_assert (gboolean expr, const char *fmt, ...)
 	}
 }
 #endif
+
+GUri *
+soup_test_uri_set_port (GUri *uri, int port)
+{
+        GUri *new_uri = g_uri_build_with_user (
+                g_uri_get_flags (uri),
+                g_uri_get_scheme (uri),
+                g_uri_get_user (uri),
+                g_uri_get_password (uri),
+                g_uri_get_auth_params (uri),
+                g_uri_get_host (uri),
+                port,
+                g_uri_get_path (uri),
+                g_uri_get_query (uri),
+                g_uri_get_fragment (uri)
+        );
+        return new_uri;
+}

@@ -413,7 +413,7 @@ md5_post_callback (SoupServer        *server,
 	const char *fmt;
 	char *filename, *md5sum, *redirect_uri;
 	GBytes *file;
-	SoupURI *uri;
+	GUri *uri;
 	SoupMultipart *multipart;
 	GBytes *body;
 	SoupMessageHeaders *request_headers;
@@ -438,18 +438,17 @@ md5_post_callback (SoupServer        *server,
 	md5sum = g_compute_checksum_for_bytes (G_CHECKSUM_MD5, file);
 	g_bytes_unref (file);
 
-	uri = soup_uri_copy (soup_server_message_get_uri (msg));
-	soup_uri_set_query_from_fields (uri,
-					"file", filename ? filename : "",
-					"md5sum", md5sum,
-					"fmt", fmt ? fmt : "html",
-					NULL);
-	redirect_uri = soup_uri_to_string (uri, FALSE);
+	uri = soup_uri_copy_with_query_from_fields (soup_server_message_get_uri (msg),
+					            "file", filename ? filename : "",
+					            "md5sum", md5sum,
+					            "fmt", fmt ? fmt : "html",
+					            NULL);
+	redirect_uri = g_uri_to_string (uri);
 
 	soup_server_message_set_redirect (msg, SOUP_STATUS_SEE_OTHER, redirect_uri);
 
 	g_free (redirect_uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	g_free (md5sum);
 	g_free (filename);
 	g_hash_table_destroy (params);
@@ -488,7 +487,7 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server;
-	SoupURI *base_uri, *uri;
+	GUri *base_uri, *uri;
 	int ret = 0;
 
 	test_init (argc, argv, no_test_entry);
@@ -503,28 +502,28 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (run_tests) {
-		uri = soup_uri_new_with_base (base_uri, "/hello");
-		g_test_add_data_func_full ("/forms/hello/curl", soup_uri_to_string (uri, FALSE), do_hello_tests_curl, g_free);
-		g_test_add_data_func_full ("/forms/hello/libsoup", soup_uri_to_string (uri, FALSE), do_hello_tests_libsoup, g_free);
-		soup_uri_free (uri);
+		uri = g_uri_parse_relative (base_uri, "/hello", SOUP_HTTP_URI_FLAGS, NULL);
+		g_test_add_data_func_full ("/forms/hello/curl", g_uri_to_string (uri), do_hello_tests_curl, g_free);
+		g_test_add_data_func_full ("/forms/hello/libsoup", g_uri_to_string (uri), do_hello_tests_libsoup, g_free);
+		g_uri_unref (uri);
 
-		uri = soup_uri_new_with_base (base_uri, "/md5");
-		g_test_add_data_func_full ("/forms/md5/curl", soup_uri_to_string (uri, FALSE), do_md5_test_curl, g_free);
-		g_test_add_data_func_full ("/forms/md5/libsoup", soup_uri_to_string (uri, FALSE), do_md5_test_libsoup, g_free);
-		soup_uri_free (uri);
+		uri = g_uri_parse_relative (base_uri, "/md5", SOUP_HTTP_URI_FLAGS, NULL);
+		g_test_add_data_func_full ("/forms/md5/curl", g_uri_to_string (uri), do_md5_test_curl, g_free);
+		g_test_add_data_func_full ("/forms/md5/libsoup", g_uri_to_string (uri), do_md5_test_libsoup, g_free);
+		g_uri_unref (uri);
 
 		g_test_add_func ("/forms/decode", do_form_decode_test);
 
 		ret = g_test_run ();
 	} else {
-		g_print ("Listening on port %d\n", base_uri->port);
+		g_print ("Listening on port %d\n", g_uri_get_port (base_uri));
 		g_main_loop_run (loop);
 	}
 
 	g_main_loop_unref (loop);
 
 	soup_test_server_quit_unref (server);
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 
 	if (run_tests)
 		test_cleanup ();

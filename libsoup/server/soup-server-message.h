@@ -46,7 +46,7 @@ void                soup_server_message_set_status           (SoupServerMessage 
                                                               guint              status_code,
                                                               const char        *reason_phrase);
 SOUP_AVAILABLE_IN_ALL
-SoupURI            *soup_server_message_get_uri              (SoupServerMessage *msg);
+GUri               *soup_server_message_get_uri              (SoupServerMessage *msg);
 
 SOUP_AVAILABLE_IN_ALL
 void                soup_server_message_set_response         (SoupServerMessage *msg,

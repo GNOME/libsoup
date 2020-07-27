@@ -25,7 +25,7 @@ typedef enum {
 char *buffer;
 SoupSession *session;
 char *base_uri_string;
-SoupURI *base_uri;
+GUri *base_uri;
 SoupMultipartInputStream *multipart;
 unsigned passes;
 GMainLoop *loop;
@@ -484,7 +484,7 @@ main (int argc, char **argv)
 	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
-	base_uri_string = soup_uri_to_string (base_uri, FALSE);
+	base_uri_string = g_uri_to_string (base_uri);
 
 	/* FIXME: I had to raise the number of connections allowed here, otherwise I
 	 * was hitting the limit, which indicates some connections are not dying.
@@ -501,7 +501,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	g_free (base_uri_string);
 	g_free (buffer);
 

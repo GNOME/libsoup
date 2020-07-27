@@ -65,7 +65,7 @@ typedef enum {
 } SoupTestServerOptions;
 
 SoupServer  *soup_test_server_new            (SoupTestServerOptions  options);
-SoupURI     *soup_test_server_get_uri        (SoupServer            *server,
+GUri        *soup_test_server_get_uri        (SoupServer            *server,
 					      const char            *scheme,
 					      const char            *host);
 void         soup_test_server_quit_unref     (SoupServer            *server);
@@ -91,6 +91,9 @@ GBytes     *soup_test_load_resource      (const char  *name,
 					  GError     **error);
 
 GBytes     *soup_test_get_index          (void);
+
+GUri       *soup_test_uri_set_port       (GUri *uri,
+                                          int   port);
 
 #ifdef G_HAVE_ISO_VARARGS
 #define soup_test_assert(expr, ...)				\

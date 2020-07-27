@@ -321,7 +321,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	SoupURI *uri;
+	GUri *uri;
 	int ret;
 
 	test_init (argc, argv, NULL);
@@ -329,8 +329,8 @@ main (int argc, char **argv)
 	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	uri = soup_test_server_get_uri (server, "http", NULL);
-	base_uri = soup_uri_to_string (uri, FALSE);
-	soup_uri_free (uri);
+	base_uri = g_uri_to_string (uri);
+	g_uri_unref (uri);
 
 	g_test_add_func ("/context/blocking/thread-default", do_test1);
 	g_test_add_func ("/context/nested/thread-default", do_test2);

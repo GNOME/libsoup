@@ -8,7 +8,7 @@
 #include "soup-session-private.h"
 
 SoupServer *server, *ssl_server;
-SoupURI *base_uri, *ssl_base_uri;
+GUri *base_uri, *ssl_base_uri;
 
 static gboolean
 auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
@@ -36,7 +36,7 @@ server_callback (SoupServer        *server,
 	SoupMessageHeaders *request_headers;
 	SoupMessageHeaders *response_headers;
 	const char *method = soup_server_message_get_method (msg);
-	SoupURI *uri = soup_server_message_get_uri (msg);
+	GUri *uri = soup_server_message_get_uri (msg);
 	const char *server_protocol = data;
 
 	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST) {
@@ -53,24 +53,24 @@ server_callback (SoupServer        *server,
 	response_headers = soup_server_message_get_response_headers (msg);
 
 	if (!strcmp (path, "/alias-redirect")) {
-		SoupURI *redirect_uri;
+		GUri *redirect_uri;
 		char *redirect_string;
 		const char *redirect_protocol;
+                int redirect_port;
 
 		redirect_protocol = soup_message_headers_get_one (request_headers, "X-Redirect-Protocol");
-
-		redirect_uri = soup_uri_copy (uri);
-		soup_uri_set_scheme (redirect_uri, "foo");
 		if (!g_strcmp0 (redirect_protocol, "https"))
-			soup_uri_set_port (redirect_uri, ssl_base_uri->port);
+                        redirect_port = g_uri_get_port (ssl_base_uri);
 		else
-			soup_uri_set_port (redirect_uri, base_uri->port);
-		soup_uri_set_path (redirect_uri, "/alias-redirected");
-		redirect_string = soup_uri_to_string (redirect_uri, FALSE);
+                        redirect_port = g_uri_get_port (base_uri);
+
+                redirect_uri = g_uri_build (SOUP_HTTP_URI_FLAGS, "foo", NULL, g_uri_get_host (uri), redirect_port,
+                                            "/alias-redirected", NULL, NULL);
+		redirect_string = g_uri_to_string (redirect_uri);
 
 		soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, redirect_string);
 		g_free (redirect_string);
-		soup_uri_free (redirect_uri);
+		g_uri_unref (redirect_uri);
 		return;
 	} else if (!strcmp (path, "/alias-redirected")) {
 		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
@@ -90,9 +90,9 @@ server_callback (SoupServer        *server,
 	}
 
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
-	if (!strcmp (uri->host, "foo")) {
+	if (!strcmp (g_uri_get_host (uri), "foo")) {
 		soup_server_message_set_response (msg, "text/plain",
-						  SOUP_MEMORY_STATIC, "foo-index", 9);
+                                                  SOUP_MEMORY_STATIC, "foo-index", 9);
 		return;
 	} else {
 		soup_server_message_set_response (msg, "text/plain",
@@ -205,7 +205,7 @@ do_callback_unref_test (void)
 	SoupSession *session;
 	SoupMessage *one, *two;
 	GMainLoop *loop;
-	SoupURI *bad_uri;
+	GUri *bad_uri;
 
 	g_test_bug ("533473");
 
@@ -227,7 +227,7 @@ do_callback_unref_test (void)
 	g_signal_connect (two, "finished",
 			  G_CALLBACK (cu_two_completed), loop);
 	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
-	soup_uri_free (bad_uri);
+	g_uri_unref (bad_uri);
 
 	soup_session_send_async (session, one, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	soup_session_send_async (session, two, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
@@ -296,7 +296,7 @@ do_msg_reuse_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupURI *uri;
+	GUri *uri;
 	guint *signal_ids, n_signal_ids;
 
 	g_test_bug ("559054");
@@ -313,23 +313,19 @@ do_msg_reuse_test (void)
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	debug_printf (1, "  Redirect message\n");
-	uri = soup_uri_new_with_base (base_uri, "/redirect");
+	uri = g_uri_parse_relative (base_uri, "/redirect", SOUP_HTTP_URI_FLAGS, NULL);
 	soup_message_set_uri (msg, uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	soup_test_session_async_send (session, msg);
 	g_assert_true (soup_uri_equal (soup_message_get_uri (msg), base_uri));
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	debug_printf (1, "  Auth message\n");
-	uri = soup_uri_new_with_base (base_uri, "/auth");
+	uri = g_uri_parse_relative (base_uri, "/auth", SOUP_HTTP_URI_FLAGS, NULL);
 	soup_message_set_uri (msg, uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
-
-	/* One last try to make sure the auth stuff got cleaned up */
-	debug_printf (1, "  Last message\n");
 	soup_message_set_uri (msg, base_uri);
 	soup_test_session_async_send (session, msg);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
@@ -507,12 +503,12 @@ static void
 do_cancel_while_reading_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
-	SoupURI *uri;
+	GUri *uri;
 	gboolean done = FALSE;
 
-	uri = soup_uri_new_with_base (base_uri, "/slow");
+	uri = g_uri_parse_relative (base_uri, "/slow", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 
 	g_object_set_data (G_OBJECT (msg), "session", session);
 	g_object_ref (msg);
@@ -551,13 +547,13 @@ do_cancel_while_reading_req_test_for_session (SoupSession *session,
 					      guint flags)
 {
 	SoupMessage *msg;
-	SoupURI *uri;
+	GUri *uri;
 	GCancellable *cancellable;
 	GError *error = NULL;
 
-	uri = soup_uri_new_with_base (base_uri, "/slow");
+	uri = g_uri_parse_relative (base_uri, "/slow", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 
 	cancellable = g_cancellable_new ();
 	soup_test_request_send (session, msg, cancellable, flags, &error);
@@ -616,14 +612,14 @@ do_aliases_test_for_session (SoupSession *session,
 			     const char *redirect_protocol)
 {
 	SoupMessage *msg;
-	SoupURI *uri;
+	GUri *uri;
 	const char *redirected_protocol;
 
-	uri = soup_uri_new_with_base (base_uri, "/alias-redirect");
+	uri = g_uri_parse_relative (base_uri, "/alias-redirect", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
 	if (redirect_protocol)
 		soup_message_headers_append (soup_message_get_request_headers (msg), "X-Redirect-Protocol", redirect_protocol);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	soup_test_session_send_message (session, msg);
 
 	redirected_protocol = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Redirected-Protocol");
@@ -756,11 +752,11 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 
 	if (tls_available) {
-		soup_uri_free (ssl_base_uri);
+		g_uri_unref (ssl_base_uri);
 		soup_test_server_quit_unref (ssl_server);
 	}
 

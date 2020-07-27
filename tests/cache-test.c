@@ -120,7 +120,7 @@ is_network_stream (GInputStream *stream)
 }
 
 static char *do_request (SoupSession        *session,
-			 SoupURI            *base_uri,
+			 GUri               *base_uri,
 			 const char         *method,
 			 const char         *path,
 			 SoupMessageHeaders *response_headers,
@@ -142,7 +142,7 @@ copy_headers (const char         *name,
 
 static char *
 do_request (SoupSession        *session,
-	    SoupURI            *base_uri,
+	    GUri               *base_uri,
 	    const char         *method,
 	    const char         *path,
 	    SoupMessageHeaders *response_headers,
@@ -150,7 +150,7 @@ do_request (SoupSession        *session,
 {
 	SoupMessage *msg;
 	GInputStream *stream;
-	SoupURI *uri;
+	GUri *uri;
 	va_list ap;
 	const char *header, *value;
 	char buf[256];
@@ -160,9 +160,9 @@ do_request (SoupSession        *session,
 	last_request_validated = last_request_hit_network = FALSE;
 	last_request_unqueued = FALSE;
 
-	uri = soup_uri_new_with_base (base_uri, path);
+	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri (method, uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 
 	va_start (ap, response_headers);
 	while ((header = va_arg (ap, const char *))) {
@@ -217,23 +217,23 @@ do_request (SoupSession        *session,
 
 static void
 do_request_with_cancel (SoupSession          *session,
-			SoupURI              *base_uri,
+			GUri                 *base_uri,
 			const char           *method,
 			const char           *path,
 			SoupTestRequestFlags  flags)
 {
 	SoupMessage *msg;
 	GInputStream *stream;
-	SoupURI *uri;
+	GUri *uri;
 	GError *error = NULL;
 	GCancellable *cancellable;
 
 	last_request_validated = last_request_hit_network = last_request_unqueued = FALSE;
 	cancelled_requests = 0;
 
-	uri = soup_uri_new_with_base (base_uri, path);
+	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri (method, uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	cancellable = flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE ? g_cancellable_new () : NULL;
 	stream = soup_test_request_send (session, msg, cancellable, flags, &error);
 	if (stream) {
@@ -259,7 +259,7 @@ message_starting (SoupMessage *msg, gpointer data)
 	    soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					  "If-None-Match")) {
 		debug_printf (2, "    Conditional request for %s\n",
-			      soup_message_get_uri (msg)->path);
+			      g_uri_get_path (soup_message_get_uri (msg)));
 		last_request_validated = TRUE;
 	}
 }
@@ -285,7 +285,7 @@ request_unqueued (SoupSession *session, SoupMessage *msg,
 static void
 do_basics_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 	SoupCache *cache;
 	char *cache_dir;
@@ -475,7 +475,7 @@ do_basics_test (gconstpointer data)
 static void
 do_cancel_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 	SoupCache *cache;
 	char *cache_dir;
@@ -565,13 +565,13 @@ base_stream_unreffed (gpointer loop, GObject *ex_base_stream)
 static void
 do_refcounting_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 	SoupCache *cache;
 	char *cache_dir;
 	SoupMessage *msg;
 	GInputStream *stream, *base_stream;
-	SoupURI *uri;
+	GUri *uri;
 	GError *error = NULL;
 	guint flags;
 	GMainLoop *loop;
@@ -587,9 +587,9 @@ do_refcounting_test (gconstpointer data)
 	last_request_validated = last_request_hit_network = FALSE;
 	cancelled_requests = 0;
 
-	uri = soup_uri_new_with_base (base_uri, "/1");
+	uri = g_uri_parse_relative (base_uri, "/1", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 
 	flags = SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH | SOUP_TEST_REQUEST_CANCEL_MESSAGE;
 	stream = soup_test_request_send (session, msg, NULL, flags, &error);
@@ -624,7 +624,7 @@ do_refcounting_test (gconstpointer data)
 static void
 do_headers_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 	SoupMessageHeaders *headers;
 	SoupCache *cache;
@@ -702,7 +702,7 @@ count_cached_resources_in_dir (const char *cache_dir)
 static void
 do_leaks_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
 	SoupCache *cache;
 	char *cache_dir;
@@ -761,7 +761,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	SoupURI *base_uri;
+	GUri *base_uri;
 	int ret;
 
 	test_init (argc, argv, NULL);
@@ -778,7 +778,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

@@ -10,7 +10,7 @@
 
 #define MAX_POST_LENGTH (sizeof (SHORT_BODY))
 
-static SoupURI *base_uri;
+static GUri *base_uri;
 static GSList *events;
 
 static void
@@ -89,7 +89,7 @@ do_message (const char *path, gboolean long_body,
 	SoupSession *session;
 	SoupMessage *msg;
 	const char *body;
-	SoupURI *uri;
+	GUri *uri, *msg_uri;
 	va_list ap;
 	const char *expected_event;
 	char *actual_event;
@@ -97,14 +97,15 @@ do_message (const char *path, gboolean long_body,
 	GBytes *request_body;
 	GBytes *response_body;
 
-	uri = soup_uri_copy (base_uri);
-	if (auth) {
-		soup_uri_set_user (uri, "user");
-		soup_uri_set_password (uri, "pass");
-	}
-	soup_uri_set_path (uri, path);
-	msg = soup_message_new_from_uri ("POST", uri);
-	soup_uri_free (uri);
+	if (auth)
+                uri = soup_uri_copy_with_credentials (base_uri, "user", "pass");
+        else
+                uri = g_uri_ref (base_uri);
+
+        msg_uri = g_uri_parse_relative (uri, path, SOUP_HTTP_URI_FLAGS, NULL);
+	msg = soup_message_new_from_uri ("POST", msg_uri);
+	g_uri_unref (uri);
+	g_uri_unref (msg_uri);
 
 	body = long_body ? LONG_BODY : SHORT_BODY;
 	request_body = g_bytes_new_static (body, strlen (body));
@@ -558,7 +559,7 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 	soup_test_server_quit_unref (server);
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 
 	test_cleanup ();
 

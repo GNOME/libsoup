@@ -28,7 +28,6 @@
     <xi:include href="xml/soup-multipart-input-stream.xml"/>
     <xi:include href="xml/soup-session.xml"/>
     <xi:include href="xml/soup-status.xml"/>
-    <xi:include href="xml/soup-uri.xml"/>
   </chapter>
 
   <chapter>
@@ -84,6 +83,7 @@
     <title>Utility API</title>
     <xi:include href="xml/soup-date-utils.xml"/>
     <xi:include href="xml/soup-tld.xml"/>
+    <xi:include href="xml/soup-uri-utils.xml"/>
     <xi:include href="xml/soup-version.xml"/>
   </chapter>
 

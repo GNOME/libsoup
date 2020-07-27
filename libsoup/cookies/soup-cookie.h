@@ -44,7 +44,7 @@ SoupCookie *soup_cookie_new                     (const char  *name,
 						 int          max_age);
 SOUP_AVAILABLE_IN_2_24
 SoupCookie *soup_cookie_parse                   (const char  *header,
-						 SoupURI     *origin);
+						 GUri        *origin);
 SOUP_AVAILABLE_IN_2_24
 SoupCookie *soup_cookie_copy                    (SoupCookie  *cookie);
 
@@ -100,7 +100,7 @@ char       *soup_cookie_to_cookie_header        (SoupCookie  *cookie);
 
 SOUP_AVAILABLE_IN_2_24
 gboolean    soup_cookie_applies_to_uri          (SoupCookie  *cookie,
-						 SoupURI     *uri);
+						 GUri        *uri);
 SOUP_AVAILABLE_IN_2_24
 gboolean    soup_cookie_equal                   (SoupCookie  *cookie1,
 						 SoupCookie  *cookie2);

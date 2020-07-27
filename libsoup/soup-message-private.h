@@ -41,7 +41,7 @@ SoupAuth      *soup_message_get_auth       (SoupMessage *msg);
 void           soup_message_set_proxy_auth (SoupMessage *msg,
 					    SoupAuth    *auth);
 SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
-SoupURI       *soup_message_get_uri_for_auth (SoupMessage *msg);
+GUri          *soup_message_get_uri_for_auth (SoupMessage *msg);
 
 /* I/O */
 void       soup_message_io_run         (SoupMessage *msg,

@@ -24,7 +24,7 @@ request_started_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 }
 
 static void
-do_message_to_session (SoupSession *session, SoupURI *uri,
+do_message_to_session (SoupSession *session, GUri *uri,
 		       const char *comment, guint expected_status)
 {
 	SoupMessage *msg;
@@ -55,8 +55,8 @@ static void
 do_msg_tests_for_session (SoupSession *timeout_session,
 			  SoupSession *idle_session,
 			  SoupSession *plain_session,
-			  SoupURI *fast_uri,
-			  SoupURI *slow_uri)
+			  GUri *fast_uri,
+			  GUri *slow_uri)
 {
 	GSocket *ret, *idle_first = NULL, *idle_second;
 	GSocket *plain_first = NULL, *plain_second;
@@ -107,16 +107,15 @@ static void
 do_async_timeout_tests (gconstpointer data)
 {
 	SoupSession *timeout_session, *idle_session, *plain_session;
-	SoupURI *fast_uri = (SoupURI *)data;
-	SoupURI *slow_uri = soup_uri_new_with_base (fast_uri, "/slow");
+	GUri *fast_uri = (GUri *)data;
+	GUri *slow_uri = g_uri_parse_relative (fast_uri, "/slow", SOUP_HTTP_URI_FLAGS, NULL);
 	gboolean extra_slow;
 
 	g_test_skip ("FIXME");
 	return;
 
-	if (fast_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+	if (soup_uri_is_https (fast_uri, NULL)) {
 		SOUP_TEST_SKIP_IF_NO_TLS;
-
 		extra_slow = slow_https;
 	} else
 		extra_slow = FALSE;
@@ -138,21 +137,21 @@ do_async_timeout_tests (gconstpointer data)
 	soup_test_session_abort_unref (idle_session);
 	soup_test_session_abort_unref (plain_session);
 
-	soup_uri_free (slow_uri);
+	g_uri_unref (slow_uri);
 }
 
 static void
 do_sync_timeout_tests (gconstpointer data)
 {
 	SoupSession *timeout_session, *plain_session;
-	SoupURI *fast_uri = (SoupURI *)data;
-	SoupURI *slow_uri = soup_uri_new_with_base (fast_uri, "/slow");
+	GUri *fast_uri = (GUri *)data;
+	GUri *slow_uri = g_uri_parse_relative (fast_uri, "/slow", SOUP_HTTP_URI_FLAGS, NULL);
 	gboolean extra_slow;
 
 	g_test_skip ("FIXME");
 	return;
 
-	if (fast_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+	if (soup_uri_is_https (fast_uri, NULL)) {
 		SOUP_TEST_SKIP_IF_NO_TLS;
 
 		extra_slow = slow_https;
@@ -167,7 +166,7 @@ do_sync_timeout_tests (gconstpointer data)
 	soup_test_session_abort_unref (timeout_session);
 	soup_test_session_abort_unref (plain_session);
 
-	soup_uri_free (slow_uri);
+	g_uri_unref (slow_uri);
 }
 
 static gboolean
@@ -205,7 +204,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server, *https_server = NULL;
-	SoupURI *uri, *https_uri = NULL;
+	GUri *uri, *https_uri = NULL;
 	int ret;
 
 	test_init (argc, argv, NULL);
@@ -239,7 +238,7 @@ main (int argc, char **argv)
 			slow_https = FALSE;
 		}
 	} else
-		https_uri = soup_uri_new ("https://fail.");
+		https_uri = g_uri_parse ("https://fail.", SOUP_HTTP_URI_FLAGS, NULL);
 
 	g_test_add_data_func ("/timeout/http/async", uri, do_async_timeout_tests);
 	g_test_add_data_func ("/timeout/http/sync", uri, do_sync_timeout_tests);
@@ -248,8 +247,8 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (uri);
-	soup_uri_free (https_uri);
+	g_uri_unref (uri);
+	g_uri_unref (https_uri);
 	soup_test_server_quit_unref (server);
 	if (https_server)
 		soup_test_server_quit_unref (https_server);

@@ -11,9 +11,9 @@
 
 #include <gio/gnetworking.h>
 
-SoupServer *server;
-SoupURI *base_uri;
-GMutex server_mutex;
+static SoupServer *server;
+static GUri *base_uri;
+static GMutex server_mutex;
 
 static void
 forget_close (SoupServerMessage *msg,
@@ -183,7 +183,7 @@ do_content_length_framing_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupURI *request_uri;
+	GUri *request_uri;
 	goffset declared_length;
 	GBytes *body;
 
@@ -192,7 +192,7 @@ do_content_length_framing_test (void)
 	session = soup_test_session_new (NULL);
 
 	debug_printf (1, "  Content-Length larger than message body length\n");
-	request_uri = soup_uri_new_with_base (base_uri, "/content-length/long");
+	request_uri = g_uri_parse_relative (base_uri, "/content-length/long", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", request_uri);
 	body = soup_test_session_send (session, msg, NULL, NULL);
 
@@ -203,12 +203,12 @@ do_content_length_framing_test (void)
 		      (gulong)declared_length, (char *)g_bytes_get_data (body, NULL));
 	g_assert_cmpint (g_bytes_get_size (body), <, declared_length);
 
-	soup_uri_free (request_uri);
+	g_uri_unref (request_uri);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	debug_printf (1, "  Server claims 'Connection: close' but doesn't\n");
-	request_uri = soup_uri_new_with_base (base_uri, "/content-length/noclose");
+	request_uri = g_uri_parse_relative (base_uri, "/content-length/noclose", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", request_uri);
 	body = soup_test_session_send (session, msg, NULL, NULL);
 
@@ -217,7 +217,7 @@ do_content_length_framing_test (void)
 	declared_length = soup_message_headers_get_content_length (soup_message_get_response_headers (msg));
 	g_assert_cmpint (g_bytes_get_size (body), ==, declared_length);
 
-	soup_uri_free (request_uri);
+	g_uri_unref (request_uri);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 
@@ -264,7 +264,7 @@ do_timeout_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
 	GSocket *sockets[4] = { NULL, NULL, NULL, NULL };
-	SoupURI *timeout_uri;
+	GUri *timeout_uri;
 	int i;
 	GBytes *body;
 
@@ -273,9 +273,9 @@ do_timeout_test_for_session (SoupSession *session)
 			  &sockets);
 
 	debug_printf (1, "    First message\n");
-	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
+	timeout_uri = g_uri_parse_relative (base_uri, "/timeout-persistent", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", timeout_uri);
-	soup_uri_free (timeout_uri);
+	g_uri_unref (timeout_uri);
 	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -331,7 +331,7 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 	SoupSession *session;
 	SoupMessage *msg;
 	GSocket *sockets[4] = { NULL, NULL, NULL, NULL };
-	SoupURI *timeout_uri;
+	GUri *timeout_uri;
 	GCancellable *cancellable;
 	GInputStream *response;
 	int i;
@@ -344,10 +344,10 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 			  &sockets);
 
 	debug_printf (1, "    First message\n");
-	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
+	timeout_uri = g_uri_parse_relative (base_uri, "/timeout-persistent", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", timeout_uri);
 	cancellable = g_cancellable_new ();
-	soup_uri_free (timeout_uri);
+	g_uri_unref (timeout_uri);
 	response = soup_session_send (session, msg, cancellable, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -941,7 +941,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

@@ -40,7 +40,7 @@ extern "C" {
 #include <libsoup/soup-session-feature.h>
 #include <libsoup/soup-status.h>
 #include <libsoup/soup-tld.h>
-#include <libsoup/soup-uri.h>
+#include <libsoup/soup-uri-utils.h>
 #include <libsoup/soup-version.h>
 #include <libsoup/soup-websocket.h>
 #include <libsoup/soup-websocket-connection.h>

@@ -307,7 +307,7 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (auth_ntlm);
 	SoupNTLMConnectionState *conn = state;
 	gboolean success = TRUE;
-	SoupURI *uri;
+	GUri *uri;
 	char *authority;
 
 	/* Note that we only return FALSE if some sort of parsing error
@@ -399,7 +399,7 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 		conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
 
 	uri = soup_message_get_uri (msg);
-	authority = g_strdup_printf ("%s:%d", uri->host, uri->port);
+	authority = g_strdup_printf ("%s:%d", g_uri_get_host (uri), g_uri_get_port (uri));
 	g_object_set (G_OBJECT (auth),
 		      "realm", priv->domain,
 		      "authority", authority,
@@ -410,11 +410,11 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 }
 
 static GSList *
-soup_auth_ntlm_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
+soup_auth_ntlm_get_protection_space (SoupAuth *auth, GUri *source_uri)
 {
 	char *space, *p;
 
-	space = g_strdup (source_uri->path);
+	space = g_strdup (g_uri_get_path (source_uri));
 
 	/* Strip filename component */
 	p = strrchr (space, '/');

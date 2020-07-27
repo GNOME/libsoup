@@ -7,7 +7,6 @@
 #define __SOUP_SESSION_PRIVATE_H__ 1
 
 #include "soup-session.h"
-#include "soup-uri.h"
 
 G_BEGIN_DECLS
 

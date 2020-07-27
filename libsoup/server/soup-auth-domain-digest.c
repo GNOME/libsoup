@@ -207,7 +207,7 @@ check_hex_urp (SoupAuthDomain    *domain,
 	const char *nonce, *nc, *cnonce, *response;
 	char hex_a1[33], computed_response[33];
 	int nonce_count;
-	SoupURI *dig_uri, *req_uri;
+	GUri *dig_uri, *req_uri;
 
 	msg_username = g_hash_table_lookup (params, "username");
 	if (!msg_username || strcmp (msg_username, username) != 0)
@@ -219,19 +219,19 @@ check_hex_urp (SoupAuthDomain    *domain,
 		return FALSE;
 
 	req_uri = soup_server_message_get_uri (msg);
-	dig_uri = soup_uri_new (uri);
+	dig_uri = g_uri_parse (uri, SOUP_HTTP_URI_FLAGS, NULL);
 	if (dig_uri) {
 		if (!soup_uri_equal (dig_uri, req_uri)) {
-			soup_uri_free (dig_uri);
+			g_uri_unref (dig_uri);
 			return FALSE;
 		}
-		soup_uri_free (dig_uri);
+		g_uri_unref (dig_uri);
 	} else {
 		char *req_path;
 		char *dig_path;
 
-		req_path = soup_uri_to_string (req_uri, TRUE);
-		dig_path = soup_uri_decode (uri);
+		req_path = soup_uri_get_path_and_query (req_uri);
+		dig_path = g_uri_unescape_string (uri, NULL);
 
 		if (strcmp (dig_path, req_path) != 0) {
 			g_free (req_path);

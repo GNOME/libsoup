@@ -5,7 +5,7 @@
 
 #include "test-utils.h"
 
-SoupURI *base_uri;
+GUri *base_uri;
 char *server2_uri;
 SoupSession *async_session;
 
@@ -143,9 +143,9 @@ static void
 restarted (SoupMessage *msg, gpointer user_data)
 {
 	TestRequest **treq = user_data;
-	SoupURI *uri = soup_message_get_uri (msg);
+	GUri *uri = soup_message_get_uri (msg);
 
-	debug_printf (2, "    %s %s\n", soup_message_get_method (msg), uri->path);
+	debug_printf (2, "    %s %s\n", soup_message_get_method (msg), g_uri_get_path (uri));
 
 	if ((*treq)->method && !(*treq)->repeat)
 		(*treq)++;
@@ -154,13 +154,13 @@ restarted (SoupMessage *msg, gpointer user_data)
 			  "Expected to be done");
 
 	g_assert_cmpstr (soup_message_get_method (msg), ==, (*treq)->method);
-	g_assert_cmpstr (uri->path, ==, (*treq)->path);
+	g_assert_cmpstr (g_uri_get_path (uri), ==, (*treq)->path);
 }
 
 static void
 do_message_api_test (SoupSession *session, TestCase *test)
 {
-	SoupURI *uri;
+	GUri *uri;
 	SoupMessage *msg;
 	GBytes *body;
 	TestRequest *treq;
@@ -168,9 +168,9 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	if (test->bugref)
 		g_test_bug (test->bugref);
 
-	uri = soup_uri_new_with_base (base_uri, test->requests[0].path);
-	msg = soup_message_new_from_uri (test->requests[0].method, uri);
-	soup_uri_free (uri);
+	uri = g_uri_parse_relative (base_uri, test->requests[0].path, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL);
+        msg = soup_message_new_from_uri (test->requests[0].method, uri);
+	g_uri_unref (uri);
 
 	if (soup_message_get_method (msg) == SOUP_METHOD_POST) {
 		GBytes *request_body;
@@ -314,7 +314,7 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server, *server2;
-	SoupURI *uri2;
+	GUri *uri2, *uri2_with_path;
 	char *path;
 	int n, ret;
 
@@ -329,9 +329,10 @@ main (int argc, char **argv)
 	soup_server_add_handler (server2, NULL,
 				 server2_callback, NULL, NULL);
 	uri2 = soup_test_server_get_uri (server2, "http", NULL);
-	soup_uri_set_path (uri2, "/on-server2");
-	server2_uri = soup_uri_to_string (uri2, FALSE);
-	soup_uri_free (uri2);
+        uri2_with_path = g_uri_parse_relative (uri2, "/on-server2", SOUP_HTTP_URI_FLAGS, NULL);
+        g_uri_unref (uri2);
+	server2_uri = g_uri_to_string (uri2_with_path);
+	g_uri_unref (uri2_with_path);
 
 	loop = g_main_loop_new (NULL, TRUE);
 
@@ -348,7 +349,7 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 	g_main_loop_unref (loop);
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 	g_free (server2_uri);
 	soup_test_server_quit_unref (server2);

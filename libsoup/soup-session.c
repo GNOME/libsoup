@@ -71,7 +71,7 @@
  */
 
 typedef struct {
-	SoupURI         *uri;
+	GUri            *uri;
 	GNetworkAddress *addr;
 
 	GSList      *connections;      /* CONTAINS: SoupConnection */
@@ -101,7 +101,7 @@ typedef struct {
 
 	GProxyResolver *proxy_resolver;
 	gboolean proxy_use_default;
-	SoupURI *proxy_uri;
+	GUri *proxy_uri;
 
 	SoupSocketProperties *socket_props;
 
@@ -298,10 +298,10 @@ soup_session_finalize (GObject *object)
 	g_hash_table_destroy (priv->features_cache);
 
 	g_clear_object (&priv->proxy_resolver);
-	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
+	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 
-	g_free (priv->http_aliases);
-	g_free (priv->https_aliases);
+	g_strfreev (priv->http_aliases);
+	g_strfreev (priv->https_aliases);
 
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 
@@ -382,43 +382,40 @@ set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
 	g_clear_object (&system_default);
 }
 
-/* priv->http_aliases and priv->https_aliases are stored as arrays of
- * *interned* strings, so we can't just use g_strdupv() to set them.
+/* priv->http_aliases and priv->https_aliases are normalized to be lower-case
+ * so we can't just use g_strdupv() to set them.
  */
 static void
 set_aliases (char ***variable, char **value)
 {
 	int len, i;
 
-	if (*variable)
-		g_free (*variable);
+        g_clear_pointer (variable, g_strfreev);
 
-	if (!value) {
-		*variable = NULL;
+	if (!value)
 		return;
-	}
 
 	len = g_strv_length (value);
 	*variable = g_new (char *, len + 1);
 	for (i = 0; i < len; i++)
-		(*variable)[i] = (char *)g_intern_string (value[i]);
+		(*variable)[i] = g_ascii_strdown (value[i], -1);
 	(*variable)[i] = NULL;
 }
 
 static void
-set_proxy_resolver (SoupSession *session, SoupURI *uri,
+set_proxy_resolver (SoupSession *session, GUri *uri,
 		    GProxyResolver *g_resolver)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	g_clear_object (&priv->proxy_resolver);
-	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
+	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 	priv->proxy_use_default = FALSE;
 
 	if (uri) {
 		char *uri_string;
 
-		priv->proxy_uri = soup_uri_copy (uri);
-		uri_string = soup_uri_to_string_internal (uri, FALSE, TRUE, TRUE);
+		priv->proxy_uri = soup_uri_copy_with_normalized_flags (uri);
+		uri_string = g_uri_to_string (uri);
 		priv->proxy_resolver = g_simple_proxy_resolver_new (uri_string, NULL);
 		g_free (uri_string);
 	} else if (g_resolver)
@@ -640,50 +637,71 @@ soup_session_new_with_options (const char *optname1,
 static guint
 soup_host_uri_hash (gconstpointer key)
 {
-	const SoupURI *uri = key;
+	GUri *uri = (GUri*)key;
 
-	g_return_val_if_fail (uri != NULL && uri->host != NULL, 0);
+	g_return_val_if_fail (uri != NULL && g_uri_get_host (uri) != NULL, 0);
 
-	return uri->port + soup_str_case_hash (uri->host);
+	return g_uri_get_port (uri) + soup_str_case_hash (g_uri_get_host (uri));
 }
 
 static gboolean
 soup_host_uri_equal (gconstpointer v1, gconstpointer v2)
 {
-	const SoupURI *one = v1;
-	const SoupURI *two = v2;
+	GUri *one = (GUri*)v1;
+	GUri *two = (GUri*)v2;
 
 	g_return_val_if_fail (one != NULL && two != NULL, one == two);
-	g_return_val_if_fail (one->host != NULL && two->host != NULL, one->host == two->host);
 
-	if (one->port != two->port)
+        const char *one_host = g_uri_get_host (one);
+        const char *two_host = g_uri_get_host (two);
+	g_return_val_if_fail (one_host != NULL && two_host != NULL, one_host == two_host);
+
+	if (g_uri_get_port (one) != g_uri_get_port (two))
 		return FALSE;
 
-	return g_ascii_strcasecmp (one->host, two->host) == 0;
+	return g_ascii_strcasecmp (one_host, two_host) == 0;
+}
+
+static GUri *
+copy_uri_with_new_scheme (GUri *uri, const char *scheme)
+{
+        return g_uri_build_with_user (
+                g_uri_get_flags (uri),
+                scheme,
+                g_uri_get_user (uri),
+                g_uri_get_password (uri),
+                g_uri_get_auth_params (uri),
+                g_uri_get_host (uri),
+                g_uri_get_port (uri),
+                g_uri_get_path (uri),
+                g_uri_get_query (uri),
+                g_uri_get_fragment (uri)
+        );
 }
 
 
 static SoupSessionHost *
-soup_session_host_new (SoupSession *session, SoupURI *uri)
+soup_session_host_new (SoupSession *session, GUri *uri)
 {
 	SoupSessionHost *host;
+        const char *scheme = g_uri_get_scheme (uri);
 
 	host = g_slice_new0 (SoupSessionHost);
-	host->uri = soup_uri_copy_host (uri);
-	if (host->uri->scheme != SOUP_URI_SCHEME_HTTP &&
-	    host->uri->scheme != SOUP_URI_SCHEME_HTTPS) {
+	if (g_strcmp0 (scheme, "http") &&
+	    g_strcmp0 (scheme, "https")) {
 		SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
-		if (soup_uri_is_https (host->uri, priv->https_aliases))
-			host->uri->scheme = SOUP_URI_SCHEME_HTTPS;
+		if (soup_uri_is_https (uri, priv->https_aliases))
+                        host->uri = copy_uri_with_new_scheme (uri, "https");
 		else
-			host->uri->scheme = SOUP_URI_SCHEME_HTTP;
-	}
+			host->uri = copy_uri_with_new_scheme (uri, "http");
+	} else
+                host->uri = g_uri_ref (uri);
 
 	host->addr = g_object_new (G_TYPE_NETWORK_ADDRESS,
-				   "hostname", host->uri->host,
-				   "port", host->uri->port,
-				   "scheme", host->uri->scheme,
+				   "hostname", g_uri_get_host (host->uri),
+				   "port", soup_uri_get_port_with_default (host->uri),
+				   "scheme", g_uri_get_scheme (host->uri),
 				   NULL);
 	host->keep_alive_src = NULL;
 	host->session = session;
@@ -693,12 +711,12 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 
 /* Requires conn_lock to be locked */
 static SoupSessionHost *
-get_host_for_uri (SoupSession *session, SoupURI *uri)
+get_host_for_uri (SoupSession *session, GUri *uri)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 	gboolean https;
-	SoupURI *uri_tmp = NULL;
+	GUri *uri_tmp = NULL;
 
 	https = soup_uri_is_https (uri, priv->https_aliases);
 	if (https)
@@ -708,14 +726,12 @@ get_host_for_uri (SoupSession *session, SoupURI *uri)
 	if (host)
 		return host;
 
-	if (uri->scheme != SOUP_URI_SCHEME_HTTP &&
-	    uri->scheme != SOUP_URI_SCHEME_HTTPS) {
-		uri = uri_tmp = soup_uri_copy (uri);
-		uri->scheme = https ? SOUP_URI_SCHEME_HTTPS : SOUP_URI_SCHEME_HTTP;
+	if (!soup_uri_is_http (uri, NULL) && !soup_uri_is_https (uri, NULL)) {
+		uri = uri_tmp = copy_uri_with_new_scheme (uri, https ? "https" : "http");
 	}
 	host = soup_session_host_new (session, uri);
 	if (uri_tmp)
-		soup_uri_free (uri_tmp);
+		g_uri_unref (uri_tmp);
 
 	if (https)
 		g_hash_table_insert (priv->https_hosts, host->uri, host);
@@ -742,7 +758,7 @@ free_host (SoupSessionHost *host)
 		g_source_unref (host->keep_alive_src);
 	}
 
-	soup_uri_free (host->uri);
+	g_uri_unref (host->uri);
 	g_object_unref (host->addr);
 	g_slice_free (SoupSessionHost, host);
 }
@@ -761,20 +777,23 @@ free_host (SoupSessionHost *host)
 	  soup_message_get_status (msg) == SOUP_STATUS_FOUND) && \
 	 SOUP_METHOD_IS_SAFE (soup_message_get_method (msg)))
 
-static inline SoupURI *
+static inline GUri *
 redirection_uri (SoupMessage *msg)
 {
 	const char *new_loc;
-	SoupURI *new_uri;
+	GUri *new_uri;
 
 	new_loc = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						"Location");
 	if (!new_loc)
 		return NULL;
-	new_uri = soup_uri_new_with_base (soup_message_get_uri (msg), new_loc);
-	if (!new_uri || !new_uri->host) {
-		if (new_uri)
-			soup_uri_free (new_uri);
+
+        new_uri = g_uri_parse_relative (soup_message_get_uri (msg), new_loc, SOUP_HTTP_URI_FLAGS, NULL);
+	if (!new_uri)
+                return NULL;
+        
+        if (!g_uri_get_host (new_uri)) {
+		g_uri_unref (new_uri);
 		return NULL;
 	}
 
@@ -798,7 +817,7 @@ gboolean
 soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupURI *new_uri;
+	GUri *new_uri;
 
 	/* It must have an appropriate status code and method */
 	if (!SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
@@ -811,14 +830,14 @@ soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 	new_uri = redirection_uri (msg);
 	if (!new_uri)
 		return FALSE;
-	if (!new_uri->host || !*new_uri->host ||
+	if (!g_uri_get_host (new_uri) || !*g_uri_get_host (new_uri) ||
 	    (!soup_uri_is_http (new_uri, priv->http_aliases) &&
 	     !soup_uri_is_https (new_uri, priv->https_aliases))) {
-		soup_uri_free (new_uri);
+		g_uri_unref (new_uri);
 		return FALSE;
 	}
 
-	soup_uri_free (new_uri);
+	g_uri_unref (new_uri);
 	return TRUE;
 }
 
@@ -849,7 +868,7 @@ soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 gboolean
 soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 {
-	SoupURI *new_uri;
+	GUri *new_uri;
 
 	new_uri = redirection_uri (msg);
 	if (!new_uri)
@@ -867,7 +886,7 @@ soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 	}
 
 	soup_message_set_uri (msg, new_uri);
-	soup_uri_free (new_uri);
+	g_uri_unref (new_uri);
 
 	soup_session_requeue_message (session, msg);
 	return TRUE;
@@ -1033,6 +1052,7 @@ free_unused_host (gpointer user_data)
 {
 	SoupSessionHost *host = (SoupSessionHost *) user_data;
 	SoupSessionPrivate *priv = soup_session_get_instance_private (host->session);
+	GUri *uri = host->uri;
 
 	g_mutex_lock (&priv->conn_lock);
 
@@ -1047,10 +1067,10 @@ free_unused_host (gpointer user_data)
 	/* This will free the host in addition to removing it from the
 	 * hash table
 	 */
-	if (host->uri->scheme == SOUP_URI_SCHEME_HTTPS)
-		g_hash_table_remove (priv->https_hosts, host->uri);
+	if (soup_uri_is_https (uri, NULL))
+		g_hash_table_remove (priv->https_hosts, uri);
 	else
-		g_hash_table_remove (priv->http_hosts, host->uri);
+		g_hash_table_remove (priv->http_hosts, uri);
 	g_mutex_unlock (&priv->conn_lock);
 
 	return FALSE;
@@ -1169,7 +1189,7 @@ soup_session_set_item_status (SoupSession          *session,
 			      guint                 status_code,
 			      GError               *error)
 {
-	SoupURI *uri = NULL;
+	GUri *uri = NULL;
 
 	switch (status_code) {
 	case SOUP_STATUS_CANT_RESOLVE:
@@ -1197,10 +1217,10 @@ soup_session_set_item_status (SoupSession          *session,
 
 	if (error)
 		soup_message_set_status_full (item->msg, status_code, error->message);
-	else if (uri && uri->host) {
+	else if (uri && g_uri_get_host (uri)) {
 		char *msg = g_strdup_printf ("%s (%s)",
 					     soup_status_get_phrase (status_code),
-					     uri->host);
+					     g_uri_get_host (uri));
 		soup_message_set_status_full (item->msg, status_code, msg);
 		g_free (msg);
 	} else
@@ -1355,7 +1375,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 {
 	SoupSession *session = item->session;
 	SoupMessageQueueItem *tunnel_item;
-	SoupURI *uri;
+	GUri *uri;
 	SoupMessage *msg;
 
 	item->state = SOUP_MESSAGE_TUNNELING;
@@ -3370,8 +3390,9 @@ soup_session_read_uri_async (SoupSession        *session,
 {
         SoupSessionPrivate *priv;
         GTask *task;
-        SoupURI *soup_uri;
+        GUri *soup_uri;
         SoupMessage *msg;
+        GError *error = NULL;
         SessionGetAsyncData *data;
 
         g_return_if_fail (SOUP_IS_SESSION (session));
@@ -3380,13 +3401,15 @@ soup_session_read_uri_async (SoupSession        *session,
         task = g_task_new (session, cancellable, callback, user_data);
         g_task_set_priority (task, io_priority);
 
-        soup_uri = soup_uri_new (uri);
+        soup_uri = g_uri_parse (uri, SOUP_HTTP_URI_FLAGS, &error);
         if (!soup_uri) {
                 g_task_return_new_error (task,
                                          SOUP_SESSION_ERROR,
                                          SOUP_SESSION_ERROR_BAD_URI,
-                                         _("Could not parse URI “%s”"),
-                                         uri);
+                                         _("Could not parse URI “%s”: %s"),
+                                         uri,
+                                         error->message);
+                g_error_free (error);
                 g_object_unref (task);
                 return;
         }
@@ -3399,21 +3422,21 @@ soup_session_read_uri_async (SoupSession        *session,
                                          SOUP_SESSION_ERROR,
                                          SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,
                                          _("Unsupported URI scheme “%s”"),
-                                         soup_uri->scheme);
+                                         g_uri_get_scheme (soup_uri));
                 g_object_unref (task);
-                soup_uri_free (soup_uri);
+                g_uri_unref (soup_uri);
                 return;
         }
 
-        if (!SOUP_URI_VALID_FOR_HTTP (soup_uri)) {
+        if (!SOUP_URI_IS_VALID (soup_uri)) {
                 g_task_return_new_error (task,
                                          SOUP_SESSION_ERROR,
                                          SOUP_SESSION_ERROR_BAD_URI,
                                          _("Invalid “%s” URI: %s"),
-                                         soup_uri->scheme,
+                                         g_uri_get_scheme (soup_uri),
                                          uri);
                 g_object_unref (task);
-                soup_uri_free (soup_uri);
+                g_uri_unref (soup_uri);
                 return;
         }
 
@@ -3431,7 +3454,7 @@ soup_session_read_uri_async (SoupSession        *session,
                                  (GAsyncReadyCallback)http_input_stream_ready_cb,
                                  task);
         g_object_unref (msg);
-        soup_uri_free (soup_uri);
+        g_uri_unref (soup_uri);
 }
 
 /**
@@ -3504,21 +3527,24 @@ soup_session_read_uri (SoupSession  *session,
                        GError      **error)
 {
         SoupSessionPrivate *priv;
-        SoupURI *soup_uri;
+        GUri *soup_uri;
         SoupMessage *msg;
         GInputStream *stream;
+        GError *internal_error = NULL;
         SessionGetAsyncData data = { 0, NULL };
 
         g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
         g_return_val_if_fail (uri != NULL, NULL);
 
-        soup_uri = soup_uri_new (uri);
+        soup_uri = g_uri_parse (uri, SOUP_HTTP_URI_FLAGS, &internal_error);
         if (!soup_uri) {
                 g_set_error (error,
                              SOUP_SESSION_ERROR,
                              SOUP_SESSION_ERROR_BAD_URI,
-                             _("Could not parse URI “%s”"),
-                             uri);
+                             _("Could not parse URI “%s”: %s"),
+                             uri,
+                             internal_error->message);
+                g_error_free (internal_error);
 
                 return NULL;
         }
@@ -3531,20 +3557,20 @@ soup_session_read_uri (SoupSession  *session,
                              SOUP_SESSION_ERROR,
                              SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,
                              _("Unsupported URI scheme “%s”"),
-                             soup_uri->scheme);
-                soup_uri_free (soup_uri);
+                             g_uri_get_scheme (soup_uri));
+                g_uri_unref (soup_uri);
 
                 return NULL;
         }
 
-        if (!SOUP_URI_VALID_FOR_HTTP (soup_uri)) {
+        if (!SOUP_URI_IS_VALID (soup_uri)) {
                 g_set_error (error,
                              SOUP_SESSION_ERROR,
                              SOUP_SESSION_ERROR_BAD_URI,
                              _("Invalid “%s” URI: %s"),
-                             soup_uri->scheme,
+                             g_uri_get_scheme (soup_uri),
                              uri);
-                soup_uri_free (soup_uri);
+                g_uri_unref (soup_uri);
 
                 return NULL;
         }
@@ -3565,7 +3591,7 @@ soup_session_read_uri (SoupSession  *session,
         }
 
         g_free (data.content_type);
-        soup_uri_free (soup_uri);
+        g_uri_unref (soup_uri);
 
         return stream;
 }

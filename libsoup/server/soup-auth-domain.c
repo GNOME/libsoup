@@ -507,7 +507,7 @@ soup_auth_domain_covers (SoupAuthDomain    *domain,
 	const char *path;
 
 	if (!priv->proxy) {
-		path = soup_server_message_get_uri (msg)->path;
+		path = g_uri_get_path (soup_server_message_get_uri (msg));
 		if (!soup_path_map_lookup (priv->paths, path))
 			return FALSE;
 	}

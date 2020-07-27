@@ -6,8 +6,8 @@
 
 #include "test-utils.h"
 
-SoupServer *server;
-SoupURI *base_uri;
+static SoupServer *server;
+static GUri *base_uri;
 
 static void
 server_callback (SoupServer        *server,
@@ -161,11 +161,11 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 {
 	CodingTestType test_type = GPOINTER_TO_INT (test_data);
 	SoupMessage *msg;
-	SoupURI *uri;
+	GUri *uri;
 
 	data->session = soup_test_session_new (NULL);
 
-	uri = soup_uri_new_with_base (base_uri, "/mbox");
+	uri = g_uri_parse_relative (base_uri, "/mbox", SOUP_HTTP_URI_FLAGS, NULL);
 
 	if (test_type & CODING_TEST_EMPTY)
 		data->response = g_bytes_new_static (NULL, 0);
@@ -176,7 +176,7 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 	}
 
 	data->msg = soup_message_new_from_uri ("GET", uri);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 
 	if (test_type & CODING_TEST_NO_DECODER)
 		soup_session_remove_feature_by_type (data->session, SOUP_TYPE_CONTENT_DECODER);
@@ -373,7 +373,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

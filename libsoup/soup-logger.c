@@ -509,7 +509,7 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 	char *socket_dbg;
-	SoupURI *uri;
+	GUri *uri;
 
 	if (priv->request_filter) {
 		log_level = priv->request_filter (logger, msg,
@@ -524,14 +524,15 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "CONNECT %s:%u HTTP/1.%d",
-				   uri->host, uri->port,
+				   g_uri_get_host (uri), g_uri_get_port (uri),
 				   soup_message_get_http_version (msg));
 	} else {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "%s %s%s%s HTTP/1.%d",
-				   soup_message_get_method (msg), uri->path,
-				   uri->query ? "?" : "",
-				   uri->query ? uri->query : "",
+				   soup_message_get_method (msg),
+                                   g_uri_get_path (uri),
+				   g_uri_get_query (uri) ? "?" : "",
+				   g_uri_get_query (uri) ? g_uri_get_query (uri) : "",
 				   soup_message_get_http_version (msg));
 	}
 
@@ -559,21 +560,19 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 		return;
 
 	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg), "Host")) {
-		char *uri_host;
+		char *uri_host = (char*)g_uri_get_host (uri);
 
-		if (strchr (uri->host, ':'))
-			uri_host = g_strdup_printf ("[%s]", uri->host);
-		else if (g_hostname_is_non_ascii (uri->host))
-			uri_host = g_hostname_to_ascii (uri->host);
-		else
-			uri_host = uri->host;
+		if (strchr (uri_host, ':'))
+			uri_host = g_strdup_printf ("[%s]", uri_host);
+		else if (g_hostname_is_non_ascii (uri_host))
+			uri_host = g_hostname_to_ascii (uri_host);
 
 		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
 				   "Host: %s%c%u", uri_host,
 				   soup_uri_uses_default_port (uri) ? '\0' : ':',
-				   uri->port);
+				   g_uri_get_port (uri));
 
-		if (uri_host != uri->host)
+		if (uri_host != g_uri_get_host (uri))
 			g_free (uri_host);
 	}
 	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));

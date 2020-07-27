@@ -274,7 +274,7 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 
 	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
-		SoupURI *uri;
+		GUri *uri;
 		GHashTable *params;
 		const char *max_age_str;
 		char *endptr;
@@ -307,7 +307,7 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 		if (include_subdomains_value)
 			goto out;
 
-		policy = soup_hsts_policy_new (uri->host, max_age, include_subdomains);
+		policy = soup_hsts_policy_new (g_uri_get_host (uri), max_age, include_subdomains);
 	out:
 		soup_header_free_param_list (params);
 		return policy;

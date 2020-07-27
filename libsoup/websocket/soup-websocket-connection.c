@@ -25,7 +25,7 @@
 #include "soup-websocket-connection.h"
 #include "soup-enum-types.h"
 #include "soup-io-stream.h"
-#include "soup-uri.h"
+#include "soup-uri-utils-private.h"
 #include "soup-websocket-extension.h"
 
 /*
@@ -120,7 +120,7 @@ struct _SoupWebsocketConnection {
 typedef struct {
 	GIOStream *io_stream;
 	SoupWebsocketConnectionType connection_type;
-	SoupURI *uri;
+	GUri *uri;
 	char *origin;
 	char *protocol;
 	guint64 max_incoming_payload_size;
@@ -1391,7 +1391,7 @@ soup_websocket_connection_set_property (GObject *object,
 
 	case PROP_URI:
 		g_return_if_fail (priv->uri == NULL);
-		priv->uri = g_value_dup_boxed (value);
+		priv->uri = soup_uri_copy_with_normalized_flags (g_value_get_boxed (value));
 		break;
 
 	case PROP_ORIGIN:
@@ -1462,7 +1462,7 @@ soup_websocket_connection_finalize (GObject *object)
 		g_byte_array_free (priv->message_data, TRUE);
 
 	if (priv->uri)
-		soup_uri_free (priv->uri);
+		g_uri_unref (priv->uri);
 	g_free (priv->origin);
 	g_free (priv->protocol);
 
@@ -1532,7 +1532,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 					 g_param_spec_boxed ("uri",
 							     "URI",
 							     "The WebSocket URI",
-							     SOUP_TYPE_URI,
+							     G_TYPE_URI,
 							     G_PARAM_READWRITE |
 							     G_PARAM_CONSTRUCT_ONLY |
 							     G_PARAM_STATIC_STRINGS));
@@ -1753,7 +1753,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
  */
 SoupWebsocketConnection *
 soup_websocket_connection_new (GIOStream                    *stream,
-			       SoupURI                      *uri,
+			       GUri                         *uri,
 			       SoupWebsocketConnectionType   type,
 			       const char                   *origin,
 			       const char                   *protocol,
@@ -1826,7 +1826,7 @@ soup_websocket_connection_get_connection_type (SoupWebsocketConnection *self)
  *
  * Since: 2.50
  */
-SoupURI *
+GUri *
 soup_websocket_connection_get_uri (SoupWebsocketConnection *self)
 {
         SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);

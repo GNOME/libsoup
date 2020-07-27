@@ -8,7 +8,7 @@
 #include "soup-message-private.h"
 
 static SoupSession *session;
-static SoupURI *base_uri;
+static GUri *base_uri;
 
 typedef struct {
         SoupSession *session;
@@ -89,16 +89,16 @@ static void
 do_request_test (gconstpointer data)
 {
         RequestTestFlags flags = GPOINTER_TO_UINT (data);
-        SoupURI *uri;
+        GUri *uri;
         PutTestData ptd;
         SoupMessage *msg;
         const char *client_md5, *server_md5;
         GChecksum *check;
 
         if (flags & RESTART)
-                uri = soup_uri_new_with_base (base_uri, "/redirect");
+                uri = g_uri_parse_relative (base_uri, "/redirect", SOUP_HTTP_URI_FLAGS, NULL);
         else
-                uri = soup_uri_copy (base_uri);
+                uri = g_uri_ref (base_uri);
 
         ptd.session = session;
         check = setup_request_body (&ptd, flags);
@@ -133,8 +133,7 @@ do_request_test (gconstpointer data)
         g_clear_object (&ptd.stream);
         g_object_unref (msg);
         g_checksum_free (check);
-
-        soup_uri_free (uri);
+        g_uri_unref (uri);
 }
 
 static void
@@ -203,7 +202,7 @@ main (int argc, char **argv)
 
         soup_test_session_abort_unref (session);
 
-        soup_uri_free (base_uri);
+        g_uri_unref (base_uri);
 
         g_main_loop_unref (loop);
         soup_test_server_quit_unref (server);

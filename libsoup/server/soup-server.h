@@ -6,7 +6,7 @@
 #pragma once
 
 #include "soup-types.h"
-#include "soup-uri.h"
+#include "soup-uri-utils.h"
 #include "soup-websocket-connection.h"
 
 G_BEGIN_DECLS

@@ -73,7 +73,7 @@ soup_sources = [
   'soup-socket-properties.c',
   'soup-status.c',
   'soup-tld.c',
-  'soup-uri.c',
+  'soup-uri-utils.c',
   'soup-version.c',
 ]
 
@@ -127,7 +127,7 @@ soup_introspection_headers = [
   'soup-status.h',
   'soup-tld.h',
   'soup-types.h',
-  'soup-uri.h',
+  'soup-uri-utils.h',
 ]
 
 soup_installed_headers = soup_introspection_headers

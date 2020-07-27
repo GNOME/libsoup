@@ -70,11 +70,11 @@ soup_auth_basic_update (SoupAuth *auth, SoupMessage *msg,
 }
 
 static GSList *
-soup_auth_basic_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
+soup_auth_basic_get_protection_space (SoupAuth *auth, GUri *source_uri)
 {
 	char *space, *p;
 
-	space = g_strdup (source_uri->path);
+	space = g_strdup (g_uri_get_path (source_uri));
 
 	/* Strip filename component */
 	p = strrchr (space, '/');

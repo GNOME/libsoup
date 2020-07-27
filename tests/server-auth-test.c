@@ -5,7 +5,7 @@
 
 #include "test-utils.h"
 
-static SoupURI *base_uri;
+static GUri *base_uri;
 
 static struct {
 	gboolean client_sent_basic, client_sent_digest;
@@ -23,26 +23,24 @@ curl_exited (GPid pid, int status, gpointer data)
 }
 
 static void
-do_test (SoupURI *base_uri, const char *path,
+do_test (GUri *base_uri, const char *path,
 	 gboolean good_user, gboolean good_password,
 	 gboolean offer_basic, gboolean offer_digest,
 	 gboolean client_sends_basic, gboolean client_sends_digest,
 	 gboolean server_requests_basic, gboolean server_requests_digest,
 	 gboolean success)
 {
-	SoupURI *uri;
+	GUri *uri;
 	char *uri_str;
 	GPtrArray *args;
 	GPid pid;
 	gboolean done;
 
-	/* We build the URI this way to avoid having soup_uri_new()
-	   normalize the path, hence losing the encoded characters in
-	   tests 4. and 5. below. */
-	uri = soup_uri_copy (base_uri);
-	soup_uri_set_path (uri, path);
-	uri_str = soup_uri_to_string (uri, FALSE);
-	soup_uri_free (uri);
+	/* Note that we purposefully do not pass G_URI_FLAGS_ENCODED_PATH here which would lose
+           the encoded characters in tests 4. and 5. below. */
+        uri = g_uri_parse_relative (base_uri, path, G_URI_FLAGS_NONE, NULL);
+	uri_str = g_uri_to_string (uri);
+	g_uri_unref (uri);
 
 	args = g_ptr_array_new ();
 	g_ptr_array_add (args, "curl");
@@ -399,11 +397,11 @@ main (int argc, char **argv)
 
 		ret = g_test_run ();
 	} else {
-		g_print ("Listening on port %d\n", base_uri->port);
+		g_print ("Listening on port %d\n", g_uri_get_port (base_uri));
 		g_main_loop_run (loop);
 		ret = 0;
 	}
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 
 	g_main_loop_unref (loop);
 	soup_test_server_quit_unref (server);

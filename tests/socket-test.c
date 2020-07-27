@@ -120,7 +120,7 @@ static void
 do_socket_from_fd_client_test (void)
 {
 	SoupServer *server;
-	SoupURI *uri;
+	GUri *uri;
 	GSocket *gsock;
 	SoupSocket *sock;
 	GInetSocketAddress *local, *remote;
@@ -137,7 +137,7 @@ do_socket_from_fd_client_test (void)
 			      &error);
 	g_assert_no_error (error);
 
-	gaddr = g_inet_socket_address_new_from_string ("127.0.0.1", uri->port);
+	gaddr = g_inet_socket_address_new_from_string ("127.0.0.1", g_uri_get_port (uri));
 	g_socket_connect (gsock, gaddr, NULL, &error);
 	g_object_unref (gaddr);
 	g_assert_no_error (error);
@@ -164,7 +164,7 @@ do_socket_from_fd_client_test (void)
 	assert_host_equals (local, "127.0.0.1");
 	g_assert_cmpint (g_inet_socket_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
         assert_host_equals (remote, "127.0.0.1");
-	g_assert_cmpint (g_inet_socket_address_get_port (remote), ==, uri->port);
+	g_assert_cmpint (g_inet_socket_address_get_port (remote), ==, g_uri_get_port (uri));
 
 	g_object_unref (local);
 	g_object_unref (remote);
@@ -174,7 +174,7 @@ do_socket_from_fd_client_test (void)
 	g_object_unref (gsock);
 
 	soup_test_server_quit_unref (server);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 }
 
 static void

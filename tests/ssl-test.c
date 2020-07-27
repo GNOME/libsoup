@@ -2,7 +2,7 @@
 
 #include "test-utils.h"
 
-SoupURI *uri;
+GUri *uri;
 
 typedef struct {
 	const char *name;
@@ -193,7 +193,7 @@ do_tls_interaction_test (void)
 	SoupMessage *msg;
 	GBytes *body;
 	GTlsInteraction *interaction;
-	SoupURI *test_uri;
+	GUri *test_uri;
 	GError *error = NULL;
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
@@ -209,8 +209,9 @@ do_tls_interaction_test (void)
 	g_signal_connect (service, "run", G_CALLBACK (got_connection), NULL);
 	g_socket_service_start (service);
 
-	test_uri = soup_uri_new ("https://127.0.0.1");
-	soup_uri_set_port (test_uri, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (bound_address)));
+        test_uri = g_uri_build (SOUP_HTTP_URI_FLAGS, "https", NULL, "127.0.0.1",
+                                g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (bound_address)),
+                                "/", NULL, NULL);
 	g_object_unref (bound_address);
 
 	session = soup_test_session_new (NULL);
@@ -236,7 +237,7 @@ do_tls_interaction_test (void)
 	g_bytes_unref (body);
 	g_object_unref (msg);
 
-	soup_uri_free (test_uri);
+	g_uri_unref (test_uri);
 	soup_test_session_abort_unref (session);
 
 	g_socket_service_stop (service);
@@ -282,7 +283,7 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 	if (tls_available) {
-		soup_uri_free (uri);
+		g_uri_unref (uri);
 		soup_test_server_quit_unref (server);
 	}
 

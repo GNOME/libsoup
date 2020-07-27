@@ -39,7 +39,7 @@ get_url (const char *url)
         soup_session_queue_message (session, msg, finished, loop);
         g_main_loop_run (loop);
 
-	name = soup_message_get_uri (msg)->path;
+	name = g_uri_get_path (soup_message_get_uri (msg));
 
 	if (!debug) {
 		if (soup_message_get_status (msg) == SOUP_STATUS_SSL_FAILED) {
@@ -57,17 +57,18 @@ get_url (const char *url)
 		header = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						       "Location");
 		if (header) {
-			SoupURI *uri;
+			GUri *uri;
 			char *uri_string;
 
 			if (!debug && !quiet)
 				g_print ("  -> %s\n", header);
 
-			uri = soup_uri_new_with_base (soup_message_get_uri (msg), header);
-			uri_string = soup_uri_to_string (uri, FALSE);
+			uri = g_uri_parse_relative (soup_message_get_uri (msg), header, SOUP_HTTP_URI_FLAGS, NULL);
+                        g_assert (uri != NULL);
+			uri_string = g_uri_to_string (uri);
 			get_url (uri_string);
 			g_free (uri_string);
-			soup_uri_free (uri);
+			g_uri_unref (uri);
 		}
 	} else if (!head && SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
 		if (output_file_path) {
@@ -190,7 +191,7 @@ main (int argc, char **argv)
 {
 	GOptionContext *opts;
 	const char *url;
-	SoupURI *proxy_uri, *parsed;
+	GUri *proxy_uri, *parsed;
 	GError *error = NULL;
 	SoupLogger *logger = NULL;
 	char *help;
@@ -216,12 +217,12 @@ main (int argc, char **argv)
 	g_option_context_free (opts);
 
 	url = argv[1];
-	parsed = soup_uri_new (url);
+	parsed = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, &error);
 	if (!parsed) {
-		g_printerr ("Could not parse '%s' as a URL\n", url);
+		g_printerr ("Could not parse '%s' as a URL: %s\n", url, error->message);
 		exit (1);
 	}
-	soup_uri_free (parsed);
+	g_uri_unref (parsed);
 
 	session = g_object_new (SOUP_TYPE_SESSION,
 				"user-agent", "get ",
@@ -258,10 +259,12 @@ main (int argc, char **argv)
 
 	if (proxy) {
 		GProxyResolver *resolver;
-		proxy_uri = soup_uri_new (proxy);
+                GError *error;
+		proxy_uri = g_uri_parse (proxy, SOUP_HTTP_URI_FLAGS, &error);
 		if (!proxy_uri) {
-			g_printerr ("Could not parse '%s' as URI\n",
-				    proxy);
+			g_printerr ("Could not parse '%s' as URI: %s\n",
+				    proxy, error->message);
+                        g_error_free (error);
 			exit (1);
 		}
 
@@ -269,7 +272,7 @@ main (int argc, char **argv)
 		g_object_set (G_OBJECT (session),
 			      "proxy-resolver", resolver,
 			      NULL);
-		soup_uri_free (proxy_uri);
+		g_uri_unref (proxy_uri);
 		g_object_unref (resolver);
 	}
 

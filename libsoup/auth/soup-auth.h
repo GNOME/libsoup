@@ -25,7 +25,7 @@ struct _SoupAuthClass {
 					      GHashTable    *auth_header);
 
 	GSList *     (*get_protection_space) (SoupAuth      *auth,
-					      SoupURI       *source_uri);
+					      GUri          *source_uri);
 
 	void         (*authenticate)         (SoupAuth      *auth,
 					      const char    *username,
@@ -89,7 +89,7 @@ char       *soup_auth_get_authorization     (SoupAuth      *auth,
 
 SOUP_AVAILABLE_IN_2_4
 GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
-					     SoupURI       *source_uri);
+					     GUri          *source_uri);
 SOUP_AVAILABLE_IN_2_4
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);

@@ -696,7 +696,7 @@ decode_rfc5987 (char *encoded_string)
 	if (!q)
 		return FALSE;
 
-	decoded = soup_uri_decode (q + 1);
+	decoded = g_uri_unescape_string (q + 1, NULL);
 	if (iso_8859_1) {
 		char *utf8 =  g_convert_with_fallback (decoded, -1, "UTF-8",
 						       "iso-8859-1", "_",
@@ -910,7 +910,7 @@ append_param_rfc5987 (GString    *string,
 
 	g_string_append (string, name);
 	g_string_append (string, "*=UTF-8''");
-	encoded = soup_uri_encode (value, " *'%()<>@,;:\\\"/[]?=");
+	encoded = g_uri_escape_string (value, "*'%()<>@,;:\\\"/[]?=", FALSE);
 	g_string_append (string, encoded);
 	g_free (encoded);
 }

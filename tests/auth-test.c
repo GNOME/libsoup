@@ -791,7 +791,7 @@ select_auth_authenticate (SoupMessage    *msg,
 }
 
 static void
-select_auth_test_one (SoupURI *uri,
+select_auth_test_one (GUri *uri,
 		      gboolean disable_digest, const char *password,
 		      const char *first_headers, const char *first_response,
 		      const char *second_headers, const char *second_response,
@@ -881,7 +881,7 @@ do_select_auth_test (void)
 {
 	SoupServer *server;
 	SoupAuthDomain *basic_auth_domain, *digest_auth_domain;
-	SoupURI *uri;
+	GUri *uri;
 
 	g_test_bug ("562339");
 
@@ -977,7 +977,7 @@ do_select_auth_test (void)
 
 	g_object_unref (basic_auth_domain);
 	g_object_unref (digest_auth_domain);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	soup_test_server_quit_unref (server);
 }
 
@@ -1036,7 +1036,7 @@ do_auth_close_test (void)
 {
 	SoupServer *server;
 	SoupAuthDomain *basic_auth_domain;
-	SoupURI *uri;
+	GUri *uri, *tmp;
 	AuthCloseData acd;
 	GBytes *body;
 
@@ -1045,7 +1045,9 @@ do_auth_close_test (void)
 				 server_callback, NULL, NULL);
 
 	uri = soup_test_server_get_uri (server, "http", NULL);
-	soup_uri_set_path (uri, "/close");
+        tmp = g_uri_parse_relative (uri, "/close", SOUP_HTTP_URI_FLAGS, NULL);
+        g_uri_unref (uri);
+        uri = g_steal_pointer (&tmp);
 
 	basic_auth_domain = soup_auth_domain_basic_new (
 		"realm", "auth-test",
@@ -1062,7 +1064,7 @@ do_auth_close_test (void)
 	acd.msg = soup_message_new_from_uri ("GET", uri);
 	g_signal_connect (acd.msg, "authenticate",
 			  G_CALLBACK (auth_close_authenticate), &acd);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	body = soup_test_session_async_send (acd.session, acd.msg);
 
 	soup_test_assert_message_status (acd.msg, SOUP_STATUS_OK);
@@ -1160,7 +1162,7 @@ do_disappearing_auth_test (void)
 {
 	SoupServer *server;
 	SoupAuthDomain *auth_domain;
-	SoupURI *uri;
+	GUri *uri;
 	SoupMessage *msg;
 	SoupSession *session;
 	int counter;
@@ -1201,7 +1203,7 @@ do_disappearing_auth_test (void)
 	soup_test_session_abort_unref (session);
 
 	g_object_unref (auth_domain);
-	soup_uri_free (uri);
+	g_uri_unref (uri);
 	soup_test_server_quit_unref (server);
 }
 
@@ -1248,36 +1250,37 @@ do_batch_tests (gconstpointer data)
 	SoupSession *session;
 	SoupMessage *msg;
 	char *expected, *uristr;
-	SoupURI *base;
+	GUri *base;
 	int i;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (NULL);
-	base = soup_uri_new (base_uri);
+	base = g_uri_parse (base_uri, SOUP_HTTP_URI_FLAGS, NULL);
 
 	for (i = 0; current_tests[i].url; i++) {
-		SoupURI *soup_uri = soup_uri_new_with_base (base, current_tests[i].url);
+		GUri *soup_uri = g_uri_parse_relative (base, current_tests[i].url, SOUP_HTTP_URI_FLAGS, NULL);
 
 		debug_printf (1, "Test %d: %s\n", i + 1, current_tests[i].explanation);
 
 		if (current_tests[i].url_auth) {
 			gchar *username = g_strdup_printf ("user%c", current_tests[i].provided[0]);
 			gchar *password = g_strdup_printf ("realm%c", current_tests[i].provided[0]);
-			soup_uri_set_user (soup_uri, username);
-			soup_uri_set_password (soup_uri, password);
+                        GUri *tmp = soup_uri_copy_with_credentials (soup_uri, username, password);
+                        g_uri_unref (soup_uri);
+                        soup_uri = tmp;
 			g_free (username);
 			g_free (password);
 		}
 
 		msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
-		soup_uri_free (soup_uri);
+		g_uri_unref (soup_uri);
 		if (!msg) {
 			g_printerr ("auth-test: Could not parse URI\n");
 			exit (1);
 		}
 
-		uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+		uristr = g_uri_to_string (soup_message_get_uri (msg));
 		debug_printf (1, "  GET %s\n", uristr);
 		g_free (uristr);
 
@@ -1304,7 +1307,7 @@ do_batch_tests (gconstpointer data)
 
 		g_object_unref (msg);
 	}
-	soup_uri_free (base);
+	g_uri_unref (base);
 
 	soup_test_session_abort_unref (session);
 }
@@ -1338,7 +1341,7 @@ do_message_do_not_use_auth_cache_test (void)
 	SoupSession *session;
 	SoupAuthManager *manager;
 	SoupMessage *msg;
-	SoupURI *soup_uri;
+	GUri *soup_uri, *auth_uri;
 	char *uri;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
@@ -1355,15 +1358,16 @@ do_message_do_not_use_auth_cache_test (void)
 	/* Passing credentials in the URI should always authenticate
 	 * no matter whether the cache is used or not
 	 */
-	soup_uri = soup_uri_new (uri);
-	soup_uri_set_user (soup_uri, "user1");
-	soup_uri_set_password (soup_uri, "realm1");
-	msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
+	soup_uri = g_uri_parse (uri, SOUP_HTTP_URI_FLAGS, NULL);
+        auth_uri = soup_uri_copy_with_credentials (soup_uri, "user1", "realm1");
+
+	msg = soup_message_new_from_uri (SOUP_METHOD_GET, auth_uri);
 	soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
-	soup_uri_free (soup_uri);
+	g_uri_unref (soup_uri);
+        g_uri_unref (auth_uri);
 
 	manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
 

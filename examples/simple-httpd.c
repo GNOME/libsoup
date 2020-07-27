@@ -93,7 +93,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		if (!slash || slash[1]) {
 			char *redir_uri;
 
-			redir_uri = g_strdup_printf ("%s/", soup_message_get_uri (msg)->path);
+			redir_uri = g_strdup_printf ("%s/", g_uri_get_path (soup_message_get_uri (msg)));
 			soup_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY,
 						   redir_uri);
 			g_free (redir_uri);
@@ -287,10 +287,10 @@ main (int argc, char **argv)
 
 	uris = soup_server_get_uris (server);
 	for (u = uris; u; u = u->next) {
-		str = soup_uri_to_string (u->data, FALSE);
+		str = g_uri_to_string (u->data);
 		g_print ("Listening on %s\n", str);
 		g_free (str);
-		soup_uri_free (u->data);
+		g_uri_unref (u->data);
 	}
 	g_slist_free (uris);
 

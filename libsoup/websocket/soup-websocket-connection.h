@@ -31,7 +31,7 @@ G_DECLARE_FINAL_TYPE (SoupWebsocketConnection, soup_websocket_connection, SOUP, 
 
 SOUP_AVAILABLE_IN_ALL
 SoupWebsocketConnection *soup_websocket_connection_new (GIOStream                    *stream,
-							SoupURI                      *uri,
+							GUri                         *uri,
 							SoupWebsocketConnectionType   type,
 							const char                   *origin,
 							const char                   *protocol,
@@ -44,7 +44,7 @@ SOUP_AVAILABLE_IN_2_50
 SoupWebsocketConnectionType soup_websocket_connection_get_connection_type (SoupWebsocketConnection *self);
 
 SOUP_AVAILABLE_IN_2_50
-SoupURI *           soup_websocket_connection_get_uri        (SoupWebsocketConnection *self);
+GUri *              soup_websocket_connection_get_uri        (SoupWebsocketConnection *self);
 
 SOUP_AVAILABLE_IN_2_50
 const char *        soup_websocket_connection_get_origin     (SoupWebsocketConnection *self);

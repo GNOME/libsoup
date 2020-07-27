@@ -59,10 +59,10 @@ authenticate (SoupMessage *msg,
 		g_free (uri);
 		g_assert_true (found);
 	} else {
-		SoupURI *uri = soup_message_get_uri (msg);
+		GUri *uri = soup_message_get_uri (msg);
 		char *authority;
 
-		authority = g_strdup_printf ("%s:%d", uri->host, uri->port);
+		authority = g_strdup_printf ("%s:%d", g_uri_get_host (uri), g_uri_get_port (uri));
 		g_assert_cmpstr (authority, ==, soup_auth_get_authority (auth));
 		g_free (authority);
 	}
@@ -154,18 +154,21 @@ do_proxy_test (SoupProxyTest *test)
 		g_test_bug (test->bugref);
 
 	if (!strncmp (test->url, "http", 4)) {
-		SoupURI *uri;
-		guint port;
+		GUri *http_uri, *https_uri;
+		int port;
 
 		http_url = g_strdup (test->url);
 
-		uri = soup_uri_new (test->url);
-		port = uri->port;
-		soup_uri_set_scheme (uri, "https");
-		if (port)
-			soup_uri_set_port (uri, port + 1);
-		https_url = soup_uri_to_string (uri, FALSE);
-		soup_uri_free (uri);
+                http_uri = g_uri_parse (test->url, SOUP_HTTP_URI_FLAGS, NULL);
+                port = g_uri_get_port (http_uri);
+                if (port != -1)
+                        port += 1;
+                https_uri = g_uri_build (SOUP_HTTP_URI_FLAGS, "https", NULL, g_uri_get_host (http_uri),
+                                         port, g_uri_get_path (http_uri),
+                                         g_uri_get_query (http_uri), g_uri_get_fragment (http_uri));
+		https_url = g_uri_to_string (https_uri);
+		g_uri_unref (http_uri);
+                g_uri_unref (https_uri);
 	} else {
 		http_url = g_strconcat (HTTP_SERVER, test->url, NULL);
 		https_url = g_strconcat (HTTPS_SERVER, test->url, NULL);
@@ -202,17 +205,17 @@ server_callback (SoupServer        *server,
 		 GHashTable        *query,
 		 gpointer           data)
 {
-	SoupURI *uri = soup_server_message_get_uri (msg);
+	GUri *uri = soup_server_message_get_uri (msg);
 
-	soup_server_message_set_status (msg, uri->fragment ? SOUP_STATUS_BAD_REQUEST : SOUP_STATUS_OK, NULL);
+	soup_server_message_set_status (msg, g_uri_get_fragment (uri) ? SOUP_STATUS_BAD_REQUEST : SOUP_STATUS_OK, NULL);
 }
 
 static void
 do_proxy_fragment_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
+	GUri *base_uri = (GUri *)data;
 	SoupSession *session;
-	SoupURI *req_uri;
+	GUri *req_uri;
 	SoupMessage *msg;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
@@ -220,9 +223,9 @@ do_proxy_fragment_test (gconstpointer data)
 	session = soup_test_session_new ("proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
-	req_uri = soup_uri_new_with_base (base_uri, "/#foo");
+	req_uri = g_uri_parse_relative (base_uri, "/#foo", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
-	soup_uri_free (req_uri);
+	g_uri_unref (req_uri);
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -235,7 +238,7 @@ static void
 do_proxy_redirect_test (void)
 {
 	SoupSession *session;
-	SoupURI *req_uri, *new_uri;
+	GUri *base_uri, *req_uri, *new_uri;
 	SoupMessage *msg;
 
 	g_test_bug ("631368");
@@ -246,17 +249,18 @@ do_proxy_redirect_test (void)
 	session = soup_test_session_new ("proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
-	req_uri = soup_uri_new (HTTPS_SERVER);
-	soup_uri_set_path (req_uri, "/redirected");
+	base_uri = g_uri_parse (HTTPS_SERVER, SOUP_HTTP_URI_FLAGS, NULL);
+        req_uri = g_uri_parse_relative (base_uri, "/redirected", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
 	soup_message_headers_append (soup_message_get_request_headers (msg),
 				     "Connection", "close");
 	soup_test_session_send_message (session, msg);
 
 	new_uri = soup_message_get_uri (msg);
-	soup_test_assert (strcmp (req_uri->path, new_uri->path) != 0,
+	soup_test_assert (strcmp (g_uri_get_path (req_uri), g_uri_get_path (new_uri)) != 0,
 			  "message was not redirected");
-	soup_uri_free (req_uri);
+	g_uri_unref (req_uri);
+        g_uri_unref (base_uri);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -340,7 +344,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	SoupURI *base_uri;
+	GUri *base_uri;
 	char *path;
 	int i, ret;
 
@@ -368,7 +372,7 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_uri_free (base_uri);
+	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
 	for (i = 0; i < 3; i++)
 		g_object_unref (proxy_resolvers[i]);

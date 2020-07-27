@@ -16,7 +16,7 @@ G_DECLARE_FINAL_TYPE (SoupAuthManager, soup_auth_manager, SOUP, AUTH_MANAGER, GO
 
 SOUP_AVAILABLE_IN_2_4
 void  soup_auth_manager_use_auth (SoupAuthManager *manager,
-				  SoupURI         *uri,
+				  GUri            *uri,
 				  SoupAuth        *auth);
 
 SOUP_AVAILABLE_IN_2_58

@@ -76,7 +76,7 @@ endif
 
 add_project_arguments(common_flags, language : 'c')
 
-glib_required_version = '>= 2.58'
+glib_required_version = '>= 2.67.0'
 glib_dep = dependency('glib-2.0', version : glib_required_version,
                        fallback: ['glib', 'libglib_dep'])
 gobject_dep = dependency('gobject-2.0', version : glib_required_version,
@@ -85,6 +85,12 @@ gio_dep = dependency('gio-2.0', version : glib_required_version,
                        fallback: ['glib', 'libgio_dep'])
 
 glib_deps = [glib_dep, gobject_dep, gio_dep]
+
+# Added in 2.67.x cycle, remove after 2.68.0
+cc.has_header_symbol('glib.h', 'G_URI_FLAGS_SCHEME_NORMALIZE',
+  dependencies: glib_dep,
+  required: true,
+)
 
 sqlite_dep = dependency('sqlite3', required: false)
 

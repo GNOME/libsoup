@@ -32,6 +32,7 @@ ignore_headers = [
   'soup-private-enum-types.h',
   'soup-server-message-private.h',
   'soup-message-io-data.h',
+  'soup-uri-utils-private.h',
 ]
 
 mkdb_args = [
