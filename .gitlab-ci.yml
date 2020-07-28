@@ -1,6 +1,11 @@
 image: registry.gitlab.gnome.org/gnome/libsoup/master:v5
 
+stages:
+  - build
+  - coverage
+
 .build:
+  stage: build
   tags:
     # We need runners supporting IPv6:
     # https://gitlab.gnome.org/Infrastructure/GitLab/issues/313
@@ -8,11 +13,34 @@ image: registry.gitlab.gnome.org/gnome/libsoup/master:v5
 
 fedora-meson-x86_64:
   extends: .build
+  variables:
+    CFLAGS: "-coverage -ftest-coverage -fprofile-arcs"
   script:
     - meson _build -Dauto_features=enabled
     - ninja -C _build
+    - mkdir -p _coverage
+    - lcov --config-file .gitlab-ci/lcovrc --directory _build --capture --initial --output-file "_coverage/${CI_JOB_NAME}-baseline.lcov"
     - ninja -C _build test
+    - lcov --config-file .gitlab-ci/lcovrc --directory _build --capture --output-file "_coverage/${CI_JOB_NAME}.lcov"
   artifacts:
+    reports:
+      junit: "_build/${CI_JOB_NAME}-report.xml"
+    name: "libsoup-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    when: always
     paths:
+      - "_build/config.h"
       - "_build/meson-logs"
-    when: on_failure
+      - "_build/${CI_JOB_NAME}-report.xml"
+      - "_coverage"
+
+coverage:
+  stage: coverage
+  except:
+    - tags
+  artifacts:
+    name: "libsoup-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    paths:
+      - _coverage/
+  script:
+    - bash -x ./.gitlab-ci/coverage-docker.sh
+  coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
