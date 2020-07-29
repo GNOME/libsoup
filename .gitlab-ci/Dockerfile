@@ -3,19 +3,20 @@ FROM fedora:31
 RUN dnf update -y \
     && dnf install -y 'dnf-command(builddep)' \
     && dnf builddep -y libsoup \
-    && dnf install -y which \
+    && dnf install -y brotli-devel \
                       git \
                       gtk-doc \
+                      httpd \
+                      lcov \
                       libpsl-devel \
                       make \
-                      httpd \
+                      meson \
+                      mod_ssl \
                       php \
                       php-xmlrpc \
-                      mod_ssl \
                       redhat-rpm-config \
-                      meson \
-                      brotli-devel \
                       samba-winbind-clients \
+                      which \
     && dnf clean all
 
 ARG HOST_USER_ID=5555
