@@ -6,16 +6,16 @@
 # Necdet Yücel <necdetyucel@gmail.com>, 2014, 2015.
 # Furkan Ahmet Kara <furkanahmetkara.fk@gmail.com>, 2017.
 # Muhammet Kara <muhammetk@gmail.com>, 2012, 2014, 2015, 2018.
-# Emin Tufan Çetin <etcetin@gmail.com>, 2017, 2018.
 # Sabri Ünal <libreajans@gmail.com>, 2019.
+# Emin Tufan Çetin <etcetin@gmail.com>, 2017, 2018, 2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-09-05 20:50+0300\n"
-"Last-Translator: Sabri Ünal <libreajans@gmail.com>\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-08-08 12:05+0300\n"
+"Last-Translator: Emin Tufan Çetin <etcetin@gmail.com>\n"
 "Language-Team: Türkçe <gnome-turk@gnome.org>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
@@ -45,6 +45,18 @@ msgstr "Ağ akışı beklenmeyen bir şekilde sonlandı"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Özkaynak tümüyle önbelleğe alınamadı"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Ad"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Boyut"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Değiştirilme Tarihi"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -85,31 +97,31 @@ msgstr "URI verilmedi"
 msgid "Invalid “%s” URI: %s"
 msgstr "Geçersiz “%s” URI: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Bir TLS sertifikası olmadan TLS sunucusu oluşturulamaz"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "%s adresinin %d bağlantı noktası dinlenemedi: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "URI “%s” ayrıştırılamadı"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Desteklenmeyen URI şeması “%s”"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI değil"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Sunucu WebSocket el sıkışmasını kabul etmedi."
 
@@ -119,7 +131,7 @@ msgstr "Non-socket, SoupSocket olarak içe aktarılamıyor"
 
 #: libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr "Mevcut soket içe aktarılamadı: "
+msgstr "Var olan soket içe aktarılamadı: "
 
 #: libsoup/soup-socket.c:175
 msgid "Can’t import unconnected socket"
@@ -128,7 +140,7 @@ msgstr "Bağlı olmayan soket içe aktarılamıyor"
 #: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
 #: libsoup/soup-websocket.c:539
 msgid "Server requested unsupported extension"
-msgstr "Sunucu desteklenmeyen eklenti isteğinde bulundu"
+msgstr "Sunucu, desteklenmeyen eklenti isteğinde bulundu"
 
 #: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
@@ -138,7 +150,7 @@ msgstr "Hatalı WebSocket “%s” başlığı"
 #: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
-msgstr "Sunucu geçersiz “%s” anahtarı döndürdü"
+msgstr "Sunucu, geçersiz “%s” anahtarı döndürdü"
 
 #: libsoup/soup-websocket.c:566
 #, c-format
@@ -147,8 +159,9 @@ msgstr "“%s” WebSocket eklenti başlığında yinelenen parametre"
 
 #: libsoup/soup-websocket.c:567
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "Sunucu “%s” WebSocket eklenti başlığında yinelenen parametre döndürdü"
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "Sunucu, “%s” WebSocket eklenti başlığında yinelenen parametre döndürdü"
 
 #: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
 msgid "WebSocket handshake expected"
@@ -168,15 +181,15 @@ msgstr "Desteklenmeyen WebSocket alt iletişim kuralı"
 
 #: libsoup/soup-websocket.c:975
 msgid "Server rejected WebSocket handshake"
-msgstr "Sunucu WebSocket el sıkışmasını reddetti"
+msgstr "Sunucu, WebSocket el sıkışmasını reddetti"
 
 #: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
 msgid "Server ignored WebSocket handshake"
-msgstr "Sunucu WebSocket el sıkışmasını yoksaydı"
+msgstr "Sunucu, WebSocket el sıkışmasını yoksaydı"
 
 #: libsoup/soup-websocket.c:1004
 msgid "Server requested unsupported protocol"
-msgstr "Sunucu desteklenmeyen iletişim kuralı isteğinde bulundu"
+msgstr "Sunucu, desteklenmeyen iletişim kuralı isteğinde bulundu"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
