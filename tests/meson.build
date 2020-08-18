@@ -199,3 +199,6 @@ executable('ntlm-test-helper', 'ntlm-test-helper.c',
   install_dir : installed_tests_execdir,
   install_rpath : abs_installed_tests_execdir,
 )
+
+test_runner = find_program('test-runner.py')
+test('test-runner', test_runner, protocol: 'tap')

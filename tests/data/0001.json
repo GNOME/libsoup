@@ -1,0 +1,21 @@
+{
+    "description": "Basic request test",
+    "server": {
+        "tls": false
+    },
+    "client": {
+        "features": []
+    },
+    "request": {
+        "method": "GET",
+        "headers": {
+            "foo": "bar"
+        },
+        "data": ""
+    },
+    "response": {
+        "status": 200,
+        "content-type": "text/html",
+        "body": "Hello world"
+    }
+}
