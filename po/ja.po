@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-11-02 19:31+0000\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
 "PO-Revision-Date: 2012-10-12 13:30+0900\n"
 "Last-Translator: Takayuki KUSANO <AE5T-KSN@asahi-net.or.jp>\n"
 "Language-Team: Japanese <gnome-translation@gnome.gr.jp>\n"
@@ -16,66 +16,196 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
 msgid "Connection terminated unexpectedly"
 msgstr "接続が突然切断されました"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
 msgstr "無効な seek 要求"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream は truncate できません"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: libsoup/soup-cache-input-stream.c:76
+msgid "Network stream unexpectedly closed"
+msgstr ""
+
+#: libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr ""
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr ""
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr ""
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr ""
+
+#: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "出力バッファーが小さすぎます"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
-msgid "Operation was cancelled"
-msgstr "動作が中止されました"
+#: libsoup/soup-message-client-io.c:39
+#, fuzzy
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP response"
+msgstr "URI '%s' をパースできませんでした"
 
-#: ../libsoup/soup-message-io.c:893
+#: libsoup/soup-message-client-io.c:62
+msgid "Unrecognized HTTP response encoding"
+msgstr ""
+
+#: libsoup/soup-message-io.c:261
+msgid "Header too big"
+msgstr ""
+
+#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
 msgstr "動作はブロックします"
 
-#: ../libsoup/soup-request.c:142
+#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+msgid "Operation was cancelled"
+msgstr "動作が中止されました"
+
+#: libsoup/soup-message-server-io.c:63
+#, fuzzy
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP request"
+msgstr "URI '%s' をパースできませんでした"
+
+#: libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "URI が与えられていません"
 
-#: ../libsoup/soup-request.c:152
-#, c-format
-msgid "Invalid '%s' URI: %s"
+#: libsoup/soup-request.c:151
+#, fuzzy, c-format
+#| msgid "Invalid '%s' URI: %s"
+msgid "Invalid “%s” URI: %s"
 msgstr "不正なスキーム '%s' の URI: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: libsoup/soup-server.c:1810
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr ""
+
+#: libsoup/soup-server.c:1827
 #, c-format
-msgid "Could not parse URI '%s'"
+msgid "Could not listen on address %s, port %d: "
+msgstr ""
+
+#: libsoup/soup-session.c:4570
+#, fuzzy, c-format
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse URI “%s”"
 msgstr "URI '%s' をパースできませんでした"
 
-#: ../libsoup/soup-requester.c:253
-#, c-format
-msgid "Unsupported URI scheme '%s'"
+#: libsoup/soup-session.c:4607
+#, fuzzy, c-format
+#| msgid "Unsupported URI scheme '%s'"
+msgid "Unsupported URI scheme “%s”"
 msgstr "サポートされていない URI のスキーム '%s'"
 
-#: ../libsoup/soup-tld.c:154
-msgid "Hostname is an IP address"
-msgstr "ホスト名が IP アドレスです"
+#: libsoup/soup-session.c:4629
+#, c-format
+msgid "Not an HTTP URI"
+msgstr ""
 
-#: ../libsoup/soup-tld.c:175
+#: libsoup/soup-session.c:4840
+msgid "The server did not accept the WebSocket handshake."
+msgstr ""
+
+#: libsoup/soup-socket.c:148
+msgid "Can’t import non-socket as SoupSocket"
+msgstr ""
+
+#: libsoup/soup-socket.c:166
+msgid "Could not import existing socket: "
+msgstr ""
+
+#: libsoup/soup-socket.c:175
+msgid "Can’t import unconnected socket"
+msgstr ""
+
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr ""
+
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr ""
+
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr ""
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr ""
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr ""
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr ""
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr ""
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr ""
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr ""
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr ""
+
+#: libsoup/soup-tld.c:150
+msgid "No public-suffix list available."
+msgstr ""
+
+#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
 msgid "Invalid hostname"
 msgstr "不正なホスト名です"
 
-#: ../libsoup/soup-tld.c:204
+#: libsoup/soup-tld.c:167
+msgid "Hostname is an IP address"
+msgstr "ホスト名が IP アドレスです"
+
+#: libsoup/soup-tld.c:188
 msgid "Hostname has no base domain"
 msgstr "ホスト名にトップレベルドメインがありません"
 
 # ソースコードと http://www.nic.ad.jp/ja/dom/system.html 参照
-#: ../libsoup/soup-tld.c:226
+#: libsoup/soup-tld.c:196
 msgid "Not enough domains"
 msgstr "ドメイン名が十分な数のラベルがありません"
