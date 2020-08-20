@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-08-24 14:24+0000\n"
-"PO-Revision-Date: 2019-08-24 19:42+0200\n"
+"POT-Creation-Date: 2020-08-19 05:23+0000\n"
+"PO-Revision-Date: 2020-08-19 21:41+0200\n"
 "Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian <gnome-si@googlegroups.com>\n"
 "Language: sl\n"
@@ -19,10 +19,10 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n"
 "%100==4 ? 3 : 0);\n"
 "X-Poedit-SourceCharset: utf-8\n"
-"X-Generator: Poedit 2.2.1\n"
+"X-Generator: Poedit 2.3\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
 msgid "Connection terminated unexpectedly"
 msgstr "Povezava je nepričakovano končana"
 
@@ -42,6 +42,18 @@ msgstr "Omrežni pretok se je nepričakovano zaprl"
 msgid "Failed to completely cache the resource"
 msgstr "Ustvarjanje predpomnilnika vira je spodletelo"
 
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Ime"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Velikost"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Datum spremembe"
+
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
@@ -55,15 +67,15 @@ msgstr "Odziva HTTP ni mogoče razčleniti"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neprepoznano kodiranje odziva HTTP"
 
-#: libsoup/soup-message-io.c:261
+#: libsoup/soup-message-io.c:269
 msgid "Header too big"
 msgstr "Glava je prevelika"
 
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Opravilo bi zaustavilo delovanje"
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Opravilo je preklicano."
 
@@ -81,31 +93,31 @@ msgstr "Ni podanega naslova URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "Neveljaven naslov URI “%s”: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Ni mogoče ustvariti strežnika TLS brez ustreznega potrdila TLS."
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Ni mogoče prisluhniti naslovu %s, vrata %d:"
 
-#: libsoup/soup-session.c:4543
+#: libsoup/soup-session.c:4584
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Ni mogoče razčleniti naslova URI “%s”"
 
-#: libsoup/soup-session.c:4580
+#: libsoup/soup-session.c:4621
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nepodprta shema naslova URI “%s”"
 
-#: libsoup/soup-session.c:4602
+#: libsoup/soup-session.c:4643
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Naslov ni v obliki HTTP URI"
 
-#: libsoup/soup-session.c:4813
+#: libsoup/soup-session.c:4854
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Strežnik ne podpira zahteve overitve WebSocket"
 
