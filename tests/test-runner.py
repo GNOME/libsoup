@@ -6,8 +6,14 @@ import signal
 import sys
 
 import gi
+gi.require_version('GIRepository', '2.0')
+from gi.repository import GLib, Gio, GIRepository
+libpath = os.path.join(os.environ.get('MESON_BUILD_ROOT', 'meson-build'), 'libsoup')
+GIRepository.Repository.prepend_search_path(libpath)
+GIRepository.Repository.prepend_library_path(libpath)
+
 gi.require_version('Soup', '2.4')
-from gi.repository import GLib, Gio, Soup
+from gi.repository import Soup
 
 
 verbose_logging = False
