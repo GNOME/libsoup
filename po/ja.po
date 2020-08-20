@@ -1,15 +1,16 @@
 # libsoup ja.po
-# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# Copyright (C) 2012, 2020 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 # Takayuki KUSANO <AE5T-KSN@asahi-net.or.jp>, 2012.
+# sicklylife <translation@sicklylife.jp>, 2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
 "POT-Creation-Date: 2020-06-26 17:08+0000\n"
-"PO-Revision-Date: 2012-10-12 13:30+0900\n"
-"Last-Translator: Takayuki KUSANO <AE5T-KSN@asahi-net.or.jp>\n"
+"PO-Revision-Date: 2020-08-20 20:14+0900\n"
+"Last-Translator: sicklylife <translation@sicklylife.jp>\n"
 "Language-Team: Japanese <gnome-translation@gnome.gr.jp>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -23,31 +24,31 @@ msgstr "接続が突然切断されました"
 
 #: libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
-msgstr "無効な seek 要求"
+msgstr "無効なシーク要求です"
 
 #: libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
-msgstr "SoupBodyInputStream は truncate できません"
+msgstr "SoupBodyInputStream を切り詰めることはできません"
 
 #: libsoup/soup-cache-input-stream.c:76
 msgid "Network stream unexpectedly closed"
-msgstr ""
+msgstr "ネットワークストリームが突然閉じられました"
 
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
-msgstr ""
+msgstr "リソースを完全にキャッシュできませんでした"
 
 #: libsoup/soup-directory-input-stream.c:231
 msgid "Name"
-msgstr ""
+msgstr "名前"
 
 #: libsoup/soup-directory-input-stream.c:232
 msgid "Size"
-msgstr ""
+msgstr "サイズ"
 
 #: libsoup/soup-directory-input-stream.c:233
 msgid "Date Modified"
-msgstr ""
+msgstr "変更日"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -55,18 +56,16 @@ msgid "Output buffer is too small"
 msgstr "出力バッファーが小さすぎます"
 
 #: libsoup/soup-message-client-io.c:39
-#, fuzzy
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
-msgstr "URI '%s' をパースできませんでした"
+msgstr "HTTP レスポンスを解析できませんでした"
 
 #: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
-msgstr ""
+msgstr "認識できない HTTP レスポンスのエンコーディングです"
 
 #: libsoup/soup-message-io.c:261
 msgid "Header too big"
-msgstr ""
+msgstr "ヘッダーが大きすぎます"
 
 #: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
 msgid "Operation would block"
@@ -77,10 +76,8 @@ msgid "Operation was cancelled"
 msgstr "動作が中止されました"
 
 #: libsoup/soup-message-server-io.c:63
-#, fuzzy
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP request"
-msgstr "URI '%s' をパースできませんでした"
+msgstr "HTTP リクエストを解析できませんでした"
 
 #: libsoup/soup-request.c:141
 #, c-format
@@ -88,110 +85,111 @@ msgid "No URI provided"
 msgstr "URI が与えられていません"
 
 #: libsoup/soup-request.c:151
-#, fuzzy, c-format
-#| msgid "Invalid '%s' URI: %s"
+#, c-format
 msgid "Invalid “%s” URI: %s"
-msgstr "不正なスキーム '%s' の URI: %s"
+msgstr "不正なスキーム“%s”の URI: %s"
 
 #: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
-msgstr ""
+msgstr "TLS 証明書なしで TLS サーバーを作成することはできません"
 
 #: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
-msgstr ""
+msgstr "アドレス %s ポート %d で待ち受けできませんでした: "
 
 #: libsoup/soup-session.c:4570
-#, fuzzy, c-format
-#| msgid "Could not parse URI '%s'"
+#, c-format
 msgid "Could not parse URI “%s”"
-msgstr "URI '%s' をパースできませんでした"
+msgstr "URI “%s”を解析できませんでした"
 
 #: libsoup/soup-session.c:4607
-#, fuzzy, c-format
-#| msgid "Unsupported URI scheme '%s'"
+#, c-format
 msgid "Unsupported URI scheme “%s”"
-msgstr "サポートされていない URI のスキーム '%s'"
+msgstr "URI のスキーム“%s”はサポートしていません"
 
 #: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
-msgstr ""
+msgstr "HTTP の URI ではありません"
 
 #: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
-msgstr ""
+msgstr "サーバーが WebSocket ハンドシェイクを受け取りませんでした。"
 
 #: libsoup/soup-socket.c:148
 msgid "Can’t import non-socket as SoupSocket"
 msgstr ""
+"ソケットではないものを SoupSocket としてインポートすることはできません"
 
 #: libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr ""
+msgstr "既存のソケットをインポートできませんでした: "
 
 #: libsoup/soup-socket.c:175
 msgid "Can’t import unconnected socket"
-msgstr ""
+msgstr "接続されていないソケットはインポートできません"
 
 #: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
 #: libsoup/soup-websocket.c:539
 msgid "Server requested unsupported extension"
-msgstr ""
+msgstr "サーバーがサポートしていない拡張機能を要求しました"
 
 #: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
-msgstr ""
+msgstr "WebSocket “%s”のヘッダーが正しくありません"
 
 #: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
-msgstr ""
+msgstr "サーバーが正しくない“%s”のキーを返しました"
 
 #: libsoup/soup-websocket.c:566
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr ""
+"“%s” WebSocket 拡張機能のヘッダーに重複したパラメーターがあります"
 
 #: libsoup/soup-websocket.c:567
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr ""
+"サーバーが“%s” WebSocket 拡張機能ヘッダーの重複したパラメーターを返しまし"
+"た"
 
 #: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
 msgid "WebSocket handshake expected"
-msgstr ""
+msgstr "WebSocket ハンドシェイクではありません"
 
 #: libsoup/soup-websocket.c:675
 msgid "Unsupported WebSocket version"
-msgstr ""
+msgstr "サポートしていない WebSocket のバージョンです"
 
 #: libsoup/soup-websocket.c:684
 msgid "Invalid WebSocket key"
-msgstr ""
+msgstr "無効な WebSocket のキーです"
 
 #: libsoup/soup-websocket.c:703
 msgid "Unsupported WebSocket subprotocol"
-msgstr ""
+msgstr "サポートしていない WebSocket サブプロトコルです"
 
 #: libsoup/soup-websocket.c:975
 msgid "Server rejected WebSocket handshake"
-msgstr ""
+msgstr "サーバーが WebSocket ハンドシェイクを拒否しました"
 
 #: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
 msgid "Server ignored WebSocket handshake"
-msgstr ""
+msgstr "サーバーが WebSocket ハンドシェイクを無視しました"
 
 #: libsoup/soup-websocket.c:1004
 msgid "Server requested unsupported protocol"
-msgstr ""
+msgstr "サーバーがサポートしていないプロトコルを要求しました"
 
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
-msgstr ""
+msgstr "Public Suffix List を利用できません。"
 
 #: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
 msgid "Invalid hostname"
