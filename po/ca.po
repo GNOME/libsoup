@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
 "PO-Revision-Date: 2018-07-01 08:39+0200\n"
 "Last-Translator: Xavi Ivars <xavi.ivars@gmail.com>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
@@ -40,6 +40,18 @@ msgstr "S'ha tancat inesperadament el flux de xarxa"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "No s'ha pogut carregar completament el recurs a la memòria cau"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nom"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Mida"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Data de modificació"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -80,31 +92,31 @@ msgstr "No s'ha proporcionat cap URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "L'URI «%s» no és vàlid: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "No es pot crear un servidor de TLS sense un certificat TLS"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "No es pot escoltar a l'adreça %s, port %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "No s'ha pogut analitzar l'URI «%s»"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "L'esquema d'URI «%s» és incompatible"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No és un URI HTTP"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr ""
 "El servidor no ha acceptat la conformitat de la connexió del WebSocket."
@@ -146,7 +158,8 @@ msgstr "Paràmetre duplicat a l'extensió de la capçalera «%s» de WebSocket"
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr ""
-"El servidor ha retornat un paràmetre duplicat a l'extensió de la capçalera «%s» de WebSocket"
+"El servidor ha retornat un paràmetre duplicat a l'extensió de la capçalera "
+"«%s» de WebSocket"
 
 #: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
 msgid "WebSocket handshake expected"
