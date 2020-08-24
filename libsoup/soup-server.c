@@ -279,15 +279,6 @@ soup_server_finalize (GObject *object)
 	G_OBJECT_CLASS (soup_server_parent_class)->finalize (object);
 }
 
-static GObject *
-soup_server_constructor (GType                  type,
-			 guint                  n_construct_properties,
-			 GObjectConstructParam *construct_properties)
-{
-	return G_OBJECT_CLASS (soup_server_parent_class)->
-		constructor (type, n_construct_properties, construct_properties);
-}
-
 /* priv->http_aliases and priv->https_aliases are stored as arrays of
  * *interned* strings, so we can't just use g_strdupv() to set them.
  */
@@ -396,7 +387,6 @@ soup_server_class_init (SoupServerClass *server_class)
 	GObjectClass *object_class = G_OBJECT_CLASS (server_class);
 
 	/* virtual method override */
-	object_class->constructor = soup_server_constructor;
 	object_class->dispose = soup_server_dispose;
 	object_class->finalize = soup_server_finalize;
 	object_class->set_property = soup_server_set_property;
