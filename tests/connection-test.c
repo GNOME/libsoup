@@ -62,7 +62,7 @@ timeout_request_started (SoupServer *server, SoupMessage *msg,
 
 	g_signal_handlers_disconnect_by_func (server, timeout_request_started, NULL);
 
-	sock = soup_client_context_get_socket (client);
+	sock = soup_client_context_get_soup_socket (client);
 	readable = g_signal_connect (sock, "readable",
 				    G_CALLBACK (timeout_socket), NULL);
 
@@ -140,7 +140,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			 * the declared Content-Length. Instead, we
 			 * forcibly close the socket at that point.
 			 */
-			sock = soup_client_context_get_socket (context);
+			sock = soup_client_context_get_soup_socket (context);
 			g_signal_connect (msg, "wrote-chunk",
 					  G_CALLBACK (close_socket), sock);
 		} else if (no_close) {
@@ -158,7 +158,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (!strcmp (path, "/timeout-persistent")) {
 		SoupSocket *sock;
 
-		sock = soup_client_context_get_socket (context);
+		sock = soup_client_context_get_soup_socket (context);
 		setup_timeout_persistent (server, sock);
 	}
 

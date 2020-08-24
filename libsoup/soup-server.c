@@ -1701,7 +1701,7 @@ soup_server_get_uris (SoupServer *server)
 G_DEFINE_BOXED_TYPE (SoupClientContext, soup_client_context, soup_client_context_ref, soup_client_context_unref)
 
 /**
- * soup_client_context_get_socket:
+ * soup_client_context_get_soup_socket:
  * @client: a #SoupClientContext
  *
  * Retrieves the #SoupSocket that @client is associated with.
@@ -1716,12 +1716,9 @@ G_DEFINE_BOXED_TYPE (SoupClientContext, soup_client_context, soup_client_context
  *
  * Return value: (transfer none): the #SoupSocket that @client is
  * associated with.
- *
- * Deprecated: use soup_client_context_get_gsocket(), which returns
- * a #GSocket.
  **/
 SoupSocket *
-soup_client_context_get_socket (SoupClientContext *client)
+soup_client_context_get_soup_socket (SoupClientContext *client)
 {
 	g_return_val_if_fail (client != NULL, NULL);
 

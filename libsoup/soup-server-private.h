@@ -20,4 +20,4 @@
 
 #include "soup-server.h"
 
-SoupSocket   *soup_client_context_get_socket  (SoupClientContext *client);
+SoupSocket   *soup_client_context_get_soup_socket  (SoupClientContext *client);
