@@ -814,14 +814,6 @@ do_aliases_test (void)
 {
 	SoupSession *session;
 	char *aliases[] = { "foo", NULL };
-        char *all_http_aliases[] = { "*", NULL };
-
-	debug_printf (1, "  Default behavior\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-                                         SOUP_SESSION_HTTP_ALIASES, all_http_aliases,
-                                         NULL);
-	do_aliases_test_for_session (session, "http");
-	soup_test_session_abort_unref (session);
 
 	if (tls_available) {
 		debug_printf (1, "  foo-means-https\n");
