@@ -25,11 +25,9 @@ gboolean   soup_socket_connect_finish_internal (SoupSocket           *sock,
 						GError              **error);
 
 gboolean   soup_socket_handshake_sync          (SoupSocket           *sock,
-						const char           *host,
 						GCancellable         *cancellable,
 						GError              **error);
 void       soup_socket_handshake_async         (SoupSocket           *sock,
-						const char           *host,
 						GCancellable         *cancellable,
 						GAsyncReadyCallback   callback,
 						gpointer              user_data);

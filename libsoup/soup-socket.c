@@ -66,7 +66,7 @@ enum {
 
 typedef struct {
 	GInetSocketAddress *local_addr, *remote_addr;
-        GSocketConnectable *remote_connectable;
+    GSocketConnectable *remote_connectable;
 	GIOStream *conn, *iostream;
 	GSocket *gsock;
 	GInputStream *istream;
@@ -1132,7 +1132,7 @@ listen_watch (GObject *pollable, gpointer data)
 	finish_socket_setup (new);
 
 	if (new_priv->ssl_creds) {
-		if (!soup_socket_start_proxy_ssl (new, NULL, NULL)) {
+		if (!soup_socket_start_proxy_ssl (new, NULL)) {
 			g_object_unref (new);
 			return TRUE;
 		}
@@ -1258,7 +1258,6 @@ soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert,
 
 static gboolean
 soup_socket_setup_ssl (SoupSocket    *sock,
-		       const char    *ssl_host,
 		       GCancellable  *cancellable,
 		       GError       **error)
 {
@@ -1275,18 +1274,15 @@ soup_socket_setup_ssl (SoupSocket    *sock,
 
 	if (!priv->is_server) {
 		GTlsClientConnection *conn;
-		GSocketConnectable *identity;
 
-		identity = g_network_address_new (ssl_host, 0);
 		conn = g_initable_new (g_tls_backend_get_client_connection_type (backend),
 				       cancellable, error,
 				       "base-io-stream", priv->conn,
-				       "server-identity", identity,
+				       "server-identity", priv->remote_connectable,
 				       "database", priv->ssl_creds,
 				       "require-close-notify", FALSE,
 				       "use-ssl3", priv->ssl_fallback,
 				       NULL);
-		g_object_unref (identity);
 
 		if (!conn)
 			return FALSE;
@@ -1349,21 +1345,7 @@ soup_socket_setup_ssl (SoupSocket    *sock,
 gboolean
 soup_socket_start_ssl (SoupSocket *sock, GCancellable *cancellable)
 {
-	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
-        char *hostname = NULL;
-        gboolean ret;
-
-        if (G_IS_NETWORK_ADDRESS (priv->remote_connectable))
-                hostname = g_strdup (g_network_address_get_hostname (G_NETWORK_ADDRESS (priv->remote_connectable)));
-        else if (G_IS_INET_SOCKET_ADDRESS (priv->remote_connectable)) {
-                GInetAddress *addr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (priv->remote_connectable));
-                hostname = g_inet_address_to_string (addr);
-        } else
-                g_assert_not_reached ();
-
-	ret = soup_socket_setup_ssl (sock, hostname, cancellable, NULL);
-        g_free (hostname);
-        return ret;
+	return soup_socket_setup_ssl (sock, cancellable, NULL);
 }
 
 /**
@@ -1378,21 +1360,20 @@ soup_socket_start_ssl (SoupSocket *sock, GCancellable *cancellable)
  * Return value: success or failure
  **/
 gboolean
-soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
+soup_socket_start_proxy_ssl (SoupSocket   *sock,
 			     GCancellable *cancellable)
 {
-	return soup_socket_setup_ssl (sock, ssl_host, cancellable, NULL);
+	return soup_socket_setup_ssl (sock, cancellable, NULL);
 }
 
 gboolean
 soup_socket_handshake_sync (SoupSocket    *sock,
-			    const char    *ssl_host,
 			    GCancellable  *cancellable,
 			    GError       **error)
 {
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
 
-	if (!soup_socket_setup_ssl (sock, ssl_host, cancellable, error))
+	if (!soup_socket_setup_ssl (sock, cancellable, error))
 		return FALSE;
 
 	soup_socket_event (sock, G_SOCKET_CLIENT_TLS_HANDSHAKING, priv->conn);
@@ -1425,7 +1406,6 @@ handshake_async_ready (GObject *source, GAsyncResult *result, gpointer user_data
 
 void
 soup_socket_handshake_async (SoupSocket          *sock,
-			     const char          *ssl_host,
 			     GCancellable        *cancellable,
 			     GAsyncReadyCallback  callback,
 			     gpointer             user_data)
@@ -1436,7 +1416,7 @@ soup_socket_handshake_async (SoupSocket          *sock,
 
 	task = g_task_new (sock, cancellable, callback, user_data);
 
-	if (!soup_socket_setup_ssl (sock, ssl_host, cancellable, &error)) {
+	if (!soup_socket_setup_ssl (sock, cancellable, &error)) {
 		g_task_return_error (task, error);
 		g_object_unref (task);
 		return;

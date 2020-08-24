@@ -72,7 +72,6 @@ gboolean       soup_socket_listen             (SoupSocket         *sock);
 gboolean       soup_socket_start_ssl          (SoupSocket         *sock,
 					       GCancellable       *cancellable);
 gboolean       soup_socket_start_proxy_ssl    (SoupSocket         *sock,
-					       const char         *ssl_host,
 					       GCancellable       *cancellable);
 gboolean       soup_socket_is_ssl             (SoupSocket         *sock);
 

@@ -374,7 +374,7 @@ socket_connect_complete (GObject *object, GAsyncResult *result, gpointer user_da
 	priv->proxy_uri = soup_socket_get_http_proxy_uri (sock);
 
 	if (priv->ssl && !priv->proxy_uri) {
-		soup_socket_handshake_async (sock, priv->remote_uri->host,
+		soup_socket_handshake_async (sock,
 					     g_task_get_cancellable (task),
 					     socket_handshake_complete, task);
 		return;
@@ -468,7 +468,6 @@ soup_connection_connect_sync (SoupConnection  *conn,
 
 	if (priv->ssl && !priv->proxy_uri) {
 		if (!soup_socket_handshake_sync (priv->socket,
-						 priv->remote_uri->host,
 						 cancellable, error))
 			return FALSE;
 	}
@@ -506,7 +505,7 @@ soup_connection_start_ssl_sync (SoupConnection  *conn,
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 	priv = soup_connection_get_instance_private (conn);
 
-	if (soup_socket_handshake_sync (priv->socket, priv->remote_uri->host,
+	if (soup_socket_handshake_sync (priv->socket,
 					cancellable, error)) {
 		soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
 		return TRUE;
@@ -544,7 +543,7 @@ soup_connection_start_ssl_async (SoupConnection      *conn,
 
 	task = g_task_new (conn, cancellable, callback, user_data);
 
-	soup_socket_handshake_async (priv->socket, priv->remote_uri->host,
+	soup_socket_handshake_async (priv->socket,
 				     cancellable, start_ssl_completed, task);
 }
 
