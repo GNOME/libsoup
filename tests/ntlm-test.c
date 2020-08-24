@@ -86,7 +86,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (strstr (path, "/404"))
 		not_found = TRUE;
 
-	socket = soup_client_context_get_gsocket (client);
+	socket = soup_client_context_get_socket (client);
 	state = GPOINTER_TO_INT (g_hash_table_lookup (ts->connections, socket));
 	auth = soup_message_headers_get_one (msg->request_headers,
 					     "Authorization");

@@ -1694,7 +1694,7 @@ soup_server_get_uris (SoupServer *server)
  *
  * soup_client_context_get_remote_address() and/or
  * soup_client_context_get_host() can be used to get information for
- * logging or debugging purposes. soup_client_context_get_gsocket() may
+ * logging or debugging purposes. soup_client_context_get_socket() may
  * also be of use in some situations (eg, tracking when multiple
  * requests are made on the same connection).
  **/
@@ -1726,7 +1726,7 @@ soup_client_context_get_soup_socket (SoupClientContext *client)
 }
 
 /**
- * soup_client_context_get_gsocket:
+ * soup_client_context_get_socket:
  * @client: a #SoupClientContext
  *
  * Retrieves the #GSocket that @client is associated with.
@@ -1744,7 +1744,7 @@ soup_client_context_get_soup_socket (SoupClientContext *client)
  * Since: 2.48
  **/
 GSocket *
-soup_client_context_get_gsocket (SoupClientContext *client)
+soup_client_context_get_socket (SoupClientContext *client)
 {
 	g_return_val_if_fail (client != NULL, NULL);
 

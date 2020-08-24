@@ -162,7 +162,7 @@ void            soup_server_unpause_message (SoupServer  *server,
 /* Client context */
 
 SOUP_AVAILABLE_IN_2_48
-GSocket        *soup_client_context_get_gsocket        (SoupClientContext *client);
+GSocket        *soup_client_context_get_socket        (SoupClientContext *client);
 SOUP_AVAILABLE_IN_2_48
 GSocketAddress *soup_client_context_get_local_address  (SoupClientContext *client);
 SOUP_AVAILABLE_IN_2_48

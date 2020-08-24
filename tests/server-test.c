@@ -800,7 +800,7 @@ mem_server_callback (SoupServer *server, SoupMessage *msg,
 	addr = soup_client_context_get_remote_address (context);
 	g_assert_nonnull (addr);
 
-	sock = soup_client_context_get_gsocket (context);
+	sock = soup_client_context_get_socket (context);
 	g_assert_null (sock);
 
 	host = soup_client_context_get_host (context);
