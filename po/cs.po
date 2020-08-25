@@ -1,14 +1,14 @@
 # Czech translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Marek Černocký <marek@manet.cz>, 2012, 2013, 2014, 2015, 2016, 2018, 2019.
+# Marek Černocký <marek@manet.cz>, 2012, 2013, 2014, 2015, 2016, 2018, 2019, 2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-16 10:39+0200\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-08-25 10:37+0200\n"
 "Last-Translator: Marek Černocký <marek@manet.cz>\n"
 "Language-Team: čeština <gnome-cs-list@gnome.org>\n"
 "Language: cs\n"
@@ -38,6 +38,18 @@ msgstr "Síťový proud byl neočekávaně uzavřen"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Selhalo úplné uložení prostředku do mezipaměti"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Název"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Velikost"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Datum změny"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -78,31 +90,31 @@ msgstr "Není poskytnuta žádná adresa URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "Neplatná adresa URI „%s“: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nelze vytvořit server TLS bez certifikátu TLS"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nelze naslouchat na adrese %s, portu %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nelze zpracovat adresu URI „%s“"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nepodporované schéma URI „%s“"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nejedná se o adresu HTTP URI"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Server nepřijímá vyjednávání WebSocket."
 
