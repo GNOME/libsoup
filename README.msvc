@@ -52,7 +52,7 @@ To do a build using Meson, do the following:
 
 -Configure the build using Meson:
 
-    python $(PYTHON_INSTALL_DIR)\scripts\meson.py $(LIBSOUP_SRCDIR) --buildtype=$(build_configuration) --prefix=$(INSTALL_PREFIX) [--backend=vs]
+    python $(PYTHON_INSTALL_DIR)\scripts\meson.py $(LIBSOUP_SRCDIR) --buildtype=$(build_configuration) --prefix=$(INSTALL_PREFIX) -Dsysprof=disabled [--backend=vs]
 
  Also pass in -Dgssapi=false if not building with GSSAPI support.
 
