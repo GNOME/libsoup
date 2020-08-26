@@ -55,6 +55,8 @@ To do a build using Meson, do the following:
     python $(PYTHON_INSTALL_DIR)\scripts\meson.py $(LIBSOUP_SRCDIR) --buildtype=$(build_configuration) --prefix=$(INSTALL_PREFIX) -Dsysprof=disabled [--backend=vs]
 
  Also pass in -Dgssapi=false if not building with GSSAPI support.
+ For pre-Visual Studio 2013, pass in -Dtests=false, since the tests are written in
+ C99 syntax.
 
  Please see the Meson docs for an explanation for --buildtype, the path passed for
  --prefix need not to be on the same drive as where the build is carried out, but
