@@ -259,8 +259,7 @@ request headers and body of the message:
 (Although this is a bad example, because
 <application>libsoup</application> actually has convenience methods
 for dealing with <link linkend="libsoup-2.4-HTML-Form-Support">HTML
-forms</link>, as well as <link
-linkend="libsoup-2.4-XMLRPC-Support">XML-RPC</link>.)
+forms</link>.)
 </para>
 
 <para>

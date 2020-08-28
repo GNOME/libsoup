@@ -12,8 +12,6 @@ RUN dnf update -y \
                       make \
                       meson \
                       mod_ssl \
-                      php \
-                      php-xmlrpc \
                       redhat-rpm-config \
                       samba-winbind-clients \
                       which \

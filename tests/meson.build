@@ -122,33 +122,6 @@ if have_apache
   endif
 endif
 
-if have_php
-  configure_file(output : 'php.ini',
-    input : 'php.ini.in',
-    configuration : cdata,
-    install : installed_tests_enabled,
-    install_dir : installed_tests_execdir,
-  )
-endif
-
-if have_php_xmlrpc
-  tests += [
-    ['xmlrpc-server', true, []],
-    ['xmlrpc', false, []]
-  ]
-
-  configure_file(input : 'xmlrpc-server.php',
-    output : 'xmlrpc-server.php',
-    copy : true)
-
-  if installed_tests_enabled
-    install_data(
-      'xmlrpc-server.php',
-      install_dir : installed_tests_execdir,
-    )
-  endif
-endif
-
 env = environment()
 env.set('G_TEST_SRCDIR', meson.current_source_dir())
 env.set('G_TEST_BUILDDIR', meson.current_build_dir())

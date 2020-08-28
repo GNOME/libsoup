@@ -63,7 +63,6 @@
   <chapter>
     <title>Web Services APIs</title>
     <xi:include href="xml/soup-form.xml"/>
-    <xi:include href="xml/soup-xmlrpc.xml"/>
     <xi:include href="xml/soup-websocket.xml"/>
   </chapter>
 

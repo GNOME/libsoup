@@ -46,8 +46,6 @@ soup_sources = [
   'websocket/soup-websocket-extension-deflate.c',
   'websocket/soup-websocket-extension-manager.c',
 
-  'xmlrpc/soup-xmlrpc.c',
-
   'soup-body-input-stream.c',
   'soup-body-output-stream.c',
   'soup-client-input-stream.c',
@@ -122,8 +120,6 @@ soup_introspection_headers = [
   'websocket/soup-websocket-extension.h',
   'websocket/soup-websocket-extension-deflate.h',
   'websocket/soup-websocket-extension-manager.h',
-
-  'xmlrpc/soup-xmlrpc.h',
 
   'soup-date.h',
   'soup-form.h',
