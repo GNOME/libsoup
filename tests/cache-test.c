@@ -55,19 +55,16 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	header = soup_message_headers_get_one (msg->request_headers,
 					       "If-Modified-Since");
 	if (header && last_modified) {
-		SoupDate *date;
-		time_t lastmod, check;
+		GDateTime *modified_date, *header_date;
 
-		date = soup_date_new_from_string (last_modified);
-		lastmod = soup_date_to_time_t (date);
-		soup_date_free (date);
+		modified_date = soup_date_time_new_from_http_string (last_modified);
+		header_date = soup_date_time_new_from_http_string (header);
 
-		date = soup_date_new_from_string (header);
-		check = soup_date_to_time_t (date);
-		soup_date_free (date);
-
-		if (lastmod <= check)
+		if (g_date_time_compare (modified_date, header_date) <= 0)
 			status = SOUP_STATUS_NOT_MODIFIED;
+
+                g_date_time_unref (modified_date);
+                g_date_time_unref (header_date);
 	}
 
 	header = soup_message_headers_get_one (msg->request_headers,

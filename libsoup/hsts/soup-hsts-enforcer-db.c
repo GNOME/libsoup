@@ -148,7 +148,7 @@ query_all_callback (void *data, int argc, char **argv, char **colname)
 	gulong expire_time;
 	unsigned long max_age;
 	time_t now;
-	SoupDate *expires;
+	GDateTime *expires;
 	gboolean include_subdomains = FALSE;
 
 	now = time (NULL);
@@ -159,7 +159,7 @@ query_all_callback (void *data, int argc, char **argv, char **colname)
 	if (now >= expire_time)
 		return 0;
 
-	expires = soup_date_new_from_time_t (expire_time);
+	expires = g_date_time_new_from_unix_utc (expire_time);
 	max_age = strtoul (argv[COL_MAX_AGE], NULL, 10);
 	include_subdomains = (g_strcmp0 (argv[COL_SUBDOMAINS], "1") == 0);
 
@@ -169,7 +169,7 @@ query_all_callback (void *data, int argc, char **argv, char **colname)
 		soup_hsts_enforcer_set_policy (hsts_enforcer, policy);
 		soup_hsts_policy_free (policy);
 	} else
-		soup_date_free (expires);
+		g_date_time_unref (expires);
 
 	return 0;
 }
@@ -277,7 +277,7 @@ soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
 	if (new_policy && new_policy->expires) {
 		gulong expires;
 
-		expires = (gulong)soup_date_to_time_t (new_policy->expires);
+		expires = (gulong)g_date_time_to_unix (new_policy->expires);
 		query = sqlite3_mprintf (QUERY_INSERT,
 					 new_policy->domain,
 					 new_policy->domain,

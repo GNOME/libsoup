@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-cookie-jar.h"
+#include "soup-date-utils-private.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup.h"
@@ -343,7 +344,7 @@ get_cookies (SoupCookieJar *jar,
 			GSList *next = domain_cookies->next;
 			SoupCookie *cookie = domain_cookies->data;
 
-			if (cookie->expires && soup_date_is_past (cookie->expires)) {
+			if (cookie->expires && soup_date_time_is_past (cookie->expires)) {
 				cookies_to_remove = g_slist_append (cookies_to_remove,
 								    cookie);
 				new_head = g_slist_delete_link (new_head, domain_cookies);
@@ -610,7 +611,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 				 * https://tools.ietf.org/html/draft-ietf-httpbis-cookie-alone-01
 				 */
 				soup_cookie_free (cookie);
-			} else if (cookie->expires && soup_date_is_past (cookie->expires)) {
+			} else if (cookie->expires && soup_date_time_is_past (cookie->expires)) {
 				/* The new cookie has an expired date,
 				 * this is the way the the server has
 				 * of telling us that we have to
@@ -635,7 +636,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 	}
 
 	/* The new cookie is... a new cookie */
-	if (cookie->expires && soup_date_is_past (cookie->expires)) {
+	if (cookie->expires && soup_date_time_is_past (cookie->expires)) {
 		soup_cookie_free (cookie);
 		return;
 	}

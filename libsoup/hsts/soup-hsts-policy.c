@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "soup-hsts-policy.h"
+#include "soup-date-utils-private.h"
 #include "soup.h"
 
 /**
@@ -76,7 +77,7 @@ soup_hsts_policy_copy (SoupHSTSPolicy *policy)
 	copy->domain = g_strdup (policy->domain);
 	copy->max_age = policy->max_age;
 	copy->expires = policy->expires ?
-		soup_date_copy (policy->expires) : NULL;
+		g_date_time_ref (policy->expires) : NULL;
 	copy->include_subdomains = policy->include_subdomains;
 
 	return copy;
@@ -113,8 +114,7 @@ soup_hsts_policy_equal (SoupHSTSPolicy *policy1, SoupHSTSPolicy *policy2)
 		return FALSE;
 
 	if (policy1->expires && policy2->expires &&
-	    soup_date_to_time_t (policy1->expires) !=
-	    soup_date_to_time_t (policy2->expires))
+	    !g_date_time_equal (policy1->expires, policy2->expires))
 		return FALSE;
 
 	return TRUE;
@@ -158,15 +158,18 @@ soup_hsts_policy_new (const char *domain,
 		      unsigned long max_age,
 		      gboolean include_subdomains)
 {
-	SoupDate *expires;
+	GDateTime *expires;
 
 	if (max_age == SOUP_HSTS_POLICY_MAX_AGE_PAST) {
 		/* Use a date way in the past, to protect against
 		 * clock skew.
 		 */
-		expires = soup_date_new (1970, 1, 1, 0, 0, 0);
-	} else
-		expires = soup_date_new_from_now (max_age);
+                expires = g_date_time_new_from_unix_utc (0);
+	} else {
+                GDateTime *now = g_date_time_new_now_utc ();
+                expires = g_date_time_add_seconds (now, max_age);
+                g_date_time_unref (now);
+        }
 
 	return soup_hsts_policy_new_full (domain, max_age, expires, include_subdomains);
 }
@@ -188,7 +191,7 @@ soup_hsts_policy_new (const char *domain,
 SoupHSTSPolicy *
 soup_hsts_policy_new_full (const char *domain,
 			   unsigned long max_age,
-			   SoupDate *expires,
+			   GDateTime *expires,
 			   gboolean include_subdomains)
 {
 	SoupHSTSPolicy *policy;
@@ -208,7 +211,7 @@ soup_hsts_policy_new_full (const char *domain,
 	}
 
 	policy->max_age = max_age;
-	policy->expires = expires;
+	policy->expires = expires ? g_date_time_ref (expires) : NULL;
 	policy->include_subdomains = include_subdomains;
 
 	return policy;
@@ -345,7 +348,7 @@ soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
 {
 	g_return_val_if_fail (policy != NULL, TRUE);
 
-	return policy->expires && soup_date_is_past (policy->expires);
+	return policy->expires && soup_date_time_is_past (policy->expires);
 }
 
 /**
@@ -399,6 +402,6 @@ soup_hsts_policy_free (SoupHSTSPolicy *policy)
 	g_return_if_fail (policy != NULL);
 
 	g_free (policy->domain);
-	g_clear_pointer (&policy->expires, soup_date_free);
+	g_clear_pointer (&policy->expires, g_date_time_unref);
 	g_slice_free (SoupHSTSPolicy, policy);
 }

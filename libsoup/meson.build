@@ -50,7 +50,7 @@ soup_sources = [
   'soup-body-output-stream.c',
   'soup-client-input-stream.c',
   'soup-connection.c',
-  'soup-date.c',
+  'soup-date-utils.c',
   'soup-directory-input-stream.c',
   'soup-filter-input-stream.c',
   'soup-form.c',
@@ -121,7 +121,7 @@ soup_introspection_headers = [
   'websocket/soup-websocket-extension-deflate.h',
   'websocket/soup-websocket-extension-manager.h',
 
-  'soup-date.h',
+  'soup-date-utils.h',
   'soup-form.h',
   'soup-headers.h',
   'soup-logger.h',

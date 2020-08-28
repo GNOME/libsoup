@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "soup-cookie.h"
+#include "soup-date-utils-private.h"
 #include "soup-misc.h"
 #include "soup.h"
 
@@ -85,7 +86,7 @@ soup_cookie_copy (SoupCookie *cookie)
 	copy->domain = g_strdup (cookie->domain);
 	copy->path = g_strdup (cookie->path);
 	if (cookie->expires)
-		copy->expires = soup_date_copy(cookie->expires);
+		copy->expires = g_date_time_ref (cookie->expires);
 	copy->secure = cookie->secure;
 	copy->http_only = cookie->http_only;
 	soup_cookie_set_same_site_policy (copy, soup_cookie_get_same_site_policy (cookie));
@@ -157,14 +158,14 @@ parse_value (const char **val_p, gboolean copy)
 	return value;
 }
 
-static SoupDate *
+static GDateTime *
 parse_date (const char **val_p)
 {
 	char *value;
-	SoupDate *date;
+	GDateTime *date;
 
 	value = parse_value (val_p, TRUE);
-	date = soup_date_new_from_string (value);
+	date = soup_date_time_new_from_http_string (value);
 	g_free (value);
 	return date;
 }
@@ -563,7 +564,7 @@ void
 soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
 {
 	if (cookie->expires)
-		soup_date_free (cookie->expires);
+		g_date_time_unref (cookie->expires);
 
 	if (max_age == -1)
 		cookie->expires = NULL;
@@ -571,9 +572,12 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
 		/* Use a date way in the past, to protect against
 		 * clock skew.
 		 */
-		cookie->expires = soup_date_new (1970, 1, 1, 0, 0, 0);
-	} else
-		cookie->expires = soup_date_new_from_now (max_age);
+		cookie->expires = g_date_time_new_from_unix_utc (0);
+	} else {
+                GDateTime *now = g_date_time_new_now_utc ();
+                cookie->expires = g_date_time_add_seconds (now, max_age);
+                g_date_time_unref (now);
+        }
 }
 
 /**
@@ -611,7 +615,7 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
 
 /**
  * soup_cookie_get_expires:
- * @cookie: a #SoupCookie
+ * @cookie: a #GDateTime
  *
  * Gets @cookie's expiration time.
  *
@@ -621,7 +625,7 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  *
  * Since: 2.32
  **/
-SoupDate *
+GDateTime *
 soup_cookie_get_expires (SoupCookie *cookie)
 {
 	return cookie->expires;
@@ -641,13 +645,13 @@ soup_cookie_get_expires (SoupCookie *cookie)
  * Since: 2.24
  **/
 void
-soup_cookie_set_expires (SoupCookie *cookie, SoupDate *expires)
+soup_cookie_set_expires (SoupCookie *cookie, GDateTime *expires)
 {
 	if (cookie->expires)
-		soup_date_free (cookie->expires);
+		g_date_time_unref (cookie->expires);
 
 	if (expires)
-		cookie->expires = soup_date_copy (expires);
+		cookie->expires = g_date_time_ref (expires);
 	else
 		cookie->expires = NULL;
 }
@@ -745,8 +749,8 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 		char *timestamp;
 
 		g_string_append (header, "; expires=");
-		timestamp = soup_date_to_string (cookie->expires,
-						 SOUP_DATE_COOKIE);
+		timestamp = soup_date_time_to_string (cookie->expires,
+						      SOUP_DATE_COOKIE);
 		g_string_append (header, timestamp);
 		g_free (timestamp);
 	}
@@ -872,7 +876,7 @@ soup_cookie_free (SoupCookie *cookie)
 	g_free (cookie->value);
 	g_free (cookie->domain);
 	g_free (cookie->path);
-	g_clear_pointer (&cookie->expires, soup_date_free);
+	g_clear_pointer (&cookie->expires, g_date_time_unref);
 
 	g_dataset_destroy (cookie);
 	g_slice_free (SoupCookie, cookie);
@@ -1085,7 +1089,7 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	if (cookie->secure && !soup_uri_is_https (uri, NULL))
 		return FALSE;
 
-	if (cookie->expires && soup_date_is_past (cookie->expires))
+	if (cookie->expires && soup_date_time_is_past (cookie->expires))
 		return FALSE;
 
 	/* uri->path is required to be non-NULL */

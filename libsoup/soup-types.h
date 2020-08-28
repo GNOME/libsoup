@@ -19,7 +19,6 @@ typedef struct _SoupAuth                SoupAuth;
 typedef struct _SoupAuthDomain          SoupAuthDomain;
 typedef struct _SoupCookie              SoupCookie;
 typedef struct _SoupCookieJar           SoupCookieJar;
-typedef struct _SoupDate                SoupDate;
 typedef struct _SoupHSTSEnforcer        SoupHSTSEnforcer;
 typedef struct _SoupHSTSPolicy          SoupHSTSPolicy;
 typedef struct _SoupMessage             SoupMessage;

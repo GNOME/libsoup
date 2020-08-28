@@ -593,24 +593,9 @@ soup_uri_get_type
 <SECTION>
 <FILE>soup-misc</FILE>
 <TITLE>Soup Miscellaneous Utilities</TITLE>
-SoupDate
 SoupDateFormat
-soup_date_new
-soup_date_new_from_string
-soup_date_new_from_time_t
-soup_date_new_from_now
-soup_date_to_string
-soup_date_to_time_t
-soup_date_is_past
-soup_date_get_day
-soup_date_get_hour
-soup_date_get_minute
-soup_date_get_month
-soup_date_get_offset
-soup_date_get_second
-soup_date_get_utc
-soup_date_get_year
-soup_date_free
+soup_date_time_new_from_http_string
+soup_date_time_to_string
 <SUBSECTION>
 soup_headers_parse_request
 soup_headers_parse_response
@@ -637,9 +622,6 @@ soup_add_idle
 soup_add_io_watch
 soup_add_timeout
 <SUBSECTION Private>
-soup_date_copy
-SOUP_TYPE_DATE
-soup_date_get_type
 soup_char_is_token
 soup_char_is_uri_gen_delims
 soup_char_is_uri_percent_encoded

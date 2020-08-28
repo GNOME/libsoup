@@ -13,7 +13,7 @@ G_BEGIN_DECLS
 struct _SoupHSTSPolicy {
 	char                 *domain;
 	unsigned long         max_age;
-	SoupDate             *expires;
+	GDateTime            *expires;
 	gboolean              include_subdomains;
 };
 
@@ -30,7 +30,7 @@ SoupHSTSPolicy  *soup_hsts_policy_new			(const char	*domain,
 SOUP_AVAILABLE_IN_2_68
 SoupHSTSPolicy  *soup_hsts_policy_new_full		(const char	*domain,
 							 unsigned long	 max_age,
-							 SoupDate	*expires,
+							 GDateTime	*expires,
 							 gboolean	 include_subdomains);
 SOUP_AVAILABLE_IN_2_68
 SoupHSTSPolicy  *soup_hsts_policy_new_session_policy	(const char	*domain,

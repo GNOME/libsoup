@@ -971,7 +971,7 @@ got_headers (SoupMessage *msg, SoupClientContext *client)
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupServerHandler *handler;
 	SoupURI *uri;
-	SoupDate *date;
+	GDateTime *date;
 	char *date_string;
 	SoupAuthDomain *domain;
 	GSList *iter;
@@ -979,12 +979,12 @@ got_headers (SoupMessage *msg, SoupClientContext *client)
 	char *auth_user;
 
 	/* Add required response headers */
-	date = soup_date_new_from_now (0);
-	date_string = soup_date_to_string (date, SOUP_DATE_HTTP);
+	date = g_date_time_new_now_utc ();
+	date_string = soup_date_time_to_string (date, SOUP_DATE_HTTP);
 	soup_message_headers_replace (msg->response_headers, "Date",
 				      date_string);
 	g_free (date_string);
-	soup_date_free (date);
+	g_date_time_unref (date);
 
 	if (msg->status_code != 0)
 		return;

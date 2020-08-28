@@ -267,7 +267,7 @@ write_cookie (FILE *out, SoupCookie *cookie)
 		 *cookie->domain == '.' ? "TRUE" : "FALSE",
 		 cookie->path,
 		 cookie->secure ? "TRUE" : "FALSE",
-		 (gulong)soup_date_to_time_t (cookie->expires),
+		 (gulong)g_date_time_to_unix (cookie->expires),
 		 cookie->name,
 		 cookie->value,
 		 same_site_policy_to_string (soup_cookie_get_same_site_policy (cookie)));

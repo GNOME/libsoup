@@ -390,18 +390,18 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	expires = soup_message_headers_get_one (entry->headers, "Expires");
 	date = soup_message_headers_get_one (entry->headers, "Date");
 	if (expires && date) {
-		SoupDate *expires_d, *date_d;
+		GDateTime *expires_d, *date_d;
 		time_t expires_t, date_t;
 
-		expires_d = soup_date_new_from_string (expires);
+		expires_d = soup_date_time_new_from_http_string (expires);
 		if (expires_d) {
-			date_d = soup_date_new_from_string (date);
+			date_d = soup_date_time_new_from_http_string (date);
 
-			expires_t = soup_date_to_time_t (expires_d);
-			date_t = soup_date_to_time_t (date_d);
+			expires_t = g_date_time_to_unix (expires_d);
+			date_t = g_date_time_to_unix (date_d);
 
-			soup_date_free (expires_d);
-			soup_date_free (date_d);
+			g_date_time_unref (expires_d);
+			g_date_time_unref (date_d);
 
 			if (expires_t && date_t) {
 				entry->freshness_lifetime = (guint32) MAX (expires_t - date_t, 0);
@@ -434,17 +434,17 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	/* Last-Modified based heuristic */
 	last_modified = soup_message_headers_get_one (entry->headers, "Last-Modified");
 	if (last_modified) {
-		SoupDate *soup_date;
+		GDateTime *soup_date;
 		time_t now, last_modified_t;
 
-		soup_date = soup_date_new_from_string (last_modified);
-		last_modified_t = soup_date_to_time_t (soup_date);
+		soup_date = soup_date_time_new_from_http_string (last_modified);
+		last_modified_t = g_date_time_to_unix (soup_date);
 		now = time (NULL);
 
 #define HEURISTIC_FACTOR 0.1 /* From Section 2.3.1.1 */
 
 		entry->freshness_lifetime = MAX (0, (now - last_modified_t) * HEURISTIC_FACTOR);
-		soup_date_free (soup_date);
+		g_date_time_unref (soup_date);
 	}
 
 	return;
@@ -481,13 +481,13 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	date = soup_message_headers_get_one (entry->headers, "Date");
 
 	if (date) {
-		SoupDate *soup_date;
+		GDateTime *soup_date;
 		const char *age;
 		time_t date_value, apparent_age, corrected_received_age, response_delay, age_value = 0;
 
-		soup_date = soup_date_new_from_string (date);
-		date_value = soup_date_to_time_t (soup_date);
-		soup_date_free (soup_date);
+		soup_date = soup_date_time_new_from_http_string (date);
+		date_value = g_date_time_to_unix (soup_date);
+		g_date_time_unref (soup_date);
 
 		age = soup_message_headers_get_one (entry->headers, "Age");
 		if (age)

@@ -28,7 +28,7 @@ extern "C" {
 #include "cookies/soup-cookie-jar.h"
 #include "cookies/soup-cookie-jar-db.h"
 #include "cookies/soup-cookie-jar-text.h"
-#include "soup-date.h"
+#include "soup-date-utils.h"
 #include "soup-enum-types.h"
 #include "soup-form.h"
 #include "soup-headers.h"

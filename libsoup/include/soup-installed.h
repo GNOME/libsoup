@@ -28,7 +28,7 @@ extern "C" {
 #include <libsoup/soup-cookie-jar.h>
 #include <libsoup/soup-cookie-jar-db.h>
 #include <libsoup/soup-cookie-jar-text.h>
-#include <libsoup/soup-date.h>
+#include <libsoup/soup-date-utils.h>
 #include <libsoup/soup-enum-types.h>
 #include <libsoup/soup-form.h>
 #include <libsoup/soup-headers.h>

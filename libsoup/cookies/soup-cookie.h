@@ -24,13 +24,13 @@ typedef enum {
 } SoupSameSitePolicy;
 
 struct _SoupCookie {
-	char     *name;
-	char     *value;
-	char     *domain;
-	char     *path;
-	SoupDate *expires;
-	gboolean  secure;
-	gboolean  http_only;
+	char      *name;
+	char      *value;
+	char      *domain;
+	char      *path;
+	GDateTime *expires;
+	gboolean   secure;
+	gboolean   http_only;
 };
 
 SOUP_AVAILABLE_IN_2_24
@@ -78,10 +78,10 @@ SOUP_AVAILABLE_IN_2_24
 void        soup_cookie_set_max_age             (SoupCookie  *cookie,
 						 int          max_age);
 SOUP_AVAILABLE_IN_2_32
-SoupDate   *soup_cookie_get_expires             (SoupCookie  *cookie);
+GDateTime   *soup_cookie_get_expires            (SoupCookie  *cookie);
 SOUP_AVAILABLE_IN_2_24
 void        soup_cookie_set_expires             (SoupCookie  *cookie,
-						 SoupDate    *expires);
+						 GDateTime    *expires);
 SOUP_AVAILABLE_IN_2_32
 gboolean    soup_cookie_get_secure              (SoupCookie  *cookie);
 SOUP_AVAILABLE_IN_2_24

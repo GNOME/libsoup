@@ -297,7 +297,7 @@ soup_cookie_jar_db_changed (SoupCookieJar *jar,
 	if (new_cookie && new_cookie->expires) {
 		gulong expires;
 		
-		expires = (gulong)soup_date_to_time_t (new_cookie->expires);
+		expires = (gulong)g_date_time_to_unix (new_cookie->expires);
 		query = sqlite3_mprintf (QUERY_INSERT, 
 					 new_cookie->name,
 					 new_cookie->value,

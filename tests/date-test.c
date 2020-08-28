@@ -7,27 +7,27 @@
 
 static void check_ok (gconstpointer data);
 
-static SoupDate *
+static GDateTime *
 make_date (const char *strdate)
 {
 	char *dup;
-	SoupDate *date;
+	GDateTime *date;
 
-	/* We do it this way so that if soup_date_new_from_string()
+	/* We do it this way so that if soup_date_time_new_from_http_string()
 	 * reads off the end of the string, it will trigger an error
 	 * when valgrinding, rather than just reading the start of the
 	 * next const string.
 	 */
 	dup = g_strdup (strdate);
-	date = soup_date_new_from_string (dup);
+	date = soup_date_time_new_from_http_string (dup);
 	g_free (dup);
 	return date;
 }
 
-static SoupDate *
+static GDateTime *
 check_correct_date (const char *strdate)
 {
-	SoupDate *date;
+	GDateTime *date;
 
 	date = make_date (strdate);
 	if (!date) {
@@ -35,12 +35,12 @@ check_correct_date (const char *strdate)
 		return NULL;
 	}
 
-	g_assert_cmpint (date->year,   ==, 2004);
-	g_assert_cmpint (date->month,  ==, 11);
-	g_assert_cmpint (date->day,    ==, 6);
-	g_assert_cmpint (date->hour,   ==, 8);
-	g_assert_cmpint (date->minute, ==, 9);
-	g_assert_cmpint (date->second, ==, 7);
+	g_assert_cmpint (g_date_time_get_year (date),   ==, 2004);
+	g_assert_cmpint (g_date_time_get_month (date),  ==, 11);
+	g_assert_cmpint (g_date_time_get_day_of_month (date), ==, 6);
+	g_assert_cmpint (g_date_time_get_hour (date),   ==, 8);
+	g_assert_cmpint (g_date_time_get_minute (date), ==, 9);
+	g_assert_cmpint (g_date_time_get_second (date), ==, 7);
 
 	return date;
 }
@@ -54,17 +54,13 @@ typedef struct {
 static const GoodDate good_dates[] = {
 	{ SOUP_DATE_HTTP,            "Sat, 06 Nov 2004 08:09:07 GMT", NULL },
 	{ SOUP_DATE_COOKIE,          "Sat, 06-Nov-2004 08:09:07 GMT", NULL },
-	{ SOUP_DATE_RFC2822,         "Sat, 6 Nov 2004 08:09:07 -0430", "579055" },
-	{ SOUP_DATE_ISO8601_COMPACT, "20041106T080907", NULL },
-	{ SOUP_DATE_ISO8601_FULL,    "2004-11-06T08:09:07", NULL },
-	{ SOUP_DATE_ISO8601_XMLRPC,  "20041106T08:09:07", NULL }
 };
 
 static void
 check_good (gconstpointer data)
 {
 	GoodDate *good = (GoodDate *)data;
-	SoupDate *date;
+	GDateTime *date;
 	char *strdate2;
 
 	if (good->bugref)
@@ -74,8 +70,8 @@ check_good (gconstpointer data)
 	if (!date)
 		return;
 
-	strdate2 = soup_date_to_string (date, good->format);
-	soup_date_free (date);
+	strdate2 = soup_date_time_to_string (date, good->format);
+	g_date_time_unref (date);
 
 	soup_test_assert (strcmp (good->date, strdate2) == 0,
 			  "restringification failed: '%s' -> '%s'\n",
@@ -114,12 +110,6 @@ static const OkDate ok_dates[] = {
 	{ "Sat Nov 6 08:09:07 2004", NULL },
 	{ "Sat Nov  6 08:09:07 2004 GMT", NULL },
 
-	/* ISO 8601 */
-	{ "2004-11-06T08:09:07Z", NULL },
-	{ "20041106T08:09:07Z", NULL },
-	{ "20041106T08:09:07+00:00", NULL },
-	{ "20041106T080907+00:00", NULL },
-
 	/* Netscape cookie spec date, and broken variants */
 	{ "Sat, 06-Nov-2004 08:09:07 GMT", NULL },
 	{ "Sat, 6-Nov-2004 08:09:07 GMT", NULL },
@@ -143,7 +133,7 @@ static void
 check_ok (gconstpointer data)
 {
 	OkDate *ok = (OkDate *)data;
-	SoupDate *date;
+	GDateTime *date;
 
 	if (ok->bugref)
 		g_test_bug (ok->bugref);
@@ -151,29 +141,7 @@ check_ok (gconstpointer data)
 	date = check_correct_date (ok->date);
 	if (!date)
 		return;
-	soup_date_free (date);
-}
-
-#define TIME_T 1099728547L
-#define TIME_T_STRING "1099728547"
-
-static void
-check_ok_time_t (void)
-{
-	SoupDate *date;
-
-	date = soup_date_new_from_time_t (TIME_T);
-
-	g_assert_cmpint (date->year,   ==, 2004);
-	g_assert_cmpint (date->month,  ==, 11);
-	g_assert_cmpint (date->day,    ==, 6);
-	g_assert_cmpint (date->hour,   ==, 8);
-	g_assert_cmpint (date->minute, ==, 9);
-	g_assert_cmpint (date->second, ==, 7);
-
-	g_assert_cmpuint (TIME_T, ==, soup_date_to_time_t (date));
-
-	soup_date_free (date);
+	g_date_time_unref (date);
 }
 
 typedef struct {
@@ -221,7 +189,7 @@ static void
 check_bad (gconstpointer data)
 {
 	BadDate *bad = (BadDate *)data;
-	SoupDate *date;
+	GDateTime *date;
 
 	if (bad->bugref)
 		g_test_bug (bad->bugref);
@@ -230,14 +198,18 @@ check_bad (gconstpointer data)
 	soup_test_assert (date == NULL,
 			  "date parsing succeeded for '%s': %d %d %d - %d %d %d",
 			  bad->date,
-			  date->year, date->month, date->day,
-			  date->hour, date->minute, date->second);
-	g_clear_pointer (&date, soup_date_free);
+                          g_date_time_get_year (date),
+                          g_date_time_get_month (date),
+                          g_date_time_get_day_of_month (date),
+                          g_date_time_get_hour (date),
+                          g_date_time_get_minute (date),
+                          g_date_time_get_second (date));
+	g_clear_pointer (&date, g_date_time_unref);
 }
 
 typedef struct {
 	const char *source;
-	const char *http, *cookie, *rfc2822, *compact, *full, *xmlrpc;
+	const char *http, *cookie;
 } DateConversion;
 
 static const DateConversion conversions[] = {
@@ -245,98 +217,38 @@ static const DateConversion conversions[] = {
 	{ "Sat, 06 Nov 2004 08:09:07 GMT",
 
 	  "Sat, 06 Nov 2004 08:09:07 GMT",
-	  "Sat, 06-Nov-2004 08:09:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 +0000",
-	  "20041106T080907Z",
-	  "2004-11-06T08:09:07Z",
-	  "20041106T08:09:07" },
+	  "Sat, 06-Nov-2004 08:09:07 GMT" },
 
 	/* RFC2822 GMT */
 	{ "Sat, 6 Nov 2004 08:09:07 +0000",
 
 	  "Sat, 06 Nov 2004 08:09:07 GMT",
-	  "Sat, 06-Nov-2004 08:09:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 +0000",
-	  "20041106T080907Z",
-	  "2004-11-06T08:09:07Z",
-	  "20041106T08:09:07" },
+	  "Sat, 06-Nov-2004 08:09:07 GMT" },
 
 	/* RFC2822 with positive offset */
 	{ "Sat, 6 Nov 2004 08:09:07 +0430",
 
-	  "Sat, 06 Nov 2004 04:39:07 GMT",
-	  "Sat, 06-Nov-2004 04:39:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 +0430",
-	  "20041106T080907+0430",
-	  "2004-11-06T08:09:07+04:30",
-	  "20041106T08:09:07" },
+	  "Sat, 06 Nov 2004 03:39:07 GMT",
+	  "Sat, 06-Nov-2004 03:39:07 GMT" },
 
 	/* RFC2822 with negative offset */
 	{ "Sat, 6 Nov 2004 08:09:07 -0430",
 
 	  "Sat, 06 Nov 2004 12:39:07 GMT",
-	  "Sat, 06-Nov-2004 12:39:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 -0430",
-	  "20041106T080907-0430",
-	  "2004-11-06T08:09:07-04:30",
-	  "20041106T08:09:07" },
+	  "Sat, 06-Nov-2004 12:39:07 GMT" },
 
 	/* RFC2822 floating */
 	{ "Sat, 6 Nov 2004 08:09:07 -0000",
 
 	  "Sat, 06 Nov 2004 08:09:07 GMT",
-	  "Sat, 06-Nov-2004 08:09:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 -0000",
-	  "20041106T080907",
-	  "2004-11-06T08:09:07",
-	  "20041106T08:09:07" },
-
-	/* ISO GMT */
-	{ "2004-11-06T08:09:07Z",
-
-	  "Sat, 06 Nov 2004 08:09:07 GMT",
-	  "Sat, 06-Nov-2004 08:09:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 +0000",
-	  "20041106T080907Z",
-	  "2004-11-06T08:09:07Z",
-	  "20041106T08:09:07" },
-
-	/* ISO with positive offset */
-	{ "2004-11-06T08:09:07+04:30",
-
-	  "Sat, 06 Nov 2004 04:39:07 GMT",
-	  "Sat, 06-Nov-2004 04:39:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 +0430",
-	  "20041106T080907+0430",
-	  "2004-11-06T08:09:07+04:30",
-	  "20041106T08:09:07" },
-
-	/* ISO with negative offset */
-	{ "2004-11-06T08:09:07-04:30",
-
-	  "Sat, 06 Nov 2004 12:39:07 GMT",
-	  "Sat, 06-Nov-2004 12:39:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 -0430",
-	  "20041106T080907-0430",
-	  "2004-11-06T08:09:07-04:30",
-	  "20041106T08:09:07" },
-
-	/* ISO floating */
-	{ "2004-11-06T08:09:07",
-
-	  "Sat, 06 Nov 2004 08:09:07 GMT",
-	  "Sat, 06-Nov-2004 08:09:07 GMT",
-	  "Sat, 6 Nov 2004 08:09:07 -0000",
-	  "20041106T080907",
-	  "2004-11-06T08:09:07",
-	  "20041106T08:09:07" }
+	  "Sat, 06-Nov-2004 08:09:07 GMT" }
 };
 
 static void
 check_conversion (gconstpointer data)
 {
 	const DateConversion *conv = data;
-	SoupDate *date;
+	GDateTime *date;
 	char *str;
 
 	date = make_date (conv->source);
@@ -345,31 +257,15 @@ check_conversion (gconstpointer data)
 		return;
 	}
 
-	str = soup_date_to_string (date, SOUP_DATE_HTTP);
+	str = soup_date_time_to_string (date, SOUP_DATE_HTTP);
 	g_assert_cmpstr (str, ==, conv->http);
 	g_free (str);
 
-	str = soup_date_to_string (date, SOUP_DATE_COOKIE);
+	str = soup_date_time_to_string (date, SOUP_DATE_COOKIE);
 	g_assert_cmpstr (str, ==, conv->cookie);
 	g_free (str);
 
-	str = soup_date_to_string (date, SOUP_DATE_RFC2822);
-	g_assert_cmpstr (str, ==, conv->rfc2822);
-	g_free (str);
-
-	str = soup_date_to_string (date, SOUP_DATE_ISO8601_COMPACT);
-	g_assert_cmpstr (str, ==, conv->compact);
-	g_free (str);
-
-	str = soup_date_to_string (date, SOUP_DATE_ISO8601_FULL);
-	g_assert_cmpstr (str, ==, conv->full);
-	g_free (str);
-
-	str = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
-	g_assert_cmpstr (str, ==, conv->xmlrpc);
-	g_free (str);
-
-	soup_date_free (date);
+	g_date_time_unref (date);
 }
 
 int
@@ -391,7 +287,6 @@ main (int argc, char **argv)
 		g_test_add_data_func (path, &ok_dates[i], check_ok);
 		g_free (path);
 	}
-	g_test_add_func ("/date/ok/" TIME_T_STRING, check_ok_time_t);
 
 	for (i = 0; i < G_N_ELEMENTS (bad_dates); i++) {
 		path = g_strdup_printf ("/date/bad/%s", bad_dates[i].date);
