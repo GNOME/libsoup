@@ -35,5 +35,5 @@ struct _SoupConnectionAuthClass {
 
 gpointer	soup_connection_auth_get_connection_state_for_message
 						(SoupConnectionAuth *auth,
-						 SoupMessage *message);
+						 SoupMessage        *msg);
 G_END_DECLS
