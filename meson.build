@@ -61,7 +61,6 @@ else
       '-Wmissing-include-dirs',
       '-Wpointer-arith',
       '-Winit-self',
-      '-Wdeclaration-after-statement',
       '-Werror=missing-prototypes',
       '-Werror=implicit-function-declaration',
       '-Werror=aggregate-return',
