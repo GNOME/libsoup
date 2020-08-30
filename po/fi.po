@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-12-04 10:54+0000\n"
-"PO-Revision-Date: 2020-02-22 20:27+0200\n"
+"POT-Creation-Date: 2020-07-12 16:30+0000\n"
+"PO-Revision-Date: 2020-08-30 13:38+0300\n"
 "Last-Translator: Jiri Grönroos <jiri.gronroos+l10n@iki.fi>\n"
 "Language-Team: Finnish <lokalisointi-lista@googlegroups.com>\n"
 "Language: fi\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.3\n"
+"X-Generator: Poedit 2.4.1\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -38,6 +38,18 @@ msgstr ""
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr ""
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nimi"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Koko"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Muokkauspäivä"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -78,31 +90,31 @@ msgstr ""
 msgid "Invalid “%s” URI: %s"
 msgstr ""
 
-#: libsoup/soup-server.c:1805
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "TLS-palvelinta ei voi luoda ilman TLS-varmennetta"
 
-#: libsoup/soup-server.c:1822
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Ei voitu kuunnella osoitteessa %s, portissa %d: "
 
-#: libsoup/soup-session.c:4543
+#: libsoup/soup-session.c:4583
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "URI:a “%s” ei voitu jäsentää"
 
-#: libsoup/soup-session.c:4580
+#: libsoup/soup-session.c:4620
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Ei-tuettu URI-skeema “%s”"
 
-#: libsoup/soup-session.c:4602
+#: libsoup/soup-session.c:4642
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ei HTTP URI"
 
-#: libsoup/soup-session.c:4813
+#: libsoup/soup-session.c:4853
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Palvelin ei hyväksynyt WebSocket-kättelyä."
 
