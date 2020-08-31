@@ -248,12 +248,12 @@ send_headers (SoupMessage *from, SoupMessage *to)
 }
 
 static void
-send_chunk (SoupMessage *from, SoupBuffer *chunk, SoupMessage *to)
+send_chunk (SoupMessage *from, GBytes *chunk, SoupMessage *to)
 {
 	g_print ("[%p]   writing chunk of %lu bytes\n", to,
-		 (unsigned long)chunk->length);
+		 (unsigned long)g_bytes_get_size (chunk));
 
-	soup_message_body_append_buffer (to->response_body, chunk);
+	soup_message_body_append_bytes (to->response_body, chunk);
 	soup_server_unpause_message (server, to);
 }
 
@@ -300,9 +300,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_headers_remove (msg2->request_headers, "Connection");
 
 	if (msg->request_body->length) {
-		SoupBuffer *request = soup_message_body_flatten (msg->request_body);
-		soup_message_body_append_buffer (msg2->request_body, request);
-		soup_buffer_free (request);
+		GBytes *request = soup_message_body_flatten (msg->request_body);
+		soup_message_body_append_bytes (msg2->request_body, request);
+		g_bytes_unref (request);
 	}
 	soup_message_headers_set_encoding (msg->response_headers,
 					   SOUP_ENCODING_CHUNKED);

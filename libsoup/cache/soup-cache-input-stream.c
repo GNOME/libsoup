@@ -35,7 +35,7 @@ struct _SoupCacheInputStreamPrivate
 	gsize bytes_written;
 
 	gboolean read_finished;
-	SoupBuffer *current_writing_buffer;
+	GBytes *current_writing_buffer;
 	GQueue *buffer_queue;
 };
 
@@ -148,8 +148,8 @@ soup_cache_input_stream_finalize (GObject *object)
 
 	g_clear_object (&priv->cancellable);
 	g_clear_object (&priv->output_stream);
-	g_clear_pointer (&priv->current_writing_buffer, soup_buffer_free);
-	g_queue_free_full (priv->buffer_queue, (GDestroyNotify) soup_buffer_free);
+	g_clear_pointer (&priv->current_writing_buffer, g_bytes_unref);
+	g_queue_free_full (priv->buffer_queue, (GDestroyNotify) g_bytes_unref);
 
 	G_OBJECT_CLASS (soup_cache_input_stream_parent_class)->finalize (object);
 }
@@ -171,15 +171,15 @@ write_ready_cb (GObject *source, GAsyncResult *result, SoupCacheInputStream *ist
 	}
 
 	/* Check that we have written everything */
-	pending = priv->current_writing_buffer->length - write_size;
+	pending = g_bytes_get_size (priv->current_writing_buffer) - write_size;
 	if (pending) {
-		SoupBuffer *subbuffer = soup_buffer_new_subbuffer (priv->current_writing_buffer,
-								   write_size, pending);
-		g_queue_push_head (priv->buffer_queue, subbuffer);
+		GBytes *subbuffer = g_bytes_new_from_bytes (priv->current_writing_buffer,
+							    write_size, pending);
+		g_queue_push_head (priv->buffer_queue, g_steal_pointer (&subbuffer));
 	}
 
 	priv->bytes_written += write_size;
-	g_clear_pointer (&priv->current_writing_buffer, soup_buffer_free);
+	g_clear_pointer (&priv->current_writing_buffer, g_bytes_unref);
 
 	try_write_next_buffer (istream);
 	g_object_unref (istream);
@@ -189,12 +189,12 @@ static void
 soup_cache_input_stream_write_next_buffer (SoupCacheInputStream *istream)
 {
 	SoupCacheInputStreamPrivate *priv = istream->priv;
-	SoupBuffer *buffer = g_queue_pop_head (priv->buffer_queue);
+	GBytes *buffer = g_queue_pop_head (priv->buffer_queue);
 	int priority;
 
 	g_assert (priv->output_stream && !g_output_stream_is_closed (priv->output_stream));
 
-	g_clear_pointer (&priv->current_writing_buffer, soup_buffer_free);
+	g_clear_pointer (&priv->current_writing_buffer, g_bytes_unref);
 	priv->current_writing_buffer = buffer;
 
 	if (priv->buffer_queue->length > 10)
@@ -202,7 +202,9 @@ soup_cache_input_stream_write_next_buffer (SoupCacheInputStream *istream)
 	else
 		priority = G_PRIORITY_LOW;
 
-	g_output_stream_write_async (priv->output_stream, buffer->data, buffer->length,
+	g_output_stream_write_async (priv->output_stream,
+                                     g_bytes_get_data (buffer, NULL),
+                                     g_bytes_get_size (buffer),
 				     priority, priv->cancellable,
 				     (GAsyncReadyCallback) write_ready_cb,
 				     g_object_ref (istream));
@@ -234,8 +236,8 @@ read_internal (GInputStream  *stream,
 		if (priv->current_writing_buffer == NULL && priv->output_stream)
 			notify_and_clear (istream, NULL);
 	} else {
-		SoupBuffer *soup_buffer = soup_buffer_new (SOUP_MEMORY_COPY, buffer, nread);
-		g_queue_push_tail (priv->buffer_queue, soup_buffer);
+		GBytes *local_buffer = g_bytes_new (buffer, nread);
+		g_queue_push_tail (priv->buffer_queue, g_steal_pointer (&local_buffer));
 
 		if (priv->current_writing_buffer == NULL && priv->output_stream)
 			soup_cache_input_stream_write_next_buffer (istream);

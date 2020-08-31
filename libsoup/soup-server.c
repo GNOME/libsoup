@@ -2020,7 +2020,7 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
  * To send the response body a bit at a time using "chunked" encoding,
  * first call soup_message_headers_set_encoding() to set
  * %SOUP_ENCODING_CHUNKED on the #SoupMessage:response-headers. Then call
- * soup_message_body_append() (or soup_message_body_append_buffer())
+ * soup_message_body_append() (or soup_message_body_append_bytes))
  * to append each chunk as it becomes ready, and
  * soup_server_unpause_message() to make sure it's running. (The
  * server will automatically pause the message if it is using chunked

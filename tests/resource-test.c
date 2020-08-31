@@ -5,7 +5,7 @@
 
 #include "test-utils.h"
 
-SoupBuffer *index_buffer;
+GBytes *index_buffer;
 
 typedef struct {
 	GString *body;
@@ -85,7 +85,8 @@ do_async_request (SoupRequest *request)
 	g_main_loop_unref (data.loop);
 
 	soup_assert_cmpmem (data.body->str, data.body->len,
-			    index_buffer->data, index_buffer->length);
+			    g_bytes_get_data (index_buffer, NULL),
+                            g_bytes_get_size (index_buffer));
 	g_string_free (data.body, TRUE);
 }
 
@@ -128,7 +129,7 @@ do_request_data_test (gconstpointer type)
 	gchar *base64;
 	char *uri_string;
 
-	base64 = g_base64_encode ((const guchar *)index_buffer->data, index_buffer->length);
+	base64 = g_base64_encode ((const guchar *)g_bytes_get_data (index_buffer, NULL), g_bytes_get_size (index_buffer));
 	uri_string = g_strdup_printf ("data:text/plain;charset=utf8;base64,%s", base64);
 	g_free (base64);
 

@@ -267,7 +267,7 @@ soup_message_get_property (GObject *object, guint prop_id,
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-	SoupBuffer *buf;
+	GBytes *buf;
 
 	switch (prop_id) {
 	case PROP_METHOD:
@@ -305,8 +305,7 @@ soup_message_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_REQUEST_BODY_DATA:
 		buf = soup_message_body_flatten (msg->request_body);
-		g_value_take_boxed (value, soup_buffer_get_as_bytes (buf));
-		soup_buffer_free (buf);
+		g_value_take_boxed (value, buf);
 		break;
 	case PROP_REQUEST_HEADERS:
 		g_value_set_boxed (value, msg->request_headers);
@@ -316,8 +315,7 @@ soup_message_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_RESPONSE_BODY_DATA:
 		buf = soup_message_body_flatten (msg->response_body);
-		g_value_take_boxed (value, soup_buffer_get_as_bytes (buf));
-		soup_buffer_free (buf);
+		g_value_take_boxed (value, buf);
 		break;
 	case PROP_RESPONSE_HEADERS:
 		g_value_set_boxed (value, msg->response_headers);
@@ -345,10 +343,8 @@ soup_message_real_got_body (SoupMessage *msg)
 
 	body = priv->server_side ? msg->request_body : msg->response_body;
 	if (soup_message_body_get_accumulate (body)) {
-		SoupBuffer *buffer;
-
-		buffer = soup_message_body_flatten (body);
-		soup_buffer_free (buffer);
+		GBytes *buffer = soup_message_body_flatten (body);
+		g_bytes_unref (buffer);
 	}
 }
 
@@ -410,7 +406,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * Note that this signal is not parallel to
 	 * #SoupMessage::got_chunk; it is emitted only when a complete
 	 * chunk (added with soup_message_body_append() or
-	 * soup_message_body_append_buffer()) has been written. To get
+	 * soup_message_body_append_bytes()) has been written. To get
 	 * more useful continuous progress information, use
 	 * #SoupMessage::wrote_body_data.
 	 **/
@@ -445,7 +441,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 1,
-			      SOUP_TYPE_BUFFER);
+			      G_TYPE_BYTES);
 
 	/**
 	 * SoupMessage::wrote-body:
@@ -544,13 +540,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 1,
-			      /* Use %G_SIGNAL_TYPE_STATIC_SCOPE so that
-			       * the %SOUP_MEMORY_TEMPORARY buffers used
-			       * by soup-message-io.c when emitting this
-			       * signal don't get forcibly copied by
-			       * g_signal_emit().
-			       */
-			      SOUP_TYPE_BUFFER | G_SIGNAL_TYPE_STATIC_SCOPE);
+			      G_TYPE_BYTES);
 
 	/**
 	 * SoupMessage::got-body:
@@ -1160,7 +1150,7 @@ soup_message_wrote_chunk (SoupMessage *msg)
 }
 
 void
-soup_message_wrote_body_data (SoupMessage *msg, SoupBuffer *chunk)
+soup_message_wrote_body_data (SoupMessage *msg, GBytes *chunk)
 {
 	g_signal_emit (msg, signals[WROTE_BODY_DATA], 0, chunk);
 }
@@ -1184,7 +1174,7 @@ soup_message_got_headers (SoupMessage *msg)
 }
 
 void
-soup_message_got_chunk (SoupMessage *msg, SoupBuffer *chunk)
+soup_message_got_chunk (SoupMessage *msg, GBytes *chunk)
 {
 	g_signal_emit (msg, signals[GOT_CHUNK], 0, chunk);
 }

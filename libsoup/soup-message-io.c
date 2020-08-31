@@ -76,7 +76,7 @@ typedef struct {
 	SoupEncoding          write_encoding;
 	GString              *write_buf;
 	SoupMessageBody      *write_body;
-	SoupBuffer           *write_chunk;
+	GBytes               *write_chunk;
 	goffset               write_body_offset;
 	goffset               write_length;
 	goffset               written;
@@ -130,8 +130,7 @@ soup_message_io_cleanup (SoupMessage *msg)
 	g_byte_array_free (io->read_header_buf, TRUE);
 
 	g_string_free (io->write_buf, TRUE);
-	if (io->write_chunk)
-		soup_buffer_free (io->write_chunk);
+        g_clear_pointer (&io->write_chunk, g_bytes_unref);
 
 	if (io->async_close_wait) {
 		g_cancellable_cancel (io->async_close_wait);
@@ -388,7 +387,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 	  GCancellable *cancellable, GError **error)
 {
 	SoupMessageIOData *io = soup_message_get_io_data (msg);
-	SoupBuffer *chunk;
+	GBytes *chunk;
 	gssize nwrote;
 
 	if (io->async_close_error) {
@@ -513,37 +512,36 @@ io_write (SoupMessage *msg, gboolean blocking,
 				soup_message_io_pause (msg);
 				return FALSE;
 			}
-			if (!io->write_chunk->length) {
+			if (!g_bytes_get_size (io->write_chunk)) {
 				io->write_state = SOUP_MESSAGE_IO_STATE_BODY_FLUSH;
 				break;
 			}
 		}
 
 		nwrote = g_pollable_stream_write (io->body_ostream,
-						  io->write_chunk->data + io->written,
-						  io->write_chunk->length - io->written,
+						  (guchar*)g_bytes_get_data (io->write_chunk, NULL) + io->written,
+						  g_bytes_get_size (io->write_chunk) - io->written,
 						  blocking,
 						  cancellable, error);
 		if (nwrote == -1)
 			return FALSE;
 
-		chunk = soup_buffer_new_subbuffer (io->write_chunk,
-						   io->written, nwrote);
+		chunk = g_bytes_new_from_bytes (io->write_chunk, io->written, nwrote);
 		io->written += nwrote;
 		if (io->write_length)
 			io->write_length -= nwrote;
 
-		if (io->written == io->write_chunk->length)
+		if (io->written == g_bytes_get_size (io->write_chunk))
 			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_DATA;
 
 		soup_message_wrote_body_data (msg, chunk);
-		soup_buffer_free (chunk);
+		g_bytes_unref (chunk);
 		break;
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY_DATA:
 		io->written = 0;
-		if (io->write_chunk->length == 0) {
+		if (g_bytes_get_size (io->write_chunk) == 0) {
 			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_FLUSH;
 			break;
 		}
@@ -551,9 +549,8 @@ io_write (SoupMessage *msg, gboolean blocking,
 		if (io->mode == SOUP_MESSAGE_IO_SERVER ||
 		    soup_message_get_flags (msg) & SOUP_MESSAGE_CAN_REBUILD)
 			soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
-		io->write_body_offset += io->write_chunk->length;
-		soup_buffer_free (io->write_chunk);
-		io->write_chunk = NULL;
+		io->write_body_offset += g_bytes_get_size (io->write_chunk);
+		g_clear_pointer (&io->write_chunk, g_bytes_unref);
 
 		io->write_state = SOUP_MESSAGE_IO_STATE_BODY;
 		soup_message_wrote_chunk (msg);
@@ -612,9 +609,7 @@ io_read (SoupMessage *msg, gboolean blocking,
 	 GCancellable *cancellable, GError **error)
 {
 	SoupMessageIOData *io = soup_message_get_io_data (msg);
-	guchar *stack_buf = NULL;
 	gssize nread;
-	SoupBuffer *buffer;
 	guint status;
 
 	switch (io->read_state) {
@@ -749,34 +744,29 @@ io_read (SoupMessage *msg, gboolean blocking,
 		break;
 
 
-	case SOUP_MESSAGE_IO_STATE_BODY:
-		if (!stack_buf)
-			stack_buf = alloca (RESPONSE_BLOCK_SIZE);
-		buffer = soup_buffer_new (SOUP_MEMORY_TEMPORARY,
-						stack_buf,
-						RESPONSE_BLOCK_SIZE);
+	case SOUP_MESSAGE_IO_STATE_BODY: {
+                guchar buf[RESPONSE_BLOCK_SIZE];
 
 		nread = g_pollable_stream_read (io->body_istream,
-						(guchar *)buffer->data,
-						buffer->length,
+						buf,
+						RESPONSE_BLOCK_SIZE,
 						blocking,
 						cancellable, error);
 		if (nread > 0) {
-			buffer->length = nread;
-			soup_message_body_got_chunk (io->read_body, buffer);
-			soup_message_got_chunk (msg, buffer);
-			soup_buffer_free (buffer);
+                        GBytes *bytes = g_bytes_new (buf, nread);
+			soup_message_body_got_chunk (io->read_body, bytes);
+			soup_message_got_chunk (msg, bytes);
+			g_bytes_unref (bytes);
 			break;
 		}
 
-		soup_buffer_free (buffer);
 		if (nread == -1)
 			return FALSE;
 
 		/* else nread == 0 */
 		io->read_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
 		break;
-
+        }
 
 	case SOUP_MESSAGE_IO_STATE_BODY_DONE:
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;

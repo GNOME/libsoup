@@ -10,7 +10,7 @@ static SoupURI *base_uri;
 
 typedef struct {
 	SoupSession *session;
-	SoupBuffer *chunks[3];
+	GBytes *chunks[3];
 	int next, nwrote, nfreed;
 	gboolean streaming;
 } PutTestData;
@@ -28,9 +28,9 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 	}
 
 	if (ptd->next < G_N_ELEMENTS (ptd->chunks)) {
-		soup_message_body_append_buffer (msg->request_body,
+		soup_message_body_append_bytes (msg->request_body,
 						 ptd->chunks[ptd->next]);
-		soup_buffer_free (ptd->chunks[ptd->next]);
+		g_bytes_unref (ptd->chunks[ptd->next]);
 		ptd->next++;
 	} else
 		soup_message_body_complete (msg->request_body);
@@ -43,14 +43,14 @@ static void
 write_next_chunk_streaming_hack (SoupMessage *msg, gpointer user_data)
 {
 	PutTestData *ptd = user_data;
-	SoupBuffer *chunk;
+	GBytes *chunk;
 
 	debug_printf (2, "  freeing chunk at %d\n", ptd->nfreed);
 	chunk = soup_message_body_get_chunk (msg->request_body, ptd->nfreed);
 	if (chunk) {
-		ptd->nfreed += chunk->length;
+		ptd->nfreed += g_bytes_get_size (chunk);
 		soup_message_body_wrote_chunk (msg->request_body, chunk);
-		soup_buffer_free (chunk);
+		g_bytes_unref (chunk);
 	} else {
 		soup_test_assert (chunk,
 				  "written chunk does not exist");
@@ -59,25 +59,23 @@ write_next_chunk_streaming_hack (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-wrote_body_data (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
+wrote_body_data (SoupMessage *msg, GBytes *chunk, gpointer user_data)
 {
 	PutTestData *ptd = user_data;
 
 	debug_printf (2, "  wrote_body_data, %d bytes\n",
-		      (int)chunk->length);
-	ptd->nwrote += chunk->length;
+		      (int)g_bytes_get_size (chunk));
+	ptd->nwrote += g_bytes_get_size (chunk);
 }
 
 static void
 clear_buffer_ptr (gpointer data)
 {
-	SoupBuffer **buffer_ptr = data;
+	GBytes **buffer_ptr = data;
 
 	debug_printf (2, "  clearing chunk\n");
 	if (*buffer_ptr) {
-		(*buffer_ptr)->length = 0;
-		g_free ((char *)(*buffer_ptr)->data);
-		*buffer_ptr = NULL;
+                *buffer_ptr = NULL;
 	} else {
 		soup_test_assert (*buffer_ptr,
 				  "chunk is already clear");
@@ -89,10 +87,10 @@ clear_buffer_ptr (gpointer data)
  * the set_accumulate(FALSE) is working.
  */
 static void
-make_put_chunk (SoupBuffer **buffer, const char *text)
+make_put_chunk (GBytes **buffer, const char *text)
 {
-	*buffer = soup_buffer_new_with_owner (g_strdup (text), strlen (text),
-					      buffer, clear_buffer_ptr);
+	*buffer = g_bytes_new_with_free_func (g_strdup (text), strlen (text),
+					      clear_buffer_ptr, buffer);
 }
 
 static void
@@ -160,9 +158,9 @@ do_request_test (gconstpointer data)
 	check = g_checksum_new (G_CHECKSUM_MD5);
 	length = 0;
 	for (i = 0; i < 3; i++) {
-		g_checksum_update (check, (guchar *)ptd.chunks[i]->data,
-				   ptd.chunks[i]->length);
-		length += ptd.chunks[i]->length;
+		g_checksum_update (check, (guchar *)g_bytes_get_data (ptd.chunks[i], NULL),
+				   g_bytes_get_size (ptd.chunks[i]));
+		length += g_bytes_get_size (ptd.chunks[i]);
 	}
 	client_md5 = g_checksum_get_string (check);
 
@@ -217,7 +215,7 @@ do_request_test (gconstpointer data)
 static void
 temp_test_wrote_chunk (SoupMessage *msg, gpointer session)
 {
-	SoupBuffer *chunk;
+	GBytes *chunk;
 
 	chunk = soup_message_body_get_chunk (msg->request_body, 5);
 
@@ -227,7 +225,7 @@ temp_test_wrote_chunk (SoupMessage *msg, gpointer session)
 	 * done, but it hasn't written Content-Length bytes yet.
 	 */
 	if (chunk)
-		soup_buffer_free (chunk);
+		g_bytes_unref (chunk);
 	else {
 		soup_test_assert (chunk, "Lost second chunk");
 		soup_session_abort (session);
@@ -247,7 +245,7 @@ do_temporary_test (void)
 	g_test_bug ("18343");
 
 	msg = soup_message_new_from_uri ("PUT", base_uri);
-	soup_message_body_append (msg->request_body, SOUP_MEMORY_TEMPORARY,
+	soup_message_body_append (msg->request_body, SOUP_MEMORY_STATIC,
 				  "one\r\n", 5);
 	soup_message_body_append (msg->request_body, SOUP_MEMORY_STATIC,
 				  "two\r\n", 5);
@@ -272,19 +270,21 @@ do_temporary_test (void)
 #define LARGE_CHUNK_SIZE 1000000
 
 typedef struct {
-	SoupBuffer *buf;
+	GBytes *buf;
 	gsize offset;
 } LargeChunkData;
 
 static void
-large_wrote_body_data (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
+large_wrote_body_data (SoupMessage *msg, GBytes *chunk, gpointer user_data)
 {
 	LargeChunkData *lcd = user_data;
+        gsize chunk_length;
+        const guchar *chunk_data = g_bytes_get_data (chunk, &chunk_length);
 
-	soup_assert_cmpmem (chunk->data, chunk->length,
-			    lcd->buf->data + lcd->offset,
-			    chunk->length);
-	lcd->offset += chunk->length;
+	soup_assert_cmpmem (chunk_data, chunk_length,
+			    (guchar*)g_bytes_get_data (lcd->buf, NULL) + lcd->offset,
+			    chunk_length);
+	lcd->offset += chunk_length;
 }
 
 static void
@@ -300,9 +300,9 @@ do_large_chunk_test (void)
 	buf_data = g_malloc0 (LARGE_CHUNK_SIZE);
 	for (i = 0; i < LARGE_CHUNK_SIZE; i++)
 		buf_data[i] = i & 0xFF;
-	lcd.buf = soup_buffer_new (SOUP_MEMORY_TAKE, buf_data, LARGE_CHUNK_SIZE);
+	lcd.buf = g_bytes_new_take (buf_data, LARGE_CHUNK_SIZE);
 	lcd.offset = 0;
-	soup_message_body_append_buffer (msg->request_body, lcd.buf);
+	soup_message_body_append_bytes (msg->request_body, lcd.buf);
 	soup_message_body_set_accumulate (msg->request_body, FALSE);
 
 	g_signal_connect (msg, "wrote_body_data",
@@ -311,7 +311,7 @@ do_large_chunk_test (void)
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
 
-	soup_buffer_free (lcd.buf);
+	g_bytes_unref (lcd.buf);
 	g_object_unref (msg);
 }
 
@@ -333,7 +333,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					   SOUP_MEMORY_STATIC,
 					   "three\r\ntwo\r\none\r\n",
 					   strlen ("three\r\ntwo\r\none\r\n"));
-		soup_buffer_free (soup_message_body_flatten (msg->response_body));
+		g_bytes_unref (soup_message_body_flatten (msg->response_body));
 		md5_body = msg->response_body;
 		soup_message_set_status (msg, SOUP_STATUS_OK);
 	} else if (msg->method == SOUP_METHOD_PUT) {

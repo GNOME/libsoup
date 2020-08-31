@@ -15,7 +15,6 @@ AuthDomain
 	.accepts#method name="accepts_authorization"
 AuthDomainBasic.new skip=false
 AuthDomainDigest.new skip=false
-Buffer.new_subbuffer skip
 ContentSniffer.sniff.params nullable
 form_* skip=false
 Message
@@ -35,14 +34,11 @@ URI
 // uri_host_*.* type="Soup.URI"
 
 // Not enough GIR information
-Buffer.data type="uint8[]" array_length_field="length"
 MessageBody.data type="uint8[]" array_length_field="length"
 Date
 	.new_from_time_t.when type="time_t"
 	.to_time_t type="time_t"
 
 // Simplify memory management
-Buffer
-  .new deprecated_since="2.32" replacement="Buffer.take"
 MessageBody
   .append deprecated_since="2.32" replacement="MessageBody.append_take"

@@ -43,7 +43,7 @@ struct _SoupDirectoryInputStream {
 
 	GFileEnumerator *enumerator;
 	char *uri;
-	SoupBuffer *buffer;
+	GBytes *buffer;
 	gboolean done;
 };
 

@@ -18,46 +18,6 @@ typedef enum {
 
 typedef struct {
 	const char *data;
-	gsize       length;
-} SoupBuffer;
-
-SOUP_AVAILABLE_IN_2_4
-GType soup_buffer_get_type (void);
-#define SOUP_TYPE_BUFFER (soup_buffer_get_type ())
-
-SOUP_AVAILABLE_IN_2_4
-SoupBuffer *soup_buffer_new            (SoupMemoryUse   use,
-					gconstpointer   data,
-					gsize           length);
-SOUP_AVAILABLE_IN_2_32
-SoupBuffer *soup_buffer_new_take       (guchar         *data,
-					gsize           length);
-SOUP_AVAILABLE_IN_2_4
-SoupBuffer *soup_buffer_new_subbuffer  (SoupBuffer     *parent,
-					gsize           offset,
-					gsize           length);
-
-SOUP_AVAILABLE_IN_2_4
-SoupBuffer *soup_buffer_new_with_owner (gconstpointer   data,
-					gsize           length,
-					gpointer        owner,
-					GDestroyNotify  owner_dnotify);
-SOUP_AVAILABLE_IN_2_4
-gpointer    soup_buffer_get_owner      (SoupBuffer     *buffer);
-SOUP_AVAILABLE_IN_2_32
-void        soup_buffer_get_data       (SoupBuffer     *buffer,
-					const guint8  **data,
-					gsize          *length);
-SOUP_AVAILABLE_IN_2_40
-GBytes     *soup_buffer_get_as_bytes   (SoupBuffer *buffer);
-
-SOUP_AVAILABLE_IN_2_4
-SoupBuffer *soup_buffer_copy           (SoupBuffer     *buffer);
-SOUP_AVAILABLE_IN_2_4
-void        soup_buffer_free           (SoupBuffer     *buffer);
-
-typedef struct {
-	const char *data;
 	goffset     length;
 } SoupMessageBody;
 
@@ -84,31 +44,30 @@ void             soup_message_body_append_take   (SoupMessageBody *body,
 						  guchar          *data,
 						  gsize            length);
 SOUP_AVAILABLE_IN_2_4
-void             soup_message_body_append_buffer (SoupMessageBody *body,
-						  SoupBuffer      *buffer);
+void             soup_message_body_append_bytes (SoupMessageBody *body,
+						  GBytes          *buffer);
 SOUP_AVAILABLE_IN_2_4
 void             soup_message_body_truncate      (SoupMessageBody *body);
 SOUP_AVAILABLE_IN_2_4
 void             soup_message_body_complete      (SoupMessageBody *body);
 
 SOUP_AVAILABLE_IN_2_4
-SoupBuffer      *soup_message_body_flatten       (SoupMessageBody *body);
+GBytes          *soup_message_body_flatten       (SoupMessageBody *body);
 
 SOUP_AVAILABLE_IN_2_4
-SoupBuffer      *soup_message_body_get_chunk     (SoupMessageBody *body,
+GBytes          *soup_message_body_get_chunk     (SoupMessageBody *body,
 						  goffset          offset);
 
 SOUP_AVAILABLE_IN_2_24
 void             soup_message_body_got_chunk     (SoupMessageBody *body,
-						  SoupBuffer      *chunk);
+						  GBytes          *chunk);
 SOUP_AVAILABLE_IN_2_24
 void             soup_message_body_wrote_chunk   (SoupMessageBody *body,
-						  SoupBuffer      *chunk);
+						  GBytes          *chunk);
 
 SOUP_AVAILABLE_IN_2_4
 void             soup_message_body_free          (SoupMessageBody *body);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupBuffer, soup_buffer_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageBody, soup_message_body_free)
 
 G_END_DECLS

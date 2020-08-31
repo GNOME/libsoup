@@ -184,7 +184,7 @@ do_md5_test_libsoup (gconstpointer data)
 	char *contents, *md5;
 	gsize length;
 	SoupMultipart *multipart;
-	SoupBuffer *buffer;
+	GBytes *buffer;
 	SoupMessage *msg;
 	SoupSession *session;
 
@@ -195,12 +195,12 @@ do_md5_test_libsoup (gconstpointer data)
 		return;
 
 	multipart = soup_multipart_new (SOUP_FORM_MIME_TYPE_MULTIPART);
-	buffer = soup_buffer_new (SOUP_MEMORY_COPY, contents, length);
+	buffer = g_bytes_new (contents, length);
 	soup_multipart_append_form_file (multipart, "file",
 					 MD5_TEST_FILE_BASENAME,
 					 MD5_TEST_FILE_MIME_TYPE,
 					 buffer);
-	soup_buffer_free (buffer);
+	g_bytes_unref (buffer);
 	soup_multipart_append_form_string (multipart, "fmt", "text");
 
 	msg = soup_form_request_new_from_multipart (uri, multipart);
@@ -354,7 +354,7 @@ md5_post_callback (SoupServer *server, SoupMessage *msg,
 	GHashTable *params;
 	const char *fmt;
 	char *filename, *md5sum, *redirect_uri;
-	SoupBuffer *file;
+	GBytes *file;
 	SoupURI *uri;
 
 	content_type = soup_message_headers_get_content_type (msg->request_headers, NULL);
@@ -371,10 +371,8 @@ md5_post_callback (SoupServer *server, SoupMessage *msg,
 	}
 	fmt = g_hash_table_lookup (params, "fmt");
 
-	md5sum = g_compute_checksum_for_data (G_CHECKSUM_MD5,
-					      (gpointer)file->data,
-					      file->length);
-	soup_buffer_free (file);
+	md5sum = g_compute_checksum_for_bytes (G_CHECKSUM_MD5, file);
+	g_bytes_unref (file);
 
 	uri = soup_uri_copy (soup_message_get_uri (msg));
 	soup_uri_set_query_from_fields (uri,

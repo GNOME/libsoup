@@ -119,7 +119,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 
 	if (msg->method == SOUP_METHOD_GET) {
 		GMappedFile *mapping;
-		SoupBuffer *buffer;
+		GBytes *buffer;
 
 		mapping = g_mapped_file_new (path, FALSE, NULL);
 		if (!mapping) {
@@ -127,11 +127,11 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 			return;
 		}
 
-		buffer = soup_buffer_new_with_owner (g_mapped_file_get_contents (mapping),
-						     g_mapped_file_get_length (mapping),
-						     mapping, (GDestroyNotify)g_mapped_file_unref);
-		soup_message_body_append_buffer (msg->response_body, buffer);
-		soup_buffer_free (buffer);
+		buffer = g_bytes_new_with_free_func (g_mapped_file_get_contents (mapping),
+				                     g_mapped_file_get_length (mapping),
+						     (GDestroyNotify)g_mapped_file_unref, g_steal_pointer (&mapping));
+		soup_message_body_append_bytes (msg->response_body, buffer);
+		g_bytes_unref (buffer);
 	} else /* msg->method == SOUP_METHOD_HEAD */ {
 		char *length;
 

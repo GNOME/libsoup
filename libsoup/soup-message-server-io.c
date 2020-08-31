@@ -144,7 +144,7 @@ handle_partial_get (SoupMessage *msg)
 {
 	SoupRange *ranges;
 	int nranges;
-	SoupBuffer *full_response;
+	GBytes *full_response;
 	guint status;
 
 	/* Make sure the message is set up right for us to return a
@@ -185,23 +185,23 @@ handle_partial_get (SoupMessage *msg)
 	soup_message_body_truncate (msg->response_body);
 
 	if (nranges == 1) {
-		SoupBuffer *range_buf;
+		GBytes *range_buf;
 
 		/* Single range, so just set Content-Range and fix the body. */
 
 		soup_message_headers_set_content_range (msg->response_headers,
 							ranges[0].start,
 							ranges[0].end,
-							full_response->length);
-		range_buf = soup_buffer_new_subbuffer (full_response,
-						       ranges[0].start,
-						       ranges[0].end - ranges[0].start + 1);
-		soup_message_body_append_buffer (msg->response_body, range_buf);
-		soup_buffer_free (range_buf);
+							g_bytes_get_size (full_response));
+		range_buf = g_bytes_new_from_bytes (full_response,
+						    ranges[0].start,
+						    ranges[0].end - ranges[0].start + 1);
+		soup_message_body_append_bytes (msg->response_body, range_buf);
+		g_bytes_unref (range_buf);
 	} else {
 		SoupMultipart *multipart;
 		SoupMessageHeaders *part_headers;
-		SoupBuffer *part_body;
+		GBytes *part_body;
 		const char *content_type;
 		int i;
 
@@ -222,14 +222,14 @@ handle_partial_get (SoupMessage *msg)
 			soup_message_headers_set_content_range (part_headers,
 								ranges[i].start,
 								ranges[i].end,
-								full_response->length);
-			part_body = soup_buffer_new_subbuffer (full_response,
-							       ranges[i].start,
-							       ranges[i].end - ranges[i].start + 1);
+								g_bytes_get_size (full_response));
+			part_body = g_bytes_new_from_bytes (full_response,
+							    ranges[i].start,
+							    ranges[i].end - ranges[i].start + 1);
 			soup_multipart_append_part (multipart, part_headers,
 						    part_body);
 			soup_message_headers_free (part_headers);
-			soup_buffer_free (part_body);
+			g_bytes_unref (part_body);
 		}
 
 		soup_multipart_to_message (multipart, msg->response_headers,
@@ -237,7 +237,7 @@ handle_partial_get (SoupMessage *msg)
 		soup_multipart_free (multipart);
 	}
 
-	soup_buffer_free (full_response);
+	g_bytes_unref (full_response);
 	soup_message_headers_free_ranges (msg->request_headers, ranges);
 }
 

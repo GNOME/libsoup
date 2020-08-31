@@ -16,7 +16,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 {
 	GError *error = NULL;
 	char *query_key;
-	SoupBuffer *response = NULL;
+	GBytes *response = NULL;
 	gsize offset;
 	gboolean empty_response = FALSE;
 
@@ -118,14 +118,14 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 
 	if (response) {
-		for (offset = 0; offset < response->length; offset += 500) {
-			soup_message_body_append (msg->response_body,
-						  SOUP_MEMORY_COPY,
-						  response->data + offset,
-						  MIN (500, response->length - offset));
+                gsize response_size = g_bytes_get_size (response);                
+		for (offset = 0; offset < response_size; offset += 500) {
+                        GBytes *chunk = g_bytes_new_from_bytes (response, offset, MIN (500, response_size - offset));
+                        soup_message_body_append_bytes (msg->response_body, chunk);
+                        g_bytes_unref (chunk);
 		}
 
-		soup_buffer_free (response);
+		g_bytes_unref (response);
 	}
 
 	soup_message_body_complete (msg->response_body);
@@ -180,7 +180,7 @@ got_headers (SoupMessage *msg, gpointer data)
 }
 
 static void
-got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer data)
+got_chunk (SoupMessage *msg, GBytes *chunk, gpointer data)
 {
 	gboolean should_accumulate = GPOINTER_TO_INT (data);
 
@@ -191,7 +191,7 @@ got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer data)
 	if (!should_accumulate) {
 		if (!chunk_data)
 			chunk_data = soup_message_body_new ();
-		soup_message_body_append_buffer (chunk_data, chunk);
+		soup_message_body_append_bytes (chunk_data, chunk);
 	}
 }
 
@@ -204,9 +204,9 @@ do_signals_test (gboolean should_content_sniff,
 {
 	SoupURI *uri = soup_uri_new_with_base (base_uri, "/mbox");
 	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
-	SoupBuffer *expected;
+	GBytes *expected;
 	GError *error = NULL;
-	SoupBuffer *body = NULL;
+	GBytes *body = NULL;
 
 	debug_printf (1, "do_signals_test(%ssniff, %spause, %saccumulate, %schunked, %sempty)\n",
 		      should_content_sniff ? "" : "!",
@@ -248,7 +248,7 @@ do_signals_test (gboolean should_content_sniff,
 	}
 
 	if (empty_response)
-		expected = soup_buffer_new (SOUP_MEMORY_STATIC, "", 0);
+		expected = g_bytes_new_static (NULL, 0);
 	else {
 		expected = soup_test_load_resource ("mbox", &error);
 		g_assert_no_error (error);
@@ -260,18 +260,14 @@ do_signals_test (gboolean should_content_sniff,
 		body = soup_message_body_flatten (msg->response_body);
 
 	if (body) {
-		soup_assert_cmpmem (body->data, body->length,
-				    expected->data, expected->length);
+                //g_message ("|||body (%zu): %s", g_bytes_get_size (body), (char*)g_bytes_get_data (body, NULL));
+                //g_message ("|||expected (%zu): %s", g_bytes_get_size (expected), (char*)g_bytes_get_data (expected, NULL));
+                g_assert_true (g_bytes_equal (body, expected));
 	}
 
-	soup_buffer_free (expected);
-	if (body)
-		soup_buffer_free (body);
-	if (chunk_data) {
-		soup_message_body_free (chunk_data);
-		chunk_data = NULL;
-	}
-
+	g_bytes_unref (expected);
+	g_bytes_unref (body);
+        g_clear_pointer (&chunk_data, soup_message_body_free);
 	soup_uri_free (uri);
 	g_object_unref (msg);
 }

@@ -2,7 +2,7 @@
 
 #include "test-utils.h"
 
-static SoupBuffer *correct_response;
+static GBytes *correct_response;
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
@@ -54,7 +54,7 @@ typedef struct {
 } FullyAsyncData;
 
 static void fully_async_got_headers (SoupMessage *msg, gpointer user_data);
-static void fully_async_got_chunk   (SoupMessage *msg, SoupBuffer *chunk,
+static void fully_async_got_chunk   (SoupMessage *msg, GBytes *chunk,
 				     gpointer user_data);
 static void fully_async_finished    (SoupSession *session, SoupMessage *msg,
 				     gpointer user_data);
@@ -180,23 +180,24 @@ fully_async_got_headers (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-fully_async_got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
+fully_async_got_chunk (SoupMessage *msg, GBytes *chunk, gpointer user_data)
 {
 	FullyAsyncData *ad = user_data;
 
 	debug_printf (2, "  got chunk from %lu - %lu\n",
 		      (unsigned long) ad->read_so_far,
-		      (unsigned long) ad->read_so_far + chunk->length);
+		      (unsigned long) ad->read_so_far + g_bytes_get_size (chunk));
 
 	/* We've got a chunk, let's process it. In the case of the
 	 * test program, that means comparing it against
 	 * correct_response to make sure that we got the right data.
 	 */
-	g_assert_cmpint (ad->read_so_far + chunk->length, <=, correct_response->length);
-	soup_assert_cmpmem (chunk->data, chunk->length,
-			    correct_response->data + ad->read_so_far,
-			    chunk->length);
-	ad->read_so_far += chunk->length;
+        gsize chunk_length = g_bytes_get_size (chunk);
+	g_assert_cmpint (ad->read_so_far + chunk_length, <=, g_bytes_get_size (correct_response));
+	soup_assert_cmpmem (g_bytes_get_data (chunk, NULL), chunk_length,
+			    (guchar*)g_bytes_get_data (correct_response, NULL) + ad->read_so_far,
+			    chunk_length);
+	ad->read_so_far += chunk_length;
 
 	/* Now pause I/O, and prepare to read another chunk later.
 	 * (Again, the timeout just abstractly represents the idea of
@@ -273,17 +274,17 @@ do_slow_async_test (gconstpointer data)
 typedef struct {
 	GMainLoop *loop;
 	SoupSession *session;
-	SoupBuffer *chunk;
+	GBytes *chunk;
 } SyncAsyncData;
 
 static void        sync_async_send       (SoupSession *session,
 					  SoupMessage *msg);
 static gboolean    sync_async_is_finished(SoupMessage *msg);
-static SoupBuffer *sync_async_read_chunk (SoupMessage *msg);
+static GBytes *sync_async_read_chunk (SoupMessage *msg);
 static void        sync_async_cleanup    (SoupMessage *msg);
 
 static void sync_async_got_headers (SoupMessage *msg, gpointer user_data);
-static void sync_async_copy_chunk  (SoupMessage *msg, SoupBuffer *chunk,
+static void sync_async_copy_chunk  (SoupMessage *msg, GBytes *chunk,
 				    gpointer user_data);
 static void sync_async_finished    (SoupSession *session, SoupMessage *msg,
 				    gpointer user_data);
@@ -296,7 +297,7 @@ do_synchronously_async_test (SoupSession *session,
 	SoupMessage *msg;
 	char *uri;
 	gsize read_so_far;
-	SoupBuffer *chunk;
+	GBytes *chunk;
 
 	uri = g_build_filename (base_uri, sub_uri, NULL);
 	debug_printf (1, "GET %s\n", uri);
@@ -324,23 +325,24 @@ do_synchronously_async_test (SoupSession *session,
 	 */
 	read_so_far = 0;
 	while ((chunk = sync_async_read_chunk (msg))) {
+                gsize chunk_length = g_bytes_get_size (chunk);
 		debug_printf (2, "  read chunk from %lu - %lu\n",
 			      (unsigned long) read_so_far,
-			      (unsigned long) read_so_far + chunk->length);
+			      (unsigned long) read_so_far + chunk_length);
 
-		g_assert_cmpint (read_so_far + chunk->length, <=, correct_response->length);
-		soup_assert_cmpmem (chunk->data, chunk->length,
-				    correct_response->data + read_so_far,
-				    chunk->length);
+		g_assert_cmpint (read_so_far + chunk_length, <=, g_bytes_get_size (correct_response));
+		soup_assert_cmpmem (g_bytes_get_data (chunk, NULL), chunk_length,
+				    (guchar*) g_bytes_get_data (correct_response, NULL) + read_so_far,
+				    chunk_length);
 
-		read_so_far += chunk->length;
-		soup_buffer_free (chunk);
+		read_so_far += chunk_length;
+		g_bytes_unref (chunk);
 	}
 
 	g_assert_true (sync_async_is_finished (msg));
 	soup_test_assert_message_status (msg, expected_status);
 	if (msg->status_code == SOUP_STATUS_OK)
-		g_assert_cmpint (read_so_far, ==, correct_response->length);
+		g_assert_cmpint (read_so_far, ==, g_bytes_get_size (correct_response));
 
 	sync_async_cleanup (msg);
 	g_object_unref (msg);
@@ -424,7 +426,7 @@ sync_async_is_finished (SoupMessage *msg)
 }
 
 /* Tries to read a chunk. Returns %NULL on error/end-of-response. */
-static SoupBuffer *
+static GBytes *
 sync_async_read_chunk (SoupMessage *msg)
 {
 	SyncAsyncData *ad = g_object_get_data (G_OBJECT (msg), "SyncAsyncData");
@@ -445,11 +447,11 @@ sync_async_read_chunk (SoupMessage *msg)
 }
 
 static void
-sync_async_copy_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
+sync_async_copy_chunk (SoupMessage *msg, GBytes *chunk, gpointer user_data)
 {
 	SyncAsyncData *ad = user_data;
 
-	ad->chunk = soup_buffer_copy (chunk);
+	ad->chunk = g_bytes_ref (chunk);
 
 	/* Now pause and return from the g_main_loop_run() call in
 	 * sync_async_read_chunk().
@@ -525,7 +527,7 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 #ifdef HAVE_APACHE
-	soup_buffer_free (correct_response);
+	g_bytes_unref (correct_response);
 #endif
 
 	test_cleanup ();

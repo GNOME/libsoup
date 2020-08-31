@@ -19,7 +19,7 @@ struct _SoupContentSnifferClass {
 
 	char* (*sniff)              (SoupContentSniffer *sniffer,
 				     SoupMessage *msg,
-				     SoupBuffer *buffer,
+				     GBytes *buffer,
 				     GHashTable **params);
 	gsize (*get_buffer_size)    (SoupContentSniffer *sniffer);
 
@@ -32,7 +32,7 @@ SoupContentSniffer *soup_content_sniffer_new             (void);
 SOUP_AVAILABLE_IN_2_28
 char               *soup_content_sniffer_sniff           (SoupContentSniffer  *sniffer,
 							  SoupMessage         *msg,
-							  SoupBuffer          *buffer,
+							  GBytes              *buffer,
 							  GHashTable         **params);
 SOUP_AVAILABLE_IN_2_28
 gsize               soup_content_sniffer_get_buffer_size (SoupContentSniffer  *sniffer);

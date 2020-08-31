@@ -133,7 +133,7 @@ soup_form_decode (const char *encoded_form)
  * care about those fields. soup_form_decode_multipart() may also
  * return %NULL in those fields if the client did not provide that
  * information. You must free the returned filename and content-type
- * with g_free(), and the returned file data with soup_buffer_free().
+ * with g_free(), and the returned file data with g_bytes_unref().
  *
  * If you have a form with more than one file upload control, you will
  * need to decode it manually, using soup_multipart_new_from_message()
@@ -149,12 +149,12 @@ soup_form_decode (const char *encoded_form)
 GHashTable *
 soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
 			    char **filename, char **content_type,
-			    SoupBuffer **file)
+			    GBytes **file)
 {
 	SoupMultipart *multipart;
 	GHashTable *form_data_set, *params;
 	SoupMessageHeaders *part_headers;
-	SoupBuffer *part_body;
+	GBytes *part_body;
 	char *disposition, *name;
 	int i;
 
@@ -193,12 +193,12 @@ soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
 			if (content_type)
 				*content_type = g_strdup (soup_message_headers_get_content_type (part_headers, NULL));
 			if (file)
-				*file = soup_buffer_copy (part_body);
+				*file = g_bytes_ref (part_body);
 		} else {
 			g_hash_table_insert (form_data_set,
 					     g_strdup (name),
-					     g_strndup (part_body->data,
-							part_body->length));
+					     g_strndup (g_bytes_get_data (part_body, NULL),
+							g_bytes_get_size (part_body)));
 		}
 
 		g_free (disposition);

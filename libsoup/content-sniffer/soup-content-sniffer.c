@@ -86,12 +86,14 @@ typedef struct {
 
 static char*
 sniff_media (SoupContentSniffer *sniffer,
-	     SoupBuffer *buffer,
+	     GBytes *buffer,
 	     SoupContentSnifferMediaPattern table[],
 	     int table_length)
 {
-	const guchar *resource = (const guchar *)buffer->data;
-	guint resource_length = MIN (512, buffer->length);
+
+        gsize resource_length;
+        const guchar *resource = g_bytes_get_data (buffer, &resource_length);
+        resource_length = MIN (512, resource_length);
 	int i;
 
 	for (i = 0; i < table_length; i++) {
@@ -168,7 +170,7 @@ static SoupContentSnifferMediaPattern image_types_table[] = {
 };
 
 static char*
-sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+sniff_images (SoupContentSniffer *sniffer, GBytes *buffer)
 {
 	return sniff_media (sniffer,
 			    buffer,
@@ -223,10 +225,11 @@ static SoupContentSnifferMediaPattern audio_video_types_table[] = {
 };
 
 static gboolean
-sniff_mp4 (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+sniff_mp4 (SoupContentSniffer *sniffer, GBytes *buffer)
 {
-	const char *resource = (const char *)buffer->data;
-	guint resource_length = MIN (512, buffer->length);
+	gsize resource_length;
+	const char *resource = g_bytes_get_data (buffer, &resource_length);
+	resource_length = MIN (512, resource_length);
 	guint32 box_size = *((guint32*)resource);
 	guint i;
 
@@ -255,7 +258,7 @@ sniff_mp4 (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 }
 
 static char*
-sniff_audio_video (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+sniff_audio_video (SoupContentSniffer *sniffer, GBytes *buffer)
 {
 	char *sniffed_type;
 
@@ -485,12 +488,13 @@ static char byte_looks_binary[] = {
 
 /* HTML5: 2.7.4 Content-Type sniffing: unknown type */
 static char*
-sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
+sniff_unknown (SoupContentSniffer *sniffer, GBytes *buffer,
 	       gboolean sniff_scriptable)
 {
 	char *sniffed_type = NULL;
-	const guchar *resource = (const guchar *)buffer->data;
-	guint resource_length = MIN (512, buffer->length);
+	gsize resource_length;
+	const guchar *resource = g_bytes_get_data (buffer, &resource_length);
+	resource_length = MIN (512, resource_length);
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
@@ -574,10 +578,11 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 
 /* MIMESNIFF: 7.2 Sniffing a mislabeled binary resource */
 static char*
-sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+sniff_text_or_binary (SoupContentSniffer *sniffer, GBytes *buffer)
 {
-	const guchar *resource = (const guchar *)buffer->data;
-	int resource_length = MIN (512, buffer->length);
+	gsize resource_length;
+	const guchar *resource = g_bytes_get_data (buffer, &resource_length);
+	resource_length = MIN (512, resource_length);
 	gboolean looks_binary = FALSE;
 	int i;
 
@@ -628,10 +633,11 @@ skip_insignificant_space (const char *resource, int *pos, int resource_length)
 }
 
 static char*
-sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 {
-	const char *resource = (const char *)buffer->data;
-	int resource_length = MIN (512, buffer->length);
+	gsize resource_length;
+	const char *resource = g_bytes_get_data (buffer, &resource_length);
+	resource_length = MIN (512, resource_length);
 	int pos = 0;
 
 	if (resource_length < 3)
@@ -762,7 +768,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 
 static char *
 soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
-				 SoupBuffer *buffer, GHashTable **params)
+				 GBytes *buffer, GHashTable **params)
 {
 	const char *content_type;
 	const char *x_content_type_options;
@@ -915,7 +921,7 @@ soup_content_sniffer_new (void)
  */
 char *
 soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
-			    SoupMessage *msg, SoupBuffer *buffer,
+			    SoupMessage *msg, GBytes *buffer,
 			    GHashTable **params)
 {
 	g_return_val_if_fail (SOUP_IS_CONTENT_SNIFFER (sniffer), NULL);

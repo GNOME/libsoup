@@ -1040,7 +1040,7 @@ do_content_disposition_tests (void)
 	GHashTable *params;
 	const char *header, *filename;
 	char *disposition;
-	SoupBuffer *buffer;
+	GBytes *buffer;
 	SoupMultipart *multipart;
 	SoupMessageBody *body;
 
@@ -1106,10 +1106,10 @@ do_content_disposition_tests (void)
 	/* Ensure that soup-multipart always quotes filename */
 	g_test_bug ("641280");
 	multipart = soup_multipart_new (SOUP_FORM_MIME_TYPE_MULTIPART);
-	buffer = soup_buffer_new (SOUP_MEMORY_STATIC, "foo", 3);
+	buffer = g_bytes_new_static ("foo", 3);
 	soup_multipart_append_form_file (multipart, "test", "token",
 					 "text/plain", buffer);
-	soup_buffer_free (buffer);
+	g_bytes_unref (buffer);
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	body = soup_message_body_new ();
@@ -1120,9 +1120,9 @@ do_content_disposition_tests (void)
 	buffer = soup_message_body_flatten (body);
 	soup_message_body_free (body);
 
-	g_assert_true (strstr (buffer->data, "filename=\"token\""));
+	g_assert_nonnull (strstr (g_bytes_get_data (buffer, NULL), "filename=\"token\""));
 
-	soup_buffer_free (buffer);
+	g_bytes_unref (buffer);
 }
 
 #define CONTENT_TYPE_TEST_MIME_TYPE "text/plain"

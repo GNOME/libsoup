@@ -602,11 +602,11 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 
 	if (msg->request_body->length &&
 	    soup_message_body_get_accumulate (msg->request_body)) {
-		SoupBuffer *request;
+		GBytes *request;
 
 		request = soup_message_body_flatten (msg->request_body);
 		g_return_if_fail (request != NULL);
-		soup_buffer_free (request);
+		g_bytes_unref (request);
 
 		if (soup_message_headers_get_expectations (msg->request_headers) != SOUP_EXPECTATION_CONTINUE) {
 			soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '>',

@@ -13,7 +13,7 @@ static gboolean apache_running;
 #endif
 
 static SoupLogger *logger;
-static SoupBuffer *index_buffer;
+static GBytes *index_buffer;
 
 int debug_level;
 gboolean expect_warning, tls_available;
@@ -112,7 +112,7 @@ test_cleanup (void)
 	if (logger)
 		g_object_unref (logger);
 	if (index_buffer)
-		soup_buffer_free (index_buffer);
+		g_bytes_unref (index_buffer);
 
 	g_main_context_unref (g_main_context_default ());
 
@@ -769,7 +769,7 @@ soup_test_register_resources (void)
 	registered = TRUE;
 }
 
-SoupBuffer *
+GBytes *
 soup_test_load_resource (const char  *name,
 			 GError     **error)
 {
@@ -782,16 +782,10 @@ soup_test_load_resource (const char  *name,
 	bytes = g_resources_lookup_data (path, G_RESOURCE_LOOKUP_FLAGS_NONE, error);
 	g_free (path);
 
-	if (!bytes)
-		return NULL;
-
-	return soup_buffer_new_with_owner (g_bytes_get_data (bytes, NULL),
-					   g_bytes_get_size (bytes),
-					   bytes,
-					   (GDestroyNotify) g_bytes_unref);
+        return bytes;
 }
 
-SoupBuffer *
+GBytes *
 soup_test_get_index (void)
 {
 	if (!index_buffer) {
@@ -807,7 +801,7 @@ soup_test_get_index (void)
 		}
 		g_free (path);
 
-		index_buffer = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
+		index_buffer = g_bytes_new_take (contents, length);
 	}
 
 	return index_buffer;

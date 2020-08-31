@@ -934,11 +934,11 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 }
 
 static void
-stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
+stream_got_chunk (SoupMessage *msg, GBytes *chunk, gpointer user_data)
 {
 	GChecksum *checksum = user_data;
 
-	g_checksum_update (checksum, (const guchar *)chunk->data, chunk->length);
+	g_checksum_update (checksum, g_bytes_get_data (chunk, NULL), g_bytes_get_size (chunk));
 }
 
 static void
@@ -979,7 +979,7 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupBuffer *index;
+	GBytes *index;
 	char *md5;
 
 	server_add_early_handler (sd, NULL, early_stream_callback, NULL, NULL);
@@ -989,14 +989,12 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("POST", sd->base_uri);
 
 	index = soup_test_get_index ();
-	soup_message_body_append (msg->request_body, SOUP_MEMORY_COPY,
-				  index->data, index->length);
+	soup_message_body_append_bytes (msg->request_body, index);
 	soup_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
-	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
-					   (guchar *) index->data, index->length);
+	md5 = g_compute_checksum_for_bytes (G_CHECKSUM_MD5, index);
 	g_assert_cmpstr (md5, ==, msg->response_body->data);
 	g_free (md5);
 

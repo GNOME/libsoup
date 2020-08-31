@@ -16,7 +16,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 {
 	const char *accept_encoding, *options;
 	GSList *codings;
-	SoupBuffer *response = NULL;
+	GBytes *response = NULL;
 
 	options = soup_message_headers_get_one (msg->request_headers,
 						"X-Test-Options");
@@ -106,8 +106,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_headers_set_encoding (msg->response_headers, SOUP_ENCODING_CHUNKED);
 
 	if (!soup_header_contains (options, "empty"))
-		soup_message_body_append_buffer (msg->response_body, response);
-	soup_buffer_free (response);
+		soup_message_body_append_bytes (msg->response_body, response);
+	g_bytes_unref (response);
 
 	if (soup_header_contains (options, "trailing-junk")) {
 		soup_message_body_append (msg->response_body, SOUP_MEMORY_COPY,
@@ -120,7 +120,7 @@ typedef struct {
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupRequest *req;
-	SoupBuffer *response;
+	GBytes *response;
 } CodingTestData;
 
 typedef enum {
@@ -141,7 +141,7 @@ check_response (CodingTestData *data,
 		const char *expected_encoding,
 		const char *expected_content_type,
 		MessageContentStatus status,
-		GByteArray *body)
+		GBytes *body)
 {
 	const char *coding, *type;
 
@@ -161,15 +161,12 @@ check_response (CodingTestData *data,
 	g_assert_cmpstr (type, ==, expected_content_type);
 
 	if (body) {
-		soup_assert_cmpmem (body->data,
-				    body->len,
-				    data->response->data,
-				    data->response->length);
+                g_assert_true (g_bytes_equal (body, data->response));
 	} else {
 		soup_assert_cmpmem (data->msg->response_body->data,
 				    data->msg->response_body->length,
-				    data->response->data,
-				    data->response->length);
+				    g_bytes_get_data (data->response, NULL),
+				    g_bytes_get_size (data->response));
 	}
 }
 
@@ -186,7 +183,7 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 	uri = soup_uri_new_with_base (base_uri, "/mbox");
 
 	if (test_type & CODING_TEST_EMPTY)
-		data->response = soup_buffer_new (SOUP_MEMORY_STATIC, "", 0);
+		data->response = g_bytes_new_static (NULL, 0);
 	else {
 		msg = soup_message_new_from_uri ("GET", uri);
 		soup_session_send_message (data->session, msg);
@@ -213,7 +210,7 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 static void
 teardown_coding_test (CodingTestData *data, gconstpointer test_data)
 {
-	soup_buffer_free (data->response);
+	g_bytes_unref (data->response);
 
 	g_clear_object (&data->req);
 	g_object_unref (data->msg);
@@ -342,6 +339,7 @@ do_single_coding_req_test (CodingTestData *data,
 {
 	GInputStream *stream;
 	GByteArray *body;
+        GBytes *body_bytes;
 	guchar buf[1024];
 	gssize nread;
 	GError *error = NULL;
@@ -372,8 +370,9 @@ do_single_coding_req_test (CodingTestData *data,
 	g_clear_error (&error);
 	g_object_unref (stream);
 
-	check_response (data, expected_encoding, expected_content_type, status, body);
-	g_byte_array_free (body, TRUE);
+        body_bytes = g_byte_array_free_to_bytes (body);
+	check_response (data, expected_encoding, expected_content_type, status, body_bytes);
+	g_bytes_unref (body_bytes);
 }
 
 static void

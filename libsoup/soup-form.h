@@ -21,7 +21,7 @@ GHashTable  *soup_form_decode_multipart (SoupMessage  *msg,
 					 const char   *file_control_name,
 					 char        **filename,
 					 char        **content_type,
-					 SoupBuffer  **file);
+					 GBytes      **file);
 
 SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode           (const char   *first_field,

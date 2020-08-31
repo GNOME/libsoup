@@ -2,7 +2,7 @@
 
 #include "test-utils.h"
 
-SoupBuffer *full_response;
+GBytes *full_response;
 int total_length;
 char *test_response;
 
@@ -11,6 +11,7 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 	    gboolean check_start_end, int expected_start, int expected_end)
 {
 	goffset start, end, total_length;
+        gsize full_response_length = g_bytes_get_size (full_response);
 
 	debug_printf (1, "    Content-Range: %s\n",
 		      soup_message_headers_get_one (headers, "Content-Range"));
@@ -20,7 +21,7 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 		return;
 	}
 
-	if (total_length != full_response->length && total_length != -1) {
+	if (total_length != full_response_length && total_length != -1) {
 		soup_test_assert (FALSE,
 				  "Unexpected total length %" G_GINT64_FORMAT " in response\n",
 				  total_length);
@@ -29,7 +30,7 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 
 	if (check_start_end) {
 		if ((expected_start >= 0 && start != expected_start) ||
-		    (expected_start < 0 && start != full_response->length + expected_start)) {
+		    (expected_start < 0 && start != full_response_length + expected_start)) {
 			soup_test_assert (FALSE,
 					  "Unexpected range start %" G_GINT64_FORMAT " in response\n",
 					  start);
@@ -37,7 +38,7 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 		}
 
 		if ((expected_end >= 0 && end != expected_end) ||
-		    (expected_end < 0 && end != full_response->length - 1)) {
+		    (expected_end < 0 && end != full_response_length - 1)) {
 			soup_test_assert (FALSE,
 					  "Unexpected range end %" G_GINT64_FORMAT " in response\n",
 					  end);
@@ -134,11 +135,11 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 
 	for (i = 0; i < length; i++) {
 		SoupMessageHeaders *headers;
-		SoupBuffer *body;
+		GBytes *body;
 
 		debug_printf (1, "  Part %d\n", i + 1);
 		soup_multipart_get_part (multipart, i, &headers, &body);
-		check_part (headers, body->data, body->length, FALSE, 0, 0);
+		check_part (headers, g_bytes_get_data (body, NULL), g_bytes_get_size (body), FALSE, 0, 0);
 	}
 
 	soup_multipart_free (multipart);
@@ -223,9 +224,10 @@ static void
 do_range_test (SoupSession *session, const char *uri,
 	       gboolean expect_coalesce, gboolean expect_partial_coalesce)
 {
-	int twelfths = full_response->length / 12;
+        gsize full_response_length = g_bytes_get_size (full_response);
+	int twelfths = full_response_length / 12;
 
-	memset (test_response, 0, full_response->length);
+	memset (test_response, 0, full_response_length);
 
 	/* We divide the response into 12 ranges and request them
 	 * as follows:
@@ -306,22 +308,22 @@ do_range_test (SoupSession *session, const char *uri,
 			      10 * twelfths - 5, 11 * twelfths,
 			      expect_partial_coalesce ? 2 : 3);
 
-	soup_assert_cmpmem (full_response->data, full_response->length,
-			    test_response, full_response->length);
+        soup_assert_cmpmem (g_bytes_get_data (full_response, NULL), full_response_length,
+			    test_response, full_response_length);
 
 	debug_printf (1, "Requesting (invalid) %d-%d\n",
-		      (int) full_response->length + 1,
-		      (int) full_response->length + 100);
+		      (int) full_response_length + 1,
+		      (int) full_response_length + 100);
 	request_single_range (session, uri,
-			      full_response->length + 1, full_response->length + 100,
+			      full_response_length + 1, full_response_length + 100,
 			      FALSE);
 
 	debug_printf (1, "Requesting (semi-invalid) 1-10,%d-%d,20-30\n",
-		      (int) full_response->length + 1,
-		      (int) full_response->length + 100);
+		      (int) full_response_length + 1,
+		      (int) full_response_length + 100);
 	request_semi_invalid_range (session, uri,
 				    1, 10,
-				    full_response->length + 1, full_response->length + 100,
+				    full_response_length + 1, full_response_length + 100,
 				    20, 30); 
 }
 
@@ -348,7 +350,7 @@ server_handler (SoupServer        *server,
 		gpointer           user_data)
 {
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_body_append_buffer (msg->response_body,
+	soup_message_body_append_bytes (msg->response_body,
 					 full_response);
 }
 
@@ -383,7 +385,7 @@ main (int argc, char **argv)
 	apache_init ();
 
 	full_response = soup_test_get_index ();
-	test_response = g_malloc0 (full_response->length);
+	test_response = g_malloc0 (g_bytes_get_size (full_response));
 
 	g_test_add_func ("/ranges/apache", do_apache_range_test);
 	g_test_add_func ("/ranges/libsoup", do_libsoup_range_test);

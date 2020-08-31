@@ -46,7 +46,7 @@ typedef struct {
 	void     (*wrote_body)          (SoupMessage *msg);
 	void     (*got_informational)   (SoupMessage *msg);
 	void     (*got_headers)         (SoupMessage *msg);
-	void     (*got_chunk)           (SoupMessage *msg, SoupBuffer *chunk);
+	void     (*got_chunk)           (SoupMessage *msg, GBytes *chunk);
 	void     (*got_body)            (SoupMessage *msg);
 	void     (*restarted)           (SoupMessage *msg);
 	void     (*finished)            (SoupMessage *msg);
@@ -228,7 +228,7 @@ void soup_message_wrote_headers       (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_chunk         (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4
-void soup_message_wrote_body_data     (SoupMessage *msg, SoupBuffer *chunk);
+void soup_message_wrote_body_data     (SoupMessage *msg, GBytes *chunk);
 SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_body          (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4
@@ -236,7 +236,7 @@ void soup_message_got_informational   (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4
 void soup_message_got_headers         (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4
-void soup_message_got_chunk           (SoupMessage *msg, SoupBuffer *chunk);
+void soup_message_got_chunk           (SoupMessage *msg, GBytes *chunk);
 SOUP_AVAILABLE_IN_2_4
 void soup_message_got_body            (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4

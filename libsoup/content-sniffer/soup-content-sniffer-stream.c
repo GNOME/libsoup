@@ -112,7 +112,7 @@ read_and_sniff (GInputStream *stream, gboolean blocking,
         SoupContentSnifferStreamPrivate *priv = soup_content_sniffer_stream_get_instance_private (sniffer);
 	gssize nread;
 	GError *my_error = NULL;
-	SoupBuffer *buf;
+	GBytes *buf;
 
 	do {
 		nread = g_pollable_stream_read (G_FILTER_INPUT_STREAM (stream)->base_stream,
@@ -140,11 +140,11 @@ read_and_sniff (GInputStream *stream, gboolean blocking,
 	}
 
 	/* Sniff, then return the data */
-	buf = soup_buffer_new (SOUP_MEMORY_TEMPORARY, priv->buffer, priv->buffer_nread);
+	buf = g_bytes_new (priv->buffer, priv->buffer_nread);
 	priv->sniffed_type =
 		soup_content_sniffer_sniff (priv->sniffer, priv->msg, buf,
 					    &priv->sniffed_params);
-	soup_buffer_free (buf);
+	g_bytes_unref (buf);
 	priv->sniffing = FALSE;
 
 	return priv->buffer_nread;

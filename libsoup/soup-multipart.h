@@ -29,12 +29,12 @@ SOUP_AVAILABLE_IN_2_26
 gboolean soup_multipart_get_part           (SoupMultipart       *multipart,
 					    int                  part,
 					    SoupMessageHeaders **headers,
-					    SoupBuffer         **body);
+					    GBytes             **body);
 
 SOUP_AVAILABLE_IN_2_26
 void     soup_multipart_append_part        (SoupMultipart       *multipart,
 					    SoupMessageHeaders  *headers,
-					    SoupBuffer          *body);
+					    GBytes              *body);
 
 SOUP_AVAILABLE_IN_2_26
 void     soup_multipart_append_form_string (SoupMultipart       *multipart,
@@ -45,7 +45,7 @@ void     soup_multipart_append_form_file   (SoupMultipart       *multipart,
 					    const char          *control_name,
 					    const char          *filename,
 					    const char          *content_type,
-					    SoupBuffer          *body);
+					    GBytes              *body);
 
 SOUP_AVAILABLE_IN_2_26
 void     soup_multipart_to_message         (SoupMultipart       *multipart,

@@ -35,11 +35,10 @@
 
 G_DEFINE_TYPE (SoupDirectoryInputStream, soup_directory_input_stream, G_TYPE_INPUT_STREAM)
 
-static SoupBuffer *
+static GBytes *
 soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 					GFileInfo *info)
 {
-	SoupBuffer *buffer;
 	GString *string;
 	const char *file_name;
 	char *escaped, *path, *xml_string, *size, *date, *time, *name;
@@ -90,7 +89,6 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 
 	g_string_append_printf (string, ROW_FORMAT, name, path, xml_string, raw_size, size, timestamp, time, date);
 	g_string_append (string, "</tr>\n");
-	buffer = soup_buffer_new (SOUP_MEMORY_TAKE, string->str, string->len);
 
 	g_free (time);
 	g_free (date);
@@ -98,18 +96,17 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 	g_free (size);
 	g_free (path);
 	g_free (xml_string);
-	g_string_free (string, FALSE);
 
-	return buffer;
+	return g_string_free_to_bytes (string);
 }
 
-static SoupBuffer *
+static GBytes *
 soup_directory_input_stream_read_next_file (SoupDirectoryInputStream  *stream,
 					    GCancellable              *cancellable,
 					    GError                   **error)
 {
 	GFileInfo *info;
-	SoupBuffer *buffer;
+	GBytes *buffer;
 	GError *err = NULL;
 
 	do {
@@ -120,9 +117,7 @@ soup_directory_input_stream_read_next_file (SoupDirectoryInputStream  *stream,
 				return NULL;
 			} else if (!stream->done) {
 				stream->done = TRUE;
-				return soup_buffer_new (SOUP_MEMORY_STATIC,
-							EXIT_STRING,
-							sizeof (EXIT_STRING));
+				return g_bytes_new_static (EXIT_STRING, sizeof (EXIT_STRING));
 			} else {
 				return NULL;
 			}
@@ -156,16 +151,16 @@ soup_directory_input_stream_read (GInputStream  *input,
 			}
 		}
 
-		size = MIN (stream->buffer->length, count - total);
-		memcpy ((char *)buffer + total, stream->buffer->data, size);
-		if (size == stream->buffer->length) {
-			soup_buffer_free (stream->buffer);
-			stream->buffer = NULL;
+                gsize buffer_len = g_bytes_get_size (stream->buffer);
+		size = MIN (buffer_len, count - total);
+		memcpy ((char *)buffer + total, g_bytes_get_data (stream->buffer, NULL), size);
+		if (size == buffer_len) {
+                        g_clear_pointer (&stream->buffer, g_bytes_unref);
 		} else {
-			SoupBuffer *sub = soup_buffer_new_subbuffer (stream->buffer,
-								     size,
-								     stream->buffer->length - size);
-			soup_buffer_free (stream->buffer);
+			GBytes *sub = g_bytes_new_from_bytes (stream->buffer,
+							      size,
+							      buffer_len - size);
+			g_bytes_unref (stream->buffer);
 			stream->buffer = sub;
 		}
 	}
@@ -181,10 +176,7 @@ soup_directory_input_stream_close (GInputStream  *input,
 	SoupDirectoryInputStream *stream = SOUP_DIRECTORY_INPUT_STREAM (input);
 	gboolean result;
 
-	if (stream->buffer) {
-		soup_buffer_free (stream->buffer);
-		stream->buffer = NULL;
-	}
+        g_clear_pointer (&stream->buffer, g_bytes_unref);
 
 	result = g_file_enumerator_close (stream->enumerator,
 					  cancellable,
@@ -244,9 +236,7 @@ soup_directory_input_stream_setup_buffer (SoupDirectoryInputStream *stream)
 {
 	char *init = soup_directory_input_stream_create_header (stream);
 
-	stream->buffer = soup_buffer_new (SOUP_MEMORY_TAKE,
-					  init,
-					  strlen (init));
+	stream->buffer = g_bytes_new_take (init, strlen (init));
 }
 
 GInputStream *

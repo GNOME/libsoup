@@ -7,7 +7,7 @@
 
 #define RESPONSE_CHUNK_SIZE 1024
 
-SoupBuffer *full_response;
+GBytes *full_response;
 char *full_response_md5;
 
 static void
@@ -16,13 +16,12 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 	gsize *offset = user_data;
 	gsize chunk_length;
 
-	chunk_length = MIN (RESPONSE_CHUNK_SIZE, full_response->length - *offset);
+	chunk_length = MIN (RESPONSE_CHUNK_SIZE, g_bytes_get_size (full_response) - *offset);
 	if (chunk_length > 0) {
 		debug_printf (2, "  writing chunk\n");
-		soup_message_body_append (msg->response_body,
-					  SOUP_MEMORY_STATIC,
-					  full_response->data + *offset,
-					  chunk_length);
+                GBytes *chunk = g_bytes_new_from_bytes (full_response, *offset, chunk_length);
+                soup_message_body_append_bytes (msg->response_body, chunk);
+                g_bytes_unref (chunk);
 		*offset += chunk_length;
 	} else {
 		debug_printf (2, "  done\n");
@@ -54,7 +53,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_message_headers_set_encoding (msg->response_headers,
 						   SOUP_ENCODING_CONTENT_LENGTH);
 		soup_message_headers_set_content_length (msg->response_headers,
-							 full_response->length);
+							 g_bytes_get_size (full_response));
 	} else if (!strcmp (path, "/eof")) {
 		soup_message_headers_set_encoding (msg->response_headers,
 						   SOUP_ENCODING_EOF);
@@ -87,7 +86,7 @@ do_request (SoupSession *session, SoupURI *base_uri, char *path)
 	soup_test_session_async_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_cmpint (msg->response_body->length, ==, full_response->length);
+	g_assert_cmpint (msg->response_body->length, ==, g_bytes_get_size (full_response));
 
 	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
 					   (guchar *)msg->response_body->data,
@@ -144,9 +143,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 
 	full_response = soup_test_get_index ();
-	full_response_md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
-							 (guchar *)full_response->data,
-							 full_response->length);
+	full_response_md5 = g_compute_checksum_for_bytes (G_CHECKSUM_MD5, full_response);
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (server, NULL,

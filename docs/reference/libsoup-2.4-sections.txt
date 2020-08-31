@@ -164,17 +164,7 @@ soup_message_headers_get_type
 <SECTION>
 <FILE>soup-message-body</FILE>
 <TITLE>SoupMessageBody</TITLE>
-SoupBuffer
 SoupMemoryUse
-soup_buffer_new
-soup_buffer_new_subbuffer
-soup_buffer_new_with_owner
-soup_buffer_new_take
-soup_buffer_get_owner
-soup_buffer_get_data
-soup_buffer_copy
-soup_buffer_free
-soup_buffer_get_as_bytes
 <SUBSECTION>
 SoupMessageBody
 soup_message_body_new
@@ -184,7 +174,7 @@ soup_message_body_set_accumulate
 soup_message_body_get_accumulate
 <SUBSECTION>
 soup_message_body_append
-soup_message_body_append_buffer
+soup_message_body_append_bytes
 soup_message_body_append_take
 soup_message_body_truncate
 soup_message_body_complete
@@ -194,8 +184,6 @@ soup_message_body_get_chunk
 soup_message_body_got_chunk
 soup_message_body_wrote_chunk
 <SUBSECTION Standard>
-SOUP_TYPE_BUFFER
-soup_buffer_get_type
 SOUP_TYPE_MESSAGE_BODY
 soup_message_body_get_type
 </SECTION>

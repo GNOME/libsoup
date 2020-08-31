@@ -54,7 +54,7 @@ soup_multipart_new_internal (char *mime_type, char *boundary)
 	multipart->mime_type = mime_type;
 	multipart->boundary = boundary;
 	multipart->headers = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_message_headers_free);
-	multipart->bodies = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_buffer_free);
+	multipart->bodies = g_ptr_array_new_with_free_func ((GDestroyNotify)g_bytes_unref);
 
 	return multipart;
 }
@@ -140,10 +140,10 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 	const char *content_type, *boundary;
 	GHashTable *params;
 	int boundary_len;
-	SoupBuffer *flattened;
+	GBytes *flattened;
 	const char *start, *split, *end, *body_end;
 	SoupMessageHeaders *part_headers;
-	SoupBuffer *part_body;
+	GBytes *part_body;
 
 	content_type = soup_message_headers_get_content_type (headers, &params);
 	if (!content_type)
@@ -160,16 +160,18 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 	g_hash_table_destroy (params);
 
 	flattened = soup_message_body_flatten (body);
-	body_end = flattened->data + flattened->length;
+        gsize flattened_size;
+        const char *flattened_data = g_bytes_get_data (flattened, &flattened_size);
+	body_end = flattened_data + flattened_size;
 	boundary = multipart->boundary;
 	boundary_len = strlen (boundary);
 
 	/* skip preamble */
-	start = find_boundary (flattened->data, body_end,
+	start = find_boundary (flattened_data, body_end,
 			       boundary, boundary_len);
 	if (!start) {
 		soup_multipart_free (multipart);
-		soup_buffer_free (flattened);
+		g_bytes_unref (flattened);
 		return NULL;
 	}
 
@@ -178,14 +180,14 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 				     boundary, boundary_len);
 		if (!end) {
 			soup_multipart_free (multipart);
-			soup_buffer_free (flattened);
+			g_bytes_unref (flattened);
 			return NULL;
 		}
 
 		split = strstr (start, "\r\n\r\n");
 		if (!split || split > end) {
 			soup_multipart_free (multipart);
-			soup_buffer_free (flattened);
+			g_bytes_unref (flattened);
 			return NULL;
 		}
 		split += 4;
@@ -204,7 +206,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		if (!soup_headers_parse (start, split - 2 - start,
 					 part_headers)) {
 			soup_multipart_free (multipart);
-			soup_buffer_free (flattened);
+			g_bytes_unref (flattened);
 			return NULL;
 		}
 
@@ -213,15 +215,15 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		 * the following boundary line, which is to say 2 bytes
 		 * after the end of the body.
 		 */
-		part_body = soup_buffer_new_subbuffer (flattened,
-						       split - flattened->data,
-						       end - 2 - split);
+		part_body = g_bytes_new_from_bytes (flattened, // FIXME
+						    split - flattened_data,
+						    end - 2 - split);
 		g_ptr_array_add (multipart->bodies, part_body);
 
 		start = end;
 	}
 
-	soup_buffer_free (flattened);
+	g_bytes_unref (flattened);
 	return multipart;
 }
 
@@ -259,7 +261,7 @@ soup_multipart_get_length (SoupMultipart *multipart)
  **/
 gboolean
 soup_multipart_get_part (SoupMultipart *multipart, int part,
-			 SoupMessageHeaders **headers, SoupBuffer **body)
+			 SoupMessageHeaders **headers, GBytes **body)
 {
 	if (part < 0 || part >= multipart->bodies->len)
 		return FALSE;
@@ -284,7 +286,7 @@ soup_multipart_get_part (SoupMultipart *multipart, int part,
 void
 soup_multipart_append_part (SoupMultipart      *multipart,
 			    SoupMessageHeaders *headers,
-			    SoupBuffer         *body)
+			    GBytes         *body)
 {
 	SoupMessageHeaders *headers_copy;
 	SoupMessageHeadersIter iter;
@@ -307,7 +309,7 @@ soup_multipart_append_part (SoupMultipart      *multipart,
 	 * 3) We don't want to steal the reference to @headers,
 	 *    because then we'd have to either also steal the
 	 *    reference to @body (which would be inconsistent with
-	 *    other SoupBuffer methods), or NOT steal the reference to
+	 *    other GBytes methods), or NOT steal the reference to
 	 *    @body, in which case there'd be inconsistency just
 	 *    between the two arguments of this method!
 	 */
@@ -317,7 +319,7 @@ soup_multipart_append_part (SoupMultipart      *multipart,
 		soup_message_headers_append (headers_copy, name, value);
 
 	g_ptr_array_add (multipart->headers, headers_copy);
-	g_ptr_array_add (multipart->bodies, soup_buffer_copy (body));
+	g_ptr_array_add (multipart->bodies, g_bytes_ref (body));
 }
 
 /**
@@ -337,12 +339,12 @@ void
 soup_multipart_append_form_string (SoupMultipart *multipart,
 				   const char *control_name, const char *data)
 {
-	SoupBuffer *body;
+	GBytes *body;
 
-	body = soup_buffer_new (SOUP_MEMORY_COPY, data, strlen (data));
+	body = g_bytes_new (data, strlen (data));
 	soup_multipart_append_form_file (multipart, control_name,
 					 NULL, NULL, body);
-	soup_buffer_free (body);
+	g_bytes_unref (body);
 }
 
 /**
@@ -363,7 +365,7 @@ soup_multipart_append_form_string (SoupMultipart *multipart,
 void
 soup_multipart_append_form_file (SoupMultipart *multipart,
 				 const char *control_name, const char *filename,
-				 const char *content_type, SoupBuffer *body)
+				 const char *content_type, GBytes *body)
 {
 	SoupMessageHeaders *headers;
 	GString *disposition;
@@ -385,7 +387,7 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
 	}
 
 	g_ptr_array_add (multipart->headers, headers);
-	g_ptr_array_add (multipart->bodies, soup_buffer_copy (body));
+	g_ptr_array_add (multipart->bodies, g_bytes_ref (body));
 }
 
 /**
@@ -404,7 +406,7 @@ soup_multipart_to_message (SoupMultipart *multipart,
 			   SoupMessageBody *dest_body)
 {
 	SoupMessageHeaders *part_headers;
-	SoupBuffer *part_body;
+	GBytes *part_body;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 	GString *str;
@@ -430,11 +432,12 @@ soup_multipart_to_message (SoupMultipart *multipart,
 		while (soup_message_headers_iter_next (&iter, &name, &value))
 			g_string_append_printf (str, "%s: %s\r\n", name, value);
 		g_string_append (str, "\r\n");
-		soup_message_body_append (dest_body, SOUP_MEMORY_TAKE,
-					  str->str, str->len);
-		g_string_free (str, FALSE);
 
-		soup_message_body_append_buffer (dest_body, part_body);
+                GBytes *buffer = g_string_free_to_bytes (str);
+                soup_message_body_append_bytes (dest_body, buffer);
+                g_bytes_unref (buffer);
+
+		soup_message_body_append_bytes (dest_body, part_body);
 	}
 
 	str = g_string_new ("\r\n--");
