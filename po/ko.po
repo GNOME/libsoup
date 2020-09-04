@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # eukim <eukim@redhat.com>, 2012.
-# Changwoo Ryu <cwryu@debian.org>, 2013-2015, 2017-2019.
+# Changwoo Ryu <cwryu@debian.org>, 2013-2015, 2017-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-26 19:57+0900\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-08-31 00:39+0900\n"
 "Last-Translator: Changwoo Ryu <cwryu@debian.org>\n"
 "Language-Team: Korean <gnome-kr@googlegroups.com>\n"
 "Language: ko\n"
@@ -40,6 +40,18 @@ msgstr "네트워크 스트림이 예상치 못하게 닫혔습니다"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "리소스를 완전히 캐시에 저장하는데 실패했습니다"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "이름"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "크기"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "수정 시각"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -80,31 +92,31 @@ msgstr "URI가 없습니다"
 msgid "Invalid “%s” URI: %s"
 msgstr "잘못된 “%s” URI: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "TLS 인증서 없이 TLS 서버를 만들 수 없습니다"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "주소 %s, 포트 %d번에 연결을 받을 수 없습니다: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "“%s” URI를 구문 분석할 수 없습니다"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "“%s” URI 스킴을 지원하지 않습니다"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI가 아닙니다"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "서버에서 웹소켓 핸드셰이크를 받아들이지 않습니다."
 
