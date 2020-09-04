@@ -405,6 +405,9 @@ soup_session_get_features
 soup_session_get_feature
 soup_session_get_feature_for_message
 soup_session_has_feature
+<SUBSECTION>
+soup_session_preconnect_async
+soup_session_preconnect_finish
 <SUBSECTION Standard>
 SOUP_IS_SESSION
 SOUP_IS_SESSION_CLASS

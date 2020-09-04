@@ -1038,6 +1038,17 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	g_object_thaw_notify (G_OBJECT (conn));
 }
 
+void
+soup_connection_set_reusable (SoupConnection *conn,
+                              gboolean        reusable)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        g_return_if_fail (SOUP_IS_CONNECTION (conn));
+
+        priv->reusable = TRUE;
+}
+
 gboolean
 soup_connection_get_ever_used (SoupConnection *conn)
 {

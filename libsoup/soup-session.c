@@ -1061,6 +1061,18 @@ free_host (SoupSessionHost *host)
 	g_slice_free (SoupSessionHost, host);
 }
 
+static SoupMessageQueueItem *
+soup_session_lookup_queue (SoupSession *session,
+			   gpointer     data,
+			   GCompareFunc compare_func)
+{
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+	GList *link;
+
+	link = g_queue_find_custom (priv->queue, data, compare_func);
+	return link ? (SoupMessageQueueItem *)link->data : NULL;
+}
+
 static int
 lookup_message (SoupMessageQueueItem *item,
 		SoupMessage          *msg)
@@ -1072,11 +1084,21 @@ static SoupMessageQueueItem *
 soup_session_lookup_queue_item (SoupSession *session,
 				SoupMessage *msg)
 {
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GList *link;
+	return soup_session_lookup_queue (session, msg, (GCompareFunc)lookup_message);
+}
 
-	link = g_queue_find_custom (priv->queue, msg, (GCompareFunc)lookup_message);
-	return link ? (SoupMessageQueueItem *)link->data : NULL;
+static int
+lookup_connection (SoupMessageQueueItem *item,
+		   SoupConnection       *conn)
+{
+	return item->conn == conn ? 0 : 1;
+}
+
+static SoupMessageQueueItem *
+soup_session_lookup_queue_item_by_connection (SoupSession    *session,
+					      SoupConnection *conn)
+{
+	return soup_session_lookup_queue (session, conn, (GCompareFunc)lookup_connection);
 }
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_GET(session, msg) \
@@ -1694,6 +1716,17 @@ connect_async_complete (GObject      *object,
 	GError *error = NULL;
 
 	soup_connection_connect_finish (conn, result, &error);
+	if (item->related) {
+		SoupMessageQueueItem *new_item = item->related;
+
+		/* Complete the preconnect successfully, since it was stolen. */
+		item->state = SOUP_MESSAGE_FINISHING;
+		item->related = NULL;
+		soup_session_process_queue_item (item->session, item, NULL, FALSE);
+		soup_message_queue_item_unref (item);
+
+		item = new_item;
+	}
 	connect_complete (item, conn, error);
 
 	if (item->state == SOUP_MESSAGE_CONNECTED ||
@@ -1703,6 +1736,30 @@ connect_async_complete (GObject      *object,
 		soup_session_kick_queue (item->session);
 
 	soup_message_queue_item_unref (item);
+}
+
+static gboolean
+steal_preconnection (SoupSession          *session,
+                     SoupMessageQueueItem *item,
+                     SoupConnection       *conn)
+{
+        SoupMessageQueueItem *preconnect_item;
+
+        if (!item->async)
+                return FALSE;
+
+        preconnect_item = soup_session_lookup_queue_item_by_connection (session, conn);
+        if (!preconnect_item)
+                return FALSE;
+
+        if (!preconnect_item->connect_only || preconnect_item->state != SOUP_MESSAGE_CONNECTING)
+                return FALSE;
+
+        soup_session_set_item_connection (session, preconnect_item, NULL);
+        g_assert (preconnect_item->related == NULL);
+        preconnect_item->related = soup_message_queue_item_ref (item);
+
+        return TRUE;
 }
 
 static SoupConnection *
@@ -1728,11 +1785,22 @@ get_connection_for_host (SoupSession *session,
 	for (conns = host->connections; conns; conns = conns->next) {
 		conn = conns->data;
 
-		if (!need_new_connection && soup_connection_get_state (conn) == SOUP_CONNECTION_IDLE) {
-			soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
-			return conn;
-		} else if (soup_connection_get_state (conn) == SOUP_CONNECTION_CONNECTING)
+		switch (soup_connection_get_state (conn)) {
+		case SOUP_CONNECTION_IDLE:
+			if (!need_new_connection) {
+				soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
+				return conn;
+			}
+			break;
+		case SOUP_CONNECTION_CONNECTING:
+			if (steal_preconnection (session, item, conn))
+				return conn;
+
 			num_pending++;
+			break;
+		default:
+			break;
+		}
 	}
 
 	/* Limit the number of pending connections; num_messages / 2
@@ -1820,9 +1888,19 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 
 	soup_session_set_item_connection (session, item, conn);
 
-	if (soup_connection_get_state (item->conn) != SOUP_CONNECTION_NEW) {
+	switch (soup_connection_get_state (item->conn)) {
+	case SOUP_CONNECTION_IN_USE:
 		item->state = SOUP_MESSAGE_READY;
 		return TRUE;
+	case SOUP_CONNECTION_CONNECTING:
+		item->state = SOUP_MESSAGE_CONNECTING;
+		return FALSE;
+	case SOUP_CONNECTION_NEW:
+		break;
+	case SOUP_CONNECTION_IDLE:
+	case SOUP_CONNECTION_REMOTE_DISCONNECTED:
+	case SOUP_CONNECTION_DISCONNECTED:
+		g_assert_not_reached ();
 	}
 
 	item->state = SOUP_MESSAGE_CONNECTING;
@@ -3706,4 +3784,97 @@ soup_session_get_original_message_for_authentication (SoupSession *session,
 		return msg;
 
 	return item->related ? item->related->msg : msg;
+}
+
+static void
+preconnect_async_message_finished (SoupMessage *msg,
+                                   GTask       *task)
+{
+        SoupMessageQueueItem *item = g_task_get_task_data (task);
+
+        if (item->conn && !item->error)
+                soup_connection_set_reusable (item->conn, TRUE);
+}
+
+static void
+preconnect_async_complete (SoupSession *session,
+                           SoupMessage *msg,
+                           GTask       *task)
+{
+        SoupMessageQueueItem *item = g_task_get_task_data (task);
+
+        if (item->error)
+                g_task_return_error (task, g_error_copy (item->error));
+        else
+                g_task_return_boolean (task, TRUE);
+        g_object_unref (task);
+}
+
+/**
+ * soup_session_preconnect_async:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage
+ * @io_priority: the I/O priority of the request
+ * @cancellable: a #GCancellable
+ * @callback: (allow-none) (scope async): the callback to invoke when the operation finishes
+ * @user_data: data for @progress_callback and @callback
+ *
+ * Start a preconnection to @msg. Once the connection is done, it will remain in idle state so that
+ * it can be reused by future requests. If there's already an idle connection for the given @msg
+ * host, the operation finishes successfully without creating a new connection. If a new request
+ * for the given @msg host is made while the preconnect is still ongoing, the request will take
+ * the ownership of the connection and the preconnect operation will finish successfully (if
+ * there's a connection error it will be handled by the request).
+ *
+ * The operation finishes when the connection is done or an error ocurred.
+ */
+void
+soup_session_preconnect_async (SoupSession        *session,
+                               SoupMessage        *msg,
+                               int                 io_priority,
+                               GCancellable       *cancellable,
+                               GAsyncReadyCallback callback,
+                               gpointer            user_data)
+{
+        SoupMessageQueueItem *item;
+        GTask *task;
+
+        g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+        task = g_task_new (session, cancellable, callback, user_data);
+        item = soup_session_append_queue_item (session, msg, TRUE, cancellable,
+                                               (SoupSessionCallback)preconnect_async_complete,
+                                               task);
+        item->connect_only = TRUE;
+        item->io_priority = io_priority;
+        g_task_set_priority (task, io_priority);
+        g_task_set_task_data (task, item, (GDestroyNotify)soup_message_queue_item_unref);
+
+        g_signal_connect_object (msg, "finished",
+                                 G_CALLBACK (preconnect_async_message_finished),
+                                 task, 0);
+
+        soup_session_kick_queue (session);
+}
+
+/**
+ * soup_session_preconnect_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ * @error: return location for a #GError, or %NULL
+ *
+ * Complete a preconnect async operation started with soup_session_preconnect_async().
+ *
+ * Return value: %TRUE if the preconnect succeeded, or %FALSE in case of error.
+ */
+gboolean
+soup_session_preconnect_finish (SoupSession  *session,
+                                GAsyncResult *result,
+                                GError      **error)
+{
+        g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
+        g_return_val_if_fail (g_task_is_valid (result, session), FALSE);
+
+        return g_task_propagate_boolean (G_TASK (result), error);
 }

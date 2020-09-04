@@ -63,6 +63,9 @@ SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,
 						SoupConnectionState state);
 
+void            soup_connection_set_reusable   (SoupConnection   *conn,
+                                                gboolean          reusable);
+
 gboolean        soup_connection_get_ever_used  (SoupConnection   *conn);
 
 void            soup_connection_send_request   (SoupConnection           *conn,

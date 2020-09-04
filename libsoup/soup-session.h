@@ -183,4 +183,18 @@ SoupWebsocketConnection *soup_session_websocket_connect_finish (SoupSession     
 								GAsyncResult         *result,
 								GError              **error);
 
+
+SOUP_AVAILABLE_IN_ALL
+void       soup_session_preconnect_async  (SoupSession        *session,
+					   SoupMessage        *msg,
+					   int                 io_priority,
+					   GCancellable       *cancellable,
+					   GAsyncReadyCallback callback,
+					   gpointer            user_data);
+SOUP_AVAILABLE_IN_ALL
+gboolean   soup_session_preconnect_finish (SoupSession        *session,
+					   GAsyncResult       *result,
+					   GError            **error);
+
+
 G_END_DECLS
