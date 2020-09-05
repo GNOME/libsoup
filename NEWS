@@ -1,3 +1,15 @@
+Changes in libsoup from 2.71.0 to 2.71.1:
+
+	* Add support for 308 Premanent Redirect [Benjamin Kaufmann]
+
+	* Add basic sysprof profiling for HTTP messages [Philip Withnall]
+
+	* Various build fixes [Tom Schoonjans, Chun-wei Fan]
+
+	* Updated translations: Korean, Finnish, Czech, Catalan, Croatian, Slovenian,
+	                        Japanese, Serbian, Galician, Basque, Trukish, Indonesian,
+							Friulian
+
 Changes in libsoup from 2.70.0 to 2.71.0:
 
 	* Redesign directory list returned for `file://` requests [Jan-Michael Brummer]
