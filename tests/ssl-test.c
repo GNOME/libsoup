@@ -3,7 +3,6 @@
 #include "test-utils.h"
 
 SoupURI *uri;
-GTlsDatabase *null_tlsdb;
 
 static void
 do_properties_test_for_session (SoupSession *session)
@@ -37,7 +36,7 @@ do_async_properties_tests (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_TLS_DATABASE, null_tlsdb,
+		      SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
 		      SOUP_SESSION_SSL_STRICT, FALSE,
 		      NULL);
 	do_properties_test_for_session (session);
@@ -53,7 +52,7 @@ do_sync_properties_tests (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_TLS_DATABASE, null_tlsdb,
+		      SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
 		      SOUP_SESSION_SSL_STRICT, FALSE,
 		      NULL);
 	do_properties_test_for_session (session);
@@ -106,7 +105,7 @@ do_strictness_test (gconstpointer data)
 	}
 	if (!test->with_ca_list) {
 		g_object_set (G_OBJECT (session),
-			      SOUP_SESSION_TLS_DATABASE, null_tlsdb,
+			      SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
 			      NULL);
 	}
 
@@ -433,7 +432,6 @@ main (int argc, char **argv)
 {
 	SoupServer *server = NULL;
 	int i, ret;
-	GError *error = NULL;
 
 	test_init (argc, argv, NULL);
 
@@ -441,9 +439,6 @@ main (int argc, char **argv)
 		server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 		soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 		uri = soup_test_server_get_uri (server, "https", "127.0.0.1");
-
-		null_tlsdb = g_tls_file_database_new ("/dev/null", &error);
-		g_assert_no_error (error);
 	} else
 		uri = NULL;
 
@@ -463,7 +458,6 @@ main (int argc, char **argv)
 	if (tls_available) {
 		soup_uri_free (uri);
 		soup_test_server_quit_unref (server);
-		g_object_unref (null_tlsdb);
 	}
 
 	test_cleanup ();
