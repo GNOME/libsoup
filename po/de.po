@@ -5,14 +5,14 @@
 # Mario Blättermann <mario.blaettermann@gmail.com>, 2012-2013, 2016, 2018.
 # Andre Jonas <nipsky@googlemail.com>, 2013.
 # Bernd Homuth <dev@hmt.im>, 2015.
-# Tim Sabsch <tim@sabsch.com>, 2018-2019.
+# Tim Sabsch <tim@sabsch.com>, 2018-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-23 21:37+0200\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-09-09 19:02+0200\n"
 "Last-Translator: Tim Sabsch <tim@sabsch.com>\n"
 "Language-Team: Deutsch <gnome-de@gnome.org>\n"
 "Language: de\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.2.1\n"
+"X-Generator: Poedit 2.4.1\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -42,6 +42,18 @@ msgstr "Netzwerk-Stream wurde unerwartet geschlossen"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Das vollständige Zwischenspeichern der Ressource ist fehlgeschlagen"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Name"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Größe"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Änderungsdatum"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -82,31 +94,31 @@ msgstr "Es wurde keine Adresse bereitgestellt"
 msgid "Invalid “%s” URI: %s"
 msgstr "Ungültige »%s«-Adresse: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "TLS-Server kann nicht ohne TLS-Zertifikat erstellt werden"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Auf Adresse %s, Port %d kann nicht gehört werden: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Die Adresse »%s« konnte nicht verarbeitet werden"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Nicht unterstütztes Adressenschema »%s«"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Keine HTTP-Adresse"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Der Server hat den WebSocket-Handshake nicht angenommen."
 
