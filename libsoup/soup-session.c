@@ -3944,7 +3944,8 @@ async_send_request_restarted (SoupMessage *msg, gpointer user_data)
 	SoupMessageQueueItem *item = user_data;
 
 	/* We won't be needing this, then. */
-	g_object_set_data (G_OBJECT (item->msg), "SoupSession:ostream", NULL);
+	if (item->task)
+		g_object_set_data (G_OBJECT (item->task), "SoupSession:ostream", NULL);
 	item->io_started = FALSE;
 }
 

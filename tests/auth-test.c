@@ -1490,6 +1490,65 @@ do_message_has_authorization_header_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+cancel_after_retry_authenticate (SoupSession  *session,
+                                 SoupMessage  *msg,
+                                 SoupAuth     *auth,
+                                 gboolean      retrying,
+                                 GCancellable *cancellable)
+{
+        if (retrying) {
+                soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
+                g_cancellable_cancel (cancellable);
+        } else
+                soup_auth_authenticate (auth, "user1", "wrong");
+}
+
+static void
+request_send_cb (SoupSession  *session,
+                 GAsyncResult *result,
+                 GMainLoop    *loop)
+{
+        GInputStream *stream;
+        GError *error = NULL;
+
+        stream = soup_session_send_finish (session, result, &error);
+        g_assert_null (stream);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+
+        g_main_loop_quit (loop);
+}
+
+static void
+do_cancel_after_retry_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        char *uri;
+        GCancellable *cancellable;
+        GMainLoop *loop;
+
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+
+        session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        cancellable = g_cancellable_new ();
+        g_signal_connect (session, "authenticate",
+                          G_CALLBACK (cancel_after_retry_authenticate),
+                          cancellable);
+
+        loop = g_main_loop_new (NULL, FALSE);
+
+        uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
+        msg = soup_message_new ("GET", uri);
+        soup_session_send_async (session, msg, cancellable, (GAsyncReadyCallback)request_send_cb, loop);
+        g_main_loop_run (loop);
+
+        g_object_unref (msg);
+        g_object_unref (cancellable);
+        g_free (uri);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1516,6 +1575,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/message-do-not-use-auth-cache", do_message_do_not_use_auth_cache_test);
 	g_test_add_func ("/auth/async-message-do-not-use-auth-cache", do_async_message_do_not_use_auth_cache_test);
 	g_test_add_func ("/auth/authorization-header-request", do_message_has_authorization_header_test);
+	g_test_add_func ("/auth/cancel-after-retry", do_cancel_after_retry_test);
 
 	ret = g_test_run ();
 
