@@ -1,14 +1,14 @@
 # Italian translations for libsoup package
-# Copyright (C) 2012, 2013, 2014, 2015, 2017, 2018, 2019 the Free Software Foundation, Inc.
+# Copyright (C) 2012, 2013, 2014, 2015, 2017, 2018, 2019, 2020 the Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Milo Casagrande <milo@milo.name>, 2012, 2013, 2014, 2015, 2017, 2018, 2019.
+# Milo Casagrande <milo@milo.name>, 2012, 2013, 2014, 2015, 2017, 2018, 2019, 2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-20 10:42+0200\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-09-02 10:46+0200\n"
 "Last-Translator: Milo Casagrande <milo@milo.name>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
-"X-Generator: Poedit 2.2.3\n"
+"X-Generator: Poedit 2.4.1\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -38,6 +38,18 @@ msgstr "Flusso di rete chiuso inaspettatamente"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Salvataggio in memoria della risorsa non riuscito"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nome"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Dimensione"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Data di modifica"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -78,31 +90,31 @@ msgstr "Nessun URI fornito"
 msgid "Invalid “%s” URI: %s"
 msgstr "URI «%s» non valido: %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impossibile creare un server TLS senza un certificato TLS"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impossibile restare in ascolto sull'indirizzo %s, porta %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Impossibile analizzare l'URI «%s»"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Schema URI «%s» non supportato"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Non è uno URI HTTP"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Il server non ha accettato l'handshake WebSocket."
 
