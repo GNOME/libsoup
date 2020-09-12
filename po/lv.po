@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Tranzistors <rudolfs.mazurs@gmail.com>, 2012.
-# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014, 2016, 2017, 2018, 2019.
+# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014, 2016, 2017, 2018, 2019, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-07-31 12:10+0000\n"
-"PO-Revision-Date: 2019-08-24 17:24+0200\n"
+"POT-Creation-Date: 2020-06-26 17:08+0000\n"
+"PO-Revision-Date: 2020-09-12 13:15+0300\n"
 "Last-Translator: Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>\n"
 "Language-Team: Latvian <lata-l10n@googlegroups.com>\n"
 "Language: lv\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 :"
 " 2);\n"
-"X-Generator: Lokalize 2.0\n"
+"X-Generator: Lokalize 19.12.3\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
 #: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
@@ -40,6 +40,18 @@ msgstr "Tīkla straume negaidīti aizvērās"
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Neizdevās resursu pilnībā noglabāt kešatmiņā"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nosaukums"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Izmērs"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Izmaiņu datums"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
@@ -80,31 +92,31 @@ msgstr "Nav sniegts URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "Nederīgs “%s” URI — %s"
 
-#: libsoup/soup-server.c:1797
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Bez TLS sertifikāta nevar izveidot TLS serveri"
 
-#: libsoup/soup-server.c:1814
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nevarēja sākt klausīties adresi %s, portu %d: "
 
-#: libsoup/soup-session.c:4535
+#: libsoup/soup-session.c:4570
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Nevarēja parsēt URI “%s”"
 
-#: libsoup/soup-session.c:4572
+#: libsoup/soup-session.c:4607
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Neatbalstīta URI shēma “%s”"
 
-#: libsoup/soup-session.c:4594
+#: libsoup/soup-session.c:4629
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nav HTTP URI"
 
-#: libsoup/soup-session.c:4805
+#: libsoup/soup-session.c:4840
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveris nepieņēma WebSocket rokasspiedienu."
 
@@ -194,4 +206,3 @@ msgstr "Datora nosaukumam nav bāzes domēna"
 #: libsoup/soup-tld.c:196
 msgid "Not enough domains"
 msgstr "Nepietiekami daudz domēnu"
-
