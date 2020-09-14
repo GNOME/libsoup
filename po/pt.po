@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 3.8\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-07-08 18:29+0000\n"
-"PO-Revision-Date: 2020-09-13 10:41-0300\n"
+"POT-Creation-Date: 2020-09-13 13:43+0000\n"
+"PO-Revision-Date: 2020-09-14 20:50-0300\n"
 "Last-Translator: Juliano de Souza Camargo <julianosc@protonmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt\n"
@@ -22,7 +22,7 @@ msgstr ""
 "X-Generator: Gtranslator 3.36.0\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
 msgid "Connection terminated unexpectedly"
 msgstr "Ligação terminou inesperadamente"
 
@@ -42,6 +42,18 @@ msgstr "Fluxo de rede terminado inesperadamente"
 msgid "Failed to completely cache the resource"
 msgstr "Falha ao colocar o recurso totalmente em cache"
 
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Nome"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Tamanho"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Data de modificação"
+
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
@@ -55,15 +67,15 @@ msgstr "Impossível processar a resposta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codificação de resposta HTTP desconhecida"
 
-#: libsoup/soup-message-io.c:261
+#: libsoup/soup-message-io.c:269
 msgid "Header too big"
 msgstr "Cabeçalho demasiado grande"
 
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "A operação iria bloquear"
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "A operação foi cancelada"
 
@@ -78,12 +90,10 @@ msgstr "Nenhum URI especificado"
 
 #: libsoup/soup-request.c:151
 #, c-format
-#| msgid "Invalid '%s' URI: %s"
 msgid "Invalid “%s” URI: %s"
 msgstr "URI “%s” inválido: %s"
 
 #: libsoup/soup-server.c:1810
-#| msgid "Can't create a TLS server without a TLS certificate"
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impossível criar um servidor TLS sem um certificado TLS"
 
@@ -92,29 +102,26 @@ msgstr "Impossível criar um servidor TLS sem um certificado TLS"
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impossível ouvir no endereço %s, porta %d: "
 
-#: libsoup/soup-session.c:4566
+#: libsoup/soup-session.c:4585
 #, c-format
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse URI “%s”"
 msgstr "Impossível processar o URI “%s”"
 
-#: libsoup/soup-session.c:4603
+#: libsoup/soup-session.c:4622
 #, c-format
-#| msgid "Unsupported URI scheme '%s'"
 msgid "Unsupported URI scheme “%s”"
 msgstr "Esquema de URI “%s” não suportado"
 
-#: libsoup/soup-session.c:4625
+#: libsoup/soup-session.c:4644
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Não é um URI HTTP"
 
-#: libsoup/soup-session.c:4836
+#: libsoup/soup-session.c:4855
 msgid "The server did not accept the WebSocket handshake."
 msgstr "O servidor não aceitou o handshake WebSocket."
 
 #: libsoup/soup-socket.c:148
-#| msgid "Can't import non-socket as SoupSocket"
 msgid "Can’t import non-socket as SoupSocket"
 msgstr "Impossível importar não socket como SoupSocket"
 
@@ -123,7 +130,6 @@ msgid "Could not import existing socket: "
 msgstr "Impossível importar socket existente: "
 
 #: libsoup/soup-socket.c:175
-#| msgid "Can't import unconnected socket"
 msgid "Can’t import unconnected socket"
 msgstr "Impossível importar socket desligado"
 
@@ -134,13 +140,11 @@ msgstr "O servidor pediu uma extensão não suportada"
 
 #: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
-#| msgid "Incorrect WebSocket \"%s\" header"
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Cabeçalho WebSocket “%s” incorreto"
 
 #: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
-#| msgid "Server returned incorrect \"%s\" key"
 msgid "Server returned incorrect “%s” key"
 msgstr "O servidor devolveu uma chave “%s” incorreta"
 
