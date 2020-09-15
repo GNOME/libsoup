@@ -117,7 +117,8 @@ idle_start_test1_thread (gpointer user_data)
 }
 
 static void
-test1_finished (SoupSession *session, SoupMessage *msg, gpointer loop)
+test1_finished (SoupMessage *msg,
+		GMainLoop   *loop)
 {
 	g_main_loop_quit (loop);
 }
@@ -152,9 +153,13 @@ test1_thread (gpointer user_data)
 	debug_printf (1, "  queue_message\n");
 	msg = soup_message_new ("GET", uri);
 	loop = g_main_loop_new (async_context, FALSE);
-	g_object_ref (msg);
-	soup_session_queue_message (session, msg, test1_finished, loop);
+	g_signal_connect (msg, "finished", G_CALLBACK (test1_finished), loop);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_main_loop_run (loop);
+	/* We need one more iteration, because SoupMessage::finished is emitted
+         * right before the message is unqueued.
+         */
+        g_main_context_iteration (async_context, TRUE);
 	g_main_loop_unref (loop);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);

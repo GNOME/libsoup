@@ -336,6 +336,7 @@ test_sniffing (const char *path, const char *expected_type)
 {
 	SoupURI *uri;
 	SoupMessage *msg;
+	GBytes *body;
 	SoupRequest *req;
 	GInputStream *stream;
 	char *sniffed_type = NULL;
@@ -348,9 +349,10 @@ test_sniffing (const char *path, const char *expected_type)
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	g_assert_cmpstr (sniffed_type, ==, expected_type);
 	g_free (sniffed_type);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	req = soup_session_request_uri (session, uri, NULL);
@@ -388,6 +390,7 @@ test_disabled (gconstpointer data)
 	const char *path = data;
 	SoupURI *uri;
 	SoupMessage *msg;
+	GBytes *body;
 	SoupRequest *req;
 	GInputStream *stream;
 	char *sniffed_type = NULL;
@@ -406,9 +409,10 @@ test_disabled (gconstpointer data)
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 
 	g_assert_null (sniffed_type);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	req = soup_session_request_uri (session, uri, NULL);

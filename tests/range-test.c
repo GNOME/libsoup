@@ -7,8 +7,11 @@ int total_length;
 char *test_response;
 
 static void
-check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
-	    gboolean check_start_end, int expected_start, int expected_end)
+check_part (SoupMessageHeaders *headers,
+	    GBytes             *body,
+	    gboolean            check_start_end,
+	    int                 expected_start,
+	    int                 expected_end)
 {
 	goffset start, end, total_length;
         gsize full_response_length = g_bytes_get_size (full_response);
@@ -46,14 +49,14 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 		}
 	}
 
-	if (end - start + 1 != body_len) {
+	if (end - start + 1 != g_bytes_get_size (body)) {
 		soup_test_assert (FALSE, "Range length (%d) does not match body length (%d)\n",
 				  (int)(end - start) + 1,
-				  (int)body_len);
+				  (int)g_bytes_get_size (body));
 		return;
 	}
 
-	memcpy (test_response + start, body, body_len);
+	memcpy (test_response + start, g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 }
 
 static void
@@ -61,11 +64,12 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 		 int start, int end, gboolean succeed)
 {
 	const char *content_type;
+	GBytes *body;
 
 	debug_printf (1, "    Range: %s\n",
 		      soup_message_headers_get_one (msg->request_headers, "Range"));
 
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 
 	if (!succeed) {
 		soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
@@ -88,8 +92,8 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 		msg->response_headers, NULL);
 	g_assert_cmpstr (content_type, !=, "multipart/byteranges");
 
-	check_part (msg->response_headers, msg->response_body->data,
-		    msg->response_body->length, TRUE, start, end);
+	check_part (msg->response_headers, body, TRUE, start, end);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 }
 
@@ -111,11 +115,16 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 	SoupMultipart *multipart;
 	const char *content_type;
 	int i, length;
+	GBytes *body;
+	SoupMessageBody *message_body;
 
 	debug_printf (1, "    Range: %s\n",
 		      soup_message_headers_get_one (msg->request_headers, "Range"));
 
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
+	message_body = soup_message_body_new ();
+	soup_message_body_append_bytes (message_body, body);
+	g_bytes_unref (body);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
 
@@ -123,7 +132,8 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 	g_assert_cmpstr (content_type, ==, "multipart/byteranges");
 
 	multipart = soup_multipart_new_from_message (msg->response_headers,
-						     msg->response_body);
+						     message_body);
+	soup_message_body_free (message_body);
 	if (!multipart) {
 		soup_test_assert (FALSE, "Could not parse multipart");
 		g_object_unref (msg);
@@ -139,7 +149,7 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 
 		debug_printf (1, "  Part %d\n", i + 1);
 		soup_multipart_get_part (multipart, i, &headers, &body);
-		check_part (headers, g_bytes_get_data (body, NULL), g_bytes_get_size (body), FALSE, 0, 0);
+		check_part (headers, body, FALSE, 0, 0);
 	}
 
 	soup_multipart_free (multipart);

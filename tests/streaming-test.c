@@ -77,23 +77,25 @@ do_request (SoupSession *session, SoupURI *base_uri, char *path)
 {
 	SoupURI *uri;
 	SoupMessage *msg;
+	GBytes *body;
 	char *md5;
 
 	uri = soup_uri_new_with_base (base_uri, path);
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_cmpint (msg->response_body->length, ==, g_bytes_get_size (full_response));
+	g_assert_cmpint (g_bytes_get_size (body), ==, g_bytes_get_size (full_response));
 
 	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
-					   (guchar *)msg->response_body->data,
-					   msg->response_body->length);
+					   (guchar *)g_bytes_get_data (body, NULL),
+					   g_bytes_get_size (body));
 	g_assert_cmpstr (md5, ==, full_response_md5);
 	g_free (md5);
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 }
 

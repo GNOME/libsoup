@@ -159,7 +159,8 @@ do_host_big_header (void)
  * (This test will crash if it fails.)
  */
 static void
-cu_one_completed (SoupSession *session, SoupMessage *msg, gpointer loop)
+cu_one_completed (SoupMessage *msg,
+		  SoupSession *session)
 {
 	debug_printf (2, "  Message 1 completed\n");
 	soup_test_assert_message_status (msg, SOUP_STATUS_CANT_CONNECT);
@@ -174,7 +175,8 @@ cu_idle_quit (gpointer loop)
 }
 
 static void
-cu_two_completed (SoupSession *session, SoupMessage *msg, gpointer loop)
+cu_two_completed (SoupMessage *msg,
+		  GMainLoop   *loop)
 {
 	debug_printf (2, "  Message 2 completed\n");
 	soup_test_assert_message_status (msg, SOUP_STATUS_CANT_CONNECT);
@@ -203,13 +205,19 @@ do_callback_unref_test (void)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	one = soup_message_new_from_uri ("GET", bad_uri);
+	g_signal_connect (one, "finished",
+			  G_CALLBACK (cu_one_completed), session);
 	g_object_add_weak_pointer (G_OBJECT (one), (gpointer *)&one);
 	two = soup_message_new_from_uri ("GET", bad_uri);
+	g_signal_connect (two, "finished",
+			  G_CALLBACK (cu_two_completed), loop);
 	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
 	soup_uri_free (bad_uri);
 
-	soup_session_queue_message (session, one, cu_one_completed, loop);
-	soup_session_queue_message (session, two, cu_two_completed, loop);
+	soup_session_send_async (session, one, NULL, NULL, NULL);
+	soup_session_send_async (session, two, NULL, NULL, NULL);
+	g_object_unref (one);
+	g_object_unref (two);
 
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
@@ -400,7 +408,8 @@ do_msg_reuse_test (void)
 
 /* Handle unexpectedly-early aborts. */
 static void
-ea_msg_completed_one (SoupSession *session, SoupMessage *msg, gpointer loop)
+ea_msg_completed_one (SoupMessage *msg,
+		      GMainLoop   *loop)
 {
 	debug_printf (2, "  Message 1 completed\n");
 	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
@@ -447,6 +456,7 @@ do_early_abort_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	GMainContext *context;
 	GMainLoop *loop;
 
@@ -458,7 +468,10 @@ do_early_abort_test (void)
 
 	context = g_main_context_default ();
 	loop = g_main_loop_new (context, TRUE);
-	soup_session_queue_message (session, msg, ea_msg_completed_one, loop);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (ea_msg_completed_one), loop);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	g_object_unref (msg);
 	g_main_context_iteration (context, FALSE);
 
 	soup_session_abort (session);
@@ -472,10 +485,11 @@ do_early_abort_test (void)
 
 	g_signal_connect (session, "connection-created",
 			  G_CALLBACK (ea_connection_created), NULL);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	debug_printf (2, "  Message 2 completed\n");
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	while (g_main_context_pending (context))
@@ -490,10 +504,11 @@ do_early_abort_test (void)
 
 	g_signal_connect (msg, "starting",
 			  G_CALLBACK (ea_message_starting), session);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	debug_printf (2, "  Message 3 completed\n");
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	while (g_main_context_pending (context))
@@ -666,10 +681,9 @@ cancel_message_timeout (gpointer msg)
 }
 
 static void
-set_done (SoupSession *session, SoupMessage *msg, gpointer user_data)
+set_done (SoupMessage *msg,
+	  gboolean    *done)
 {
-	gboolean *done = user_data;
-
 	*done = TRUE;
 }
 
@@ -693,10 +707,15 @@ do_cancel_while_reading_test_for_session (SoupSession *session)
 	 * because it holds an extra ref on the SoupMessageQueueItem
 	 * relative to soup_session_queue_message().
 	 */
-	g_object_ref (msg);
-	soup_session_queue_message (session, msg, set_done, &done);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (set_done), &done);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	while (!done)
 		g_main_context_iteration (NULL, TRUE);
+	/* We need one more iteration, because SoupMessage::finished is emitted
+	 * right before the message is unqueued.
+	 */
+	g_main_context_iteration (NULL, TRUE);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
 	g_object_unref (msg);
@@ -847,10 +866,11 @@ do_pause_abort_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_queue_message (session, msg, NULL, NULL);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	soup_session_pause_message (session, msg);
 
 	g_object_add_weak_pointer (G_OBJECT (msg), &ptr);
+	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
 
 	g_assert_null (ptr);
@@ -867,13 +887,22 @@ pause_cancel_got_headers (SoupMessage *msg, gpointer user_data)
 	g_main_loop_quit (pause_cancel_loop);
 }
 
-static void
-pause_cancel_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
+static gboolean
+idle_quit (gpointer loop)
 {
-	gboolean *finished = user_data;
+	g_main_loop_quit (loop);
+	return FALSE;
+}
 
+static void
+pause_cancel_finished (SoupMessage *msg,
+		       gboolean    *finished)
+{
 	*finished = TRUE;
-	g_main_loop_quit (pause_cancel_loop);
+	/* Quit the main loop in the next iteration, because finished is emitted
+	 * right before the item is unqueued.
+	 */
+	g_idle_add (idle_quit, pause_cancel_loop);
 }
 
 static gboolean
@@ -902,11 +931,11 @@ do_pause_cancel_test (void)
 	timeout_id = g_timeout_add_seconds (5, pause_cancel_timeout, &timed_out);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	g_object_ref (msg);
 	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (pause_cancel_got_headers), session);
-
-	soup_session_queue_message (session, msg, pause_cancel_finished, &finished);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (pause_cancel_finished), &finished);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_main_loop_run (pause_cancel_loop);
 	g_assert_false (finished);
 
@@ -1003,7 +1032,8 @@ upgrade_server_callback (SoupServer *server, SoupMessage *msg,
 }
 
 static void
-callback_not_reached (SoupSession *session, SoupMessage *msg, gpointer user_data)
+callback_not_reached (SoupMessage *msg,
+		      gpointer     user_data)
 {
 	g_assert_not_reached ();
 }
@@ -1055,8 +1085,9 @@ do_stealing_test (gconstpointer data)
 		soup_session_send_message (session, msg);
 		soup_test_assert_message_status (msg, SOUP_STATUS_SWITCHING_PROTOCOLS);
 	} else {
-		g_object_ref (msg);
-		soup_session_queue_message (session, msg, callback_not_reached, NULL);
+		g_signal_connect (msg, "finished",
+				  G_CALLBACK (callback_not_reached), NULL);
+		soup_session_send_async (session, msg, NULL, NULL, NULL);
 		while (iostream == NULL)
 			g_main_context_iteration (NULL, TRUE);
 	}

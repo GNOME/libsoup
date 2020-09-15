@@ -51,9 +51,12 @@ typedef enum {
 	SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH = (1 << 5),
 } SoupTestRequestFlags;
 
-SoupSession *soup_test_session_new         (GType type, ...);
-void         soup_test_session_abort_unref (SoupSession *session);
-guint        soup_test_session_async_send_message (SoupSession *session, SoupMessage *msg);
+SoupSession *soup_test_session_new                (GType type, ...);
+void         soup_test_session_abort_unref        (SoupSession *session);
+GBytes      *soup_test_session_async_send         (SoupSession *session,
+						   SoupMessage *msg);
+guint        soup_test_session_async_send_message (SoupSession *session,
+						   SoupMessage *msg);
 
 typedef enum {
 	SOUP_TEST_SERVER_DEFAULT             = 0,

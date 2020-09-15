@@ -56,9 +56,23 @@ typedef struct {
 static void fully_async_got_headers (SoupMessage *msg, gpointer user_data);
 static void fully_async_got_chunk   (SoupMessage *msg, GBytes *chunk,
 				     gpointer user_data);
-static void fully_async_finished    (SoupSession *session, SoupMessage *msg,
-				     gpointer user_data);
 static gboolean fully_async_request_chunk (gpointer user_data);
+
+static void
+fully_async_finished (SoupMessage    *msg,
+		      FullyAsyncData *ad)
+{
+	soup_test_assert_message_status (msg, ad->expected_status);
+
+	if (ad->timeout != 0)
+		g_source_remove (ad->timeout);
+
+	/* Since our test program is only running the loop for the
+	 * purpose of this one test, we quit the loop once the
+	 * test is done.
+	 */
+	g_main_loop_quit (ad->loop);
+}
 
 static void
 do_fully_async_test (SoupSession *session,
@@ -99,8 +113,10 @@ do_fully_async_test (SoupSession *session,
 	g_signal_connect (msg, "got_headers",
 			  G_CALLBACK (fully_async_got_headers), &ad);
 
-	/* Queue the request */
-	soup_session_queue_message (session, msg, fully_async_finished, &ad);
+	/* Send the request */
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (fully_async_finished), &ad);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 
 	/* In a real program, we'd probably just return at this point.
 	 * Eventually the caller would return all the way to the main
@@ -209,24 +225,6 @@ fully_async_got_chunk (SoupMessage *msg, GBytes *chunk, gpointer user_data)
 	ad->chunk_wanted = FALSE;
 
 	ad->timeout = g_timeout_add (10, fully_async_request_chunk, ad);
-}
-
-static void
-fully_async_finished (SoupSession *session, SoupMessage *msg,
-		      gpointer user_data)
-{
-	FullyAsyncData *ad = user_data;
-
-	soup_test_assert_message_status (msg, ad->expected_status);
-
-	if (ad->timeout != 0)
-		g_source_remove (ad->timeout);
-
-	/* Since our test program is only running the loop for the
-	 * purpose of this one test, we quit the loop once the
-	 * test is done.
-	 */
-	g_main_loop_quit (ad->loop);
 }
 
 static void

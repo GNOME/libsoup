@@ -512,7 +512,7 @@ max_conns_request_started (SoupSession *session, SoupMessage *msg, gpointer user
 }
 
 static void
-max_conns_message_complete (SoupSession *session, SoupMessage *msg, gpointer user_data)
+max_conns_message_complete (SoupMessage *msg, gpointer user_data)
 {
 	if (++msgs_done == TEST_CONNS)
 		g_main_loop_quit (max_conns_loop);
@@ -534,9 +534,9 @@ do_max_conns_test_for_session (SoupSession *session)
 	msgs_done = 0;
 	for (i = 0; i < TEST_CONNS - 1; i++) {
 		msgs[i] = soup_message_new_from_uri ("GET", base_uri);
-		g_object_ref (msgs[i]);
-		soup_session_queue_message (session, msgs[i],
-					    max_conns_message_complete, NULL);
+		g_signal_connect (msgs[i], "finished",
+				  G_CALLBACK (max_conns_message_complete), NULL);
+		soup_session_send_async (session, msgs[i], NULL, NULL, NULL);
 	}
 
 	g_main_loop_run (max_conns_loop);
@@ -550,9 +550,9 @@ do_max_conns_test_for_session (SoupSession *session)
 	msgs[i] = soup_message_new_from_uri ("GET", base_uri);
 	flags = soup_message_get_flags (msgs[i]);
 	soup_message_set_flags (msgs[i], flags | SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
-	g_object_ref (msgs[i]);
-	soup_session_queue_message (session, msgs[i],
-				    max_conns_message_complete, NULL);
+	g_signal_connect (msgs[i], "finished",
+			  G_CALLBACK (max_conns_message_complete), NULL);
+	soup_session_send_async (session, msgs[i], NULL, NULL, NULL);
 
 	g_main_loop_run (max_conns_loop);
 	g_assert_cmpint (msgs_done, ==, MAX_CONNS + 1);
@@ -621,8 +621,8 @@ np_request_unqueued (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-np_request_finished (SoupSession *session, SoupMessage *msg,
-		     gpointer user_data)
+np_request_finished (SoupMessage *msg,
+		     gpointer     user_data)
 {
 	GMainLoop *loop = user_data;
 
@@ -647,9 +647,9 @@ do_non_persistent_test_for_session (SoupSession *session)
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	soup_message_headers_append (msg->request_headers, "Connection", "close");
-	g_object_ref (msg);
-	soup_session_queue_message (session, msg,
-				    np_request_finished, loop);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (np_request_finished), loop);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 

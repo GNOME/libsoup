@@ -59,6 +59,7 @@ do_message (const char *path, gboolean long_body,
 	const char *expected_event;
 	char *actual_event;
 	int expected_status, actual_status;
+	GBytes *response_body;
 
 	uri = soup_uri_copy (base_uri);
 	if (auth) {
@@ -96,7 +97,7 @@ do_message (const char *path, gboolean long_body,
 	events = NULL;
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
         g_assert (SOUP_IS_MESSAGE (msg));
-	soup_test_session_async_send_message (session, msg);
+	response_body = soup_test_session_async_send (session, msg);
         g_assert (SOUP_IS_MESSAGE (msg));
 	soup_test_session_abort_unref (session);
         g_assert (SOUP_IS_MESSAGE (msg));
@@ -148,6 +149,7 @@ do_message (const char *path, gboolean long_body,
 		    !strcmp (actual_event, "server-wrote_informational"))
 			events = g_slist_delete_link (events, events);
 	}
+	g_bytes_unref (response_body);
 	g_object_unref (msg);
 }
 

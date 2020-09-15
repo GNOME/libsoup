@@ -42,10 +42,9 @@ server_handler (SoupServer        *server,
 }
 
 static void
-finished_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
+finished_cb (SoupMessage *msg,
+	     gboolean    *finished)
 {
-	gboolean *finished = user_data;
-
 	*finished = TRUE;
 }
 
@@ -77,7 +76,10 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 
 	msg = soup_message_new_from_uri ("GET", uri);
 	server_processed_message = timeout = finished = FALSE;
-	soup_session_queue_message (session, msg, finished_cb, &finished);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (finished_cb), &finished);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	g_object_unref (msg);
 	while (!timeout)
 		g_usleep (100);
 	debug_printf (2, "    got timeout\n");
@@ -121,9 +123,10 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 
 	debug_printf (1, "  cancel_message\n");
 	msg = soup_message_new_from_uri ("GET", uri);
-	g_object_ref (msg);
 	finished = FALSE;
-	soup_session_queue_message (session, msg, finished_cb, &finished);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (finished_cb), &finished);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (cancel_message_cb), session);
 
@@ -139,6 +142,10 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 		debug_printf (2, "    waiting for finished\n");
 		while (!finished)
 			g_main_context_iteration (NULL, TRUE);
+		/* We need one iteration more because finished is emitted
+		 * right before the item is unqueued.
+		 */
+		g_main_context_iteration (NULL, TRUE);
 	}
 	g_main_loop_unref (loop);
 
@@ -158,9 +165,9 @@ do_plain_tests (gconstpointer data)
 }
 
 static void
-priority_test_finished_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
+priority_test_finished_cb (SoupMessage *msg,
+			   guint       *finished_count)
 {
-	guint *finished_count = user_data;
 	SoupMessagePriority priority = soup_message_get_priority (msg);
 
 	debug_printf (1, "  received message %d with priority %d\n",
@@ -204,7 +211,10 @@ do_priority_tests (gconstpointer data)
 		soup_uri_free (msg_uri);
 
 		soup_message_set_priority (msg, priorities[i]);
-		soup_session_queue_message (session, msg, priority_test_finished_cb, &finished_count);
+		g_signal_connect (msg, "finished",
+				  G_CALLBACK (priority_test_finished_cb), &finished_count);
+		soup_session_send_async (session, msg, NULL, NULL, NULL);
+		g_object_unref (msg);
 	}
 
 	debug_printf (2, "    waiting for finished\n");

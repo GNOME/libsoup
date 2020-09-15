@@ -372,6 +372,7 @@ do_ipv6_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	GError *error = NULL;
 
 	g_test_bug ("666399");
@@ -395,15 +396,17 @@ do_ipv6_test (ServerData *sd, gconstpointer test_data)
 
 	debug_printf (1, "  HTTP/1.1\n");
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	debug_printf (1, "  HTTP/1.0\n");
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	soup_message_set_http_version (msg, SOUP_HTTP_1_0);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -444,6 +447,7 @@ do_multi_test (ServerData *sd, SoupURI *uri1, SoupURI *uri2)
 	char *uristr;
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 
 	server_add_handler (sd, NULL, multi_server_callback, NULL, NULL);
 
@@ -451,17 +455,19 @@ do_multi_test (ServerData *sd, SoupURI *uri1, SoupURI *uri2)
 
 	uristr = soup_uri_to_string (uri1, FALSE);
 	msg = soup_message_new ("GET", uristr);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_cmpstr (msg->response_body->data, ==, uristr);
+	g_assert_cmpmem (uristr, strlen (uristr), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	g_free (uristr);
 
 	uristr = soup_uri_to_string (uri2, FALSE);
 	msg = soup_message_new ("GET", uristr);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_cmpstr (msg->response_body->data, ==, uristr);
+	g_assert_cmpmem (uristr, strlen (uristr), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	g_free (uristr);
 
@@ -588,6 +594,7 @@ do_gsocket_import_test (void)
 	SoupURI *uri;
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	GError *error = NULL;
 
 	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
@@ -628,8 +635,9 @@ do_gsocket_import_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -651,6 +659,7 @@ do_fd_import_test (void)
 	SoupURI *uri;
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	int type;
 	GError *error = NULL;
 
@@ -692,8 +701,9 @@ do_fd_import_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -887,6 +897,7 @@ do_fail_404_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	UnhandledServerData usd;
 
 	usd.handler_called = usd.paused = FALSE;
@@ -895,8 +906,9 @@ do_fail_404_test (ServerData *sd, gconstpointer test_data)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	g_assert_false (usd.handler_called);
@@ -910,6 +922,7 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 {
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	UnhandledServerData usd;
 
 	usd.handler_called = usd.paused = FALSE;
@@ -920,8 +933,9 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	if (pause)
 		soup_message_headers_append (msg->request_headers, "X-Test-Server-Pause", "true");
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	g_assert_true (usd.handler_called);

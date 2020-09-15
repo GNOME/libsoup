@@ -272,7 +272,7 @@ bug271540_authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-bug271540_finished (SoupSession *session, SoupMessage *msg, gpointer data)
+bug271540_finished (SoupMessage *msg, gpointer data)
 {
 	int *left = data;
 
@@ -309,8 +309,10 @@ do_pipelined_auth_test (void)
 		g_signal_connect (msg, "wrote_headers",
 				  G_CALLBACK (bug271540_sent), &authenticated);
 
-		soup_session_queue_message (session, msg,
-					    bug271540_finished, &i);
+		g_signal_connect (msg, "finished",
+				  G_CALLBACK (bug271540_finished), &i);
+		soup_session_send_async (session, msg, NULL, NULL, NULL);
+		g_object_unref (msg);
 	}
 	g_free (uri);
 
@@ -509,7 +511,8 @@ async_authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-async_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
+async_finished (SoupMessage *msg,
+		gpointer     user_data)
 {
 	int *remaining = user_data;
 	int id = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "id"));
@@ -571,9 +574,10 @@ do_async_auth_good_password_test (void)
 	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate), &auth);
-	g_object_ref (msg1);
 	remaining++;
-	soup_session_queue_message (session, msg1, async_finished, &remaining);
+	g_signal_connect (msg1, "finished",
+			  G_CALLBACK (async_finished), &remaining);
+	soup_session_send_async (session, msg1, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 
@@ -596,9 +600,10 @@ do_async_auth_good_password_test (void)
 	g_object_set_data (G_OBJECT (msg3), "id", GINT_TO_POINTER (3));
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate), NULL);
-	g_object_ref (msg3);
 	remaining++;
-	soup_session_queue_message (session, msg3, async_finished, &remaining);
+	g_signal_connect (msg3, "finished",
+			  G_CALLBACK (async_finished), &remaining);
+	soup_session_send_async (session, msg3, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 
@@ -659,9 +664,10 @@ do_async_auth_bad_password_test (void)
 	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (1));
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate), &auth);
-	g_object_ref (msg);
 	remaining++;
-	soup_session_queue_message (session, msg, async_finished, &remaining);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (async_finished), &remaining);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 	soup_auth_authenticate (auth, "user1", "wrong");
@@ -713,9 +719,10 @@ do_async_auth_no_password_test (void)
 	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (1));
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate), NULL);
-	g_object_ref (msg);
 	remaining++;
-	soup_session_queue_message (session, msg, async_finished, &remaining);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (async_finished), &remaining);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 	soup_session_unpause_message (session, msg);
@@ -725,13 +732,14 @@ do_async_auth_no_password_test (void)
 	/* Now send a second message */
 	msg = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (2));
-	g_object_ref (msg);
 	been_there = FALSE;
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate_assert_once_and_stop),
 				    &been_there);
 	remaining++;
-	soup_session_queue_message (session, msg, async_finished, &remaining);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (async_finished), &remaining);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	soup_session_unpause_message (session, msg);
 
@@ -1020,6 +1028,7 @@ do_auth_close_test (void)
 	SoupAuthDomain *basic_auth_domain;
 	SoupURI *uri;
 	AuthCloseData acd;
+	GBytes *body;
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (server, NULL,
@@ -1045,10 +1054,11 @@ do_auth_close_test (void)
 
 	acd.msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
-	soup_test_session_async_send_message (acd.session, acd.msg);
+	body = soup_test_session_async_send (acd.session, acd.msg);
 
 	soup_test_assert_message_status (acd.msg, SOUP_STATUS_OK);
 
+	g_bytes_unref (body);
 	g_object_unref (acd.msg);
 	soup_test_session_abort_unref (acd.session);
 	soup_test_server_quit_unref (server);
@@ -1131,6 +1141,7 @@ do_disappearing_auth_test (void)
 	SoupMessage *msg;
 	SoupSession *session;
 	int counter;
+	GBytes *body;
 
 	g_test_bug_base ("https://bugzilla.redhat.com/");
 	g_test_bug ("916224");
@@ -1156,12 +1167,13 @@ do_disappearing_auth_test (void)
 			  G_CALLBACK (disappear_authenticate), &counter);
 
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 
 	soup_test_assert (counter <= 2,
 			  "Got stuck in loop");
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
 
@@ -1369,7 +1381,7 @@ async_no_auth_cache_authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-async_no_auth_cache_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
+async_no_auth_cache_finished (SoupMessage *msg, gpointer user_data)
 {
 	debug_printf (1, "  async_no_auth_cache_finished\n");
 
@@ -1397,8 +1409,9 @@ do_async_message_do_not_use_auth_cache_test (void)
 			  G_CALLBACK (async_no_auth_cache_authenticate), &auth);
 	flags = soup_message_get_flags (msg);
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
-	g_object_ref (msg);
-	soup_session_queue_message (session, msg, async_no_auth_cache_finished, NULL);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (async_no_auth_cache_finished), NULL);
+	soup_session_send_async (session, msg, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);

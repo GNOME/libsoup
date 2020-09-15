@@ -184,6 +184,7 @@ do_tls_interaction_test (void)
 	GSocketAddress *address, *bound_address;
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	GTlsInteraction *interaction;
 	SoupURI *test_uri;
 	GError *error = NULL;
@@ -209,8 +210,9 @@ do_tls_interaction_test (void)
 
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_SSL_FAILED);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	interaction = g_object_new (test_tls_interaction_get_type (), NULL);
@@ -221,9 +223,10 @@ do_tls_interaction_test (void)
 
 	/* With a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	soup_test_session_async_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_true (soup_message_get_https_status (msg, NULL, NULL));
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	soup_uri_free (test_uri);
