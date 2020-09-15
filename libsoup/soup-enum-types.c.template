@@ -1,7 +1,8 @@
 /*** BEGIN file-header ***/
 #include <config.h>
 
-#include <libsoup/soup.h>
+#include "soup-enum-types.h"
+#include "soup.h"
 
 #define C_ENUM(v) ((gint) v)
 #define C_FLAGS(v) ((guint) v)

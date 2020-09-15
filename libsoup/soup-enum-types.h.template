@@ -3,7 +3,7 @@
 #define __SOUP_ENUM_TYPES_H__
 
 #include <glib-object.h>
-#include <libsoup/soup-version.h>
+#include "soup-version.h"
 #define GLIB_MKENUMS_EXTERN _SOUP_EXTERN
 
 G_BEGIN_DECLS
