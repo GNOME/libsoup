@@ -91,26 +91,67 @@ do_async_request (SoupRequest *request)
 }
 
 static void
-do_request (const char *uri_string, gconstpointer type)
+do_sync_request (SoupRequest *request)
+{
+	GInputStream *in;
+	GString *body;
+	char buffer[1024];
+	gssize nread;
+	GError *error = NULL;
+
+	in = soup_request_send (request, NULL, &error);
+	if (!in) {
+		g_assert_no_error (error);
+		g_clear_error (&error);
+		return;
+	}
+
+	body = g_string_new (NULL);
+	do {
+		nread = g_input_stream_read (in, buffer, sizeof (buffer),
+					     NULL, &error);
+		if (nread == -1) {
+			g_assert_no_error (error);
+			g_clear_error (&error);
+			break;
+		}
+		g_string_append_len (body, buffer, nread);
+	} while (nread > 0);
+
+	g_input_stream_close (in, NULL, &error);
+	g_assert_no_error (error);
+	g_clear_error (&error);
+	g_object_unref (in);
+
+	soup_assert_cmpmem (body->str, body->len, g_bytes_get_data (index_buffer, NULL), g_bytes_get_size (index_buffer));
+	g_string_free (body, TRUE);
+}
+
+
+static void
+do_request (const char *uri_string, gconstpointer sync)
 {
 	SoupSession *session;
 	SoupRequest *request;
 	GError *error = NULL;
 
-	session = soup_test_session_new (GPOINTER_TO_SIZE (type),
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 NULL);
 
 	request = soup_session_request (session, uri_string, &error);
 	g_assert_no_error (error);
 
-	do_async_request (request);
+        if (GPOINTER_TO_UINT (sync))
+                do_sync_request (request);
+        else
+	        do_async_request (request);
 
 	g_object_unref (request);
 	soup_test_session_abort_unref (session);
 }
 
 static void
-do_request_file_test (gconstpointer type)
+do_request_file_test (gconstpointer sync)
 {
 	GFile *index;
 	char *uri_string;
@@ -119,12 +160,12 @@ do_request_file_test (gconstpointer type)
 	uri_string = g_file_get_uri (index);
 	g_object_unref (index);
 
-	do_request (uri_string, type);
+	do_request (uri_string, sync);
 	g_free (uri_string);
 }
 
 static void
-do_request_data_test (gconstpointer type)
+do_request_data_test (gconstpointer sync)
 {
 	gchar *base64;
 	char *uri_string;
@@ -133,14 +174,14 @@ do_request_data_test (gconstpointer type)
 	uri_string = g_strdup_printf ("data:text/plain;charset=utf8;base64,%s", base64);
 	g_free (base64);
 
-	do_request (uri_string, type);
+	do_request (uri_string, sync);
 	g_free (uri_string);
 }
 
 static void
-do_request_gresource_test (gconstpointer type)
+do_request_gresource_test (gconstpointer sync)
 {
-	do_request ("resource:///org/gnome/libsoup/tests/index.txt", type);
+	do_request ("resource:///org/gnome/libsoup/tests/index.txt", sync);
 }
 
 int
@@ -153,14 +194,24 @@ main (int argc, char **argv)
 	index_buffer = soup_test_get_index ();
 	soup_test_register_resources ();
 
-	g_test_add_data_func ("/resource/file",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION),
+	g_test_add_data_func ("/resource/sync/file",
+                              GUINT_TO_POINTER (TRUE),
 			      do_request_file_test);
-	g_test_add_data_func ("/resource/data",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION),
+	g_test_add_data_func ("/resource/sync/data",
+			      GUINT_TO_POINTER (TRUE),
 			      do_request_data_test);
-	g_test_add_data_func ("/resource/gresource",
-			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION),
+	g_test_add_data_func ("/resource/sync/gresource",
+			      GUINT_TO_POINTER (TRUE),
+			      do_request_gresource_test);
+
+	g_test_add_data_func ("/resource/async/file",
+                              GUINT_TO_POINTER (FALSE),
+			      do_request_file_test);
+	g_test_add_data_func ("/resource/async/data",
+			      GUINT_TO_POINTER (FALSE),
+			      do_request_data_test);
+	g_test_add_data_func ("/resource/async/gresource",
+			      GUINT_TO_POINTER (FALSE),
 			      do_request_gresource_test);
 
 	ret = g_test_run ();
