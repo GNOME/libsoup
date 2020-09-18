@@ -130,6 +130,7 @@ test1_thread (gpointer user_data)
 	GMainContext *async_context;
 	char *uri;
 	SoupMessage *msg;
+	GInputStream *stream;
 	GMainLoop *loop;
 
 	/* Wait for main thread to be waiting on test1_cond */
@@ -146,8 +147,9 @@ test1_thread (gpointer user_data)
 
 	debug_printf (1, "  send_message\n");
 	msg = soup_message_new ("GET", uri);
-	soup_session_send_message (session, msg);
+	stream = soup_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_object_unref (stream);
 	g_object_unref (msg);
 
 	debug_printf (1, "  queue_message\n");

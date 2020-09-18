@@ -105,11 +105,13 @@ static void
 session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_status)
 {
 	SoupMessage *msg;
+	GBytes *body;
 
 	msg = soup_message_new ("GET", uri);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, expected_status);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 }
 

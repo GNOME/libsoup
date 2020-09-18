@@ -99,6 +99,7 @@ do_host_test (void)
 {
 	SoupSession *session;
 	SoupMessage *one, *two;
+	GBytes *body_one, *body_two;
 
 	g_test_bug ("539803");
 
@@ -108,17 +109,19 @@ do_host_test (void)
 	two = soup_message_new_from_uri ("GET", base_uri);
 	soup_message_headers_replace (two->request_headers, "Host", "foo");
 
-	soup_session_send_message (session, one);
-	soup_session_send_message (session, two);
+	body_one = soup_test_session_send (session, one, NULL, NULL);
+	body_two = soup_test_session_send (session, two, NULL, NULL);
 
 	soup_test_session_abort_unref (session);
 
 	soup_test_assert_message_status (one, SOUP_STATUS_OK);
-	g_assert_cmpstr (one->response_body->data, ==, "index");
+	g_assert_cmpstr (g_bytes_get_data (body_one, NULL), ==, "index");
+	g_bytes_unref (body_one);
 	g_object_unref (one);
 
 	soup_test_assert_message_status (two, SOUP_STATUS_OK);
-	g_assert_cmpstr (two->response_body->data, ==, "foo-index");
+	g_assert_cmpstr (g_bytes_get_data (body_two, NULL), ==, "foo-index");
+	g_bytes_unref (body_two);
 	g_object_unref (two);
 }
 
@@ -131,6 +134,8 @@ do_host_big_header (void)
 	SoupMessage *msg;
 	SoupSession *session;
 	int i;
+	GInputStream *stream;
+	GError *error = NULL;
 
 	g_test_bug ("792173");
 
@@ -145,11 +150,11 @@ do_host_big_header (void)
 		g_free (key);
 	}
 
-	soup_session_send_message (session, msg);
+	stream = soup_session_send (session, msg, NULL, &error);
+	g_assert_null (stream);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
 
 	soup_test_session_abort_unref (session);
-
-	soup_test_assert_message_status (msg, SOUP_STATUS_IO_ERROR);
 
 	g_object_unref (msg);
 }
@@ -376,14 +381,14 @@ do_msg_reuse_test (void)
 
 	debug_printf (1, "  First message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send (session, msg);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	debug_printf (1, "  Redirect message\n");
 	uri = soup_uri_new_with_base (base_uri, "/redirect");
 	soup_message_set_uri (msg, uri);
 	soup_uri_free (uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send (session, msg);
 	g_assert_true (soup_uri_equal (soup_message_get_uri (msg), base_uri));
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
@@ -391,14 +396,14 @@ do_msg_reuse_test (void)
 	uri = soup_uri_new_with_base (base_uri, "/auth");
 	soup_message_set_uri (msg, uri);
 	soup_uri_free (uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	/* One last try to make sure the auth stuff got cleaned up */
 	debug_printf (1, "  Last message\n");
 	soup_message_set_uri (msg, base_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_async_send (session, msg);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	soup_test_session_abort_unref (session);
@@ -640,7 +645,7 @@ do_one_accept_language_test (const char *language, const char *expected_header)
 					 SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_session_abort_unref (session);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -815,7 +820,7 @@ do_aliases_test_for_session (SoupSession *session,
 	if (redirect_protocol)
 		soup_message_headers_append (msg->request_headers, "X-Redirect-Protocol", redirect_protocol);
 	soup_uri_free (uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	redirected_protocol = soup_message_headers_get_one (msg->response_headers, "X-Redirected-Protocol");
 
@@ -1082,7 +1087,7 @@ do_stealing_test (gconstpointer data)
 	iostream = NULL;
 
 	if (sync) {
-		soup_session_send_message (session, msg);
+		soup_test_session_send_message (session, msg);
 		soup_test_assert_message_status (msg, SOUP_STATUS_SWITCHING_PROTOCOLS);
 	} else {
 		g_signal_connect (msg, "finished",

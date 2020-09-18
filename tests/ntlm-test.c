@@ -312,6 +312,7 @@ do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 {
 	SoupURI *uri;
 	SoupMessage *msg;
+	GBytes *body;
 	NTLMState state = { FALSE, FALSE, FALSE, FALSE };
 
 	uri = soup_uri_new_with_base (base_uri, path);
@@ -327,7 +328,7 @@ do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (response_check), &state);
 
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	debug_printf (1, "  %-10s -> ", path);
 
 	if (state.got_ntlm_prompt) {
@@ -385,6 +386,7 @@ do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 	g_assert_true (state.sent_basic_response == do_basic);
 	soup_test_assert_message_status (msg, status_code);
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 }
 
@@ -635,6 +637,7 @@ do_retrying_test (TestServer *ts,
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupURI *uri;
+	GBytes *body;
 	gboolean retried = FALSE;
 
 	g_test_bug ("693222");
@@ -653,11 +656,12 @@ do_retrying_test (TestServer *ts,
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 
 	g_assert_true (retried);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -675,11 +679,12 @@ do_retrying_test (TestServer *ts,
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 
 	g_assert_true (retried);
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);

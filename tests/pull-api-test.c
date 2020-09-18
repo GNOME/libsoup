@@ -21,14 +21,12 @@ get_correct_response (const char *uri)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
-	soup_session_send_message (session, msg);
+	correct_response = soup_test_session_send (session, msg, NULL, NULL);
 	if (msg->status_code != SOUP_STATUS_OK) {
 		g_printerr ("Could not fetch %s: %d %s\n", uri,
 			    msg->status_code, msg->reason_phrase);
 		exit (1);
 	}
-
-	correct_response = soup_message_body_flatten (msg->response_body);
 
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);

@@ -72,14 +72,14 @@ do_cookies_accept_policy_test (void)
 		uri = soup_uri_new_with_base (first_party_uri, "/foo.jpg");
 		msg = soup_message_new_from_uri ("GET", uri);
 		soup_message_set_first_party (msg, third_party_uri);
-		soup_session_send_message (session, msg);
+		soup_test_session_send_message (session, msg);
 		soup_uri_free (uri);
 		g_object_unref (msg);
 
 		uri = soup_uri_new_with_base (first_party_uri, "/index.html");
 		msg = soup_message_new_from_uri ("GET", uri);
 		soup_message_set_first_party (msg, first_party_uri);
-		soup_session_send_message (session, msg);
+		soup_test_session_send_message (session, msg);
 		soup_uri_free (uri);
 		g_object_unref (msg);
 
@@ -87,7 +87,7 @@ do_cookies_accept_policy_test (void)
 			uri = soup_uri_new_with_base (first_party_uri, "/foo.jpg");
 			msg = soup_message_new_from_uri ("GET", uri);
 			soup_message_set_first_party (msg, third_party_uri);
-			soup_session_send_message (session, msg);
+			soup_test_session_send_message (session, msg);
 			soup_uri_free (uri);
 			g_object_unref (msg);
 		}
@@ -302,19 +302,19 @@ do_cookies_parsing_test (void)
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
 	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
 				     "one=1; httponly; max-age=100");
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	g_object_unref (msg);
 
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
 	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
 				     "two=2; HttpOnly; max-age=100; SameSite=Invalid");
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	g_object_unref (msg);
 
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
 	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
 				     "three=3; httpONLY=Wednesday; max-age=100; SameSite=Lax");
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	g_object_unref (msg);
 
 	cookies = soup_cookie_jar_get_cookie_list (jar, first_party_uri, TRUE);

@@ -381,6 +381,19 @@ soup_test_session_async_send_message (SoupSession *session,
         return msg->status_code;
 }
 
+guint
+soup_test_session_send_message (SoupSession *session,
+				SoupMessage *msg)
+{
+	GInputStream *stream;
+
+	stream = soup_session_send (session, msg, NULL, NULL);
+	if (stream)
+		g_object_unref (stream);
+
+	return msg->status_code;
+}
+
 static void
 server_listen (SoupServer *server)
 {
@@ -796,6 +809,33 @@ soup_test_request_close_stream (SoupRequest   *req,
 	g_object_unref (data.result);
 
 	return ok;
+}
+
+GBytes *
+soup_test_session_send (SoupSession   *session,
+			SoupMessage   *msg,
+			GCancellable  *cancellable,
+			GError       **error)
+{
+	GInputStream *istream;
+	GOutputStream *ostream;
+	GBytes *body;
+
+	istream = soup_session_send (session, msg, cancellable, error);
+	if (!istream)
+		return NULL;
+
+	ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+	g_output_stream_splice (ostream,
+				istream,
+				G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+				G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+				NULL, NULL);
+	body = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
+	g_object_unref (ostream);
+	g_object_unref (istream);
+
+	return body;
 }
 
 void

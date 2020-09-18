@@ -130,7 +130,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 
 	debug_printf (1, "  Testing with no handler\n");
 	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
 	handled_by = soup_message_headers_get_one (msg->response_headers,
@@ -142,7 +142,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 
 	debug_printf (1, "  Testing with handler\n");
 	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	handled_by = soup_message_headers_get_one (msg->response_headers,
@@ -271,7 +271,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -279,7 +279,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -288,7 +288,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -296,7 +296,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -304,7 +304,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -312,7 +312,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -320,7 +320,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -328,7 +328,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
@@ -336,7 +336,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 #endif
@@ -993,7 +993,7 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	GBytes *index;
+	GBytes *index, *body;
 	char *md5;
 
 	server_add_early_handler (sd, NULL, early_stream_callback, NULL, NULL);
@@ -1004,14 +1004,15 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 
 	index = soup_test_get_index ();
 	soup_message_body_append_bytes (msg->request_body, index);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	md5 = g_compute_checksum_for_bytes (G_CHECKSUM_MD5, index);
-	g_assert_cmpstr (md5, ==, msg->response_body->data);
+	g_assert_cmpmem (md5, strlen (md5), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 	g_free (md5);
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
 }
@@ -1031,6 +1032,7 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupURI *uri2;
+	GBytes *body;
 
 	server_add_early_handler (sd, NULL, early_respond_callback, NULL, NULL);
 
@@ -1038,7 +1040,7 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 
 	/* The early handler will intercept, and the normal handler will be skipped */
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_FORBIDDEN);
 	g_assert_cmpint (msg->response_body->length, ==, 0);
 	g_object_unref (msg);
@@ -1046,9 +1048,10 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 	/* The early handler will ignore this one */
 	uri2 = soup_uri_new_with_base (sd->base_uri, "/subdir");
 	msg = soup_message_new_from_uri ("GET", uri2);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_cmpstr (msg->response_body->data, ==, "index");
+	g_assert_cmpmem ("index", sizeof ("index") - 1, g_bytes_get_data (body, NULL), g_bytes_get_size (body));
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_uri_free (uri2);
 
@@ -1069,6 +1072,7 @@ do_early_multi_test (ServerData *sd, gconstpointer test_data)
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupURI *uri;
+	GBytes *body;
 	struct {
 		const char *path;
 		gboolean expect_normal, expect_early;
@@ -1102,7 +1106,7 @@ do_early_multi_test (ServerData *sd, gconstpointer test_data)
 		msg = soup_message_new_from_uri ("GET", uri);
 		soup_uri_free (uri);
 
-		soup_session_send_message (session, msg);
+		body = soup_test_session_send (session, msg, NULL, NULL);
 
 		/* The normal handler sets status to OK. The early handler doesn't
 		 * touch status, meaning that if it runs and the normal handler doesn't,
@@ -1123,10 +1127,11 @@ do_early_multi_test (ServerData *sd, gconstpointer test_data)
 		else
 			g_assert_cmpstr (header, ==, NULL);
 		if (multi_tests[i].expect_normal)
-			g_assert_cmpstr (msg->response_body->data, ==, "index");
+			g_assert_cmpmem ("index", sizeof ("index") - 1, g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 		else
-			g_assert_cmpint (msg->response_body->length, ==, 0);
+			g_assert_cmpint (g_bytes_get_size (body), ==, 0);
 
+		g_bytes_unref (body);
 		g_object_unref (msg);
 	}
 
@@ -1376,7 +1381,7 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 					 SOUP_SESSION_PROXY_RESOLVER, resolver,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", sd->ssl_base_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	handled_by = soup_message_headers_get_one (msg->response_headers, "X-Handled-By");

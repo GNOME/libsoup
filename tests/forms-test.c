@@ -187,6 +187,7 @@ do_md5_test_libsoup (gconstpointer data)
 	GBytes *buffer;
 	SoupMessage *msg;
 	SoupSession *session;
+	GBytes *body;
 
 	g_test_bug ("601640");
 
@@ -207,11 +208,12 @@ do_md5_test_libsoup (gconstpointer data)
 	soup_multipart_free (multipart);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_cmpstr (msg->response_body->data, ==, md5);
+	g_assert_cmpmem (md5, strlen (md5), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
 

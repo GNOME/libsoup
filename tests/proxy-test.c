@@ -112,7 +112,7 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 				  G_CALLBACK (set_close_on_connect), NULL);
 	}
 
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
 	soup_test_assert_message_status (msg, expected);
@@ -264,7 +264,7 @@ do_proxy_fragment_test (gconstpointer data)
 	req_uri = soup_uri_new_with_base (base_uri, "/#foo");
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
 	soup_uri_free (req_uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -293,7 +293,7 @@ do_proxy_redirect_test (void)
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
 	soup_message_headers_append (msg->request_headers,
 				     "Connection", "close");
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	new_uri = soup_message_get_uri (msg);
 	soup_test_assert (strcmp (req_uri->path, new_uri->path) != 0,

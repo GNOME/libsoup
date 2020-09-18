@@ -106,9 +106,8 @@ static TestCase tests[] = {
 	    { "GET", "/bad%20with%20spaces", 200 },
 	    { NULL } }, 200, "566530" },
 
-	/* Test behavior with irrecoverably-bad Location header */
 	{ { { "GET", "/bad-no-host", 302 },
-	    { NULL } }, SOUP_STATUS_MALFORMED, "528882" },
+	    { NULL } }, 302, "528882" },
 
 	/* Test infinite redirection */
 	{ { { "GET", "/bad-recursive", 302, TRUE },
@@ -163,6 +162,7 @@ do_message_api_test (SoupSession *session, TestCase *test)
 {
 	SoupURI *uri;
 	SoupMessage *msg;
+	GBytes *body;
 	TestRequest *treq;
 
 	if (test->bugref)
@@ -185,10 +185,11 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
 
-	soup_session_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 
 	soup_test_assert_message_status (msg, test->final_status);
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 }
 

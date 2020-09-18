@@ -57,6 +57,8 @@ GBytes      *soup_test_session_async_send         (SoupSession *session,
 						   SoupMessage *msg);
 guint        soup_test_session_async_send_message (SoupSession *session,
 						   SoupMessage *msg);
+guint        soup_test_session_send_message       (SoupSession *session,
+						   SoupMessage *msg);
 
 typedef enum {
 	SOUP_TEST_SERVER_DEFAULT             = 0,
@@ -82,6 +84,10 @@ gboolean      soup_test_request_close_stream (SoupRequest   *req,
 					      GInputStream  *stream,
 					      GCancellable  *cancellable,
 					      GError       **error);
+GBytes       *soup_test_session_send         (SoupSession   *session,
+					      SoupMessage   *msg,
+					      GCancellable  *cancellable,
+                                              GError       **error);
 
 void        soup_test_register_resources (void);
 GBytes     *soup_test_load_resource      (const char  *name,

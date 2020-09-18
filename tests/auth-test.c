@@ -438,7 +438,7 @@ do_digest_nonce_test (SoupSession *session,
 					      G_CALLBACK (digest_nonce_unauthorized),
 					      &got_401);
 	got_401 = FALSE;
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert (got_401 == expect_401,
 			  "%s request %s a 401 Unauthorized!\n", nth,
 			  got_401 ? "got" : "did not get");
@@ -585,7 +585,7 @@ do_async_auth_good_password_test (void)
 
 	msg2 = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg2), "id", GINT_TO_POINTER (2));
-	soup_session_send_message (session, msg2);
+	soup_test_session_send_message (session, msg2);
 
 	soup_test_assert_message_status (msg2, SOUP_STATUS_UNAUTHORIZED);
 
@@ -809,7 +809,7 @@ select_auth_test_one (SoupURI *uri,
 	sad.password = password;
 
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 
 	soup_test_assert (strcmp (sad.round[0].headers, first_headers) == 0,
 			  "Header order wrong: expected %s, got %s",
@@ -1099,7 +1099,7 @@ do_infinite_auth_test (void)
 	timeout = g_timeout_add (500, infinite_cancel, session);
 	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
 			       "*stuck in infinite loop*");
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	g_test_assert_expected_messages ();
 
 	soup_test_assert (msg->status_code != SOUP_STATUS_CANCELLED,
@@ -1270,7 +1270,7 @@ do_batch_tests (gconstpointer data)
 		signal = g_signal_connect (session, "authenticate",
 					   G_CALLBACK (authenticate),
 					   (gpointer)&current_tests[i]);
-		soup_session_send_message (session, msg);
+		soup_test_session_send_message (session, msg);
 		g_signal_handler_disconnect (session, signal);
 
 		soup_test_assert_message_status (msg, current_tests[i].final_status);
@@ -1341,7 +1341,7 @@ do_message_do_not_use_auth_cache_test (void)
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
 	flags = soup_message_get_flags (msg);
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 	soup_uri_free (soup_uri);
@@ -1361,7 +1361,7 @@ do_message_do_not_use_auth_cache_test (void)
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	flags = soup_message_get_flags (msg);
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
 	g_object_unref (msg);
 	g_free (uri);
@@ -1468,7 +1468,7 @@ do_message_has_authorization_header_test (void)
 	msg = soup_message_new ("GET", uri);
 	auth_id = g_signal_connect (session, "authenticate",
 			  G_CALLBACK (has_authorization_header_authenticate), &auth);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	soup_test_assert (SOUP_IS_AUTH (auth), "Expected a SoupAuth");
 	token = soup_auth_get_authorization (auth, msg);
@@ -1484,7 +1484,7 @@ do_message_has_authorization_header_test (void)
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (has_authorization_header_authenticate_assert),
 				    NULL);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
@@ -1493,7 +1493,7 @@ do_message_has_authorization_header_test (void)
 	msg = soup_message_new ("GET", uri);
 	soup_message_headers_replace (msg->request_headers, "Authorization", token);
 	soup_message_set_flags (msg, soup_message_get_flags (msg) | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 	g_free (token);

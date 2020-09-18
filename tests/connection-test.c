@@ -175,6 +175,7 @@ do_content_length_framing_test (void)
 	SoupMessage *msg;
 	SoupURI *request_uri;
 	goffset declared_length;
+	GBytes *body;
 
 	g_test_bug ("611481");
 
@@ -183,29 +184,31 @@ do_content_length_framing_test (void)
 	debug_printf (1, "  Content-Length larger than message body length\n");
 	request_uri = soup_uri_new_with_base (base_uri, "/content-length/long");
 	msg = soup_message_new_from_uri ("GET", request_uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	declared_length = soup_message_headers_get_content_length (msg->response_headers);
 	debug_printf (2, "    Content-Length: %lu, body: %s\n",
-		      (gulong)declared_length, msg->response_body->data);
-	g_assert_cmpint (msg->response_body->length, <, declared_length);
+		      (gulong)declared_length, (char *)g_bytes_get_data (body, NULL));
+	g_assert_cmpint (g_bytes_get_size (body), <, declared_length);
 
 	soup_uri_free (request_uri);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	debug_printf (1, "  Server claims 'Connection: close' but doesn't\n");
 	request_uri = soup_uri_new_with_base (base_uri, "/content-length/noclose");
 	msg = soup_message_new_from_uri ("GET", request_uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	declared_length = soup_message_headers_get_content_length (msg->response_headers);
-	g_assert_cmpint (msg->response_body->length, ==, declared_length);
+	g_assert_cmpint (g_bytes_get_size (body), ==, declared_length);
 
 	soup_uri_free (request_uri);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -243,6 +246,7 @@ do_timeout_test_for_session (SoupSession *session)
 	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
 	SoupURI *timeout_uri;
 	int i;
+	GBytes *body;
 
 	g_signal_connect (session, "request-started",
 			  G_CALLBACK (request_started_socket_collector),
@@ -252,13 +256,14 @@ do_timeout_test_for_session (SoupSession *session)
 	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
 	msg = soup_message_new_from_uri ("GET", timeout_uri);
 	soup_uri_free (timeout_uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	if (sockets[1]) {
 		soup_test_assert (sockets[1] == NULL, "Message was retried");
 		sockets[1] = sockets[2] = sockets[3] = NULL;
 	}
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	/* The server will grab server_mutex before returning the response,
@@ -269,7 +274,7 @@ do_timeout_test_for_session (SoupSession *session)
 
 	debug_printf (1, "    Second message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	soup_test_assert (sockets[1] == sockets[0],
@@ -280,6 +285,7 @@ do_timeout_test_for_session (SoupSession *session)
 			  "Message was retried on closed connection");
 	soup_test_assert (sockets[3] == NULL,
 			  "Message was retried again");
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	for (i = 0; sockets[i]; i++)
@@ -677,6 +683,7 @@ do_non_idempotent_test_for_session (SoupSession *session)
 	SoupMessage *msg;
 	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
 	int i;
+	GBytes *body;
 
 	g_signal_connect (session, "request-started",
 			  G_CALLBACK (request_started_socket_collector),
@@ -684,23 +691,24 @@ do_non_idempotent_test_for_session (SoupSession *session)
 
 	debug_printf (2, "    GET\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	if (sockets[1]) {
 		soup_test_assert (sockets[1] == NULL, "Message was retried");
 		sockets[1] = sockets[2] = sockets[3] = NULL;
 	}
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	debug_printf (2, "    POST\n");
 	msg = soup_message_new_from_uri ("POST", base_uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	soup_test_assert (sockets[1] != sockets[0],
 			  "Message was sent on existing connection");
 	soup_test_assert (sockets[2] == NULL,
 			  "Too many connections used");
-
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	for (i = 0; sockets[i]; i++)
@@ -770,10 +778,12 @@ static void
 do_one_connection_state_test (SoupSession *session, const char *uri)
 {
 	SoupMessage *msg;
+	GBytes *body;
 
 	msg = soup_message_new ("GET", uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_session_abort (session);
 }
@@ -902,12 +912,13 @@ do_one_connection_event_test (SoupSession *session, const char *uri,
 			      const char *events)
 {
 	SoupMessage *msg;
+	GBytes *body;
 
 	msg = soup_message_new ("GET", uri);
 	g_signal_connect (msg, "network-event",
 			  G_CALLBACK (network_event),
 			  &events);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	while (*events) {
 		soup_test_assert (!*events,
@@ -916,6 +927,7 @@ do_one_connection_event_test (SoupSession *session, const char *uri,
 		events++;
 	}
 
+	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_session_abort (session);
 }

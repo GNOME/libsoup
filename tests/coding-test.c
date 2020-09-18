@@ -160,14 +160,7 @@ check_response (CodingTestData *data,
 	type = soup_message_headers_get_one (data->msg->response_headers, "Content-Type");
 	g_assert_cmpstr (type, ==, expected_content_type);
 
-	if (body) {
-                g_assert_true (g_bytes_equal (body, data->response));
-	} else {
-		soup_assert_cmpmem (data->msg->response_body->data,
-				    data->msg->response_body->length,
-				    g_bytes_get_data (data->response, NULL),
-				    g_bytes_get_size (data->response));
-	}
+	g_assert_true (g_bytes_equal (body, data->response));
 }
 
 static void
@@ -186,9 +179,7 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 		data->response = g_bytes_new_static (NULL, 0);
 	else {
 		msg = soup_message_new_from_uri ("GET", uri);
-		soup_session_send_message (data->session, msg);
-
-		data->response = soup_message_body_flatten (msg->response_body);
+		data->response = soup_test_session_send (data->session, msg, NULL, NULL);
 		g_object_unref (msg);
 	}
 
@@ -204,7 +195,6 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 
 	if (test_type & CODING_TEST_NO_DECODER)
 		soup_session_remove_feature_by_type (data->session, SOUP_TYPE_CONTENT_DECODER);
-                
 }
 
 static void
@@ -221,102 +211,124 @@ teardown_coding_test (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_test_plain (CodingTestData *data, gconstpointer test_data)
 {
-	soup_session_send_message (data->session, data->msg);
-	check_response (data, NULL, "text/plain", EXPECT_NOT_DECODED, NULL);
+	GBytes *body;
+
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, NULL, "text/plain", EXPECT_NOT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_gzip (CodingTestData *data, gconstpointer test_data)
 {
-	soup_session_send_message (data->session, data->msg);
-	check_response (data, "gzip", "text/plain", EXPECT_DECODED, NULL);
+	GBytes *body;
+
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "gzip", "text/plain", EXPECT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	g_test_bug ("606352");
 	g_test_bug ("676477");
 
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "trailing-junk");
 
-	soup_session_send_message (data->session, data->msg);
-	check_response (data, "gzip", "text/plain", EXPECT_DECODED, NULL);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "gzip", "text/plain", EXPECT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_gzip_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	g_test_bug ("613361");
 
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode");
 
-	soup_session_send_message (data->session, data->msg);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 
 	/* Failed content-decoding should have left the body untouched
 	 * from what the server sent... which happens to be the
 	 * uncompressed data.
 	 */
-	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, NULL);
+	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_deflate (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib");
-	soup_session_send_message (data->session, data->msg);
-
-	check_response (data, "deflate", "text/plain", EXPECT_DECODED, NULL);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_deflate_with_junk (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	g_test_bug ("606352");
 	g_test_bug ("676477");
 
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
-	soup_session_send_message (data->session, data->msg);
-
-	check_response (data, "deflate", "text/plain", EXPECT_DECODED, NULL);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_deflate_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	g_test_bug ("613361");
 
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
-	soup_session_send_message (data->session, data->msg);
-
-	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, NULL);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_deflate_raw (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-raw");
-	soup_session_send_message (data->session, data->msg);
-
-	check_response (data, "deflate", "text/plain", EXPECT_DECODED, NULL);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
 do_coding_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	g_test_bug ("613361");
 
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-raw");
-	soup_session_send_message (data->session, data->msg);
-
-	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, NULL);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void
@@ -459,13 +471,15 @@ do_coding_req_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer t
 static void
 do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 {
+	GBytes *body;
+
 	g_test_bug ("697527");
 
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "empty");
-	soup_session_send_message (data->session, data->msg);
-
-	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, NULL);
+	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
+	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, body);
+	g_bytes_unref (body);
 }
 
 static void

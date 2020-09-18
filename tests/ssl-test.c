@@ -46,7 +46,7 @@ do_strictness_test (gconstpointer data)
 	}
 
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, test->expected_status);
 
 	g_test_bug ("690176");

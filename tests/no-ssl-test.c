@@ -11,7 +11,7 @@ do_ssl_test_for_session (SoupSession *session, SoupURI *uri)
 	gboolean is_https;
 
 	msg = soup_message_new_from_uri ("GET", uri);
-	soup_session_send_message (session, msg);
+	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_SSL_FAILED);
 
 	is_https = soup_message_get_https_status (msg, &cert, &flags);

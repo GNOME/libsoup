@@ -65,13 +65,15 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 	gboolean finished, local_timeout;
 	guint timeout_id;
 	SoupURI *timeout_uri;
+	GBytes *body;
 
 	debug_printf (1, "  queue_message\n");
 	debug_printf (2, "    requesting timeout\n");
 	timeout_uri = soup_uri_new_with_base (uri, "/request-timeout");
 	msg = soup_message_new_from_uri ("GET", timeout_uri);
 	soup_uri_free (timeout_uri);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -102,7 +104,8 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 	msg = soup_message_new_from_uri ("GET", uri);
 	server_processed_message = local_timeout = FALSE;
 	timeout_id = g_idle_add_full (G_PRIORITY_HIGH, timeout_cb, &local_timeout, NULL);
-	soup_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, NULL);
+        g_bytes_unref (body);
 	g_object_unref (msg);
 
 	g_assert_true (server_processed_message);
