@@ -3,6 +3,8 @@ image: registry.gitlab.gnome.org/gnome/libsoup/master:v5
 stages:
   - build
   - coverage
+  - docs
+  - deploy
 
 .build:
   stage: build
@@ -44,3 +46,28 @@ coverage:
   script:
     - bash -x ./.gitlab-ci/coverage-docker.sh
   coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
+
+reference:
+  stage: docs
+  variables:
+    DESTDIR: _install
+  needs: []
+  script:
+    - meson _build -Dgtk_doc=true
+    # FIXME: ninja -C _build libsoup-3.0-doc fails
+    - ninja -C _build install
+    - mv _build/docs/reference/html/ _reference/
+  artifacts:
+    paths:
+      - _reference
+
+pages:
+  stage: deploy
+  needs: ['reference']
+  script:
+    - mv _reference/ public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
