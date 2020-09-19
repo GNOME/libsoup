@@ -53,8 +53,8 @@ scan_args = [
   '--ignore-decorators="SOUP_DEPRECATED\w*\s*\([^)]*\)|SOUP_DEPRECATED\w*|SOUP_AVAILABLE\w*"'
 ]
 
-gnome.gtkdoc('libsoup-2.4',
-  main_sgml : 'libsoup-2.4-docs.sgml',
+gnome.gtkdoc('libsoup-3.0',
+  main_sgml : 'libsoup-3.0-docs.sgml',
   src_dir : srcdir,
   ignore_headers : ignore_headers,
   namespace : 'soup',
@@ -66,7 +66,6 @@ gnome.gtkdoc('libsoup-2.4',
     'build-howto.xml',
     'client-howto.xml',
     'request-howto.xml',
-    'server-howto.xml',
-    'session-porting.xml',
+    'server-howto.xml'
   ]
 )

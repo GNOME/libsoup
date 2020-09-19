@@ -1,8 +1,8 @@
 i18n = import('i18n')
 
-i18n.gettext(meson.project_name(),
+i18n.gettext(libsoup_api_name,
   preset : 'glib',
   args: [
-  '--default-domain=' + meson.project_name(),
+    '--default-domain=' + libsoup_api_name,
   ]
 )

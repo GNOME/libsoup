@@ -1,3 +1,4 @@
+includedir = join_paths(libsoup_api_name, meson.project_name())
 subdir('include')
 
 pkg = import('pkgconfig')
@@ -151,7 +152,6 @@ if brotlidec_dep.found()
 endif
 
 
-includedir = join_paths(libsoup_api_name, meson.project_name())
 install_headers(soup_installed_headers, subdir : includedir)
 
 version_cdata = configuration_data()

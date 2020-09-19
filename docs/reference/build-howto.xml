@@ -18,20 +18,20 @@
 <para>
 Like other GNOME libraries, <application>libsoup</application> uses
 <application>pkg-config</application> to provide compiler options. The
-package name is "<literal>libsoup-2.4</literal>". So in your
+package name is "<literal>libsoup-3.0</literal>". So in your
 <literal>configure</literal> script, you might specify something like:
 </para>
 
 <informalexample><programlisting>
-PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.26])
+PKG_CHECK_MODULES(LIBSOUP, [libsoup-3.0 >= 2.26])
 AC_SUBST(LIBSOUP_CFLAGS)
 AC_SUBST(LIBSOUP_LIBS)
 </programlisting></informalexample>
 
 <para>
-The "<literal>2.4</literal>" in the package name is the "API version"
+The "<literal>3.0</literal>" in the package name is the "API version"
 (indicating "the version of the <application>libsoup</application> API
-that first appeared in version 2.4") and is essentially just part of
+that first appeared in version 3.0") and is essentially just part of
 the package name.
 </para>
 

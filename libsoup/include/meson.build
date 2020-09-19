@@ -4,5 +4,5 @@ configure_file (
   output: 'soup.h',
   copy: true,
   install: true,
-  install_dir: get_option('includedir') / 'libsoup',
+  install_dir: get_option('includedir') / includedir,
 )
