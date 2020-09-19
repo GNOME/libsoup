@@ -60,7 +60,7 @@ gnome.gtkdoc('libsoup-2.4',
   namespace : 'soup',
   mkdb_args : mkdb_args,
   scan_args : scan_args,
-  dependencies : libsoup_dep,
+  dependencies : libsoup_private_dep,
   install : true,
   content_files: [
     'build-howto.xml',
