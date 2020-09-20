@@ -122,6 +122,8 @@ soup_tld_domain_is_public_suffix (const char *domain)
  *   soup_tld_get_base_domain() on <literal>"co.uk"</literal>.
  * @SOUP_TLD_ERROR_NO_BASE_DOMAIN: The passed-in hostname has
  *   no recognized public suffix.
+ * @SOUP_TLD_ERROR_NO_PSL_DATA: The Public Suffix List was not
+ *   available.
  *
  * Error codes for %SOUP_TLD_ERROR.
  *

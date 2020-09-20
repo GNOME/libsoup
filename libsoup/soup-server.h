@@ -15,7 +15,7 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_4
 G_DECLARE_DERIVABLE_TYPE (SoupServer, soup_server, SOUP, SERVER, GObject)
 
-typedef struct SoupClientContext SoupClientContext;
+typedef struct _SoupClientContext SoupClientContext;
 SOUP_AVAILABLE_IN_2_4
 GType soup_client_context_get_type (void);
 #define SOUP_TYPE_CLIENT_CONTEXT (soup_client_context_get_type ())

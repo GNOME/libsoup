@@ -20,9 +20,7 @@
  * @see_also: #SoupMultipart
  *
  * libsoup contains several help methods for processing HTML forms as
- * defined by <ulink
- * url="http://www.w3.org/TR/html401/interact/forms.html#h-17.13">the
- * HTML 4.01 specification</ulink>.
+ * defined by the [the HTML 4.01 specification](http://www.w3.org/TR/html401/interact/forms.html#h-17.13).
  **/
 
 /**

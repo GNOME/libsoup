@@ -103,7 +103,7 @@
  * If you want to process https connections in addition to (or instead
  * of) http connections, you can either set the
  * %SOUP_SERVER_TLS_CERTIFICATE property when creating the server, or
- * else call soup_server_set_ssl_certificate() after creating it.
+ * else call soup_server_set_ssl_cert_file() after creating it.
  *
  * Once the server is set up, make one or more calls to
  * soup_server_listen(), soup_server_listen_local(), or
@@ -129,7 +129,7 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct SoupClientContext {
+struct _SoupClientContext {
 	SoupServer     *server;
 	SoupSocket     *sock;
 	GSocket        *gsock;
@@ -795,9 +795,6 @@ soup_server_is_https (SoupServer *server)
  * You should treat these sockets as read-only; writing to or
  * modifiying any of these sockets may cause @server to malfunction.
  *
- * (Beware that in contrast to the old soup_server_get_listener(), this
- * function returns #GSockets, not #SoupSockets.)
- *
  * Return value: (transfer container) (element-type Gio.Socket): a
  * list of listening sockets.
  **/
@@ -1232,9 +1229,7 @@ new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
  * soup_server_disconnect:
  * @server: a #SoupServer
  *
- * Closes and frees @server's listening sockets. If you are using the
- * old #SoupServer APIs, this also includes the effect of
- * soup_server_quit().
+ * Closes and frees @server's listening sockets.
  *
  * Note that if there are currently requests in progress on @server,
  * that they will continue to be processed if @server's #GMainContext
@@ -1890,7 +1885,7 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * state of the connection; if the response to the current
  * #SoupMessage has not yet finished being sent, then it will be
  * discarded; you can steal the connection from a
- * #SoupMessage:wrote-informational or #SoupMessage:wrote-body signal
+ * #SoupMessage::wrote-informational or #SoupMessage::wrote-body signal
  * handler if you need to wait for part or all of the response to be
  * sent.
  *
@@ -2151,8 +2146,7 @@ soup_server_add_early_handler (SoupServer            *server,
  * only requests containing a compatible "Sec-WebSocket-Protocols"
  * header will be accepted. More complicated requirements can be
  * handled by adding a normal handler to @path, and having it perform
- * whatever checks are needed (possibly calling
- * soup_server_check_websocket_handshake() one or more times), and
+ * whatever checks are needed and
  * setting a failure status code if the handshake should be rejected.
  **/
 void
@@ -2261,7 +2255,7 @@ soup_server_remove_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
  * the server handler without having the full response ready yet. Use
  * soup_server_unpause_message() to resume I/O.
  *
- * This must only be called on #SoupMessages which were created by the
+ * This must only be called on a #SoupMessage which was created by the
  * #SoupServer and are currently doing I/O, such as those passed into a
  * #SoupServerCallback or emitted in a #SoupServer::request-read signal.
  **/
@@ -2286,7 +2280,7 @@ soup_server_pause_message (SoupServer *server,
  *
  * I/O won't actually resume until you return to the main loop.
  *
- * This must only be called on #SoupMessages which were created by the
+ * This must only be called on a #SoupMessage which was created by the
  * #SoupServer and are currently doing I/O, such as those passed into a
  * #SoupServerCallback or emitted in a #SoupServer::request-read signal.
  **/

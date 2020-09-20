@@ -11,7 +11,7 @@
 
 G_BEGIN_DECLS
 
-typedef struct SoupMultipart SoupMultipart;
+typedef struct _SoupMultipart SoupMultipart;
 
 SOUP_AVAILABLE_IN_2_26
 GType soup_multipart_get_type (void);

@@ -61,6 +61,8 @@ SOUP_MESSAGE_RESPONSE_BODY_DATA
 SOUP_MESSAGE_RESPONSE_HEADERS
 SOUP_MESSAGE_TLS_CERTIFICATE
 SOUP_MESSAGE_TLS_ERRORS
+SOUP_MESSAGE_IS_TOP_LEVEL_NAVIGATION
+SOUP_MESSAGE_SITE_FOR_COOKIES
 <SUBSECTION Standard>
 SOUP_MESSAGE
 SOUP_IS_MESSAGE
@@ -243,6 +245,8 @@ soup_client_context_get_auth_domain
 soup_client_context_get_auth_user
 soup_client_context_get_socket
 soup_client_context_steal_connection
+<SUBSECTION Private>
+soup_client_context_get_soup_socket
 <SUBSECTION>
 soup_server_add_auth_domain
 soup_server_remove_auth_domain
@@ -397,9 +401,6 @@ soup_session_get_features
 soup_session_get_feature
 soup_session_get_feature_for_message
 soup_session_has_feature
-SoupSessionConnectProgressCallback
-soup_session_connect_async
-soup_session_connect_finish
 <SUBSECTION>
 SOUP_SESSION_PROXY_RESOLVER
 SOUP_SESSION_MAX_CONNS
@@ -430,8 +431,11 @@ SoupSessionClass
 soup_session_get_type
 soup_request_error_quark
 <SUBSECTION Private>
+SoupSocket
 SoupConnection
 SoupConnectionState
+SOUP_TYPE_CONNECTION_STATE
+soup_connection_state_get_type
 SoupMessageQueue
 SoupMessageQueueItem
 SOUP_SESSION_USE_NTLM
@@ -491,6 +495,11 @@ SOUP_AUTH_REALM
 SOUP_AUTH_HOST
 SOUP_AUTH_IS_FOR_PROXY
 SOUP_AUTH_IS_AUTHENTICATED
+<SUBSECTION Private>
+SoupAuthBasic
+SoupAuthDigest
+SoupAuthNTLM
+SoupAuthNegotiate
 <SUBSECTION Standard>
 SOUP_AUTH
 SOUP_IS_AUTH
@@ -584,6 +593,8 @@ soup_uri_get_type
 SoupDateFormat
 soup_date_time_new_from_http_string
 soup_date_time_to_string
+<SUBSECTION Private>
+soup_date_time_is_past
 <SUBSECTION>
 soup_headers_parse_request
 soup_headers_parse_response
@@ -601,26 +612,6 @@ soup_header_parse_semi_param_list_strict
 soup_header_free_param_list
 soup_header_g_string_append_param
 soup_header_g_string_append_param_quoted
-<SUBSECTION>
-soup_str_case_equal
-soup_str_case_hash
-<SUBSECTION>
-soup_add_completion
-soup_add_idle
-soup_add_io_watch
-soup_add_timeout
-<SUBSECTION Private>
-soup_char_is_token
-soup_char_is_uri_gen_delims
-soup_char_is_uri_percent_encoded
-soup_char_is_uri_sub_delims
-soup_char_is_uri_unreserved
-SOUP_CHAR_HTTP_CTL
-SOUP_CHAR_HTTP_SEPARATOR
-SOUP_CHAR_URI_GEN_DELIMS
-SOUP_CHAR_URI_PERCENT_ENCODED
-SOUP_CHAR_URI_SUB_DELIMS
-soup_ssl_supported
 </SECTION>
 
 <SECTION>
@@ -654,6 +645,9 @@ soup_logger_set_response_filter
 <SUBSECTION>
 SoupLoggerPrinter
 soup_logger_set_printer
+<SUBSECTION>
+SOUP_LOGGER_LEVEL
+SOUP_LOGGER_MAX_BODY_SIZE
 <SUBSECTION Standard>
 SoupLoggerClass
 soup_logger_get_type
@@ -755,7 +749,6 @@ soup_cookie_jar_get_type
 
 <SECTION>
 <FILE>soup-multipart</FILE>
-<TITLE>SoupMultipart</TITLE>
 SoupMultipart
 soup_multipart_new
 soup_multipart_new_from_message
@@ -1011,7 +1004,16 @@ SOUP_VERSION_2_46
 SOUP_VERSION_2_48
 SOUP_VERSION_2_50
 SOUP_VERSION_2_52
+SOUP_VERSION_2_54
+SOUP_VERSION_2_56
+SOUP_VERSION_2_58
+SOUP_VERSION_2_62
+SOUP_VERSION_2_66
+SOUP_VERSION_2_68
+SOUP_VERSION_2_70
+SOUP_VERSION_2_72
 <SUBSECTION Private>
+SOUP_AVAILABLE_IN_2_4
 SOUP_AVAILABLE_IN_2_24
 SOUP_AVAILABLE_IN_2_26
 SOUP_AVAILABLE_IN_2_28
@@ -1027,6 +1029,14 @@ SOUP_AVAILABLE_IN_2_46
 SOUP_AVAILABLE_IN_2_48
 SOUP_AVAILABLE_IN_2_50
 SOUP_AVAILABLE_IN_2_52
+SOUP_AVAILABLE_IN_2_54
+SOUP_AVAILABLE_IN_2_56
+SOUP_AVAILABLE_IN_2_58
+SOUP_AVAILABLE_IN_2_62
+SOUP_AVAILABLE_IN_2_66
+SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_2_72
 SOUP_DEPRECATED_IN_2_24
 SOUP_DEPRECATED_IN_2_24_FOR
 SOUP_DEPRECATED_IN_2_26
@@ -1057,7 +1067,20 @@ SOUP_DEPRECATED_IN_2_50
 SOUP_DEPRECATED_IN_2_50_FOR
 SOUP_DEPRECATED_IN_2_52
 SOUP_DEPRECATED_IN_2_52_FOR
+SOUP_DEPRECATED_IN_2_54
+SOUP_DEPRECATED_IN_2_54_FOR
+SOUP_DEPRECATED_IN_2_56
+SOUP_DEPRECATED_IN_2_56_FOR
+SOUP_DEPRECATED_IN_2_58
+SOUP_DEPRECATED_IN_2_58_FOR
+SOUP_DEPRECATED_IN_2_62
+SOUP_DEPRECATED_IN_2_62_FOR
+SOUP_DEPRECATED_IN_2_66
+SOUP_DEPRECATED_IN_2_66_FOR
+SOUP_DEPRECATED_IN_2_70
+SOUP_DEPRECATED_IN_2_70_FOR
 SOUP_ENCODE_VERSION
+SOUP_VAR
 SOUP_VERSION_CUR_STABLE
 SOUP_VERSION_PREV_STABLE
 </SECTION>
@@ -1065,7 +1088,6 @@ SOUP_VERSION_PREV_STABLE
 <SECTION>
 <FILE>soup-websocket</FILE>
 <TITLE>WebSockets</TITLE>
-<SUBSECTION>
 soup_websocket_client_prepare_handshake
 soup_websocket_client_prepare_handshake_with_extensions
 soup_websocket_client_verify_handshake
@@ -1086,6 +1108,10 @@ soup_websocket_connection_get_uri
 soup_websocket_connection_get_origin
 soup_websocket_connection_get_protocol
 soup_websocket_connection_get_extensions
+soup_websocket_connection_get_max_incoming_payload_size
+soup_websocket_connection_set_max_incoming_payload_size
+soup_websocket_connection_get_keepalive_interval
+soup_websocket_connection_set_keepalive_interval
 SoupWebsocketState
 soup_websocket_connection_get_state
 SoupWebsocketDataType
@@ -1097,36 +1123,45 @@ soup_websocket_connection_close
 soup_websocket_connection_get_close_code
 soup_websocket_connection_get_close_data
 <SUBSECTION>
-SoupWebsocketExtensionManager
-<SUBSECTION>
-SoupWebsocketExtension
-SoupWebsocketExtensionDeflate
-soup_websocket_extension_configure
-soup_websocket_extension_get_request_params
-soup_websocket_extension_get_response_params
-soup_websocket_extension_process_outgoing_message
-soup_websocket_extension_process_incoming_message
-<SUBSECTION>
 SoupWebsocketError
 SOUP_WEBSOCKET_ERROR
-<SUBSECTION Private>
+<SUBSECTION Standard>
 SoupWebsocketConnectionClass
 SoupWebsocketConnectionPrivate
-SoupWebsocketExtensionManagerClass
-SoupWebsocketExtensionClass
-SoupWebsocketExtensionDeflateClass
 SOUP_IS_WEBSOCKET_CONNECTION
 SOUP_IS_WEBSOCKET_CONNECTION_CLASS
 SOUP_TYPE_WEBSOCKET_CONNECTION
 SOUP_WEBSOCKET_CONNECTION
 SOUP_WEBSOCKET_CONNECTION_CLASS
 SOUP_WEBSOCKET_CONNECTION_GET_CLASS
-SOUP_IS_WEBSOCKET_EXTENSION_MANAGER
-SOUP_IS_WEBSOCKET_EXTENSION_MANAGER_CLASS
+soup_websocket_close_code_get_type
+soup_websocket_connection_get_type
+soup_websocket_connection_type_get_type
+soup_websocket_data_type_get_type
+soup_websocket_error_get_quark
+soup_websocket_error_get_type
+soup_websocket_state_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-websocket-extension</FILE>
+<TITLE>WebSocket Extensions</TITLE>
+SoupWebsocketExtension
+soup_websocket_extension_configure
+soup_websocket_extension_get_request_params
+soup_websocket_extension_get_response_params
+soup_websocket_extension_process_outgoing_message
+soup_websocket_extension_process_incoming_message
+<SUBSECTION>
+SoupWebsocketExtensionClass
+<SUBSECTION>
+SoupWebsocketExtensionDeflate
+SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE
+<SUBSECTION>
+SoupWebsocketExtensionManager
 SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER
-SOUP_WEBSOCKET_EXTENSION_MANAGER
-SOUP_WEBSOCKET_EXTENSION_MANAGER_CLASS
-SOUP_WEBSOCKET_EXTENSION_MANAGER_GET_CLASS
+<SUBSECTION Standard>
+soup_websocket_extension_get_type
 SOUP_IS_WEBSOCKET_EXTENSION
 SOUP_IS_WEBSOCKET_EXTENSION_CLASS
 SOUP_TYPE_WEBSOCKET_EXTENSION
@@ -1135,20 +1170,18 @@ SOUP_WEBSOCKET_EXTENSION_CLASS
 SOUP_WEBSOCKET_EXTENSION_GET_CLASS
 SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE
 SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE_CLASS
-SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE
 SOUP_WEBSOCKET_EXTENSION_DEFLATE
 SOUP_WEBSOCKET_EXTENSION_DEFLATE_CLASS
 SOUP_WEBSOCKET_EXTENSION_DEFLATE_GET_CLASS
-soup_websocket_close_code_get_type
-soup_websocket_connection_get_type
-soup_websocket_connection_type_get_type
-soup_websocket_extension_manager_get_type
-soup_websocket_extension_get_type
 soup_websocket_extension_deflate_get_type
-soup_websocket_data_type_get_type
-soup_websocket_error_get_quark
-soup_websocket_error_get_type
-soup_websocket_state_get_type
+SoupWebsocketExtensionDeflateClass
+SoupWebsocketExtensionManagerClass
+soup_websocket_extension_manager_get_type
+SOUP_IS_WEBSOCKET_EXTENSION_MANAGER
+SOUP_IS_WEBSOCKET_EXTENSION_MANAGER_CLASS
+SOUP_WEBSOCKET_EXTENSION_MANAGER
+SOUP_WEBSOCKET_EXTENSION_MANAGER_CLASS
+SOUP_WEBSOCKET_EXTENSION_MANAGER_GET_CLASS
 </SECTION>
 
 <SECTION>
@@ -1164,20 +1197,7 @@ soup_hsts_enforcer_set_session_policy
 soup_hsts_enforcer_get_domains
 soup_hsts_enforcer_get_policies
 <SUBSECTION>
-SoupHSTSPolicy
-soup_hsts_policy_new
-soup_hsts_policy_new_full
-soup_hsts_policy_new_permanent
-soup_hsts_policy_new_from_response
-soup_hsts_policy_copy
-soup_hsts_policy_equal
-soup_hsts_policy_free
-<SUBSECTION>
-soup_hsts_policy_get_domain
-soup_hsts_policy_is_expired
-soup_hsts_policy_includes_subdomains
-soup_hsts_policy_is_session_policy
-SOUP_HSTS_POLICY_MAX_AGE_PAST
+SOUP_HSTS_ENFORCER_DB_FILENAME
 <SUBSECTION Standard>
 SOUP_HSTS_ENFORCER
 SOUP_HSTS_ENFORCER_CLASS
@@ -1186,6 +1206,24 @@ SOUP_TYPE_HSTS_ENFORCER
 SOUP_IS_HSTS_ENFORCER
 SOUP_IS_HSTS_ENFORCER_CLASS
 soup_hsts_enforcer_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-hsts-policy</FILE>
+SoupHSTSPolicy
+soup_hsts_policy_new
+soup_hsts_policy_new_full
+soup_hsts_policy_new_session_policy
+soup_hsts_policy_new_from_response
+soup_hsts_policy_copy
+soup_hsts_policy_equal
+soup_hsts_policy_free
+soup_hsts_policy_get_domain
+soup_hsts_policy_is_expired
+soup_hsts_policy_includes_subdomains
+soup_hsts_policy_is_session_policy
+SOUP_HSTS_POLICY_MAX_AGE_PAST
+<SUBSECTION Standard>
 SOUP_TYPE_HSTS_POLICY
 soup_hsts_policy_get_type
 </SECTION>

@@ -1941,11 +1941,6 @@ soup_session_requeue_message (SoupSession *session, SoupMessage *msg)
  * Unlike with soup_session_queue_message(), @msg is not freed upon
  * return.
  *
- * (Note that if you call this method on a #SoupSessionAsync, it will
- * still use asynchronous I/O internally, running the glib main loop
- * to process the message, which may also cause other events to be
- * processed.)
- *
  * Contrast this method with soup_session_send(), which also
  * synchronously sends a message, but returns before reading the
  * response body, and allows you to read the response via a
@@ -1977,9 +1972,6 @@ soup_session_send_message (SoupSession *session, SoupMessage *msg)
  *
  * Pauses HTTP I/O on @msg. Call soup_session_unpause_message() to
  * resume I/O.
- *
- * This may only be called for asynchronous messages (those sent on a
- * #SoupSessionAsync or using soup_session_queue_message()).
  **/
 void
 soup_session_pause_message (SoupSession *session,
@@ -2055,9 +2047,6 @@ soup_session_kick_queue (SoupSession *session)
  * If @msg is being sent via blocking I/O, this will resume reading or
  * writing immediately. If @msg is using non-blocking I/O, then
  * reading or writing won't resume until you return to the main loop.
- *
- * This may only be called for asynchronous messages (those sent on a
- * #SoupSessionAsync or using soup_session_queue_message()).
  **/
 void
 soup_session_unpause_message (SoupSession *session,
@@ -2106,12 +2095,8 @@ soup_session_unpause_message (SoupSession *session,
  * The response headers, on the other hand, will always be either
  * empty or complete.
  *
- * Beware that with the deprecated #SoupSessionAsync, messages queued
- * with soup_session_queue_message() will have their callbacks invoked
- * before soup_session_cancel_message() returns. The plain
- * #SoupSession does not have this behavior; cancelling an
- * asynchronous message will merely queue its callback to be run after
- * returning to the main loop.
+ * Note that cancelling an asynchronous message will merely queue its
+ * callback to be run after returning to the main loop.
  **/
 void
 soup_session_cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
@@ -2154,10 +2139,7 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg, guint statu
  * persistent connections.
  *
  * The message cancellation has the same semantics as with
- * soup_session_cancel_message(); asynchronous requests on a
- * #SoupSessionAsync will have their callback called before
- * soup_session_abort() returns. Requests on a plain #SoupSession will
- * not.
+ * soup_session_cancel_message().
  **/
 void
 soup_session_abort (SoupSession *session)
@@ -2884,7 +2866,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Sets the #GTlsDatabase to use for validating SSL/TLS
 	 * certificates.
 	 *
-	 * Note that setting the #SoupSession:ssl-ca-file or
+	 * Note that setting the
 	 * #SoupSession:ssl-use-system-ca-file property will cause
 	 * this property to be set to a #GTlsDatabase corresponding to
 	 * the indicated file or system default.
@@ -2913,8 +2895,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * SoupSession:ssl-strict:
 	 *
 	 * Normally, if #SoupSession:tls-database is set (including if
-	 * it was set via #SoupSession:ssl-use-system-ca-file or
-	 * #SoupSession:ssl-ca-file), then libsoup will reject any
+	 * it was set via #SoupSession:ssl-use-system-ca-file),
+	 * then libsoup will reject any
 	 * certificate that is invalid (ie, expired) or that is not
 	 * signed by one of the given CA certificates, and the
 	 * #SoupMessage will fail with the status
@@ -3798,9 +3780,6 @@ soup_session_send_finish (SoupSession   *session,
  * Contrast this method with soup_session_send_message(), which also
  * synchronously sends a #SoupMessage, but doesn't return until the
  * response has been completely read.
- *
- * (Note that this method cannot be called on the deprecated
- * #SoupSessionAsync subclass.)
  *
  * Return value: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.

@@ -66,11 +66,8 @@ typedef struct {
         Inflater inflater;
 } SoupWebsocketExtensionDeflatePrivate;
 
-/*
- * SECTION:soup-websocket-extension-deflate
- * @title: SoupWebsocketExtensionDeflate
- * @short_description: A permessage-deflate WebSocketExtension
- * @see_also: #SoupWebsocketExtension
+/**
+ * SoupWebsocketExtensionDeflate:
  *
  * A SoupWebsocketExtensionDeflate is a #SoupWebsocketExtension
  * implementing permessage-deflate (RFC 7692).

@@ -9,7 +9,7 @@
 
 G_BEGIN_DECLS
 
-typedef struct SoupMessageHeaders SoupMessageHeaders;
+typedef struct _SoupMessageHeaders SoupMessageHeaders;
 SOUP_AVAILABLE_IN_2_4
 GType soup_message_headers_get_type (void);
 #define SOUP_TYPE_MESSAGE_HEADERS (soup_message_headers_get_type ())

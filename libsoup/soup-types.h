@@ -26,7 +26,6 @@ typedef struct _SoupRequest             SoupRequest;
 typedef struct _SoupRequestHTTP         SoupRequestHTTP;
 typedef struct _SoupServer              SoupServer;
 typedef struct _SoupSession             SoupSession;
-typedef struct _SoupSessionAsync        SoupSessionAsync;
 typedef struct _SoupSessionFeature      SoupSessionFeature;
 typedef struct _SoupSocket              SoupSocket;
 typedef struct _SoupURI                 SoupURI;

@@ -40,7 +40,7 @@
  * Since: 2.26
  **/
 
-struct SoupMultipart {
+struct _SoupMultipart {
 	char *mime_type, *boundary;
 	GPtrArray *headers, *bodies;
 };

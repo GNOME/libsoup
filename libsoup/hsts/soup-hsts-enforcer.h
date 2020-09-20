@@ -24,7 +24,8 @@ G_DECLARE_DERIVABLE_TYPE (SoupHSTSEnforcer, soup_hsts_enforcer, SOUP, HSTS_ENFOR
  * change the scheme of the #SoupURI in the #SoupMessage to HTTPS. Implementations might want to
  * chain up to the @has_valid_policy in the parent class to check, for instance, for runtime
  * policies.
- * @changed: the class closure for the #SoupHSTSEnforcer::changed signal.
+ * @changed: The class closure for the #SoupHSTSEnforcer::changed signal.
+ * @hsts_enforced: The class closure for the #SoupHSTSEnforcer::hsts-enforced signal.
  **/
 struct _SoupHSTSEnforcerClass {
 	GObjectClass parent_class;
@@ -40,6 +41,7 @@ struct _SoupHSTSEnforcerClass {
 	void (*hsts_enforced) (SoupHSTSEnforcer *enforcer,
 			       SoupMessage      *message);
 
+        /* <private> */
 	gpointer padding[4];
 };
 

@@ -49,7 +49,7 @@ typedef struct {
 	char *value;
 } SoupHeader;
 
-struct SoupMessageHeaders {
+struct _SoupMessageHeaders {
 	GArray *array;
 	GHashTable *concat;
 	SoupMessageHeadersType type;

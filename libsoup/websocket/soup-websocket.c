@@ -625,7 +625,7 @@ process_extensions (SoupMessage *msg,
  * only requests containing valid supported extensions in
  * "Sec-WebSocket-Extensions" header will be accepted.
  *
- * Normally soup_websocket_server_process_handshake_with_extensioins()
+ * Normally soup_websocket_server_process_handshake_with_extensions()
  * will take care of this for you, and if you use
  * soup_server_add_websocket_handler() to handle accepting WebSocket
  * connections, it will call that for you. However, this function may

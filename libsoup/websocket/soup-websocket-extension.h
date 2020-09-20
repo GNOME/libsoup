@@ -55,6 +55,7 @@ struct _SoupWebsocketExtensionClass {
 					       GBytes                     *payload,
                                                GError                    **error);
 
+        /* <private> */
 	gpointer padding[6];
 };
 

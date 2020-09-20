@@ -106,6 +106,7 @@
  * @SOUP_STATUS_USE_PROXY: 305 Use Proxy (HTTP)
  * @SOUP_STATUS_NOT_APPEARING_IN_THIS_PROTOCOL: 306 [Unused] (HTTP)
  * @SOUP_STATUS_TEMPORARY_REDIRECT: 307 Temporary Redirect (HTTP)
+ * @SOUP_STATUS_PERMANENT_REDIRECT: 308 Permanent Redirect (HTTP)
  * @SOUP_STATUS_BAD_REQUEST: 400 Bad Request (HTTP)
  * @SOUP_STATUS_UNAUTHORIZED: 401 Unauthorized (HTTP)
  * @SOUP_STATUS_PAYMENT_REQUIRED: 402 Payment Required (HTTP)
@@ -206,6 +207,7 @@ static const struct {
 	{ SOUP_STATUS_NOT_MODIFIED,               "Not Modified" },
 	{ SOUP_STATUS_USE_PROXY,                  "Use Proxy" },
 	{ SOUP_STATUS_TEMPORARY_REDIRECT,         "Temporary Redirect" },
+        { SOUP_STATUS_PERMANENT_REDIRECT,         "Permanent Redirect" },
 
 	/* Client error */
 	{ SOUP_STATUS_BAD_REQUEST,                "Bad Request" },

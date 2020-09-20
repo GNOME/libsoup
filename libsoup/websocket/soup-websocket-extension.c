@@ -38,6 +38,7 @@
 
 /**
  * SoupWebsocketExtensionClass:
+ * @name: the name of the extension
  * @parent_class: the parent class
  * @configure: called to configure the extension with the given parameters
  * @get_request_params: called by the client to build the request header.

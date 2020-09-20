@@ -35,9 +35,6 @@ URI
 
 // Not enough GIR information
 MessageBody.data type="uint8[]" array_length_field="length"
-Date
-	.new_from_time_t.when type="time_t"
-	.to_time_t type="time_t"
 
 // Simplify memory management
 MessageBody

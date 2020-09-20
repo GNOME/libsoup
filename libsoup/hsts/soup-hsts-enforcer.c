@@ -37,7 +37,7 @@
  * SoupMessage:uri in order to be aware of changes in the message URI.
  *
  * Note that #SoupHSTSEnforcer does not support any form of long-term
- * HSTS policy persistence. See #SoupHSTSDBEnforcer for a persistent
+ * HSTS policy persistence. See #SoupHSTSEnforcerDB for a persistent
  * enforcer.
  *
  **/

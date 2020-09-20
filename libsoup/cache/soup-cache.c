@@ -1491,7 +1491,7 @@ pack_entry (gpointer data,
  * You must call this before exiting if you want your cache data to
  * persist between sessions.
  *
- * Since: 2.34.
+ * Since: 2.34
  */
 void
 soup_cache_dump (SoupCache *cache)

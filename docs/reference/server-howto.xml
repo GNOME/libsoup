@@ -114,46 +114,6 @@ a few additional options:
 </para>
 </refsect2>
 
-<refsect2 id="soup-server-old-api">
-<title>The Old SoupServer Listening API</title>
-
-<para>
-<link
-linkend="soup-server-listen"><function>soup_server_listen</function></link>,
-etc, are available only in <application>libsoup</application> 2.46 and
-later. In earlier versions, there was a simpler API, in which a server
-could only listen on a single port, determined at construct time
-either by passing the <link
-linkend="SOUP-SERVER-INTERFACE:CAPS"><literal>SOUP_SERVER_INTERFACE</literal></link>
-property (to specify a <link
-linkend="SoupAddress"><type>SoupAddress</type></link> to listen on),
-or the <link
-linkend="SOUP-SERVER-PORT:CAPS"><literal>SOUP_SERVER_PORT</literal></link>
-property (to specify a port to listen on, on all interfaces). The <link
-linkend="SOUP-SERVER-SSL-CERT-FILE:CAPS"><literal>SOUP_SERVER_SSL_CERT_FILE</literal></link>
-and <link
-linkend="SOUP-SERVER-SSL-KEY-FILE:CAPS"><literal>SOUP_SERVER_SSL_KEY_FILE</literal></link>
-properties could be used to create an HTTP server.
-</para>
-
-<para>
-When using this API, if <link
-linkend="SoupServer"><type>SoupServer</type></link> is unable to bind
-the listening socket, or unable to read the provided certificate or
-key files, then it will return <literal>NULL</literal> from its
-constructor (with no further indication of what exactly went wrong).
-</para>
-
-<para>
-Additionally, when using this API, it is necessary to call <link
-linkend="soup-server-run"><function>soup_server_run</function></link>
-or <link
-linkend="soup-server-run-async"><function>soup_server_run_async</function></link>
-to start the server after creating it.
-</para>
-
-</refsect2>
-
 <refsect2>
 <title>Adding Handlers</title>
 

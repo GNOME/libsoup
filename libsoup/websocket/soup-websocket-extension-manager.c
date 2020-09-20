@@ -33,10 +33,7 @@
 #include "soup-websocket-extension-manager-private.h"
 
 /**
- * SECTION:soup-websocket-extension-manager
- * @title: SoupWebsocketExtensionManager
- * @short_description: WebSocket extensions manager
- * @see_also: #SoupSession, #SoupWebsocketExtension
+ * SoupWebsocketExtensionManager:
  *
  * SoupWebsocketExtensionManager is the #SoupSessionFeature that handles WebSockets
  * extensions for a #SoupSession.

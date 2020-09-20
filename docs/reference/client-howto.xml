@@ -91,7 +91,7 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-PROXY-RESOLVER:CAPS"><literal>SOUP_SESSION_PROXY_RESOLVER</literal></link> and <link linkend="SOUP-SESSION-PROXY-URI:CAPS"><literal>SOUP_SESSION_PROXY_URI</literal></link></term>
+	<term><link linkend="SOUP-SESSION-PROXY-RESOLVER:CAPS"><literal>SOUP_SESSION_PROXY_RESOLVER</literal></link></term>
 	<listitem>
 	    <para>
 		<link linkend="SOUP-SESSION-PROXY-RESOLVER:CAPS"><literal>SOUP_SESSION_PROXY_RESOLVER</literal></link>
@@ -101,11 +101,6 @@ you can specify various additional options:
 		this is set to the resolver returned by <link
 		linkend="g-proxy-resolver-get-default"><function>g_proxy_resolver_get_default</function></link>,
 		so you do not need to set it yourself.
-	    </para>
-	    <para>
-		Alternatively, if you want all requests to go through a
-		single proxy, you can set <link
-		linkend="SOUP-SESSION-PROXY-URI:CAPS"><literal>SOUP_SESSION_PROXY_URI</literal></link>.
 	    </para>
 	</listitem>
     </varlistentry>

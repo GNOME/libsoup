@@ -205,9 +205,6 @@ soup_request_default_send_finish (SoupRequest          *request,
  * Synchronously requests the URI pointed to by @request, and returns
  * a #GInputStream that can be used to read its contents.
  *
- * Note that you cannot use this method with #SoupRequests attached to
- * a #SoupSessionAsync.
- *
  * Return value: (transfer full): a #GInputStream that can be used to
  *   read from the URI pointed to by @request.
  *

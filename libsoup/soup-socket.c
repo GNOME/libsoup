@@ -20,7 +20,7 @@
 #include "soup-filter-input-stream.h"
 #include "soup-io-stream.h"
 
-/**
+/*<private>
  * SECTION:soup-socket
  * @short_description: A network socket
  *

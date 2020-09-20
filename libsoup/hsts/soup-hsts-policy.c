@@ -19,25 +19,14 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-hsts-policy
- * @short_description: HTTP Strict Transport Security policies
- * @see_also: #SoupHSTSEnforcer
- *
- * #SoupHSTSPolicy implements HTTP policies, as described by <ulink
- * url="http://tools.ietf.org/html/rfc6797">RFC 6797</ulink>.
- *
- * To have a #SoupSession handle HSTS policies for your appliction
- * automatically, use a #SoupHSTSEnforcer.
- **/
-
-/**
  * SoupHSTSPolicy:
  * @domain: The domain or hostname that the policy applies to
  * @max_age: The maximum age, in seconds, that the policy is valid
  * @expires: the policy expiration time, or %NULL for a permanent session policy
  * @include_subdomains: %TRUE if the policy applies on subdomains
  *
- * An HTTP Strict Transport Security policy.
+ * #SoupHSTSPolicy implements HTTP policies, as described by
+ * [RFC 6797](http://tools.ietf.org/html/rfc6797).
  *
  * @domain represents the host that this policy applies to. The domain
  * must be IDNA-canonicalized. soup_hsts_policy_new() and related methods
