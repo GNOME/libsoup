@@ -19,6 +19,16 @@
 #include "soup.h"
 
 /**
+ * SECTION:soup-hsts-policy
+ * @title: SoupHSTSPolicy
+ * @short_description: HSTS policies
+ *
+ * Policies to be used with #SoupHSTSEnforcer.
+ *
+ * Since: 2.68
+ */
+
+/**
  * SoupHSTSPolicy:
  * @domain: The domain or hostname that the policy applies to
  * @max_age: The maximum age, in seconds, that the policy is valid
