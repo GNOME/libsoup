@@ -43,7 +43,6 @@ ignore_headers = [
 ]
 
 mkdb_args = [
-  '--sgml-mode',
   '--output-format=xml'
 ]
 
@@ -54,7 +53,7 @@ scan_args = [
 ]
 
 gnome.gtkdoc('libsoup-3.0',
-  main_sgml : 'libsoup-3.0-docs.sgml',
+  main_xml : 'libsoup-3.0-docs.xml',
   src_dir : srcdir,
   ignore_headers : ignore_headers,
   namespace : 'soup',

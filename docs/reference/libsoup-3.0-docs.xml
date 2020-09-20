@@ -1,9 +1,12 @@
 <?xml version="1.0"?>
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
-               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
-<book id="index" xmlns:xi="http://www.w3.org/2001/XInclude">
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+<book xmlns="http://docbook.org/ns/docbook" id="index" xmlns:xi="http://www.w3.org/2003/XInclude">
   <bookinfo>
     <title>libsoup Reference Manual</title>
+    <releaseinfo>
+      This documentation is for libsoup 3.0 which is in development.
+      You can find older versions online at <ulink role="online-location" url="https://developer.gnome.org/libsoup/stable/">https://developer.gnome.org/libsoup/stable/</ulink>.
+    </releaseinfo>
   </bookinfo>
 
   <chapter>
@@ -26,7 +29,6 @@
     <xi:include href="xml/soup-message-headers.xml"/>
     <xi:include href="xml/soup-message-body.xml"/>
     <xi:include href="xml/soup-method.xml"/>
-    <xi:include href="xml/soup-misc.xml"/>
     <xi:include href="xml/soup-multipart.xml"/>
     <xi:include href="xml/soup-multipart-input-stream.xml"/>
     <xi:include href="xml/soup-request.xml"/>
@@ -61,12 +63,17 @@
     <xi:include href="xml/soup-websocket.xml"/>
   </chapter>
 
-  <index>
-    <title>Index</title>
+  <index id="api-index-full">
+    <title>Index of all symbols</title>
+    <xi:include href="xml/api-index-full.xml"><xi:fallback /></xi:include>
   </index>
 
-  <xi:include href="xml/annotation-glossary.xml">
-    <xi:fallback />
-  </xi:include>
+  <index id="api-index-deprecated" role="deprecated">
+    <title>Index of deprecated symbols</title>
+    <xi:include href="xml/api-index-deprecated.xml"><xi:fallback /></xi:include>
+  </index>
+
+  <xi:include href="xml/annotation-glossary.xml"><xi:fallback /></xi:include>
+
 
 </book>
