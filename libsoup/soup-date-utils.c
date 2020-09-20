@@ -25,6 +25,13 @@
 #include "soup-date-utils-private.h"
 
 /**
+ * SECTION:soup-date-utils
+ * @section_id: SoupDateTime
+ * @title: DateTime Utilities
+ * @short_description: Functions to help working with #GDateTime and HTTP
+ */
+
+/**
  * soup_date_time_is_past:
  * @date: a #GDateTime
  *

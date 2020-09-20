@@ -16,6 +16,7 @@
 
 /**
  * SECTION:soup-form
+ * @section_id: SoupForm
  * @short_description: HTML form handling
  * @see_also: #SoupMultipart
  *

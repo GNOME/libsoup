@@ -13,6 +13,7 @@
 
 /**
  * SECTION:soup-version
+ * @section_id: SoupVersion
  * @short_description: Variables and functions to check the libsoup version
  **/
 

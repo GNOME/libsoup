@@ -19,6 +19,7 @@
 
 /**
  * SECTION:soup-tld
+ * @section_id: SoupTLD
  * @short_description: Top-Level Domain Utilities
  *
  * These functions can be used to parse hostnames to attempt to determine

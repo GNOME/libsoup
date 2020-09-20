@@ -14,6 +14,7 @@
 
 /**
  * SECTION:soup-status
+ * @section_id: SoupStatus
  * @short_description: HTTP (and libsoup) status codes
  *
  **/

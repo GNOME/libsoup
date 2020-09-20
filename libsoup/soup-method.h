@@ -11,6 +11,7 @@ G_BEGIN_DECLS
 
 /**
  * SECTION:soup-method
+ * @section_id: SoupMethod
  * @short_description: HTTP method definitions
  *
  * soup-method.h contains a number of defines for standard HTTP and

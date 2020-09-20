@@ -33,6 +33,7 @@
 
 /**
  * SECTION:soup-websocket
+ * @section_id: SoupWebsocket
  * @short_description: The WebSocket Protocol
  * @see_also: soup_session_websocket_connect_async(),
  *   soup_server_add_websocket_handler()

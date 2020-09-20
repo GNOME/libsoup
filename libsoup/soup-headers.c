@@ -17,6 +17,13 @@
 #include "soup.h"
 
 /**
+ * SECTION:soup-headers
+ * @section_id: SoupHeaders
+ * @title: SoupHeaders
+ * @short_description: Functions to help working with HTTP Headers
+ */
+
+/**
  * soup_headers_parse:
  * @str: the header string (including the Request-Line or Status-Line,
  *   but not the trailing blank line)

@@ -90,6 +90,7 @@ soup_message_starting
 
 <SECTION>
 <FILE>soup-method</FILE>
+<TITLE>SoupMethod</TITLE>
 SOUP_METHOD_OPTIONS
 SOUP_METHOD_GET
 SOUP_METHOD_HEAD
@@ -164,6 +165,26 @@ soup_message_headers_get_type
 </SECTION>
 
 <SECTION>
+<FILE>soup-headers</FILE>
+soup_headers_parse_request
+soup_headers_parse_response
+soup_headers_parse_status_line
+soup_headers_parse
+<SUBSECTION>
+soup_header_parse_list
+soup_header_parse_quality_list
+soup_header_free_list
+soup_header_contains
+soup_header_parse_param_list
+soup_header_parse_semi_param_list
+soup_header_parse_param_list_strict
+soup_header_parse_semi_param_list_strict
+soup_header_free_param_list
+soup_header_g_string_append_param
+soup_header_g_string_append_param_quoted
+</SECTION>
+
+<SECTION>
 <FILE>soup-message-body</FILE>
 <TITLE>SoupMessageBody</TITLE>
 SoupMemoryUse
@@ -192,6 +213,7 @@ soup_message_body_get_type
 
 <SECTION>
 <FILE>soup-status</FILE>
+<TITLE>SoupStatus</TITLE>
 SOUP_STATUS_IS_TRANSPORT_ERROR
 SOUP_STATUS_IS_INFORMATIONAL
 SOUP_STATUS_IS_SUCCESSFUL
@@ -588,35 +610,17 @@ soup_uri_get_type
 </SECTION>
 
 <SECTION>
-<FILE>soup-misc</FILE>
-<TITLE>Soup Miscellaneous Utilities</TITLE>
+<FILE>soup-date-utils</FILE>
 SoupDateFormat
 soup_date_time_new_from_http_string
 soup_date_time_to_string
 <SUBSECTION Private>
 soup_date_time_is_past
-<SUBSECTION>
-soup_headers_parse_request
-soup_headers_parse_response
-soup_headers_parse_status_line
-soup_headers_parse
-<SUBSECTION>
-soup_header_parse_list
-soup_header_parse_quality_list
-soup_header_free_list
-soup_header_contains
-soup_header_parse_param_list
-soup_header_parse_semi_param_list
-soup_header_parse_param_list_strict
-soup_header_parse_semi_param_list_strict
-soup_header_free_param_list
-soup_header_g_string_append_param
-soup_header_g_string_append_param_quoted
 </SECTION>
 
 <SECTION>
 <FILE>soup-form</FILE>
-<TITLE>HTML Form Support</TITLE>
+<TITLE>SoupForm</TITLE>
 <SUBSECTION>
 SOUP_FORM_MIME_TYPE_MULTIPART
 SOUP_FORM_MIME_TYPE_URLENCODED
@@ -749,6 +753,7 @@ soup_cookie_jar_get_type
 
 <SECTION>
 <FILE>soup-multipart</FILE>
+<TITLE>SoupMultipart</TITLE>
 SoupMultipart
 soup_multipart_new
 soup_multipart_new_from_message
@@ -963,7 +968,7 @@ soup_request_http_get_type
 
 <SECTION>
 <FILE>soup-tld</FILE>
-<TITLE>Top Level Domain utils</TITLE>
+<TITLE>SoupTLD</TITLE>
 <SUBSECTION>
 soup_tld_get_base_domain
 soup_tld_domain_is_public_suffix
@@ -1087,7 +1092,7 @@ SOUP_VERSION_PREV_STABLE
 
 <SECTION>
 <FILE>soup-websocket</FILE>
-<TITLE>WebSockets</TITLE>
+<TITLE>SoupWebsocket</TITLE>
 soup_websocket_client_prepare_handshake
 soup_websocket_client_prepare_handshake_with_extensions
 soup_websocket_client_verify_handshake
@@ -1145,7 +1150,7 @@ soup_websocket_state_get_type
 
 <SECTION>
 <FILE>soup-websocket-extension</FILE>
-<TITLE>WebSocket Extensions</TITLE>
+<TITLE>SoupWebsocketExtension</TITLE>
 SoupWebsocketExtension
 soup_websocket_extension_configure
 soup_websocket_extension_get_request_params

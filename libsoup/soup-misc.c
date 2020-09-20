@@ -14,12 +14,6 @@
 #include "soup-misc.h"
 
 /**
- * SECTION:soup-misc
- * @short_description: Miscellaneous functions
- *
- **/
-
-/**
  * soup_str_case_hash:
  * @key: ASCII string to hash
  *
