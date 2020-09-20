@@ -52,6 +52,9 @@ scan_args = [
   '--ignore-decorators="SOUP_DEPRECATED\w*\s*\([^)]*\)|SOUP_DEPRECATED\w*|SOUP_AVAILABLE\w*"'
 ]
 
+glib_prefix = glib_dep.get_pkgconfig_variable('prefix')
+glib_docpath = glib_prefix / 'share' / 'gtk-doc' / 'html'
+
 gnome.gtkdoc('libsoup-3.0',
   main_xml : 'libsoup-3.0-docs.xml',
   src_dir : srcdir,
@@ -59,6 +62,11 @@ gnome.gtkdoc('libsoup-3.0',
   namespace : 'soup',
   mkdb_args : mkdb_args,
   scan_args : scan_args,
+  fixxref_args : [
+    '--extra-dir=@0@'.format(glib_docpath / 'glib'),
+    '--extra-dir=@0@'.format(glib_docpath /'gobject'),
+    '--extra-dir=@0@'.format(glib_docpath /'gio'),
+  ],
   dependencies : libsoup_private_dep,
   install : true,
   content_files: [
