@@ -272,8 +272,6 @@ libsoup_static_dep = declare_dependency(link_with : libsoup_static,
 )
 
 if enable_introspection or enable_vapi
-  soup_gir_args = libsoup_c_args + ['-DLIBSOUP_USE_UNSTABLE_REQUEST_API']
-
   soup_ns = 'Soup'
 
   soup_gir_gen_sources = gnome.generate_gir(libsoup,
@@ -289,7 +287,7 @@ if enable_introspection or enable_vapi
     symbol_prefix : soup_ns.to_lower(),
     identifier_prefix : soup_ns,
     export_packages : libsoup_api_name,
-    extra_args : soup_gir_args,
+    extra_args : libsoup_c_args,
     includes : 'Gio-2.0',
     install : true,
     header: join_paths(meson.project_name(), 'soup.h'),

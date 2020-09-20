@@ -7,8 +7,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include "libsoup/soup.h"
 
 void test_init    (int argc, char **argv, GOptionEntry *entries);

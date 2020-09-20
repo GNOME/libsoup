@@ -30,11 +30,7 @@ useful to programs that want to deal with multiple kinds of URIs.
 <application>libsoup</application> API in 2.42 with the addition of
 <link
 linkend="soup-session-request"><function>soup_session_request</function></link>
-and the related functions. However, parts of it are also available as
-far back as <application>libsoup</application> 2.34 via the
-(now-deprecated) <type>SoupRequester</type> session feature, if you
-define <literal>LIBSOUP_USE_UNSTABLE_REQUEST_API</literal> before
-including the <application>libsoup</application> headers.
+and the related functions.
 </para>
 
 <para>

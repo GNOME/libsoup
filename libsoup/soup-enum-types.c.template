@@ -1,7 +1,6 @@
 /*** BEGIN file-header ***/
 #include <config.h>
 
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
 #include <libsoup/soup.h>
 
 #define C_ENUM(v) ((gint) v)
