@@ -28,6 +28,9 @@ ignore_headers = [
   'soup-socket-private.h',
   'soup-websocket-extension-manager-private.h',
   'soup-misc.h',
+  'soup-date-utils-private.h',
+  'soup-resources.h',
+  'soup-private-enum-types.h',
 ]
 
 mkdb_args = [

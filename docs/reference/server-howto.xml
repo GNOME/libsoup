@@ -266,7 +266,7 @@ to tell <application>libsoup</application> that you'll be using
 chunked encoding. Then call <link
 linkend="soup-message-body-append"><function>soup_message_body_append</function></link>
 (or <link
-linkend="soup-message-body-append-buffer"><function>soup_message_body_append_buffer</function></link>)
+linkend="soup-message-body-append-bytes"><function>soup_message_body_append_bytes</function></link>)
 on <literal>msg->response_body</literal> with each chunk of the
 response body as it becomes available, and call <link
 linkend="soup-message-body-complete"><function>soup_message_body_complete</function></link>

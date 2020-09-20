@@ -406,7 +406,7 @@ to do next. The <structfield>status_code</structfield> and
 status and textual status response from the server.
 <structfield>response_headers</structfield> contains the response
 headers, which you can investigate using <link
-linkend="soup-message-headers-get"><function>soup_message_headers_get</function></link>
+linkend="soup-message-headers-get-list"><function>soup_message_headers_get_list</function></link>
 and <link
 linkend="soup-message-headers-foreach"><function>soup_message_headers_foreach</function></link>.
 </para>

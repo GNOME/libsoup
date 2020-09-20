@@ -537,7 +537,7 @@ soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
  * 
  * Calls @func once for each header value in @hdrs.
  *
- * Beware that unlike soup_message_headers_get(), this processes the
+ * Beware that unlike soup_message_headers_get_list(), this processes the
  * headers in exactly the way they were added, rather than
  * concatenating multiple same-named headers into a single value.
  * (This is intentional; it ensures that if you call
