@@ -6,6 +6,7 @@ RUN dnf update -y \
     && dnf install -y brotli-devel \
                       git \
                       gtk-doc \
+                      glib2-doc \
                       httpd \
                       lcov \
                       libpsl-devel \
