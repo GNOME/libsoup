@@ -7,19 +7,19 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-10-10 09:39+0000\n"
-"PO-Revision-Date: 2019-11-23 14:29+0800\n"
-"Last-Translator: pan93412 <pan93412@gmail.com>\n"
+"POT-Creation-Date: 2020-09-17 06:36+0000\n"
+"PO-Revision-Date: 2020-09-22 23:09+0800\n"
+"Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
 "Language-Team: Chinese <zh-l10n@linux.org.tw>\n"
 "Language: zh_TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 19.11.80\n"
+"X-Generator: Poedit 2.4.1\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
 msgid "Connection terminated unexpectedly"
 msgstr "連線無預警的關閉了"
 
@@ -39,6 +39,18 @@ msgstr "網路串流無預警的關閉了"
 msgid "Failed to completely cache the resource"
 msgstr "無法完整快取資源"
 
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "名稱"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "大小"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "修改日期"
+
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
@@ -52,15 +64,15 @@ msgstr "無法解析 HTTP 回應"
 msgid "Unrecognized HTTP response encoding"
 msgstr "未辨識的 HTTP 回應編碼"
 
-#: libsoup/soup-message-io.c:261
+#: libsoup/soup-message-io.c:269
 msgid "Header too big"
 msgstr "標頭太大"
 
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "操作會阻擋"
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "操作已被取消"
 
@@ -78,31 +90,31 @@ msgstr "未提供 URI"
 msgid "Invalid “%s” URI: %s"
 msgstr "無效的「%s」URI：%s"
 
-#: libsoup/soup-server.c:1805
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "沒有 TLS 憑證不能建立 TLS 伺服器"
 
-#: libsoup/soup-server.c:1822
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "無法聽取位址 %s，連接埠 %d："
 
-#: libsoup/soup-session.c:4543
+#: libsoup/soup-session.c:4585
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "無法解析 URI「%s」"
 
-#: libsoup/soup-session.c:4580
+#: libsoup/soup-session.c:4622
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "不支援的 URI scheme「%s」"
 
-#: libsoup/soup-session.c:4602
+#: libsoup/soup-session.c:4644
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "並非 HTTP URI"
 
-#: libsoup/soup-session.c:4813
+#: libsoup/soup-session.c:4855
 msgid "The server did not accept the WebSocket handshake."
 msgstr "伺服器不接受 WebSocket 交握。"
 
@@ -140,8 +152,7 @@ msgstr "「%s」WebSocket 擴充元件標頭有重複參數"
 
 #: libsoup/soup-websocket.c:567
 #, c-format
-msgid ""
-"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr "伺服器在「%s」WebSocket 擴充元件標頭回傳了重複參數"
 
 #: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
