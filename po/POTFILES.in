@@ -1,7 +1,9 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+libsoup/cache/soup-cache-input-stream.c
+libsoup/content-sniffer/soup-converter-wrapper.c
 libsoup/soup-body-input-stream.c
-libsoup/soup-cache-input-stream.c
 libsoup/soup-directory-input-stream.c
-libsoup/soup-converter-wrapper.c
 libsoup/soup-message-client-io.c
 libsoup/soup-message-io.c
 libsoup/soup-message-server-io.c
@@ -9,5 +11,5 @@ libsoup/soup-request.c
 libsoup/soup-server.c
 libsoup/soup-session.c
 libsoup/soup-socket.c
-libsoup/soup-websocket.c
 libsoup/soup-tld.c
+libsoup/websocket/soup-websocket.c
