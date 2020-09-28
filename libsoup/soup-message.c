@@ -24,9 +24,7 @@
  * A #SoupMessage represents an HTTP message that is being sent or
  * received.
  *
- * For client-side usage, if you are using the traditional
- * #SoupSession APIs (soup_session_queue_message() and
- * soup_session_send_message()), you would create a #SoupMessage with
+ * For client-side usage, you would create a #SoupMessage with
  * soup_message_new() or soup_message_new_from_uri(), set up its
  * fields appropriately, and send it. If you are using the newer
  * #SoupRequest API, you would create a request with

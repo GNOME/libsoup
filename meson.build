@@ -354,7 +354,9 @@ subdir('libsoup')
 if find_program('xgettext', required : false).found()
   subdir('po')
 endif
-subdir('examples')
+
+# FIXME: port examples to use the new API.
+#subdir('examples')
 
 if get_option('tests')
   subdir('tests')

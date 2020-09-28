@@ -28,6 +28,10 @@ typedef enum {
 	SOUP_MESSAGE_FINISHED
 } SoupMessageQueueItemState;
 
+typedef void (*SoupSessionCallback) (SoupSession *session,
+				     SoupMessage *msg,
+				     gpointer     user_data);
+
 struct _SoupMessageQueueItem {
 	/*< public >*/
 	SoupSession *session;

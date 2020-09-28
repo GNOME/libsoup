@@ -55,8 +55,6 @@ SoupSession *soup_test_session_new                (GType type, ...);
 void         soup_test_session_abort_unref        (SoupSession *session);
 GBytes      *soup_test_session_async_send         (SoupSession *session,
 						   SoupMessage *msg);
-guint        soup_test_session_async_send_message (SoupSession *session,
-						   SoupMessage *msg);
 guint        soup_test_session_send_message       (SoupSession *session,
 						   SoupMessage *msg);
 

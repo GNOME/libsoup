@@ -708,10 +708,6 @@ do_cancel_while_reading_test_for_session (SoupSession *session)
 	g_object_ref (session);
 	g_timeout_add (100, cancel_message_timeout, msg);
 
-	/* We intentionally don't use soup_session_send_message() here,
-	 * because it holds an extra ref on the SoupMessageQueueItem
-	 * relative to soup_session_queue_message().
-	 */
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (set_done), &done);
 	soup_session_send_async (session, msg, NULL, NULL, NULL);

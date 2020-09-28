@@ -1846,57 +1846,6 @@ idle_run_queue_dnotify (gpointer user_data)
 }
 
 /**
- * SoupSessionCallback:
- * @session: the session
- * @msg: the message that has finished
- * @user_data: the data passed to soup_session_queue_message
- *
- * Prototype for the callback passed to soup_session_queue_message(),
- * qv.
- **/
-
-/**
- * soup_session_queue_message:
- * @session: a #SoupSession
- * @msg: (transfer full): the message to queue
- * @callback: (allow-none) (scope async): a #SoupSessionCallback which will
- * be called after the message completes or when an unrecoverable error occurs.
- * @user_data: (allow-none): a pointer passed to @callback.
- * 
- * Queues the message @msg for asynchronously sending the request and
- * receiving a response in the current thread-default #GMainContext.
- * If @msg has been processed before, any resources related to the
- * time it was last sent are freed.
- *
- * Upon message completion, the callback specified in @callback will
- * be invoked. If after returning from this callback the message has not
- * been requeued, @msg will be unreffed.
- *
- * Contrast this method with soup_session_send_async(), which also
- * asynchronously sends a message, but returns before reading the
- * response body, and allows you to read the response via a
- * #GInputStream.
- */
-void
-soup_session_queue_message (SoupSession *session, SoupMessage *msg,
-				 SoupSessionCallback callback, gpointer user_data)
-{
-	SoupMessageQueueItem *item;
-
-	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-
-	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
-					       callback, user_data);
-	soup_session_kick_queue (session);
-	soup_message_queue_item_unref (item);
-	/* The SoupMessageQueueItem will hold a ref on @msg until it is
-	 * finished, so we can drop the ref adopted from the caller now.
-	 */
-	g_object_unref (msg);
-}
-
-/**
  * soup_session_requeue_message:
  * @session: a #SoupSession
  * @msg: the message to requeue
@@ -1927,42 +1876,6 @@ soup_session_requeue_message (SoupSession *session, SoupMessage *msg)
 	}
 
 	soup_message_queue_item_unref (item);
-}
-
-/**
- * soup_session_send_message:
- * @session: a #SoupSession
- * @msg: the message to send
- * 
- * Synchronously send @msg. This call will not return until the
- * transfer is finished successfully or there is an unrecoverable
- * error.
- *
- * Unlike with soup_session_queue_message(), @msg is not freed upon
- * return.
- *
- * Contrast this method with soup_session_send(), which also
- * synchronously sends a message, but returns before reading the
- * response body, and allows you to read the response via a
- * #GInputStream.
- *
- * Return value: the HTTP status code of the response
- */
-guint
-soup_session_send_message (SoupSession *session, SoupMessage *msg)
-{
-	SoupMessageQueueItem *item;
-	guint status;
-
-	g_return_val_if_fail (SOUP_IS_SESSION (session), SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_STATUS_MALFORMED);
-
-	item = soup_session_append_queue_item (session, msg, FALSE, FALSE,
-					       NULL, NULL);
-	soup_session_process_queue_item (session, item, NULL, TRUE);
-	status = msg->status_code;
-	soup_message_queue_item_unref (item);
-	return status;
 }
 
 /**
@@ -2561,10 +2474,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * @session: the session
 	 * @msg: the request that was queued
 	 *
-	 * Emitted when a request is queued on @session. (Note that
-	 * "queued" doesn't just mean soup_session_queue_message();
-	 * soup_session_send_message() implicitly queues the message
-	 * as well.)
+	 * Emitted when a request is queued on @session.
 	 *
 	 * When sending a request, first #SoupSession::request_queued
 	 * is emitted, indicating that the session has become aware of
@@ -2579,9 +2489,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Eventually, the message will emit #SoupMessage::finished.
 	 * Normally, this signals the completion of message
 	 * processing. However, it is possible that the application
-	 * will requeue the message from the "finished" handler (or
-	 * equivalently, from the soup_session_queue_message()
-	 * callback). In that case the process will loop back.
+	 * will requeue the message from the "finished" handler.
+	 * In that case the process will loop back.
 	 *
 	 * Eventually, a message will reach "finished" and not be
 	 * requeued. At that point, the session will emit
@@ -3502,15 +3411,16 @@ async_return_from_cache (SoupMessageQueueItem *item,
 typedef struct {
 	SoupCache *cache;
 	SoupMessage *conditional_msg;
-} AsyncCacheCancelData;
-
+	SoupMessageQueueItem *item;
+} AsyncCacheConditionalData;
 
 static void
-free_async_cache_cancel_data (AsyncCacheCancelData *data)
+async_cache_conditional_data_free (AsyncCacheConditionalData *data)
 {
 	g_object_unref (data->conditional_msg);
 	g_object_unref (data->cache);
-	g_slice_free (AsyncCacheCancelData, data);
+	soup_message_queue_item_unref (data->item);
+	g_slice_free (AsyncCacheConditionalData, data);
 }
 
 static void
@@ -3523,34 +3433,30 @@ cancel_cache_response (SoupMessageQueueItem *item)
 }
 
 static void
-conditional_request_cancelled_cb (GCancellable *cancellable, AsyncCacheCancelData *data)
+conditional_get_ready_cb (SoupSession               *session,
+			  GAsyncResult              *result,
+			  AsyncCacheConditionalData *data)
 {
-	soup_cache_cancel_conditional_request (data->cache, data->conditional_msg);
-}
-
-static void
-conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
-{
-	SoupMessageQueueItem *item = user_data;
 	GInputStream *stream;
-	SoupCache *cache;
+	GError *error = NULL;
 
-	if (g_cancellable_is_cancelled (item->cancellable)) {
-		cancel_cache_response (item);
+	stream = soup_session_send_finish (session, result, &error);
+	if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+		soup_cache_cancel_conditional_request (data->cache, data->conditional_msg);
+		cancel_cache_response (data->item);
+		async_cache_conditional_data_free (data);
 		return;
-	} else {
-		gulong handler_id = GPOINTER_TO_SIZE (g_object_get_data (G_OBJECT (msg), "SoupSession:handler-id"));
-		g_cancellable_disconnect (item->cancellable, handler_id);
 	}
+	g_object_unref (stream);
 
-	cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
-	soup_cache_update_from_conditional_request (cache, msg);
+	soup_cache_update_from_conditional_request (data->cache, data->conditional_msg);
 
-	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
-		stream = soup_cache_send_response (cache, item->msg);
+	if (data->conditional_msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
+		stream = soup_cache_send_response (data->cache, data->item->msg);
 		if (stream) {
-			async_return_from_cache (item, stream);
+			async_return_from_cache (data->item, stream);
 			g_object_unref (stream);
+			async_cache_conditional_data_free (data);
 			return;
 		}
 	}
@@ -3558,8 +3464,9 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 	/* The resource was modified or the server returned a 200
 	 * OK. Either way we reload it. FIXME.
 	 */
-	item->state = SOUP_MESSAGE_STARTING;
+	data->item->state = SOUP_MESSAGE_STARTING;
 	soup_session_kick_queue (session);
+	async_cache_conditional_data_free (data);
 }
 
 static gboolean
@@ -3619,26 +3526,22 @@ async_respond_from_cache (SoupSession          *session,
 		return TRUE;
 	} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
 		SoupMessage *conditional_msg;
-		AsyncCacheCancelData *data;
-		gulong handler_id;
+		AsyncCacheConditionalData *data;
 
 		conditional_msg = soup_cache_generate_conditional_request (cache, item->msg);
 		if (!conditional_msg)
 			return FALSE;
 
 		/* Detect any quick cancellation before the cache is able to return data. */
-		data = g_slice_new0 (AsyncCacheCancelData);
+		data = g_slice_new0 (AsyncCacheConditionalData);
 		data->cache = g_object_ref (cache);
-		data->conditional_msg = g_object_ref (conditional_msg);
-		handler_id = g_cancellable_connect (item->cancellable, G_CALLBACK (conditional_request_cancelled_cb),
-						    data, (GDestroyNotify) free_async_cache_cancel_data);
-
-		g_object_set_data (G_OBJECT (conditional_msg), "SoupSession:handler-id",
-				   GSIZE_TO_POINTER (handler_id));
-		soup_session_queue_message (session, conditional_msg,
-					    conditional_get_ready_cb,
-					    item);
-
+		data->conditional_msg = conditional_msg;
+		data->item = item;
+		soup_message_queue_item_ref (item);
+		soup_message_disable_feature (conditional_msg, SOUP_TYPE_CACHE);
+		soup_session_send_async (session, conditional_msg, item->cancellable,
+					 (GAsyncReadyCallback)conditional_get_ready_cb,
+					 data);
 
 		return TRUE;
 	} else
@@ -3666,10 +3569,6 @@ cancel_cancellable (G_GNUC_UNUSED GCancellable *cancellable, GCancellable *chain
  * the response body.
  *
  * See soup_session_send() for more details on the general semantics.
- *
- * Contrast this method with soup_session_queue_message(), which also
- * asynchronously sends a #SoupMessage, but doesn't invoke its
- * callback until the response has been completely read.
  *
  * Since: 2.42
  */
@@ -3781,10 +3680,6 @@ soup_session_send_finish (SoupSession   *session,
  * initial (3xx/401/407) response body will be suppressed, and
  * soup_session_send() will only return once a final response has been
  * received.
- *
- * Contrast this method with soup_session_send_message(), which also
- * synchronously sends a #SoupMessage, but doesn't return until the
- * response has been completely read.
  *
  * Return value: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.

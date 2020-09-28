@@ -355,32 +355,6 @@ soup_test_session_async_send (SoupSession *session,
 	return body;
 }
 
-static void
-on_send_message_finished (SoupSession *session,
-			  SoupMessage *msg,
-			  gpointer     user_data)
-{
-	gboolean *message_finished = user_data;
-	*message_finished = TRUE;
-}
-
-guint
-soup_test_session_async_send_message (SoupSession *session,
-				      SoupMessage *msg)
-{
-	gboolean message_finished = FALSE;
-        GMainContext *async_context = g_main_context_ref_thread_default ();
-
-	g_object_ref (msg); // We want to keep it alive rather than the session consuming it.
-        soup_session_queue_message (session, msg, on_send_message_finished, &message_finished);
-
-	while (!message_finished)
-                g_main_context_iteration (async_context, TRUE);
-
-	g_main_context_unref (async_context);
-        return msg->status_code;
-}
-
 guint
 soup_test_session_send_message (SoupSession *session,
 				SoupMessage *msg)

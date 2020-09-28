@@ -15,10 +15,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_42
 G_DECLARE_FINAL_TYPE (SoupSession, soup_session, SOUP, SESSION, GObject)
 
-typedef void (*SoupSessionCallback) (SoupSession           *session,
-				     SoupMessage           *msg,
-				     gpointer               user_data);
-
 #define SOUP_SESSION_LOCAL_ADDRESS          "local-address"
 #define SOUP_SESSION_PROXY_RESOLVER         "proxy-resolver"
 #define SOUP_SESSION_MAX_CONNS              "max-conns"
@@ -46,18 +42,8 @@ SoupSession    *soup_session_new_with_options (const char *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
 SOUP_AVAILABLE_IN_2_4
-void            soup_session_queue_message    (SoupSession           *session,
-					       SoupMessage           *msg,
-					       SoupSessionCallback    callback,
-					       gpointer               user_data);
-SOUP_AVAILABLE_IN_2_4
 void            soup_session_requeue_message  (SoupSession           *session,
 					       SoupMessage           *msg);
-
-SOUP_AVAILABLE_IN_2_4
-guint           soup_session_send_message     (SoupSession           *session,
-					       SoupMessage           *msg);
-
 SOUP_AVAILABLE_IN_2_4
 void            soup_session_pause_message    (SoupSession           *session,
 					       SoupMessage           *msg);
