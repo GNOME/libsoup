@@ -98,8 +98,6 @@ typedef struct {
 	gint64 begin_time_nsec;
 #endif
 } SoupMessageIOData;
-	
-static void io_run (SoupMessage *msg, gboolean blocking);
 
 #define RESPONSE_BLOCK_SIZE 8192
 #define HEADER_SIZE_LIMIT (64 * 1024)
@@ -753,10 +751,12 @@ io_read (SoupMessage *msg, gboolean blocking,
 						blocking,
 						cancellable, error);
 		if (nread > 0) {
-                        GBytes *bytes = g_bytes_new (buf, nread);
-			soup_message_body_got_chunk (io->read_body, bytes);
-			soup_message_got_chunk (msg, bytes);
-			g_bytes_unref (bytes);
+			if (io->read_body) {
+				GBytes *bytes = g_bytes_new (buf, nread);
+				soup_message_body_got_chunk (io->read_body, bytes);
+				soup_message_got_chunk (msg, bytes);
+				g_bytes_unref (bytes);
+			}
 			break;
 		}
 
@@ -1058,12 +1058,13 @@ soup_message_io_update_status (SoupMessage  *msg,
 static gboolean
 io_run_ready (SoupMessage *msg, gpointer user_data)
 {
-	io_run (msg, FALSE);
+	soup_message_io_run (msg, FALSE);
 	return FALSE;
 }
 
-static void
-io_run (SoupMessage *msg, gboolean blocking)
+void
+soup_message_io_run (SoupMessage *msg,
+		     gboolean     blocking)
 {
 	SoupMessageIOData *io = soup_message_get_io_data (msg);
 	GError *error = NULL;
@@ -1319,13 +1320,12 @@ soup_message_io_client (SoupMessageQueueItem *item,
 	soup_message_queue_item_ref (item);
 	io->cancellable = item->cancellable;
 
-	io->read_body       = item->msg->response_body;
 	io->write_body      = item->msg->request_body;
 
 	io->write_state     = SOUP_MESSAGE_IO_STATE_HEADERS;
 
 	if (!item->new_api) {
-		io_run (item->msg, !item->async);
+		soup_message_io_run (item->msg, !item->async);
 	}
 }
 
@@ -1349,7 +1349,7 @@ soup_message_io_server (SoupMessage *msg,
 	io->write_body      = msg->response_body;
 
 	io->read_state      = SOUP_MESSAGE_IO_STATE_HEADERS;
-	io_run (msg, FALSE);
+	soup_message_io_run (msg, FALSE);
 }
 
 void  
@@ -1390,7 +1390,7 @@ io_unpause_internal (gpointer msg)
 	if (io->io_source)
 		return FALSE;
 
-	io_run (msg, FALSE);
+	soup_message_io_run (msg, FALSE);
 	return FALSE;
 }
 

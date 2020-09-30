@@ -1410,6 +1410,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 			tunnel_item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, tunnel_item,
 						      tunnel_message_completed);
+			soup_message_io_run (msg, !tunnel_item->async);
 			return;
 		}
 
@@ -1452,9 +1453,8 @@ tunnel_connect (SoupMessageQueueItem *item)
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
-						      item->async, FALSE,
+						      item->async, TRUE,
 						      NULL, NULL);
-	g_object_unref (msg);
 	tunnel_item->related = item;
 	soup_message_queue_item_ref (item);
 	soup_session_set_item_connection (session, tunnel_item, item->conn);
@@ -1464,6 +1464,8 @@ tunnel_connect (SoupMessageQueueItem *item)
 
 	soup_session_send_queue_item (session, tunnel_item,
 				      tunnel_message_completed);
+	soup_message_io_run (msg, !item->async);
+	g_object_unref (msg);
 }
 
 static void
@@ -1745,6 +1747,7 @@ soup_session_process_queue_item (SoupSession          *session,
 			break;
 
 		case SOUP_MESSAGE_CACHED:
+		case SOUP_MESSAGE_TUNNELING:
 			/* Will be handled elsewhere */
 			return;
 
@@ -3339,11 +3342,16 @@ run_until_read_done (SoupMessage          *msg,
 static void
 async_send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 {
-	item->io_started = TRUE;
-	soup_message_io_run_until_read_async (item->msg,
-					      item->cancellable,
-					      (GAsyncReadyCallback)run_until_read_done,
-					      item);
+	if (item->task) {
+		item->io_started = TRUE;
+		soup_message_io_run_until_read_async (item->msg,
+						      item->cancellable,
+						      (GAsyncReadyCallback)run_until_read_done,
+						      item);
+		return;
+	}
+
+	soup_message_io_run (item->msg, FALSE);
 }
 
 static void
@@ -4162,7 +4170,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_NEW_CONNECTION);
 
 	task = g_task_new (session, cancellable, callback, user_data);
-	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
+	item = soup_session_append_queue_item (session, msg, TRUE, TRUE,
 					       websocket_connect_async_complete, task);
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
