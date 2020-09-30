@@ -3436,6 +3436,11 @@ try_run_until_read (SoupMessageQueueItem *item)
 	}
 
 	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+		if (error->domain == G_TLS_ERROR) {
+                        soup_message_set_status_full (item->msg,
+                                                      SOUP_STATUS_SSL_FAILED,
+                                                      error->message);
+		}
 		if (item->state != SOUP_MESSAGE_FINISHED) {
 			if (soup_message_io_in_progress (item->msg))
 				soup_message_io_finished (item->msg);
@@ -3824,8 +3829,14 @@ soup_session_send (SoupSession   *session,
 				soup_message_io_finished (item->msg);
 				g_clear_error (&my_error);
 				continue;
-			} else
-				break;
+			}
+
+			if (my_error->domain == G_TLS_ERROR) {
+				soup_message_set_status_full (msg,
+							      SOUP_STATUS_SSL_FAILED,
+							      my_error->message);
+			}
+			break;
 		}
 
 		stream = soup_message_io_get_response_istream (msg, &my_error);
