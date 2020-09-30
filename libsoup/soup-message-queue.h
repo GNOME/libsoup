@@ -48,7 +48,6 @@ struct _SoupMessageQueueItem {
 	GTask *task;
 
 	guint paused            : 1;
-	guint new_api           : 1;
 	guint io_started        : 1;
 	guint async             : 1;
 	guint async_pending     : 1;

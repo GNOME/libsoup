@@ -918,26 +918,14 @@ soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 }
 
 static void
-redirect_handler (SoupMessage *msg, gpointer user_data)
+redirect_handler (SoupMessage *msg,
+		  gpointer     user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
 
-	if (!soup_session_would_redirect (session, msg)) {
-		SoupURI *new_uri = redirection_uri (msg);
-		gboolean invalid = !new_uri || !new_uri->host;
-
-		if (new_uri)
-			soup_uri_free (new_uri);
-		if (invalid && !item->new_api) {
-			soup_message_set_status_full (msg,
-						      SOUP_STATUS_MALFORMED,
-						      "Invalid Redirect URL");
-		}
-		return;
-	}
-
-	soup_session_redirect_message (session, msg);
+	if (soup_session_would_redirect (session, msg))
+		soup_session_redirect_message (session, msg);
 }
 
 static void
@@ -989,9 +977,11 @@ message_restarted (SoupMessage *msg, gpointer user_data)
 }
 
 static SoupMessageQueueItem *
-soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
-				gboolean async, gboolean new_api,
-				SoupSessionCallback callback, gpointer user_data)
+soup_session_append_queue_item (SoupSession        *session,
+				SoupMessage        *msg,
+				gboolean            async,
+				SoupSessionCallback callback,
+				gpointer            user_data)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
@@ -1001,7 +991,6 @@ soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
 
 	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
 	item->async = async;
-	item->new_api = new_api;
 
 	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_message (session, item->msg);
@@ -1312,7 +1301,7 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 	if (item->state != SOUP_MESSAGE_RESTARTING) {
 		item->state = SOUP_MESSAGE_FINISHING;
 
-		if (item->new_api && !item->async)
+		if (!item->async)
 			soup_session_process_queue_item (item->session, item, NULL, TRUE);
 	}
 }
@@ -1372,7 +1361,7 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		soup_connection_disconnect (item->conn);
 		soup_session_set_item_connection (session, item, NULL);
-		if (!item->new_api || item->msg->status_code == 0)
+		if (item->msg->status_code == 0)
 			soup_session_set_item_status (session, item, status, error);
 	}
 
@@ -1453,7 +1442,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
-						      item->async, TRUE,
+						      item->async,
 						      NULL, NULL);
 	tunnel_item->related = item;
 	soup_message_queue_item_ref (item);
@@ -1485,7 +1474,7 @@ connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *erro
 	status = status_from_connect_error (item, error);
 	soup_connection_disconnect (conn);
 	if (item->state == SOUP_MESSAGE_CONNECTING) {
-		if (!item->new_api || item->msg->status_code == 0)
+		if (item->msg->status_code == 0)
 			soup_session_set_item_status (session, item, status, error);
 		soup_session_set_item_connection (session, item, NULL);
 		item->state = SOUP_MESSAGE_READY;
@@ -1731,18 +1720,14 @@ soup_session_process_queue_item (SoupSession          *session,
 
 			soup_session_send_queue_item (session, item, message_completed);
 
-			if (item->new_api) {
-				if (item->async)
-					async_send_request_running (session, item);
-				return;
-			}
-			break;
+			if (item->async)
+				async_send_request_running (session, item);
+			return;
 
 		case SOUP_MESSAGE_RUNNING:
 			if (item->async)
 				return;
 
-			g_warn_if_fail (item->new_api);
 			item->state = SOUP_MESSAGE_FINISHING;
 			break;
 
@@ -1759,11 +1744,6 @@ soup_session_process_queue_item (SoupSession          *session,
 		case SOUP_MESSAGE_FINISHING:
 			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
-			if (item->state != SOUP_MESSAGE_FINISHED) {
-				g_return_if_fail (!item->new_api);
-				break;
-			}
-
 			soup_message_queue_item_ref (item);
 			soup_session_unqueue_item (session, item);
 			if (item->async && item->callback)
@@ -3562,7 +3542,7 @@ soup_session_send_async (SoupSession         *session,
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
-	item = soup_session_append_queue_item (session, msg, TRUE, TRUE,
+	item = soup_session_append_queue_item (session, msg, TRUE,
 					       NULL, NULL);
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (async_send_request_restarted), item);
@@ -3575,7 +3555,6 @@ soup_session_send_async (SoupSession         *session,
 				       (GDestroyNotify) g_object_unref);
 	}
 
-	item->new_api = TRUE;
 	item->task = g_task_new (session, item->cancellable, callback, user_data);
 	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
@@ -3680,10 +3659,9 @@ soup_session_send (SoupSession   *session,
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
-	item = soup_session_append_queue_item (session, msg, FALSE, TRUE,
+	item = soup_session_append_queue_item (session, msg, FALSE,
 					       NULL, NULL);
 
-	item->new_api = TRUE;
 	if (cancellable) {
 		g_cancellable_connect (cancellable, G_CALLBACK (cancel_cancellable),
 				       g_object_ref (item->cancellable),
@@ -4170,7 +4148,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_NEW_CONNECTION);
 
 	task = g_task_new (session, cancellable, callback, user_data);
-	item = soup_session_append_queue_item (session, msg, TRUE, TRUE,
+	item = soup_session_append_queue_item (session, msg, TRUE,
 					       websocket_connect_async_complete, task);
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
 

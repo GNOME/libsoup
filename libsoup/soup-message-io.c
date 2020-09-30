@@ -506,7 +506,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 		if (!io->write_chunk) {
 			io->write_chunk = soup_message_body_get_chunk (io->write_body, io->write_body_offset);
 			if (!io->write_chunk) {
-				g_return_val_if_fail (!io->item || !io->item->new_api, FALSE);
+				g_return_val_if_fail (!io->item, FALSE);
 				soup_message_io_pause (msg);
 				return FALSE;
 			}
@@ -1323,10 +1323,6 @@ soup_message_io_client (SoupMessageQueueItem *item,
 	io->write_body      = item->msg->request_body;
 
 	io->write_state     = SOUP_MESSAGE_IO_STATE_HEADERS;
-
-	if (!item->new_api) {
-		soup_message_io_run (item->msg, !item->async);
-	}
 }
 
 void
@@ -1359,7 +1355,7 @@ soup_message_io_pause (SoupMessage *msg)
 
 	g_return_if_fail (io != NULL);
 
-	if (io->item && io->item->new_api)
+	if (io->item)
 		g_return_if_fail (io->read_state < SOUP_MESSAGE_IO_STATE_BODY);
 
 	if (io->io_source) {
@@ -1401,7 +1397,7 @@ soup_message_io_unpause (SoupMessage *msg)
 
 	g_return_if_fail (io != NULL);
 
-	if (io->item && io->item->new_api) {
+	if (io->item) {
 		g_return_if_fail (io->read_state < SOUP_MESSAGE_IO_STATE_BODY);
 		io->paused = FALSE;
 		return;
