@@ -15,9 +15,6 @@ G_BEGIN_DECLS
 SoupMessageQueue     *soup_session_get_queue            (SoupSession          *session);
 
 
-GIOStream *           soup_session_steal_connection     (SoupSession          *session,
-                                                         SoupMessage          *msg);
-
 
 G_END_DECLS
 

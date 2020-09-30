@@ -3995,9 +3995,8 @@ steal_connection (SoupSession          *session,
  *   connection). No guarantees are made about what kind of #GIOStream
  *   is returned.
  *
- * Since: 2.50
- **/
-GIOStream *
+ */
+static GIOStream *
 soup_session_steal_connection (SoupSession *session,
 			       SoupMessage *msg)
 {
