@@ -1035,6 +1035,26 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 	return done;
 }
 
+static void
+soup_message_io_update_status (SoupMessage  *msg,
+			       GError       *error)
+{
+	if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
+		SoupMessageIOData *io = soup_message_get_io_data (msg);
+
+		io->item->state = SOUP_MESSAGE_RESTARTING;
+	} else if (error->domain == G_TLS_ERROR) {
+		soup_message_set_status_full (msg,
+					      SOUP_STATUS_SSL_FAILED,
+					      error->message);
+	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code) &&
+		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+	}
+
+	soup_message_io_finished (msg);
+}
+
 static gboolean
 io_run_ready (SoupMessage *msg, gpointer user_data)
 {
@@ -1067,20 +1087,12 @@ io_run (SoupMessage *msg, gboolean blocking)
 		g_clear_error (&error);
 		io->io_source = soup_message_io_get_source (msg, NULL, io_run_ready, msg);
 		g_source_attach (io->io_source, io->async_context);
-	} else if (error && soup_message_get_io_data (msg) == io) {
-		if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN))
-			io->item->state = SOUP_MESSAGE_RESTARTING;
-		else if (error->domain == G_TLS_ERROR) {
-			soup_message_set_status_full (msg,
-						      SOUP_STATUS_SSL_FAILED,
-						      error->message);
-		} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-			soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+	} else {
+		if (soup_message_get_io_data (msg) == io)
+			soup_message_io_update_status (msg, error);
+		g_error_free (error);
 
-		g_error_free (error);
-		soup_message_io_finished (msg);
-	} else if (error)
-		g_error_free (error);
+	}
 
 	g_object_unref (msg);
 	g_clear_object (&cancellable);
@@ -1097,13 +1109,92 @@ soup_message_io_run_until_write (SoupMessage *msg, gboolean blocking,
 }
 
 gboolean
-soup_message_io_run_until_read (SoupMessage *msg, gboolean blocking,
-				GCancellable *cancellable, GError **error)
+soup_message_io_run_until_read (SoupMessage  *msg,
+				GCancellable *cancellable,
+				GError      **error)
 {
-	return io_run_until (msg, blocking,
-			     SOUP_MESSAGE_IO_STATE_BODY,
-			     SOUP_MESSAGE_IO_STATE_ANY,
-			     cancellable, error);
+	SoupMessageIOData *io = soup_message_get_io_data (msg);
+
+	if (io_run_until (msg, TRUE,
+			  SOUP_MESSAGE_IO_STATE_BODY,
+			  SOUP_MESSAGE_IO_STATE_ANY,
+			  cancellable, error))
+		return TRUE;
+
+	if (soup_message_get_io_data (msg) == io)
+		soup_message_io_update_status (msg, *error);
+
+	return FALSE;
+}
+
+static void io_run_until_read_async (SoupMessage *msg,
+                                     GTask       *task);
+
+static gboolean
+io_run_until_read_ready (SoupMessage *msg,
+                         gpointer     user_data)
+{
+        GTask *task = user_data;
+
+        io_run_until_read_async (msg, task);
+        return FALSE;
+}
+
+static void
+io_run_until_read_async (SoupMessage *msg,
+                         GTask       *task)
+{
+        SoupMessageIOData *io = soup_message_get_io_data (msg);
+        GError *error = NULL;
+
+        if (io->io_source) {
+                g_source_destroy (io->io_source);
+                g_source_unref (io->io_source);
+                io->io_source = NULL;
+        }
+
+        if (io_run_until (msg, FALSE,
+                          SOUP_MESSAGE_IO_STATE_BODY,
+                          SOUP_MESSAGE_IO_STATE_ANY,
+                          g_task_get_cancellable (task),
+                          &error)) {
+                g_task_return_boolean (task, TRUE);
+                g_object_unref (task);
+                return;
+        }
+
+        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+                g_error_free (error);
+                io->io_source = soup_message_io_get_source (msg, NULL, io_run_until_read_ready, task);
+                g_source_attach (io->io_source, io->async_context);
+                return;
+        }
+
+        if (soup_message_get_io_data (msg) == io)
+                soup_message_io_update_status (msg, error);
+
+        g_task_return_error (task, error);
+        g_object_unref (task);
+}
+
+void
+soup_message_io_run_until_read_async (SoupMessage        *msg,
+                                      GCancellable       *cancellable,
+                                      GAsyncReadyCallback callback,
+                                      gpointer            user_data)
+{
+        GTask *task;
+
+        task = g_task_new (msg, cancellable, callback, user_data);
+        io_run_until_read_async (msg, task);
+}
+
+gboolean
+soup_message_io_run_until_read_finish (SoupMessage  *msg,
+                                       GAsyncResult *result,
+                                       GError      **error)
+{
+        return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 gboolean

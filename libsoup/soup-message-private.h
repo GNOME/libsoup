@@ -109,18 +109,25 @@ gboolean   soup_message_io_in_progress (SoupMessage *msg);
 GIOStream *soup_message_io_steal       (SoupMessage *msg);
 
 
-gboolean soup_message_io_run_until_write  (SoupMessage   *msg,
-					   gboolean       blocking,
-					   GCancellable  *cancellable,
-					   GError       **error);
-gboolean soup_message_io_run_until_read   (SoupMessage   *msg,
-					   gboolean       blocking,
-					   GCancellable  *cancellable,
-					   GError       **error);
-gboolean soup_message_io_run_until_finish (SoupMessage   *msg,
-					   gboolean       blocking,
-					   GCancellable  *cancellable,
-					   GError       **error);
+gboolean soup_message_io_run_until_write       (SoupMessage        *msg,
+                                                gboolean            blocking,
+                                                GCancellable       *cancellable,
+                                                GError            **error);
+gboolean soup_message_io_run_until_finish      (SoupMessage        *msg,
+                                                gboolean            blocking,
+                                                GCancellable       *cancellable,
+                                                GError            **error);
+
+gboolean soup_message_io_run_until_read        (SoupMessage        *msg,
+                                                GCancellable       *cancellable,
+                                                GError            **error);
+void     soup_message_io_run_until_read_async  (SoupMessage        *msg,
+                                                GCancellable       *cancellable,
+                                                GAsyncReadyCallback callback,
+                                                gpointer            user_data);
+gboolean soup_message_io_run_until_read_finish (SoupMessage        *msg,
+                                                GAsyncResult       *result,
+                                                GError            **error);
 
 typedef gboolean (*SoupMessageSourceFunc) (SoupMessage *, gpointer);
 GSource *soup_message_io_get_source       (SoupMessage           *msg,

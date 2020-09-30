@@ -3175,11 +3175,6 @@ async_send_request_return_result (SoupMessageQueueItem *item,
 	task = item->task;
 	item->task = NULL;
 
-	if (item->io_source) {
-		g_source_destroy (item->io_source);
-		g_clear_pointer (&item->io_source, g_source_unref);
-	}
-
 	if (error)
 		g_task_return_error (task, error);
 	else if (item->error) {
@@ -3312,67 +3307,43 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 	async_send_request_return_result (item, stream, NULL);
 }
 
-static void try_run_until_read (SoupMessageQueueItem *item);
-
-static gboolean
-read_ready_cb (SoupMessage *msg, gpointer user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-
-	g_clear_pointer (&item->io_source, g_source_unref);
-	try_run_until_read (item);
-	return FALSE;
-}
-
 static void
-try_run_until_read (SoupMessageQueueItem *item)
+run_until_read_done (SoupMessage          *msg,
+		     GAsyncResult         *result,
+		     SoupMessageQueueItem *item)
 {
-	GError *error = NULL;
 	GInputStream *stream = NULL;
+	GError *error = NULL;
 
-	if (soup_message_io_run_until_read (item->msg, FALSE, item->cancellable, &error))
-		stream = soup_message_io_get_response_istream (item->msg, &error);
+	soup_message_io_run_until_read_finish (msg, result, &error);
+	if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN))
+		return;
+
+	if (!error)
+		stream = soup_message_io_get_response_istream (msg, &error);
+
 	if (stream) {
 		send_async_maybe_complete (item, stream);
-		return;
+	        return;
 	}
 
-	if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
-		item->state = SOUP_MESSAGE_RESTARTING;
-		soup_message_io_finished (item->msg);
-		g_error_free (error);
-		return;
+	if (item->state != SOUP_MESSAGE_FINISHED) {
+		if (soup_message_io_in_progress (msg))
+			soup_message_io_finished (msg);
+		item->state = SOUP_MESSAGE_FINISHING;
+		soup_session_process_queue_item (item->session, item, NULL, FALSE);
 	}
-
-	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
-		if (error->domain == G_TLS_ERROR) {
-                        soup_message_set_status_full (item->msg,
-                                                      SOUP_STATUS_SSL_FAILED,
-                                                      error->message);
-		}
-		if (item->state != SOUP_MESSAGE_FINISHED) {
-			if (soup_message_io_in_progress (item->msg))
-				soup_message_io_finished (item->msg);
-			item->state = SOUP_MESSAGE_FINISHING;
-			soup_session_process_queue_item (item->session, item, NULL, FALSE);
-		}
-		async_send_request_return_result (item, NULL, error);
-		return;
-	}
-
-	g_clear_error (&error);
-	item->io_source = soup_message_io_get_source (item->msg, item->cancellable,
-						      read_ready_cb, item);
-
-        SoupSessionPrivate *priv = soup_session_get_instance_private (item->session);
-	g_source_attach (item->io_source, priv->async_context);
+	async_send_request_return_result (item, NULL, error);
 }
 
 static void
 async_send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 {
 	item->io_started = TRUE;
-	try_run_until_read (item);
+	soup_message_io_run_until_read_async (item->msg,
+					      item->cancellable,
+					      (GAsyncReadyCallback)run_until_read_done,
+					      item);
 }
 
 static void
@@ -3718,18 +3689,10 @@ soup_session_send (SoupSession   *session,
 			break;
 
 		/* Send request, read headers */
-		if (!soup_message_io_run_until_read (msg, TRUE, item->cancellable, &my_error)) {
+		if (!soup_message_io_run_until_read (msg, item->cancellable, &my_error)) {
 			if (g_error_matches (my_error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
-				item->state = SOUP_MESSAGE_RESTARTING;
-				soup_message_io_finished (item->msg);
 				g_clear_error (&my_error);
 				continue;
-			}
-
-			if (my_error->domain == G_TLS_ERROR) {
-				soup_message_set_status_full (msg,
-							      SOUP_STATUS_SSL_FAILED,
-							      my_error->message);
 			}
 			break;
 		}

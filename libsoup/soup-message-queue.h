@@ -46,7 +46,6 @@ struct _SoupMessageQueueItem {
 
 	SoupConnection *conn;
 	GTask *task;
-	GSource *io_source;
 
 	guint paused            : 1;
 	guint new_api           : 1;
