@@ -7,14 +7,12 @@
 #define __SOUP_SESSION_PRIVATE_H__ 1
 
 #include "soup-session.h"
-#include "soup-message-private.h"
+#include "soup-uri.h"
 
 G_BEGIN_DECLS
 
-/* "protected" methods for subclasses */
-SoupMessageQueue     *soup_session_get_queue            (SoupSession          *session);
-
-
+SoupURI *soup_session_get_message_proxy_uri (SoupSession *session,
+					     SoupMessage *msg);
 
 G_END_DECLS
 

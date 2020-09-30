@@ -1179,14 +1179,6 @@ connection_state_changed (GObject *object, GParamSpec *param, gpointer user_data
 		soup_session_kick_queue (session);
 }
 
-SoupMessageQueue *
-soup_session_get_queue (SoupSession *session)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
-	return priv->queue;
-}
-
 static void
 soup_session_unqueue_item (SoupSession          *session,
 			   SoupMessageQueueItem *item)
@@ -4182,4 +4174,22 @@ soup_session_websocket_connect_finish (SoupSession      *session,
 	g_return_val_if_fail (g_task_is_valid (result, session), NULL);
 
 	return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+SoupURI *
+soup_session_get_message_proxy_uri (SoupSession *session,
+				    SoupMessage *msg)
+{
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+	SoupMessageQueueItem *item;
+	SoupURI *uri;
+
+	item = soup_message_queue_lookup (priv->queue, msg);
+	if (!item)
+		return NULL;
+
+	/* When loaded from the disk cache, the connection is NULL. */
+	uri = item->conn ? soup_connection_get_proxy_uri (item->conn) : NULL;
+	soup_message_queue_item_unref (item);
+	return uri;
 }

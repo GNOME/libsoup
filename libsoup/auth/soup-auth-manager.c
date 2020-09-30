@@ -15,7 +15,6 @@
 #include "soup.h"
 #include "soup-connection-auth.h"
 #include "soup-message-private.h"
-#include "soup-message-queue.h"
 #include "soup-path-map.h"
 #include "soup-session-private.h"
 
@@ -523,17 +522,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		return;
 
 	if (proxy) {
-		SoupMessageQueue *queue;
-		SoupMessageQueueItem *item;
-
-		queue = soup_session_get_queue (priv->session);
-		item = soup_message_queue_lookup (queue, msg);
-		if (!item)
-			return;
-
-		/* When loaded from the disk cache, the connection is NULL. */
-		uri = item->conn ? soup_connection_get_proxy_uri (item->conn) : NULL;
-		soup_message_queue_item_unref (item);
+		uri = soup_session_get_message_proxy_uri (priv->session, msg);
 		if (!uri)
 			return;
 	} else
