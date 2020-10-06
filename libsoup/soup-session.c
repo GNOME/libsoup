@@ -904,8 +904,7 @@ soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 				      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
 				      NULL);
 		}
-		soup_message_set_request (msg, NULL,
-					  SOUP_MEMORY_STATIC, NULL, 0);
+		soup_message_set_request_body (msg, NULL, NULL, 0);
 		soup_message_headers_set_encoding (msg->request_headers,
 						   SOUP_ENCODING_NONE);
 	}

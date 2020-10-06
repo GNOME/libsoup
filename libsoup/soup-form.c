@@ -370,12 +370,13 @@ soup_form_request_for_data (const char *method, const char *uri_string,
 
 		msg = soup_message_new_from_uri (method, uri);
 	} else if (!strcmp (method, "POST") || !strcmp (method, "PUT")) {
+		GBytes *body;
+
 		msg = soup_message_new_from_uri (method, uri);
 
-		soup_message_set_request (
-			msg, SOUP_FORM_MIME_TYPE_URLENCODED,
-			SOUP_MEMORY_TAKE,
-			form_data, strlen (form_data));
+		body = g_bytes_new_take (form_data, strlen (form_data));
+		soup_message_set_request_body_from_bytes (msg, SOUP_FORM_MIME_TYPE_URLENCODED, body);
+		g_bytes_unref (body);
 	} else {
 		g_warning ("invalid method passed to soup_form_request_new");
 		g_free (form_data);

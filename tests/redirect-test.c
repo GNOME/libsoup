@@ -173,10 +173,11 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	soup_uri_free (uri);
 
 	if (msg->method == SOUP_METHOD_POST) {
-		soup_message_set_request (msg, "text/plain",
-					  SOUP_MEMORY_STATIC,
-					  "post body",
-					  strlen ("post body"));
+		GBytes *request_body;
+
+		request_body = g_bytes_new_static ("post body", strlen ("post body"));
+		soup_message_set_request_body_from_bytes (msg, "text/plain", request_body);
+		g_bytes_unref (request_body);
 	}
 
 	treq = &test->requests[0];
@@ -219,10 +220,11 @@ do_request_api_test (SoupSession *session, TestCase *test)
 
 	msg = soup_request_http_get_message (reqh);
 	if (msg->method == SOUP_METHOD_POST) {
-		soup_message_set_request (msg, "text/plain",
-					  SOUP_MEMORY_STATIC,
-					  "post body",
-					  strlen ("post body"));
+		GBytes *request_body;
+
+		request_body = g_bytes_new_static ("post body", strlen ("post body"));
+		soup_message_set_request_body_from_bytes (msg, "text/plain", request_body);
+		g_bytes_unref (request_body);
 	}
 
 	treq = &test->requests[0];

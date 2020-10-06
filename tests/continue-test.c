@@ -47,6 +47,13 @@ EVENT_HANDLER (wrote_body)
 EVENT_HANDLER (finished)
 
 static void
+restarted (SoupMessage *msg,
+           GBytes      *body)
+{
+        soup_message_set_request_body_from_bytes (msg, "text/plain", body);
+}
+
+static void
 do_message (const char *path, gboolean long_body,
 	    gboolean expect_continue, gboolean auth,
 	    ...)
@@ -59,6 +66,7 @@ do_message (const char *path, gboolean long_body,
 	const char *expected_event;
 	char *actual_event;
 	int expected_status, actual_status;
+	GBytes *request_body;
 	GBytes *response_body;
 
 	uri = soup_uri_copy (base_uri);
@@ -68,11 +76,12 @@ do_message (const char *path, gboolean long_body,
 	}
 	soup_uri_set_path (uri, path);
 	msg = soup_message_new_from_uri ("POST", uri);
+	g_print ("DBG: soup_message_new_from_uri: %p\n", msg);
 	soup_uri_free (uri);
 
 	body = long_body ? LONG_BODY : SHORT_BODY;
-	soup_message_set_request (msg, "text/plain", SOUP_MEMORY_STATIC,
-				  body, strlen (body));
+	request_body = g_bytes_new_static (body, strlen (body));
+	soup_message_set_request_body_from_bytes (msg, "text/plain", request_body);
 	soup_message_headers_append (msg->request_headers, "Connection", "close");
 	if (expect_continue) {
 		soup_message_headers_set_expectations (msg->request_headers,
@@ -93,6 +102,8 @@ do_message (const char *path, gboolean long_body,
 			  G_CALLBACK (wrote_body), "client");
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (finished), "client");
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (restarted), request_body);
 
 	events = NULL;
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
@@ -149,6 +160,7 @@ do_message (const char *path, gboolean long_body,
 		    !strcmp (actual_event, "server-wrote_informational"))
 			events = g_slist_delete_link (events, events);
 	}
+	g_bytes_unref (request_body);
 	g_bytes_unref (response_body);
 	g_object_unref (msg);
 }
@@ -158,12 +170,12 @@ do_test_unauth_short_noexpect_nopass (void)
 {
 	do_message ("/unauth", FALSE, FALSE, FALSE,
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
@@ -175,12 +187,12 @@ do_test_unauth_long_noexpect_nopass (void)
 {
 	do_message ("/unauth", TRUE, FALSE, FALSE,
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
@@ -195,11 +207,11 @@ do_test_unauth_short_expect_nopass (void)
 		    "server-got_headers",
 		    "server-wrote_informational", SOUP_STATUS_CONTINUE,
 		    "client-got_informational",
-		    "client-wrote_body",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
@@ -226,12 +238,12 @@ do_test_auth_short_noexpect_nopass (void)
 {
 	do_message ("/auth", FALSE, FALSE, FALSE,
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
@@ -243,12 +255,12 @@ do_test_auth_long_noexpect_nopass (void)
 {
 	do_message ("/auth", TRUE, FALSE, FALSE,
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
@@ -290,21 +302,21 @@ do_test_auth_short_noexpect_pass (void)
 {
 	do_message ("/auth", FALSE, FALSE, TRUE,
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
@@ -316,21 +328,21 @@ do_test_auth_long_noexpect_pass (void)
 {
 	do_message ("/auth", TRUE, FALSE, TRUE,
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-wrote_headers",
-		    "client-wrote_body",
 		    "server-got_headers",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
@@ -352,11 +364,11 @@ do_test_auth_short_expect_pass (void)
 		    "server-got_headers",
 		    "server-wrote_informational", SOUP_STATUS_CONTINUE,
 		    "client-got_informational",
-		    "client-wrote_body",
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
 		    "server-finished",
+		    "client-wrote_body",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-finished",
