@@ -35,7 +35,6 @@ endif
 # ['name', is_parallel, extra_deps]
 tests = [
   ['cache', true, []],
-  ['chunk', true, []],
   ['chunk-io', true, []],
   ['coding', true, []],
   ['context', true, []],
@@ -51,6 +50,7 @@ tests = [
   ['no-ssl', true, []],
   ['ntlm', true, []],
   ['redirect', true, []],
+  ['request-body', true, []],
   ['resource', true, []],
   ['samesite', true, []],
   ['session', true, []],

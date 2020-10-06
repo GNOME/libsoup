@@ -30,6 +30,7 @@ struct _SoupMessage {
 	char               *reason_phrase;
 
 	SoupMessageBody    *request_body;
+	GInputStream       *request_body_stream;
 	SoupMessageHeaders *request_headers;
 
 	SoupMessageBody    *response_body;
@@ -100,6 +101,15 @@ void           soup_message_set_response        (SoupMessage       *msg,
 						 SoupMemoryUse      resp_use,
 						 const char        *resp_body,
 						 gsize              resp_length);
+SOUP_AVAILABLE_IN_ALL
+void           soup_message_set_request_body    (SoupMessage       *msg,
+						 const char        *content_type,
+						 GInputStream      *stream,
+						 gssize             content_length);
+SOUP_AVAILABLE_IN_ALL
+void           soup_message_set_request_body_from_bytes (SoupMessage  *msg,
+							 const char   *content_type,
+							 GBytes       *bytes);
 
 typedef enum {
 	SOUP_HTTP_1_0 = 0, /*< nick=http-1-0 >*/

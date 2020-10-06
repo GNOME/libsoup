@@ -40,6 +40,14 @@ enum {
 	PROP_CONTENT_LENGTH
 };
 
+enum {
+	WROTE_DATA,
+
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
 static void soup_body_output_stream_pollable_init (GPollableOutputStreamInterface *pollable_interface, gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SoupBodyOutputStream, soup_body_output_stream, G_TYPE_FILTER_OUTPUT_STREAM,
@@ -99,6 +107,13 @@ soup_body_output_stream_get_property (GObject *object, guint prop_id,
 	}
 }
 
+static void
+soup_body_output_stream_wrote_data (SoupBodyOutputStream *bostream,
+				    gsize                 count)
+{
+	g_signal_emit (bostream, signals[WROTE_DATA], 0, count);
+}
+
 static gssize
 soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 				   const void            *buffer,
@@ -126,8 +141,10 @@ soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 					  buffer, my_count,
 					  blocking, cancellable, error);
 
-	if (nwrote > 0 && bostream->priv->write_length)
+	if (nwrote > 0 && bostream->priv->write_length) {
 		bostream->priv->written += nwrote;
+		soup_body_output_stream_wrote_data (bostream, nwrote);
+	}
 
 	if (nwrote == my_count && my_count != count)
 		nwrote = count;
@@ -173,6 +190,9 @@ again:
 		nwrote = g_pollable_stream_write (bostream->priv->base_stream,
 						  buffer, count, blocking,
 						  cancellable, error);
+		if (nwrote > 0)
+			soup_body_output_stream_wrote_data (bostream, nwrote);
+
 		if (nwrote < (gssize)count)
 			return nwrote;
 
@@ -299,6 +319,16 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
 
 	output_stream_class->write_fn = soup_body_output_stream_write_fn;
 	output_stream_class->close_fn = soup_body_output_stream_close_fn;
+
+        signals[WROTE_DATA] =
+                g_signal_new ("wrote-data",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 1,
+                              G_TYPE_UINT);
 
 	g_object_class_install_property (
 		object_class, PROP_ENCODING,
