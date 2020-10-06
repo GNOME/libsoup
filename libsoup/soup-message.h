@@ -90,12 +90,6 @@ SoupMessage   *soup_message_new_from_uri        (const char        *method,
 						 SoupURI           *uri);
 
 SOUP_AVAILABLE_IN_2_4
-void           soup_message_set_request         (SoupMessage       *msg,
-						 const char        *content_type,
-						 SoupMemoryUse      req_use,
-						 const char        *req_body,
-						 gsize              req_length);
-SOUP_AVAILABLE_IN_2_4
 void           soup_message_set_response        (SoupMessage       *msg,
 						 const char        *content_type,
 						 SoupMemoryUse      resp_use,

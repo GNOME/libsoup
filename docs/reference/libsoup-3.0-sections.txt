@@ -6,7 +6,6 @@ SoupMessage
 <SUBSECTION>
 soup_message_new
 soup_message_new_from_uri
-soup_message_set_request
 soup_message_set_request_body
 soup_message_set_request_body_from_bytes
 soup_message_set_response

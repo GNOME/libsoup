@@ -1059,42 +1059,6 @@ soup_message_new_from_uri (const char *method, SoupURI *uri)
 }
 
 /**
- * soup_message_set_request:
- * @msg: the message
- * @content_type: (allow-none): MIME Content-Type of the body
- * @req_use: a #SoupMemoryUse describing how to handle @req_body
- * @req_body: (allow-none) (array length=req_length) (element-type guint8):
- *   a data buffer containing the body of the message request.
- * @req_length: the byte length of @req_body.
- * 
- * Convenience function to set the request body of a #SoupMessage. If
- * @content_type is %NULL, the request body must be empty as well.
- */
-void
-soup_message_set_request (SoupMessage    *msg,
-			  const char     *content_type,
-			  SoupMemoryUse   req_use,
-			  const char     *req_body,
-			  gsize           req_length)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (content_type != NULL || req_length == 0);
-
-	if (content_type) {
-		g_warn_if_fail (strchr (content_type, '/') != NULL);
-
-		soup_message_headers_replace (msg->request_headers,
-					      "Content-Type", content_type);
-		soup_message_body_append (msg->request_body, req_use,
-					  req_body, req_length);
-	} else {
-		soup_message_headers_remove (msg->request_headers,
-					     "Content-Type");
-		soup_message_body_truncate (msg->request_body);
-	}
-}
-
-/**
  * soup_message_set_response:
  * @msg: the message
  * @content_type: (allow-none): MIME Content-Type of the body
