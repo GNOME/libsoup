@@ -2236,6 +2236,7 @@ soup_message_set_io_data (SoupMessage *msg, gpointer io)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+	soup_message_io_cleanup (msg);
 	priv->io_data = io;
 }
 

@@ -6,6 +6,7 @@
 #ifndef __SOUP_MESSAGE_PRIVATE_H__
 #define __SOUP_MESSAGE_PRIVATE_H__ 1
 
+#include "soup-filter-input-stream.h"
 #include "soup-message.h"
 #include "auth/soup-auth.h"
 #include "content-sniffer/soup-content-processor.h"
@@ -74,23 +75,6 @@ void soup_message_read_request (SoupMessage               *msg,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);
 
-void soup_message_io_client    (SoupMessageQueueItem      *item,
-				GIOStream                 *iostream,
-				GMainContext              *async_context,
-				SoupMessageGetHeadersFn    get_headers_cb,
-				SoupMessageParseHeadersFn  parse_headers_cb,
-				gpointer                   headers_data,
-				SoupMessageCompletionFn    completion_cb,
-				gpointer                   user_data);
-void soup_message_io_server    (SoupMessage               *msg,
-				GIOStream                 *iostream,
-				GMainContext              *async_context,
-				SoupMessageGetHeadersFn    get_headers_cb,
-				SoupMessageParseHeadersFn  parse_headers_cb,
-				gpointer                   headers_data,
-				SoupMessageCompletionFn    completion_cb,
-				gpointer                   user_data);
-
 /* Auth handling */
 void           soup_message_set_auth       (SoupMessage *msg,
 					    SoupAuth    *auth);
@@ -100,9 +84,73 @@ void           soup_message_set_proxy_auth (SoupMessage *msg,
 SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 
 /* I/O */
+typedef enum {
+	SOUP_MESSAGE_IO_STATE_NOT_STARTED,
+	SOUP_MESSAGE_IO_STATE_ANY = SOUP_MESSAGE_IO_STATE_NOT_STARTED,
+	SOUP_MESSAGE_IO_STATE_HEADERS,
+	SOUP_MESSAGE_IO_STATE_BLOCKING,
+	SOUP_MESSAGE_IO_STATE_BODY_START,
+	SOUP_MESSAGE_IO_STATE_BODY,
+	SOUP_MESSAGE_IO_STATE_BODY_DATA,
+	SOUP_MESSAGE_IO_STATE_BODY_FLUSH,
+	SOUP_MESSAGE_IO_STATE_BODY_DONE,
+	SOUP_MESSAGE_IO_STATE_FINISHING,
+	SOUP_MESSAGE_IO_STATE_DONE
+} SoupMessageIOState;
+
+#define SOUP_MESSAGE_IO_STATE_ACTIVE(state) \
+	(state != SOUP_MESSAGE_IO_STATE_NOT_STARTED && \
+	 state != SOUP_MESSAGE_IO_STATE_BLOCKING && \
+	 state != SOUP_MESSAGE_IO_STATE_DONE)
+#define SOUP_MESSAGE_IO_STATE_POLLABLE(state) \
+	(SOUP_MESSAGE_IO_STATE_ACTIVE (state) && \
+	 state != SOUP_MESSAGE_IO_STATE_BODY_DONE)
+
+typedef struct {
+	/* Client only */
+	SoupMessageQueueItem *item;
+	GCancellable         *cancellable;
+
+	/* Server only */
+	SoupSocket           *sock;
+
+	GIOStream              *iostream;
+	SoupFilterInputStream  *istream;
+	GInputStream           *body_istream;
+	GOutputStream          *ostream;
+	GOutputStream          *body_ostream;
+	GMainContext           *async_context;
+
+	SoupMessageIOState    read_state;
+	SoupEncoding          read_encoding;
+	GByteArray           *read_header_buf;
+	goffset               read_length;
+
+	SoupMessageIOState    write_state;
+	SoupEncoding          write_encoding;
+	GString              *write_buf;
+	GBytes               *write_chunk;
+	goffset               write_body_offset;
+	goffset               write_length;
+	goffset               written;
+
+	GSource *io_source;
+	GSource *unpause_source;
+	gboolean paused;
+
+	GCancellable *async_wait;
+	GError       *async_error;
+
+	SoupMessageCompletionFn   completion_cb;
+	gpointer                  completion_data;
+
+#ifdef HAVE_SYSPROF
+	gint64 begin_time_nsec;
+#endif
+} SoupMessageIOData;
+
 void       soup_message_io_run         (SoupMessage *msg,
 					gboolean     blocking);
-void       soup_message_io_stop        (SoupMessage *msg);
 void       soup_message_io_finished    (SoupMessage *msg);
 void       soup_message_io_cleanup     (SoupMessage *msg);
 void       soup_message_io_pause       (SoupMessage *msg);
@@ -110,11 +158,13 @@ void       soup_message_io_unpause     (SoupMessage *msg);
 gboolean   soup_message_io_in_progress (SoupMessage *msg);
 GIOStream *soup_message_io_steal       (SoupMessage *msg);
 
+gboolean soup_message_io_read_headers          (SoupMessage           *msg,
+                                                SoupFilterInputStream *stream,
+                                                GByteArray            *buffer,
+                                                gboolean               blocking,
+                                                GCancellable          *cancellable,
+                                                GError               **error);
 
-gboolean soup_message_io_run_until_write       (SoupMessage        *msg,
-                                                gboolean            blocking,
-                                                GCancellable       *cancellable,
-                                                GError            **error);
 gboolean soup_message_io_run_until_finish      (SoupMessage        *msg,
                                                 gboolean            blocking,
                                                 GCancellable       *cancellable,

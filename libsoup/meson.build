@@ -41,9 +41,9 @@ soup_sources = [
   'server/soup-auth-domain.c',
   'server/soup-auth-domain-basic.c',
   'server/soup-auth-domain-digest.c',
-  'server/soup-message-server-io.c',
   'server/soup-path-map.c',
   'server/soup-server.c',
+  'server/soup-server-io.c',
 
   'websocket/soup-websocket.c',
   'websocket/soup-websocket-connection.c',
@@ -65,7 +65,6 @@ soup_sources = [
   'soup-logger.c',
   'soup-message.c',
   'soup-message-body.c',
-  'soup-message-client-io.c',
   'soup-message-headers.c',
   'soup-message-io.c',
   'soup-message-queue.c',
