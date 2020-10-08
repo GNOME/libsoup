@@ -134,13 +134,12 @@ find_boundary (const char *start, const char *end,
  **/
 SoupMultipart *
 soup_multipart_new_from_message (SoupMessageHeaders *headers,
-				 SoupMessageBody *body)
+				 GBytes             *body)
 {
 	SoupMultipart *multipart;
 	const char *content_type, *boundary;
 	GHashTable *params;
 	int boundary_len;
-	GBytes *flattened;
 	const char *start, *split, *end, *body_end;
 	SoupMessageHeaders *part_headers;
 	GBytes *part_body;
@@ -159,19 +158,17 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		g_strdup (content_type), g_strdup (boundary));
 	g_hash_table_destroy (params);
 
-	flattened = soup_message_body_flatten (body);
-        gsize flattened_size;
-        const char *flattened_data = g_bytes_get_data (flattened, &flattened_size);
-	body_end = flattened_data + flattened_size;
+        gsize body_size;
+        const char *body_data = g_bytes_get_data (body, &body_size);
+	body_end = body_data + body_size;
 	boundary = multipart->boundary;
 	boundary_len = strlen (boundary);
 
 	/* skip preamble */
-	start = find_boundary (flattened_data, body_end,
+	start = find_boundary (body_data, body_end,
 			       boundary, boundary_len);
 	if (!start) {
 		soup_multipart_free (multipart);
-		g_bytes_unref (flattened);
 		return NULL;
 	}
 
@@ -180,14 +177,12 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 				     boundary, boundary_len);
 		if (!end) {
 			soup_multipart_free (multipart);
-			g_bytes_unref (flattened);
 			return NULL;
 		}
 
 		split = strstr (start, "\r\n\r\n");
 		if (!split || split > end) {
 			soup_multipart_free (multipart);
-			g_bytes_unref (flattened);
 			return NULL;
 		}
 		split += 4;
@@ -206,7 +201,6 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		if (!soup_headers_parse (start, split - 2 - start,
 					 part_headers)) {
 			soup_multipart_free (multipart);
-			g_bytes_unref (flattened);
 			return NULL;
 		}
 
@@ -215,15 +209,14 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		 * the following boundary line, which is to say 2 bytes
 		 * after the end of the body.
 		 */
-		part_body = g_bytes_new_from_bytes (flattened, // FIXME
-						    split - flattened_data,
+		part_body = g_bytes_new_from_bytes (body, // FIXME
+						    split - body_data,
 						    end - 2 - split);
 		g_ptr_array_add (multipart->bodies, part_body);
 
 		start = end;
 	}
 
-	g_bytes_unref (flattened);
 	return multipart;
 }
 
@@ -394,22 +387,24 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
  * soup_multipart_to_message:
  * @multipart: a #SoupMultipart
  * @dest_headers: the headers of the HTTP message to serialize @multipart to
- * @dest_body: the body of the HTTP message to serialize @multipart to
+ * @dest_body: (out): the body of the HTTP message to serialize @multipart to
  *
  * Serializes @multipart to @dest_headers and @dest_body.
  *
  * Since: 2.26
  **/
 void
-soup_multipart_to_message (SoupMultipart *multipart,
+soup_multipart_to_message (SoupMultipart      *multipart,
 			   SoupMessageHeaders *dest_headers,
-			   SoupMessageBody *dest_body)
+			   GBytes            **dest_body)
 {
 	SoupMessageHeaders *part_headers;
+	SoupMessageBody *body;
 	GBytes *part_body;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 	GString *str;
+	GBytes *buffer;
 	GHashTable *params;
 	guint i;
 
@@ -419,6 +414,8 @@ soup_multipart_to_message (SoupMultipart *multipart,
 					       multipart->mime_type,
 					       params);
 	g_hash_table_destroy (params);
+
+	body = soup_message_body_new ();
 
 	for (i = 0; i < multipart->bodies->len; i++) {
 		part_headers = multipart->headers->pdata[i];
@@ -433,24 +430,27 @@ soup_multipart_to_message (SoupMultipart *multipart,
 			g_string_append_printf (str, "%s: %s\r\n", name, value);
 		g_string_append (str, "\r\n");
 
-                GBytes *buffer = g_string_free_to_bytes (str);
-                soup_message_body_append_bytes (dest_body, buffer);
+                buffer = g_string_free_to_bytes (str);
+                soup_message_body_append_bytes (body, buffer);
                 g_bytes_unref (buffer);
 
-		soup_message_body_append_bytes (dest_body, part_body);
+		soup_message_body_append_bytes (body, part_body);
 	}
 
 	str = g_string_new ("\r\n--");
 	g_string_append (str, multipart->boundary);
 	g_string_append (str, "--\r\n");
-	soup_message_body_append (dest_body, SOUP_MEMORY_TAKE,
-				  str->str, str->len);
-	g_string_free (str, FALSE);
+	buffer = g_string_free_to_bytes (str);
+	soup_message_body_append_bytes (body, buffer);
+	g_bytes_unref (buffer);
 
 	/* (The "\r\n" after the close-delimiter seems wrong according
 	 * to my reading of RFCs 2046 and 2616, but that's what
 	 * everyone else does.)
 	 */
+
+	*dest_body = soup_message_body_flatten (body);
+	soup_message_body_free (body);
 }
 
 /**

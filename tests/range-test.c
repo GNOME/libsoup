@@ -116,24 +116,20 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 	const char *content_type;
 	int i, length;
 	GBytes *body;
-	SoupMessageBody *message_body;
 
 	debug_printf (1, "    Range: %s\n",
 		      soup_message_headers_get_one (msg->request_headers, "Range"));
 
 	body = soup_test_session_async_send (session, msg);
-	message_body = soup_message_body_new ();
-	soup_message_body_append_bytes (message_body, body);
-	g_bytes_unref (body);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
 	g_assert_cmpstr (content_type, ==, "multipart/byteranges");
 
-	multipart = soup_multipart_new_from_message (msg->response_headers,
-						     message_body);
-	soup_message_body_free (message_body);
+	multipart = soup_multipart_new_from_message (msg->response_headers, body);
+	g_bytes_unref (body);
+
 	if (!multipart) {
 		soup_test_assert (FALSE, "Could not parse multipart");
 		g_object_unref (msg);

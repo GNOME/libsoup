@@ -1157,7 +1157,8 @@ soup_message_set_request_body (SoupMessage  *msg,
         if (content_type) {
                 g_warn_if_fail (strchr (content_type, '/') != NULL);
 
-                soup_message_headers_replace (msg->request_headers, "Content-Type", content_type);
+                if (soup_message_headers_get_content_type (msg->request_headers, NULL) != content_type)
+                        soup_message_headers_replace (msg->request_headers, "Content-Type", content_type);
                 if (content_length == -1)
                         soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
                 else

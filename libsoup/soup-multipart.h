@@ -21,7 +21,7 @@ SOUP_AVAILABLE_IN_2_26
 SoupMultipart *soup_multipart_new              (const char          *mime_type);
 SOUP_AVAILABLE_IN_2_26
 SoupMultipart *soup_multipart_new_from_message (SoupMessageHeaders  *headers,
-						SoupMessageBody     *body);
+						GBytes              *body);
 
 SOUP_AVAILABLE_IN_2_26
 int      soup_multipart_get_length         (SoupMultipart       *multipart);
@@ -50,7 +50,7 @@ void     soup_multipart_append_form_file   (SoupMultipart       *multipart,
 SOUP_AVAILABLE_IN_2_26
 void     soup_multipart_to_message         (SoupMultipart       *multipart,
 					    SoupMessageHeaders  *dest_headers,
-					    SoupMessageBody     *dest_body);
+					    GBytes             **dest_body);
 
 SOUP_AVAILABLE_IN_2_26
 void     soup_multipart_free               (SoupMultipart       *multipart);

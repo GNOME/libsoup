@@ -1042,7 +1042,6 @@ do_content_disposition_tests (void)
 	char *disposition;
 	GBytes *buffer;
 	SoupMultipart *multipart;
-	SoupMessageBody *body;
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	params = g_hash_table_new (g_str_hash, g_str_equal);
@@ -1112,13 +1111,9 @@ do_content_disposition_tests (void)
 	g_bytes_unref (buffer);
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
-	body = soup_message_body_new ();
-	soup_multipart_to_message (multipart, hdrs, body);
+	soup_multipart_to_message (multipart, hdrs, &buffer);
 	soup_message_headers_free (hdrs);
 	soup_multipart_free (multipart);
-
-	buffer = soup_message_body_flatten (body);
-	soup_message_body_free (body);
 
 	g_assert_nonnull (strstr (g_bytes_get_data (buffer, NULL), "filename=\"token\""));
 

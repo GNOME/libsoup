@@ -153,14 +153,16 @@ soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
 	SoupMultipart *multipart;
 	GHashTable *form_data_set, *params;
 	SoupMessageHeaders *part_headers;
+	GBytes *body;
 	GBytes *part_body;
 	char *disposition, *name;
 	int i;
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	multipart = soup_multipart_new_from_message (msg->request_headers,
-						     msg->request_body);
+	body = soup_message_body_flatten (msg->request_body);
+	multipart = soup_multipart_new_from_message (msg->request_headers, body);
+	g_bytes_unref (body);
 	if (!multipart)
 		return NULL;
 
@@ -483,9 +485,14 @@ soup_form_request_new_from_multipart (const char *uri,
 				      SoupMultipart *multipart)
 {
 	SoupMessage *msg;
+	GBytes *body = NULL;
 
 	msg = soup_message_new ("POST", uri);
-	soup_multipart_to_message (multipart, msg->request_headers,
-				   msg->request_body);
+	soup_multipart_to_message (multipart, msg->request_headers, &body);
+	soup_message_set_request_body_from_bytes (msg,
+						  soup_message_headers_get_content_type (msg->request_headers, NULL),
+						  body);
+	g_bytes_unref (body);
+
 	return msg;
 }

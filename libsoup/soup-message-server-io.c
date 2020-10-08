@@ -202,6 +202,7 @@ handle_partial_get (SoupMessage *msg)
 		SoupMultipart *multipart;
 		SoupMessageHeaders *part_headers;
 		GBytes *part_body;
+		GBytes *body = NULL;
 		const char *content_type;
 		int i;
 
@@ -232,8 +233,9 @@ handle_partial_get (SoupMessage *msg)
 			g_bytes_unref (part_body);
 		}
 
-		soup_multipart_to_message (multipart, msg->response_headers,
-					   msg->response_body);
+		soup_multipart_to_message (multipart, msg->response_headers, &body);
+		soup_message_body_append_bytes (msg->response_body, body);
+		g_bytes_unref (body);
 		soup_multipart_free (multipart);
 	}
 
