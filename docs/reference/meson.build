@@ -59,7 +59,7 @@ gnome.gtkdoc('libsoup-3.0',
     '--extra-dir=@0@'.format(glib_docpath /'gobject'),
     '--extra-dir=@0@'.format(glib_docpath /'gio'),
   ],
-  dependencies : libsoup_private_dep,
+  dependencies : libsoup_dep,
   install : true,
   content_files: [
     'build-howto.xml',

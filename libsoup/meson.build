@@ -221,19 +221,6 @@ libsoup = library('soup-@0@'.format(apiversion),
   install : true,
   dependencies : deps)
 
-libsoup_private = library('soup-private-@0@'.format(apiversion),
-  sources : [
-    soup_sources,
-    soup_private_enums,
-    soup_enums,
-  ],
-  version : libversion,
-  soversion : soversion,
-  darwin_versions: darwin_versions,
-  c_args : libsoup_c_args,
-  include_directories : libsoup_includes,
-  dependencies : deps)
-
 libsoup_static = static_library('soup-@0@-static'.format(apiversion),
   sources : [
     soup_sources,
@@ -254,12 +241,6 @@ pkg.generate(libsoup,
   variables: 'exec_prefix=${prefix}')
 
 libsoup_dep = declare_dependency(link_with : libsoup,
-  include_directories : libsoup_includes,
-  sources : soup_enum_h,
-  dependencies : [ platform_deps, glib_deps ]
-)
-
-libsoup_private_dep = declare_dependency(link_with : libsoup_private,
   include_directories : libsoup_includes,
   sources : soup_enum_h,
   dependencies : [ platform_deps, glib_deps ]
