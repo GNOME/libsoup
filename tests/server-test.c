@@ -1010,7 +1010,6 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 	g_assert_cmpmem (md5, strlen (md5), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 	g_free (md5);
 
-	g_bytes_unref (index);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
