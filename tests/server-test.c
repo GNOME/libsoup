@@ -711,11 +711,9 @@ do_fd_import_test (void)
 	soup_uri_free (uri);
 	soup_test_server_quit_unref (server);
 
-	/* @server should have closed our socket, although @gsock doesn't
-	 * know this.
-	 */
+	/* @server should have closed our socket, note the specific error isn't reliable */
 	g_socket_get_option (gsock, SOL_SOCKET, SO_TYPE, &type, &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+	g_assert_nonnull (error);
 	g_clear_error (&error);
 	g_object_unref (gsock);
 }
