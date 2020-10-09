@@ -58,26 +58,33 @@ const char *payload = \
         "\r\n--cut-here--";
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
-	if (msg->method != SOUP_METHOD_GET) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	SoupMessageHeaders *response_headers;
+	SoupMessageBody *response_body;
+
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_GET) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 
-	soup_message_headers_append (msg->response_headers,
+	response_headers = soup_server_message_get_response_headers (msg);
+	soup_message_headers_append (response_headers,
 				     "Content-Type", "multipart/x-mixed-replace; boundary=cut-here");
 
-	soup_message_body_append (msg->response_body,
+	response_body = soup_server_message_get_response_body (msg);
+	soup_message_body_append (response_body,
 				  SOUP_MEMORY_STATIC,
 				  payload,
 				  strlen (payload));
 
-	soup_message_body_complete (msg->response_body);
+	soup_message_body_complete (response_body);
 }
 
 static void

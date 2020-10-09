@@ -15,11 +15,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_4
 G_DECLARE_DERIVABLE_TYPE (SoupServer, soup_server, SOUP, SERVER, GObject)
 
-typedef struct _SoupClientContext SoupClientContext;
-SOUP_AVAILABLE_IN_2_4
-GType soup_client_context_get_type (void);
-#define SOUP_TYPE_CLIENT_CONTEXT (soup_client_context_get_type ())
-
 typedef enum {
 	SOUP_SERVER_LISTEN_HTTPS     = (1 << 0),
 	SOUP_SERVER_LISTEN_IPV4_ONLY = (1 << 1),
@@ -30,14 +25,14 @@ struct _SoupServerClass {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*request_started)  (SoupServer *server, SoupMessage *msg,
-				  SoupClientContext *client);
-	void (*request_read)     (SoupServer *server, SoupMessage *msg,
-				  SoupClientContext *client);
-	void (*request_finished) (SoupServer *server, SoupMessage *msg,
-				  SoupClientContext *client);
-	void (*request_aborted)  (SoupServer *server, SoupMessage *msg,
-				  SoupClientContext *client);
+	void (*request_started)  (SoupServer        *server,
+				  SoupServerMessage *msg);
+	void (*request_read)     (SoupServer        *server,
+				  SoupServerMessage *msg);
+	void (*request_finished) (SoupServer        *server,
+				  SoupServerMessage *msg);
+	void (*request_aborted)  (SoupServer        *server,
+				  SoupServerMessage *msg);
 
 	gpointer padding[6];
 };
@@ -98,10 +93,9 @@ gboolean        soup_server_accept_iostream    (SoupServer               *server
 /* Handlers and auth */
 
 typedef void  (*SoupServerCallback)            (SoupServer         *server,
-						SoupMessage        *msg,
+						SoupServerMessage  *msg,
 						const char         *path,
 						GHashTable         *query,
-						SoupClientContext  *client,
 						gpointer            user_data);
 
 SOUP_AVAILABLE_IN_2_4
@@ -121,9 +115,9 @@ void            soup_server_add_early_handler  (SoupServer         *server,
 #define SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION "remove-websocket-extension"
 
 typedef void (*SoupServerWebsocketCallback) (SoupServer              *server,
-					     SoupWebsocketConnection *connection,
+					     SoupServerMessage       *msg,
 					     const char              *path,
-					     SoupClientContext       *client,
+					     SoupWebsocketConnection *connection,
 					     gpointer                 user_data);
 SOUP_AVAILABLE_IN_2_50
 void            soup_server_add_websocket_handler (SoupServer                   *server,
@@ -153,28 +147,10 @@ void            soup_server_remove_auth_domain (SoupServer         *server,
 
 /* I/O */
 SOUP_AVAILABLE_IN_2_4
-void            soup_server_pause_message   (SoupServer  *server,
-					     SoupMessage *msg);
+void            soup_server_pause_message   (SoupServer        *server,
+					     SoupServerMessage *msg);
 SOUP_AVAILABLE_IN_2_4
-void            soup_server_unpause_message (SoupServer  *server,
-					     SoupMessage *msg);
-
-/* Client context */
-
-SOUP_AVAILABLE_IN_2_48
-GSocket        *soup_client_context_get_socket        (SoupClientContext *client);
-SOUP_AVAILABLE_IN_2_48
-GSocketAddress *soup_client_context_get_local_address  (SoupClientContext *client);
-SOUP_AVAILABLE_IN_2_48
-GSocketAddress *soup_client_context_get_remote_address (SoupClientContext *client);
-SOUP_AVAILABLE_IN_2_4
-const char     *soup_client_context_get_host           (SoupClientContext *client);
-SOUP_AVAILABLE_IN_2_4
-SoupAuthDomain *soup_client_context_get_auth_domain    (SoupClientContext *client);
-SOUP_AVAILABLE_IN_2_4
-const char     *soup_client_context_get_auth_user      (SoupClientContext *client);
-
-SOUP_AVAILABLE_IN_2_50
-GIOStream      *soup_client_context_steal_connection   (SoupClientContext *client);
+void            soup_server_unpause_message (SoupServer        *server,
+					     SoupServerMessage *msg);
 
 G_END_DECLS

@@ -10,25 +10,33 @@ SoupServer *server;
 SoupURI *base_uri;
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
 	const char *accept_encoding, *options;
 	GSList *codings;
 	GBytes *response = NULL;
+	SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
+	SoupMessageBody *response_body;
 
-	options = soup_message_headers_get_one (msg->request_headers,
+	request_headers = soup_server_message_get_request_headers (msg);
+	options = soup_message_headers_get_one (request_headers,
 						"X-Test-Options");
 	if (!options)
 		options = "";
 
-	accept_encoding = soup_message_headers_get_list (msg->request_headers,
+	accept_encoding = soup_message_headers_get_list (request_headers,
 							 "Accept-Encoding");
 	if (accept_encoding && !soup_header_contains (options, "force-encode"))
 		codings = soup_header_parse_quality_list (accept_encoding, NULL);
 	else
 		codings = NULL;
+
+	response_headers = soup_server_message_get_response_headers (msg);
 
 	if (codings) {
 		gboolean claim_deflate, claim_gzip;
@@ -58,7 +66,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			response = soup_test_load_resource (resource, NULL);
 
 			if (response) {
-				soup_message_headers_append (msg->response_headers,
+				soup_message_headers_append (response_headers,
 							     "Content-Encoding",
 							     encoding);
 			}
@@ -75,7 +83,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 * the error with "Content-Encoding: gzip" but there's
 		 * no body, so, eh.
 		 */
-		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_FOUND, NULL);
 		return;
 	}
 
@@ -86,34 +94,35 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		    soup_header_contains (options, "prefer-deflate-raw"))
 			encoding = "deflate";
 
-		soup_message_headers_replace (msg->response_headers,
+		soup_message_headers_replace (response_headers,
 					      "Content-Encoding",
 					      encoding);
 	}
 
 	/* Content-Type matches the "real" format, not the sent format */
 	if (g_str_has_suffix (path, ".gz")) {
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type",
 					     "application/gzip");
 	} else {
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type",
 					     "text/plain");
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_headers_set_encoding (msg->response_headers, SOUP_ENCODING_CHUNKED);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_message_headers_set_encoding (response_headers, SOUP_ENCODING_CHUNKED);
 
+	response_body = soup_server_message_get_response_body (msg);
 	if (!soup_header_contains (options, "empty"))
-		soup_message_body_append_bytes (msg->response_body, response);
+		soup_message_body_append_bytes (response_body, response);
 	g_bytes_unref (response);
 
 	if (soup_header_contains (options, "trailing-junk")) {
-		soup_message_body_append (msg->response_body, SOUP_MEMORY_COPY,
+		soup_message_body_append (response_body, SOUP_MEMORY_COPY,
 					  options, strlen (options));
 	}
-	soup_message_body_complete (msg->response_body);
+	soup_message_body_complete (response_body);
 }
 
 typedef struct {

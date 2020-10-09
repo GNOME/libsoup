@@ -8,13 +8,17 @@
 
 #include "soup-filter-input-stream.h"
 #include "soup-message.h"
+#include "soup-message-io-data.h"
 #include "auth/soup-auth.h"
 #include "content-sniffer/soup-content-processor.h"
 #include "content-sniffer/soup-content-sniffer.h"
 #include "soup-session.h"
 
+typedef struct _SoupClientMessageIOData SoupClientMessageIOData;
+void soup_client_message_io_data_free (SoupClientMessageIOData *io);
+
 typedef struct {
-	gpointer           io_data;
+	SoupClientMessageIOData *io_data;
 
 	guint              msg_flags;
 	gboolean           server_side;
@@ -46,12 +50,6 @@ typedef struct {
 
 void             soup_message_cleanup_response (SoupMessage      *msg);
 
-typedef enum {
-	SOUP_MESSAGE_IO_COMPLETE,
-	SOUP_MESSAGE_IO_INTERRUPTED,
-	SOUP_MESSAGE_IO_STOLEN
-} SoupMessageIOCompletion;
-
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
 					      GString          *headers,
 					      SoupEncoding     *encoding,
@@ -62,17 +60,9 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      SoupEncoding     *encoding,
 					      gpointer          user_data,
 					      GError          **error);
-typedef void     (*SoupMessageCompletionFn)  (SoupMessage      *msg,
-					      SoupMessageIOCompletion completion,
-					      gpointer          user_data);
-
 
 void soup_message_send_request (SoupMessageQueueItem      *item,
-				SoupMessageCompletionFn    completion_cb,
-				gpointer                   user_data);
-void soup_message_read_request (SoupMessage               *msg,
-				SoupSocket                *sock,
-				SoupMessageCompletionFn    completion_cb,
+				SoupMessageIOCompletionFn  completion_cb,
 				gpointer                   user_data);
 
 /* Auth handling */
@@ -84,77 +74,13 @@ void           soup_message_set_proxy_auth (SoupMessage *msg,
 SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 
 /* I/O */
-typedef enum {
-	SOUP_MESSAGE_IO_STATE_NOT_STARTED,
-	SOUP_MESSAGE_IO_STATE_ANY = SOUP_MESSAGE_IO_STATE_NOT_STARTED,
-	SOUP_MESSAGE_IO_STATE_HEADERS,
-	SOUP_MESSAGE_IO_STATE_BLOCKING,
-	SOUP_MESSAGE_IO_STATE_BODY_START,
-	SOUP_MESSAGE_IO_STATE_BODY,
-	SOUP_MESSAGE_IO_STATE_BODY_DATA,
-	SOUP_MESSAGE_IO_STATE_BODY_FLUSH,
-	SOUP_MESSAGE_IO_STATE_BODY_DONE,
-	SOUP_MESSAGE_IO_STATE_FINISHING,
-	SOUP_MESSAGE_IO_STATE_DONE
-} SoupMessageIOState;
-
-#define SOUP_MESSAGE_IO_STATE_ACTIVE(state) \
-	(state != SOUP_MESSAGE_IO_STATE_NOT_STARTED && \
-	 state != SOUP_MESSAGE_IO_STATE_BLOCKING && \
-	 state != SOUP_MESSAGE_IO_STATE_DONE)
-#define SOUP_MESSAGE_IO_STATE_POLLABLE(state) \
-	(SOUP_MESSAGE_IO_STATE_ACTIVE (state) && \
-	 state != SOUP_MESSAGE_IO_STATE_BODY_DONE)
-
-typedef struct {
-	/* Client only */
-	SoupMessageQueueItem *item;
-	GCancellable         *cancellable;
-
-	/* Server only */
-	SoupSocket           *sock;
-
-	GIOStream              *iostream;
-	SoupFilterInputStream  *istream;
-	GInputStream           *body_istream;
-	GOutputStream          *ostream;
-	GOutputStream          *body_ostream;
-	GMainContext           *async_context;
-
-	SoupMessageIOState    read_state;
-	SoupEncoding          read_encoding;
-	GByteArray           *read_header_buf;
-	goffset               read_length;
-
-	SoupMessageIOState    write_state;
-	SoupEncoding          write_encoding;
-	GString              *write_buf;
-	GBytes               *write_chunk;
-	goffset               write_body_offset;
-	goffset               write_length;
-	goffset               written;
-
-	GSource *io_source;
-	GSource *unpause_source;
-	gboolean paused;
-
-	GCancellable *async_wait;
-	GError       *async_error;
-
-	SoupMessageCompletionFn   completion_cb;
-	gpointer                  completion_data;
-
-#ifdef HAVE_SYSPROF
-	gint64 begin_time_nsec;
-#endif
-} SoupMessageIOData;
-
 void       soup_message_io_run         (SoupMessage *msg,
 					gboolean     blocking);
 void       soup_message_io_finished    (SoupMessage *msg);
 void       soup_message_io_cleanup     (SoupMessage *msg);
 void       soup_message_io_pause       (SoupMessage *msg);
 void       soup_message_io_unpause     (SoupMessage *msg);
+gboolean   soup_message_is_io_paused   (SoupMessage *msg);
 gboolean   soup_message_io_in_progress (SoupMessage *msg);
 GIOStream *soup_message_io_steal       (SoupMessage *msg);
 
@@ -214,17 +140,14 @@ SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
 					     SoupConnection *conn);
 
-gpointer        soup_message_get_io_data (SoupMessage       *msg);
-void            soup_message_set_io_data (SoupMessage       *msg,
-					  gpointer           io);
+SoupClientMessageIOData *soup_message_get_io_data (SoupMessage             *msg);
+void                     soup_message_set_io_data (SoupMessage             *msg,
+						   SoupClientMessageIOData *io);
 
 SoupContentSniffer *soup_message_get_content_sniffer    (SoupMessage        *msg);
 void                soup_message_set_content_sniffer    (SoupMessage        *msg,
 							 SoupContentSniffer *sniffer);
 void                soup_message_set_bytes_for_sniffing (SoupMessage        *msg,
 							 gsize               bytes);
-
-const char *soup_http_version_to_string      (SoupHTTPVersion version);
-
 
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

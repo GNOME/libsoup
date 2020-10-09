@@ -8,7 +8,6 @@ soup_message_new
 soup_message_new_from_uri
 soup_message_set_request_body
 soup_message_set_request_body_from_bytes
-soup_message_set_response
 <SUBSECTION>
 SoupHTTPVersion
 soup_message_set_http_version
@@ -18,7 +17,6 @@ soup_message_set_uri
 <SUBSECTION>
 soup_message_set_status
 soup_message_set_status_full
-soup_message_set_redirect
 soup_message_is_keepalive
 soup_message_get_https_status
 <SUBSECTION>
@@ -74,15 +72,12 @@ SOUP_IS_MESSAGE_CLASS
 SOUP_MESSAGE_GET_CLASS
 SoupMessageClass
 <SUBSECTION Private>
-soup_message_wrote_informational
 soup_message_wrote_headers
-soup_message_wrote_chunk
 soup_message_wrote_body_data
 soup_message_wrote_body
 soup_message_got_informational
 soup_message_got_headers
 soup_message_content_sniffed
-soup_message_got_chunk
 soup_message_got_body
 soup_message_finished
 soup_message_restarted
@@ -260,17 +255,6 @@ soup_server_add_websocket_handler
 soup_server_add_websocket_extension
 soup_server_remove_websocket_extension
 <SUBSECTION>
-SoupClientContext
-soup_client_context_get_local_address
-soup_client_context_get_remote_address
-soup_client_context_get_host
-soup_client_context_get_auth_domain
-soup_client_context_get_auth_user
-soup_client_context_get_socket
-soup_client_context_steal_connection
-<SUBSECTION Private>
-soup_client_context_get_soup_socket
-<SUBSECTION>
 soup_server_add_auth_domain
 soup_server_remove_auth_domain
 <SUBSECTION>
@@ -293,6 +277,35 @@ SOUP_SERVER_GET_CLASS
 SoupServerClass
 SOUP_TYPE_CLIENT_CONTEXT
 soup_client_context_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-server-message</FILE>
+<TITLE>SoupServerMessage</TITLE>
+SoupServerMessage
+soup_server_message_get_request_headers
+soup_server_message_get_response_headers
+soup_server_message_get_request_body
+soup_server_message_get_response_body
+soup_server_message_get_method
+soup_server_message_get_http_version
+soup_server_message_set_http_version
+soup_server_message_get_status
+soup_server_message_set_status
+soup_server_message_get_uri
+soup_server_message_set_response
+soup_server_message_set_redirect
+soup_server_message_get_socket
+soup_server_message_get_local_address
+soup_server_message_get_remote_address
+soup_server_message_get_remote_host
+soup_server_message_steal_connection
+<SUBSECTION Standard>
+SOUP_SERVER_MESSAGE
+SOUP_IS_SERVER_MESSAGE
+SOUP_TYPE_SERVER_MESSAGE
+<SUBSECTION Private>
+soup_server_message_get_type
 </SECTION>
 
 <SECTION>

@@ -45,6 +45,7 @@ extern "C" {
 #include "server/soup-auth-domain-basic.h"
 #include "server/soup-auth-domain-digest.h"
 #include "server/soup-server.h"
+#include "server/soup-server-message.h"
 #include "soup-session.h"
 #include "soup-session-feature.h"
 #include "soup-socket.h"

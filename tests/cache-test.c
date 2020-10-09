@@ -6,53 +6,62 @@
 #include "test-utils.h"
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
 	const char *last_modified, *etag;
 	const char *header;
+	const char *method;
+	SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
 	guint status = SOUP_STATUS_OK;
 
-	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_POST) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	method = soup_server_message_get_method (msg);
+
+	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	request_headers = soup_server_message_get_request_headers (msg);
+	response_headers = soup_server_message_get_response_headers (msg);
+	header = soup_message_headers_get_one (request_headers,
 					       "Test-Set-Expires");
 	if (header) {
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Expires",
 					     header);
 	}
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (request_headers,
 					       "Test-Set-Cache-Control");
 	if (header) {
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Cache-Control",
 					     header);
 	}
 
-	last_modified = soup_message_headers_get_one (msg->request_headers,
+	last_modified = soup_message_headers_get_one (request_headers,
 						      "Test-Set-Last-Modified");
 	if (last_modified) {
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Last-Modified",
 					     last_modified);
 	}
 
-	etag = soup_message_headers_get_one (msg->request_headers,
+	etag = soup_message_headers_get_one (request_headers,
 					     "Test-Set-ETag");
 	if (etag) {
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "ETag",
 					     etag);
 	}
 
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (request_headers,
 					       "If-Modified-Since");
 	if (header && last_modified) {
 		GDateTime *modified_date, *header_date;
@@ -67,17 +76,17 @@ server_callback (SoupServer *server, SoupMessage *msg,
                 g_date_time_unref (header_date);
 	}
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (request_headers,
 					       "If-None-Match");
 	if (header && etag) {
 		if (!strcmp (header, etag))
 			status = SOUP_STATUS_NOT_MODIFIED;
 	}
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (request_headers,
 					       "Test-Set-My-Header");
 	if (header) {
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "My-Header",
 					     header);
 	}
@@ -93,12 +102,12 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		if (etag)
 			g_checksum_update (sum, (guchar *)etag, strlen (etag));
 		body = g_checksum_get_string (sum);
-		soup_message_set_response (msg, "text/plain",
-					   SOUP_MEMORY_COPY,
-					   body, strlen (body) + 1);
+		soup_server_message_set_response (msg, "text/plain",
+						  SOUP_MEMORY_COPY,
+						  body, strlen (body) + 1);
 		g_checksum_free (sum);
 	}
-	soup_message_set_status (msg, status);
+	soup_server_message_set_status (msg, status, NULL);
 }
 
 static gboolean

@@ -27,6 +27,7 @@
 #include "soup-websocket.h"
 #include "soup-headers.h"
 #include "soup-message-private.h"
+#include "soup-server-message.h"
 #include "soup-websocket-extension.h"
 
 #define FIXED_DIGEST_LEN 20
@@ -205,9 +206,9 @@ compute_accept_key (const char *key)
 }
 
 static gboolean
-choose_subprotocol (SoupMessage  *msg,
-		    const char  **server_protocols,
-		    const char  **chosen_protocol)
+choose_subprotocol (SoupServerMessage *msg,
+		    const char       **server_protocols,
+		    const char       **chosen_protocol)
 {
 	const char *client_protocols_str;
 	char **client_protocols;
@@ -219,8 +220,9 @@ choose_subprotocol (SoupMessage  *msg,
 	if (!server_protocols)
 		return TRUE;
 
-	client_protocols_str = soup_message_headers_get_one (msg->request_headers,
-							     "Sec-Websocket-Protocol");
+	client_protocols_str =
+		soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
+					      "Sec-Websocket-Protocol");
 	if (!client_protocols_str)
 		return TRUE;
 
@@ -406,10 +408,10 @@ soup_websocket_client_prepare_handshake_with_extensions (SoupMessage *msg,
  * Since: 2.50
  */
 gboolean
-soup_websocket_server_check_handshake (SoupMessage  *msg,
-				       const char   *expected_origin,
-				       char        **protocols,
-				       GError      **error)
+soup_websocket_server_check_handshake (SoupServerMessage *msg,
+				       const char        *expected_origin,
+				       char             **protocols,
+				       GError           **error)
 {
 	return soup_websocket_server_check_handshake_with_extensions (msg, expected_origin, protocols, NULL, error);
 }
@@ -460,15 +462,15 @@ extract_extension_names_from_request (SoupMessage *msg)
 }
 
 static gboolean
-process_extensions (SoupMessage *msg,
-                    const char  *extensions,
-                    gboolean     is_server,
+process_extensions (const char  *extensions,
+		    SoupMessage *msg,
                     GPtrArray   *supported_extensions,
                     GList      **accepted_extensions,
                     GError     **error)
 {
         GSList *extension_list, *l;
         GHashTable *requested_extensions = NULL;
+	gboolean is_server = msg == NULL;
 
         if (!supported_extensions || supported_extensions->len == 0) {
                 if (is_server)
@@ -608,7 +610,7 @@ process_extensions (SoupMessage *msg,
 
 /**
  * soup_websocket_server_check_handshake_with_extensions:
- * @msg: #SoupMessage containing the client side of a WebSocket handshake
+ * @msg: #SoupServerMessage containing the client side of a WebSocket handshake
  * @origin: (nullable): expected Origin header
  * @protocols: (nullable) (array zero-terminated=1): allowed WebSocket
  *   protocols.
@@ -640,19 +642,20 @@ process_extensions (SoupMessage *msg,
  * Since: 2.68
  */
 gboolean
-soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
-                                                       const char   *expected_origin,
-                                                       char        **protocols,
-                                                       GPtrArray   *supported_extensions,
-                                                       GError      **error)
+soup_websocket_server_check_handshake_with_extensions (SoupServerMessage *msg,
+                                                       const char        *expected_origin,
+                                                       char             **protocols,
+                                                       GPtrArray         *supported_extensions,
+                                                       GError           **error)
 {
 	const char *origin;
 	const char *key;
 	const char *extensions;
+	SoupMessageHeaders *request_headers;
 
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), FALSE);
 
-	if (msg->method != SOUP_METHOD_GET) {
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_GET) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
@@ -660,8 +663,9 @@ soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
 		return FALSE;
 	}
 
-	if (!soup_message_headers_header_equals (msg->request_headers, "Upgrade", "websocket") ||
-	    !soup_message_headers_header_contains (msg->request_headers, "Connection", "upgrade")) {
+	request_headers = soup_server_message_get_request_headers (msg);
+	if (!soup_message_headers_header_equals (request_headers, "Upgrade", "websocket") ||
+	    !soup_message_headers_header_contains (request_headers, "Connection", "upgrade")) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
@@ -669,7 +673,7 @@ soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
 		return FALSE;
 	}
 
-	if (!soup_message_headers_header_equals (msg->request_headers, "Sec-WebSocket-Version", "13")) {
+	if (!soup_message_headers_header_equals (request_headers, "Sec-WebSocket-Version", "13")) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
@@ -677,7 +681,7 @@ soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
 		return FALSE;
 	}
 
-	key = soup_message_headers_get_one (msg->request_headers, "Sec-WebSocket-Key");
+	key = soup_message_headers_get_one (request_headers, "Sec-WebSocket-Key");
 	if (key == NULL || !validate_key (key)) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
@@ -687,7 +691,7 @@ soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
 	}
 
 	if (expected_origin) {
-		origin = soup_message_headers_get_one (msg->request_headers, "Origin");
+		origin = soup_message_headers_get_one (request_headers, "Origin");
 		if (!origin || g_ascii_strcasecmp (origin, expected_origin) != 0) {
 			g_set_error (error,
 				     SOUP_WEBSOCKET_ERROR,
@@ -705,9 +709,9 @@ soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
 		return FALSE;
 	}
 
-	extensions = soup_message_headers_get_list (msg->request_headers, "Sec-WebSocket-Extensions");
+	extensions = soup_message_headers_get_list (request_headers, "Sec-WebSocket-Extensions");
 	if (extensions && *extensions) {
-		if (!process_extensions (msg, extensions, TRUE, supported_extensions, NULL, error))
+		if (!process_extensions (extensions, NULL, supported_extensions, NULL, error))
 			return FALSE;
 	}
 
@@ -718,32 +722,35 @@ soup_websocket_server_check_handshake_with_extensions (SoupMessage  *msg,
 	"<body>Received invalid WebSocket request</body></html>\r\n"
 
 static void
-respond_handshake_forbidden (SoupMessage *msg)
+respond_handshake_forbidden (SoupServerMessage *msg)
 {
-	soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
-	soup_message_headers_append (msg->response_headers, "Connection", "close");
-	soup_message_set_response (msg, "text/html", SOUP_MEMORY_COPY,
-				   RESPONSE_FORBIDDEN, strlen (RESPONSE_FORBIDDEN));
+	soup_server_message_set_status (msg, SOUP_STATUS_FORBIDDEN, NULL);
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
+				     "Connection", "close");
+	soup_server_message_set_response (msg, "text/html", SOUP_MEMORY_COPY,
+					  RESPONSE_FORBIDDEN, strlen (RESPONSE_FORBIDDEN));
 }
 
 #define RESPONSE_BAD "<html><head><title>400 Bad Request</title></head>\r\n" \
 	"<body>Received invalid WebSocket request: %s</body></html>\r\n"
 
 static void
-respond_handshake_bad (SoupMessage *msg, const char *why)
+respond_handshake_bad (SoupServerMessage *msg,
+		       const char        *why)
 {
 	char *text;
 
 	text = g_strdup_printf (RESPONSE_BAD, why);
-	soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
-	soup_message_headers_append (msg->response_headers, "Connection", "close");
-	soup_message_set_response (msg, "text/html", SOUP_MEMORY_TAKE,
-				   text, strlen (text));
+	soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
+				     "Connection", "close");
+	soup_server_message_set_response (msg, "text/html", SOUP_MEMORY_TAKE,
+					  text, strlen (text));
 }
 
 /**
  * soup_websocket_server_process_handshake:
- * @msg: #SoupMessage containing the client side of a WebSocket handshake
+ * @msg: #SoupServerMessage containing the client side of a WebSocket handshake
  * @expected_origin: (allow-none): expected Origin header
  * @protocols: (allow-none) (array zero-terminated=1): allowed WebSocket
  *   protocols.
@@ -773,16 +780,16 @@ respond_handshake_bad (SoupMessage *msg, const char *why)
  * Since: 2.50
  */
 gboolean
-soup_websocket_server_process_handshake (SoupMessage  *msg,
-					 const char   *expected_origin,
-					 char        **protocols)
+soup_websocket_server_process_handshake (SoupServerMessage *msg,
+					 const char        *expected_origin,
+					 char             **protocols)
 {
 	return soup_websocket_server_process_handshake_with_extensions (msg, expected_origin, protocols, NULL, NULL);
 }
 
 /**
  * soup_websocket_server_process_handshake_with_extensions:
- * @msg: #SoupMessage containing the client side of a WebSocket handshake
+ * @msg: #SoupServerMessage containing the client side of a WebSocket handshake
  * @expected_origin: (nullable): expected Origin header
  * @protocols: (nullable) (array zero-terminated=1): allowed WebSocket
  *   protocols.
@@ -813,18 +820,21 @@ soup_websocket_server_process_handshake (SoupMessage  *msg,
  * Since: 2.68
  */
 gboolean
-soup_websocket_server_process_handshake_with_extensions (SoupMessage  *msg,
-                                                         const char   *expected_origin,
-                                                         char        **protocols,
-                                                         GPtrArray    *supported_extensions,
-                                                         GList       **accepted_extensions)
+soup_websocket_server_process_handshake_with_extensions (SoupServerMessage *msg,
+                                                         const char        *expected_origin,
+                                                         char             **protocols,
+                                                         GPtrArray         *supported_extensions,
+                                                         GList            **accepted_extensions)
 {
 	const char *chosen_protocol = NULL;
 	const char *key;
 	const char *extensions;
 	char *accept_key;
 	GError *error = NULL;
+	SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
 
+	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), FALSE);
 	g_return_val_if_fail (accepted_extensions == NULL || *accepted_extensions == NULL, FALSE);
 
 	if (!soup_websocket_server_check_handshake_with_extensions (msg, expected_origin, protocols, supported_extensions, &error)) {
@@ -838,25 +848,27 @@ soup_websocket_server_process_handshake_with_extensions (SoupMessage  *msg,
 		return FALSE;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_SWITCHING_PROTOCOLS);
-	soup_message_headers_replace (msg->response_headers, "Upgrade", "websocket");
-	soup_message_headers_append (msg->response_headers, "Connection", "Upgrade");
+	soup_server_message_set_status (msg, SOUP_STATUS_SWITCHING_PROTOCOLS, NULL);
+	response_headers = soup_server_message_get_response_headers (msg);
+	soup_message_headers_replace (response_headers, "Upgrade", "websocket");
+	soup_message_headers_append (response_headers, "Connection", "Upgrade");
 
-	key = soup_message_headers_get_one (msg->request_headers, "Sec-WebSocket-Key");
+	request_headers = soup_server_message_get_request_headers (msg);
+	key = soup_message_headers_get_one (request_headers, "Sec-WebSocket-Key");
 	accept_key = compute_accept_key (key);
-	soup_message_headers_append (msg->response_headers, "Sec-WebSocket-Accept", accept_key);
+	soup_message_headers_append (response_headers, "Sec-WebSocket-Accept", accept_key);
 	g_free (accept_key);
 
 	choose_subprotocol (msg, (const char **) protocols, &chosen_protocol);
 	if (chosen_protocol)
-		soup_message_headers_append (msg->response_headers, "Sec-WebSocket-Protocol", chosen_protocol);
+		soup_message_headers_append (response_headers, "Sec-WebSocket-Protocol", chosen_protocol);
 
-	extensions = soup_message_headers_get_list (msg->request_headers, "Sec-WebSocket-Extensions");
+	extensions = soup_message_headers_get_list (request_headers, "Sec-WebSocket-Extensions");
 	if (extensions && *extensions) {
 		GList *websocket_extensions = NULL;
 		GList *l;
 
-		process_extensions (msg, extensions, TRUE, supported_extensions, &websocket_extensions, NULL);
+		process_extensions (extensions, NULL, supported_extensions, &websocket_extensions, NULL);
 		if (websocket_extensions) {
 			GString *response_extensions;
 
@@ -878,11 +890,11 @@ soup_websocket_server_process_handshake_with_extensions (SoupMessage  *msg,
 			}
 
 			if (response_extensions->len > 0) {
-				soup_message_headers_replace (msg->response_headers,
+				soup_message_headers_replace (response_headers,
 							      "Sec-WebSocket-Extensions",
 							      response_extensions->str);
 			} else {
-				soup_message_headers_remove (msg->response_headers,
+				soup_message_headers_remove (response_headers,
 							     "Sec-WebSocket-Extensions");
 			}
 			g_string_free (response_extensions, TRUE);
@@ -1009,7 +1021,7 @@ soup_websocket_client_verify_handshake_with_extensions (SoupMessage *msg,
 
 	extensions = soup_message_headers_get_list (msg->response_headers, "Sec-WebSocket-Extensions");
 	if (extensions && *extensions) {
-		if (!process_extensions (msg, extensions, FALSE, supported_extensions, accepted_extensions, error))
+		if (!process_extensions (extensions, msg, supported_extensions, accepted_extensions, error))
 			return FALSE;
 	}
 

@@ -287,72 +287,82 @@ do_async_req_api_test (gconstpointer test)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
 	char *remainder;
 	guint status_code;
+	SoupMessageHeaders *response_headers;
+	const char *method;
 
 	/* Make sure that a HTTP/1.0 redirect doesn't cause an
 	 * HTTP/1.0 re-request. (#521848)
 	 */
-	if (soup_message_get_http_version (msg) == SOUP_HTTP_1_0) {
-		soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
+	if (soup_server_message_get_http_version (msg) == SOUP_HTTP_1_0) {
+		soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
 		return;
 	}
 
+	method = soup_server_message_get_method (msg);
+	response_headers = soup_server_message_get_response_headers (msg);
+
 	if (g_str_has_prefix (path, "/bad")) {
 		if (!strcmp (path, "/bad")) {
-			soup_message_set_status (msg, SOUP_STATUS_FOUND);
-			soup_message_headers_replace (msg->response_headers,
+			soup_server_message_set_status (msg, SOUP_STATUS_FOUND, NULL);
+			soup_message_headers_replace (response_headers,
 						      "Location",
 						      "/bad with spaces");
 		} else if (!strcmp (path, "/bad-recursive")) {
-			soup_message_set_status (msg, SOUP_STATUS_FOUND);
-			soup_message_headers_replace (msg->response_headers,
+			soup_server_message_set_status (msg, SOUP_STATUS_FOUND, NULL);
+			soup_message_headers_replace (response_headers,
 						      "Location",
 						      "/bad-recursive");
 		} else if (!strcmp (path, "/bad-no-host")) {
-			soup_message_set_status (msg, SOUP_STATUS_FOUND);
-			soup_message_headers_replace (msg->response_headers,
+			soup_server_message_set_status (msg, SOUP_STATUS_FOUND, NULL);
+			soup_message_headers_replace (response_headers,
 						      "Location",
 						      "about:blank");
 		} else if (!strcmp (path, "/bad with spaces"))
-			soup_message_set_status (msg, SOUP_STATUS_OK);
+			soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 		else
-			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+			soup_server_message_set_status (msg, SOUP_STATUS_NOT_FOUND, NULL);
 		return;
 	} else if (!strcmp (path, "/server2")) {
-		soup_message_set_status (msg, SOUP_STATUS_FOUND);
-		soup_message_headers_replace (msg->response_headers,
+		soup_server_message_set_status (msg, SOUP_STATUS_FOUND, NULL);
+		soup_message_headers_replace (response_headers,
 					      "Location",
 					      server2_uri);
 		return;
 	} else if (!strcmp (path, "/")) {
-		if (msg->method != SOUP_METHOD_GET &&
-		    msg->method != SOUP_METHOD_HEAD) {
-			soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+		SoupMessageBody *request_body;
+
+		if (method != SOUP_METHOD_GET &&
+		    method != SOUP_METHOD_HEAD) {
+			soup_server_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED, NULL);
 			return;
 		}
 
 		/* Make sure that redirecting a POST clears the body */
-		if (msg->request_body->length) {
-			soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
+		request_body = soup_server_message_get_request_body (msg);
+		if (request_body->length) {
+			soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
 			return;
 		}
 
-		soup_message_set_status (msg, SOUP_STATUS_OK);
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 
 		/* FIXME: this is wrong, though it doesn't matter for
 		 * the purposes of this test, and to do the right
 		 * thing currently we'd have to set Content-Length by
 		 * hand.
 		 */
-		if (msg->method != SOUP_METHOD_HEAD) {
-			soup_message_set_response (msg, "text/plain",
-						   SOUP_MEMORY_STATIC,
-						   "OK\r\n", 4);
+		if (method != SOUP_METHOD_HEAD) {
+			soup_server_message_set_response (msg, "text/plain",
+							  SOUP_MEMORY_STATIC,
+							  "OK\r\n", 4);
 		}
 		return;
 	}
@@ -360,7 +370,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	status_code = strtoul (path + 1, &remainder, 10);
 	if (!SOUP_STATUS_IS_REDIRECTION (status_code) ||
 	    (*remainder && *remainder != '/')) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_FOUND, NULL);
 		return;
 	}
 
@@ -369,18 +379,20 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	 * the rest of the time.
 	 */
 	if (*remainder == '/')
-		soup_message_set_http_version (msg, SOUP_HTTP_1_0);
+		soup_server_message_set_http_version (msg, SOUP_HTTP_1_0);
 
-	soup_message_set_redirect (msg, status_code,
-				   *remainder ? remainder : "/");
+	soup_server_message_set_redirect (msg, status_code,
+					  *remainder ? remainder : "/");
 }
 
 static void
-server2_callback (SoupServer *server, SoupMessage *msg,
-		  const char *path, GHashTable *query,
-		  SoupClientContext *context, gpointer data)
+server2_callback (SoupServer        *server,
+		  SoupServerMessage *msg,
+		  const char        *path,
+		  GHashTable        *query,
+		  gpointer           data)
 {
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 int

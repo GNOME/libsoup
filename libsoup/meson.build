@@ -44,6 +44,7 @@ soup_sources = [
   'server/soup-path-map.c',
   'server/soup-server.c',
   'server/soup-server-io.c',
+  'server/soup-server-message.c',
 
   'websocket/soup-websocket.c',
   'websocket/soup-websocket-connection.c',
@@ -67,6 +68,7 @@ soup_sources = [
   'soup-message-body.c',
   'soup-message-headers.c',
   'soup-message-io.c',
+  'soup-message-io-data.c',
   'soup-message-queue.c',
   'soup-method.c',
   'soup-misc.c',
@@ -117,6 +119,7 @@ soup_introspection_headers = [
   'server/soup-auth-domain-basic.h',
   'server/soup-auth-domain-digest.h',
   'server/soup-server.h',
+  'server/soup-server-message.h',
 
   'websocket/soup-websocket.h',
   'websocket/soup-websocket-connection.h',

@@ -38,16 +38,15 @@ do_ssl_tests (gconstpointer data)
 
 static void
 server_handler (SoupServer        *server,
-		SoupMessage       *msg,
+		SoupServerMessage *msg,
 		const char        *path,
 		GHashTable        *query,
-		SoupClientContext *client,
 		gpointer           user_data)
 {
-	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_response (msg, "text/plain",
-				   SOUP_MEMORY_STATIC,
-				   "ok\r\n", 4);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_server_message_set_response (msg, "text/plain",
+					  SOUP_MEMORY_STATIC,
+					  "ok\r\n", 4);
 }
 
 int

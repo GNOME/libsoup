@@ -20,10 +20,10 @@ SOUP_AVAILABLE_IN_2_4
 SoupAuthDomain *soup_auth_domain_digest_new (const char *optname1,
 					    ...) G_GNUC_NULL_TERMINATED;
 
-typedef	char * (*SoupAuthDomainDigestAuthCallback) (SoupAuthDomain *domain,
-						    SoupMessage    *msg,
-						    const char     *username,
-						    gpointer        user_data);
+typedef	char * (*SoupAuthDomainDigestAuthCallback) (SoupAuthDomain    *domain,
+						    SoupServerMessage *msg,
+						    const char        *username,
+						    gpointer           user_data);
 
 SOUP_AVAILABLE_IN_2_4
 void    soup_auth_domain_digest_set_auth_callback  (SoupAuthDomain *domain,

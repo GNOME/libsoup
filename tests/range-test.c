@@ -349,15 +349,14 @@ do_apache_range_test (void)
 
 static void
 server_handler (SoupServer        *server,
-		SoupMessage       *msg, 
+		SoupServerMessage *msg,
 		const char        *path,
 		GHashTable        *query,
-		SoupClientContext *client,
 		gpointer           user_data)
 {
-	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_body_append_bytes (msg->response_body,
-					 full_response);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_message_body_append_bytes (soup_server_message_get_response_body (msg),
+					full_response);
 }
 
 static void

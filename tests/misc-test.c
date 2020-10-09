@@ -27,29 +27,37 @@ timeout_finish_message (gpointer msg)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
-	SoupURI *uri = soup_message_get_uri (msg);
+	SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
+	const char *method = soup_server_message_get_method (msg);
+	SoupURI *uri = soup_server_message_get_uri (msg);
 	const char *server_protocol = data;
 
-	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_POST) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
 	if (!strcmp (path, "/redirect")) {
-		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
+		soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
 		return;
 	}
+
+	request_headers = soup_server_message_get_request_headers (msg);
+	response_headers = soup_server_message_get_response_headers (msg);
 
 	if (!strcmp (path, "/alias-redirect")) {
 		SoupURI *redirect_uri;
 		char *redirect_string;
 		const char *redirect_protocol;
 
-		redirect_protocol = soup_message_headers_get_one (msg->request_headers, "X-Redirect-Protocol");
+		redirect_protocol = soup_message_headers_get_one (request_headers, "X-Redirect-Protocol");
 
 		redirect_uri = soup_uri_copy (uri);
 		soup_uri_set_scheme (redirect_uri, "foo");
@@ -60,13 +68,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_uri_set_path (redirect_uri, "/alias-redirected");
 		redirect_string = soup_uri_to_string (redirect_uri, FALSE);
 
-		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, redirect_string);
+		soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, redirect_string);
 		g_free (redirect_string);
 		soup_uri_free (redirect_uri);
 		return;
 	} else if (!strcmp (path, "/alias-redirected")) {
-		soup_message_set_status (msg, SOUP_STATUS_OK);
-		soup_message_headers_append (msg->response_headers,
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+		soup_message_headers_append (response_headers,
 					     "X-Redirected-Protocol",
 					     server_protocol);
 		return;
@@ -79,14 +87,14 @@ server_callback (SoupServer *server, SoupMessage *msg,
 				  1000, timeout_finish_message, msg);
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 	if (!strcmp (uri->host, "foo")) {
-		soup_message_set_response (msg, "text/plain",
-					   SOUP_MEMORY_STATIC, "foo-index", 9);
+		soup_server_message_set_response (msg, "text/plain",
+						  SOUP_MEMORY_STATIC, "foo-index", 9);
 		return;
 	} else {
-		soup_message_set_response (msg, "text/plain",
-					   SOUP_MEMORY_STATIC, "index", 5);
+		soup_server_message_set_response (msg, "text/plain",
+						  SOUP_MEMORY_STATIC, "index", 5);
 		return;
 	}
 }

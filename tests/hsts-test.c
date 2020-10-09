@@ -13,88 +13,93 @@ SoupURI *https_uri;
    test the Soup HSTS feature.
  */
 static void
-server_callback  (SoupServer *server, SoupMessage *msg,
-		  const char *path, GHashTable *query,
-		  SoupClientContext *context, gpointer data)
+server_callback  (SoupServer        *server,
+		  SoupServerMessage *msg,
+		  const char        *path,
+		  GHashTable        *query,
+		  gpointer           data)
 {
+	SoupMessageHeaders *response_headers;
 	const char *server_protocol = data;
+
+	response_headers = soup_server_message_get_response_headers (msg);
 
 	if (strcmp (server_protocol, "http") == 0) {
 		if (strcmp (path, "/insecure") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=31536000");
-			soup_message_set_status (msg, SOUP_STATUS_OK);
+			soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 		} else {
 			char *uri_string;
 			SoupURI *uri = soup_uri_new ("https://localhost");
 			soup_uri_set_path (uri, path);
 			uri_string = soup_uri_to_string (uri, FALSE);
-			soup_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY, uri_string);
+			soup_server_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY, uri_string);
 			soup_uri_free (uri);
 			g_free (uri_string);
 		}
 	} else if (strcmp (server_protocol, "https") == 0) {
-		soup_message_set_status (msg, SOUP_STATUS_OK);
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 		if (strcmp (path, "/long-lasting") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=31536000");
 		} else if (strcmp (path, "/two-seconds") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=2");
 		} else if (strcmp (path, "/three-seconds") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=3");
 		} else if (strcmp (path, "/delete") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=0");
 		} else if (strcmp (path, "/subdomains") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=31536000; includeSubDomains");
 		} else if (strcmp (path, "/no-sts-header") == 0) {
 			/* Do not add anything */
 		} else if (strcmp (path, "/multiple-headers") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=31536000; includeSubDomains");
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=1; includeSubDomains");
 		} else if (strcmp (path, "/missing-values") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "");
 		} else if (strcmp (path, "/invalid-values") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=foo");
 		} else if (strcmp (path, "/extra-values-0") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=3600; foo");
 		} else if (strcmp (path, "/extra-values-1") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     " max-age=3600; includeDomains; foo");
 		} else if (strcmp (path, "/duplicated-directives") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=3600; includeDomains; includeDomains");
 		} else if (strcmp (path, "/case-insensitive-header") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "STRICT-TRANSPORT-SECURITY",
 						     "max-age=3600");
 		} else if (strcmp (path, "/case-insensitive-directives") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "MAX-AGE=3600; includesubdomains");
 		} else if (strcmp (path, "/optional-quotations") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=\"31536000\"");
 		}

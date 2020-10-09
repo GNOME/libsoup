@@ -193,8 +193,9 @@ soup_client_input_stream_close_async (GInputStream        *stream,
 	g_task_set_priority (task, priority);
 
 	if (close_async_ready (cistream->priv->msg, task) == G_SOURCE_CONTINUE) {
-		source = soup_message_io_get_source (cistream->priv->msg,
-						     cancellable, NULL, NULL);
+		source = soup_message_io_data_get_source ((SoupMessageIOData *)soup_message_get_io_data (cistream->priv->msg),
+							  G_OBJECT (cistream->priv->msg),
+							  cancellable, NULL, NULL);
 
 		g_task_attach_source (task, source, (GSourceFunc) close_async_ready);
 		g_source_unref (source);

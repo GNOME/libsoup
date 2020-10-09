@@ -838,19 +838,24 @@ select_auth_test_one (SoupURI *uri,
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
-	soup_message_set_response (msg, "text/plain",
-				   SOUP_MEMORY_STATIC,
-				   "OK\r\n", 4);
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_response (msg, "text/plain",
+					  SOUP_MEMORY_STATIC,
+					  "OK\r\n", 4);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 static gboolean
-server_basic_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
-			    const char *username, const char *password, gpointer data)
+server_basic_auth_callback (SoupAuthDomain    *auth_domain,
+			    SoupServerMessage *msg,
+			    const char        *username,
+			    const char        *password,
+			    gpointer           data)
 {
 	if (strcmp (username, "user") != 0)
 		return FALSE;
@@ -858,8 +863,10 @@ server_basic_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
 }
 
 static char *
-server_digest_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
-			     const char *username, gpointer data)
+server_digest_auth_callback (SoupAuthDomain    *auth_domain,
+			     SoupServerMessage *msg,
+			     const char        *username,
+			     gpointer           data)
 {
 	if (strcmp (username, "user") != 0)
 		return NULL;
@@ -974,19 +981,21 @@ do_select_auth_test (void)
 }
 
 static void
-sneakily_close_connection (SoupMessage *msg, gpointer user_data)
+sneakily_close_connection (SoupServerMessage *msg,
+			   gpointer           user_data)
 {
 	/* Sneakily close the connection after the response, by
 	 * tricking soup-message-io into thinking that had been
 	 * the plan all along.
 	 */
-	soup_message_headers_append (msg->response_headers,
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
 				     "Connection", "close");
 }
 
 static void
-auth_close_request_started (SoupServer *server, SoupMessage *msg,
-			    SoupClientContext *client, gpointer user_data)
+auth_close_request_started (SoupServer        *server,
+			    SoupServerMessage *msg,
+			    gpointer           user_data)
 {
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (sneakily_close_connection), NULL);
@@ -1112,13 +1121,20 @@ do_infinite_auth_test (void)
 }
 
 static void
-disappear_request_read (SoupServer *server, SoupMessage *msg,
-			SoupClientContext *context, gpointer user_data)
+disappear_request_read (SoupServer        *server,
+			SoupServerMessage *msg,
+			gpointer           user_data)
 {
+	SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
+
+	request_headers = soup_server_message_get_request_headers (msg);
+	response_headers = soup_server_message_get_response_headers (msg);
+
 	/* Remove the WWW-Authenticate header if this was a failed attempt */
-	if (soup_message_headers_get_one (msg->request_headers, "Authorization") &&
-	    msg->status_code == SOUP_STATUS_UNAUTHORIZED)
-		soup_message_headers_remove (msg->response_headers, "WWW-Authenticate");
+	if (soup_message_headers_get_one (request_headers, "Authorization") &&
+	    soup_server_message_get_status (msg, NULL) == SOUP_STATUS_UNAUTHORIZED)
+		soup_message_headers_remove (response_headers, "WWW-Authenticate");
 }
 
 static void

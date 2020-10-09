@@ -93,6 +93,11 @@ typedef enum {
 	SOUP_STATUS_NOT_EXTENDED                    = 510  /* RFC 2774 */
 } SoupStatus;
 
+typedef enum {
+        SOUP_HTTP_1_0 = 0, /*< nick=http-1-0 >*/
+        SOUP_HTTP_1_1 = 1  /*< nick=http-1-1 >*/
+} SoupHTTPVersion;
+
 SOUP_AVAILABLE_IN_2_4
 const char *soup_status_get_phrase (guint status_code);
 SOUP_AVAILABLE_IN_2_26

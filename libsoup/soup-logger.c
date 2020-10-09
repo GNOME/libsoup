@@ -597,22 +597,6 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 					   "%s: %s", name, value);
 		}
 	}
-	if (log_level == SOUP_LOGGER_LOG_HEADERS)
-		return;
-
-	if (msg->request_body->length &&
-	    soup_message_body_get_accumulate (msg->request_body)) {
-		GBytes *request;
-
-		request = soup_message_body_flatten (msg->request_body);
-		g_return_if_fail (request != NULL);
-		g_bytes_unref (request);
-
-		if (soup_message_headers_get_expectations (msg->request_headers) != SOUP_EXPECTATION_CONTINUE) {
-			soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '>',
-					   "\n%s", msg->request_body->data);
-		}
-	}
 }
 
 static void
@@ -653,13 +637,6 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '<',
 				   "%s: %s", name, value);
 	}
-	if (log_level == SOUP_LOGGER_LOG_HEADERS)
-		return;
-
-	if (msg->response_body->data) {
-		soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '<',
-				   "\n%s", msg->response_body->data);
-	}
 }
 
 static void
@@ -688,23 +665,9 @@ got_informational (SoupMessage *msg, gpointer user_data)
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
-	if (msg->status_code == SOUP_STATUS_CONTINUE && msg->request_body->data) {
-		SoupLoggerLogLevel log_level;
-
+	if (msg->status_code == SOUP_STATUS_CONTINUE && msg->request_body_stream) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "[Now sending request body...]");
-
-		if (priv->request_filter) {
-			log_level = priv->request_filter (logger, msg,
-							  priv->request_filter_data);
-		} else
-			log_level = priv->level;
-
-		if (log_level == SOUP_LOGGER_LOG_BODY) {
-			soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '>',
-					   "%s", msg->request_body->data);
-		}
-
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 	}
 

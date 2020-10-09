@@ -227,15 +227,20 @@ do_server_auth_test (gconstpointer data)
 }
 
 static gboolean
-basic_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
-		     const char *username, const char *password, gpointer data)
+basic_auth_callback (SoupAuthDomain    *auth_domain,
+		     SoupServerMessage *msg,
+		     const char        *username,
+		     const char        *password,
+		     gpointer           data)
 {
 	return !strcmp (username, "user") && !strcmp (password, "password");
 }
 
 static char *
-digest_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
-		      const char *username, gpointer data)
+digest_auth_callback (SoupAuthDomain    *auth_domain,
+		      SoupServerMessage *msg,
+		      const char        *username,
+		      gpointer           data)
 {
 	if (strcmp (username, "user") != 0)
 		return NULL;
@@ -251,27 +256,33 @@ digest_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
-	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_HEAD) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	const char *method;
+
+	method = soup_server_message_get_method (msg);
+	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_HEAD) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
-	soup_message_set_response (msg, "text/plain",
-				   SOUP_MEMORY_STATIC,
-				   "OK\r\n", 4);
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_response (msg, "text/plain",
+					  SOUP_MEMORY_STATIC,
+					  "OK\r\n", 4);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 static void
-got_headers_callback (SoupMessage *msg, gpointer data)
+got_headers_callback (SoupServerMessage *msg,
+		      gpointer           data)
 {
 	const char *header;
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
 					       "Authorization");
 	if (header) {
 		if (strstr (header, "Basic "))
@@ -282,11 +293,12 @@ got_headers_callback (SoupMessage *msg, gpointer data)
 }
 
 static void
-wrote_headers_callback (SoupMessage *msg, gpointer data)
+wrote_headers_callback (SoupServerMessage *msg,
+			gpointer           data)
 {
 	const char *header;
 
-	header = soup_message_headers_get_list (msg->response_headers,
+	header = soup_message_headers_get_list (soup_server_message_get_response_headers (msg),
 						"WWW-Authenticate");
 	if (header) {
 		if (strstr (header, "Basic "))
@@ -297,12 +309,13 @@ wrote_headers_callback (SoupMessage *msg, gpointer data)
 }
 
 static void
-request_started_callback (SoupServer *server, SoupMessage *msg,
-			  SoupClientContext *client, gpointer data)
+request_started_callback (SoupServer        *server,
+			  SoupServerMessage *msg,
+			  gpointer           data)
 {
-	g_signal_connect (msg, "got_headers",
+	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (got_headers_callback), NULL);
-	g_signal_connect (msg, "wrote_headers",
+	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (wrote_headers_callback), NULL);
 }
 

@@ -112,13 +112,13 @@ soup_form_decode (const char *encoded_form)
 
 /**
  * soup_form_decode_multipart:
- * @msg: a #SoupMessage containing a "multipart/form-data" request body
+ * @multipart: a #SoupMultipart
  * @file_control_name: (allow-none): the name of the HTML file upload control, or %NULL
  * @filename: (out) (allow-none): return location for the name of the uploaded file, or %NULL
  * @content_type: (out) (allow-none): return location for the MIME type of the uploaded file, or %NULL
  * @file: (out) (allow-none): return location for the uploaded file data, or %NULL
  *
- * Decodes the "multipart/form-data" request in @msg; this is a
+ * Decodes the "multipart/form-data" request in @multipart; this is a
  * convenience method for the case when you have a single file upload
  * control in a form. (Or when you don't have any file upload
  * controls, but are still using "multipart/form-data" anyway.) Pass
@@ -142,29 +142,21 @@ soup_form_decode (const char *encoded_form)
  * a hash table containing the name/value pairs (other than
  * @file_control_name) from @msg, which you can free with
  * g_hash_table_destroy(). On error, it will return %NULL.
- *
- * Since: 2.26
- **/
+ */
 GHashTable *
-soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
-			    char **filename, char **content_type,
-			    GBytes **file)
+soup_form_decode_multipart (SoupMultipart *multipart,
+			    const char    *file_control_name,
+			    char         **filename,
+			    char         **content_type,
+			    GBytes       **file)
 {
-	SoupMultipart *multipart;
 	GHashTable *form_data_set, *params;
 	SoupMessageHeaders *part_headers;
-	GBytes *body;
 	GBytes *part_body;
 	char *disposition, *name;
 	int i;
 
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-
-	body = soup_message_body_flatten (msg->request_body);
-	multipart = soup_multipart_new_from_message (msg->request_headers, body);
-	g_bytes_unref (body);
-	if (!multipart)
-		return NULL;
+	g_return_val_if_fail (multipart != NULL, NULL);
 
 	if (filename)
 		*filename = NULL;

@@ -195,7 +195,7 @@ soup_headers_parse_request (const char          *str,
 	unsigned long major_version, minor_version;
 	char *p;
 
-	g_return_val_if_fail (str != NULL, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (str != NULL, SOUP_STATUS_BAD_REQUEST);
 
 	/* RFC 2616 4.1 "servers SHOULD ignore any empty line(s)
 	 * received where a Request-Line is expected."

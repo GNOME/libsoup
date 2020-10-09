@@ -17,11 +17,11 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_4
 GHashTable  *soup_form_decode           (const char   *encoded_form);
 SOUP_AVAILABLE_IN_2_26
-GHashTable  *soup_form_decode_multipart (SoupMessage  *msg,
-					 const char   *file_control_name,
-					 char        **filename,
-					 char        **content_type,
-					 GBytes      **file);
+GHashTable  *soup_form_decode_multipart (SoupMultipart *multipart,
+					 const char    *file_control_name,
+					 char         **filename,
+					 char         **content_type,
+					 GBytes       **file);
 
 SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode           (const char   *first_field,

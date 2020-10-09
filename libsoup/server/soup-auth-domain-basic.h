@@ -20,11 +20,11 @@ SOUP_AVAILABLE_IN_2_4
 SoupAuthDomain *soup_auth_domain_basic_new (const char *optname1,
 					    ...) G_GNUC_NULL_TERMINATED;
 
-typedef	gboolean (*SoupAuthDomainBasicAuthCallback) (SoupAuthDomain *domain,
-						     SoupMessage    *msg,
-						     const char     *username,
-						     const char     *password,
-						     gpointer        user_data);
+typedef	gboolean (*SoupAuthDomainBasicAuthCallback) (SoupAuthDomain    *domain,
+						     SoupServerMessage *msg,
+						     const char        *username,
+						     const char        *password,
+						     gpointer           user_data);
 
 SOUP_AVAILABLE_IN_2_4
 void      soup_auth_domain_basic_set_auth_callback  (SoupAuthDomain *domain,

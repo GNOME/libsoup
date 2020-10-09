@@ -304,3 +304,11 @@ soup_status_proxify (guint status_code)
 }
 
 G_DEFINE_QUARK (soup-http-error-quark, soup_http_error)
+
+/**
+ * SoupHTTPVersion:
+ * @SOUP_HTTP_1_0: HTTP 1.0 (RFC 1945)
+ * @SOUP_HTTP_1_1: HTTP 1.1 (RFC 2616)
+ *
+ * Indicates the HTTP protocol version being used.
+ */

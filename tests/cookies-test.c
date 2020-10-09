@@ -11,27 +11,34 @@ const char *first_party = "http://127.0.0.1/";
 const char *third_party = "http://localhost/";
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
+	SoupMessageHeaders *response_headers;
+	SoupMessageHeaders *request_headers;
+
+	response_headers = soup_server_message_get_response_headers (msg);
+	request_headers = soup_server_message_get_request_headers (msg);
 	if (g_str_equal (path, "/index.html")) {
-		soup_message_headers_replace (msg->response_headers,
+		soup_message_headers_replace (response_headers,
 					      "Set-Cookie",
 					      "foo=bar");
 	} else if (g_str_equal (path, "/foo.jpg")) {
-		soup_message_headers_replace (msg->response_headers,
+		soup_message_headers_replace (response_headers,
 					      "Set-Cookie",
 					      "baz=qux");
-	} else if (soup_message_headers_get_one (msg->request_headers,
+	} else if (soup_message_headers_get_one (request_headers,
 						 "Echo-Set-Cookie")) {
-		soup_message_headers_replace (msg->response_headers,
+		soup_message_headers_replace (response_headers,
 					      "Set-Cookie",
-					      soup_message_headers_get_one (msg->request_headers,
+					      soup_message_headers_get_one (request_headers,
 									    "Echo-Set-Cookie"));
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 typedef struct {

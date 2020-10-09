@@ -238,13 +238,15 @@ do_async_proxy_test (gconstpointer data)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
-	SoupURI *uri = soup_message_get_uri (msg);
+	SoupURI *uri = soup_server_message_get_uri (msg);
 
-	soup_message_set_status (msg, uri->fragment ? SOUP_STATUS_BAD_REQUEST : SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, uri->fragment ? SOUP_STATUS_BAD_REQUEST : SOUP_STATUS_OK, NULL);
 }
 
 static void

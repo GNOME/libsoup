@@ -19,23 +19,19 @@
 /**
  * SECTION:soup-message
  * @short_description: An HTTP request and response.
- * @see_also: #SoupMessageHeaders, #SoupMessageBody
+ * @see_also: #SoupMessageHeaders
  *
  * A #SoupMessage represents an HTTP message that is being sent or
  * received.
  *
- * For client-side usage, you would create a #SoupMessage with
- * soup_message_new() or soup_message_new_from_uri(), set up its
+ * You would create a #SoupMessage with soup_message_new() or
+ * soup_message_new_from_uri(), set up its
  * fields appropriately, and send it. If you are using the newer
  * #SoupRequest API, you would create a request with
  * soup_session_request_http() or soup_session_request_http_uri(), and
  * the returned #SoupRequestHTTP will already have an associated
  * #SoupMessage that you can retrieve via
  * soup_request_http_get_message().
- *
- * For server-side usage, #SoupServer will create #SoupMessage<!--
- * -->s automatically for incoming requests, which your application
- * will receive via handlers.
  *
  * Note that libsoup's terminology here does not quite match the HTTP
  * specification: in RFC 2616, an "HTTP-message" is
@@ -49,9 +45,7 @@
  * @method: the HTTP method
  * @status_code: the HTTP status code
  * @reason_phrase: the status phrase associated with @status_code
- * @request_body: the request body
  * @request_headers: the request headers
- * @response_body: the response body
  * @response_headers: the response headers
  *
  * Represents an HTTP message being sent or received.
@@ -66,48 +60,17 @@
  * messages. Rather, you should look at @status_code, and determine an
  * end-user-appropriate message based on that and on what you were
  * trying to do.
- *
- * As described in the #SoupMessageBody documentation, the
- * @request_body and @response_body <literal>data</literal> fields
- * will not necessarily be filled in at all times. When the body
- * fields are filled in, they will be terminated with a '\0' byte
- * (which is not included in the <literal>length</literal>), so you
- * can use them as ordinary C strings (assuming that you know that the
- * body doesn't have any other '\0' bytes).
- *
- * For a client-side #SoupMessage, @request_body's
- * <literal>data</literal> is usually filled in right before libsoup
- * writes the request to the network, but you should not count on
- * this; use soup_message_body_flatten() if you want to ensure that
- * <literal>data</literal> is filled in. If you are not using
- * #SoupRequest to read the response, then @response_body's
- * <literal>data</literal> will be filled in before
- * #SoupMessage::finished is emitted. (If you are using #SoupRequest,
- * then the message body is not accumulated by default, so
- * @response_body's <literal>data</literal> will always be %NULL.)
- *
- * For a server-side #SoupMessage, @request_body's %data will be
- * filled in before #SoupMessage::got_body is emitted.
- *
- * To prevent the %data field from being filled in at all (eg, if you
- * are handling the data from a #SoupMessage::got_chunk, and so don't
- * need to see it all at the end), call
- * soup_message_body_set_accumulate() on @response_body or
- * @request_body as appropriate, passing %FALSE.
- **/
+ */
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
 
 enum {
-	WROTE_INFORMATIONAL,
 	WROTE_HEADERS,
-	WROTE_CHUNK,
 	WROTE_BODY_DATA,
 	WROTE_BODY,
 
 	GOT_INFORMATIONAL,
 	GOT_HEADERS,
-	GOT_CHUNK,
 	GOT_BODY,
 	CONTENT_SNIFFED,
 
@@ -129,15 +92,10 @@ enum {
 	PROP_URI,
 	PROP_HTTP_VERSION,
 	PROP_FLAGS,
-	PROP_SERVER_SIDE,
 	PROP_STATUS_CODE,
 	PROP_REASON_PHRASE,
 	PROP_FIRST_PARTY,
-	PROP_REQUEST_BODY,
-	PROP_REQUEST_BODY_DATA,
 	PROP_REQUEST_HEADERS,
-	PROP_RESPONSE_BODY,
-	PROP_RESPONSE_BODY_DATA,
 	PROP_RESPONSE_HEADERS,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
@@ -156,9 +114,7 @@ soup_message_init (SoupMessage *msg)
 	priv->http_version = priv->orig_http_version = SOUP_HTTP_1_1;
 	priv->priority = SOUP_MESSAGE_PRIORITY_NORMAL;
 
-	msg->request_body = soup_message_body_new ();
 	msg->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
-	msg->response_body = soup_message_body_new ();
 	msg->response_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
 }
 
@@ -168,7 +124,7 @@ soup_message_finalize (GObject *object)
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	soup_message_io_cleanup (msg);
+	soup_client_message_io_data_free (priv->io_data);
 
 	g_clear_pointer (&priv->uri, soup_uri_free);
 	g_clear_pointer (&priv->first_party, soup_uri_free);
@@ -181,11 +137,9 @@ soup_message_finalize (GObject *object)
 
 	g_clear_object (&priv->tls_certificate);
 
-	soup_message_body_free (msg->request_body);
 	soup_message_headers_free (msg->request_headers);
-	g_clear_object (&msg->request_body_stream);
-	soup_message_body_free (msg->response_body);
 	soup_message_headers_free (msg->response_headers);
+	g_clear_object (&msg->request_body_stream);
 
 	g_free (msg->reason_phrase);
 
@@ -217,13 +171,6 @@ soup_message_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_FLAGS:
 		soup_message_set_flags (msg, g_value_get_flags (value));
-		break;
-	case PROP_SERVER_SIDE:
-		priv->server_side = g_value_get_boolean (value);
-		if (priv->server_side) {
-			soup_message_headers_set_encoding (msg->response_headers,
-							   SOUP_ENCODING_CONTENT_LENGTH);
-		}
 		break;
 	case PROP_STATUS_CODE:
 		soup_message_set_status (msg, g_value_get_uint (value));
@@ -266,7 +213,6 @@ soup_message_get_property (GObject *object, guint prop_id,
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-	GBytes *buf;
 
 	switch (prop_id) {
 	case PROP_METHOD:
@@ -287,9 +233,6 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_FLAGS:
 		g_value_set_flags (value, priv->msg_flags);
 		break;
-	case PROP_SERVER_SIDE:
-		g_value_set_boolean (value, priv->server_side);
-		break;
 	case PROP_STATUS_CODE:
 		g_value_set_uint (value, msg->status_code);
 		break;
@@ -299,22 +242,8 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_FIRST_PARTY:
 		g_value_set_boxed (value, priv->first_party);
 		break;
-	case PROP_REQUEST_BODY:
-		g_value_set_boxed (value, msg->request_body);
-		break;
-	case PROP_REQUEST_BODY_DATA:
-		buf = soup_message_body_flatten (msg->request_body);
-		g_value_take_boxed (value, buf);
-		break;
 	case PROP_REQUEST_HEADERS:
 		g_value_set_boxed (value, msg->request_headers);
-		break;
-	case PROP_RESPONSE_BODY:
-		g_value_set_boxed (value, msg->response_body);
-		break;
-	case PROP_RESPONSE_BODY_DATA:
-		buf = soup_message_body_flatten (msg->response_body);
-		g_value_take_boxed (value, buf);
 		break;
 	case PROP_RESPONSE_HEADERS:
 		g_value_set_boxed (value, msg->response_headers);
@@ -335,25 +264,9 @@ soup_message_get_property (GObject *object, guint prop_id,
 }
 
 static void
-soup_message_real_got_body (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-	SoupMessageBody *body;
-
-	body = priv->server_side ? msg->request_body : msg->response_body;
-	if (soup_message_body_get_accumulate (body)) {
-		GBytes *buffer = soup_message_body_flatten (body);
-		g_bytes_unref (buffer);
-	}
-}
-
-static void
 soup_message_class_init (SoupMessageClass *message_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (message_class);
-
-	/* virtual method definition */
-	message_class->got_body = soup_message_real_got_body;
 
 	/* virtual method override */
 	object_class->finalize = soup_message_finalize;
@@ -363,29 +276,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 	/* signals */
 
 	/**
-	 * SoupMessage::wrote-informational:
-	 * @msg: the message
-	 *
-	 * Emitted immediately after writing a 1xx (Informational)
-	 * response for a (server-side) message.
-	 **/
-	signals[WROTE_INFORMATIONAL] =
-		g_signal_new ("wrote_informational",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, wrote_informational),
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 0);
-
-	/**
 	 * SoupMessage::wrote-headers:
 	 * @msg: the message
 	 *
-	 * Emitted immediately after writing the headers for a
-	 * message. (For a client-side message, this is after writing
-	 * the request headers; for a server-side message, it is after
-	 * writing the response headers.)
+	 * Emitted immediately after writing the request headers for a
+	 * message.
 	 **/
 	signals[WROTE_HEADERS] =
 		g_signal_new ("wrote_headers",
@@ -397,38 +292,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_NONE, 0);
 
 	/**
-	 * SoupMessage::wrote-chunk:
-	 * @msg: the message
-	 *
-	 * Emitted immediately after writing a body chunk for a message.
-	 *
-	 * Note that this signal is not parallel to
-	 * #SoupMessage::got_chunk; it is emitted only when a complete
-	 * chunk (added with soup_message_body_append() or
-	 * soup_message_body_append_bytes()) has been written. To get
-	 * more useful continuous progress information, use
-	 * #SoupMessage::wrote_body_data.
-	 **/
-	signals[WROTE_CHUNK] =
-		g_signal_new ("wrote_chunk",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, wrote_chunk),
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 0);
-
-	/**
 	 * SoupMessage::wrote-body-data:
 	 * @msg: the message
 	 * @chunk: the data written
 	 *
 	 * Emitted immediately after writing a portion of the message
 	 * body to the network.
-	 *
-	 * Unlike #SoupMessage::wrote_chunk, this is emitted after
-	 * every successful write() call, not only after finishing a
-	 * complete "chunk".
 	 *
 	 * Since: 2.24
 	 **/
@@ -447,11 +316,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted immediately after writing the complete body for a
-	 * message. (For a client-side message, this means that
-	 * libsoup is done writing and is now waiting for the response
-	 * from the server. For a server-side message, this means that
-	 * libsoup has finished writing the response and is nearly
-	 * done with the message.)
+	 * message.
 	 **/
 	signals[WROTE_BODY] =
 		g_signal_new ("wrote_body",
@@ -489,11 +354,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * SoupMessage::got-headers:
 	 * @msg: the message
 	 *
-	 * Emitted after receiving all message headers for a message.
-	 * (For a client-side message, this is after receiving the
-	 * Status-Line and response headers; for a server-side
-	 * message, it is after receiving the Request-Line and request
-	 * headers.)
+	 * Emitted after receiving the Status-Line and response headers.
 	 *
 	 * See also soup_message_add_header_handler() and
 	 * soup_message_add_status_code_handler(), which can be used
@@ -518,37 +379,10 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_NONE, 0);
 
 	/**
-	 * SoupMessage::got-chunk:
-	 * @msg: the message
-	 * @chunk: the just-read chunk
-	 *
-	 * Emitted after receiving a chunk of a message body. Note
-	 * that "chunk" in this context means any subpiece of the
-	 * body, not necessarily the specific HTTP 1.1 chunks sent by
-	 * the other side.
-	 *
-	 * If you cancel or requeue @msg while processing this signal,
-	 * then the current HTTP I/O will be stopped after this signal
-	 * emission finished, and @msg's connection will be closed.
-	 **/
-	signals[GOT_CHUNK] =
-		g_signal_new ("got_chunk",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, got_chunk),
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 1,
-			      G_TYPE_BYTES);
-
-	/**
 	 * SoupMessage::got-body:
 	 * @msg: the message
 	 *
-	 * Emitted after receiving the complete message body. (For a
-	 * server-side message, this means it has received the request
-	 * body. For a client-side message, this means it has received
-	 * the response body and is nearly done with the message.)
+	 * Emitted after receiving the complete message request body.
 	 *
 	 * See also soup_message_add_header_handler() and
 	 * soup_message_add_status_code_handler(), which can be used
@@ -642,8 +476,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted when all HTTP processing is finished for a message.
-	 * (After #SoupMessage::got_body for client-side messages, or
-	 * after #SoupMessage::wrote_body for server-side messages.)
+	 * (After #SoupMessage::got_body).
 	 **/
 	signals[FINISHED] =
 		g_signal_new ("finished",
@@ -746,20 +579,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_MESSAGE_SERVER_SIDE:
-	 *
-	 * Alias for the #SoupMessage:server-side property. (%TRUE if
-	 * the message was created by #SoupServer.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_SERVER_SIDE,
-		g_param_spec_boolean (SOUP_MESSAGE_SERVER_SIDE,
-				      "Server-side",
-				      "Whether or not the message is server-side rather than client-side",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				      G_PARAM_STATIC_STRINGS));
-	/**
 	 * SOUP_MESSAGE_STATUS_CODE:
 	 *
 	 * Alias for the #SoupMessage:status-code property. (The
@@ -841,43 +660,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     FALSE,
 				     G_PARAM_READWRITE));
 	/**
-	 * SOUP_MESSAGE_REQUEST_BODY:
-	 *
-	 * Alias for the #SoupMessage:request-body property. (The
-	 * message's HTTP request body.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_REQUEST_BODY,
-		g_param_spec_boxed (SOUP_MESSAGE_REQUEST_BODY,
-				    "Request Body",
-				    "The HTTP request content",
-				    SOUP_TYPE_MESSAGE_BODY,
-				    G_PARAM_READABLE |
-				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_REQUEST_BODY_DATA:
-	 *
-	 * Alias for the #SoupMessage:request-body-data property. (The
-	 * message's HTTP request body, as a #GBytes.)
-	 *
-	 * Since: 2.46
-	 **/
-	/**
-	 * SoupMessage:request-body-data:
-	 *
-	 * The message's HTTP request body, as a #GBytes.
-	 *
-	 * Since: 2.46
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_REQUEST_BODY_DATA,
-		g_param_spec_boxed (SOUP_MESSAGE_REQUEST_BODY_DATA,
-				    "Request Body Data",
-				    "The HTTP request body",
-				    G_TYPE_BYTES,
-				    G_PARAM_READABLE |
-				    G_PARAM_STATIC_STRINGS));
-	/**
 	 * SOUP_MESSAGE_REQUEST_HEADERS:
 	 *
 	 * Alias for the #SoupMessage:request-headers property. (The
@@ -889,43 +671,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Request Headers",
 				    "The HTTP request headers",
 				    SOUP_TYPE_MESSAGE_HEADERS,
-				    G_PARAM_READABLE |
-				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_RESPONSE_BODY:
-	 *
-	 * Alias for the #SoupMessage:response-body property. (The
-	 * message's HTTP response body.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_RESPONSE_BODY,
-		g_param_spec_boxed (SOUP_MESSAGE_RESPONSE_BODY,
-				    "Response Body",
-				    "The HTTP response content",
-				    SOUP_TYPE_MESSAGE_BODY,
-				    G_PARAM_READABLE |
-				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_RESPONSE_BODY_DATA:
-	 *
-	 * Alias for the #SoupMessage:response-body-data property. (The
-	 * message's HTTP response body, as a #GBytes.)
-	 *
-	 * Since: 2.46
-	 **/
-	/**
-	 * SoupMessage:response-body-data:
-	 *
-	 * The message's HTTP response body, as a #GBytes.
-	 *
-	 * Since: 2.46
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_RESPONSE_BODY_DATA,
-		g_param_spec_boxed (SOUP_MESSAGE_RESPONSE_BODY_DATA,
-				    "Response Body Data",
-				    "The HTTP response body",
-				    G_TYPE_BYTES,
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS));
 	/**
@@ -1059,42 +804,6 @@ soup_message_new_from_uri (const char *method, SoupURI *uri)
 }
 
 /**
- * soup_message_set_response:
- * @msg: the message
- * @content_type: (allow-none): MIME Content-Type of the body
- * @resp_use: a #SoupMemoryUse describing how to handle @resp_body
- * @resp_body: (allow-none) (array length=resp_length) (element-type guint8):
- *   a data buffer containing the body of the message response.
- * @resp_length: the byte length of @resp_body.
- * 
- * Convenience function to set the response body of a #SoupMessage. If
- * @content_type is %NULL, the response body must be empty as well.
- */
-void
-soup_message_set_response (SoupMessage    *msg,
-			   const char     *content_type,
-			   SoupMemoryUse   resp_use,
-			   const char     *resp_body,
-			   gsize           resp_length)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (content_type != NULL || resp_length == 0);
-
-	if (content_type) {
-		g_warn_if_fail (strchr (content_type, '/') != NULL);
-
-		soup_message_headers_replace (msg->response_headers,
-					      "Content-Type", content_type);
-		soup_message_body_append (msg->response_body, resp_use,
-					  resp_body, resp_length);
-	} else {
-		soup_message_headers_remove (msg->response_headers,
-					     "Content-Type");
-		soup_message_body_truncate (msg->response_body);
-	}
-}
-
-/**
  * soup_message_set_request_body:
  * @msg: the message
  * @content_type: (allow-none): MIME Content-Type of the body
@@ -1165,21 +874,9 @@ soup_message_set_request_body_from_bytes (SoupMessage  *msg,
 }
 
 void
-soup_message_wrote_informational (SoupMessage *msg)
-{
-	g_signal_emit (msg, signals[WROTE_INFORMATIONAL], 0);
-}
-
-void
 soup_message_wrote_headers (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_HEADERS], 0);
-}
-
-void
-soup_message_wrote_chunk (SoupMessage *msg)
-{
-	g_signal_emit (msg, signals[WROTE_CHUNK], 0);
 }
 
 void
@@ -1207,12 +904,6 @@ soup_message_got_headers (SoupMessage *msg)
 }
 
 void
-soup_message_got_chunk (SoupMessage *msg, GBytes *chunk)
-{
-	g_signal_emit (msg, signals[GOT_CHUNK], 0, chunk);
-}
-
-void
 soup_message_got_body (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[GOT_BODY], 0);
@@ -1233,11 +924,6 @@ soup_message_starting (SoupMessage *msg)
 void
 soup_message_restarted (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-
-	if (priv->msg_flags & SOUP_MESSAGE_CAN_REBUILD)
-		soup_message_body_truncate (msg->request_body);
-
 	g_clear_object (&msg->request_body_stream);
 
 	g_signal_emit (msg, signals[RESTARTED], 0);
@@ -1270,12 +956,9 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 			    gpointer invocation_hint, gpointer marshal_data)
 {
 	SoupMessage *msg = g_value_get_object (&param_values[0]);
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 	const char *header_name = marshal_data;
-	SoupMessageHeaders *hdrs;
 
-	hdrs = priv->server_side ? msg->request_headers : msg->response_headers;
-	if (soup_message_headers_get_one (hdrs, header_name)) {
+	if (soup_message_headers_get_one (msg->response_headers, header_name)) {
 		closure->marshal (closure, return_value, n_param_values,
 				  param_values, invocation_hint,
 				  ((GCClosure *)closure)->callback);
@@ -1292,9 +975,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
  *
  * Adds a signal handler to @msg for @signal, as with
  * g_signal_connect(), but the @callback will only be run if @msg's
- * incoming messages headers (that is, the
- * <literal>request_headers</literal> for a client #SoupMessage, or
- * the <literal>response_headers</literal> for a server #SoupMessage)
+ * incoming messages headers (that is, the <literal>request_headers</literal>)
  * contain a header named @header.
  *
  * Return value: the handler ID from g_signal_connect()
@@ -1353,9 +1034,7 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
  * the status @status_code.
  *
  * @signal must be a signal that will be emitted after @msg's status
- * is set. For a client #SoupMessage, this means it can't be a "wrote"
- * signal. For a server #SoupMessage, this means it can't be a "got"
- * signal.
+ * is set (this means it can't be a "wrote" signal).
  *
  * Return value: the handler ID from g_signal_connect()
  **/
@@ -1378,7 +1057,6 @@ soup_message_add_status_code_handler (SoupMessage *msg,
 
 	return g_signal_connect_closure (msg, signal, closure, FALSE);
 }
-
 
 void
 soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
@@ -1470,12 +1148,7 @@ soup_message_cleanup_response (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	soup_message_body_truncate (msg->response_body);
 	soup_message_headers_clear (msg->response_headers);
-	if (priv->server_side) {
-		soup_message_headers_set_encoding (msg->response_headers,
-						   SOUP_ENCODING_CONTENT_LENGTH);
-	}
 
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
 
@@ -1498,9 +1171,6 @@ soup_message_cleanup_response (SoupMessage *msg)
  * SoupMessageFlags:
  * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
  *   (3xx) responses received by this message.
- * @SOUP_MESSAGE_CAN_REBUILD: The caller will rebuild the request
- *   body if the message is restarted; see
- *   soup_message_body_set_accumulate() for more details.
  * @SOUP_MESSAGE_CONTENT_DECODED: Set by #SoupContentDecoder to
  *   indicate that it has removed the Content-Encoding on a message (and
  *   so headers such as Content-Length may no longer accurately describe
@@ -1573,14 +1243,6 @@ soup_message_get_flags (SoupMessage *msg)
 
 	return priv->msg_flags;
 }
-
-/**
- * SoupHTTPVersion:
- * @SOUP_HTTP_1_0: HTTP 1.0 (RFC 1945)
- * @SOUP_HTTP_1_1: HTTP 1.1 (RFC 2616)
- *
- * Indicates the HTTP protocol version being used.
- **/
 
 /**
  * soup_message_set_http_version:
@@ -2061,9 +1723,6 @@ soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
  * showing what problems, if any, have been found with that
  * certificate.
  *
- * <note><para>This is only meaningful with messages processed by a #SoupSession and is
- * not useful for messages received by a #SoupServer</para></note>
- *
  * Return value: %TRUE if @msg used/attempted https, %FALSE if not
  *
  * Since: 2.34
@@ -2084,41 +1743,6 @@ soup_message_get_https_status (SoupMessage           *msg,
 	if (errors)
 		*errors = priv->tls_errors;
 	return priv->tls_certificate != NULL;
-}
-
-/**
- * soup_message_set_redirect:
- * @msg: a #SoupMessage
- * @status_code: a 3xx status code
- * @redirect_uri: the URI to redirect @msg to
- *
- * Sets @msg's status_code to @status_code and adds a Location header
- * pointing to @redirect_uri. Use this from a #SoupServer when you
- * want to redirect the client to another URI.
- *
- * @redirect_uri can be a relative URI, in which case it is
- * interpreted relative to @msg's current URI. In particular, if
- * @redirect_uri is just a path, it will replace the path
- * <emphasis>and query</emphasis> of @msg's URI.
- *
- * Since: 2.38
- */
-void
-soup_message_set_redirect (SoupMessage *msg, guint status_code,
-			   const char *redirect_uri)
-{
-	SoupURI *location;
-	char *location_str;
-
-	location = soup_uri_new_with_base (soup_message_get_uri (msg), redirect_uri);
-	g_return_if_fail (location != NULL);
-
-	soup_message_set_status (msg, status_code);
-	location_str = soup_uri_to_string (location, FALSE);
-	soup_message_headers_replace (msg->response_headers, "Location",
-				      location_str);
-	g_free (location_str);
-	soup_uri_free (location);
 }
 
 void
@@ -2223,7 +1847,7 @@ soup_message_get_priority (SoupMessage *msg)
 	return priv->priority;
 }
 
-gpointer
+SoupClientMessageIOData *
 soup_message_get_io_data (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
@@ -2232,11 +1856,12 @@ soup_message_get_io_data (SoupMessage *msg)
 }
 
 void
-soup_message_set_io_data (SoupMessage *msg, gpointer io)
+soup_message_set_io_data (SoupMessage             *msg,
+			  SoupClientMessageIOData *io)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	soup_message_io_cleanup (msg);
+	soup_client_message_io_data_free (priv->io_data);
 	priv->io_data = io;
 }
 
@@ -2265,18 +1890,4 @@ soup_message_set_bytes_for_sniffing (SoupMessage *msg, gsize bytes)
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	priv->bytes_for_sniffing = bytes;
-}
-
-const char *
-soup_http_version_to_string (SoupHTTPVersion version)
-{
-	switch (version) {
-	case SOUP_HTTP_1_0:
-		return "HTTP/1.0";
-	case SOUP_HTTP_1_1:
-		return "HTTP/1.1";
-	}
-
-	g_assert_not_reached ();
-	return "";
 }

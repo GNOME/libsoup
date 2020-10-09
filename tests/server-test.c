@@ -14,27 +14,32 @@ typedef struct {
 } ServerData;
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
-	soup_message_headers_append (msg->response_headers,
+	const char *method;
+
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
 				     "X-Handled-By", "server_callback");
 
 	if (!strcmp (path, "*")) {
 		soup_test_assert (FALSE, "default server_callback got request for '*'");
-		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
 		return;
 	}
 
-	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_POST) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	method = soup_server_message_get_method (msg);
+	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_response (msg, "text/plain",
-				   SOUP_MEMORY_STATIC, "index", 5);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_server_message_set_response (msg, "text/plain",
+					  SOUP_MEMORY_STATIC, "index", 5);
 }
 
 static void
@@ -90,25 +95,27 @@ server_teardown (ServerData *sd, gconstpointer test_data)
 }
 
 static void
-server_star_callback (SoupServer *server, SoupMessage *msg,
-		      const char *path, GHashTable *query,
-		      SoupClientContext *context, gpointer data)
+server_star_callback (SoupServer        *server,
+		      SoupServerMessage *msg,
+		      const char        *path,
+		      GHashTable        *query,
+		      gpointer           data)
 {
-	soup_message_headers_append (msg->response_headers,
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
 				     "X-Handled-By", "star_callback");
 
 	if (strcmp (path, "*") != 0) {
 		soup_test_assert (FALSE, "server_star_callback got request for '%s'", path);
-		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
 		return;
 	}
 
-	if (msg->method != SOUP_METHOD_OPTIONS) {
-		soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_OPTIONS) {
+		soup_server_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED, NULL);
 		return;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 /* Server handlers for "*" work but are separate from handlers for
@@ -345,26 +352,28 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 }
 
 static void
-ipv6_server_callback (SoupServer *server, SoupMessage *msg,
-		      const char *path, GHashTable *query,
-		      SoupClientContext *context, gpointer data)
+ipv6_server_callback (SoupServer        *server,
+		      SoupServerMessage *msg,
+		      const char        *path,
+		      GHashTable        *query,
+		      gpointer           data)
 {
 	const char *host;
 	GSocketAddress *addr;
 	char expected_host[128];
 
-	addr = soup_client_context_get_local_address (context);
+	addr = soup_server_message_get_local_address (msg);
 	g_snprintf (expected_host, sizeof (expected_host),
 		    "[::1]:%d",
 		    g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (addr)));
 
-	host = soup_message_headers_get_one (msg->request_headers, "Host");
+	host = soup_message_headers_get_one (soup_server_message_get_request_headers (msg), "Host");
 	g_assert_cmpstr (host, ==, expected_host);
 
 	if (g_test_failed ())
-		soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
+		soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
 	else
-		soup_message_set_status (msg, SOUP_STATUS_OK);
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 static void
@@ -413,19 +422,21 @@ do_ipv6_test (ServerData *sd, gconstpointer test_data)
 }
 
 static void
-multi_server_callback (SoupServer *server, SoupMessage *msg,
-		       const char *path, GHashTable *query,
-		       SoupClientContext *context, gpointer data)
+multi_server_callback (SoupServer        *server,
+		       SoupServerMessage *msg,
+		       const char        *path,
+		       GHashTable        *query,
+		       gpointer           data)
 {
 	GSocketAddress *addr;
 	GInetSocketAddress *iaddr;
 	SoupURI *uri;
 	char *uristr, *addrstr;
 
-	addr = soup_client_context_get_local_address (context);
+	addr = soup_server_message_get_local_address (msg);
 	iaddr = G_INET_SOCKET_ADDRESS (addr);
 
-	uri = soup_message_get_uri (msg);
+	uri = soup_server_message_get_uri (msg);
 	uristr = soup_uri_to_string (uri, FALSE);
 
 	addrstr = g_inet_address_to_string (g_inet_socket_address_get_address (iaddr));
@@ -436,9 +447,9 @@ multi_server_callback (SoupServer *server, SoupMessage *msg,
 
 	/* FIXME ssl */
 
-	soup_message_set_response (msg, "text/plain",
-				   SOUP_MEMORY_TAKE, uristr, strlen (uristr));
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_response (msg, "text/plain",
+					  SOUP_MEMORY_TAKE, uristr, strlen (uristr));
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 static void
@@ -794,27 +805,29 @@ g_test_io_stream_new (GInputStream *input, GOutputStream *output)
 }
 
 static void
-mem_server_callback (SoupServer *server, SoupMessage *msg,
-		     const char *path, GHashTable *query,
-		     SoupClientContext *context, gpointer data)
+mem_server_callback (SoupServer        *server,
+		     SoupServerMessage *msg,
+		     const char        *path,
+		     GHashTable        *query,
+		     gpointer           data)
 {
 	GSocketAddress *addr;
 	GSocket *sock;
 	const char *host;
 
-	addr = soup_client_context_get_local_address (context);
+	addr = soup_server_message_get_local_address (msg);
 	g_assert_nonnull (addr);
 
-	addr = soup_client_context_get_remote_address (context);
+	addr = soup_server_message_get_remote_address (msg);
 	g_assert_nonnull (addr);
 
-	sock = soup_client_context_get_socket (context);
+	sock = soup_server_message_get_socket (msg);
 	g_assert_null (sock);
 
-	host = soup_client_context_get_host (context);
+	host = soup_server_message_get_remote_host (msg);
 	g_assert_cmpstr (host, ==, "127.0.0.1");
 
-	server_callback (server, msg, path, query, context, data);
+	server_callback (server, msg, path, query, data);
 }
 
 static void
@@ -858,7 +871,7 @@ do_iostream_accept_test (void)
 
 typedef struct {
 	SoupServer *server;
-	SoupMessage *smsg;
+	SoupServerMessage *smsg;
 	gboolean handler_called;
 	gboolean paused;
 } UnhandledServerData;
@@ -873,15 +886,17 @@ idle_unpause_message (gpointer user_data)
 }
 
 static void
-unhandled_server_callback (SoupServer *server, SoupMessage *msg,
-			   const char *path, GHashTable *query,
-			   SoupClientContext *context, gpointer data)
+unhandled_server_callback (SoupServer        *server,
+			   SoupServerMessage *msg,
+			   const char        *path,
+			   GHashTable        *query,
+			   gpointer           data)
 {
 	UnhandledServerData *usd = data;
 
 	usd->handler_called = TRUE;
 
-	if (soup_message_headers_get_one (msg->request_headers, "X-Test-Server-Pause")) {
+	if (soup_message_headers_get_one (soup_server_message_get_request_headers (msg), "X-Test-Server-Pause")) {
 		usd->paused = TRUE;
 		usd->server = server;
 		usd->smsg = msg;
@@ -946,7 +961,9 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 }
 
 static void
-stream_got_chunk (SoupMessage *msg, GBytes *chunk, gpointer user_data)
+stream_got_chunk (SoupServerMessage *msg,
+		  GBytes            *chunk,
+		  gpointer           user_data)
 {
 	GChecksum *checksum = user_data;
 
@@ -954,26 +971,29 @@ stream_got_chunk (SoupMessage *msg, GBytes *chunk, gpointer user_data)
 }
 
 static void
-stream_got_body (SoupMessage *msg, gpointer user_data)
+stream_got_body (SoupServerMessage *msg,
+		 gpointer           user_data)
 {
 	GChecksum *checksum = user_data;
 	const char *md5 = g_checksum_get_string (checksum);
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_response (msg, "text/plain", SOUP_MEMORY_COPY,
-				   md5, strlen (md5));
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_server_message_set_response (msg, "text/plain", SOUP_MEMORY_COPY,
+					  md5, strlen (md5));
 	g_checksum_free (checksum);
 }
 
 static void
-early_stream_callback (SoupServer *server, SoupMessage *msg,
-		       const char *path, GHashTable *query,
-		       SoupClientContext *context, gpointer data)
+early_stream_callback (SoupServer        *server,
+		       SoupServerMessage *msg,
+		       const char        *path,
+		       GHashTable        *query,
+		       gpointer           data)
 {
 	GChecksum *checksum;
 
-	if (msg->method != SOUP_METHOD_POST) {
-		soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_POST) {
+		soup_server_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED, NULL);
 		return;
 	}
 
@@ -983,7 +1003,7 @@ early_stream_callback (SoupServer *server, SoupMessage *msg,
 	g_signal_connect (msg, "got-body",
 			  G_CALLBACK (stream_got_body), checksum);
 
-	soup_message_body_set_accumulate (msg->request_body, TRUE);
+	soup_message_body_set_accumulate (soup_server_message_get_request_body (msg), TRUE);
 }
 
 static void
@@ -1016,12 +1036,14 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 }
 
 static void
-early_respond_callback (SoupServer *server, SoupMessage *msg,
-			const char *path, GHashTable *query,
-			SoupClientContext *context, gpointer data)
+early_respond_callback (SoupServer        *server,
+			SoupServerMessage *msg,
+			const char        *path,
+			GHashTable        *query,
+			gpointer           data)
 {
 	if (!strcmp (path, "/"))
-		soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
+		soup_server_message_set_status (msg, SOUP_STATUS_FORBIDDEN, NULL);
 }
 
 static void
@@ -1040,7 +1062,6 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_FORBIDDEN);
-	g_assert_cmpint (msg->response_body->length, ==, 0);
 	g_object_unref (msg);
 
 	/* The early handler will ignore this one */
@@ -1057,11 +1078,13 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 }
 
 static void
-early_multi_callback (SoupServer *server, SoupMessage *msg,
-		      const char *path, GHashTable *query,
-		      SoupClientContext *context, gpointer data)
+early_multi_callback (SoupServer        *server,
+		      SoupServerMessage *msg,
+		      const char        *path,
+		      GHashTable        *query,
+		      gpointer           data)
 {
-	soup_message_headers_append (msg->response_headers, "X-Early", "yes");
+	soup_message_headers_append (soup_server_message_get_response_headers (msg), "X-Early", "yes");
 }
 
 static void
@@ -1147,8 +1170,7 @@ typedef struct {
 
 typedef struct {
 	SoupServer *self;
-	SoupMessage *msg;
-	SoupClientContext *context;
+	SoupServerMessage *msg;
 	GCancellable *cancellable;
 
 	TunnelEnd client, server;
@@ -1272,11 +1294,12 @@ tunnel_read_cb (GObject      *object,
 }
 
 static void
-start_tunnel (SoupMessage *msg, gpointer user_data)
+start_tunnel (SoupServerMessage *msg,
+	      gpointer           user_data)
 {
 	Tunnel *tunnel = user_data;
 
-	tunnel->client.iostream = soup_client_context_steal_connection (tunnel->context);
+	tunnel->client.iostream = soup_server_message_steal_connection (msg);
 	tunnel->client.istream = g_io_stream_get_input_stream (tunnel->client.iostream);
 	tunnel->client.ostream = g_io_stream_get_output_stream (tunnel->client.iostream);
 	g_clear_object (&tunnel->self);
@@ -1309,10 +1332,10 @@ tunnel_connected_cb (GObject      *object,
 	tunnel->server.iostream = (GIOStream *)
 		g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (object), result, &error);
 	if (!tunnel->server.iostream) {
-		soup_message_set_status (tunnel->msg, SOUP_STATUS_BAD_GATEWAY);
-		soup_message_set_response (tunnel->msg, "text/plain",
-					   SOUP_MEMORY_COPY,
-					   error->message, strlen (error->message));
+		soup_server_message_set_status (tunnel->msg, SOUP_STATUS_BAD_GATEWAY, NULL);
+		soup_server_message_set_response (tunnel->msg, "text/plain",
+						  SOUP_MEMORY_COPY,
+						  error->message, strlen (error->message));
 		g_error_free (error);
 		soup_server_unpause_message (tunnel->self, tunnel->msg);
 		tunnel_close (tunnel);
@@ -1322,23 +1345,25 @@ tunnel_connected_cb (GObject      *object,
 	tunnel->server.istream = g_io_stream_get_input_stream (tunnel->server.iostream);
 	tunnel->server.ostream = g_io_stream_get_output_stream (tunnel->server.iostream);
 
-	soup_message_set_status (tunnel->msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (tunnel->msg, SOUP_STATUS_OK, NULL);
 	soup_server_unpause_message (tunnel->self, tunnel->msg);
 	g_signal_connect (tunnel->msg, "wrote-body",
 			  G_CALLBACK (start_tunnel), tunnel);
 }
 
 static void
-proxy_server_callback (SoupServer *server, SoupMessage *msg,
-		       const char *path, GHashTable *query,
-		       SoupClientContext *context, gpointer data)
+proxy_server_callback (SoupServer        *server,
+		       SoupServerMessage *msg,
+		       const char        *path,
+		       GHashTable        *query,
+		       gpointer           data)
 {
 	GSocketClient *sclient;
 	SoupURI *dest_uri;
 	Tunnel *tunnel;
 
-	if (msg->method != SOUP_METHOD_CONNECT) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_CONNECT) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
@@ -1347,9 +1372,8 @@ proxy_server_callback (SoupServer *server, SoupMessage *msg,
 	tunnel = g_new0 (Tunnel, 1);
 	tunnel->self = g_object_ref (server);
 	tunnel->msg = g_object_ref (msg);
-	tunnel->context = context;
 
-	dest_uri = soup_message_get_uri (msg);
+	dest_uri = soup_server_message_get_uri (msg);
 	sclient = g_socket_client_new ();
 	g_socket_client_connect_to_host_async (sclient, dest_uri->host, dest_uri->port,
 					       NULL, tunnel_connected_cb, tunnel);

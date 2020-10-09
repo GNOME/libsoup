@@ -10,27 +10,32 @@ SoupURI *base_uri;
 SoupMessageBody *chunk_data;
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
 	GError *error = NULL;
 	char *query_key;
 	GBytes *response = NULL;
 	gsize offset;
+	SoupMessageHeaders *response_headers;
+	SoupMessageBody *response_body;
 	gboolean empty_response = FALSE;
 
-	if (msg->method != SOUP_METHOD_GET) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_GET) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 
+	response_headers = soup_server_message_get_response_headers (msg);
 	if (query) {
 		query_key = g_hash_table_lookup (query, "chunked");
 		if (query_key && g_str_equal (query_key, "yes")) {
-			soup_message_headers_set_encoding (msg->response_headers,
+			soup_message_headers_set_encoding (response_headers,
 							   SOUP_ENCODING_CHUNKED);
 		}
 
@@ -45,7 +50,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			g_assert_no_error (error);
 		}
 
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type", "text/plain");
 	}
 
@@ -56,10 +61,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_assert_no_error (error);
 		g_free (base_name);
 
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "X-Content-Type-Options", "nosniff");
 
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type", "no/sniffing-allowed");
 	}
 
@@ -70,7 +75,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_assert_no_error (error);
 		g_free (base_name);
 
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type", "text/plain");
 	}
 
@@ -81,7 +86,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_assert_no_error (error);
 		g_free (base_name);
 
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type", "UNKNOWN/unknown");
 	}
 
@@ -99,7 +104,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		ptr = g_strrstr (components[2], "_");
 		*ptr = '/';
 
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type", components[2]);
 		g_strfreev (components);
 	}
@@ -111,24 +116,25 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_assert_no_error (error);
 		g_free (base_name);
 
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type", "text/xml");
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (response_headers,
 					     "Content-Type", "text/plain");
 	}
 
+	response_body = soup_server_message_get_response_body (msg);
 	if (response) {
-                gsize response_size = g_bytes_get_size (response);                
+                gsize response_size = g_bytes_get_size (response);
 		for (offset = 0; offset < response_size; offset += 500) {
                         GBytes *chunk = g_bytes_new_from_bytes (response, offset, MIN (500, response_size - offset));
-                        soup_message_body_append_bytes (msg->response_body, chunk);
+                        soup_message_body_append_bytes (response_body, chunk);
                         g_bytes_unref (chunk);
 		}
 
 		g_bytes_unref (response);
 	}
 
-	soup_message_body_complete (msg->response_body);
+	soup_message_body_complete (response_body);
 }
 
 static gboolean
@@ -229,7 +235,9 @@ do_signals_test (gboolean should_content_sniff,
 
 	soup_message_set_uri (msg, uri);
 
+#if 0
 	soup_message_body_set_accumulate (msg->response_body, should_accumulate);
+#endif
 
 	g_object_connect (msg,
 			  "signal::got-headers", got_headers, GINT_TO_POINTER (should_pause),
@@ -258,8 +266,10 @@ do_signals_test (gboolean should_content_sniff,
 
 	if (!should_accumulate && chunk_data)
 		body = soup_message_body_flatten (chunk_data);
+#if 0
 	else if (msg->response_body)
 		body = soup_message_body_flatten (msg->response_body);
+#endif
 
 	if (body) {
                 //g_message ("|||body (%zu): %s", g_bytes_get_size (body), (char*)g_bytes_get_data (body, NULL));

@@ -7,7 +7,7 @@
 
 #include "soup-connection.h"
 #include "soup-socket-private.h"
-#include "soup-server-private.h"
+#include "soup-server-message-private.h"
 
 #include <gio/gnetworking.h>
 
@@ -16,15 +16,17 @@ SoupURI *base_uri;
 GMutex server_mutex;
 
 static void
-forget_close (SoupMessage *msg, gpointer user_data)
+forget_close (SoupServerMessage *msg,
+	      gpointer           user_data)
 {
-	soup_message_headers_remove (msg->response_headers, "Connection");
+	soup_message_headers_remove (soup_server_message_get_response_headers (msg),
+				     "Connection");
 }
 
 static void
-close_socket (SoupMessage *msg, gpointer user_data)
+close_socket (SoupServerMessage *msg,
+	      SoupSocket        *sock)
 {
-	SoupSocket *sock = user_data;
         GSocket *gsocket;
 	int sockfd;
 
@@ -42,7 +44,8 @@ close_socket (SoupMessage *msg, gpointer user_data)
 	/* Then add the missing data to the message now, so SoupServer
 	 * can clean up after itself properly.
 	 */
-	soup_message_body_append (msg->response_body, SOUP_MEMORY_STATIC,
+	soup_message_body_append (soup_server_message_get_response_body (msg),
+				  SOUP_MEMORY_STATIC,
 				  "foo", 3);
 }
 
@@ -53,8 +56,9 @@ timeout_socket (SoupSocket *sock, gpointer user_data)
 }
 
 static void
-timeout_request_started (SoupServer *server, SoupMessage *msg,
-			 SoupClientContext *client, gpointer user_data)
+timeout_request_started (SoupServer        *server,
+			 SoupServerMessage *msg,
+			 gpointer           user_data)
 {
 	SoupSocket *sock;
 	GMainContext *context = g_main_context_get_thread_default ();
@@ -62,7 +66,7 @@ timeout_request_started (SoupServer *server, SoupMessage *msg,
 
 	g_signal_handlers_disconnect_by_func (server, timeout_request_started, NULL);
 
-	sock = soup_client_context_get_soup_socket (client);
+	sock = soup_server_message_get_soup_socket (msg);
 	readable = g_signal_connect (sock, "readable",
 				    G_CALLBACK (timeout_socket), NULL);
 
@@ -104,10 +108,14 @@ setup_timeout_persistent (SoupServer *server, SoupSocket *sock)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
+	const char *method;
+
 	/* The way this gets used in the tests, we don't actually
 	 * need to hold it through the whole function, so it's simpler
 	 * to just release it right away.
@@ -115,21 +123,25 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	g_mutex_lock (&server_mutex);
 	g_mutex_unlock (&server_mutex);
 
-	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_POST) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	method = soup_server_message_get_method (msg);
+	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
 	if (g_str_has_prefix (path, "/content-length/")) {
 		gboolean too_long = strcmp (path, "/content-length/long") == 0;
 		gboolean no_close = strcmp (path, "/content-length/noclose") == 0;
+		SoupMessageHeaders *response_headers;
 
-		soup_message_set_status (msg, SOUP_STATUS_OK);
-		soup_message_set_response (msg, "text/plain",
-					   SOUP_MEMORY_STATIC, "foobar", 6);
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+		soup_server_message_set_response (msg, "text/plain",
+						  SOUP_MEMORY_STATIC, "foobar", 6);
+
+		response_headers = soup_server_message_get_response_headers (msg);
 		if (too_long)
-			soup_message_headers_set_content_length (msg->response_headers, 9);
-		soup_message_headers_append (msg->response_headers,
+			soup_message_headers_set_content_length (response_headers, 9);
+		soup_message_headers_append (response_headers,
 					     "Connection", "close");
 
 		if (too_long) {
@@ -140,7 +152,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			 * the declared Content-Length. Instead, we
 			 * forcibly close the socket at that point.
 			 */
-			sock = soup_client_context_get_soup_socket (context);
+			sock = soup_server_message_get_soup_socket (msg);
 			g_signal_connect (msg, "wrote-chunk",
 					  G_CALLBACK (close_socket), sock);
 		} else if (no_close) {
@@ -158,13 +170,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (!strcmp (path, "/timeout-persistent")) {
 		SoupSocket *sock;
 
-		sock = soup_client_context_get_soup_socket (context);
+		sock = soup_server_message_get_soup_socket (msg);
 		setup_timeout_persistent (server, sock);
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_response (msg, "text/plain",
-				   SOUP_MEMORY_STATIC, "index", 5);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_server_message_set_response (msg, "text/plain",
+					  SOUP_MEMORY_STATIC, "index", 5);
 	return;
 }
 

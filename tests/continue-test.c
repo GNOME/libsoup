@@ -14,37 +14,65 @@ static SoupURI *base_uri;
 static GSList *events;
 
 static void
-event (SoupMessage *msg, const char *side, const char *message)
+client_event (SoupMessage *msg,
+	      const char  *message)
 {
-	char *data = g_strdup_printf ("%s-%s", side, message);
+	char *data = g_strdup_printf ("client-%s", message);
+
+	debug_printf (2, "  %s", data);
+	debug_printf (2, "\n");
+
+	events = g_slist_append (events, data);
+}
+
+static void
+server_event (SoupServerMessage *msg,
+	      const char        *message)
+{
+	char *data = g_strdup_printf ("server-%s", message);
 	gboolean record_status =
 		(!strcmp (data, "server-wrote_headers") ||
 		 !strcmp (data, "server-wrote_informational"));
+	const char *reason_phrase;
+	guint status_code = soup_server_message_get_status (msg, &reason_phrase);
 
 	debug_printf (2, "  %s", data);
 	if (record_status)
-		debug_printf (2, " (%s)", msg->reason_phrase);
+		debug_printf (2, " (%s)", reason_phrase);
 	debug_printf (2, "\n");
 
 	events = g_slist_append (events, data);
 	if (record_status)
-		events = g_slist_append (events, GUINT_TO_POINTER (msg->status_code));
+		events = g_slist_append (events, GUINT_TO_POINTER (status_code));
 }
 
-#define EVENT_HANDLER(name)			\
+#define CLIENT_EVENT_HANDLER(name)		\
 static void					\
-name (SoupMessage *msg, gpointer side)		\
+client_##name (SoupMessage *msg, gpointer side)	\
 {						\
-	event (msg, side, #name);		\
+	client_event (msg, #name);		\
 }
 
-EVENT_HANDLER (got_informational)
-EVENT_HANDLER (got_headers)
-EVENT_HANDLER (got_body)
-EVENT_HANDLER (wrote_informational)
-EVENT_HANDLER (wrote_headers)
-EVENT_HANDLER (wrote_body)
-EVENT_HANDLER (finished)
+#define SERVER_EVENT_HANDLER(name)		\
+static void					\
+server_##name (SoupServerMessage *msg, gpointer side)	\
+{						\
+	server_event (msg, #name);		\
+}
+
+CLIENT_EVENT_HANDLER (got_informational)
+CLIENT_EVENT_HANDLER (got_headers)
+CLIENT_EVENT_HANDLER (got_body)
+CLIENT_EVENT_HANDLER (wrote_headers)
+CLIENT_EVENT_HANDLER (wrote_body)
+CLIENT_EVENT_HANDLER (finished)
+
+SERVER_EVENT_HANDLER (got_headers)
+SERVER_EVENT_HANDLER (got_body)
+SERVER_EVENT_HANDLER (wrote_informational)
+SERVER_EVENT_HANDLER (wrote_headers)
+SERVER_EVENT_HANDLER (wrote_body)
+SERVER_EVENT_HANDLER (finished)
 
 static void
 restarted (SoupMessage *msg,
@@ -76,7 +104,6 @@ do_message (const char *path, gboolean long_body,
 	}
 	soup_uri_set_path (uri, path);
 	msg = soup_message_new_from_uri ("POST", uri);
-	g_print ("DBG: soup_message_new_from_uri: %p\n", msg);
 	soup_uri_free (uri);
 
 	body = long_body ? LONG_BODY : SHORT_BODY;
@@ -88,20 +115,18 @@ do_message (const char *path, gboolean long_body,
 						       SOUP_EXPECTATION_CONTINUE);
 	}
 
-	g_signal_connect (msg, "got_informational",
-			  G_CALLBACK (got_informational), "client");
-	g_signal_connect (msg, "got_headers",
-			  G_CALLBACK (got_headers), "client");
-	g_signal_connect (msg, "got_body",
-			  G_CALLBACK (got_body), "client");
-	g_signal_connect (msg, "wrote_informational",
-			  G_CALLBACK (wrote_informational), "client");
-	g_signal_connect (msg, "wrote_headers",
-			  G_CALLBACK (wrote_headers), "client");
-	g_signal_connect (msg, "wrote_body",
-			  G_CALLBACK (wrote_body), "client");
+	g_signal_connect (msg, "got-informational",
+			  G_CALLBACK (client_got_informational), NULL);
+	g_signal_connect (msg, "got-headers",
+			  G_CALLBACK (client_got_headers), NULL);
+	g_signal_connect (msg, "got-body",
+			  G_CALLBACK (client_got_body), NULL);
+	g_signal_connect (msg, "wrote-headers",
+			  G_CALLBACK (client_wrote_headers), NULL);
+	g_signal_connect (msg, "wrote-body",
+			  G_CALLBACK (client_wrote_body), NULL);
 	g_signal_connect (msg, "finished",
-			  G_CALLBACK (finished), "client");
+			  G_CALLBACK (client_finished), NULL);
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), request_body);
 
@@ -401,47 +426,54 @@ do_test_auth_long_expect_pass (void)
 /* SERVER */
 
 static void
-server_got_headers (SoupMessage *msg, gpointer server)
+_server_got_headers (SoupServerMessage *msg,
+		     gpointer           server)
 {
+	guint status_code;
+	SoupMessageHeaders *request_headers;
+
+	status_code = soup_server_message_get_status (msg, NULL);
 	/* FIXME */
-	if (msg->status_code != SOUP_STATUS_CONTINUE &&
-	    msg->status_code != 0)
+	if (status_code != SOUP_STATUS_CONTINUE && status_code != 0)
 		return;
 
-	if (soup_message_headers_get_expectations (msg->request_headers) &
+	request_headers = soup_server_message_get_request_headers (msg);
+	if (soup_message_headers_get_expectations (request_headers) &
 	    SOUP_EXPECTATION_CONTINUE) {
 		const char *length;
 
-		length = soup_message_headers_get_one (msg->request_headers,
+		length = soup_message_headers_get_one (request_headers,
 						       "Content-Length");
 		if (length && atoi (length) > MAX_POST_LENGTH) {
-			soup_message_set_status (msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE);
-			soup_message_headers_append (msg->response_headers, "Connection", "close");
+			SoupMessageHeaders *response_headers;
+
+			response_headers = soup_server_message_get_response_headers (msg);
+			soup_server_message_set_status (msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE, NULL);
+			soup_message_headers_append (response_headers, "Connection", "close");
 		}
 	}
-}	
+}
 
 static void
-request_started (SoupServer *server, SoupMessage *msg,
-		 SoupClientContext *client, gpointer user_data)
+request_started (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 gpointer           user_data)
 {
-	g_signal_connect (msg, "got_headers",
-			  G_CALLBACK (server_got_headers), server);
+	g_signal_connect (msg, "got-headers",
+			  G_CALLBACK (_server_got_headers), server);
 
-	g_signal_connect (msg, "got_informational",
-			  G_CALLBACK (got_informational), "server");
-	g_signal_connect (msg, "got_headers",
-			  G_CALLBACK (got_headers), "server");
-	g_signal_connect (msg, "got_body",
-			  G_CALLBACK (got_body), "server");
-	g_signal_connect (msg, "wrote_informational",
-			  G_CALLBACK (wrote_informational), "server");
-	g_signal_connect (msg, "wrote_headers",
-			  G_CALLBACK (wrote_headers), "server");
-	g_signal_connect (msg, "wrote_body",
-			  G_CALLBACK (wrote_body), "server");
+	g_signal_connect (msg, "got-headers",
+			  G_CALLBACK (server_got_headers), NULL);
+	g_signal_connect (msg, "got-body",
+			  G_CALLBACK (server_got_body), NULL);
+	g_signal_connect (msg, "wrote-informational",
+			  G_CALLBACK (server_wrote_informational), NULL);
+	g_signal_connect (msg, "wrote-headers",
+			  G_CALLBACK (server_wrote_headers), NULL);
+	g_signal_connect (msg, "wrote-body",
+			  G_CALLBACK (server_wrote_body), NULL);
 	g_signal_connect (msg, "finished",
-			  G_CALLBACK (finished), "server");
+			  G_CALLBACK (server_finished), NULL);
 }
 
 static gboolean
@@ -452,18 +484,25 @@ auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
-	if (msg->method != SOUP_METHOD_POST) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
-		soup_message_headers_append (msg->response_headers, "Connection", "close");
-	} else if (msg->request_body->length > MAX_POST_LENGTH) {
-		soup_message_set_status (msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE);
-		soup_message_headers_append (msg->response_headers, "Connection", "close");
+	SoupMessageHeaders *response_headers;
+	SoupMessageBody *request_body;
+
+	response_headers = soup_server_message_get_response_headers (msg);
+	request_body = soup_server_message_get_request_body (msg);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_POST) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
+		soup_message_headers_append (response_headers, "Connection", "close");
+	} else if (request_body->length > MAX_POST_LENGTH) {
+		soup_server_message_set_status (msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE, NULL);
+		soup_message_headers_append (response_headers, "Connection", "close");
 	} else
-		soup_message_set_status (msg, SOUP_STATUS_CREATED);
+		soup_server_message_set_status (msg, SOUP_STATUS_CREATED, NULL);
 }
 
 static SoupServer *

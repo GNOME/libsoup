@@ -43,6 +43,12 @@
   </chapter>
 
   <chapter>
+    <title>HTTP Server</title>
+    <xi:include href="xml/soup-server.xml"/>
+    <xi:include href="xml/soup-server-message.xml"/>
+  </chapter>
+
+  <chapter>
     <title>Additional Features</title>
     <xi:include href="xml/soup-session-feature.xml"/>
     <xi:include href="xml/soup-content-decoder.xml"/>

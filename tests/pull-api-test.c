@@ -52,8 +52,6 @@ typedef struct {
 } FullyAsyncData;
 
 static void fully_async_got_headers (SoupMessage *msg, gpointer user_data);
-static void fully_async_got_chunk   (SoupMessage *msg, GBytes *chunk,
-				     gpointer user_data);
 static gboolean fully_async_request_chunk (gpointer user_data);
 
 static void
@@ -98,12 +96,6 @@ do_fully_async_test (SoupSession *session,
 	ad.did_first_timeout = FALSE;
 	ad.read_so_far = 0;
 	ad.expected_status = expected_status;
-
-	/* Since we aren't going to look at the final value of
-	 * msg->response_body, we tell libsoup to not even bother
-	 * generating it.
-	 */
-	soup_message_body_set_accumulate (msg->response_body, FALSE);
 
 	/* Connect to "got_headers", from which we'll decide where to
 	 * go next.
@@ -187,42 +179,8 @@ fully_async_got_headers (SoupMessage *msg, gpointer user_data)
 	 * until one is requested.
 	 */
 	ad->chunks_ready = TRUE;
-	g_signal_connect (msg, "got_chunk",
-			  G_CALLBACK (fully_async_got_chunk), ad);
 	if (!ad->chunk_wanted)
 		soup_session_pause_message (ad->session, msg);
-}
-
-static void
-fully_async_got_chunk (SoupMessage *msg, GBytes *chunk, gpointer user_data)
-{
-	FullyAsyncData *ad = user_data;
-
-	debug_printf (2, "  got chunk from %lu - %lu\n",
-		      (unsigned long) ad->read_so_far,
-		      (unsigned long) ad->read_so_far + g_bytes_get_size (chunk));
-
-	/* We've got a chunk, let's process it. In the case of the
-	 * test program, that means comparing it against
-	 * correct_response to make sure that we got the right data.
-	 */
-        gsize chunk_length = g_bytes_get_size (chunk);
-	g_assert_cmpint (ad->read_so_far + chunk_length, <=, g_bytes_get_size (correct_response));
-	soup_assert_cmpmem (g_bytes_get_data (chunk, NULL), chunk_length,
-			    (guchar*)g_bytes_get_data (correct_response, NULL) + ad->read_so_far,
-			    chunk_length);
-	ad->read_so_far += chunk_length;
-
-	/* Now pause I/O, and prepare to read another chunk later.
-	 * (Again, the timeout just abstractly represents the idea of
-	 * the application requesting another chunk at some random
-	 * point in the future. You wouldn't be using a timeout in a
-	 * real program.)
-	 */
-	soup_session_pause_message (ad->session, msg);
-	ad->chunk_wanted = FALSE;
-
-	ad->timeout = g_timeout_add (10, fully_async_request_chunk, ad);
 }
 
 static void

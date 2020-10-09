@@ -138,30 +138,32 @@ do_request_test (gconstpointer data)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-                 const char *path, GHashTable *query,
-                 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+                 const char        *path,
+		 GHashTable        *query,
+                 gpointer           data)
 {
         SoupMessageBody *md5_body;
         char *md5;
 
         if (g_str_has_prefix (path, "/redirect")) {
-                soup_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
+                soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
                 return;
         }
 
-        if (msg->method == SOUP_METHOD_PUT) {
-                soup_message_set_status (msg, SOUP_STATUS_CREATED);
-                md5_body = msg->request_body;
+        if (soup_server_message_get_method (msg) == SOUP_METHOD_PUT) {
+                soup_server_message_set_status (msg, SOUP_STATUS_CREATED, NULL);
+                md5_body = soup_server_message_get_request_body (msg);
         } else {
-                soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+                soup_server_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED, NULL);
                 return;
         }
 
         md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
                                            (guchar *)md5_body->data,
                                            md5_body->length);
-        soup_message_headers_append (msg->response_headers,
+        soup_message_headers_append (soup_server_message_get_response_headers (msg),
                                      "Content-MD5", md5);
         g_free (md5);
 }

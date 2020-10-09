@@ -364,7 +364,7 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
 /**
  * SoupAuthDomainFilter:
  * @domain: a #SoupAuthDomain
- * @msg: a #SoupMessage
+ * @msg: a #SoupServerMessage
  * @user_data: the data passed to soup_auth_domain_set_filter()
  *
  * The prototype for a #SoupAuthDomain filter; see
@@ -444,7 +444,7 @@ soup_auth_domain_get_realm (SoupAuthDomain *domain)
 /**
  * SoupAuthDomainGenericAuthCallback:
  * @domain: a #SoupAuthDomain
- * @msg: the #SoupMessage being authenticated
+ * @msg: the #SoupServerMessage being authenticated
  * @username: the username from @msg
  * @user_data: the data passed to
  * soup_auth_domain_set_generic_auth_callback()
@@ -504,9 +504,9 @@ soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
 }
 
 gboolean
-soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
-					    SoupMessage    *msg,
-					    const char     *username)
+soup_auth_domain_try_generic_auth_callback (SoupAuthDomain    *domain,
+					    SoupServerMessage *msg,
+					    const char        *username)
 {
 	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
@@ -519,7 +519,7 @@ soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
 /**
  * soup_auth_domain_check_password:
  * @domain: a #SoupAuthDomain
- * @msg: a #SoupMessage
+ * @msg: a #SoupServerMessage
  * @username: a username
  * @password: a password
  *
@@ -530,10 +530,10 @@ soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
  * Return value: whether or not the message is authenticated
  **/
 gboolean
-soup_auth_domain_check_password (SoupAuthDomain *domain,
-				 SoupMessage    *msg,
-				 const char     *username,
-				 const char     *password)
+soup_auth_domain_check_password (SoupAuthDomain    *domain,
+				 SoupServerMessage *msg,
+				 const char        *username,
+				 const char        *password)
 {
 	return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->check_password (domain, msg,
 								    username,
@@ -543,7 +543,7 @@ soup_auth_domain_check_password (SoupAuthDomain *domain,
 /**
  * soup_auth_domain_covers:
  * @domain: a #SoupAuthDomain
- * @msg: a #SoupMessage
+ * @msg: a #SoupServerMessage
  *
  * Checks if @domain requires @msg to be authenticated (according to
  * its paths and filter function). This does not actually look at
@@ -556,13 +556,14 @@ soup_auth_domain_check_password (SoupAuthDomain *domain,
  * Return value: %TRUE if @domain requires @msg to be authenticated
  **/
 gboolean
-soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
+soup_auth_domain_covers (SoupAuthDomain    *domain,
+			 SoupServerMessage *msg)
 {
 	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 	const char *path;
 
 	if (!priv->proxy) {
-		path = soup_message_get_uri (msg)->path;
+		path = soup_server_message_get_uri (msg)->path;
 		if (!soup_path_map_lookup (priv->paths, path))
 			return FALSE;
 	}
@@ -576,7 +577,7 @@ soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 /**
  * soup_auth_domain_accepts:
  * @domain: a #SoupAuthDomain
- * @msg: a #SoupMessage
+ * @msg: a #SoupServerMessage
  *
  * Checks if @msg contains appropriate authorization for @domain to
  * accept it. Mirroring soup_auth_domain_covers(), this does not check
@@ -590,12 +591,13 @@ soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
  * as, if in fact it has authenticated. %NULL otherwise.
  **/
 char *
-soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
+soup_auth_domain_accepts (SoupAuthDomain    *domain,
+			  SoupServerMessage *msg)
 {
 	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 	const char *header;
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
 					       priv->proxy ?
 					       "Proxy-Authorization" :
 					       "Authorization");
@@ -607,7 +609,7 @@ soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
 /**
  * soup_auth_domain_challenge: (virtual challenge)
  * @domain: a #SoupAuthDomain
- * @msg: a #SoupMessage
+ * @msg: a #SoupServerMessage
  *
  * Adds a "WWW-Authenticate" or "Proxy-Authenticate" header to @msg,
  * requesting that the client authenticate, and sets @msg's status
@@ -617,16 +619,18 @@ soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
  * anyone else.
  **/
 void
-soup_auth_domain_challenge (SoupAuthDomain *domain, SoupMessage *msg)
+soup_auth_domain_challenge (SoupAuthDomain    *domain,
+			    SoupServerMessage *msg)
 {
 	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 	char *challenge;
 
 	challenge = SOUP_AUTH_DOMAIN_GET_CLASS (domain)->challenge (domain, msg);
-	soup_message_set_status (msg, priv->proxy ?
-				 SOUP_STATUS_PROXY_UNAUTHORIZED :
-				 SOUP_STATUS_UNAUTHORIZED);
-	soup_message_headers_append (msg->response_headers,
+	soup_server_message_set_status (msg, priv->proxy ?
+					SOUP_STATUS_PROXY_UNAUTHORIZED :
+					SOUP_STATUS_UNAUTHORIZED,
+					NULL);
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
 				     priv->proxy ?
 				     "Proxy-Authenticate" :
 				     "WWW-Authenticate",

@@ -29,11 +29,8 @@ struct _SoupMessage {
 	guint               status_code;
 	char               *reason_phrase;
 
-	SoupMessageBody    *request_body;
 	GInputStream       *request_body_stream;
 	SoupMessageHeaders *request_headers;
-
-	SoupMessageBody    *response_body;
 	SoupMessageHeaders *response_headers;
 };
 
@@ -41,13 +38,10 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void     (*wrote_informational) (SoupMessage *msg);
 	void     (*wrote_headers)       (SoupMessage *msg);
-	void     (*wrote_chunk)         (SoupMessage *msg);
 	void     (*wrote_body)          (SoupMessage *msg);
 	void     (*got_informational)   (SoupMessage *msg);
 	void     (*got_headers)         (SoupMessage *msg);
-	void     (*got_chunk)           (SoupMessage *msg, GBytes *chunk);
 	void     (*got_body)            (SoupMessage *msg);
 	void     (*restarted)           (SoupMessage *msg);
 	void     (*finished)            (SoupMessage *msg);
@@ -89,12 +83,6 @@ SOUP_AVAILABLE_IN_2_4
 SoupMessage   *soup_message_new_from_uri        (const char        *method,
 						 SoupURI           *uri);
 
-SOUP_AVAILABLE_IN_2_4
-void           soup_message_set_response        (SoupMessage       *msg,
-						 const char        *content_type,
-						 SoupMemoryUse      resp_use,
-						 const char        *resp_body,
-						 gsize              resp_length);
 SOUP_AVAILABLE_IN_ALL
 void           soup_message_set_request_body    (SoupMessage       *msg,
 						 const char        *content_type,
@@ -104,11 +92,6 @@ SOUP_AVAILABLE_IN_ALL
 void           soup_message_set_request_body_from_bytes (SoupMessage  *msg,
 							 const char   *content_type,
 							 GBytes       *bytes);
-
-typedef enum {
-	SOUP_HTTP_1_0 = 0, /*< nick=http-1-0 >*/
-	SOUP_HTTP_1_1 = 1  /*< nick=http-1-1 >*/
-} SoupHTTPVersion;
 
 SOUP_AVAILABLE_IN_2_4
 void             soup_message_set_http_version    (SoupMessage       *msg,
@@ -142,13 +125,12 @@ gboolean         soup_message_get_is_top_level_navigation (SoupMessage      *msg
 
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT              = (1 << 1),
-	SOUP_MESSAGE_CAN_REBUILD              = (1 << 2),
-	SOUP_MESSAGE_CONTENT_DECODED          = (1 << 3),
-	SOUP_MESSAGE_CERTIFICATE_TRUSTED      = (1 << 4),
-	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 5),
-	SOUP_MESSAGE_IDEMPOTENT               = (1 << 6),
-	SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS = (1 << 7),
-	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 8)
+	SOUP_MESSAGE_CONTENT_DECODED          = (1 << 2),
+	SOUP_MESSAGE_CERTIFICATE_TRUSTED      = (1 << 3),
+	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 4),
+	SOUP_MESSAGE_IDEMPOTENT               = (1 << 5),
+	SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS = (1 << 6),
+	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 7)
 } SoupMessageFlags;
 
 SOUP_AVAILABLE_IN_2_4
@@ -192,11 +174,6 @@ void           soup_message_set_status_full     (SoupMessage       *msg,
 						 guint              status_code, 
 						 const char        *reason_phrase);
 
-SOUP_AVAILABLE_IN_2_38
-void           soup_message_set_redirect        (SoupMessage       *msg,
-						 guint              status_code,
-						 const char        *redirect_uri);
-
 SOUP_AVAILABLE_IN_2_28
 void           soup_message_disable_feature     (SoupMessage       *msg,
 						 GType              feature_type);
@@ -226,11 +203,7 @@ SOUP_AVAILABLE_IN_2_44
 SoupMessagePriority soup_message_get_priority   (SoupMessage        *msg);
 
 SOUP_AVAILABLE_IN_2_4
-void soup_message_wrote_informational (SoupMessage *msg);
-SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_headers       (SoupMessage *msg);
-SOUP_AVAILABLE_IN_2_4
-void soup_message_wrote_chunk         (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4
 void soup_message_wrote_body_data     (SoupMessage *msg, GBytes *chunk);
 SOUP_AVAILABLE_IN_2_4
@@ -239,8 +212,6 @@ SOUP_AVAILABLE_IN_2_4
 void soup_message_got_informational   (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4
 void soup_message_got_headers         (SoupMessage *msg);
-SOUP_AVAILABLE_IN_2_4
-void soup_message_got_chunk           (SoupMessage *msg, GBytes *chunk);
 SOUP_AVAILABLE_IN_2_4
 void soup_message_got_body            (SoupMessage *msg);
 SOUP_AVAILABLE_IN_2_4

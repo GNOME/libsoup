@@ -1013,7 +1013,7 @@ soup_session_append_queue_item (SoupSession        *session,
 static void
 soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageQueueItem *item,
-			      SoupMessageCompletionFn completion_cb)
+			      SoupMessageIOCompletionFn completion_cb)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
@@ -1389,7 +1389,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 		if (tunnel_item->conn) {
 			tunnel_item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, tunnel_item,
-						      tunnel_message_completed);
+						      (SoupMessageIOCompletionFn)tunnel_message_completed);
 			soup_message_io_run (msg, !tunnel_item->async);
 			return;
 		}
@@ -1443,7 +1443,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 	g_signal_emit (session, signals[TUNNELING], 0, tunnel_item->conn);
 
 	soup_session_send_queue_item (session, tunnel_item,
-				      tunnel_message_completed);
+				      (SoupMessageIOCompletionFn)tunnel_message_completed);
 	soup_message_io_run (msg, !item->async);
 	g_object_unref (msg);
 }
@@ -1709,7 +1709,8 @@ soup_session_process_queue_item (SoupSession          *session,
 
 			item->state = SOUP_MESSAGE_RUNNING;
 
-			soup_session_send_queue_item (session, item, message_completed);
+			soup_session_send_queue_item (session, item,
+						      (SoupMessageIOCompletionFn)message_completed);
 
 			if (item->async)
 				async_send_request_running (session, item);

@@ -11,16 +11,20 @@ GBytes *full_response;
 char *full_response_md5;
 
 static void
-write_next_chunk (SoupMessage *msg, gpointer user_data)
+write_next_chunk (SoupServerMessage *msg,
+		  gpointer           user_data)
 {
 	gsize *offset = user_data;
 	gsize chunk_length;
+	SoupMessageBody *response_body;
+
+	response_body = soup_server_message_get_response_body (msg);
 
 	chunk_length = MIN (RESPONSE_CHUNK_SIZE, g_bytes_get_size (full_response) - *offset);
 	if (chunk_length > 0) {
 		debug_printf (2, "  writing chunk\n");
                 GBytes *chunk = g_bytes_new_from_bytes (full_response, *offset, chunk_length);
-                soup_message_body_append_bytes (msg->response_body, chunk);
+                soup_message_body_append_bytes (response_body, chunk);
                 g_bytes_unref (chunk);
 		*offset += chunk_length;
 	} else {
@@ -29,44 +33,49 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 		 * cases, but it's harmless in the content-length
 		 * case.
 		 */
-		soup_message_body_complete (msg->response_body);
+		soup_message_body_complete (response_body);
 	}
 }
 
 static void
-free_offset (SoupMessage *msg, gpointer offset)
+free_offset (SoupServerMessage *msg,
+	     gpointer           offset)
 {
 	g_free (offset);
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
 	gsize *offset;
+	SoupMessageHeaders *response_headers;
 
+	response_headers = soup_server_message_get_response_headers (msg);
 	if (!strcmp (path, "/chunked")) {
-		soup_message_headers_set_encoding (msg->response_headers,
+		soup_message_headers_set_encoding (response_headers,
 						   SOUP_ENCODING_CHUNKED);
 	} else if (!strcmp (path, "/content-length")) {
-		soup_message_headers_set_encoding (msg->response_headers,
+		soup_message_headers_set_encoding (response_headers,
 						   SOUP_ENCODING_CONTENT_LENGTH);
-		soup_message_headers_set_content_length (msg->response_headers,
+		soup_message_headers_set_content_length (response_headers,
 							 g_bytes_get_size (full_response));
 	} else if (!strcmp (path, "/eof")) {
-		soup_message_headers_set_encoding (msg->response_headers,
+		soup_message_headers_set_encoding (response_headers,
 						   SOUP_ENCODING_EOF);
 	} else {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_FOUND, NULL);
 		return;
 	}
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 
 	offset = g_new0 (gsize, 1);
-	g_signal_connect (msg, "wrote_headers",
+	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (write_next_chunk), offset);
-	g_signal_connect (msg, "wrote_chunk",
+	g_signal_connect (msg, "wrote-chunk",
 			  G_CALLBACK (write_next_chunk), offset);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (free_offset), offset);

@@ -730,10 +730,10 @@ soup_connection_get_ever_used (SoupConnection *conn)
 }
 
 void
-soup_connection_send_request (SoupConnection          *conn,
-			      SoupMessageQueueItem    *item,
-			      SoupMessageCompletionFn  completion_cb,
-			      gpointer                 user_data)
+soup_connection_send_request (SoupConnection           *conn,
+			      SoupMessageQueueItem     *item,
+			      SoupMessageIOCompletionFn completion_cb,
+			      gpointer                  user_data)
 {
 	SoupConnectionPrivate *priv;
 

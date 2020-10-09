@@ -10,12 +10,13 @@ static char *base_uri;
 
 typedef struct {
 	SoupServer *server;
-	SoupMessage *msg;
+	SoupServerMessage *msg;
 	GSource *timeout;
 } SlowData;
 
 static void
-request_finished (SoupMessage *msg, gpointer data)
+request_finished (SoupServerMessage *msg,
+		  gpointer           data)
 {
 	SlowData *sd = data;
 
@@ -28,10 +29,12 @@ static gboolean
 add_body_chunk (gpointer data)
 {
 	SlowData *sd = data;
+	SoupMessageBody *response_body;
 
-	soup_message_body_append (sd->msg->response_body,
+	response_body = soup_server_message_get_response_body (sd->msg);
+	soup_message_body_append (response_body,
 				  SOUP_MEMORY_STATIC, "OK\r\n", 4);
-	soup_message_body_complete (sd->msg->response_body);
+	soup_message_body_complete (response_body);
 	soup_server_unpause_message (sd->server, sd->msg);
 	g_object_unref (sd->msg);
 
@@ -39,25 +42,29 @@ add_body_chunk (gpointer data)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
 	SlowData *sd;
+	SoupMessageHeaders *response_headers;
 
-	if (msg->method != SOUP_METHOD_GET) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_GET) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 	if (!strcmp (path, "/fast")) {
-		soup_message_set_response (msg, "text/plain",
-					   SOUP_MEMORY_STATIC, "OK\r\n", 4);
+		soup_server_message_set_response (msg, "text/plain",
+						  SOUP_MEMORY_STATIC, "OK\r\n", 4);
 		return;
 	}
 
-	soup_message_headers_set_encoding (msg->response_headers,
+	response_headers = soup_server_message_get_response_headers (msg);
+	soup_message_headers_set_encoding (response_headers,
 					   SOUP_ENCODING_CHUNKED);
 	g_object_ref (msg);
 	soup_server_pause_message (server, msg);

@@ -204,8 +204,9 @@ pw_free (char *pw)
 }
 
 static gboolean
-parse_basic (SoupMessage *msg, const char *header,
-	     char **username, char **password)
+parse_basic (const char *header,
+	     char      **username,
+	     char      **password)
 {
 	char *decoded, *colon;
 	gsize len, plen;
@@ -232,15 +233,16 @@ parse_basic (SoupMessage *msg, const char *header,
 }
 
 static char *
-soup_auth_domain_basic_accepts (SoupAuthDomain *domain, SoupMessage *msg,
-				const char *header)
+soup_auth_domain_basic_accepts (SoupAuthDomain    *domain,
+				SoupServerMessage *msg,
+				const char        *header)
 {
 	SoupAuthDomainBasicPrivate *priv =
 		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (domain));
 	char *username, *password;
 	gboolean ok = FALSE;
 
-	if (!parse_basic (msg, header, &username, &password))
+	if (!parse_basic (header, &username, &password))
 		return NULL;
 
 	if (priv->auth_callback) {
@@ -262,7 +264,8 @@ soup_auth_domain_basic_accepts (SoupAuthDomain *domain, SoupMessage *msg,
 }
 
 static char *
-soup_auth_domain_basic_challenge (SoupAuthDomain *domain, SoupMessage *msg)
+soup_auth_domain_basic_challenge (SoupAuthDomain    *domain,
+				  SoupServerMessage *msg)
 {
 	GString *challenge;
 
@@ -272,18 +275,18 @@ soup_auth_domain_basic_challenge (SoupAuthDomain *domain, SoupMessage *msg)
 }
 
 static gboolean
-soup_auth_domain_basic_check_password (SoupAuthDomain *domain,
-				       SoupMessage    *msg,
-				       const char     *username,
-				       const char     *password)
+soup_auth_domain_basic_check_password (SoupAuthDomain    *domain,
+				       SoupServerMessage *msg,
+				       const char        *username,
+				       const char        *password)
 {
 	const char *header;
 	char *msg_username, *msg_password;
 	gboolean ok;
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
 					       "Authorization");
-	if (!parse_basic (msg, header, &msg_username, &msg_password))
+	if (!parse_basic (header, &msg_username, &msg_password))
 		return FALSE;
 
 	ok = (!strcmp (username, msg_username) &&

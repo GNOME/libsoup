@@ -191,9 +191,11 @@ soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
 }
 
 static gboolean
-check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
-	       GHashTable *params, const char *username,
-	       const char *hex_urp)
+check_hex_urp (SoupAuthDomain    *domain,
+	       SoupServerMessage *msg,
+	       GHashTable        *params,
+	       const char        *username,
+	       const char        *hex_urp)
 {
 	const char *uri, *qop, *realm, *msg_username;
 	const char *nonce, *nc, *cnonce, *response;
@@ -210,7 +212,7 @@ check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
 	if (!uri)
 		return FALSE;
 
-	req_uri = soup_message_get_uri (msg);
+	req_uri = soup_server_message_get_uri (msg);
 	dig_uri = soup_uri_new (uri);
 	if (dig_uri) {
 		if (!soup_uri_equal (dig_uri, req_uri)) {
@@ -263,7 +265,8 @@ check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
 	soup_auth_digest_compute_hex_a1 (hex_urp,
 					 SOUP_AUTH_DIGEST_ALGORITHM_MD5,
 					 nonce, cnonce, hex_a1);
-	soup_auth_digest_compute_response (msg->method, uri,
+	soup_auth_digest_compute_response (soup_server_message_get_method (msg),
+					   uri,
 					   hex_a1,
 					   SOUP_AUTH_DIGEST_QOP_AUTH,
 					   nonce, cnonce, nonce_count,
@@ -272,8 +275,9 @@ check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
 }
 
 static char *
-soup_auth_domain_digest_accepts (SoupAuthDomain *domain, SoupMessage *msg,
-				 const char *header)
+soup_auth_domain_digest_accepts (SoupAuthDomain    *domain,
+				 SoupServerMessage *msg,
+				 const char        *header)
 {
 	SoupAuthDomainDigestPrivate *priv =
 		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (domain));
@@ -317,7 +321,8 @@ soup_auth_domain_digest_accepts (SoupAuthDomain *domain, SoupMessage *msg,
 }
 
 static char *
-soup_auth_domain_digest_challenge (SoupAuthDomain *domain, SoupMessage *msg)
+soup_auth_domain_digest_challenge (SoupAuthDomain    *domain,
+				   SoupServerMessage *msg)
 {
 	GString *str;
 
@@ -366,10 +371,10 @@ soup_auth_domain_digest_encode_password (const char *username,
 }
 
 static gboolean
-soup_auth_domain_digest_check_password (SoupAuthDomain *domain,
-					SoupMessage    *msg,
-					const char     *username,
-					const char     *password)
+soup_auth_domain_digest_check_password (SoupAuthDomain    *domain,
+					SoupServerMessage *msg,
+					const char        *username,
+					const char        *password)
 {
 	const char *header;
 	GHashTable *params;
@@ -377,7 +382,7 @@ soup_auth_domain_digest_check_password (SoupAuthDomain *domain,
 	char hex_urp[33];
 	gboolean accept;
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
 					       "Authorization");
 	if (!header || (strncmp (header, "Digest ", 7) != 0))
 		return FALSE;

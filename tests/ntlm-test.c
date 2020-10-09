@@ -55,19 +55,22 @@ clear_state (gpointer connections, GObject *ex_connection)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *client, gpointer data)
+server_callback (SoupServer        *server,
+		 SoupServerMessage *msg,
+		 const char        *path,
+		 GHashTable        *query,
+		 gpointer           data)
 {
 	TestServer *ts = data;
 	GSocket *socket;
 	const char *auth;
+	SoupMessageHeaders *request_headers;
 	NTLMServerState state, required_user = 0;
 	gboolean auth_required, not_found = FALSE;
 	gboolean basic_allowed = TRUE, ntlm_allowed = TRUE;
 
-	if (msg->method != SOUP_METHOD_GET) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_GET) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
@@ -86,10 +89,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (strstr (path, "/404"))
 		not_found = TRUE;
 
-	socket = soup_client_context_get_socket (client);
+	socket = soup_server_message_get_socket (msg);
 	state = GPOINTER_TO_INT (g_hash_table_lookup (ts->connections, socket));
-	auth = soup_message_headers_get_one (msg->request_headers,
-					     "Authorization");
+	request_headers = soup_server_message_get_request_headers (msg);
+	auth = soup_message_headers_get_one (request_headers, "Authorization");
 
 	if (auth) {
 		if (!strncmp (auth, "NTLM ", 5)) {
@@ -126,33 +129,36 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		auth_required = FALSE;
 
 	if (auth_required) {
-		soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
+		SoupMessageHeaders *response_headers;
 
+		soup_server_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED, NULL);
+
+		response_headers = soup_server_message_get_response_headers (msg);
 		if (basic_allowed && state != NTLM_RECEIVED_REQUEST) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "WWW-Authenticate",
 						     "Basic realm=\"ntlm-test\"");
 		}
 
 		if (ntlm_allowed && state == NTLM_RECEIVED_REQUEST) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "WWW-Authenticate",
 						     ts->ntlmssp ? ("NTLM " NTLMSSP_CHALLENGE) : ts->ntlmv2 ? ("NTLM " NTLMV2_CHALLENGE) : ("NTLM " NTLMV1_CHALLENGE));
 			state = NTLM_SENT_CHALLENGE;
 		} else if (ntlm_allowed) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "WWW-Authenticate", "NTLM");
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Connection", "close");
 		}
 	} else {
 		if (not_found)
-			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+			soup_server_message_set_status (msg, SOUP_STATUS_NOT_FOUND, NULL);
 		else {
-			soup_message_set_response (msg, "text/plain",
-						   SOUP_MEMORY_STATIC,
-						   "OK\r\n", 4);
-			soup_message_set_status (msg, SOUP_STATUS_OK);
+			soup_server_message_set_response (msg, "text/plain",
+							  SOUP_MEMORY_STATIC,
+							  "OK\r\n", 4);
+			soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 		}
 	}
 

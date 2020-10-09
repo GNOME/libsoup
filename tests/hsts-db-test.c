@@ -13,11 +13,16 @@ SoupURI *https_uri;
    test the Soup HSTS feature.
  */
 static void
-server_callback  (SoupServer *server, SoupMessage *msg,
-		  const char *path, GHashTable *query,
-		  SoupClientContext *context, gpointer data)
+server_callback  (SoupServer        *server,
+                  SoupServerMessage *msg,
+		  const char        *path,
+                  GHashTable        *query,
+		  gpointer           data)
 {
+        SoupMessageHeaders *response_headers;
 	const char *server_protocol = data;
+
+        response_headers = soup_server_message_get_response_headers (msg);
 
 	if (strcmp (server_protocol, "http") == 0) {
 		char *uri_string;
@@ -25,30 +30,30 @@ server_callback  (SoupServer *server, SoupMessage *msg,
 		soup_uri_set_path (uri, path);
 		uri_string = soup_uri_to_string (uri, FALSE);
 		fprintf (stderr, "server is redirecting to HTTPS\n");
-		soup_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY, uri_string);
+		soup_server_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY, uri_string);
 		soup_uri_free (uri);
 		g_free (uri_string);
 	} else if (strcmp (server_protocol, "https") == 0) {
-		soup_message_set_status (msg, SOUP_STATUS_OK);
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 		if (strcmp (path, "/long-lasting") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=31536000");
 		} else if (strcmp (path, "/two-seconds") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=2");
 		} else if (strcmp (path, "/delete") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=0");
 		} else if (strcmp (path, "/subdomains") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=31536000; includeSubDomains");
 		}
                 else if (strcmp (path, "/very-long-lasting") == 0) {
-			soup_message_headers_append (msg->response_headers,
+			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=631138519");
 		}
