@@ -79,7 +79,7 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 	server_processed_message = timeout = finished = FALSE;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (finished_cb), &finished);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_object_unref (msg);
 	while (!timeout)
 		g_usleep (100);
@@ -128,7 +128,7 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 	finished = FALSE;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (finished_cb), &finished);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (cancel_message_cb), session);
 
@@ -215,7 +215,7 @@ do_priority_tests (gconstpointer data)
 		soup_message_set_priority (msg, priorities[i]);
 		g_signal_connect (msg, "finished",
 				  G_CALLBACK (priority_test_finished_cb), &finished_count);
-		soup_session_send_async (session, msg, NULL, NULL, NULL);
+		soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 		g_object_unref (msg);
 	}
 

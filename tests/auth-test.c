@@ -311,7 +311,7 @@ do_pipelined_auth_test (void)
 
 		g_signal_connect (msg, "finished",
 				  G_CALLBACK (bug271540_finished), &i);
-		soup_session_send_async (session, msg, NULL, NULL, NULL);
+		soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 		g_object_unref (msg);
 	}
 	g_free (uri);
@@ -577,7 +577,7 @@ do_async_auth_good_password_test (void)
 	remaining++;
 	g_signal_connect (msg1, "finished",
 			  G_CALLBACK (async_finished), &remaining);
-	soup_session_send_async (session, msg1, NULL, NULL, NULL);
+	soup_session_send_async (session, msg1, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 
@@ -603,7 +603,7 @@ do_async_auth_good_password_test (void)
 	remaining++;
 	g_signal_connect (msg3, "finished",
 			  G_CALLBACK (async_finished), &remaining);
-	soup_session_send_async (session, msg3, NULL, NULL, NULL);
+	soup_session_send_async (session, msg3, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 
@@ -667,7 +667,7 @@ do_async_auth_bad_password_test (void)
 	remaining++;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_finished), &remaining);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 	soup_auth_authenticate (auth, "user1", "wrong");
@@ -722,7 +722,7 @@ do_async_auth_no_password_test (void)
 	remaining++;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_finished), &remaining);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 	soup_session_unpause_message (session, msg);
@@ -739,7 +739,7 @@ do_async_auth_no_password_test (void)
 	remaining++;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_finished), &remaining);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	soup_session_unpause_message (session, msg);
 
@@ -1427,7 +1427,7 @@ do_async_message_do_not_use_auth_cache_test (void)
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_no_auth_cache_finished), NULL);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
@@ -1569,7 +1569,8 @@ do_cancel_after_retry_test (void)
 
         uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
         msg = soup_message_new ("GET", uri);
-        soup_session_send_async (session, msg, cancellable, (GAsyncReadyCallback)request_send_cb, loop);
+        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
+				 (GAsyncReadyCallback)request_send_cb, loop);
         g_main_loop_run (loop);
 
         g_object_unref (msg);

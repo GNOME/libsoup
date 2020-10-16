@@ -3163,7 +3163,7 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 		 */
 		g_output_stream_splice_async (ostream, stream,
 					      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-					      G_PRIORITY_DEFAULT,
+					      g_task_get_priority (item->task),
 					      item->cancellable,
 					      send_async_spliced, item);
 		return;
@@ -3207,6 +3207,7 @@ async_send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 	if (item->task) {
 		item->io_started = TRUE;
 		soup_message_io_run_until_read_async (item->msg,
+						      g_task_get_priority (item->task),
 						      item->cancellable,
 						      (GAsyncReadyCallback)run_until_read_done,
 						      item);
@@ -3380,7 +3381,9 @@ async_respond_from_cache (SoupSession          *session,
 		data->item = item;
 		soup_message_queue_item_ref (item);
 		soup_message_disable_feature (conditional_msg, SOUP_TYPE_CACHE);
-		soup_session_send_async (session, conditional_msg, item->cancellable,
+		soup_session_send_async (session, conditional_msg,
+					 g_task_get_priority (item->task),
+					 item->cancellable,
 					 (GAsyncReadyCallback)conditional_get_ready_cb,
 					 data);
 
@@ -3399,6 +3402,7 @@ cancel_cancellable (G_GNUC_UNUSED GCancellable *cancellable, GCancellable *chain
  * soup_session_send_async:
  * @session: a #SoupSession
  * @msg: a #SoupMessage
+ * @io_priority: the I/O priority of the request
  * @cancellable: a #GCancellable
  * @callback: the callback to invoke
  * @user_data: data for @callback
@@ -3416,6 +3420,7 @@ cancel_cancellable (G_GNUC_UNUSED GCancellable *cancellable, GCancellable *chain
 void
 soup_session_send_async (SoupSession         *session,
 			 SoupMessage         *msg,
+			 int                  io_priority,
 			 GCancellable        *cancellable,
 			 GAsyncReadyCallback  callback,
 			 gpointer             user_data)
@@ -3438,6 +3443,7 @@ soup_session_send_async (SoupSession         *session,
 	}
 
 	item->task = g_task_new (session, item->cancellable, callback, user_data);
+	g_task_set_priority (item->task, io_priority);
 	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
 	/* Do not check for cancellations as we do not want to

@@ -143,7 +143,9 @@ soup_request_http_send_async (SoupRequest          *request,
 	GTask *task;
 
 	task = g_task_new (request, cancellable, callback, user_data);
-	soup_session_send_async (session, priv->msg, cancellable,
+	soup_session_send_async (session, priv->msg,
+				 G_PRIORITY_DEFAULT,
+				 cancellable,
 				 http_input_stream_ready_cb, task);
 }
 

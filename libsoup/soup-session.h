@@ -58,6 +58,7 @@ void            soup_session_abort            (SoupSession           *session);
 SOUP_AVAILABLE_IN_2_42
 void            soup_session_send_async       (SoupSession           *session,
 					       SoupMessage           *msg,
+					       int                    io_priority,
 					       GCancellable          *cancellable,
 					       GAsyncReadyCallback    callback,
 					       gpointer               user_data);

@@ -410,7 +410,8 @@ do_remove_feature_test (void)
 	soup_message_set_first_party (msg, first_party_uri);
 
 	loop = g_main_loop_new (NULL, TRUE);
-	soup_session_send_async (session, msg, NULL, (GAsyncReadyCallback)send_callback, loop);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+				 (GAsyncReadyCallback)send_callback, loop);
 	soup_session_remove_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 
 	g_main_loop_run(loop);

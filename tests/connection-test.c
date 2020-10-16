@@ -570,7 +570,7 @@ do_max_conns_test_for_session (SoupSession *session)
 		msgs[i] = soup_message_new_from_uri ("GET", base_uri);
 		g_signal_connect (msgs[i], "finished",
 				  G_CALLBACK (max_conns_message_complete), NULL);
-		soup_session_send_async (session, msgs[i], NULL, NULL, NULL);
+		soup_session_send_async (session, msgs[i], G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	}
 
 	g_main_loop_run (max_conns_loop);
@@ -589,7 +589,7 @@ do_max_conns_test_for_session (SoupSession *session)
 	soup_message_set_flags (msgs[i], flags | SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
 	g_signal_connect (msgs[i], "finished",
 			  G_CALLBACK (max_conns_message_complete), NULL);
-	soup_session_send_async (session, msgs[i], NULL, NULL, NULL);
+	soup_session_send_async (session, msgs[i], G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 
 	g_main_loop_run (max_conns_loop);
 	g_assert_cmpint (msgs_done, ==, MAX_CONNS + 1);
@@ -696,7 +696,7 @@ do_non_persistent_test_for_session (SoupSession *session)
 	soup_message_headers_append (msg->request_headers, "Connection", "close");
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (np_request_finished), loop);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 

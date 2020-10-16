@@ -106,7 +106,7 @@ do_fully_async_test (SoupSession *session,
 	/* Send the request */
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (fully_async_finished), &ad);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 
 	/* In a real program, we'd probably just return at this point.
 	 * Eventually the caller would return all the way to the main

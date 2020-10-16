@@ -163,7 +163,7 @@ test1_thread (gpointer user_data)
 	msg = soup_message_new ("GET", uri);
 	loop = g_main_loop_new (async_context, FALSE);
 	g_signal_connect (msg, "finished", G_CALLBACK (test1_finished), loop);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
 	/* We need one more iteration, because SoupMessage::finished is emitted
          * right before the message is unqueued.

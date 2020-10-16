@@ -54,6 +54,15 @@ soup_client_message_io_data_free (SoupClientMessageIOData *io)
 	g_slice_free (SoupClientMessageIOData, io);
 }
 
+static int
+soup_client_message_io_data_get_priority (SoupClientMessageIOData *io)
+{
+	if (!io->item->task)
+		return G_PRIORITY_DEFAULT;
+
+	return g_task_get_priority (io->item->task);
+}
+
 void
 soup_message_io_finished (SoupMessage *msg)
 {
@@ -409,7 +418,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 				g_output_stream_splice_async (io->body_ostream,
 							      msg->request_body_stream,
 							      G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
-							      G_PRIORITY_DEFAULT,
+							      soup_client_message_io_data_get_priority (client_io),
 							      cancellable,
 							      (GAsyncReadyCallback)request_body_stream_wrote_cb,
 							      g_object_ref (msg));
@@ -430,7 +439,8 @@ io_write (SoupMessage *msg, gboolean blocking,
 				io->async_wait = g_cancellable_new ();
 				g_main_context_push_thread_default (io->async_context);
 				g_output_stream_close_async (io->body_ostream,
-							     G_PRIORITY_DEFAULT, cancellable,
+							     soup_client_message_io_data_get_priority (client_io),
+							     cancellable,
 							     closed_async, g_object_ref (msg));
 				g_main_context_pop_thread_default (io->async_context);
 			}
@@ -837,6 +847,8 @@ soup_message_io_run (SoupMessage *msg,
 		io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), NULL,
 								 (SoupMessageIOSourceFunc)io_run_ready,
 								 NULL);
+		g_source_set_priority (io->io_source,
+				       soup_client_message_io_data_get_priority (client_io));
 		g_source_attach (io->io_source, io->async_context);
 	} else {
 		if (soup_message_get_io_data (msg) == client_io)
@@ -910,6 +922,7 @@ io_run_until_read_async (SoupMessage *msg,
                 io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), NULL,
 								 (SoupMessageIOSourceFunc)io_run_until_read_ready,
 								 task);
+		g_source_set_priority (io->io_source, g_task_get_priority (task));
                 g_source_attach (io->io_source, io->async_context);
                 return;
         }
@@ -923,6 +936,7 @@ io_run_until_read_async (SoupMessage *msg,
 
 void
 soup_message_io_run_until_read_async (SoupMessage        *msg,
+				      int                 io_priority,
                                       GCancellable       *cancellable,
                                       GAsyncReadyCallback callback,
                                       gpointer            user_data)
@@ -930,6 +944,7 @@ soup_message_io_run_until_read_async (SoupMessage        *msg,
         GTask *task;
 
         task = g_task_new (msg, cancellable, callback, user_data);
+	g_task_set_priority (task, io_priority);
         io_run_until_read_async (msg, task);
 }
 

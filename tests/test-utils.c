@@ -344,7 +344,8 @@ soup_test_session_async_send (SoupSession *session,
 
 	signal_id = g_signal_connect (msg, "finished",
 				      G_CALLBACK (on_message_finished), &message_finished);
-	soup_session_send_async (session, msg, NULL, (GAsyncReadyCallback)send_async_ready_cb, &body);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+				 (GAsyncReadyCallback)send_async_ready_cb, &body);
 
 	while (!message_finished)
 		g_main_context_iteration (async_context, TRUE);

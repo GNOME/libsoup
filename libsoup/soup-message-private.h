@@ -100,6 +100,7 @@ gboolean soup_message_io_run_until_read        (SoupMessage        *msg,
                                                 GCancellable       *cancellable,
                                                 GError            **error);
 void     soup_message_io_run_until_read_async  (SoupMessage        *msg,
+						int                 io_priority,
                                                 GCancellable       *cancellable,
                                                 GAsyncReadyCallback callback,
                                                 gpointer            user_data);

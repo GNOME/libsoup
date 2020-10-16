@@ -227,8 +227,8 @@ do_callback_unref_test (void)
 	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
 	soup_uri_free (bad_uri);
 
-	soup_session_send_async (session, one, NULL, NULL, NULL);
-	soup_session_send_async (session, two, NULL, NULL, NULL);
+	soup_session_send_async (session, one, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+	soup_session_send_async (session, two, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_object_unref (one);
 	g_object_unref (two);
 
@@ -476,7 +476,7 @@ do_early_abort_test (void)
 	loop = g_main_loop_new (context, TRUE);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (ea_msg_completed_one), loop);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_object_unref (msg);
 	g_main_context_iteration (context, FALSE);
 
@@ -714,7 +714,7 @@ do_cancel_while_reading_test_for_session (SoupSession *session)
 
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (set_done), &done);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	while (!done)
 		g_main_context_iteration (NULL, TRUE);
 	/* We need one more iteration, because SoupMessage::finished is emitted
@@ -871,7 +871,7 @@ do_pause_abort_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	soup_session_pause_message (session, msg);
 
 	g_object_add_weak_pointer (G_OBJECT (msg), &ptr);
@@ -940,7 +940,7 @@ do_pause_cancel_test (void)
 			  G_CALLBACK (pause_cancel_got_headers), session);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (pause_cancel_finished), &finished);
-	soup_session_send_async (session, msg, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (pause_cancel_loop);
 	g_assert_false (finished);
 
