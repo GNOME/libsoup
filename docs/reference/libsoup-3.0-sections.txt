@@ -397,6 +397,7 @@ SoupAuthDomainDigestClass
 <FILE>soup-session</FILE>
 <TITLE>SoupSession</TITLE>
 SoupSession
+SoupSessionError
 <SUBSECTION>
 soup_session_new
 soup_session_new_with_options
@@ -413,6 +414,13 @@ soup_session_cancel_message
 soup_session_send
 soup_session_send_async
 soup_session_send_finish
+<SUBSECTION>
+soup_session_read_uri
+soup_session_read_uri_async
+soup_session_read_uri_finish
+soup_session_load_uri_bytes
+soup_session_load_uri_bytes_async
+soup_session_load_uri_bytes_finish
 <SUBSECTION>
 soup_session_websocket_connect_async
 soup_session_websocket_connect_finish
@@ -458,9 +466,11 @@ SOUP_SESSION
 SOUP_SESSION_CLASS
 SOUP_SESSION_GET_CLASS
 SOUP_TYPE_SESSION
+SOUP_SESSION_ERROR
 SoupSessionClass
 soup_session_get_type
 soup_request_error_quark
+soup_session_error_quark
 <SUBSECTION Private>
 SoupSocket
 SoupConnection

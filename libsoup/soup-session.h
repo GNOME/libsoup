@@ -34,6 +34,17 @@ G_DECLARE_FINAL_TYPE (SoupSession, soup_session, SOUP, SESSION, GObject)
 #define SOUP_SESSION_HTTP_ALIASES       "http-aliases"
 #define SOUP_SESSION_HTTPS_ALIASES      "https-aliases"
 
+SOUP_AVAILABLE_IN_ALL
+GQuark soup_session_error_quark (void);
+#define SOUP_SESSION_ERROR soup_session_error_quark ()
+
+typedef enum {
+	SOUP_SESSION_ERROR_BAD_URI,
+	SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,
+	SOUP_SESSION_ERROR_PARSING,
+	SOUP_SESSION_ERROR_ENCODING
+} SoupSessionError;
+
 SOUP_AVAILABLE_IN_2_42
 SoupSession    *soup_session_new              (void);
 
@@ -109,6 +120,45 @@ SOUP_AVAILABLE_IN_2_28
 SoupSessionFeature *soup_session_get_feature_for_message(SoupSession        *session,
 							 GType               feature_type,
 							 SoupMessage        *msg);
+
+SOUP_AVAILABLE_IN_ALL
+GInputStream       *soup_session_read_uri               (SoupSession        *session,
+							 const char         *uri,
+							 GCancellable       *cancellable,
+							 goffset            *content_length,
+							 char              **content_type,
+							 GError            **error);
+SOUP_AVAILABLE_IN_ALL
+void                soup_session_read_uri_async         (SoupSession        *session,
+							 const char         *uri,
+							 int                 io_priority,
+							 GCancellable       *cancellable,
+							 GAsyncReadyCallback callback,
+							 gpointer            user_data);
+SOUP_AVAILABLE_IN_ALL
+GInputStream       *soup_session_read_uri_finish        (SoupSession        *session,
+							 GAsyncResult       *result,
+							 goffset            *content_length,
+							 char              **content_type,
+							 GError            **error);
+SOUP_AVAILABLE_IN_ALL
+GBytes             *soup_session_load_uri_bytes         (SoupSession        *session,
+							 const char         *uri,
+							 GCancellable       *cancellable,
+							 char              **content_type,
+							 GError            **error);
+SOUP_AVAILABLE_IN_ALL
+void                soup_session_load_uri_bytes_async   (SoupSession        *session,
+							 const char         *uri,
+							 int                 io_priority,
+							 GCancellable       *cancellable,
+							 GAsyncReadyCallback callback,
+							 gpointer            user_data);
+SOUP_AVAILABLE_IN_ALL
+GBytes             *soup_session_load_uri_bytes_finish  (SoupSession        *session,
+							 GAsyncResult       *result,
+							 char              **content_type,
+							 GError            **error);
 
 SOUP_AVAILABLE_IN_2_42
 SoupRequest     *soup_session_request          (SoupSession  *session,

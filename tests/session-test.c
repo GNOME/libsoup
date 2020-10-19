@@ -2,10 +2,12 @@
 
 #include "test-utils.h"
 
+static SoupURI *base_uri;
 static gboolean server_processed_message;
 static gboolean timeout;
 static GMainLoop *loop;
 static SoupMessagePriority expected_priorities[3];
+static GBytes *index_bytes;
 
 static gboolean
 timeout_cb (gpointer user_data)
@@ -31,6 +33,13 @@ server_handler (SoupServer        *server,
 		g_source_set_callback (timer, timeout_cb, &timeout, NULL);
 		g_source_attach (timer, context);
 		g_source_unref (timer);
+	} else if (!strcmp (path, "/index.txt")) {
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+		soup_server_message_set_response (msg, "text/plain",
+						  SOUP_MEMORY_STATIC,
+						  g_bytes_get_data (index_bytes, NULL),
+						  g_bytes_get_size (index_bytes));
+		return;
 	} else
 		server_processed_message = TRUE;
 
@@ -55,7 +64,7 @@ cancel_message_cb (SoupMessage *msg, gpointer session)
 }
 
 static void
-do_test_for_session (SoupSession *session, SoupURI *uri,
+do_test_for_session (SoupSession *session,
 		     gboolean queue_is_async,
 		     gboolean send_is_blocking,
 		     gboolean cancel_is_immediate)
@@ -68,14 +77,14 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 
 	debug_printf (1, "  queue_message\n");
 	debug_printf (2, "    requesting timeout\n");
-	timeout_uri = soup_uri_new_with_base (uri, "/request-timeout");
+	timeout_uri = soup_uri_new_with_base (base_uri, "/request-timeout");
 	msg = soup_message_new_from_uri ("GET", timeout_uri);
 	soup_uri_free (timeout_uri);
 	body = soup_test_session_send (session, msg, NULL, NULL);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 
-	msg = soup_message_new_from_uri ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", base_uri);
 	server_processed_message = timeout = finished = FALSE;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (finished_cb), &finished);
@@ -100,7 +109,7 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 	}
 
 	debug_printf (1, "  send_message\n");
-	msg = soup_message_new_from_uri ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", base_uri);
 	server_processed_message = local_timeout = FALSE;
 	timeout_id = g_idle_add_full (G_PRIORITY_HIGH, timeout_cb, &local_timeout, NULL);
 	body = soup_test_session_send (session, msg, NULL, NULL);
@@ -124,7 +133,7 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 		return;
 
 	debug_printf (1, "  cancel_message\n");
-	msg = soup_message_new_from_uri ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", base_uri);
 	finished = FALSE;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (finished_cb), &finished);
@@ -156,13 +165,12 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 }
 
 static void
-do_plain_tests (gconstpointer data)
+do_plain_tests (void)
 {
-	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	do_test_for_session (session, uri, TRUE, TRUE, FALSE);
+	do_test_for_session (session, TRUE, TRUE, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -183,9 +191,8 @@ priority_test_finished_cb (SoupMessage *msg,
 }
 
 static void
-do_priority_tests (gconstpointer data)
+do_priority_tests (void)
 {
-	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 	int i, finished_count = 0;
 	SoupMessagePriority priorities[] =
@@ -208,7 +215,7 @@ do_priority_tests (gconstpointer data)
 		char buf[5];
 
 		g_snprintf (buf, sizeof (buf), "%d", i);
-		msg_uri = soup_uri_new_with_base (uri, buf);
+		msg_uri = soup_uri_new_with_base (base_uri, buf);
 		msg = soup_message_new_from_uri ("GET", msg_uri);
 		soup_uri_free (msg_uri);
 
@@ -369,27 +376,207 @@ do_features_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+typedef enum {
+        SYNC = 1 << 0,
+        STREAM = 1 << 1
+} GetTestFlags;
+
+typedef struct {
+        GMainLoop *loop;
+        GBytes *body;
+        char *content_type;
+        GError *error;
+} GetAsyncData;
+
+static GBytes *
+stream_to_bytes (GInputStream *stream)
+{
+        GOutputStream *ostream;
+        GBytes *bytes;
+
+        ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+        g_output_stream_splice (ostream,
+                                stream,
+                                G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+                                G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                NULL, NULL);
+        bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
+        g_object_unref (ostream);
+
+        return bytes;
+}
+
+static void
+read_uri_async_ready_cb (SoupSession  *session,
+                         GAsyncResult *result,
+                         GetAsyncData *data)
+{
+        GInputStream *stream;
+        goffset content_length;
+
+        stream = soup_session_read_uri_finish (session, result,
+                                               &content_length,
+                                               &data->content_type,
+                                               &data->error);
+        if (stream) {
+                data->body = stream_to_bytes (stream);
+                if (content_length != -1)
+                        g_assert_cmpint (g_bytes_get_size (data->body), ==, content_length);
+                g_object_unref (stream);
+        }
+
+        g_main_loop_quit (data->loop);
+}
+
+static void
+load_uri_bytes_async_ready_cb (SoupSession  *session,
+                               GAsyncResult *result,
+                               GetAsyncData *data)
+{
+        data->body = soup_session_load_uri_bytes_finish (session, result,
+                                                         &data->content_type,
+                                                         &data->error);
+        g_main_loop_quit (data->loop);
+}
+
+static void
+do_read_uri_test (gconstpointer data)
+{
+        SoupURI *uri;
+        char *uri_string;
+        SoupSession *session;
+        GBytes *body = NULL;
+        char *content_type = NULL;
+        GError *error = NULL;
+        GetTestFlags flags = GPOINTER_TO_UINT (data);
+
+        session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+
+        uri = soup_uri_new_with_base (base_uri, "/index.txt");
+        uri_string = soup_uri_to_string (uri, FALSE);
+
+        if (flags & SYNC) {
+                if (flags & STREAM) {
+                        GInputStream *stream;
+                        goffset content_length = 0;
+
+                        stream = soup_session_read_uri (session, uri_string, NULL,
+                                                        &content_length,
+                                                        &content_type,
+                                                        &error);
+                        body = stream_to_bytes (stream);
+                        if (content_length != -1)
+                                g_assert_cmpint (g_bytes_get_size (body), ==, content_length);
+                        g_object_unref (stream);
+                } else {
+                        body = soup_session_load_uri_bytes (session, uri_string, NULL,
+                                                            &content_type, &error);
+                }
+        } else {
+                GetAsyncData data;
+                GMainContext *context;
+
+                memset (&data, 0, sizeof (GetAsyncData));
+
+                context = g_main_context_get_thread_default ();
+                data.loop = g_main_loop_new (context, TRUE);
+                if (flags & STREAM) {
+                        soup_session_read_uri_async (session, uri_string, G_PRIORITY_DEFAULT, NULL,
+                                                     (GAsyncReadyCallback)read_uri_async_ready_cb,
+                                                     &data);
+                } else {
+                        soup_session_load_uri_bytes_async (session, uri_string, G_PRIORITY_DEFAULT, NULL,
+                                                           (GAsyncReadyCallback)load_uri_bytes_async_ready_cb,
+                                                           &data);
+                }
+                g_main_loop_run (data.loop);
+                while (g_main_context_pending (context))
+                        g_main_context_iteration (context, FALSE);
+                g_main_loop_unref (data.loop);
+
+                body = data.body;
+                content_type = data.content_type;
+                if (data.error)
+                        g_propagate_error (&error, data.error);
+        }
+
+        g_assert_no_error (error);
+        g_assert_nonnull (body);
+        g_assert_cmpstr (content_type, ==, "text/plain");
+        g_assert_cmpmem (g_bytes_get_data (body, NULL), g_bytes_get_size (body),
+                         g_bytes_get_data (index_bytes, NULL), g_bytes_get_size (index_bytes));
+
+        g_bytes_unref (body);
+        g_free (content_type);
+        g_free (uri_string);
+        soup_uri_free (uri);
+
+        soup_test_session_abort_unref (session);
+}
+
+static struct {
+        const char *uri;
+        int expected_error;
+} get_error_tests[] = {
+        { "./foo", SOUP_SESSION_ERROR_BAD_URI },
+        { "http:/localhost/", SOUP_SESSION_ERROR_BAD_URI },
+        { "foo://host/path", SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME }
+};
+
+static void
+do_load_uri_error_tests (void)
+{
+        SoupSession *session;
+        guint i;
+
+        session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+
+        for (i = 0; i < G_N_ELEMENTS (get_error_tests); i++) {
+                GError *error = NULL;
+
+                g_assert_null (soup_session_load_uri_bytes (session, get_error_tests[i].uri, NULL, NULL, &error));
+                g_assert_error (error, SOUP_SESSION_ERROR, get_error_tests[i].expected_error);
+                g_error_free (error);
+        }
+
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	SoupURI *uri;
 	int ret;
 
 	test_init (argc, argv, NULL);
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
-	uri = soup_test_server_get_uri (server, "http", NULL);
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
+	index_bytes = soup_test_get_index ();
+ 	soup_test_register_resources ();
 
-	g_test_add_data_func ("/session/SoupSession", uri, do_plain_tests);
-	g_test_add_data_func ("/session/priority", uri, do_priority_tests);
+	g_test_add_func ("/session/SoupSession", do_plain_tests);
+	g_test_add_func ("/session/priority", do_priority_tests);
 	g_test_add_func ("/session/property", do_property_tests);
 	g_test_add_func ("/session/features", do_features_test);
+	g_test_add_data_func ("/session/read-uri/async",
+			      GINT_TO_POINTER (STREAM),
+			      do_read_uri_test);
+	g_test_add_data_func ("/session/read-uri/sync",
+			      GINT_TO_POINTER (SYNC | STREAM),
+			      do_read_uri_test);
+	g_test_add_data_func ("/session/load-uri/async",
+			      GINT_TO_POINTER (0),
+			      do_read_uri_test);
+	g_test_add_data_func ("/session/load-uri/sync",
+			      GINT_TO_POINTER (SYNC),
+			      do_read_uri_test);
+	g_test_add_func ("/session/load-uri/errors", do_load_uri_error_tests);
 
 	ret = g_test_run ();
 
-	soup_uri_free (uri);
+	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

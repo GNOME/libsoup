@@ -17,6 +17,7 @@
 #include "auth/soup-auth-ntlm.h"
 #include "cache/soup-cache-private.h"
 #include "soup-connection.h"
+#include "soup-directory-input-stream.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup-message-queue.h"
@@ -203,6 +204,26 @@ enum {
 
 	LAST_PROP
 };
+
+/**
+ * SOUP_SESSION_ERROR:
+ *
+ * A #GError domain for #SoupSession<!-- -->-related errors. Used with
+ * #SoupSessionError.
+ */
+/**
+ * SoupSessionError:
+ * @SOUP_SESSION_ERROR_BAD_URI: the URI could not be parsed
+ * @SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME: the URI scheme is not
+ *   supported by this #SoupSession
+ * @SOUP_SESSION_ERROR_PARSING: the server's response could not
+ *   be parsed
+ * @SOUP_SESSION_ERROR_ENCODING: the server's response was in an
+ *   unsupported format
+ *
+ * A #SoupSession error.
+ */
+G_DEFINE_QUARK (soup-session-error-quark, soup_session_error)
 
 static void
 soup_session_init (SoupSession *session)
@@ -3635,6 +3656,496 @@ soup_session_send (SoupSession   *session,
 
 	soup_message_queue_item_unref (item);
 	return stream;
+}
+
+typedef struct {
+        goffset content_length;
+        char *content_type;
+} SessionGetAsyncData;
+
+static void
+session_get_async_data_free (SessionGetAsyncData *data)
+{
+        g_free (data->content_type);
+        g_slice_free (SessionGetAsyncData, data);
+}
+
+static void
+session_get_async_data_set_content_type (SessionGetAsyncData *data,
+                                         const char          *content_type,
+                                         GHashTable          *params)
+{
+        GString *type;
+
+        type = g_string_new (content_type);
+        if (params) {
+                GHashTableIter iter;
+                gpointer key, value;
+
+                g_hash_table_iter_init (&iter, params);
+                while (g_hash_table_iter_next (&iter, &key, &value)) {
+                        g_string_append (type, "; ");
+                        soup_header_g_string_append_param (type, key, value);
+                }
+        }
+
+        g_free (data->content_type);
+        data->content_type = g_string_free (type, FALSE);
+}
+
+static void
+http_input_stream_ready_cb (SoupSession  *session,
+                            GAsyncResult *result,
+                            GTask        *task)
+{
+        GInputStream *stream;
+        GError *error = NULL;
+
+        stream = soup_session_send_finish (session, result, &error);
+        if (stream)
+                g_task_return_pointer (task, stream, g_object_unref);
+        else
+                g_task_return_error (task, error);
+        g_object_unref (task);
+}
+
+static void
+get_http_content_sniffed (SoupMessage         *msg,
+                          const char          *content_type,
+                          GHashTable          *params,
+                          SessionGetAsyncData *data)
+{
+        session_get_async_data_set_content_type (data, content_type, params);
+}
+
+static void
+get_http_got_headers (SoupMessage         *msg,
+                      SessionGetAsyncData *data)
+{
+        goffset content_length;
+        const char *content_type;
+        GHashTable *params = NULL;
+
+        content_length = soup_message_headers_get_content_length (msg->response_headers);
+        data->content_length = content_length != 0 ? content_length : -1;
+        content_type = soup_message_headers_get_content_type (msg->response_headers, &params);
+        session_get_async_data_set_content_type (data, content_type, params);
+        g_clear_pointer (&params, g_hash_table_destroy);
+}
+
+/**
+ * soup_session_read_uri_async:
+ * @session: a #SoupSession
+ * @uri: a URI, in string form
+ * @io_priority: the I/O priority of the request
+ * @cancellable: a #GCancellable
+ * @callback: the callback to invoke
+ * @user_data: data for @callback
+ *
+ * Asynchronously retrieve @uri.
+ *
+ * If the given @uri is not HTTP it will fail with %SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME
+ * error.
+ *
+ * When the operation is finished, @callback will be called. You can then
+ * call soup_session_read_uri_finish() to get the result of the operation.
+ */
+void
+soup_session_read_uri_async (SoupSession        *session,
+                             const char         *uri,
+                             int                 io_priority,
+                             GCancellable       *cancellable,
+                             GAsyncReadyCallback callback,
+                             gpointer            user_data)
+{
+        SoupSessionPrivate *priv;
+        GTask *task;
+        SoupURI *soup_uri;
+        SoupMessage *msg;
+        SessionGetAsyncData *data;
+
+        g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (uri != NULL);
+
+        task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_priority (task, io_priority);
+
+        soup_uri = soup_uri_new (uri);
+        if (!soup_uri) {
+                g_task_return_new_error (task,
+                                         SOUP_SESSION_ERROR,
+                                         SOUP_SESSION_ERROR_BAD_URI,
+                                         _("Could not parse URI “%s”"),
+                                         uri);
+                g_object_unref (task);
+                return;
+        }
+
+        priv = soup_session_get_instance_private (session);
+
+        if (!soup_uri_is_http (soup_uri, priv->http_aliases) &&
+            !soup_uri_is_https (soup_uri, priv->https_aliases)) {
+                g_task_return_new_error (task,
+                                         SOUP_SESSION_ERROR,
+                                         SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,
+                                         _("Unsupported URI scheme “%s”"),
+                                         soup_uri->scheme);
+                g_object_unref (task);
+                soup_uri_free (soup_uri);
+                return;
+        }
+
+        if (!SOUP_URI_VALID_FOR_HTTP (soup_uri)) {
+                g_task_return_new_error (task,
+                                         SOUP_SESSION_ERROR,
+                                         SOUP_SESSION_ERROR_BAD_URI,
+                                         _("Invalid “%s” URI: %s"),
+                                         soup_uri->scheme,
+                                         uri);
+                g_object_unref (task);
+                soup_uri_free (soup_uri);
+                return;
+        }
+
+        data = g_slice_new0 (SessionGetAsyncData);
+        g_task_set_task_data (task, data, (GDestroyNotify)session_get_async_data_free);
+
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
+        g_signal_connect (msg, "content-sniffed",
+                          G_CALLBACK (get_http_content_sniffed), data);
+        g_signal_connect (msg, "got-headers",
+                          G_CALLBACK (get_http_got_headers), data);
+        soup_session_send_async (session, msg,
+                                 g_task_get_priority (task),
+                                 g_task_get_cancellable (task),
+                                 (GAsyncReadyCallback)http_input_stream_ready_cb,
+                                 task);
+        g_object_unref (msg);
+        soup_uri_free (soup_uri);
+}
+
+/**
+ * soup_session_read_uri_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ * @content_length: (out) (nullable): location to store content length, or %NULL
+ * @content_type: (out) (nullable) (transfer full): location to store content type, or %NULL
+ * @error: return location for a #GError, or %NULL
+ *
+ * Finish an asynchronous operation started by soup_session_read_uri_async().
+ * If the content length is unknown -1 is returned in @content_length.
+ *
+ * Returns: (transfer full): a #GInputStream to read the contents from,
+ *    or %NULL in case of error.
+ */
+GInputStream *
+soup_session_read_uri_finish (SoupSession  *session,
+                              GAsyncResult *result,
+                              goffset      *content_length,
+                              char        **content_type,
+                              GError      **error)
+{
+        GTask *task;
+
+        g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+        g_return_val_if_fail (g_task_is_valid (result, session), NULL);
+
+        task = G_TASK (result);
+
+        if (!g_task_had_error (task) && (content_length || content_type)) {
+                SessionGetAsyncData *data;
+
+                data = g_task_get_task_data (task);
+                if (content_length)
+                        *content_length = data->content_length;
+                if (content_type) {
+                        *content_type = data->content_type;
+                        data->content_type = NULL;
+                }
+        }
+
+        return g_task_propagate_pointer (task, error);
+}
+
+/**
+ * soup_session_read_uri:
+ * @session: a #SoupSession
+ * @uri: a URI, in string form
+ * @cancellable: a #GCancellable
+ * @content_length: (out) (nullable): location to store content length, or %NULL
+ * @content_type: (out) (nullable) (transfer full): location to store content type, or %NULL
+ * @error: return location for a #GError, or %NULL
+ *
+ * Synchronously retrieve @uri and return a #GInputStream to read the contents.
+ * If the content length is unknown -1 is returned in @content_length.
+ *
+ * If the given @uri is not HTTP it will fail with %SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME
+ * error.
+ *
+ * Returns: (transfer full): a #GInputStream to read the contents from,
+ *    or %NULL in case of error.
+ */
+GInputStream *
+soup_session_read_uri (SoupSession  *session,
+                       const char   *uri,
+                       GCancellable *cancellable,
+                       goffset      *content_length,
+                       char        **content_type,
+                       GError      **error)
+{
+        SoupSessionPrivate *priv;
+        SoupURI *soup_uri;
+        SoupMessage *msg;
+        GInputStream *stream;
+        SessionGetAsyncData data = { 0, NULL };
+
+        g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+        g_return_val_if_fail (uri != NULL, NULL);
+
+        soup_uri = soup_uri_new (uri);
+        if (!soup_uri) {
+                g_set_error (error,
+                             SOUP_SESSION_ERROR,
+                             SOUP_SESSION_ERROR_BAD_URI,
+                             _("Could not parse URI “%s”"),
+                             uri);
+
+                return NULL;
+        }
+
+        priv = soup_session_get_instance_private (session);
+
+        if (!soup_uri_is_http (soup_uri, priv->http_aliases) &&
+            !soup_uri_is_https (soup_uri, priv->https_aliases)) {
+                g_set_error (error,
+                             SOUP_SESSION_ERROR,
+                             SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,
+                             _("Unsupported URI scheme “%s”"),
+                             soup_uri->scheme);
+                soup_uri_free (soup_uri);
+
+                return NULL;
+        }
+
+        if (!SOUP_URI_VALID_FOR_HTTP (soup_uri)) {
+                g_set_error (error,
+                             SOUP_SESSION_ERROR,
+                             SOUP_SESSION_ERROR_BAD_URI,
+                             _("Invalid “%s” URI: %s"),
+                             soup_uri->scheme,
+                             uri);
+                soup_uri_free (soup_uri);
+
+                return NULL;
+        }
+
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
+        g_signal_connect (msg, "content-sniffed",
+                          G_CALLBACK (get_http_content_sniffed), &data);
+        g_signal_connect (msg, "got-headers",
+                          G_CALLBACK (get_http_got_headers), &data);
+        stream = soup_session_send (session, msg, cancellable, error);
+        if (stream) {
+                if (content_length)
+                        *content_length = data.content_length;
+                if (content_type) {
+                        *content_type = data.content_type;
+                        data.content_type = NULL;
+                }
+        }
+
+        g_free (data.content_type);
+        soup_uri_free (soup_uri);
+
+        return stream;
+}
+
+static void
+session_load_uri_async_splice_ready_cb (GOutputStream *ostream,
+                                        GAsyncResult  *result,
+                                        GTask         *task)
+{
+        GError *error = NULL;
+
+        if (g_output_stream_splice_finish (ostream, result, &error) != -1) {
+                g_task_return_pointer (task,
+                                       g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream)),
+                                       (GDestroyNotify)g_bytes_unref);
+        } else {
+                g_task_return_error (task, error);
+        }
+        g_object_unref (task);
+}
+
+static void
+session_read_uri_async_ready_cb (SoupSession  *session,
+                                 GAsyncResult *result,
+                                 GTask        *task)
+{
+        GInputStream *stream;
+        goffset content_length;
+        char *content_type;
+        GOutputStream *ostream;
+        GError *error = NULL;
+
+        stream = soup_session_read_uri_finish (session, result, &content_length, &content_type, &error);
+        if (!stream) {
+                g_task_return_error (task, error);
+                g_object_unref (task);
+
+                return;
+        }
+
+        g_task_set_task_data (task, content_type, g_free);
+
+        if (content_length == 0) {
+                g_task_return_pointer (task,
+                                       g_bytes_new_static (NULL, 0),
+                                       (GDestroyNotify)g_bytes_unref);
+                g_object_unref (task);
+                g_object_unref (stream);
+
+                return;
+        }
+
+        ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+        g_output_stream_splice_async (ostream,
+                                      stream,
+                                      G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+                                      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                      g_task_get_priority (task),
+                                      g_task_get_cancellable (task),
+                                      (GAsyncReadyCallback)session_load_uri_async_splice_ready_cb,
+                                      task);
+        g_object_unref (ostream);
+        g_object_unref (stream);
+}
+
+/**
+ * soup_session_load_uri_bytes_async:
+ * @session: a #SoupSession
+ * @uri: a URI, in string form
+ * @io_priority: the I/O priority of the request
+ * @cancellable: a #GCancellable
+ * @callback: the callback to invoke
+ * @user_data: data for @callback
+ *
+ * Asynchronously retrieve @uri to be returned as a #GBytes. This function
+ * is like soup_session_read_uri_async() but the contents are read and returned
+ * as a #GBytes. It should only be used when the resource to be retireved
+ * is not too long and can be stored in memory.
+ *
+ * If the given @uri is not HTTP it will fail with %SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME
+ * error.
+ *
+ * When the operation is finished, @callback will be called. You can then
+ * call soup_session_load_uri_bytes_finish() to get the result of the operation.
+ */
+void
+soup_session_load_uri_bytes_async (SoupSession        *session,
+                                   const char         *uri,
+                                   int                 io_priority,
+                                   GCancellable       *cancellable,
+                                   GAsyncReadyCallback callback,
+                                   gpointer            user_data)
+{
+        GTask *task;
+
+        g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (uri != NULL);
+
+        task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_priority (task, io_priority);
+        soup_session_read_uri_async (session, uri, io_priority, cancellable,
+                                     (GAsyncReadyCallback)session_read_uri_async_ready_cb,
+                                     task);
+}
+
+/**
+ * soup_session_load_uri_bytes_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ * @content_type: (out) (nullable) (transfer full): location to store content type, or %NULL
+ * @error: return location for a #GError, or %NULL
+ *
+ * Finish an asynchronous operation started by soup_session_load_uri_bytes_async().
+ *
+ * Returns: (transfer full): a #GBytes with the contents, or %NULL in case of error.
+ */
+GBytes *
+soup_session_load_uri_bytes_finish (SoupSession  *session,
+                                    GAsyncResult *result,
+                                    char        **content_type,
+                                    GError      **error)
+{
+        GTask *task;
+
+        g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+        g_return_val_if_fail (g_task_is_valid (result, session), NULL);
+
+        task = G_TASK (result);
+
+        if (!g_task_had_error (task) && content_type)
+                *content_type = g_strdup (g_task_get_task_data (task));
+
+        return g_task_propagate_pointer (task, error);
+}
+
+/**
+ * soup_session_load_uri_bytes:
+ * @session: a #SoupSession
+ * @uri: a URI, in string form
+ * @cancellable: a #GCancellable
+ * @content_type: (out) (nullable) (transfer full): location to store content type, or %NULL
+ * @error: return location for a #GError, or %NULL
+ *
+ * Synchronously retrieve @uri to be returned as a #GBytes. This function
+ * is like soup_session_read_uri() but the contents are read and returned
+ * as a #GBytes. It should only be used when the resource to be retireved
+ * is not too long and can be stored in memory.
+ *
+ * If the given @uri is not HTTP it will fail with %SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME
+ * error.
+ *
+ * Returns: (transfer full): a #GBytes with the contents, or %NULL in case of error.
+ */
+GBytes *
+soup_session_load_uri_bytes (SoupSession  *session,
+                             const char   *uri,
+                             GCancellable *cancellable,
+                             char        **content_type,
+                             GError      **error)
+{
+        GInputStream *stream;
+        GOutputStream *ostream;
+        goffset content_length;
+        GBytes *bytes = NULL;
+
+        g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+        g_return_val_if_fail (uri != NULL, NULL);
+
+        stream = soup_session_read_uri (session, uri, cancellable, &content_length, content_type, error);
+        if (!stream)
+                return NULL;
+
+        if (content_length == 0) {
+                g_object_unref (stream);
+
+                return g_bytes_new_static (NULL, 0);
+        }
+
+        ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+        if (g_output_stream_splice (ostream,
+                                    stream,
+                                    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+                                    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                    cancellable, error) != -1) {
+                bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
+        }
+        g_object_unref (ostream);
+        g_object_unref (stream);
+
+        return bytes;
 }
 
 /**
