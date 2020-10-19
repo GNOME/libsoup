@@ -148,7 +148,6 @@ do_request (SoupSession        *session,
 	    SoupMessageHeaders *response_headers,
 	    ...)
 {
-	SoupRequestHTTP *req;
 	SoupMessage *msg;
 	GInputStream *stream;
 	SoupURI *uri;
@@ -162,9 +161,8 @@ do_request (SoupSession        *session,
 	last_request_unqueued = FALSE;
 
 	uri = soup_uri_new_with_base (base_uri, path);
-	req = soup_session_request_http_uri (session, method, uri, NULL);
+	msg = soup_message_new_from_uri (method, uri);
 	soup_uri_free (uri);
-	msg = soup_request_http_get_message (req);
 
 	va_start (ap, response_headers);
 	while ((header = va_arg (ap, const char *))) {
@@ -174,12 +172,11 @@ do_request (SoupSession        *session,
 	}
 	va_end (ap);
 
-	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, 0, &error);
+	stream = soup_test_request_send (session, msg, NULL, 0, &error);
 	if (!stream) {
 		debug_printf (1, "    could not send request: %s\n",
 			      error->message);
 		g_error_free (error);
-		g_object_unref (req);
 		g_object_unref (msg);
 		return NULL;
 	}
@@ -204,15 +201,13 @@ do_request (SoupSession        *session,
 			      error->message);
 		g_clear_error (&error);
 	}
-	soup_test_request_close_stream (SOUP_REQUEST (req), stream,
-					NULL, &error);
+	soup_test_request_close_stream (stream, NULL, &error);
 	if (error) {
 		debug_printf (1, "    could not close stream: %s\n",
 			      error->message);
 		g_clear_error (&error);
 	}
 	g_object_unref (stream);
-	g_object_unref (req);
 
 	/* Cache writes are G_PRIORITY_LOW, so they won't have happened yet... */
 	soup_cache_flush ((SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE));
@@ -227,7 +222,7 @@ do_request_with_cancel (SoupSession          *session,
 			const char           *path,
 			SoupTestRequestFlags  flags)
 {
-	SoupRequestHTTP *req;
+	SoupMessage *msg;
 	GInputStream *stream;
 	SoupURI *uri;
 	GError *error = NULL;
@@ -237,21 +232,21 @@ do_request_with_cancel (SoupSession          *session,
 	cancelled_requests = 0;
 
 	uri = soup_uri_new_with_base (base_uri, path);
-	req = soup_session_request_http_uri (session, method, uri, NULL);
+	msg = soup_message_new_from_uri (method, uri);
 	soup_uri_free (uri);
 	cancellable = flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE ? g_cancellable_new () : NULL;
-	stream = soup_test_request_send (SOUP_REQUEST (req), cancellable, flags, &error);
+	stream = soup_test_request_send (session, msg, cancellable, flags, &error);
 	if (stream) {
 		debug_printf (1, "    could not cancel the request\n");
 		g_object_unref (stream);
-		g_object_unref (req);
+		g_object_unref (msg);
 		return;
 	} else
 		g_clear_error (&error);
 
 	g_clear_object (&cancellable);
 	g_clear_object (&stream);
-	g_clear_object (&req);
+	g_clear_object (&msg);
 
 	soup_cache_flush ((SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE));
 }
@@ -575,7 +570,7 @@ do_refcounting_test (gconstpointer data)
 	SoupSession *session;
 	SoupCache *cache;
 	char *cache_dir;
-	SoupRequestHTTP *req;
+	SoupMessage *msg;
 	GInputStream *stream, *base_stream;
 	SoupURI *uri;
 	GError *error = NULL;
@@ -595,19 +590,19 @@ do_refcounting_test (gconstpointer data)
 	cancelled_requests = 0;
 
 	uri = soup_uri_new_with_base (base_uri, "/1");
-	req = soup_session_request_http_uri (session, "GET", uri, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
 	flags = SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH | SOUP_TEST_REQUEST_CANCEL_MESSAGE;
-	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, flags, &error);
+	stream = soup_test_request_send (session, msg, NULL, flags, &error);
 	if (!stream) {
 		debug_printf (1, "    could not send request: %s\n",
 			      error->message);
 		g_error_free (error);
-		g_object_unref (req);
+		g_object_unref (msg);
 		return;
 	}
-	g_object_unref (req);
+	g_object_unref (msg);
 
 	base_stream = g_filter_input_stream_get_base_stream (G_FILTER_INPUT_STREAM (stream));
 

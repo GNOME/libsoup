@@ -315,91 +315,6 @@ do_timeout_test_for_session (SoupSession *session)
 }
 
 static void
-do_timeout_req_test_for_session (SoupSession *session)
-{
-	SoupRequest *req;
-	SoupMessage *msg;
-	GInputStream *stream;
-	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
-	SoupURI *timeout_uri;
-	GError *error = NULL;
-	int i;
-
-	g_signal_connect (session, "request-queued",
-			  G_CALLBACK (request_queued_socket_collector),
-			  &sockets);
-
-	debug_printf (1, "    First request\n");
-	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
-	req = soup_session_request_uri (session, timeout_uri, NULL);
-	soup_uri_free (timeout_uri);
-
-	stream = soup_test_request_send (req, NULL, 0, &error);
-	if (error) {
-		g_assert_no_error (error);
-		g_clear_error (&error);
-	} else {
-		soup_test_request_read_all (req, stream, NULL, &error);
-		if (error) {
-			g_assert_no_error (error);
-			g_clear_error (&error);
-		}
-
-		soup_test_request_close_stream (req, stream, NULL, &error);
-		if (error) {
-			g_assert_no_error (error);
-			g_clear_error (&error);
-		}
-		g_object_unref (stream);
-	}
-
-	if (sockets[1]) {
-		soup_test_assert (sockets[1] == NULL, "Message was retried");
-		sockets[1] = sockets[2] = sockets[3] = NULL;
-	}
-	g_object_unref (req);
-
-	/* The server will grab server_mutex before returning the response,
-	 * and release it when it's ready for us to send the second request.
-	 */
-	g_mutex_lock (&server_mutex);
-	g_mutex_unlock (&server_mutex);
-
-	debug_printf (1, "    Second request\n");
-	req = soup_session_request_uri (session, base_uri, NULL);
-
-	stream = soup_test_request_send (req, NULL, 0, &error);
-	if (error) {
-		g_assert_no_error (error);
-		g_clear_error (&error);
-	} else {
-		soup_test_request_close_stream (req, stream, NULL, &error);
-		if (error) {
-			g_assert_no_error (error);
-			g_clear_error (&error);
-		}
-		g_object_unref (stream);
-	}
-
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
-	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-
-	soup_test_assert (sockets[1] == sockets[0],
-			  "Message was not retried on existing connection");
-	soup_test_assert (sockets[2] != NULL,
-			  "Message was not retried after disconnect");
-	soup_test_assert (sockets[2] != sockets[1],
-			  "Message was retried on closed connection");
-	soup_test_assert (sockets[3] == NULL,
-			  "Message was retried again");
-	g_object_unref (msg);
-	g_object_unref (req);
-
-	for (i = 0; sockets[i]; i++)
-		g_object_unref (sockets[i]);
-}
-
-static void
 do_persistent_connection_timeout_test (void)
 {
 	SoupSession *session;
@@ -409,12 +324,6 @@ do_persistent_connection_timeout_test (void)
 	debug_printf (1, "  Normal session, message API\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_timeout_test_for_session (session);
-	soup_test_session_abort_unref (session);
-
-	debug_printf (1, "  Normal session, request API\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
-	do_timeout_req_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
 

@@ -195,95 +195,9 @@ do_message_api_test (SoupSession *session, TestCase *test)
 }
 
 static void
-do_request_api_test (SoupSession *session, TestCase *test)
-{
-	SoupURI *uri;
-	SoupRequestHTTP *reqh;
-	SoupMessage *msg;
-	TestRequest *treq;
-	GInputStream *stream;
-	GError *error = NULL;
-
-	if (test->bugref)
-		g_test_bug (test->bugref);
-
-	uri = soup_uri_new_with_base (base_uri, test->requests[0].path);
-	reqh = soup_session_request_http_uri (session,
-					      test->requests[0].method,
-					      uri, &error);
-	soup_uri_free (uri);
-	g_assert_no_error (error);
-	if (error) {
-		g_error_free (error);
-		return;
-	}
-
-	msg = soup_request_http_get_message (reqh);
-	if (msg->method == SOUP_METHOD_POST) {
-		GBytes *request_body;
-
-		request_body = g_bytes_new_static ("post body", strlen ("post body"));
-		soup_message_set_request_body_from_bytes (msg, "text/plain", request_body);
-		g_bytes_unref (request_body);
-	}
-
-	treq = &test->requests[0];
-	g_signal_connect (msg, "got_headers",
-			  G_CALLBACK (got_headers), &treq);
-	g_signal_connect (msg, "restarted",
-			  G_CALLBACK (restarted), &treq);
-
-	stream = soup_test_request_send (SOUP_REQUEST (reqh), NULL, 0, &error);
-
-	if (SOUP_STATUS_IS_TRANSPORT_ERROR (test->final_status) &&
-	    test->final_status != SOUP_STATUS_MALFORMED) {
-		g_assert_error (error, SOUP_HTTP_ERROR, test->final_status);
-		g_clear_error (&error);
-
-		g_assert_null (stream);
-		g_clear_object (&stream);
-
-		g_object_unref (msg);
-		g_object_unref (reqh);
-		return;
-	}
-
-	g_assert_no_error (error);
-	if (error) {
-		g_error_free (error);
-		g_object_unref (msg);
-		g_object_unref (reqh);
-		return;
-	}
-
-	soup_test_request_read_all (SOUP_REQUEST (reqh), stream, NULL, &error);
-	g_assert_no_error (error);
-	g_clear_error (&error);
-
-	soup_test_request_close_stream (SOUP_REQUEST (reqh), stream, NULL, &error);
-	g_assert_no_error (error);
-	g_clear_error (&error);
-	g_object_unref (stream);
-
-	if (test->final_status == SOUP_STATUS_MALFORMED)
-		g_assert_cmpint (msg->status_code, ==, test->requests[0].status_code);
-	else
-		g_assert_cmpint (msg->status_code, ==, test->final_status);
-
-	g_object_unref (msg);
-	g_object_unref (reqh);
-}
-
-static void
 do_async_msg_api_test (gconstpointer test)
 {
 	do_message_api_test (async_session, (TestCase *)test);
-}
-
-static void
-do_async_req_api_test (gconstpointer test)
-{
-	do_request_api_test (async_session, (TestCase *)test);
 }
 
 static void
@@ -429,12 +343,6 @@ main (int argc, char **argv)
 					tests[n].requests[0].method,
 					tests[n].requests[0].status_code);
 		g_test_add_data_func (path, &tests[n], do_async_msg_api_test);
-		g_free (path);
-
-		path = g_strdup_printf ("/redirect/req/%d-%s-%d", n,
-					tests[n].requests[0].method,
-					tests[n].requests[0].status_code);
-		g_test_add_data_func (path, &tests[n], do_async_req_api_test);
 		g_free (path);
 	}
 

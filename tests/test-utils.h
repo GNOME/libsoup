@@ -70,16 +70,15 @@ SoupURI     *soup_test_server_get_uri        (SoupServer            *server,
 					      const char            *host);
 void         soup_test_server_quit_unref     (SoupServer            *server);
 
-GInputStream *soup_test_request_send         (SoupRequest  *req,
+GInputStream *soup_test_request_send         (SoupSession  *session,
+					      SoupMessage  *msg,
 					      GCancellable *cancellable,
 					      guint         flags,
 					      GError       **error);
-gboolean      soup_test_request_read_all     (SoupRequest   *req,
-					      GInputStream  *stream,
+gboolean      soup_test_request_read_all     (GInputStream  *stream,
 					      GCancellable  *cancellable,
 					      GError       **error);
-gboolean      soup_test_request_close_stream (SoupRequest   *req,
-					      GInputStream  *stream,
+gboolean      soup_test_request_close_stream (GInputStream  *stream,
 					      GCancellable  *cancellable,
 					      GError       **error);
 GBytes       *soup_test_session_send         (SoupSession   *session,

@@ -650,13 +650,15 @@ async_as_sync_callback (GObject      *object,
 }
 
 typedef struct {
-	SoupRequest  *req;
+	SoupSession *session;
+	SoupMessage  *msg;
 	GCancellable *cancellable;
 	SoupTestRequestFlags flags;
 } CancelData;
 
 static CancelData *
-create_cancel_data (SoupRequest          *req,
+create_cancel_data (SoupSession          *session,
+		    SoupMessage          *msg,
 		    GCancellable         *cancellable,
 		    SoupTestRequestFlags  flags)
 {
@@ -667,9 +669,10 @@ create_cancel_data (SoupRequest          *req,
 
 	cancel_data = g_slice_new0 (CancelData);
 	cancel_data->flags = flags;
-	if (flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE && SOUP_IS_REQUEST_HTTP (req))
-		cancel_data->req = g_object_ref (req);
-	else if (flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE)
+	if (flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE) {
+		cancel_data->session = session;
+		cancel_data->msg = g_object_ref (msg);
+	} else if (flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE)
 		cancel_data->cancellable = g_object_ref (cancellable);
 	return cancel_data;
 }
@@ -678,12 +681,11 @@ inline static void
 cancel_message_or_cancellable (CancelData *cancel_data)
 {
 	if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE) {
-		SoupRequest *req = cancel_data->req;
-		SoupMessage *msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
-		soup_session_cancel_message (soup_request_get_session (req), msg,
+		SoupMessage *msg = cancel_data->msg;
+
+		soup_session_cancel_message (cancel_data->session, msg,
 					     SOUP_STATUS_CANCELLED);
 		g_object_unref (msg);
-		g_object_unref (req);
 	} else if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE) {
 		g_cancellable_cancel (cancel_data->cancellable);
 		g_object_unref (cancel_data->cancellable);
@@ -699,14 +701,15 @@ cancel_request_timeout (gpointer data)
 }
 
 GInputStream *
-soup_test_request_send (SoupRequest   *req,
+soup_test_request_send (SoupSession   *session,
+			SoupMessage   *msg,
 			GCancellable  *cancellable,
 			guint          flags,
 			GError       **error)
 {
 	AsyncAsSyncData data;
 	GInputStream *stream;
-	CancelData *cancel_data = create_cancel_data (req, cancellable, flags);
+	CancelData *cancel_data = create_cancel_data (session, msg, cancellable, flags);
 
 	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
 	if (cancel_data &&
@@ -716,10 +719,11 @@ soup_test_request_send (SoupRequest   *req,
 	}
 	if (cancel_data && (flags & SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE))
 		cancel_message_or_cancellable (cancel_data);
-	soup_request_send_async (req, cancellable, async_as_sync_callback, &data);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
+				 async_as_sync_callback, &data);
 	g_main_loop_run (data.loop);
 
-	stream = soup_request_send_finish (req, data.result, error);
+	stream = soup_session_send_finish (session, data.result, error);
 
 	if (cancel_data && (flags &  SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH)) {
 		GMainContext *context;
@@ -738,8 +742,7 @@ soup_test_request_send (SoupRequest   *req,
 }
 
 gboolean
-soup_test_request_read_all (SoupRequest   *req,
-			    GInputStream  *stream,
+soup_test_request_read_all (GInputStream  *stream,
 			    GCancellable  *cancellable,
 			    GError       **error)
 {
@@ -751,8 +754,8 @@ soup_test_request_read_all (SoupRequest   *req,
 
 	do {
                 g_input_stream_read_async (stream, buf, sizeof (buf),
-                                                G_PRIORITY_DEFAULT, cancellable,
-                                                async_as_sync_callback, &data);
+					   G_PRIORITY_DEFAULT, cancellable,
+					   async_as_sync_callback, &data);
                 g_main_loop_run (data.loop);
                 nread = g_input_stream_read_finish (stream, data.result, error);
                 g_object_unref (data.result);
@@ -764,8 +767,7 @@ soup_test_request_read_all (SoupRequest   *req,
 }
 
 gboolean
-soup_test_request_close_stream (SoupRequest   *req,
-				GInputStream  *stream,
+soup_test_request_close_stream (GInputStream  *stream,
 				GCancellable  *cancellable,
 				GError       **error)
 {

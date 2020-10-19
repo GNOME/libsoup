@@ -128,15 +128,13 @@ server_callback (SoupServer        *server,
 typedef struct {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupRequest *req;
 	GBytes *response;
 } CodingTestData;
 
 typedef enum {
 	CODING_TEST_DEFAULT     = 0,
 	CODING_TEST_NO_DECODER  = (1 << 0),
-	CODING_TEST_REQUEST_API = (1 << 1),
-	CODING_TEST_EMPTY       = (1 << 2)
+	CODING_TEST_EMPTY       = (1 << 1)
 } CodingTestType;
 
 typedef enum {
@@ -192,14 +190,7 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 		g_object_unref (msg);
 	}
 
-	if (test_type & CODING_TEST_REQUEST_API) {
-		SoupRequestHTTP *reqh;
-
-		reqh = soup_session_request_http_uri (data->session, "GET", uri, NULL);
-		data->req = SOUP_REQUEST (reqh);
-		data->msg = soup_request_http_get_message (reqh);
-	} else
-		data->msg = soup_message_new_from_uri ("GET", uri);
+	data->msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
 	if (test_type & CODING_TEST_NO_DECODER)
@@ -210,8 +201,6 @@ static void
 teardown_coding_test (CodingTestData *data, gconstpointer test_data)
 {
 	g_bytes_unref (data->response);
-
-	g_clear_object (&data->req);
 	g_object_unref (data->msg);
 
 	soup_test_session_abort_unref (data->session);
@@ -341,143 +330,6 @@ do_coding_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer test_
 }
 
 static void
-read_finished (GObject *stream, GAsyncResult *result, gpointer user_data)
-{
-	gssize *nread = user_data;
-	GError *error = NULL;
-
-	*nread = g_input_stream_read_finish (G_INPUT_STREAM (stream),
-					     result, &error);
-	g_assert_no_error (error);
-	g_clear_error (&error);
-}
-
-static void
-do_single_coding_req_test (CodingTestData *data,
-			   const char *expected_encoding,
-			   const char *expected_content_type,
-			   MessageContentStatus status)
-{
-	GInputStream *stream;
-	GByteArray *body;
-        GBytes *body_bytes;
-	guchar buf[1024];
-	gssize nread;
-	GError *error = NULL;
-
-	body = g_byte_array_new ();
-
-	stream = soup_test_request_send (data->req, NULL, 0, &error);
-	if (!stream) {
-		g_assert_no_error (error);
-		g_error_free (error);
-		return;
-	}
-
-	do {
-		nread = -2;
-		g_input_stream_read_async (stream, buf, sizeof (buf),
-					   G_PRIORITY_DEFAULT,
-					   NULL, read_finished, &nread);
-		while (nread == -2)
-			g_main_context_iteration (NULL, TRUE);
-
-		if (nread > 0)
-			g_byte_array_append (body, buf, nread);
-	} while (nread > 0);
-
-	soup_test_request_close_stream (data->req, stream, NULL, &error);
-	g_assert_no_error (error);
-	g_clear_error (&error);
-	g_object_unref (stream);
-
-        body_bytes = g_byte_array_free_to_bytes (body);
-	check_response (data, expected_encoding, expected_content_type, status, body_bytes);
-	g_bytes_unref (body_bytes);
-}
-
-static void
-do_coding_req_test_plain (CodingTestData *data, gconstpointer test_data)
-{
-	do_single_coding_req_test (data, NULL, "text/plain", EXPECT_NOT_DECODED);
-}
-
-static void
-do_coding_req_test_gzip (CodingTestData *data, gconstpointer test_data)
-{
-	do_single_coding_req_test (data, "gzip", "text/plain", EXPECT_DECODED);
-}
-
-static void
-do_coding_req_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
-{
-	g_test_bug ("606352");
-	g_test_bug ("676477");
-
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "trailing-junk");
-
-	do_single_coding_req_test (data, "gzip", "text/plain", EXPECT_DECODED);
-}
-
-static void
-do_coding_req_test_gzip_bad_server (CodingTestData *data, gconstpointer test_data)
-{
-	g_test_bug ("613361");
-
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "force-encode");
-	do_single_coding_req_test (data, "gzip", "text/plain", EXPECT_NOT_DECODED);
-}
-
-static void
-do_coding_req_test_deflate (CodingTestData *data, gconstpointer test_data)
-{
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "prefer-deflate-zlib");
-	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_DECODED);
-}
-
-static void
-do_coding_req_test_deflate_with_junk (CodingTestData *data, gconstpointer test_data)
-{
-	g_test_bug ("606352");
-	g_test_bug ("676477");
-
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
-	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_DECODED);
-}
-
-static void
-do_coding_req_test_deflate_bad_server (CodingTestData *data, gconstpointer test_data)
-{
-	g_test_bug ("613361");
-
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
-	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_NOT_DECODED);
-}
-
-static void
-do_coding_req_test_deflate_raw (CodingTestData *data, gconstpointer test_data)
-{
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "prefer-deflate-raw");
-	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_DECODED);
-}
-
-static void
-do_coding_req_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer test_data)
-{
-	g_test_bug ("613361");
-
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "force-encode, prefer-deflate-raw");
-	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_NOT_DECODED);
-}
-
-static void
 do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 {
 	GBytes *body;
@@ -489,16 +341,6 @@ do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, body);
 	g_bytes_unref (body);
-}
-
-static void
-do_coding_req_empty_test (CodingTestData *data, gconstpointer test_data)
-{
-	g_test_bug ("697527");
-
-	soup_message_headers_append (data->msg->request_headers,
-				     "X-Test-Options", "empty");
-	do_single_coding_req_test (data, "gzip", "text/plain", EXPECT_NOT_DECODED);
 }
 
 int
@@ -540,40 +382,9 @@ main (int argc, char **argv)
 		    GINT_TO_POINTER (CODING_TEST_DEFAULT),
 		    setup_coding_test, do_coding_test_deflate_raw_bad_server, teardown_coding_test);
 
-	g_test_add ("/coding/request/plain", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_NO_DECODER | CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_plain, teardown_coding_test);
-	g_test_add ("/coding/request/gzip", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_gzip, teardown_coding_test);
-	g_test_add ("/coding/request/gzip/with-junk", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_gzip_with_junk, teardown_coding_test);
-	g_test_add ("/coding/request/gzip/bad-server", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_gzip_bad_server, teardown_coding_test);
-	g_test_add ("/coding/request/deflate", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_deflate, teardown_coding_test);
-	g_test_add ("/coding/request/deflate/with-junk", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_deflate_with_junk, teardown_coding_test);
-	g_test_add ("/coding/request/deflate/bad-server", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_deflate_bad_server, teardown_coding_test);
-	g_test_add ("/coding/request/deflate-raw", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_deflate_raw, teardown_coding_test);
-	g_test_add ("/coding/request/deflate-raw/bad-server", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API),
-		    setup_coding_test, do_coding_req_test_deflate_raw_bad_server, teardown_coding_test);
-
 	g_test_add ("/coding/message/empty", CodingTestData,
 		    GINT_TO_POINTER (CODING_TEST_EMPTY),
 		    setup_coding_test, do_coding_msg_empty_test, teardown_coding_test);
-	g_test_add ("/coding/request/empty", CodingTestData,
-		    GINT_TO_POINTER (CODING_TEST_REQUEST_API | CODING_TEST_EMPTY),
-		    setup_coding_test, do_coding_req_empty_test, teardown_coding_test);
 
 	ret = g_test_run ();
 

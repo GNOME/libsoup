@@ -122,65 +122,6 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 }
 
 static void
-test_url_new_api (const char *url, int proxy, guint expected, gboolean close)
-{
-	SoupSession *session;
-	SoupMessage *msg;
-	SoupRequest *request;
-	GInputStream *stream;
-	GError *error = NULL;
-	gboolean noproxy = !!strstr (url, "localhost");
-
-	/* FIXME g_test_skip() FIXME g_test_bug ("675865") */
-	if (!tls_available && g_str_has_prefix (url, "https:"))
-		return;
-
-	debug_printf (1, "  GET (request API) %s via %s%s\n", url, proxy_names[proxy],
-		      close ? " (with Connection: close)" : "");
-	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN && !noproxy)
-		expected = SOUP_STATUS_PROXY_UNAUTHORIZED;
-
-	/* We create a new session for each request to ensure that
-	 * connections/auth aren't cached between tests.
-	 */
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
-					 SOUP_SESSION_SSL_STRICT, FALSE,
-					 NULL);
-
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (authenticate), NULL);
-
-	request = soup_session_request (session, url, NULL);
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
-
-	if (close) {
-		/* FIXME g_test_bug ("611663") */
-		g_signal_connect (msg, "starting",
-				  G_CALLBACK (set_close_on_connect), NULL);
-	}
-
-	stream = soup_test_request_send (request, NULL, 0, &error);
-	g_assert_no_error (error);
-	g_clear_error (&error);
-
-	if (stream) {
-		soup_test_request_close_stream (request, stream, NULL, &error);
-		g_assert_no_error (error);
-		g_clear_error (&error);
-		g_object_unref (stream);
-	}
-
-	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
-	soup_test_assert_message_status (msg, expected);
-
-	g_object_unref (msg);
-	g_object_unref (request);
-
-	soup_test_session_abort_unref (session);
-}
-
-static void
 do_proxy_test (SoupProxyTest *test)
 {
 	char *http_url, *https_url;
@@ -207,21 +148,14 @@ do_proxy_test (SoupProxyTest *test)
 	}
 
 	test_url (http_url, SIMPLE_PROXY, test->final_status, FALSE);
-	test_url_new_api (http_url, SIMPLE_PROXY, test->final_status, FALSE);
 	test_url (https_url, SIMPLE_PROXY, test->final_status, FALSE);
-	test_url_new_api (https_url, SIMPLE_PROXY, test->final_status, FALSE);
 
 	test_url (http_url, AUTH_PROXY, test->final_status, FALSE);
-	test_url_new_api (http_url, AUTH_PROXY, test->final_status, FALSE);
 	test_url (https_url, AUTH_PROXY, test->final_status, FALSE);
-	test_url_new_api (https_url, AUTH_PROXY, test->final_status, FALSE);
 	test_url (https_url, AUTH_PROXY, test->final_status, TRUE);
-	test_url_new_api (https_url, AUTH_PROXY, test->final_status, TRUE);
 
 	test_url (http_url, UNAUTH_PROXY, test->final_status, FALSE);
-	test_url_new_api (http_url, UNAUTH_PROXY, test->final_status, FALSE);
 	test_url (https_url, UNAUTH_PROXY, test->final_status, FALSE);
-	test_url_new_api (https_url, UNAUTH_PROXY, test->final_status, FALSE);
 
 	g_free (http_url);
 	g_free (https_url);
@@ -311,15 +245,13 @@ do_proxy_redirect_test (void)
 static void
 do_proxy_auth_request (const char *url, SoupSession *session, gboolean do_read)
 {
-	SoupRequest *request;
 	SoupMessage *msg;
 	GInputStream *stream;
 	GError *error = NULL;
 
-	request = soup_session_request (session, url, NULL);
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
+	msg = soup_message_new ("GET", url);
 
-	stream = soup_test_request_send (request, NULL, 0, &error);
+	stream = soup_test_request_send (session, msg, NULL, 0, &error);
 	g_assert_no_error (error);
 	g_clear_error (&error);
 
@@ -335,7 +267,7 @@ do_proxy_auth_request (const char *url, SoupSession *session, gboolean do_read)
 		} while (nread > 0);
 	}
 
-	soup_test_request_close_stream (request, stream, NULL, &error);
+	soup_test_request_close_stream (stream, NULL, &error);
 	g_assert_no_error (error);
 	g_clear_error (&error);
 	g_object_unref (stream);
@@ -344,7 +276,6 @@ do_proxy_auth_request (const char *url, SoupSession *session, gboolean do_read)
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	g_object_unref (msg);
-	g_object_unref (request);
 }
 
 static void

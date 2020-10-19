@@ -28,6 +28,7 @@ char *base_uri_string;
 SoupURI *base_uri;
 SoupMultipartInputStream *multipart;
 unsigned passes;
+GMainLoop *loop;
 
 
 /* This payload contains 4 different responses.
@@ -127,7 +128,6 @@ got_headers (SoupMessage *msg, int *headers_count)
 static void
 read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 {
-	GMainLoop *loop = (GMainLoop*)data;
 	GInputStream *stream = G_INPUT_STREAM (source);
 	GError *error = NULL;
 	gssize bytes_read;
@@ -150,18 +150,17 @@ read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 
 	g_input_stream_read_async (stream, buffer, READ_BUFFER_SIZE,
 				   G_PRIORITY_DEFAULT, NULL,
-				   read_cb, data);
+				   read_cb, NULL);
 }
 
 static void
 no_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
-	GMainLoop *loop = (GMainLoop*)data;
-	SoupRequest *request = SOUP_REQUEST (source);
+	SoupSession *session = SOUP_SESSION (source);
 	GError *error = NULL;
 	GInputStream* in;
 
-	in = soup_request_send_finish (request, res, &error);
+	in = soup_session_send_finish (session, res, &error);
 	g_assert_no_error (error);
 	if (error) {
 		g_main_loop_quit (loop);
@@ -170,7 +169,7 @@ no_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 
 	g_input_stream_read_async (in, buffer, READ_BUFFER_SIZE,
 				   G_PRIORITY_DEFAULT, NULL,
-				   read_cb, data);
+				   read_cb, NULL);
 }
 
 static void
@@ -212,7 +211,6 @@ check_read (gsize nread, unsigned passes)
 static void
 multipart_read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 {
-	GMainLoop *loop = (GMainLoop*)data;
 	GInputStream *in = G_INPUT_STREAM (source);
 	GError *error = NULL;
 	static gssize bytes_read_for_part = 0;
@@ -240,14 +238,14 @@ multipart_read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 		g_object_unref (in);
 
 		soup_multipart_input_stream_next_part_async (multipart, G_PRIORITY_DEFAULT, NULL,
-							     multipart_next_part_cb, data);
+							     multipart_next_part_cb, NULL);
 		return;
 	}
 
 	bytes_read_for_part += bytes_read;
 	g_input_stream_read_async (in, buffer, READ_BUFFER_SIZE,
 				   G_PRIORITY_DEFAULT, NULL,
-				   multipart_read_cb, data);
+				   multipart_read_cb, NULL);
 }
 
 static void
@@ -302,7 +300,6 @@ check_headers (SoupMultipartInputStream* multipart, unsigned passes)
 static void
 multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
-	GMainLoop *loop = (GMainLoop*)data;
 	GError *error = NULL;
 	GInputStream *in;
 	gsize read_size = READ_BUFFER_SIZE;
@@ -338,52 +335,46 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 static void
 multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
-	GMainLoop *loop = (GMainLoop*)data;
-	SoupRequest *request = SOUP_REQUEST (source);
+	SoupMessage *message = (SoupMessage*)data;
+	SoupSession *session = SOUP_SESSION (source);
 	GError *error = NULL;
 	GInputStream *in;
-	SoupMessage *message;
 
-	in = soup_request_send_finish (request, res, &error);
+	in = soup_session_send_finish (session, res, &error);
 	g_assert_no_error (error);
 	if (error) {
 		g_main_loop_quit (loop);
 		return;
 	}
 
-	message = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	multipart = soup_multipart_input_stream_new (message, in);
-	g_object_unref (message);
 	g_object_unref (in);
 
-	if (g_object_get_data (source, "multipart-small-reads"))
+	if (g_object_get_data (G_OBJECT (message), "multipart-small-reads"))
 		g_object_set_data (G_OBJECT (multipart), "multipart-small-reads", GINT_TO_POINTER(1));
 
 	soup_multipart_input_stream_next_part_async (multipart, G_PRIORITY_DEFAULT, NULL,
-						     multipart_next_part_cb, data);
+						     multipart_next_part_cb, NULL);
 }
 
 static void
 sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
-	GMainLoop *loop = (GMainLoop*)data;
-	SoupRequest *request = SOUP_REQUEST (source);
+	SoupMessage *message = (SoupMessage*)data;
+	SoupSession *session = SOUP_SESSION (source);
 	GError *error = NULL;
 	GInputStream *in;
-	SoupMessage *message;
 	char buffer[READ_BUFFER_SIZE];
 	gsize bytes_read;
 
-	in = soup_request_send_finish (request, res, &error);
+	in = soup_session_send_finish (session, res, &error);
 	g_assert_no_error (error);
 	if (error) {
 		g_main_loop_quit (loop);
 		return;
 	}
 
-	message = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	multipart = soup_multipart_input_stream_new (message, in);
-	g_object_unref (message);
 	g_object_unref (in);
 
 	while (TRUE) {
@@ -424,22 +415,14 @@ test_multipart (gconstpointer data)
 {
 	int headers_expected = 1, sniffed_expected = 1;
 	MultipartMode multipart_mode = GPOINTER_TO_INT (data);
-	SoupRequest* request;
 	SoupMessage *msg;
-	GMainLoop *loop;
 	int headers_count = 0;
 	int sniffed_count = 0;
 	GHashTable *params;
 	const char *content_type;
 	gboolean message_is_multipart = FALSE;
-	GError* error = NULL;
 
-	request = soup_session_request (session, base_uri_string, &error);
-	g_assert_no_error (error);
-	if (error)
-		return;
-
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
+	msg = soup_message_new ("GET", base_uri_string);
 
 	/* This is used to track the number of parts. */
 	passes = 0;
@@ -457,16 +440,18 @@ test_multipart (gconstpointer data)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (multipart_mode == ASYNC_MULTIPART)
-		soup_request_send_async (request, NULL, multipart_handling_cb, loop);
+		soup_session_send_async (session, msg, 0, NULL, multipart_handling_cb, msg);
 	else if (multipart_mode == ASYNC_MULTIPART_SMALL_READS) {
-		g_object_set_data (G_OBJECT (request), "multipart-small-reads", GINT_TO_POINTER(1));
-		soup_request_send_async (request, NULL, multipart_handling_cb, loop);
+		g_object_set_data (G_OBJECT (msg), "multipart-small-reads", GINT_TO_POINTER(1));
+		soup_session_send_async (session, msg, 0, NULL, multipart_handling_cb, msg);
 	} else if (multipart_mode == SYNC_MULTIPART)
-		soup_request_send_async (request, NULL, sync_multipart_handling_cb, loop);
+		soup_session_send_async (session, msg, 0, NULL, sync_multipart_handling_cb, msg);
 	else
-		soup_request_send_async (request, NULL, no_multipart_handling_cb, loop);
+		soup_session_send_async (session, msg, 0, NULL, no_multipart_handling_cb, NULL);
 
 	g_main_loop_run (loop);
+	while (g_main_context_pending (NULL))
+		g_main_context_iteration (NULL, FALSE);
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, &params);
 
@@ -482,8 +467,8 @@ test_multipart (gconstpointer data)
 	g_assert_cmpint (sniffed_count, ==, sniffed_expected);
 
 	g_object_unref (msg);
-	g_object_unref (request);
 	g_main_loop_unref (loop);
+	loop = NULL;
 }
 
 int

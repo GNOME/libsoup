@@ -254,94 +254,6 @@ do_callback_unref_test (void)
 	/* Otherwise, if we haven't crashed, we're ok. */
 }
 
-static void
-cur_one_completed (GObject *source, GAsyncResult *result, gpointer session)
-{
-	SoupRequest *one = SOUP_REQUEST (source);
-	GError *error = NULL;
-
-	debug_printf (2, "  Request 1 completed\n");
-	soup_request_send_finish (one, result, &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED);
-	g_clear_error (&error);
-
-	g_object_unref (session);
-}
-
-static gboolean
-cur_idle_quit (gpointer loop)
-{
-	g_main_loop_quit (loop);
-	return FALSE;
-}
-
-static void
-cur_two_completed (GObject *source, GAsyncResult *result, gpointer loop)
-{
-	SoupRequest *two = SOUP_REQUEST (source);
-	GError *error = NULL;
-
-	debug_printf (2, "  Request 2 completed\n");
-	soup_request_send_finish (two, result, &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED);
-	g_clear_error (&error);
-
-	g_idle_add (cur_idle_quit, loop); 
-}
-
-static void
-do_callback_unref_req_test (void)
-{
-	SoupServer *bad_server;
-	SoupSession *session;
-	SoupRequest *one, *two;
-	GMainLoop *loop;
-	SoupURI *bad_uri;
-
-	/* Get a guaranteed-bad URI */
-	bad_server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
-	bad_uri = soup_test_server_get_uri (bad_server, "http", NULL);
-	soup_test_server_quit_unref (bad_server);
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
-	g_object_add_weak_pointer (G_OBJECT (session), (gpointer *)&session);
-
-	loop = g_main_loop_new (NULL, TRUE);
-
-	one = soup_session_request_uri (session, bad_uri, NULL);
-	g_object_add_weak_pointer (G_OBJECT (one), (gpointer *)&one);
-	two = soup_session_request_uri (session, bad_uri, NULL);
-	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
-	soup_uri_free (bad_uri);
-
-	soup_request_send_async (one, NULL, cur_one_completed, session);
-	g_object_unref (one);
-	soup_request_send_async (two, NULL, cur_two_completed, loop);
-	g_object_unref (two);
-
-	g_main_loop_run (loop);
-	g_main_loop_unref (loop);
-
-	g_assert_null (session);
-	if (session) {
-		g_object_remove_weak_pointer (G_OBJECT (session), (gpointer *)&session);
-		g_object_unref (session);
-	}
-	g_assert_null (one);
-	if (one) {
-		g_object_remove_weak_pointer (G_OBJECT (one), (gpointer *)&one);
-		g_object_unref (one);
-	}
-	g_assert_null (two);
-	if (two) {
-		g_object_remove_weak_pointer (G_OBJECT (two), (gpointer *)&two);
-		g_object_unref (two);
-	}
-
-	/* Otherwise, if we haven't crashed, we're ok. */
-}
-
 /* SoupSession should clean up all signal handlers on a message after
  * it is finished, allowing the message to be reused if desired.
  */
@@ -525,118 +437,6 @@ do_early_abort_test (void)
 }
 
 static void
-ear_one_completed (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-	GError *error = NULL;
-
-	debug_printf (2, "  Request 1 completed\n");
-	soup_request_send_finish (SOUP_REQUEST (source), result, &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
-	g_clear_error (&error);
-}
-
-static void
-ear_two_completed (GObject *source, GAsyncResult *result, gpointer loop)
-{
-	GError *error = NULL;
-
-	debug_printf (2, "  Request 2 completed\n");
-	soup_request_send_finish (SOUP_REQUEST (source), result, &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
-	g_clear_error (&error);
-
-	g_main_loop_quit (loop);
-}
-
-static void
-ear_three_completed (GObject *source, GAsyncResult *result, gpointer loop)
-{
-	GError *error = NULL;
-
-	debug_printf (2, "  Request 3 completed\n");
-	soup_request_send_finish (SOUP_REQUEST (source), result, &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
-	g_clear_error (&error);
-
-	g_main_loop_quit (loop);
-}
-
-static void
-ear_message_starting (SoupMessage *msg, gpointer cancellable)
-{
-	g_cancellable_cancel (cancellable);
-}
-
-static void
-ear_request_queued (SoupSession *session, SoupMessage *msg,
-		    gpointer cancellable)
-{
-	g_signal_connect (msg, "starting",
-			  G_CALLBACK (ear_message_starting),
-			  cancellable);
-}
-
-static void
-do_early_abort_req_test (void)
-{
-	SoupSession *session;
-	SoupRequest *req;
-	GMainContext *context;
-	GMainLoop *loop;
-	GCancellable *cancellable;
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
-	req = soup_session_request_uri (session, base_uri, NULL);
-
-	context = g_main_context_default ();
-	loop = g_main_loop_new (context, TRUE);
-	soup_request_send_async (req, NULL, ear_one_completed, NULL);
-	g_object_unref (req);
-	g_main_context_iteration (context, FALSE);
-
-	soup_session_abort (session);
-	while (g_main_context_pending (context))
-		g_main_context_iteration (context, FALSE);
-	soup_test_session_abort_unref (session);
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
-	req = soup_session_request_uri (session, base_uri, NULL);
-
-	g_signal_connect (soup_request_http_get_message (SOUP_REQUEST_HTTP (req)),
-			  "network-event",
-			  G_CALLBACK (ea_message_network_event),
-			  session);
-	soup_request_send_async (req, NULL, ear_two_completed, loop);
-	g_main_loop_run (loop);
-	g_object_unref (req);
-
-	while (g_main_context_pending (context))
-		g_main_context_iteration (context, FALSE);
-
-	soup_test_session_abort_unref (session);
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
-	req = soup_session_request_uri (session, base_uri, NULL);
-
-	cancellable = g_cancellable_new ();
-	g_signal_connect (session, "request-queued",
-			  G_CALLBACK (ear_request_queued), cancellable);
-	soup_request_send_async (req, cancellable, ear_three_completed, loop);
-	g_main_loop_run (loop);
-	g_object_unref (req);
-	g_object_unref (cancellable);
-
-	while (g_main_context_pending (context))
-		g_main_context_iteration (context, FALSE);
-
-	soup_test_session_abort_unref (session);
-	g_main_loop_unref (loop);
-}
-
-static void
 do_one_accept_language_test (const char *language, const char *expected_header)
 {
 	SoupSession *session;
@@ -743,21 +543,21 @@ static void
 do_cancel_while_reading_req_test_for_session (SoupSession *session,
 					      guint flags)
 {
-	SoupRequest *req;
+	SoupMessage *msg;
 	SoupURI *uri;
 	GCancellable *cancellable;
 	GError *error = NULL;
 
 	uri = soup_uri_new_with_base (base_uri, "/slow");
-	req = soup_session_request_uri (session, uri, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
 	cancellable = g_cancellable_new ();
-	soup_test_request_send (req, cancellable, flags, &error);
+	soup_test_request_send (session, msg, cancellable, flags, &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
 
-	g_object_unref (req);
+	g_object_unref (msg);
 	g_object_unref (cancellable);
 }
 
@@ -987,10 +787,8 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/bigheader", do_host_big_header);
 	g_test_add_func ("/misc/host", do_host_test);
 	g_test_add_func ("/misc/callback-unref/msg", do_callback_unref_test);
-	g_test_add_func ("/misc/callback-unref/req", do_callback_unref_req_test);
 	g_test_add_func ("/misc/msg-reuse", do_msg_reuse_test);
 	g_test_add_func ("/misc/early-abort/msg", do_early_abort_test);
-	g_test_add_func ("/misc/early-abort/req", do_early_abort_req_test);
 	g_test_add_func ("/misc/accept-language", do_accept_language_test);
 	g_test_add_func ("/misc/cancel-while-reading/msg", do_cancel_while_reading_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/immediate", do_cancel_while_reading_immediate_req_test);

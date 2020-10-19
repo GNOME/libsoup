@@ -352,10 +352,8 @@ test_sniffing (const char *path, const char *expected_type)
 	SoupURI *uri;
 	SoupMessage *msg;
 	GBytes *body;
-	SoupRequest *req;
-	GInputStream *stream;
 	char *sniffed_type = NULL;
-	const char *req_sniffed_type;
+	char *uri_string;
 	GError *error = NULL;
 
 	uri = soup_uri_new_with_base (base_uri, path);
@@ -370,18 +368,14 @@ test_sniffing (const char *path, const char *expected_type)
 	g_bytes_unref (body);
 	g_object_unref (msg);
 
-	req = soup_session_request_uri (session, uri, NULL);
-	stream = soup_test_request_send (req, NULL, 0, &error);
-	if (stream) {
-		soup_test_request_close_stream (req, stream, NULL, &error);
-		g_object_unref (stream);
-	}
+	sniffed_type = NULL;
+	uri_string = soup_uri_to_string (uri, FALSE);
+	body = soup_session_load_uri_bytes (session, uri_string, NULL, &sniffed_type, &error);
 	g_assert_no_error (error);
-	g_clear_error (&error);
-
-	req_sniffed_type = soup_request_get_content_type (req);
-	g_assert_cmpstr (req_sniffed_type, ==, expected_type);
-	g_object_unref (req);
+	g_assert_cmpstr (sniffed_type, ==, expected_type);
+	g_free (sniffed_type);
+	g_free (uri_string);
+	g_bytes_unref (body);
 
 	soup_uri_free (uri);
 }
@@ -406,11 +400,7 @@ test_disabled (gconstpointer data)
 	SoupURI *uri;
 	SoupMessage *msg;
 	GBytes *body;
-	SoupRequest *req;
-	GInputStream *stream;
 	char *sniffed_type = NULL;
-	const char *sniffed_content_type;
-	GError *error = NULL;
 
 	g_test_bug ("574773");
 
@@ -429,25 +419,6 @@ test_disabled (gconstpointer data)
 	g_assert_null (sniffed_type);
 	g_bytes_unref (body);
 	g_object_unref (msg);
-
-	req = soup_session_request_uri (session, uri, NULL);
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
-	g_assert_false (soup_message_is_feature_disabled (msg, SOUP_TYPE_CONTENT_SNIFFER));
-	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
-	g_assert_true (soup_message_is_feature_disabled (msg, SOUP_TYPE_CONTENT_SNIFFER));
-	g_object_unref (msg);
-	stream = soup_test_request_send (req, NULL, 0, &error);
-	if (stream) {
-		soup_test_request_close_stream (req, stream, NULL, &error);
-		g_object_unref (stream);
-	}
-	g_assert_no_error (error);
-
-	sniffed_content_type = soup_request_get_content_type (req);
-	g_assert_cmpstr (sniffed_content_type, ==, NULL);
-
-	g_object_unref (req);
-
 	soup_uri_free (uri);
 }
 
