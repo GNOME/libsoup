@@ -160,36 +160,6 @@ GBytes             *soup_session_load_uri_bytes_finish  (SoupSession        *ses
 							 char              **content_type,
 							 GError            **error);
 
-SOUP_AVAILABLE_IN_2_42
-SoupRequest     *soup_session_request          (SoupSession  *session,
-						const char   *uri_string,
-						GError      **error);
-SOUP_AVAILABLE_IN_2_42
-SoupRequest     *soup_session_request_uri      (SoupSession  *session,
-						SoupURI      *uri,
-						GError      **error);
-SOUP_AVAILABLE_IN_2_42
-SoupRequestHTTP *soup_session_request_http     (SoupSession  *session,
-						const char   *method,
-						const char   *uri_string,
-						GError      **error);
-SOUP_AVAILABLE_IN_2_42
-SoupRequestHTTP *soup_session_request_http_uri (SoupSession  *session,
-						const char   *method,
-						SoupURI      *uri,
-						GError      **error);
-
-SOUP_AVAILABLE_IN_2_42
-GQuark soup_request_error_quark (void);
-#define SOUP_REQUEST_ERROR soup_request_error_quark ()
-
-typedef enum {
-	SOUP_REQUEST_ERROR_BAD_URI,
-	SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME,
-	SOUP_REQUEST_ERROR_PARSING,
-	SOUP_REQUEST_ERROR_ENCODING
-} SoupRequestError;
-
 SOUP_AVAILABLE_IN_2_50
 void                     soup_session_websocket_connect_async  (SoupSession          *session,
 								SoupMessage          *msg,

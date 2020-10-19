@@ -14,16 +14,7 @@
     <title>Tutorial</title>
     <xi:include href="build-howto.xml"/>
     <xi:include href="client-howto.xml"/>
-    <xi:include href="request-howto.xml"/>
     <xi:include href="server-howto.xml"/>
-  </chapter>
-
-  <chapter>
-    <title>Request API</title>
-    <xi:include href="xml/soup-request.xml"/>
-    <xi:include href="xml/soup-request-http.xml"/>
-    <xi:include href="xml/soup-request-file.xml"/>
-    <xi:include href="xml/soup-request-data.xml"/>
   </chapter>
 
   <chapter>

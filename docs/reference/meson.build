@@ -64,7 +64,6 @@ gnome.gtkdoc('libsoup-3.0',
   content_files: [
     'build-howto.xml',
     'client-howto.xml',
-    'request-howto.xml',
     'server-howto.xml'
   ]
 )

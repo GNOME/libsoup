@@ -364,15 +364,6 @@ do_features_test (void)
 	g_assert_null (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
 	g_slist_free (features);
 
-	/* HTTP, File and Data requests are always added */
-	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_HTTP));
-	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_FILE));
-	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_DATA));
-	soup_session_remove_feature_by_type (session, SOUP_TYPE_REQUEST_FILE);
-	g_assert_false (soup_session_has_feature (session, SOUP_TYPE_REQUEST_FILE));
-	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_HTTP));
-	g_assert_true (soup_session_has_feature (session, SOUP_TYPE_REQUEST_DATA));
-
 	soup_test_session_abort_unref (session);
 }
 

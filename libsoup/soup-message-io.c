@@ -483,8 +483,8 @@ parse_headers (SoupMessage  *msg,
 					  &version,
 					  &msg->status_code,
 					  &msg->reason_phrase)) {
-		g_set_error_literal (error, SOUP_REQUEST_ERROR,
-				     SOUP_REQUEST_ERROR_PARSING,
+		g_set_error_literal (error, SOUP_SESSION_ERROR,
+				     SOUP_SESSION_ERROR_PARSING,
 				     _("Could not parse HTTP response"));
 		return SOUP_STATUS_MALFORMED;
 	}
@@ -506,8 +506,8 @@ parse_headers (SoupMessage  *msg,
 		*encoding = soup_message_headers_get_encoding (msg->response_headers);
 
 	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
-		g_set_error_literal (error, SOUP_REQUEST_ERROR,
-				     SOUP_REQUEST_ERROR_ENCODING,
+		g_set_error_literal (error, SOUP_SESSION_ERROR,
+				     SOUP_SESSION_ERROR_ENCODING,
 				     _("Unrecognized HTTP response encoding"));
 		return SOUP_STATUS_MALFORMED;
 	}

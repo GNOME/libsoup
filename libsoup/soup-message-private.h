@@ -134,9 +134,6 @@ GInputStream *soup_message_setup_body_istream (GInputStream *body_stream,
 					       SoupSession *session,
 					       SoupProcessingStage start_at_stage);
 
-void soup_message_set_soup_request (SoupMessage *msg,
-				    SoupRequest *req);
-
 SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
 					     SoupConnection *conn);

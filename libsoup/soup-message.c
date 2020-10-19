@@ -26,12 +26,7 @@
  *
  * You would create a #SoupMessage with soup_message_new() or
  * soup_message_new_from_uri(), set up its
- * fields appropriately, and send it. If you are using the newer
- * #SoupRequest API, you would create a request with
- * soup_session_request_http() or soup_session_request_http_uri(), and
- * the returned #SoupRequestHTTP will already have an associated
- * #SoupMessage that you can retrieve via
- * soup_request_http_get_message().
+ * fields appropriately, and send it.
  *
  * Note that libsoup's terminology here does not quite match the HTTP
  * specification: in RFC 2616, an "HTTP-message" is
@@ -1743,37 +1738,6 @@ soup_message_get_https_status (SoupMessage           *msg,
 	if (errors)
 		*errors = priv->tls_errors;
 	return priv->tls_certificate != NULL;
-}
-
-void
-soup_message_set_soup_request (SoupMessage *msg,
-			       SoupRequest *req)
-{
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-
-	priv->request = req;
-}
-
-/**
- * soup_message_get_soup_request:
- * @msg: a #SoupMessage
- *
- * If @msg is associated with a #SoupRequest, this returns that
- * request. Otherwise it returns %NULL.
- *
- * Return value: (transfer none): @msg's associated #SoupRequest
- *
- * Since: 2.42
- */
-SoupRequest *
-soup_message_get_soup_request (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-
-	priv = soup_message_get_instance_private (msg);
-	return priv->request;
 }
 
 /**

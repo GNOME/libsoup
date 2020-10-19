@@ -51,7 +51,6 @@ tests = [
   ['ntlm', true, []],
   ['redirect', true, []],
   ['request-body', true, []],
-  ['resource', true, []],
   ['samesite', true, []],
   ['session', true, []],
   ['server-auth', true, []],

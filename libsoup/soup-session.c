@@ -56,15 +56,12 @@
  * logging HTTP traffic, #SoupContentDecoder provides support for
  * compressed response handling, and #SoupContentSniffer provides
  * support for HTML5-style response body content sniffing.
- * Additionally, subtypes of #SoupAuth and #SoupRequest can be added
- * as features, to add support for additional authentication and URI
- * types.
+ * Additionally, subtypes of #SoupAuth can be added
+ * as features, to add support for additional authentication types.
  *
  * All #SoupSessions are created with a #SoupAuthManager, and support
- * for %SOUP_TYPE_AUTH_BASIC and %SOUP_TYPE_AUTH_DIGEST. For
- * #SoupRequest types, #SoupRequestHTTP, #SoupRequestFile, and
- * #SoupRequestData are supported. Additionally, sessions using the
- * plain #SoupSession class (rather than one of its deprecated
+ * for %SOUP_TYPE_AUTH_BASIC and %SOUP_TYPE_AUTH_DIGEST. Additionally,
+ * sessions using the plain #SoupSession class (rather than one of its deprecated
  * subtypes) have a #SoupContentDecoder by default.
  **/
 
@@ -132,8 +129,6 @@ typedef struct {
 	GMainContext *async_context;
 
 	char **http_aliases, **https_aliases;
-
-	GHashTable *request_types;
 } SoupSessionPrivate;
 
 #define SOUP_IS_PLAIN_SESSION(o) (G_TYPE_FROM_INSTANCE (o) == SOUP_TYPE_SESSION)
@@ -271,12 +266,6 @@ soup_session_init (SoupSession *session)
                 */
         priv->proxy_use_default = TRUE;
         priv->tlsdb_use_default = TRUE;
-
-	priv->request_types = g_hash_table_new (soup_str_case_hash,
-						soup_str_case_equal);
-	soup_session_add_feature_by_type (session, SOUP_TYPE_REQUEST_HTTP);
-	soup_session_add_feature_by_type (session, SOUP_TYPE_REQUEST_FILE);
-	soup_session_add_feature_by_type (session, SOUP_TYPE_REQUEST_DATA);
 }
 
 static void
@@ -325,8 +314,6 @@ soup_session_finalize (GObject *object)
 
 	g_free (priv->http_aliases);
 	g_free (priv->https_aliases);
-
-	g_hash_table_destroy (priv->request_types);
 
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 
@@ -2131,8 +2118,7 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  *
  * If @feature_type is not a #SoupSessionFeature type, this gives each
  * existing feature on @session the chance to accept @feature_type as
- * a "subfeature". This can be used to add new #SoupAuth or
- * #SoupRequest types, for instance.
+ * a "subfeature". This can be used to add new #SoupAuth types, for instance.
  *
  * You can also add a feature to the session at construct time by
  * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
@@ -2157,16 +2143,6 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 		feature = g_object_new (feature_type, NULL);
 		soup_session_add_feature (session, feature);
 		g_object_unref (feature);
-	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
-		SoupRequestClass *request_class;
-		int i;
-
-		request_class = g_type_class_ref (feature_type);
-		for (i = 0; request_class->schemes[i]; i++) {
-			g_hash_table_insert (priv->request_types,
-					     (char *)request_class->schemes[i],
-					     GSIZE_TO_POINTER (feature_type));
-		}
 	} else {
 		GSList *f;
 
@@ -2233,17 +2209,6 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 				goto restart;
 			}
 		}
-	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
-		SoupRequestClass *request_class;
-		int i;
-
-		request_class = g_type_class_peek (feature_type);
-		if (!request_class)
-			return;
-		for (i = 0; request_class->schemes[i]; i++) {
-			g_hash_table_remove (priv->request_types,
-					     request_class->schemes[i]);
-		}
 	} else {
 		for (f = priv->features; f; f = f->next) {
 			if (soup_session_feature_remove_feature (f->data, feature_type))
@@ -2260,8 +2225,7 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
  *
  * Tests if @session has at a feature of type @feature_type (which can
  * be the type of either a #SoupSessionFeature, or else a subtype of
- * some class managed by another feature, such as #SoupAuth or
- * #SoupRequest).
+ * some class managed by another feature, such as #SoupAuth).
  *
  * Return value: %TRUE or %FALSE
  *
@@ -2281,22 +2245,6 @@ soup_session_has_feature (SoupSession *session,
 	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
 		for (f = priv->features; f; f = f->next) {
 			if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type))
-				return TRUE;
-		}
-	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
-		SoupRequestClass *request_class;
-		int i;
-
-		request_class = g_type_class_peek (feature_type);
-		if (!request_class)
-			return FALSE;
-
-		for (i = 0; request_class->schemes[i]; i++) {
-			gpointer type;
-
-			type = g_hash_table_lookup (priv->request_types,
-						    request_class->schemes[i]);
-			if (type && g_type_is_a (GPOINTER_TO_SIZE (type), feature_type))
 				return TRUE;
 		}
 	} else {
@@ -4147,190 +4095,6 @@ soup_session_load_uri_bytes (SoupSession  *session,
 
         return bytes;
 }
-
-/**
- * soup_session_request:
- * @session: a #SoupSession
- * @uri_string: a URI, in string form
- * @error: return location for a #GError, or %NULL
- *
- * Creates a #SoupRequest for retrieving @uri_string.
- *
- * Return value: (transfer full): a new #SoupRequest, or
- *   %NULL on error.
- *
- * Since: 2.42
- */
-SoupRequest *
-soup_session_request (SoupSession *session, const char *uri_string,
-		      GError **error)
-{
-	SoupURI *uri;
-	SoupRequest *req;
-
-	uri = soup_uri_new (uri_string);
-	if (!uri) {
-		g_set_error (error, SOUP_REQUEST_ERROR,
-			     SOUP_REQUEST_ERROR_BAD_URI,
-			     _("Could not parse URI “%s”"), uri_string);
-		return NULL;
-	}
-
-	req = soup_session_request_uri (session, uri, error);
-	soup_uri_free (uri);
-	return req;
-}
-
-/**
- * soup_session_request_uri:
- * @session: a #SoupSession
- * @uri: a #SoupURI representing the URI to retrieve
- * @error: return location for a #GError, or %NULL
- *
- * Creates a #SoupRequest for retrieving @uri.
- *
- * Return value: (transfer full): a new #SoupRequest, or
- *   %NULL on error.
- *
- * Since: 2.42
- */
-SoupRequest *
-soup_session_request_uri (SoupSession *session, SoupURI *uri,
-			  GError **error)
-{
-	SoupSessionPrivate *priv;
-	GType request_type;
-
-	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
-
-	priv = soup_session_get_instance_private (session);
-
-	request_type = (GType)GPOINTER_TO_SIZE (g_hash_table_lookup (priv->request_types, uri->scheme));
-	if (!request_type) {
-		g_set_error (error, SOUP_REQUEST_ERROR,
-			     SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME,
-			     _("Unsupported URI scheme “%s”"), uri->scheme);
-		return NULL;
-	}
-
-	return g_initable_new (request_type, NULL, error,
-			       "uri", uri,
-			       "session", session,
-			       NULL);
-}
-
-static SoupRequestHTTP *
-initialize_http_request (SoupRequest  *req,
-			 const char   *method,
-			 GError      **error)
-{
-	SoupRequestHTTP *http;
-	SoupMessage *msg;
-
-	if (!SOUP_IS_REQUEST_HTTP (req)) {
-		g_object_unref (req);
-		g_set_error (error, SOUP_REQUEST_ERROR,
-			     SOUP_REQUEST_ERROR_BAD_URI,
-			     _("Not an HTTP URI"));
-		return NULL;
-	}
-
-	http = SOUP_REQUEST_HTTP (req);
-	msg = soup_request_http_get_message (http);
-	g_object_set (G_OBJECT (msg),
-		      SOUP_MESSAGE_METHOD, method,
-		      NULL);
-	g_object_unref (msg);
-
-	return http;
-}
-
-/**
- * soup_session_request_http:
- * @session: a #SoupSession
- * @method: an HTTP method
- * @uri_string: a URI, in string form
- * @error: return location for a #GError, or %NULL
- *
- * Creates a #SoupRequest for retrieving @uri_string, which must be an
- * "http" or "https" URI (or another protocol listed in @session's
- * #SoupSession:http-aliases or #SoupSession:https-aliases).
- *
- * Return value: (transfer full): a new #SoupRequestHTTP, or
- *   %NULL on error.
- *
- * Since: 2.42
- */
-SoupRequestHTTP *
-soup_session_request_http (SoupSession  *session,
-			   const char   *method,
-			   const char   *uri_string,
-			   GError      **error)
-{
-	SoupRequest *req;
-
-	req = soup_session_request (session, uri_string, error);
-	if (!req)
-		return NULL;
-
-	return initialize_http_request (req, method, error);
-}
-
-/**
- * soup_session_request_http_uri:
- * @session: a #SoupSession
- * @method: an HTTP method
- * @uri: a #SoupURI representing the URI to retrieve
- * @error: return location for a #GError, or %NULL
- *
- * Creates a #SoupRequest for retrieving @uri, which must be an
- * "http" or "https" URI (or another protocol listed in @session's
- * #SoupSession:http-aliases or #SoupSession:https-aliases).
- *
- * Return value: (transfer full): a new #SoupRequestHTTP, or
- *   %NULL on error.
- *
- * Since: 2.42
- */
-SoupRequestHTTP *
-soup_session_request_http_uri (SoupSession  *session,
-			       const char   *method,
-			       SoupURI      *uri,
-			       GError      **error)
-{
-	SoupRequest *req;
-
-	req = soup_session_request_uri (session, uri, error);
-	if (!req)
-		return NULL;
-
-	return initialize_http_request (req, method, error);
-}
-
-/**
- * SOUP_REQUEST_ERROR:
- *
- * A #GError domain for #SoupRequest<!-- -->-related errors. Used with
- * #SoupRequestError.
- *
- * Since: 2.42
- */
-/**
- * SoupRequestError:
- * @SOUP_REQUEST_ERROR_BAD_URI: the URI could not be parsed
- * @SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME: the URI scheme is not
- *   supported by this #SoupSession
- * @SOUP_REQUEST_ERROR_PARSING: the server's response could not
- *   be parsed
- * @SOUP_REQUEST_ERROR_ENCODING: the server's response was in an
- *   unsupported format
- *
- * A #SoupRequest error.
- *
- * Since: 2.42
- */
-
-G_DEFINE_QUARK (soup-request-error-quark, soup_request_error)
 
 static GIOStream *
 steal_connection (SoupSession          *session,
