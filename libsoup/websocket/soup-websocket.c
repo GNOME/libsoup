@@ -155,11 +155,7 @@
  * Since: 2.50
  */
 
-GQuark
-soup_websocket_error_get_quark (void)
-{
-	return g_quark_from_static_string ("web-socket-error-quark");
-}
+G_DEFINE_QUARK (soup-websocket-error-quark, soup_websocket_error)
 
 static gboolean
 validate_key (const char *key)

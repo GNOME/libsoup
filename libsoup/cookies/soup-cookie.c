@@ -777,8 +777,9 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 		g_string_append (header, "; HttpOnly");
 }
 
-static const char *same_site_policy_string = "soup-same-site-policy";
-#define SAME_SITE_POLICY_QUARK (g_quark_from_static_string (same_site_policy_string))
+static GQuark soup_same_site_policy_quark (void);
+G_DEFINE_QUARK (soup-same-site-policy, soup_same_site_policy)
+#define SAME_SITE_POLICY_QUARK (soup_same_site_policy_quark())
 
 /**
  * soup_cookie_set_same_site_policy:

@@ -1153,7 +1153,7 @@ soup_websocket_close_code_get_type
 soup_websocket_connection_get_type
 soup_websocket_connection_type_get_type
 soup_websocket_data_type_get_type
-soup_websocket_error_get_quark
+soup_websocket_error_quark
 soup_websocket_error_get_type
 soup_websocket_state_get_type
 </SECTION>

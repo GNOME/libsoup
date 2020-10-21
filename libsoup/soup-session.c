@@ -3923,14 +3923,7 @@ soup_session_request_http_uri (SoupSession  *session,
  * Since: 2.42
  */
 
-GQuark
-soup_request_error_quark (void)
-{
-	static GQuark error;
-	if (!error)
-		error = g_quark_from_static_string ("soup_request_error_quark");
-	return error;
-}
+G_DEFINE_QUARK (soup-request-error-quark, soup_request_error)
 
 static GIOStream *
 steal_connection (SoupSession          *session,

@@ -131,14 +131,7 @@ soup_tld_domain_is_public_suffix (const char *domain)
  * Since: 2.40
  */
 
-GQuark
-soup_tld_error_quark (void)
-{
-	static GQuark error;
-	if (!error)
-		error = g_quark_from_static_string ("soup_tld_error_quark");
-	return error;
-}
+G_DEFINE_QUARK (soup-tld-error-quark, soup_tld_error)
 
 static const char *
 soup_tld_get_base_domain_internal (const char *hostname, GError **error)

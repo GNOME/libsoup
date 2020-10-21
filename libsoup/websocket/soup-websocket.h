@@ -24,9 +24,9 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_WEBSOCKET_ERROR (soup_websocket_error_get_quark ())
+#define SOUP_WEBSOCKET_ERROR (soup_websocket_error_quark ())
 SOUP_AVAILABLE_IN_2_50
-GQuark soup_websocket_error_get_quark (void) G_GNUC_CONST;
+GQuark soup_websocket_error_quark (void) G_GNUC_CONST;
 
 typedef enum {
 	SOUP_WEBSOCKET_ERROR_FAILED,
