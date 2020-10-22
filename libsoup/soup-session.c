@@ -976,6 +976,7 @@ soup_session_append_queue_item (SoupSession        *session,
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 	SoupSessionHost *host;
+	GSList *f;
 
 	soup_message_cleanup_response (msg);
 
@@ -995,6 +996,12 @@ soup_session_append_queue_item (SoupSession        *session,
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (message_restarted), item);
 
+	for (f = priv->features; f; f = g_slist_next (f)) {
+		SoupSessionFeature *feature = SOUP_SESSION_FEATURE (f->data);
+
+		g_object_ref (feature);
+		soup_session_feature_request_queued (feature, session, msg);
+	}
 	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 
 	soup_message_queue_item_ref (item);
@@ -1176,6 +1183,7 @@ soup_session_unqueue_item (SoupSession          *session,
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 	SoupConnection *dedicated_conn = NULL;
+	GSList *f;
 
 	if (item->conn) {
 		if (item->conn_is_dedicated)
@@ -1217,6 +1225,13 @@ soup_session_unqueue_item (SoupSession          *session,
 	 */
 	g_signal_handlers_disconnect_matched (item->msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, item);
+
+	for (f = priv->features; f; f = g_slist_next (f)) {
+		SoupSessionFeature *feature = SOUP_SESSION_FEATURE (f->data);
+
+		soup_session_feature_request_unqueued (feature, session, item->msg);
+		g_object_unref (feature);
+	}
 	g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, item->msg);
 	soup_message_queue_item_unref (item);
 }

@@ -50,7 +50,6 @@
  * #SoupCache implements a file-based cache for HTTP resources.
  */
 
-static SoupSessionFeatureInterface *soup_cache_default_feature_interface;
 static void soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 static SoupContentProcessorInterface *soup_cache_default_content_processor_interface;
@@ -755,17 +754,12 @@ attach (SoupSessionFeature *feature, SoupSession *session)
 	SoupCache *cache = SOUP_CACHE (feature);
 	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	priv->session = session;
-
-	soup_cache_default_feature_interface->attach (feature, session);
 }
 
 static void
 soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 					gpointer interface_data)
 {
-	soup_cache_default_feature_interface =
-		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
-
 	feature_interface->attach = attach;
 	feature_interface->request_queued = request_queued;
 }

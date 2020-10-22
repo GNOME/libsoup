@@ -50,7 +50,6 @@
  * Since: 2.42
  */
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
-static SoupSessionFeatureInterface *soup_session_feature_default_interface;
 
 enum {
 	AUTHENTICATE,
@@ -232,8 +231,6 @@ soup_auth_manager_attach (SoupSessionFeature *feature, SoupSession *session)
 
 	/* FIXME: should support multiple sessions */
 	priv->session = session;
-
-	soup_session_feature_default_interface->attach (feature, session);
 }
 
 static inline const char *
@@ -836,9 +833,6 @@ static void
 soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 					gpointer interface_data)
 {
-	soup_session_feature_default_interface =
-		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
-
 	feature_interface->attach = soup_auth_manager_attach;
 	feature_interface->request_queued = soup_auth_manager_request_queued;
 	feature_interface->request_unqueued = soup_auth_manager_request_unqueued;

@@ -130,7 +130,6 @@ enum {
 	LAST_PROP
 };
 
-static SoupSessionFeatureInterface *soup_logger_default_feature_interface;
 static void soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SoupLogger, soup_logger, G_TYPE_OBJECT,
@@ -760,17 +759,12 @@ soup_logger_feature_attach (SoupSessionFeature *feature,
 	SoupLoggerPrivate *priv = soup_logger_get_instance_private (SOUP_LOGGER (feature));
 
 	priv->session = session;
-
-	soup_logger_default_feature_interface->attach (feature, session);
 }
 
 static void
 soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 				  gpointer interface_data)
 {
-	soup_logger_default_feature_interface =
-		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
-
 	feature_interface->attach = soup_logger_feature_attach;
 	feature_interface->request_queued = soup_logger_request_queued;
 	feature_interface->request_unqueued = soup_logger_request_unqueued;

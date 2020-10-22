@@ -488,6 +488,8 @@ SOUP_TYPE_SESSION_FEATURE
 <SUBSECTION Private>
 soup_session_feature_attach
 soup_session_feature_detach
+soup_session_feature_request_queued
+soup_session_feature_request_unqueued
 soup_session_feature_add_feature
 soup_session_feature_has_feature
 soup_session_feature_remove_feature
