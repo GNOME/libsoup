@@ -227,9 +227,9 @@ do_content_length_framing_test (void)
 }
 
 static void
-request_started_socket_collector (SoupSession *session, SoupMessage *msg, gpointer user_data)
+message_started_socket_collector (SoupMessage *msg,
+				  SoupSocket **sockets)
 {
-	SoupSocket **sockets = user_data;
         SoupConnection *conn = soup_message_get_connection (msg);
         SoupSocket *socket = soup_connection_get_socket (conn);
 	int i;
@@ -252,6 +252,16 @@ request_started_socket_collector (SoupSession *session, SoupMessage *msg, gpoint
 }
 
 static void
+request_queued_socket_collector (SoupSession *session,
+				 SoupMessage *msg,
+				 gpointer     data)
+{
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (message_started_socket_collector),
+			  data);
+}
+
+static void
 do_timeout_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
@@ -260,8 +270,8 @@ do_timeout_test_for_session (SoupSession *session)
 	int i;
 	GBytes *body;
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (request_started_socket_collector),
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (request_queued_socket_collector),
 			  &sockets);
 
 	debug_printf (1, "    First message\n");
@@ -315,8 +325,8 @@ do_timeout_req_test_for_session (SoupSession *session)
 	GError *error = NULL;
 	int i;
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (request_started_socket_collector),
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (request_queued_socket_collector),
 			  &sockets);
 
 	debug_printf (1, "    First request\n");
@@ -409,12 +419,6 @@ do_persistent_connection_timeout_test (void)
 }
 
 static void
-cancel_cancellable_handler (SoupSession *session, SoupMessage *msg, gpointer user_data)
-{
-	g_cancellable_cancel (user_data);
-}
-
-static void
 do_persistent_connection_timeout_test_with_cancellation (void)
 {
 	SoupSession *session;
@@ -428,8 +432,8 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (request_started_socket_collector),
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (request_queued_socket_collector),
 			  &sockets);
 
 	debug_printf (1, "    First message\n");
@@ -467,9 +471,9 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 
 	/* Cancel the cancellable in the signal handler, and then check that it
 	 * was not reset below */
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (cancel_cancellable_handler),
-			  cancellable);
+	g_signal_connect_swapped (msg, "starting",
+				  G_CALLBACK (g_cancellable_cancel),
+				  cancellable);
 
 	response = soup_session_send (session, msg, cancellable, NULL);
 
@@ -520,13 +524,25 @@ quit_loop (gpointer data)
 }
 
 static void
-max_conns_request_started (SoupSession *session, SoupMessage *msg, gpointer user_data)
+max_conns_message_started (SoupMessage *msg)
 {
+	g_signal_handlers_disconnect_by_func (msg, max_conns_message_started, NULL);
+
 	if (++msgs_done >= MAX_CONNS) {
-		if (quit_loop_timeout)
-			g_source_remove (quit_loop_timeout);
-		quit_loop_timeout = g_timeout_add (100, quit_loop, NULL);
-	}
+                if (quit_loop_timeout)
+                        g_source_remove (quit_loop_timeout);
+	        quit_loop_timeout = g_timeout_add (100, quit_loop, NULL);
+        }
+}
+
+static void
+max_conns_request_queued (SoupSession *session,
+			  SoupMessage *msg,
+			  gpointer     data)
+{
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (max_conns_message_started),
+			  data);
 }
 
 static void
@@ -547,8 +563,8 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	g_mutex_lock (&server_mutex);
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (max_conns_request_started), NULL);
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (max_conns_request_queued), NULL);
 	msgs_done = 0;
 	for (i = 0; i < TEST_CONNS - 1; i++) {
 		msgs[i] = soup_message_new_from_uri ("GET", base_uri);
@@ -564,6 +580,9 @@ do_max_conns_test_for_session (SoupSession *session)
 		g_source_remove (quit_loop_timeout);
 	quit_loop_timeout = g_timeout_add (1000, quit_loop, NULL);
 
+	for (i = 0; i < TEST_CONNS - 1; i++)
+		g_signal_handlers_disconnect_by_func (msgs[i], max_conns_message_started, NULL);
+
 	/* Message with SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS should start */
 	msgs[i] = soup_message_new_from_uri ("GET", base_uri);
 	flags = soup_message_get_flags (msgs[i]);
@@ -574,7 +593,7 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	g_main_loop_run (max_conns_loop);
 	g_assert_cmpint (msgs_done, ==, MAX_CONNS + 1);
-	g_signal_handlers_disconnect_by_func (session, max_conns_request_started, NULL);
+	g_signal_handlers_disconnect_by_func (session, max_conns_request_queued, NULL);
 
 	msgs_done = 0;
 	g_idle_add (idle_start_server, NULL);
@@ -620,13 +639,23 @@ do_max_conns_test (void)
 }
 
 static void
-np_request_started (SoupSession *session, SoupMessage *msg, gpointer user_data)
+np_message_started (SoupMessage *msg,
+		    SoupSocket **save_socket)
 {
-	SoupSocket **save_socket = user_data;
         SoupConnection *conn = soup_message_get_connection (msg);
         SoupSocket *socket = soup_connection_get_socket (conn);
 
 	*save_socket = g_object_ref (socket);
+}
+
+static void
+np_request_queued (SoupSession *session,
+		   SoupMessage *msg,
+		   gpointer     data)
+{
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (np_message_started),
+			  data);
 }
 
 static void
@@ -656,8 +685,8 @@ do_non_persistent_test_for_session (SoupSession *session)
 
 	loop = g_main_loop_new (NULL, FALSE);
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (np_request_started),
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (np_request_queued),
 			  &socket);
 	g_signal_connect (session, "request-unqueued",
 			  G_CALLBACK (np_request_unqueued),
@@ -697,8 +726,8 @@ do_non_idempotent_test_for_session (SoupSession *session)
 	int i;
 	GBytes *body;
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (request_started_socket_collector),
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (request_queued_socket_collector),
 			  &sockets);
 
 	debug_printf (2, "    GET\n");
