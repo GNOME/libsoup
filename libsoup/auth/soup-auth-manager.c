@@ -749,8 +749,7 @@ auth_msg_starting (SoupMessage *msg, gpointer manager)
 
 static void
 soup_auth_manager_request_queued (SoupSessionFeature *manager,
-				  SoupSession *session,
-				  SoupMessage *msg)
+				  SoupMessage        *msg)
 {
 	g_signal_connect (msg, "starting",
 			  G_CALLBACK (auth_msg_starting), manager);
@@ -772,8 +771,7 @@ soup_auth_manager_request_queued (SoupSessionFeature *manager,
 
 static void
 soup_auth_manager_request_unqueued (SoupSessionFeature *manager,
-				    SoupSession *session,
-				    SoupMessage *msg)
+				    SoupMessage        *msg)
 {
 	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, manager);

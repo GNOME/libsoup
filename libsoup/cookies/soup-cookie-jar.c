@@ -825,8 +825,7 @@ msg_starting_cb (SoupMessage *msg, gpointer feature)
 
 static void
 soup_cookie_jar_request_queued (SoupSessionFeature *feature,
-				SoupSession *session,
-				SoupMessage *msg)
+				SoupMessage        *msg)
 {
 	g_signal_connect (msg, "starting",
 			  G_CALLBACK (msg_starting_cb),
@@ -844,8 +843,7 @@ soup_cookie_jar_request_queued (SoupSessionFeature *feature,
 
 static void
 soup_cookie_jar_request_unqueued (SoupSessionFeature *feature,
-				  SoupSession *session,
-				  SoupMessage *msg)
+				  SoupMessage        *msg)
 {
 	g_signal_handlers_disconnect_by_data (msg, feature);
 }

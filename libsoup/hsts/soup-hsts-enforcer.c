@@ -569,8 +569,7 @@ soup_hsts_enforcer_attach (SoupSessionFeature *feature, SoupSession *session)
 
 static void
 soup_hsts_enforcer_request_queued (SoupSessionFeature *feature,
-				   SoupSession *session,
-				   SoupMessage *msg)
+				   SoupMessage        *msg)
 {
 	g_signal_connect (msg, "restarted", G_CALLBACK (message_restarted_cb), feature);
 	preprocess_request (SOUP_HSTS_ENFORCER (feature), msg);
@@ -578,8 +577,7 @@ soup_hsts_enforcer_request_queued (SoupSessionFeature *feature,
 
 static void
 soup_hsts_enforcer_request_unqueued (SoupSessionFeature *feature,
-				     SoupSession *session,
-				     SoupMessage *msg)
+				     SoupMessage        *msg)
 {
 	g_signal_handlers_disconnect_by_data (msg, feature);
 }

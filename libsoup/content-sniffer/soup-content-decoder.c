@@ -246,8 +246,7 @@ soup_content_decoder_class_init (SoupContentDecoderClass *decoder_class)
 
 static void
 soup_content_decoder_request_queued (SoupSessionFeature *feature,
-				     SoupSession *session,
-				     SoupMessage *msg)
+				     SoupMessage        *msg)
 {
 	if (!soup_message_headers_get_one (msg->request_headers,
 					   "Accept-Encoding")) {

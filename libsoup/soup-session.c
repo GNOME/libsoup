@@ -1000,7 +1000,7 @@ soup_session_append_queue_item (SoupSession        *session,
 		SoupSessionFeature *feature = SOUP_SESSION_FEATURE (f->data);
 
 		g_object_ref (feature);
-		soup_session_feature_request_queued (feature, session, msg);
+		soup_session_feature_request_queued (feature, msg);
 	}
 	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 
@@ -1229,7 +1229,7 @@ soup_session_unqueue_item (SoupSession          *session,
 	for (f = priv->features; f; f = g_slist_next (f)) {
 		SoupSessionFeature *feature = SOUP_SESSION_FEATURE (f->data);
 
-		soup_session_feature_request_unqueued (feature, session, item->msg);
+		soup_session_feature_request_unqueued (feature, item->msg);
 		g_object_unref (feature);
 	}
 	g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, item->msg);

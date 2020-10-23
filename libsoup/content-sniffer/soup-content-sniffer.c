@@ -853,8 +853,7 @@ soup_content_sniffer_got_headers_cb (SoupMessage *msg, SoupContentSniffer *sniff
 
 static void
 soup_content_sniffer_request_queued (SoupSessionFeature *feature,
-				     SoupSession *session,
-				     SoupMessage *msg)
+				     SoupMessage        *msg)
 {
 	soup_message_set_content_sniffer (msg, SOUP_CONTENT_SNIFFER (feature));
 	g_signal_connect (msg, "got-headers",
@@ -864,8 +863,7 @@ soup_content_sniffer_request_queued (SoupSessionFeature *feature,
 
 static void
 soup_content_sniffer_request_unqueued (SoupSessionFeature *feature,
-				       SoupSession *session,
-				       SoupMessage *msg)
+				       SoupMessage        *msg)
 {
 	soup_message_set_content_sniffer (msg, NULL);
 

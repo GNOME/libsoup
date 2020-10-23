@@ -88,13 +88,11 @@ soup_session_feature_default_init (SoupSessionFeatureInterface *iface)
 
 void
 soup_session_feature_request_queued (SoupSessionFeature *feature,
-				     SoupSession        *session,
 				     SoupMessage        *msg)
 {
 	SoupSessionFeatureInterface *iface;
 
 	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
-	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	if (soup_message_disables_feature (msg, feature))
@@ -102,18 +100,16 @@ soup_session_feature_request_queued (SoupSessionFeature *feature,
 
 	iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
 	if (iface->request_queued)
-		iface->request_queued (feature, session, msg);
+		iface->request_queued (feature, msg);
 }
 
 void
 soup_session_feature_request_unqueued (SoupSessionFeature *feature,
-				       SoupSession        *session,
 				       SoupMessage        *msg)
 {
 	SoupSessionFeatureInterface *iface;
 
 	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
-	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	if (soup_message_disables_feature (msg, feature))
@@ -121,7 +117,7 @@ soup_session_feature_request_unqueued (SoupSessionFeature *feature,
 
 	iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
         if (iface->request_unqueued)
-                iface->request_unqueued (feature, session, msg);
+                iface->request_unqueued (feature, msg);
 }
 
 /**

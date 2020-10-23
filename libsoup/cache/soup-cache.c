@@ -743,7 +743,8 @@ msg_starting_cb (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-request_queued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg)
+request_queued (SoupSessionFeature *feature,
+		SoupMessage        *msg)
 {
 	g_signal_connect (msg, "starting", G_CALLBACK (msg_starting_cb), feature);
 }

@@ -23,10 +23,8 @@ struct _SoupSessionFeatureInterface {
 				      SoupSession        *session);
 
 	void     (*request_queued)   (SoupSessionFeature *feature,
-				      SoupSession        *session,
 				      SoupMessage        *msg);
 	void     (*request_unqueued) (SoupSessionFeature *feature,
-				      SoupSession        *session,
 				      SoupMessage        *msg);
 
 	gboolean (*add_feature)      (SoupSessionFeature *feature,
@@ -47,11 +45,9 @@ void     soup_session_feature_detach         (SoupSessionFeature *feature,
 
 SOUP_AVAILABLE_IN_ALL
 void     soup_session_feature_request_queued (SoupSessionFeature *feature,
-					      SoupSession        *session,
 					      SoupMessage        *msg);
 SOUP_AVAILABLE_IN_ALL
 void     soup_session_feature_request_unqueued (SoupSessionFeature *feature,
-						SoupSession        *session,
 						SoupMessage        *msg);
 
 SOUP_AVAILABLE_IN_2_34

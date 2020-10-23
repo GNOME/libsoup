@@ -720,8 +720,7 @@ starting (SoupMessage *msg, gpointer user_data)
 
 static void
 soup_logger_request_queued (SoupSessionFeature *logger,
-			    SoupSession *session,
-			    SoupMessage *msg)
+			    SoupMessage        *msg)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
@@ -741,8 +740,7 @@ soup_logger_request_queued (SoupSessionFeature *logger,
 
 static void
 soup_logger_request_unqueued (SoupSessionFeature *logger,
-			      SoupSession *session,
-			      SoupMessage *msg)
+			      SoupMessage        *msg)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
