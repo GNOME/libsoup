@@ -175,7 +175,6 @@ enum {
 	REQUEST_STARTED,
 	AUTHENTICATE,
 	CONNECTION_CREATED,
-	TUNNELING,
 	LAST_SIGNAL
 };
 
@@ -1433,8 +1432,6 @@ tunnel_connect (SoupMessageQueueItem *item)
 	soup_session_set_item_connection (session, tunnel_item, item->conn);
 	tunnel_item->state = SOUP_MESSAGE_RUNNING;
 
-	g_signal_emit (session, signals[TUNNELING], 0, tunnel_item->conn);
-
 	soup_session_send_queue_item (session, tunnel_item,
 				      (SoupMessageIOCompletionFn)tunnel_message_completed);
 	soup_message_io_run (msg, !item->async);
@@ -2548,31 +2545,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 			       * SOUP_TYPE_CONNECTION here.
 			       */
 			      G_TYPE_OBJECT);
-
-	/**
-	 * SoupSession::tunneling:
-	 * @session: the #SoupSession
-	 * @connection: the connection
-	 *
-	 * Emitted when an SSL tunnel is being created on a proxy
-	 * connection. This is an internal signal intended only to be
-	 * used for debugging purposes, and may go away in the future.
-	 *
-	 * Since: 2.30
-	 */
-	signals[TUNNELING] =
-		g_signal_new ("tunneling",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0,
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 1,
-			      /* SoupConnection is private, so we can't use
-			       * SOUP_TYPE_CONNECTION here.
-			       */
-			      G_TYPE_OBJECT);
-
 
 	/* properties */
 	/**
