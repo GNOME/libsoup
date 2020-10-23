@@ -174,7 +174,6 @@ enum {
 	REQUEST_UNQUEUED,
 	REQUEST_STARTED,
 	AUTHENTICATE,
-	CONNECTION_CREATED,
 	LAST_SIGNAL
 };
 
@@ -1559,12 +1558,6 @@ get_connection_for_host (SoupSession *session,
 			  G_CALLBACK (connection_state_changed),
 			  session);
 
-	/* This is a debugging-related signal, and so can ignore the
-	 * usual rule about not emitting signals while holding
-	 * conn_lock.
-	 */
-	g_signal_emit (session, signals[CONNECTION_CREATED], 0, conn);
-
 	g_hash_table_insert (priv->conns, conn, host);
 
 	priv->num_conns++;
@@ -2521,30 +2514,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_AUTH,
 			      G_TYPE_BOOLEAN);
-
-	/**
-	 * SoupSession::connection-created:
-	 * @session: the #SoupSession
-	 * @connection: the connection
-	 *
-	 * Emitted when a new connection is created. This is an
-	 * internal signal intended only to be used for debugging
-	 * purposes, and may go away in the future.
-	 *
-	 * Since: 2.30
-	 */
-	signals[CONNECTION_CREATED] =
-		g_signal_new ("connection-created",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0,
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 1,
-			      /* SoupConnection is private, so we can't use
-			       * SOUP_TYPE_CONNECTION here.
-			       */
-			      G_TYPE_OBJECT);
 
 	/* properties */
 	/**
