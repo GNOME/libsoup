@@ -757,13 +757,13 @@ static const char *state_names[] = {
 };
 
 static void
-connection_state_changed (GObject *object, GParamSpec *param,
-			  gpointer user_data)
+connection_state_changed (SoupConnection      *conn,
+			  GParamSpec          *param,
+			  SoupConnectionState *state)
 {
-	SoupConnectionState *state = user_data;
 	SoupConnectionState new_state;
 
-	g_object_get (object, "state", &new_state, NULL);
+	g_object_get (conn, "state", &new_state, NULL);
 	debug_printf (2, "      %s -> %s\n",
 		      state_names[*state], state_names[new_state]);
 	soup_test_assert (state_transitions[*state] == new_state,
@@ -773,26 +773,40 @@ connection_state_changed (GObject *object, GParamSpec *param,
 }
 
 static void
-connection_created (SoupSession *session, GObject *conn,
-		    gpointer user_data)
+message_network_event (SoupMessage         *msg,
+		       GSocketClientEvent   event,
+		       GIOStream           *connection,
+		       SoupConnectionState *state)
 {
-	SoupConnectionState *state = user_data;
+	SoupConnection *conn;
 
-	g_object_get (conn, "state", state, NULL);
-	g_assert_cmpint (*state, ==, SOUP_CONNECTION_NEW);
+	if (event != G_SOCKET_CLIENT_RESOLVING)
+		return;
+
+	/* This is connecting, so we know it comes from a NEW state. */
+	*state = SOUP_CONNECTION_NEW;
+
+	conn = soup_message_get_connection (msg);
+	g_assert_nonnull (conn);
+	connection_state_changed (conn, NULL, state);
 
 	g_signal_connect (conn, "notify::state",
-			  G_CALLBACK (connection_state_changed),
-			  state);
+                          G_CALLBACK (connection_state_changed),
+                          state);
 }
 
 static void
-do_one_connection_state_test (SoupSession *session, const char *uri)
+do_one_connection_state_test (SoupSession         *session,
+			      const char          *uri,
+			      SoupConnectionState *state)
 {
 	SoupMessage *msg;
 	GBytes *body;
 
 	msg = soup_message_new ("GET", uri);
+	g_signal_connect (msg, "network-event",
+			  G_CALLBACK (message_network_event),
+			  state);
 	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_bytes_unref (body);
@@ -806,16 +820,12 @@ do_connection_state_test_for_session (SoupSession *session)
 	SoupConnectionState state;
 	GProxyResolver *resolver;
 
-	g_signal_connect (session, "connection-created",
-			  G_CALLBACK (connection_created),
-			  &state);
-
 	debug_printf (1, "    http\n");
-	do_one_connection_state_test (session, HTTP_SERVER);
+	do_one_connection_state_test (session, HTTP_SERVER, &state);
 
 	if (tls_available) {
 		debug_printf (1, "    https\n");
-		do_one_connection_state_test (session, HTTPS_SERVER);
+		do_one_connection_state_test (session, HTTPS_SERVER, &state);
 	} else
 		debug_printf (1, "    https -- SKIPPING\n");
 
@@ -826,11 +836,11 @@ do_connection_state_test_for_session (SoupSession *session)
 	g_object_unref (resolver);
 
 	debug_printf (1, "    http with proxy\n");
-	do_one_connection_state_test (session, HTTP_SERVER);
+	do_one_connection_state_test (session, HTTP_SERVER, &state);
 
 	if (tls_available) {
 		debug_printf (1, "    https with proxy\n");
-		do_one_connection_state_test (session, HTTPS_SERVER);
+		do_one_connection_state_test (session, HTTPS_SERVER, &state);
 	} else
 		debug_printf (1, "    https with proxy -- SKIPPING\n");
 }

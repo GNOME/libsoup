@@ -437,25 +437,18 @@ ea_abort_session (gpointer session)
 }
 
 static void
-ea_connection_state_changed (GObject *conn, GParamSpec *pspec, gpointer session)
+ea_message_network_event (SoupMessage       *msg,
+			  GSocketClientEvent event,
+			  GIOStream         *connection,
+			  SoupSession       *session)
 {
-	SoupConnectionState state;
+	if (event != G_SOCKET_CLIENT_RESOLVING)
+		return;
 
-	g_object_get (conn, "state", &state, NULL);
-	if (state == SOUP_CONNECTION_CONNECTING) {
-		g_idle_add_full (G_PRIORITY_HIGH,
-				 ea_abort_session,
-				 session, NULL);
-		g_signal_handlers_disconnect_by_func (conn, ea_connection_state_changed, session);
-	}
-}		
-
-static void
-ea_connection_created (SoupSession *session, GObject *conn, gpointer user_data)
-{
-	g_signal_connect (conn, "notify::state",
-			  G_CALLBACK (ea_connection_state_changed), session);
-	g_signal_handlers_disconnect_by_func (session, ea_connection_created, user_data);
+	g_idle_add_full (G_PRIORITY_HIGH,
+			 ea_abort_session,
+			 session, NULL);
+	g_signal_handlers_disconnect_by_func (msg, ea_message_network_event, session);
 }
 
 static void
@@ -496,8 +489,9 @@ do_early_abort_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 
-	g_signal_connect (session, "connection-created",
-			  G_CALLBACK (ea_connection_created), NULL);
+	g_signal_connect (msg, "network-event",
+			  G_CALLBACK (ea_message_network_event),
+			  session);
 	body = soup_test_session_async_send (session, msg);
 	debug_printf (2, "  Message 2 completed\n");
 
@@ -610,8 +604,10 @@ do_early_abort_req_test (void)
 					 NULL);
 	req = soup_session_request_uri (session, base_uri, NULL);
 
-	g_signal_connect (session, "connection-created",
-			  G_CALLBACK (ea_connection_created), NULL);
+	g_signal_connect (soup_request_http_get_message (SOUP_REQUEST_HTTP (req)),
+			  "network-event",
+			  G_CALLBACK (ea_message_network_event),
+			  session);
 	soup_request_send_async (req, NULL, ear_two_completed, loop);
 	g_main_loop_run (loop);
 	g_object_unref (req);
