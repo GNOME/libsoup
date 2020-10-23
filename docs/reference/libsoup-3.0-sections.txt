@@ -417,7 +417,6 @@ soup_session_send_finish
 soup_session_websocket_connect_async
 soup_session_websocket_connect_finish
 <SUBSECTION>
-soup_session_prefetch_dns
 soup_session_abort
 <SUBSECTION>
 soup_session_would_redirect

@@ -97,7 +97,6 @@ typedef struct {
 	guint io_timeout, idle_timeout;
 	GInetSocketAddress *local_addr;
 
-	GResolver *resolver;
 	GProxyResolver *proxy_resolver;
 	gboolean proxy_use_default;
 	SoupURI *proxy_uri;
@@ -245,11 +244,6 @@ soup_session_init (SoupSession *session)
 
         soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
 
-	/* We'll be doing DNS continuously-ish while the session is active,
-	 * so hold a ref on the default GResolver.
-	 */
-	priv->resolver = g_resolver_get_default ();
-
 	priv->ssl_strict = TRUE;
 
 
@@ -308,7 +302,6 @@ soup_session_finalize (GObject *object)
 
 	g_hash_table_destroy (priv->features_cache);
 
-	g_object_unref (priv->resolver);
 	g_clear_object (&priv->proxy_resolver);
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
 
@@ -2072,42 +2065,6 @@ soup_session_abort (SoupSession *session)
 	}
 
 	g_slist_free (conns);
-}
-
-static void
-on_prefetch_finish (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-        GList *addresses = g_resolver_lookup_by_name_finish (G_RESOLVER (source), result, NULL);
-        g_clear_pointer (&addresses, g_resolver_free_addresses);
-}
-
-/**
-* soup_session_prefetch_dns:
-* @session: a #SoupSession
-* @hostname: a hostname to be resolved
-* @cancellable: (allow-none): a #GCancellable object, or %NULL
-*
-* Tells @session that an URI from the given @hostname may be requested
-* shortly, and so the session can try to prepare by resolving the
-* domain name in advance, in order to work more quickly once the URI
-* is actually requested.
-*
-* If @cancellable is non-%NULL, it can be used to cancel the
-* resolution.
-*
-* Since: 2.38
-**/
-void
-soup_session_prefetch_dns (SoupSession *session,
-                           const char *hostname,
-			   GCancellable *cancellable)
-{
-        g_return_if_fail (SOUP_IS_SESSION (session));
-        g_return_if_fail (hostname);
-
-        GResolver *resolver = g_resolver_get_default ();
-        g_resolver_lookup_by_name_async (resolver, hostname, cancellable, on_prefetch_finish, NULL);
-        g_object_unref (resolver);
 }
 
 /**
