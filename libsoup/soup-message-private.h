@@ -117,6 +117,20 @@ GSource *soup_message_io_get_source       (SoupMessage           *msg,
 GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
 						    GError      **error);
 
+void soup_message_wrote_headers     (SoupMessage *msg);
+void soup_message_wrote_body_data   (SoupMessage *msg,
+				     GBytes      *chunk);
+void soup_message_wrote_body        (SoupMessage *msg);
+void soup_message_got_informational (SoupMessage *msg);
+void soup_message_got_headers       (SoupMessage *msg);
+void soup_message_got_body          (SoupMessage *msg);
+void soup_message_content_sniffed   (SoupMessage *msg,
+				     const char  *content_type,
+				     GHashTable  *params);
+void soup_message_starting          (SoupMessage *msg);
+void soup_message_restarted         (SoupMessage *msg);
+void soup_message_finished          (SoupMessage *msg);
+
 gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);
 
