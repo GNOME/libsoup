@@ -525,43 +525,43 @@ static const DataURITest data_tests[] = {
 	  "" },
 	{ "data:text/plain,",
 	  "text/plain",
-	  "" }
+	  "" },
+	{ "data://text/plain,foo",
+	  NULL,
+	  NULL },
+	{ "http:text/plain,foo%20bar",
+	  NULL,
+	  NULL },
+	{ "./foo",
+	  NULL,
+          NULL },
 };
 
 static void
 do_data_tests (void)
 {
-	SoupSession *session;
-	SoupRequest *req;
-	GInputStream *stream;
-	char buf[128];
-	gsize nread;
 	int i;
-	GError *error = NULL;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	for (i = 0; i < G_N_ELEMENTS (data_tests); i++) {
-		req = soup_session_request (session, data_tests[i].uri, &error);
-		g_assert_no_error (error);
+		GBytes *bytes;
+		char *content_type = NULL;
 
-		stream = soup_request_send (req, NULL, &error);
-		g_assert_no_error (error);
+		bytes = soup_uri_decode_data_uri (data_tests[i].uri, &content_type);
+		if (!data_tests[i].body) {
+			g_assert_null (bytes);
+			g_assert_null (content_type);
 
-		g_input_stream_read_all (stream, buf, sizeof (buf), &nread, NULL, &error);
+			continue;
+		}
 
-		g_assert_no_error (error);
-		g_assert_cmpint (nread, ==, strlen (data_tests[i].body));
-		buf[nread] = 0;
-		g_assert_cmpstr (buf, ==, data_tests[i].body);
+		g_assert_nonnull (bytes);
+		g_assert_cmpmem (g_bytes_get_data (bytes, NULL), g_bytes_get_size (bytes),
+				 data_tests[i].body, strlen (data_tests[i].body));
+		g_assert_cmpstr (content_type, ==, data_tests[i].mime_type);
 
-		g_assert_cmpstr (soup_request_get_content_type (req), ==, data_tests[i].mime_type);
-
-		g_input_stream_close (stream, NULL, &error);
-		g_assert_no_error (error);
-		g_object_unref (stream);
-		g_object_unref (req);
+		g_free (content_type);
+		g_bytes_unref (bytes);
 	}
-	soup_test_session_abort_unref (session);
 }
 
 static void

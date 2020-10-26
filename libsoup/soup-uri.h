@@ -72,6 +72,9 @@ char  	   *soup_uri_decode                (const char *part);
 SOUP_AVAILABLE_IN_2_4
 char  	   *soup_uri_normalize             (const char *part,
 					    const char *unescape_extra);
+SOUP_AVAILABLE_IN_ALL
+GBytes     *soup_uri_decode_data_uri       (const char *uri,
+					    char      **content_type);
 
 SOUP_AVAILABLE_IN_2_4
 gboolean    soup_uri_uses_default_port     (SoupURI    *uri);

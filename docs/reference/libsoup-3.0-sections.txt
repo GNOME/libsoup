@@ -594,6 +594,7 @@ soup_uri_free
 soup_uri_encode
 soup_uri_decode
 soup_uri_normalize
+soup_uri_decode_data_uri
 <SUBSECTION>
 SOUP_URI_SCHEME_HTTP
 SOUP_URI_SCHEME_HTTPS

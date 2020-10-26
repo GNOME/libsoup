@@ -1381,4 +1381,82 @@ soup_uri_is_https (SoupURI *uri, char **aliases)
 	return FALSE;
 }
 
+#define BASE64_INDICATOR     ";base64"
+#define BASE64_INDICATOR_LEN (sizeof (";base64") - 1)
+
+/**
+ * soup_uri_decode_data:
+ * @uri: a data URI, in string form
+ * @content_type: (out) (nullable) (transfer full): location to store content type, or %NULL
+ *
+ * Decodes the given data URI and returns its contents and @content_type.
+ *
+ * Returns: (transfer full): a #GBytes with the contents of @uri,
+ *    or %NULL if @uri is not a valid data URI
+ */
+GBytes *
+soup_uri_decode_data_uri (const char *uri,
+                          char      **content_type)
+{
+        SoupURI *soup_uri;
+        const char *comma, *start, *end;
+        gboolean base64 = FALSE;
+        char *uri_string;
+        GBytes *bytes;
+
+        g_return_val_if_fail (uri != NULL, NULL);
+
+        soup_uri = soup_uri_new (uri);
+        if (!soup_uri)
+                return NULL;
+
+        if (soup_uri->scheme != SOUP_URI_SCHEME_DATA || soup_uri->host != NULL)
+                return NULL;
+
+        if (content_type)
+                *content_type = NULL;
+
+        uri_string = soup_uri_to_string (soup_uri, FALSE);
+        soup_uri_free (soup_uri);
+
+        start = uri_string + 5;
+        comma = strchr (start, ',');
+        if (comma && comma != start) {
+                /* Deal with MIME type / params */
+                if (comma >= start + BASE64_INDICATOR_LEN && !g_ascii_strncasecmp (comma - BASE64_INDICATOR_LEN, BASE64_INDICATOR, BASE64_INDICATOR_LEN)) {
+                        end = comma - BASE64_INDICATOR_LEN;
+                        base64 = TRUE;
+                } else
+                        end = comma;
+
+                if (end != start && content_type)
+                        *content_type = soup_uri_decoded_copy (start, end - start, NULL);
+        }
+
+        if (content_type && !*content_type)
+                *content_type = g_strdup ("text/plain;charset=US-ASCII");
+
+        if (comma)
+                start = comma + 1;
+
+        if (*start) {
+                gsize content_length;
+                int decoded_length = 0;
+                guchar *buffer = (guchar *) soup_uri_decoded_copy (start, strlen (start),
+                                                                   &decoded_length);
+
+                if (base64)
+                        buffer = g_base64_decode_inplace ((gchar*)buffer, &content_length);
+                else
+                        content_length = decoded_length;
+
+                bytes = g_bytes_new_take (buffer, content_length);
+        } else {
+                bytes = g_bytes_new_static (NULL, 0);
+        }
+        g_free (uri_string);
+
+        return bytes;
+}
+
 G_DEFINE_BOXED_TYPE (SoupURI, soup_uri, soup_uri_copy, soup_uri_free)
