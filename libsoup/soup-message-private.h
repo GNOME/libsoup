@@ -130,6 +130,9 @@ void soup_message_content_sniffed   (SoupMessage *msg,
 void soup_message_starting          (SoupMessage *msg);
 void soup_message_restarted         (SoupMessage *msg);
 void soup_message_finished          (SoupMessage *msg);
+gboolean soup_message_authenticate  (SoupMessage *msg,
+				     SoupAuth    *auth,
+				     gboolean     retrying);
 
 gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);

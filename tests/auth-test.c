@@ -213,19 +213,20 @@ handler (SoupMessage *msg, gpointer data)
 	}
 }
 
-static void
-authenticate (SoupSession *session, SoupMessage *msg,
-	      SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+authenticate (SoupMessage  *msg,
+	      SoupAuth     *auth,
+	      gboolean      retrying,
+	      SoupAuthTest *test)
 {
-	SoupAuthTest *test = data;
 	char *username, *password;
 	char num;
 
 	if (!test->provided[0])
-		return;
+		return FALSE;
 	if (retrying) {
 		if (!test->provided[1])
-			return;
+			return FALSE;
 		num = test->provided[1];
 	} else
 		num = test->provided[0];
@@ -235,6 +236,8 @@ authenticate (SoupSession *session, SoupMessage *msg,
 	soup_auth_authenticate (auth, username, password);
 	g_free (username);
 	g_free (password);
+
+	return TRUE;
 }
 
 static void
@@ -250,16 +253,17 @@ bug271540_sent (SoupMessage *msg, gpointer data)
 			  "sent unauthenticated message %d after authenticating", n);
 }
 
-static void
-bug271540_authenticate (SoupSession *session, SoupMessage *msg,
-			SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+bug271540_authenticate (SoupMessage *msg,
+			SoupAuth    *auth,
+			gboolean     retrying,
+			gboolean    *authenticated)
 {
 	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
-	gboolean *authenticated = data;
 
 	if (strcmp (soup_auth_get_scheme_name (auth), "Basic") != 0 ||
 	    strcmp (soup_auth_get_realm (auth), "realm1") != 0)
-		return;
+		return FALSE;
 
 	if (!*authenticated) {
 		debug_printf (1, "    authenticating message %d\n", n);
@@ -269,6 +273,8 @@ bug271540_authenticate (SoupSession *session, SoupMessage *msg,
 		soup_test_assert (!*authenticated,
 				  "asked to authenticate message %d after authenticating", n);
 	}
+
+	return TRUE;
 }
 
 static void
@@ -299,13 +305,12 @@ do_pipelined_auth_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	authenticated = FALSE;
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (bug271540_authenticate), &authenticated);
-
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	for (i = 0; i < 10; i++) {
 		msg = soup_message_new (SOUP_METHOD_GET, uri);
 		g_object_set_data (G_OBJECT (msg), "#", GINT_TO_POINTER (i + 1));
+		g_signal_connect (msg, "authenticate",
+				  G_CALLBACK (bug271540_authenticate), &authenticated);
 		g_signal_connect (msg, "wrote_headers",
 				  G_CALLBACK (bug271540_sent), &authenticated);
 
@@ -393,18 +398,21 @@ do_pipelined_auth_test (void)
  *
  */
 
-static void
-digest_nonce_authenticate (SoupSession *session, SoupMessage *msg,
-			   SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+digest_nonce_authenticate (SoupMessage *msg,
+			   SoupAuth    *auth,
+			   gboolean     retrying)
 {
 	if (retrying)
-		return;
+		return FALSE;
 
 	if (strcmp (soup_auth_get_scheme_name (auth), "Digest") != 0 ||
 	    strcmp (soup_auth_get_realm (auth), "realm1") != 0)
-		return;
+		return FALSE;
 
 	soup_auth_authenticate (auth, "user1", "realm1");
+
+	return TRUE;
 }
 
 static void
@@ -429,7 +437,7 @@ do_digest_nonce_test (SoupSession *session,
 		soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	}
 	if (expect_signal) {
-		g_signal_connect (session, "authenticate",
+		g_signal_connect (msg, "authenticate",
 				  G_CALLBACK (digest_nonce_authenticate),
 				  NULL);
 	}
@@ -486,11 +494,12 @@ do_digest_expiration_test (void)
  * succeed.
  */
 
-static void
-async_authenticate (SoupSession *session, SoupMessage *msg,
-		    SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+async_authenticate (SoupMessage *msg,
+		    SoupAuth    *auth,
+		    gboolean     retrying,
+		    SoupAuth   **saved_auth)
 {
-	SoupAuth **saved_auth = data;
 	int id = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "id"));
 
 	debug_printf (2, "  async_authenticate msg%d\n", id);
@@ -501,13 +510,14 @@ async_authenticate (SoupSession *session, SoupMessage *msg,
 	 */
 	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
 		debug_printf (2, "    (ignoring)\n");
-		return;
+		return FALSE;
 	}
 
-	soup_session_pause_message (session, msg);
 	if (saved_auth)
 		*saved_auth = g_object_ref (auth);
 	g_main_loop_quit (loop);
+
+	return TRUE;
 }
 
 static void
@@ -524,33 +534,36 @@ async_finished (SoupMessage *msg,
 		g_main_loop_quit (loop);
 }
 
-static void
-async_authenticate_assert_once (SoupSession *session, SoupMessage *msg,
-                                SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+async_authenticate_assert_once (SoupMessage *msg,
+                                SoupAuth    *auth,
+				gboolean     retrying,
+				gboolean    *been_here)
 {
-	gboolean *been_here = data;
-
 	debug_printf (2, "  async_authenticate_assert_once\n");
 
 	soup_test_assert (!*been_here,
 			  "async_authenticate_assert_once called twice");
 	*been_here = TRUE;
+
+	return FALSE;
 }
 
-static void
-async_authenticate_assert_once_and_stop (SoupSession *session, SoupMessage *msg,
-					 SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+async_authenticate_assert_once_and_stop (SoupMessage *msg,
+					 SoupAuth    *auth,
+					 gboolean     retrying,
+					 SoupAuth   **saved_auth)
 {
-	gboolean *been_here = data;
-
 	debug_printf (2, "  async_authenticate_assert_once_and_stop\n");
 
-	soup_test_assert (!*been_here,
+	soup_test_assert (!*saved_auth,
 			  "async_authenticate_assert_once called twice");
-	*been_here = TRUE;
+	*saved_auth = g_object_ref (auth);
 
-	soup_session_pause_message (session, msg);
 	g_main_loop_quit (loop);
+
+	return TRUE;
 }
 
 static void
@@ -558,7 +571,6 @@ do_async_auth_good_password_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg1, *msg2, *msg3, msg2_bak;
-	guint auth_id;
 	char *uri;
 	SoupAuth *auth = NULL;
 	int remaining;
@@ -572,14 +584,13 @@ do_async_auth_good_password_test (void)
 
 	msg1 = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
-	auth_id = g_signal_connect (session, "authenticate",
+	g_signal_connect (msg1, "authenticate",
 				    G_CALLBACK (async_authenticate), &auth);
 	remaining++;
 	g_signal_connect (msg1, "finished",
 			  G_CALLBACK (async_finished), &remaining);
 	soup_session_send_async (session, msg1, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
-	g_signal_handler_disconnect (session, auth_id);
 
 	/* async_authenticate will pause msg1 and quit loop */
 
@@ -598,14 +609,13 @@ do_async_auth_good_password_test (void)
 
 	msg3 = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg3), "id", GINT_TO_POINTER (3));
-	auth_id = g_signal_connect (session, "authenticate",
-				    G_CALLBACK (async_authenticate), NULL);
+	g_signal_connect (msg3, "authenticate",
+			  G_CALLBACK (async_authenticate), NULL);
 	remaining++;
 	g_signal_connect (msg3, "finished",
 			  G_CALLBACK (async_finished), &remaining);
 	soup_session_send_async (session, msg3, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
-	g_signal_handler_disconnect (session, auth_id);
 
 	/* async_authenticate will pause msg3 and quit loop */
 
@@ -613,8 +623,6 @@ do_async_auth_good_password_test (void)
 	if (auth) {
 		soup_auth_authenticate (auth, "user1", "realm1");
 		g_object_unref (auth);
-		soup_session_unpause_message (session, msg1);
-		soup_session_unpause_message (session, msg3);
 
 		g_main_loop_run (loop);
 
@@ -658,28 +666,25 @@ do_async_auth_bad_password_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
-	auth = NULL;
 
 	msg = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (1));
-	auth_id = g_signal_connect (session, "authenticate",
+	auth_id = g_signal_connect (msg, "authenticate",
 				    G_CALLBACK (async_authenticate), &auth);
 	remaining++;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_finished), &remaining);
 	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
-	g_signal_handler_disconnect (session, auth_id);
+	g_signal_handler_disconnect (msg, auth_id);
 	soup_auth_authenticate (auth, "user1", "wrong");
 	g_object_unref (auth);
-	soup_session_unpause_message (session, msg);
 
 	been_there = FALSE;
-	auth_id = g_signal_connect (session, "authenticate",
-				    G_CALLBACK (async_authenticate_assert_once),
-				    &been_there);
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (async_authenticate_assert_once),
+			  &been_there);
 	g_main_loop_run (loop);
-	g_signal_handler_disconnect (session, auth_id);
 
 	soup_test_assert (been_there,
 			  "authenticate not emitted");
@@ -696,10 +701,9 @@ do_async_auth_no_password_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	guint auth_id;
 	char *uri;
 	int remaining;
-	gboolean been_there;
+	SoupAuth *auth = NULL;
 
 	/* Test that giving no password doesn't cause multiple
 	 * authenticate signals the second time.
@@ -717,34 +721,32 @@ do_async_auth_no_password_test (void)
 	 */
 	msg = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (1));
-	auth_id = g_signal_connect (session, "authenticate",
-				    G_CALLBACK (async_authenticate), NULL);
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (async_authenticate), &auth);
 	remaining++;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_finished), &remaining);
 	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
-	g_signal_handler_disconnect (session, auth_id);
-	soup_session_unpause_message (session, msg);
+	soup_auth_cancel (auth);
+	g_clear_object (&auth);
 	g_main_loop_run (loop);
 	g_object_unref(msg);
 
 	/* Now send a second message */
 	msg = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (2));
-	been_there = FALSE;
-	auth_id = g_signal_connect (session, "authenticate",
-				    G_CALLBACK (async_authenticate_assert_once_and_stop),
-				    &been_there);
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (async_authenticate_assert_once_and_stop),
+			  &auth);
 	remaining++;
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_finished), &remaining);
 	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
 	g_main_loop_run (loop);
-	soup_session_unpause_message (session, msg);
-
+	soup_auth_cancel (auth);
 	g_main_loop_run (loop);
-	g_signal_handler_disconnect (session, auth_id);
+	g_object_unref (auth);
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (msg);
@@ -761,11 +763,12 @@ typedef struct {
 	} round[2];
 } SelectAuthData;
 
-static void
-select_auth_authenticate (SoupSession *session, SoupMessage *msg,
-			  SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+select_auth_authenticate (SoupMessage    *msg,
+			  SoupAuth       *auth,
+			  gboolean        retrying,
+			  SelectAuthData *sad)
 {
-	SelectAuthData *sad = data;
 	const char *header, *basic, *digest;
 	int round = retrying ? 1 : 0;
 
@@ -784,8 +787,13 @@ select_auth_authenticate (SoupSession *session, SoupMessage *msg,
 		sad->round[round].headers = "Digest";
 
 	sad->round[round].response = soup_auth_get_scheme_name (auth);
-	if (sad->password && !retrying)
+	if (sad->password && !retrying) {
 		soup_auth_authenticate (auth, "user", sad->password);
+
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 static void
@@ -803,12 +811,11 @@ select_auth_test_one (SoupURI *uri,
 	if (disable_digest)
 		soup_session_remove_feature_by_type (session, SOUP_TYPE_AUTH_DIGEST);
 
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (select_auth_authenticate), &sad);
-	memset (&sad, 0, sizeof (sad));
-	sad.password = password;
-
 	msg = soup_message_new_from_uri ("GET", uri);
+	g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (select_auth_authenticate), &sad);
+        memset (&sad, 0, sizeof (sad));
+        sad.password = password;
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert (strcmp (sad.round[0].headers, first_headers) == 0,
@@ -1013,21 +1020,21 @@ auth_close_idle_authenticate (gpointer user_data)
 	AuthCloseData *acd = user_data;
 
 	soup_auth_authenticate (acd->auth, "user", "good-basic");
-	soup_session_unpause_message (acd->session, acd->msg);
 
 	g_object_unref (acd->auth);
 	return FALSE;
 }
 
-static void
-auth_close_authenticate (SoupSession *session, SoupMessage *msg,
-			 SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+auth_close_authenticate (SoupMessage   *msg,
+			 SoupAuth      *auth,
+			 gboolean       retrying,
+			 AuthCloseData *acd)
 {
-	AuthCloseData *acd = data;
-
-	soup_session_pause_message (session, msg);
 	acd->auth = g_object_ref (auth);
 	g_idle_add (auth_close_idle_authenticate, acd);
+
+	return TRUE;
 }
 
 static void
@@ -1058,10 +1065,9 @@ do_auth_close_test (void)
 			  G_CALLBACK (auth_close_request_started), NULL);
 
 	acd.session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	g_signal_connect (acd.session, "authenticate",
-			  G_CALLBACK (auth_close_authenticate), &acd);
-
 	acd.msg = soup_message_new_from_uri ("GET", uri);
+	g_signal_connect (acd.msg, "authenticate",
+			  G_CALLBACK (auth_close_authenticate), &acd);
 	soup_uri_free (uri);
 	body = soup_test_session_async_send (acd.session, acd.msg);
 
@@ -1080,11 +1086,14 @@ infinite_cancel (gpointer session)
 	return FALSE;
 }
 
-static void
-infinite_authenticate (SoupSession *session, SoupMessage *msg,
-		       SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+infinite_authenticate (SoupMessage *msg,
+		       SoupAuth    *auth,
+		       gboolean     retrying)
 {
 	soup_auth_authenticate (auth, "user", "bad");
+
+	return TRUE;
 }
 
 static void
@@ -1098,11 +1107,10 @@ do_infinite_auth_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (infinite_authenticate), NULL);
-
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	msg = soup_message_new ("GET", uri);
+	g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (infinite_authenticate), NULL);
 	g_free (uri);
 
 	timeout = g_timeout_add (500, infinite_cancel, session);
@@ -1137,15 +1145,20 @@ disappear_request_read (SoupServer        *server,
 		soup_message_headers_remove (response_headers, "WWW-Authenticate");
 }
 
-static void
-disappear_authenticate (SoupSession *session, SoupMessage *msg,
-			SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+disappear_authenticate (SoupMessage *msg,
+			SoupAuth    *auth,
+			gboolean     retrying,
+			int         *counter)
 {
-	int *counter = data;
-
 	(*counter)++;
-	if (!retrying)
+	if (!retrying) {
 		soup_auth_authenticate (auth, "user", "bad");
+
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 static void
@@ -1179,10 +1192,10 @@ do_disappearing_auth_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	counter = 0;
-	g_signal_connect (session, "authenticate",
+	msg = soup_message_new_from_uri ("GET", uri);
+	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (disappear_authenticate), &counter);
 
-	msg = soup_message_new_from_uri ("GET", uri);
 	body = soup_test_session_async_send (session, msg);
 
 	soup_test_assert (counter <= 2,
@@ -1242,7 +1255,6 @@ do_batch_tests (gconstpointer data)
 	SoupMessage *msg;
 	char *expected, *uristr;
 	SoupURI *base;
-	guint signal;
 	int i;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
@@ -1283,11 +1295,10 @@ do_batch_tests (gconstpointer data)
 			msg, "got_headers", SOUP_STATUS_OK,
 			G_CALLBACK (handler), expected);
 
-		signal = g_signal_connect (session, "authenticate",
-					   G_CALLBACK (authenticate),
-					   (gpointer)&current_tests[i]);
+		g_signal_connect (msg, "authenticate",
+				  G_CALLBACK (authenticate),
+				  (gpointer)&current_tests[i]);
 		soup_test_session_send_message (session, msg);
-		g_signal_handler_disconnect (session, signal);
 
 		soup_test_assert_message_status (msg, current_tests[i].final_status);
 		soup_test_assert (!*expected,
@@ -1385,15 +1396,18 @@ do_message_do_not_use_auth_cache_test (void)
 	soup_test_session_abort_unref (session);
 }
 
-static void
-async_no_auth_cache_authenticate (SoupSession *session, SoupMessage *msg,
-				  SoupAuth *auth, gboolean retrying, SoupAuth **auth_out)
+static gboolean
+async_no_auth_cache_authenticate (SoupMessage *msg,
+				  SoupAuth    *auth,
+				  gboolean     retrying,
+				  SoupAuth   **auth_out)
 {
 	debug_printf (1, "  async_no_auth_cache_authenticate\n");
 
-	soup_session_pause_message (session, msg);
 	*auth_out = g_object_ref (auth);
 	g_main_loop_quit (loop);
+
+	return TRUE;
 }
 
 static void
@@ -1421,7 +1435,7 @@ do_async_message_do_not_use_auth_cache_test (void)
 
 	msg = soup_message_new ("GET", uri);
 	g_free (uri);
-	g_signal_connect (session, "authenticate",
+	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (async_no_auth_cache_authenticate), &auth);
 	flags = soup_message_get_flags (msg);
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
@@ -1436,7 +1450,6 @@ do_async_message_do_not_use_auth_cache_test (void)
 	soup_auth_authenticate (auth, "user1", "realm1");
 	g_object_unref (auth);
 
-	soup_session_unpause_message (session, msg);
 	g_main_loop_run (loop);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -1446,19 +1459,22 @@ do_async_message_do_not_use_auth_cache_test (void)
 	g_main_loop_unref (loop);
 }
 
-static void
-has_authorization_header_authenticate (SoupSession *session, SoupMessage *msg,
-				       SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+has_authorization_header_authenticate (SoupMessage *msg,
+				       SoupAuth    *auth,
+				       gboolean     retrying,
+				       SoupAuth   **saved_auth)
 {
-	SoupAuth **saved_auth = data;
-
 	soup_auth_authenticate (auth, "user1", "realm1");
 	*saved_auth = g_object_ref (auth);
+
+	return TRUE;
 }
 
 static void
-has_authorization_header_authenticate_assert (SoupSession *session, SoupMessage *msg,
-					      SoupAuth *auth, gboolean retrying, gpointer data)
+has_authorization_header_authenticate_assert (SoupMessage *msg,
+					      SoupAuth    *auth,
+					      gboolean     retrying)
 {
 	soup_test_assert (FALSE, "authenticate emitted unexpectedly");
 }
@@ -1471,7 +1487,6 @@ do_message_has_authorization_header_test (void)
 	SoupAuthManager *manager;
 	SoupAuth *auth = NULL;
 	char *token;
-	guint auth_id;
 	char *uri;
 
 	g_test_bug ("775882");
@@ -1482,7 +1497,7 @@ do_message_has_authorization_header_test (void)
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 
 	msg = soup_message_new ("GET", uri);
-	auth_id = g_signal_connect (session, "authenticate",
+	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (has_authorization_header_authenticate), &auth);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -1490,16 +1505,15 @@ do_message_has_authorization_header_test (void)
 	token = soup_auth_get_authorization (auth, msg);
 	g_object_unref (auth);
 	g_object_unref (msg);
-	g_signal_handler_disconnect (session, auth_id);
 
 	manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
 	soup_auth_manager_clear_cached_credentials (manager);
 
 	msg = soup_message_new ("GET", uri);
 	soup_message_headers_replace (msg->request_headers, "Authorization", token);
-	auth_id = g_signal_connect (session, "authenticate",
-				    G_CALLBACK (has_authorization_header_authenticate_assert),
-				    NULL);
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (has_authorization_header_authenticate_assert),
+			  NULL);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
@@ -1513,24 +1527,32 @@ do_message_has_authorization_header_test (void)
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 	g_free (token);
-	g_signal_handler_disconnect (session, auth_id);
 
 	g_free (uri);
 	soup_test_session_abort_unref (session);
 }
 
-static void
-cancel_after_retry_authenticate (SoupSession  *session,
-                                 SoupMessage  *msg,
-                                 SoupAuth     *auth,
-                                 gboolean      retrying,
-                                 GCancellable *cancellable)
+typedef struct {
+	SoupSession *session;
+	GCancellable *cancellable;
+} CancelAfterRetryData;
+
+static gboolean
+cancel_after_retry_authenticate (SoupMessage          *msg,
+                                 SoupAuth             *auth,
+                                 gboolean              retrying,
+                                 CancelAfterRetryData *data)
 {
         if (retrying) {
-                soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
-                g_cancellable_cancel (cancellable);
-        } else
-                soup_auth_authenticate (auth, "user1", "wrong");
+                soup_session_cancel_message (data->session, msg, SOUP_STATUS_CANCELLED);
+                g_cancellable_cancel (data->cancellable);
+
+		return FALSE;
+	}
+
+	soup_auth_authenticate (auth, "user1", "wrong");
+
+	return TRUE;
 }
 
 static void
@@ -1554,27 +1576,28 @@ do_cancel_after_retry_test (void)
         SoupSession *session;
         SoupMessage *msg;
         char *uri;
-        GCancellable *cancellable;
+	CancelAfterRetryData data;
         GMainLoop *loop;
 
         SOUP_TEST_SKIP_IF_NO_APACHE;
 
         session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-        cancellable = g_cancellable_new ();
-        g_signal_connect (session, "authenticate",
-                          G_CALLBACK (cancel_after_retry_authenticate),
-                          cancellable);
+	data.session = session;
+        data.cancellable = g_cancellable_new ();
 
         loop = g_main_loop_new (NULL, FALSE);
 
         uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
         msg = soup_message_new ("GET", uri);
-        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
+	g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (cancel_after_retry_authenticate),
+                          &data);
+        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, data.cancellable,
 				 (GAsyncReadyCallback)request_send_cb, loop);
         g_main_loop_run (loop);
 
         g_object_unref (msg);
-        g_object_unref (cancellable);
+        g_object_unref (data.cancellable);
         g_free (uri);
         soup_test_session_abort_unref (session);
 }

@@ -73,6 +73,7 @@ enum {
 	RESTARTED,
 	FINISHED,
 
+	AUTHENTICATE,
 	NETWORK_EVENT,
 
 	LAST_SIGNAL
@@ -483,6 +484,40 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_NONE, 0);
 
 	/**
+	 * SoupMessage::authenticate:
+	 * @msg: the message
+	 * @auth: the #SoupAuth to authenticate
+	 * @retrying: %TRUE if this is the second (or later) attempt
+	 *
+	 * Emitted when the message requires authentication. If
+	 * credentials are available call soup_auth_authenticate() on
+	 * @auth. If these credentials fail, the signal will be
+	 * emitted again, with @retrying set to %TRUE, which will
+	 * continue until you return without calling
+	 * soup_auth_authenticate() on @auth.
+	 *
+	 * Note that this may be emitted before @msg's body has been
+	 * fully read.
+	 *
+	 * You can authenticate @auth asynchronously by calling g_object_ref()
+	 * on @auth and returning %TRUE. The operation will complete once
+	 * either soup_auth_authenticate() or soup_auth_cancel() are called.
+	 *
+	 * Returns: %TRUE to stop other handlers from being invoked
+	 *    or %FALSE to propagate the event further.
+	 **/
+	signals[AUTHENTICATE] =
+		g_signal_new ("authenticate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupMessageClass, authenticate),
+			      g_signal_accumulator_true_handled, NULL,
+			      NULL,
+			      G_TYPE_BOOLEAN, 2,
+			      SOUP_TYPE_AUTH,
+			      G_TYPE_BOOLEAN);
+
+	/**
 	 * SoupMessage::network-event:
 	 * @msg: the message
 	 * @event: the network event
@@ -864,6 +899,17 @@ soup_message_network_event (SoupMessage         *msg,
 {
 	g_signal_emit (msg, signals[NETWORK_EVENT], 0,
 		       event, connection);
+}
+
+gboolean
+soup_message_authenticate (SoupMessage *msg,
+			   SoupAuth    *auth,
+			   gboolean     retrying)
+{
+	gboolean handled;
+	g_signal_emit (msg, signals[AUTHENTICATE], 0,
+		       auth, retrying, &handled);
+	return handled;
 }
 
 static void

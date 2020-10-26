@@ -457,6 +457,8 @@ soup_auth_authenticate
 soup_auth_can_authenticate
 soup_auth_is_authenticated
 soup_auth_is_ready
+soup_auth_cancel
+soup_auth_is_cancelled
 <SUBSECTION>
 soup_auth_get_authorization
 soup_auth_get_protection_space

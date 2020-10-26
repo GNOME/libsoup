@@ -41,24 +41,18 @@ static const char *proxy_names[] = {
 static GProxyResolver *proxy_resolvers[3];
 static const char *ignore_hosts[] = { "localhost", NULL };
 
-static void
-authenticate (SoupSession *session, SoupMessage *msg,
-	      SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+authenticate (SoupMessage *msg,
+	      SoupAuth    *auth,
+	      gboolean     retrying)
 {
-	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED) {
-		soup_test_assert (!soup_auth_is_for_proxy (auth),
-				  "got proxy auth object for 401");
-	} else if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
-		soup_test_assert (soup_auth_is_for_proxy (auth),
-				  "got regular auth object for 407");
-	} else {
-		soup_test_assert (FALSE,
-				  "got authenticate signal with status %d\n",
-				  msg->status_code);
+	if (!retrying) {
+		soup_auth_authenticate (auth, "user1", "realm1");
+
+		return TRUE;
 	}
 
-	if (!retrying)
-		soup_auth_authenticate (auth, "user1", "realm1");
+	return FALSE;
 }
 
 static void
@@ -97,14 +91,15 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 					 "proxy-resolver", proxy_resolvers[proxy],
 					 "ssl-strict", FALSE,
 					 NULL);
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (authenticate), NULL);
 
 	msg = soup_message_new (SOUP_METHOD_GET, url);
 	if (!msg) {
 		g_printerr ("proxy-test: Could not parse URI\n");
 		exit (1);
 	}
+
+	g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (authenticate), NULL);
 
 	if (close) {
 		/* FIXME g_test_bug ("611663") */
@@ -250,6 +245,8 @@ do_proxy_auth_request (const char *url, SoupSession *session, gboolean do_read)
 	GError *error = NULL;
 
 	msg = soup_message_new ("GET", url);
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (authenticate), NULL);
 
 	stream = soup_test_request_send (session, msg, NULL, 0, &error);
 	g_assert_no_error (error);
@@ -299,8 +296,6 @@ do_proxy_auth_cache_test (void)
 					 "proxy-resolver", proxy_resolvers[AUTH_PROXY],
 					 "add-feature", cache,
 					 NULL);
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (authenticate), NULL);
 
 	url = g_strconcat (HTTP_SERVER, "/Basic/realm1/", NULL);
 

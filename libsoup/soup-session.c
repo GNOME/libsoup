@@ -138,10 +138,6 @@ static void connection_disconnected (SoupConnection *conn, gpointer user_data);
 static void drop_connection (SoupSession *session, SoupSessionHost *host,
 			     SoupConnection *conn);
 
-static void auth_manager_authenticate (SoupAuthManager *manager,
-				       SoupMessage *msg, SoupAuth *auth,
-				       gboolean retrying, gpointer user_data);
-
 static void async_run_queue (SoupSession *session);
 
 static void async_send_request_running (SoupSession *session, SoupMessageQueueItem *item);
@@ -166,7 +162,6 @@ G_DEFINE_TYPE_WITH_PRIVATE (SoupSession, soup_session, G_TYPE_OBJECT)
 enum {
 	REQUEST_QUEUED,
 	REQUEST_UNQUEUED,
-	AUTHENTICATE,
 	LAST_SIGNAL
 };
 
@@ -244,8 +239,6 @@ soup_session_init (SoupSession *session)
 	priv->features_cache = g_hash_table_new (NULL, NULL);
 
 	auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER, NULL);
-	g_signal_connect (auth_manager, "authenticate",
-			  G_CALLBACK (auth_manager_authenticate), session);
 	soup_session_feature_add_feature (SOUP_SESSION_FEATURE (auth_manager),
 					  SOUP_TYPE_AUTH_BASIC);
 	soup_session_feature_add_feature (SOUP_SESSION_FEATURE (auth_manager),
@@ -772,14 +765,6 @@ free_host (SoupSessionHost *host)
 	soup_uri_free (host->uri);
 	g_object_unref (host->addr);
 	g_slice_free (SoupSessionHost, host);
-}
-
-static void
-auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
-			   SoupAuth *auth, gboolean retrying,
-			   gpointer session)
-{
-	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_GET(session, msg) \
@@ -2434,41 +2419,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      NULL,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
-
-	/**
-	 * SoupSession::authenticate:
-	 * @session: the session
-	 * @msg: the #SoupMessage being sent
-	 * @auth: the #SoupAuth to authenticate
-	 * @retrying: %TRUE if this is the second (or later) attempt
-	 *
-	 * Emitted when the session requires authentication. If
-	 * credentials are available call soup_auth_authenticate() on
-	 * @auth. If these credentials fail, the signal will be
-	 * emitted again, with @retrying set to %TRUE, which will
-	 * continue until you return without calling
-	 * soup_auth_authenticate() on @auth.
-	 *
-	 * Note that this may be emitted before @msg's body has been
-	 * fully read.
-	 *
-	 * If you call soup_session_pause_message() on @msg before
-	 * returning, then you can authenticate @auth asynchronously
-	 * (as long as you g_object_ref() it to make sure it doesn't
-	 * get destroyed), and then unpause @msg when you are ready
-	 * for it to continue.
-	 **/
-	signals[AUTHENTICATE] =
-		g_signal_new ("authenticate",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0,
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 3,
-			      SOUP_TYPE_MESSAGE,
-			      SOUP_TYPE_AUTH,
-			      G_TYPE_BOOLEAN);
 
 	/* properties */
 	/**
@@ -4232,4 +4182,26 @@ soup_session_get_message_proxy_uri (SoupSession *session,
 	uri = item->conn ? soup_connection_get_proxy_uri (item->conn) : NULL;
 	soup_message_queue_item_unref (item);
 	return uri;
+}
+
+SoupMessage *
+soup_session_get_original_message_for_authentication (SoupSession *session,
+						      SoupMessage *msg)
+{
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+	SoupMessageQueueItem *item;
+	SoupMessage *original_msg;
+
+	item = soup_message_queue_lookup (priv->queue, msg);
+	if (!item)
+                return msg;
+
+	if (msg->method != SOUP_METHOD_CONNECT) {
+		soup_message_queue_item_unref (item);
+		return msg;
+	}
+
+	original_msg = item->related ? item->related->msg : msg;
+	soup_message_queue_item_unref (item);
+	return original_msg;
 }

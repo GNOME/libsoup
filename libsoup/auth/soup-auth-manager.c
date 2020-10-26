@@ -508,6 +508,21 @@ lookup_proxy_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 }
 
 static void
+async_auth_finished (SoupAuth    *auth,
+		     GParamSpec  *pspec,
+		     SoupMessage *msg)
+{
+	SoupSession *session;
+
+	session = g_object_steal_data (G_OBJECT (msg), "auth-msg-session");
+	if (!session)
+		return;
+
+	soup_session_unpause_message (session, msg);
+	g_object_unref (session);
+}
+
+static void
 authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
 		   gboolean proxy, gboolean can_interact)
@@ -533,8 +548,24 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		soup_uri_set_password (uri, NULL);
 		soup_uri_set_user (uri, NULL);
 	} else if (!soup_auth_is_authenticated (auth) && can_interact) {
-		g_signal_emit (manager, signals[AUTHENTICATE], 0,
-			       msg, auth, prior_auth_failed);
+		SoupMessage *original_msg;
+		gboolean handled;
+
+		original_msg = soup_session_get_original_message_for_authentication (priv->session,
+										     msg);
+		handled = soup_message_authenticate (original_msg, auth, prior_auth_failed);
+		if (handled && !soup_auth_is_authenticated (auth)) {
+			soup_session_pause_message (priv->session, msg);
+			g_object_set_data_full (G_OBJECT (msg), "auth-msg-session",
+						g_object_ref (priv->session),
+						g_object_unref);
+			g_signal_connect_object (auth, "notify::is-authenticated",
+						 G_CALLBACK (async_auth_finished),
+						 msg, 0);
+			g_signal_connect_object (auth, "notify::is-cancelled",
+						 G_CALLBACK (async_auth_finished),
+						 msg, 0);
+		}
 	}
 }
 
@@ -578,7 +609,7 @@ record_auth_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri,
 	 * since the old one might already be authenticated.)
 	 */
 	old_auth = g_hash_table_lookup (host->auths, auth_info);
-	if (old_auth && (old_auth != auth || !prior_auth_failed)) {
+	if (old_auth && (old_auth != auth || !prior_auth_failed) && !soup_auth_is_cancelled (old_auth)) {
 		g_free (auth_info);
 		return old_auth;
 	} else {

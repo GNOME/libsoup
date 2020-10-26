@@ -46,6 +46,9 @@ typedef struct {
 	void     (*restarted)           (SoupMessage *msg);
 	void     (*finished)            (SoupMessage *msg);
 	void     (*starting)            (SoupMessage *msg);
+	void     (*authenticate)        (SoupMessage *msg,
+					 SoupAuth    *auth,
+					 gboolean     retrying);
 
 	/* Padding for future expansion */
 	void (*_libsoup_reserved1) (void);

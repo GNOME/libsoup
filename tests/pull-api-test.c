@@ -4,12 +4,18 @@
 
 static GBytes *correct_response;
 
-static void
-authenticate (SoupSession *session, SoupMessage *msg,
-	      SoupAuth *auth, gboolean retrying, gpointer data)
+static gboolean
+authenticate (SoupMessage *msg,
+	      SoupAuth    *auth,
+	      gboolean     retrying)
 {
-	if (!retrying)
+	if (!retrying) {
 		soup_auth_authenticate (auth, "user2", "realm2");
+
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 #ifdef HAVE_APACHE
@@ -96,6 +102,9 @@ do_fully_async_test (SoupSession *session,
 	ad.did_first_timeout = FALSE;
 	ad.read_so_far = 0;
 	ad.expected_status = expected_status;
+
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (authenticate), NULL);
 
 	/* Connect to "got_headers", from which we'll decide where to
 	 * go next.
@@ -192,8 +201,6 @@ do_fast_async_test (gconstpointer data)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
 			     TRUE, SOUP_STATUS_OK);
 	do_fully_async_test (session, base_uri, "/Basic/realm1/",
@@ -212,8 +219,6 @@ do_slow_async_test (gconstpointer data)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
 			     FALSE, SOUP_STATUS_OK);
 	do_fully_async_test (session, base_uri, "/Basic/realm1/",

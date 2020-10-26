@@ -67,8 +67,16 @@ SOUP_AVAILABLE_IN_2_4
 void        soup_auth_authenticate          (SoupAuth      *auth,
 					     const char    *username,
 					     const char    *password);
+
+SOUP_AVAILABLE_IN_ALL
+void        soup_auth_cancel                (SoupAuth      *auth);
+
 SOUP_AVAILABLE_IN_2_4
 gboolean    soup_auth_is_authenticated      (SoupAuth      *auth);
+
+SOUP_AVAILABLE_IN_ALL
+gboolean    soup_auth_is_cancelled          (SoupAuth      *auth);
+
 SOUP_AVAILABLE_IN_2_42
 gboolean    soup_auth_is_ready              (SoupAuth      *auth,
 					     SoupMessage   *msg);

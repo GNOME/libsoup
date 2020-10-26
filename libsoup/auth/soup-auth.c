@@ -38,6 +38,7 @@ typedef struct {
         char *realm;
 	char *host;
 	gboolean proxy;
+	gboolean cancelled;
 } SoupAuthPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupAuth, soup_auth, G_TYPE_OBJECT)
@@ -50,6 +51,7 @@ enum {
 	PROP_HOST,
 	PROP_IS_FOR_PROXY,
 	PROP_IS_AUTHENTICATED,
+	PROP_IS_CANCELLED,
 
 	LAST_PROP
 };
@@ -57,6 +59,18 @@ enum {
 static void
 soup_auth_init (SoupAuth *auth)
 {
+}
+
+static void
+soup_auth_dispose (GObject *object)
+{
+	SoupAuth *auth = SOUP_AUTH (object);
+	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+
+	if (!priv->cancelled && !soup_auth_is_authenticated (auth))
+		soup_auth_cancel (auth);
+
+	G_OBJECT_CLASS (soup_auth_parent_class)->dispose (object);
 }
 
 static void
@@ -119,6 +133,8 @@ soup_auth_get_property (GObject *object, guint prop_id,
 	case PROP_IS_AUTHENTICATED:
 		g_value_set_boolean (value, soup_auth_is_authenticated (auth));
 		break;
+	case PROP_IS_CANCELLED:
+		g_value_set_boolean (value, priv->cancelled);
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -138,6 +154,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 
 	auth_class->can_authenticate = auth_can_authenticate;
 
+	object_class->dispose = soup_auth_dispose;
 	object_class->finalize     = soup_auth_finalize;
 	object_class->set_property = soup_auth_set_property;
 	object_class->get_property = soup_auth_get_property;
@@ -205,6 +222,20 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 		g_param_spec_boolean ("is-authenticated",
 				      "Authenticated",
 				      "Whether or not the auth is authenticated",
+				      FALSE,
+				      G_PARAM_READABLE |
+				      G_PARAM_STATIC_STRINGS));
+	/**
+	 * SoupAuth:is-cancelled:
+	 *
+	 * An alias for the #SoupAuth:is-cancelled property.
+	 * (Whether or not the auth has been cancelled.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_IS_CANCELLED,
+		g_param_spec_boolean ("is-cancelled",
+				      "Cancelled",
+				      "Whether or not the auth is cancelled",
 				      FALSE,
 				      G_PARAM_READABLE |
 				      G_PARAM_STATIC_STRINGS));
@@ -289,6 +320,9 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 	g_return_val_if_fail (auth_header != NULL, FALSE);
 
+	if (priv->cancelled)
+		return FALSE;
+
 	scheme = soup_auth_get_scheme_name (auth);
 	if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0)
 		return FALSE;
@@ -323,16 +357,45 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 void
 soup_auth_authenticate (SoupAuth *auth, const char *username, const char *password)
 {
+	SoupAuthPrivate *priv;
 	gboolean was_authenticated;
 
 	g_return_if_fail (SOUP_IS_AUTH (auth));
 	g_return_if_fail (username != NULL);
 	g_return_if_fail (password != NULL);
 
+	priv = soup_auth_get_instance_private (auth);
+	if (priv->cancelled)
+		return;
+
 	was_authenticated = soup_auth_is_authenticated (auth);
 	SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
 	if (was_authenticated != soup_auth_is_authenticated (auth))
 		g_object_notify (G_OBJECT (auth), "is-authenticated");
+}
+
+/**
+ * soup_auth_cancel:
+ * @auth: a #SoupAuth
+ *
+ * Call this on an auth to cancel it. You need to cancel an auth to complete
+ * an asynchronous authenticate operation when no credentials are provided
+ * (soup_auth_authenticate() is not called).
+ * The #SoupAuth will be cancelled on dispose if it hans't been authenticated.
+ */
+void
+soup_auth_cancel (SoupAuth *auth)
+{
+	SoupAuthPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_AUTH (auth));
+
+	priv = soup_auth_get_instance_private (auth);
+	if (priv->cancelled)
+		return;
+
+	priv->cancelled = TRUE;
+	g_object_notify (G_OBJECT (auth), "is-cancelled");
 }
 
 /**
@@ -447,9 +510,34 @@ soup_auth_get_info (SoupAuth *auth)
 gboolean
 soup_auth_is_authenticated (SoupAuth *auth)
 {
+	SoupAuthPrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
 
+	priv = soup_auth_get_instance_private (auth);
+	if (priv->cancelled)
+		return FALSE;
+
 	return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
+}
+
+/**
+ * soup_auth_is_cancelled:
+ * @auth: a #SoupAuth
+ *
+ * Tests if @auth has been cancelled
+ *
+ * Returns: %TRUE if @auth has been cancelled
+ */
+gboolean
+soup_auth_is_cancelled (SoupAuth *auth)
+{
+ 	SoupAuthPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
+
+	priv = soup_auth_get_instance_private (auth);
+	return priv->cancelled;
 }
 
 /**
@@ -490,8 +578,14 @@ gboolean
 soup_auth_is_ready (SoupAuth    *auth,
 		    SoupMessage *msg)
 {
+	SoupAuthPrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), TRUE);
+
+	priv = soup_auth_get_instance_private (auth);
+	if (priv->cancelled)
+		return FALSE;
 
 	if (SOUP_AUTH_GET_CLASS (auth)->is_ready)
 		return SOUP_AUTH_GET_CLASS (auth)->is_ready (auth, msg);
@@ -513,7 +607,13 @@ soup_auth_is_ready (SoupAuth    *auth,
 gboolean
 soup_auth_can_authenticate (SoupAuth *auth)
 {
+	SoupAuthPrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
+
+	priv = soup_auth_get_instance_private (auth);
+	if (priv->cancelled)
+		return FALSE;
 
 	return SOUP_AUTH_GET_CLASS (auth)->can_authenticate (auth);
 }

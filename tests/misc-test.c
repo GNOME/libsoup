@@ -254,7 +254,7 @@ do_callback_unref_test (void)
 	/* Otherwise, if we haven't crashed, we're ok. */
 }
 
-/* SoupSession should clean up all signal handlers on a message after
+/* SoupSession should clean up all internal signal handlers on a message after
  * it is finished, allowing the message to be reused if desired.
  */
 static void
@@ -264,6 +264,9 @@ ensure_no_signal_handlers (SoupMessage *msg, guint *signal_ids, guint n_signal_i
 	guint id;
 
 	for (i = 0; i < n_signal_ids; i++) {
+		if (strcmp (g_signal_name (signal_ids[i]), "authenticate") == 0)
+			continue;
+
 		id = g_signal_handler_find (msg, G_SIGNAL_MATCH_ID, signal_ids[i],
 					    0, NULL, NULL, NULL);
 		soup_test_assert (id == 0,
@@ -272,15 +275,18 @@ ensure_no_signal_handlers (SoupMessage *msg, guint *signal_ids, guint n_signal_i
 	}
 }
 
-static void
-reuse_test_authenticate (SoupSession *session, SoupMessage *msg,
-			 SoupAuth *auth, gboolean retrying)
+static gboolean
+reuse_test_authenticate (SoupMessage *msg,
+			 SoupAuth    *auth,
+			 gboolean     retrying)
 {
 	/* Get it wrong the first time, then succeed */
 	if (!retrying)
 		soup_auth_authenticate (auth, "user", "wrong password");
 	else
 		soup_auth_authenticate (auth, "user", "password");
+
+	return TRUE;
 }
 
 static void
@@ -296,11 +302,11 @@ do_msg_reuse_test (void)
 	signal_ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_signal_ids);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	g_signal_connect (session, "authenticate",
-			  G_CALLBACK (reuse_test_authenticate), NULL);
 
 	debug_printf (1, "  First message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
+	g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (reuse_test_authenticate), NULL);
 	soup_test_session_async_send (session, msg);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 

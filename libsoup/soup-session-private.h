@@ -15,6 +15,8 @@ SoupURI *soup_session_get_message_proxy_uri (SoupSession *session,
 					     SoupMessage *msg);
 void     soup_session_requeue_message       (SoupSession *session,
 					     SoupMessage *msg);
+SoupMessage *soup_session_get_original_message_for_authentication (SoupSession *session,
+								   SoupMessage *msg);
 
 G_END_DECLS
 
