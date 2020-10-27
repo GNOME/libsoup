@@ -131,8 +131,6 @@ typedef struct {
 	char **http_aliases, **https_aliases;
 } SoupSessionPrivate;
 
-#define SOUP_IS_PLAIN_SESSION(o) (G_TYPE_FROM_INSTANCE (o) == SOUP_TYPE_SESSION)
-
 static void free_host (SoupSessionHost *host);
 static void connection_state_changed (GObject *object, GParamSpec *param,
 				      gpointer user_data);
@@ -325,7 +323,6 @@ static void
 ensure_socket_props (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	gboolean ssl_strict;
 
 	if (priv->socket_props)
 		return;
@@ -339,14 +336,11 @@ ensure_socket_props (SoupSession *session)
 		priv->tlsdb_use_default = FALSE;
 	}
 
-	ssl_strict = priv->ssl_strict && (priv->tlsdb != NULL ||
-					  SOUP_IS_PLAIN_SESSION (session));
-
 	priv->socket_props = soup_socket_properties_new (priv->proxy_resolver,
 							 priv->local_addr,
 							 priv->tlsdb,
 							 priv->tls_interaction,
-							 ssl_strict,
+							 priv->ssl_strict,
 							 priv->io_timeout,
 							 priv->idle_timeout);
 }
