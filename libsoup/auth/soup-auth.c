@@ -14,6 +14,7 @@
 #include "soup-auth.h"
 #include "soup.h"
 #include "soup-connection-auth.h"
+#include "soup-message-private.h"
 
 /**
  * SECTION:soup-auth
@@ -262,14 +263,19 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	SoupAuth *auth;
 	GHashTable *params;
 	const char *scheme;
+	SoupURI *uri;
 
 	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 	g_return_val_if_fail (auth_header != NULL, NULL);
 
+	uri = soup_message_get_uri_for_auth (msg);
+	if (!uri)
+		return NULL;
+
 	auth = g_object_new (type,
 			     "is-for-proxy", (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
-			     "host", soup_message_get_uri (msg)->host,
+			     "host", uri->host,
 			     NULL);
 
 	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);

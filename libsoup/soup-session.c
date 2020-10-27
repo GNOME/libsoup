@@ -4166,24 +4166,6 @@ soup_session_websocket_connect_finish (SoupSession      *session,
 	return g_task_propagate_pointer (G_TASK (result), error);
 }
 
-SoupURI *
-soup_session_get_message_proxy_uri (SoupSession *session,
-				    SoupMessage *msg)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupMessageQueueItem *item;
-	SoupURI *uri;
-
-	item = soup_message_queue_lookup (priv->queue, msg);
-	if (!item)
-		return NULL;
-
-	/* When loaded from the disk cache, the connection is NULL. */
-	uri = item->conn ? soup_connection_get_proxy_uri (item->conn) : NULL;
-	soup_message_queue_item_unref (item);
-	return uri;
-}
-
 SoupMessage *
 soup_session_get_original_message_for_authentication (SoupSession *session,
 						      SoupMessage *msg)

@@ -1086,6 +1086,19 @@ soup_message_get_proxy_auth (SoupMessage *msg)
 	return priv->proxy_auth;
 }
 
+SoupURI *
+soup_message_get_uri_for_auth (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+		/* When loaded from the disk cache, the connection is NULL. */
+                return priv->connection ? soup_connection_get_proxy_uri (priv->connection) : NULL;
+	}
+
+	return priv->uri;
+}
+
 SoupConnection *
 soup_message_get_connection (SoupMessage *msg)
 {

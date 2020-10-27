@@ -460,6 +460,7 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	SoupAuthHost *host;
 	const char *path, *realm;
 	SoupAuth *auth;
+	SoupURI *uri;
 
 	/* If the message already has a ready auth, use that instead */
 	auth = soup_message_get_auth (msg);
@@ -469,7 +470,11 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
 		return NULL;
 
-	host = get_auth_host_for_uri (priv, soup_message_get_uri (msg));
+	uri = soup_message_get_uri_for_auth (msg);
+	if (!uri)
+		return NULL;
+
+	host = get_auth_host_for_uri (priv, uri);
 	if (!host->auth_realms && !make_auto_ntlm_auth (priv, host))
 		return NULL;
 
@@ -481,7 +486,7 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (!host->auth_realms)
 		return NULL;
 
-	path = soup_message_get_uri (msg)->path;
+	path = uri->path;
 	if (!path)
 		path = "/";
 	realm = soup_path_map_lookup (host->auth_realms, path);
@@ -533,12 +538,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	if (!soup_auth_can_authenticate (auth))
 		return;
 
-	if (proxy) {
-		uri = soup_session_get_message_proxy_uri (priv->session, msg);
-		if (!uri)
-			return;
-	} else
-		uri = soup_message_get_uri (msg);
+	uri = soup_message_get_uri_for_auth (msg);
 
 	/* If a password is specified explicitly in the URI, use it
 	 * even if the auth had previously already been authenticated.
@@ -645,7 +645,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)) {
 		SoupAuth *new_auth;
 
-		new_auth = record_auth_for_uri (priv, soup_message_get_uri (msg),
+		new_auth = record_auth_for_uri (priv, soup_message_get_uri_for_auth (msg),
 						auth, prior_auth_failed);
 		g_object_unref (auth);
 		auth = g_object_ref (new_auth);
