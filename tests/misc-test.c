@@ -662,108 +662,6 @@ do_aliases_test (void)
 	soup_test_session_abort_unref (session);
 }
 
-static void
-do_pause_abort_test (void)
-{
-	SoupSession *session;
-	SoupMessage *msg;
-	gpointer ptr;
-
-	g_test_bug ("673905");
-
-        g_test_skip ("FIXME: Session has 1 ref at the end, SessionAsync had a different clear_message function with different semantics.");
-        return;
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-
-	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
-	soup_session_pause_message (session, msg);
-
-	g_object_add_weak_pointer (G_OBJECT (msg), &ptr);
-	g_object_unref (msg);
-	soup_test_session_abort_unref (session);
-
-	g_assert_null (ptr);
-}
-
-static GMainLoop *pause_cancel_loop;
-
-static void
-pause_cancel_got_headers (SoupMessage *msg, gpointer user_data)
-{
-	SoupSession *session = user_data;
-
-	soup_session_pause_message (session, msg);
-	g_main_loop_quit (pause_cancel_loop);
-}
-
-static gboolean
-idle_quit (gpointer loop)
-{
-	g_main_loop_quit (loop);
-	return FALSE;
-}
-
-static void
-pause_cancel_finished (SoupMessage *msg,
-		       gboolean    *finished)
-{
-	*finished = TRUE;
-	/* Quit the main loop in the next iteration, because finished is emitted
-	 * right before the item is unqueued.
-	 */
-	g_idle_add (idle_quit, pause_cancel_loop);
-}
-
-static gboolean
-pause_cancel_timeout (gpointer user_data)
-{
-	gboolean *timed_out = user_data;
-
-	*timed_out = TRUE;
-	g_main_loop_quit (pause_cancel_loop);
-	return FALSE;
-}
-
-static void
-do_pause_cancel_test (void)
-{
-	SoupSession *session;
-	SoupMessage *msg;
-	gboolean finished = FALSE, timed_out = FALSE;
-	guint timeout_id;
-
-	g_test_bug ("745094");
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	pause_cancel_loop = g_main_loop_new (NULL, FALSE);
-
-	timeout_id = g_timeout_add_seconds (5, pause_cancel_timeout, &timed_out);
-
-	msg = soup_message_new_from_uri ("GET", base_uri);
-	g_signal_connect (msg, "got-headers",
-			  G_CALLBACK (pause_cancel_got_headers), session);
-	g_signal_connect (msg, "finished",
-			  G_CALLBACK (pause_cancel_finished), &finished);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
-	g_main_loop_run (pause_cancel_loop);
-	g_assert_false (finished);
-
-	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
-	g_main_loop_run (pause_cancel_loop);
-	g_assert_true (finished);
-	g_assert_false (timed_out);
-
-	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
-	g_object_unref (msg);
-
-	soup_test_session_abort_unref (session);
-	g_main_loop_unref (pause_cancel_loop);
-	if (!timed_out)
-		g_source_remove (timeout_id);
-}
-
 int
 main (int argc, char **argv)
 {
@@ -801,8 +699,6 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/cancel-while-reading/req/delayed", do_cancel_while_reading_delayed_req_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/preemptive", do_cancel_while_reading_preemptive_req_test);
 	g_test_add_func ("/misc/aliases", do_aliases_test);
-	g_test_add_func ("/misc/pause-abort", do_pause_abort_test);
-	g_test_add_func ("/misc/pause-cancel", do_pause_cancel_test);
 
 	ret = g_test_run ();
 

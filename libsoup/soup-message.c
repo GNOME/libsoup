@@ -399,25 +399,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @type: the content type that we got from sniffing
 	 * @params: (element-type utf8 utf8): a #GHashTable with the parameters
 	 *
-	 * This signal is emitted after #SoupMessage::got-headers, and
-	 * before the first #SoupMessage::got-chunk. If content
-	 * sniffing is disabled, or no content sniffing will be
+	 * This signal is emitted after #SoupMessage::got-headers.
+	 * If content sniffing is disabled, or no content sniffing will be
 	 * performed, due to the sniffer deciding to trust the
 	 * Content-Type sent by the server, this signal is emitted
 	 * immediately after #SoupMessage::got-headers, and @type is
 	 * %NULL.
-	 *
-	 * If the #SoupContentSniffer feature is enabled, and the
-	 * sniffer decided to perform sniffing, the first
-	 * #SoupMessage::got-chunk emission may be delayed, so that the
-	 * sniffer has enough data to correctly sniff the content. It
-	 * notified the library user that the content has been
-	 * sniffed, and allows it to change the header contents in the
-	 * message, if desired.
-	 *
-	 * After this signal is emitted, the data that was spooled so
-	 * that sniffing could be done is delivered on the first
-	 * emission of #SoupMessage::got-chunk.
 	 *
 	 * Since: 2.28
 	 **/

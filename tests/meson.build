@@ -86,7 +86,6 @@ if have_apache
     ['connection', false, []],
     ['range', false, []],
     ['proxy', false, []],
-    ['pull-api', false, []],
   ]
 
   configure_file(output : 'httpd.conf',
