@@ -64,6 +64,10 @@ enum {
 	LAST_PROP
 };
 
+struct _SoupSocket {
+	GObject parent_instance;
+};
+
 typedef struct {
 	GInetSocketAddress *local_addr, *remote_addr;
     GSocketConnectable *remote_connectable;
@@ -406,7 +410,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_signal_new ("readable",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (SoupSocketClass, readable),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -422,7 +426,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_signal_new ("writable",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (SoupSocketClass, writable),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -438,7 +442,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (SoupSocketClass, disconnected),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -458,7 +462,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 		g_signal_new ("new_connection",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupSocketClass, new_connection),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 1,

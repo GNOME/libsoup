@@ -13,14 +13,18 @@
 #include "soup.h"
 #include "soup-filter-input-stream.h"
 
-struct _SoupIOStreamPrivate {
+struct _SoupIOStream {
+	GIOStream parent_instance;
+};
+
+typedef struct {
 	GIOStream *base_iostream;
 	gboolean close_on_dispose;
 
 	GInputStream *istream;
 	GOutputStream *ostream;
 	gboolean disposing;
-};
+} SoupIOStreamPrivate;
 
 enum {
 	PROP_0,
@@ -34,7 +38,6 @@ G_DEFINE_TYPE_WITH_PRIVATE (SoupIOStream, soup_io_stream, G_TYPE_IO_STREAM)
 static void
 soup_io_stream_init (SoupIOStream *stream)
 {
-	stream->priv = soup_io_stream_get_instance_private (stream);
 }
 
 static void
@@ -42,23 +45,24 @@ soup_io_stream_set_property (GObject *object, guint prop_id,
 			     const GValue *value, GParamSpec *pspec)
 {
 	SoupIOStream *siostream = SOUP_IO_STREAM (object);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
 	GIOStream *io;
 
 	switch (prop_id) {
 	case PROP_BASE_IOSTREAM:
-		io = siostream->priv->base_iostream = g_value_dup_object (value);
+		io = priv->base_iostream = g_value_dup_object (value);
 		if (io) {
-			siostream->priv->istream =
+			priv->istream =
 				soup_filter_input_stream_new (g_io_stream_get_input_stream (io));
-			siostream->priv->ostream =
+			priv->ostream =
 				g_object_ref (g_io_stream_get_output_stream (io));
 		} else {
-			g_clear_object (&siostream->priv->istream);
-			g_clear_object (&siostream->priv->ostream);
+			g_clear_object (&priv->istream);
+			g_clear_object (&priv->ostream);
 		}
 		break;
 	case PROP_CLOSE_ON_DISPOSE:
-		siostream->priv->close_on_dispose = g_value_get_boolean (value);
+		priv->close_on_dispose = g_value_get_boolean (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -71,13 +75,14 @@ soup_io_stream_get_property (GObject *object, guint prop_id,
 			     GValue *value, GParamSpec *pspec)
 {
 	SoupIOStream *siostream = SOUP_IO_STREAM (object);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
 
 	switch (prop_id) {
 	case PROP_BASE_IOSTREAM:
-		g_value_set_object (value, siostream->priv->base_iostream);
+		g_value_set_object (value, priv->base_iostream);
 		break;
 	case PROP_CLOSE_ON_DISPOSE:
-		g_value_set_boolean (value, siostream->priv->close_on_dispose);
+		g_value_set_boolean (value, priv->close_on_dispose);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -89,8 +94,9 @@ static void
 soup_io_stream_dispose (GObject *object)
 {
 	SoupIOStream *siostream = SOUP_IO_STREAM (object);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
 
-	siostream->priv->disposing = TRUE;
+	priv->disposing = TRUE;
 
 	G_OBJECT_CLASS (soup_io_stream_parent_class)->dispose (object);
 }
@@ -99,10 +105,11 @@ static void
 soup_io_stream_finalize (GObject *object)
 {
 	SoupIOStream *siostream = SOUP_IO_STREAM (object);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
 
-	g_clear_object (&siostream->priv->base_iostream);
-	g_clear_object (&siostream->priv->istream);
-	g_clear_object (&siostream->priv->ostream);
+	g_clear_object (&priv->base_iostream);
+	g_clear_object (&priv->istream);
+	g_clear_object (&priv->ostream);
 
 	G_OBJECT_CLASS (soup_io_stream_parent_class)->finalize (object);
 }
@@ -110,13 +117,17 @@ soup_io_stream_finalize (GObject *object)
 static GInputStream *
 soup_io_stream_get_input_stream (GIOStream *stream)
 {
-	return SOUP_IO_STREAM (stream)->priv->istream;
+        SoupIOStream *siostream = SOUP_IO_STREAM (stream);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
+	return priv->istream;
 }
 
 static GOutputStream *
 soup_io_stream_get_output_stream (GIOStream *stream)
 {
-	return SOUP_IO_STREAM (stream)->priv->ostream;
+        SoupIOStream *siostream = SOUP_IO_STREAM (stream);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
+	return priv->ostream;
 }
 
 
@@ -126,12 +137,13 @@ soup_io_stream_close (GIOStream     *stream,
 		      GError       **error)
 {
 	SoupIOStream *siostream = SOUP_IO_STREAM (stream);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
 
-	if (siostream->priv->disposing &&
-	    !siostream->priv->close_on_dispose)
+	if (priv->disposing &&
+	    !priv->close_on_dispose)
 		return TRUE;
 
-	return g_io_stream_close (siostream->priv->base_iostream,
+	return g_io_stream_close (priv->base_iostream,
 				  cancellable, error);
 }
 
@@ -158,9 +170,11 @@ soup_io_stream_close_async (GIOStream           *stream,
 			    gpointer             user_data)
 {
 	GTask *task;
+        SoupIOStream *siostream = SOUP_IO_STREAM (stream);
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
 
 	task = g_task_new (stream, cancellable, callback, user_data);
-	g_io_stream_close_async (SOUP_IO_STREAM (stream)->priv->base_iostream,
+	g_io_stream_close_async (priv->base_iostream,
 				 io_priority, cancellable,
 				 close_async_complete, task);
 }
@@ -223,7 +237,9 @@ soup_io_stream_new (GIOStream *base_iostream,
 GIOStream *
 soup_io_stream_get_base_iostream (SoupIOStream *stream)
 {
+        SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (stream);
+
 	g_return_val_if_fail (SOUP_IS_IO_STREAM (stream), NULL);
 
-	return stream->priv->base_iostream;
+	return priv->base_iostream;
 }

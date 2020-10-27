@@ -20,11 +20,11 @@
  * via fill_async(), but that would be more work...)
  */
 
-struct _SoupFilterInputStreamPrivate {
+typedef struct {
 	GByteArray *buf;
 	gboolean need_more;
 	gboolean in_read_until;
-};
+} SoupFilterInputStreamPrivate;
 
 static void soup_filter_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
@@ -36,15 +36,15 @@ G_DEFINE_TYPE_WITH_CODE (SoupFilterInputStream, soup_filter_input_stream, G_TYPE
 static void
 soup_filter_input_stream_init (SoupFilterInputStream *stream)
 {
-	stream->priv = soup_filter_input_stream_get_instance_private (stream);
 }
 
 static void
 soup_filter_input_stream_finalize (GObject *object)
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (object);
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
 
-	g_clear_pointer (&fstream->priv->buf, g_byte_array_unref);
+	g_clear_pointer (&priv->buf, g_byte_array_unref);
 
 	G_OBJECT_CLASS (soup_filter_input_stream_parent_class)->finalize (object);
 }
@@ -52,7 +52,8 @@ soup_filter_input_stream_finalize (GObject *object)
 static gssize
 read_from_buf (SoupFilterInputStream *fstream, gpointer buffer, gsize count)
 {
-	GByteArray *buf = fstream->priv->buf;
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
+	GByteArray *buf = priv->buf;
 
 	if (buf->len < count)
 		count = buf->len;
@@ -60,7 +61,7 @@ read_from_buf (SoupFilterInputStream *fstream, gpointer buffer, gsize count)
 
 	if (count == buf->len) {
 		g_byte_array_free (buf, TRUE);
-		fstream->priv->buf = NULL;
+		priv->buf = NULL;
 	} else {
 		memmove (buf->data, buf->data + count,
 			 buf->len - count);
@@ -78,11 +79,12 @@ soup_filter_input_stream_read_fn (GInputStream  *stream,
 				  GError       **error)
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
 
-	if (!fstream->priv->in_read_until)
-		fstream->priv->need_more = FALSE;
+	if (!priv->in_read_until)
+		priv->need_more = FALSE;
 
-	if (fstream->priv->buf && !fstream->priv->in_read_until) {
+	if (priv->buf && !priv->in_read_until) {
 		return read_from_buf (fstream, buffer, count);
 	} else {
 		return g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
@@ -95,8 +97,9 @@ static gboolean
 soup_filter_input_stream_is_readable (GPollableInputStream *stream)
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
 
-	if (fstream->priv->buf && !fstream->priv->need_more)
+	if (priv->buf && !priv->need_more)
 		return TRUE;
 	else
 		return g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (G_FILTER_INPUT_STREAM (fstream)->base_stream));
@@ -109,11 +112,12 @@ soup_filter_input_stream_read_nonblocking (GPollableInputStream  *stream,
 					   GError               **error)
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
 
-	if (!fstream->priv->in_read_until)
-		fstream->priv->need_more = FALSE;
+	if (!priv->in_read_until)
+		priv->need_more = FALSE;
 
-	if (fstream->priv->buf && !fstream->priv->in_read_until) {
+	if (priv->buf && !priv->in_read_until) {
 		return read_from_buf (fstream, buffer, count);
 	} else {
 		return g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
@@ -127,9 +131,10 @@ soup_filter_input_stream_create_source (GPollableInputStream *stream,
 					GCancellable         *cancellable)
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
 	GSource *base_source, *pollable_source;
 
-	if (fstream->priv->buf && !fstream->priv->need_more)
+	if (priv->buf && !priv->need_more)
 		base_source = g_timeout_source_new (0);
 	else
 		base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (G_FILTER_INPUT_STREAM (fstream)->base_stream), cancellable);
@@ -198,6 +203,7 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 				     GCancellable           *cancellable,
 				     GError                **error)
 {
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
 	gssize nread, read_length;
 	guint8 *p, *buf, *end;
 	gboolean eof = FALSE;
@@ -207,37 +213,37 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 	g_return_val_if_fail (!include_boundary || (boundary_length < length), -1);
 
 	*got_boundary = FALSE;
-	fstream->priv->need_more = FALSE;
+	priv->need_more = FALSE;
 
-	if (!fstream->priv->buf || fstream->priv->buf->len < boundary_length) {
+	if (!priv->buf || priv->buf->len < boundary_length) {
 		guint prev_len;
 
 	fill_buffer:
-		if (!fstream->priv->buf)
-			fstream->priv->buf = g_byte_array_new ();
-		prev_len = fstream->priv->buf->len;
-		g_byte_array_set_size (fstream->priv->buf, length);
-		buf = fstream->priv->buf->data;
+		if (!priv->buf)
+			priv->buf = g_byte_array_new ();
+		prev_len = priv->buf->len;
+		g_byte_array_set_size (priv->buf, length);
+		buf = priv->buf->data;
 
-		fstream->priv->in_read_until = TRUE;
+		priv->in_read_until = TRUE;
 		nread = g_pollable_stream_read (G_INPUT_STREAM (fstream),
 						buf + prev_len, length - prev_len,
 						blocking,
 						cancellable, &my_error);
-		fstream->priv->in_read_until = FALSE;
+		priv->in_read_until = FALSE;
 		if (nread <= 0) {
 			if (prev_len)
-				fstream->priv->buf->len = prev_len;
+				priv->buf->len = prev_len;
 			else {
-				g_byte_array_free (fstream->priv->buf, TRUE);
-				fstream->priv->buf = NULL;
+				g_byte_array_free (priv->buf, TRUE);
+				priv->buf = NULL;
 			}
 
 			if (nread == 0 && prev_len)
 				eof = TRUE;
 			else {
 				if (g_error_matches (my_error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK))
-					fstream->priv->need_more = TRUE;
+					priv->need_more = TRUE;
 				if (my_error)
 					g_propagate_error (error, my_error);
 
@@ -247,15 +253,15 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 			if (my_error)
 				g_propagate_error (error, my_error);
 		} else
-			fstream->priv->buf->len = prev_len + nread;
+			priv->buf->len = prev_len + nread;
 	} else
-		buf = fstream->priv->buf->data;
+		buf = priv->buf->data;
 
 	/* Scan for the boundary within the range we can possibly return. */
 	if (include_boundary)
-		end = buf + MIN (fstream->priv->buf->len, length) - boundary_length;
+		end = buf + MIN (priv->buf->len, length) - boundary_length;
 	else
-		end = buf + MIN (fstream->priv->buf->len - boundary_length, length);
+		end = buf + MIN (priv->buf->len - boundary_length, length);
 	for (p = buf; p <= end; p++) {
 		if (*p == *(guint8*)boundary &&
 		    !memcmp (p, boundary, boundary_length)) {
@@ -266,11 +272,11 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 		}
 	}
 
-	if (!*got_boundary && fstream->priv->buf->len < length && !eof)
+	if (!*got_boundary && priv->buf->len < length && !eof)
 		goto fill_buffer;
 
 	if (eof && !*got_boundary)
-		read_length = MIN (fstream->priv->buf->len, length);
+		read_length = MIN (priv->buf->len, length);
 	else
 		read_length = p - buf;
 	return read_from_buf (fstream, buffer, read_length);

@@ -14,9 +14,13 @@
 #include "soup-message-private.h"
 #include "soup-misc.h"
 
-struct _SoupClientInputStreamPrivate {
-	SoupMessage  *msg;
+struct _SoupClientInputStream {
+	SoupFilterInputStream parent_instance;
 };
+
+typedef struct {
+	SoupMessage  *msg;
+} SoupClientInputStreamPrivate;
 
 enum {
 	SIGNAL_EOF,
@@ -42,15 +46,15 @@ G_DEFINE_TYPE_WITH_CODE (SoupClientInputStream, soup_client_input_stream, SOUP_T
 static void
 soup_client_input_stream_init (SoupClientInputStream *stream)
 {
-	stream->priv = soup_client_input_stream_get_instance_private (stream);
 }
 
 static void
 soup_client_input_stream_finalize (GObject *object)
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (object);
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 
-	g_clear_object (&cistream->priv->msg);
+	g_clear_object (&priv->msg);
 
 	G_OBJECT_CLASS (soup_client_input_stream_parent_class)->finalize (object);
 }
@@ -60,10 +64,11 @@ soup_client_input_stream_set_property (GObject *object, guint prop_id,
 				       const GValue *value, GParamSpec *pspec)
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (object);
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 
 	switch (prop_id) {
 	case PROP_MESSAGE:
-		cistream->priv->msg = g_value_dup_object (value);
+		priv->msg = g_value_dup_object (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -76,10 +81,11 @@ soup_client_input_stream_get_property (GObject *object, guint prop_id,
 				       GValue *value, GParamSpec *pspec)
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (object);
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 
 	switch (prop_id) {
 	case PROP_MESSAGE:
-		g_value_set_object (value, cistream->priv->msg);
+		g_value_set_object (value, priv->msg);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -128,11 +134,12 @@ soup_client_input_stream_close_fn (GInputStream  *stream,
 				   GError       **error)
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 	gboolean success;
 
-	success = soup_message_io_run_until_finish (cistream->priv->msg, TRUE,
+	success = soup_message_io_run_until_finish (priv->msg, TRUE,
 						    NULL, error);
-	soup_message_io_finished (cistream->priv->msg);
+	soup_message_io_finished (priv->msg);
 	return success;
 }
 
@@ -151,9 +158,10 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
 {
 	GTask *task = user_data;
 	SoupClientInputStream *cistream = g_task_get_source_object (task);
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 	GError *error = NULL;
 
-	if (!soup_message_io_run_until_finish (cistream->priv->msg, FALSE,
+	if (!soup_message_io_run_until_finish (priv->msg, FALSE,
 					       g_task_get_cancellable (task),
 					       &error) &&
 	    g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
@@ -161,7 +169,7 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
 		return TRUE;
 	}
 
-	soup_message_io_finished (cistream->priv->msg);
+	soup_message_io_finished (priv->msg);
 
 	if (error) {
 		g_task_return_error (task, error);
@@ -186,15 +194,16 @@ soup_client_input_stream_close_async (GInputStream        *stream,
 				      gpointer             user_data)
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 	GTask *task;
 	GSource *source;
 
 	task = g_task_new (stream, cancellable, callback, user_data);
 	g_task_set_priority (task, priority);
 
-	if (close_async_ready (cistream->priv->msg, task) == G_SOURCE_CONTINUE) {
-		source = soup_message_io_data_get_source ((SoupMessageIOData *)soup_message_get_io_data (cistream->priv->msg),
-							  G_OBJECT (cistream->priv->msg),
+	if (close_async_ready (priv->msg, task) == G_SOURCE_CONTINUE) {
+		source = soup_message_io_data_get_source ((SoupMessageIOData *)soup_message_get_io_data (priv->msg),
+							  G_OBJECT (priv->msg),
 							  cancellable, NULL, NULL);
 
 		g_task_attach_source (task, source, (GSourceFunc) close_async_ready);

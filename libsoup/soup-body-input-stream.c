@@ -25,7 +25,11 @@ typedef enum {
 	SOUP_BODY_INPUT_STREAM_STATE_DONE
 } SoupBodyInputStreamState;
 
-struct _SoupBodyInputStreamPrivate {
+struct _SoupBodyInputStream {
+	GFilterInputStream parent_instance;
+};
+
+typedef struct {
 	GInputStream *base_stream;
 
 	SoupEncoding  encoding;
@@ -34,7 +38,7 @@ struct _SoupBodyInputStreamPrivate {
 	gboolean      eof;
 
 	goffset       pos;
-};
+} SoupBodyInputStreamPrivate;
 
 enum {
 	CLOSED,
@@ -63,21 +67,22 @@ G_DEFINE_TYPE_WITH_CODE (SoupBodyInputStream, soup_body_input_stream, G_TYPE_FIL
 static void
 soup_body_input_stream_init (SoupBodyInputStream *bistream)
 {
-	bistream->priv = soup_body_input_stream_get_instance_private (bistream);
-	bistream->priv->encoding = SOUP_ENCODING_NONE;
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
+	priv->encoding = SOUP_ENCODING_NONE;
 }
 
 static void
 soup_body_input_stream_constructed (GObject *object)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (object);
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 
-	bistream->priv->base_stream = g_filter_input_stream_get_base_stream (G_FILTER_INPUT_STREAM (bistream));
+	priv->base_stream = g_filter_input_stream_get_base_stream (G_FILTER_INPUT_STREAM (bistream));
 
-	if (bistream->priv->encoding == SOUP_ENCODING_NONE ||
-	    (bistream->priv->encoding == SOUP_ENCODING_CONTENT_LENGTH &&
-	     bistream->priv->read_length == 0))
-		bistream->priv->eof = TRUE;
+	if (priv->encoding == SOUP_ENCODING_NONE ||
+	    (priv->encoding == SOUP_ENCODING_CONTENT_LENGTH &&
+	     priv->read_length == 0))
+		priv->eof = TRUE;
 }
 
 static void
@@ -85,15 +90,16 @@ soup_body_input_stream_set_property (GObject *object, guint prop_id,
 				     const GValue *value, GParamSpec *pspec)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (object);
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 
 	switch (prop_id) {
 	case PROP_ENCODING:
-		bistream->priv->encoding = g_value_get_enum (value);
-		if (bistream->priv->encoding == SOUP_ENCODING_CHUNKED)
-			bistream->priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE;
+		priv->encoding = g_value_get_enum (value);
+		if (priv->encoding == SOUP_ENCODING_CHUNKED)
+			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE;
 		break;
 	case PROP_CONTENT_LENGTH:
-		bistream->priv->read_length = g_value_get_int64 (value);
+		priv->read_length = g_value_get_int64 (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -106,10 +112,12 @@ soup_body_input_stream_get_property (GObject *object, guint prop_id,
 				     GValue *value, GParamSpec *pspec)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (object);
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
+
 
 	switch (prop_id) {
 	case PROP_ENCODING:
-		g_value_set_enum (value, bistream->priv->encoding);
+		g_value_set_enum (value, priv->encoding);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -125,15 +133,16 @@ soup_body_input_stream_read_raw (SoupBodyInputStream  *bistream,
 				 GCancellable         *cancellable,
 				 GError              **error)
 {
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 	gssize nread;
 
-	nread = g_pollable_stream_read (bistream->priv->base_stream,
+	nread = g_pollable_stream_read (priv->base_stream,
 					buffer, count,
 					blocking,
 					cancellable, error);
 	if (nread == 0) {
-		bistream->priv->eof = TRUE;
-		if (bistream->priv->encoding != SOUP_ENCODING_EOF) {
+		priv->eof = TRUE;
+		if (priv->encoding != SOUP_ENCODING_EOF) {
 			g_set_error_literal (error, G_IO_ERROR,
 					     G_IO_ERROR_PARTIAL_INPUT,
 					     _("Connection terminated unexpectedly"));
@@ -151,13 +160,14 @@ soup_body_input_stream_read_chunked (SoupBodyInputStream  *bistream,
 				     GCancellable         *cancellable,
 				     GError              **error)
 {
-	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (bistream->priv->base_stream);
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
+	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (priv->base_stream);
 	char metabuf[128];
 	gssize nread;
 	gboolean got_line;
 
 again:
-	switch (bistream->priv->chunked_state) {
+	switch (priv->chunked_state) {
 	case SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE:
 		nread = soup_filter_input_stream_read_line (
 			fstream, metabuf, sizeof (metabuf), blocking,
@@ -171,28 +181,28 @@ again:
 			return -1;
 		}
 
-		bistream->priv->read_length = strtoul (metabuf, NULL, 16);
-		if (bistream->priv->read_length > 0)
-			bistream->priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK;
+		priv->read_length = strtoul (metabuf, NULL, 16);
+		if (priv->read_length > 0)
+			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK;
 		else
-			bistream->priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_TRAILERS;
+			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_TRAILERS;
 		break;
 
 	case SOUP_BODY_INPUT_STREAM_STATE_CHUNK:
 		nread = soup_body_input_stream_read_raw (
 			bistream, buffer,
-			MIN (count, bistream->priv->read_length),
+			MIN (count, priv->read_length),
 			blocking, cancellable, error);
 		if (nread > 0) {
-			bistream->priv->read_length -= nread;
-			if (bistream->priv->read_length == 0)
-				bistream->priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK_END;
+			priv->read_length -= nread;
+			if (priv->read_length == 0)
+				priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK_END;
 		}
 		return nread;
 
 	case SOUP_BODY_INPUT_STREAM_STATE_CHUNK_END:
 		nread = soup_filter_input_stream_read_line (
-			SOUP_FILTER_INPUT_STREAM (bistream->priv->base_stream),
+			SOUP_FILTER_INPUT_STREAM (priv->base_stream),
 			metabuf, sizeof (metabuf), blocking,
 			&got_line, cancellable, error);
 		if (nread <= 0)
@@ -204,7 +214,7 @@ again:
 			return -1;
 		}
 
-		bistream->priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE;
+		priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE;
 		break;
 
 	case SOUP_BODY_INPUT_STREAM_STATE_TRAILERS:
@@ -215,8 +225,8 @@ again:
 			return nread;
 
 		if (strncmp (buffer, "\r\n", nread) || strncmp (buffer, "\n", nread)) {
-			bistream->priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_DONE;
-			bistream->priv->eof = TRUE;
+			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_DONE;
+			priv->eof = TRUE;
 		}
 		break;
 
@@ -236,12 +246,13 @@ read_internal (GInputStream  *stream,
 	       GError       **error)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (stream);
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 	gssize nread;
 
-	if (bistream->priv->eof)
+	if (priv->eof)
 		return 0;
 
-	switch (bistream->priv->encoding) {
+	switch (priv->encoding) {
 	case SOUP_ENCODING_NONE:
 		return 0;
 
@@ -251,19 +262,19 @@ read_internal (GInputStream  *stream,
 
 	case SOUP_ENCODING_CONTENT_LENGTH:
 	case SOUP_ENCODING_EOF:
-		if (bistream->priv->read_length != -1) {
-			count = MIN (count, bistream->priv->read_length);
+		if (priv->read_length != -1) {
+			count = MIN (count, priv->read_length);
 			if (count == 0)
 				return 0;
 		}
 
 		nread = soup_body_input_stream_read_raw (bistream, buffer, count,
 							 blocking, cancellable, error);
-		if (bistream->priv->read_length != -1 && nread > 0)
-			bistream->priv->read_length -= nread;
+		if (priv->read_length != -1 && nread > 0)
+			priv->read_length -= nread;
 
-		if (bistream->priv->encoding == SOUP_ENCODING_CONTENT_LENGTH)
-			bistream->priv->pos += nread;
+		if (priv->encoding == SOUP_ENCODING_CONTENT_LENGTH)
+			priv->pos += nread;
 		return nread;
 
 	default:
@@ -277,7 +288,7 @@ soup_body_input_stream_skip (GInputStream *stream,
 			     GCancellable *cancellable,
 			     GError      **error)
 {
-	SoupBodyInputStreamPrivate *priv = SOUP_BODY_INPUT_STREAM(stream)->priv;
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (SOUP_BODY_INPUT_STREAM(stream));
 	gssize skipped;
 
 	skipped = g_input_stream_skip (G_FILTER_INPUT_STREAM (stream)->base_stream,
@@ -317,15 +328,17 @@ static gboolean
 soup_body_input_stream_is_readable (GPollableInputStream *stream)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (stream);
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 
-	return bistream->priv->eof ||
-		g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (bistream->priv->base_stream));
+	return priv->eof ||
+		g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (priv->base_stream));
 }
 
 static gboolean
 soup_body_input_stream_can_poll (GPollableInputStream *pollable)
 {
-	GInputStream *base_stream = SOUP_BODY_INPUT_STREAM (pollable)->priv->base_stream;
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (SOUP_BODY_INPUT_STREAM (pollable));
+	GInputStream *base_stream = priv->base_stream;
 
 	return G_IS_POLLABLE_INPUT_STREAM (base_stream) &&
 		g_pollable_input_stream_can_poll (G_POLLABLE_INPUT_STREAM (base_stream));
@@ -346,12 +359,13 @@ soup_body_input_stream_create_source (GPollableInputStream *stream,
 				      GCancellable *cancellable)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (stream);
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 	GSource *base_source, *pollable_source;
 
-	if (bistream->priv->eof)
+	if (priv->eof)
 		base_source = g_timeout_source_new (0);
 	else
-		base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (bistream->priv->base_stream), cancellable);
+		base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->base_stream), cancellable);
 	g_source_set_dummy_callback (base_source);
 
 	pollable_source = g_pollable_source_new (G_OBJECT (stream));
@@ -414,13 +428,14 @@ soup_body_input_stream_pollable_init (GPollableInputStreamInterface *pollable_in
 static goffset
 soup_body_input_stream_tell (GSeekable *seekable)
 {
-	return SOUP_BODY_INPUT_STREAM (seekable)->priv->pos;
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (SOUP_BODY_INPUT_STREAM (seekable));
+	return priv->pos;
 }
 
 static gboolean
 soup_body_input_stream_can_seek (GSeekable *seekable)
 {
-	SoupBodyInputStreamPrivate *priv = SOUP_BODY_INPUT_STREAM (seekable)->priv;
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (SOUP_BODY_INPUT_STREAM (seekable));
 
 	return priv->encoding == SOUP_ENCODING_CONTENT_LENGTH
 		&& G_IS_SEEKABLE (priv->base_stream)
@@ -434,7 +449,7 @@ soup_body_input_stream_seek (GSeekable     *seekable,
 			     GCancellable  *cancellable,
 			     GError       **error)
 {
-	SoupBodyInputStreamPrivate *priv = SOUP_BODY_INPUT_STREAM (seekable)->priv;
+        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (SOUP_BODY_INPUT_STREAM (seekable));
 	goffset position, end_position;
 
 	end_position = priv->pos + priv->read_length;

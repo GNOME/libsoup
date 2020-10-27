@@ -28,8 +28,11 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct _SoupCacheInputStreamPrivate
-{
+struct _SoupCacheInputStream {
+	SoupFilterInputStream parent_instance;
+};
+
+typedef struct {
 	GOutputStream *output_stream;
 	GCancellable *cancellable;
 	gsize bytes_written;
@@ -37,7 +40,7 @@ struct _SoupCacheInputStreamPrivate
 	gboolean read_finished;
 	GBytes *current_writing_buffer;
 	GQueue *buffer_queue;
-};
+} SoupCacheInputStreamPrivate;
 
 static void soup_cache_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
@@ -52,7 +55,7 @@ static void soup_cache_input_stream_write_next_buffer (SoupCacheInputStream *ist
 static inline void
 notify_and_clear (SoupCacheInputStream *istream, GError *error)
 {
-	SoupCacheInputStreamPrivate *priv = istream->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 
 	g_signal_emit (istream, signals[CACHING_FINISHED], 0, priv->bytes_written, error);
 
@@ -64,7 +67,7 @@ notify_and_clear (SoupCacheInputStream *istream, GError *error)
 static inline void
 try_write_next_buffer (SoupCacheInputStream *istream)
 {
-	SoupCacheInputStreamPrivate *priv = istream->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 
 	if (priv->current_writing_buffer == NULL && priv->buffer_queue->length)
 		soup_cache_input_stream_write_next_buffer (istream);
@@ -84,7 +87,7 @@ file_replaced_cb (GObject      *source,
 		  gpointer      user_data)
 {
 	SoupCacheInputStream *istream = SOUP_CACHE_INPUT_STREAM (user_data);
-	SoupCacheInputStreamPrivate *priv = istream->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 	GError *error = NULL;
 
 	priv->output_stream = (GOutputStream *) g_file_replace_finish (G_FILE (source), res, &error);
@@ -103,7 +106,6 @@ soup_cache_input_stream_init (SoupCacheInputStream *self)
 	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
 
 	priv->buffer_queue = g_queue_new ();
-	self->priv = priv;
 }
 
 static void
@@ -111,7 +113,7 @@ soup_cache_input_stream_get_property (GObject *object,
 				      guint property_id, GValue *value, GParamSpec *pspec)
 {
 	SoupCacheInputStream *self = SOUP_CACHE_INPUT_STREAM (object);
-	SoupCacheInputStreamPrivate *priv = self->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
 
 	switch (property_id) {
 	case PROP_OUTPUT_STREAM:
@@ -128,7 +130,7 @@ soup_cache_input_stream_set_property (GObject *object,
 				      guint property_id, const GValue *value, GParamSpec *pspec)
 {
 	SoupCacheInputStream *self = SOUP_CACHE_INPUT_STREAM (object);
-	SoupCacheInputStreamPrivate *priv = self->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
 
 	switch (property_id) {
 	case PROP_OUTPUT_STREAM:
@@ -144,7 +146,7 @@ static void
 soup_cache_input_stream_finalize (GObject *object)
 {
 	SoupCacheInputStream *self = (SoupCacheInputStream *)object;
-	SoupCacheInputStreamPrivate *priv = self->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
 
 	g_clear_object (&priv->cancellable);
 	g_clear_object (&priv->output_stream);
@@ -158,7 +160,7 @@ static void
 write_ready_cb (GObject *source, GAsyncResult *result, SoupCacheInputStream *istream)
 {
 	GOutputStream *ostream = G_OUTPUT_STREAM (source);
-	SoupCacheInputStreamPrivate *priv = istream->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 	gssize write_size;
 	gsize pending;
 	GError *error = NULL;
@@ -188,7 +190,7 @@ write_ready_cb (GObject *source, GAsyncResult *result, SoupCacheInputStream *ist
 static void
 soup_cache_input_stream_write_next_buffer (SoupCacheInputStream *istream)
 {
-	SoupCacheInputStreamPrivate *priv = istream->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 	GBytes *buffer = g_queue_pop_head (priv->buffer_queue);
 	int priority;
 
@@ -219,7 +221,7 @@ read_internal (GInputStream  *stream,
 	       GError       **error)
 {
 	SoupCacheInputStream *istream = SOUP_CACHE_INPUT_STREAM (stream);
-	SoupCacheInputStreamPrivate *priv = istream->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 	GInputStream *base_stream;
 	gssize nread;
 
@@ -280,7 +282,7 @@ soup_cache_input_stream_close_fn (GInputStream  *stream,
 				  GError       **error)
 {
 	SoupCacheInputStream *istream = SOUP_CACHE_INPUT_STREAM (stream);
-	SoupCacheInputStreamPrivate *priv = istream->priv;
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 
 	if (!priv->read_finished) {
 		if (priv->output_stream) {
@@ -326,7 +328,7 @@ soup_cache_input_stream_class_init (SoupCacheInputStreamClass *klass)
 		g_signal_new ("caching-finished",
 			      G_OBJECT_CLASS_TYPE (gobject_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupCacheInputStreamClass, caching_finished),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 2,
@@ -341,11 +343,12 @@ soup_cache_input_stream_new (GInputStream *base_stream,
 					      "base-stream", base_stream,
 					      "close-base-stream", FALSE,
 					      NULL);
+	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (istream);
 
-	istream->priv->cancellable = g_cancellable_new ();
+	priv->cancellable = g_cancellable_new ();
 	g_file_replace_async (file, NULL, FALSE,
 			      G_FILE_CREATE_PRIVATE | G_FILE_CREATE_REPLACE_DESTINATION,
-			      G_PRIORITY_DEFAULT, istream->priv->cancellable,
+			      G_PRIORITY_DEFAULT, priv->cancellable,
 			      file_replaced_cb, g_object_ref (istream));
 
 	return (GInputStream *) istream;

@@ -3,41 +3,14 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_SOCKET_H__
-#define __SOUP_SOCKET_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_SOCKET            (soup_socket_get_type ())
-#define SOUP_SOCKET(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SOCKET, SoupSocket))
-#define SOUP_SOCKET_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SOCKET, SoupSocketClass))
-#define SOUP_IS_SOCKET(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SOCKET))
-#define SOUP_IS_SOCKET_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SOCKET))
-#define SOUP_SOCKET_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SOCKET, SoupSocketClass))
-
-struct _SoupSocket {
-	GObject parent;
-
-};
-
-typedef struct {
-	GObjectClass parent_class;
-
-	/* signals */
-	void (*readable)       (SoupSocket *sock);
-	void (*writable)       (SoupSocket *sock);
-	void (*disconnected)   (SoupSocket *sock);
-
-	void (*new_connection) (SoupSocket *listener, SoupSocket *new_sock);
-
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-} SoupSocketClass;
+G_DECLARE_FINAL_TYPE (SoupSocket, soup_socket, SOUP, SOCKET, GObject)
 
 #define SOUP_SOCKET_LOCAL_ADDRESS       "local-address"
 #define SOUP_SOCKET_REMOTE_ADDRESS      "remote-address"
@@ -55,8 +28,6 @@ typedef struct {
 typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
 					       guint               status,
 					       gpointer            user_data);
-
-GType soup_socket_get_type (void);
 
 SoupSocket    *soup_socket_new                (const char         *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
@@ -112,5 +83,3 @@ SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
 					    GError            **error);
 
 G_END_DECLS
-
-#endif /* __SOUP_SOCKET_H__ */

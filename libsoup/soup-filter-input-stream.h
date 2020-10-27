@@ -3,34 +3,18 @@
  * Copyright 2012 Red Hat, Inc.
  */
 
-#ifndef __SOUP_FILTER_INPUT_STREAM_H__
-#define __SOUP_FILTER_INPUT_STREAM_H__ 1
+#pragma once
 
 #include "soup-types.h"
 
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_FILTER_INPUT_STREAM            (soup_filter_input_stream_get_type ())
-#define SOUP_FILTER_INPUT_STREAM(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_FILTER_INPUT_STREAM, SoupFilterInputStream))
-#define SOUP_FILTER_INPUT_STREAM_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_FILTER_INPUT_STREAM, SoupFilterInputStreamClass))
-#define SOUP_IS_FILTER_INPUT_STREAM(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_FILTER_INPUT_STREAM))
-#define SOUP_IS_FILTER_INPUT_STREAM_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_FILTER_INPUT_STREAM))
-#define SOUP_FILTER_INPUT_STREAM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_FILTER_INPUT_STREAM, SoupFilterInputStreamClass))
+G_DECLARE_DERIVABLE_TYPE (SoupFilterInputStream, soup_filter_input_stream, SOUP, FILTER_INPUT_STREAM, GFilterInputStream)
 
-typedef struct _SoupFilterInputStreamPrivate SoupFilterInputStreamPrivate;
-
-typedef struct {
-	GFilterInputStream parent;
-
-	SoupFilterInputStreamPrivate *priv;
-} SoupFilterInputStream;
-
-typedef struct {
+struct _SoupFilterInputStreamClass {
 	GFilterInputStreamClass parent_class;
-
-} SoupFilterInputStreamClass;
-
-GType soup_filter_input_stream_get_type (void);
+};
 
 GInputStream *soup_filter_input_stream_new        (GInputStream           *base_stream);
 
@@ -53,5 +37,3 @@ gssize        soup_filter_input_stream_read_until (SoupFilterInputStream  *fstre
 						   GError                **error);
 
 G_END_DECLS
-
-#endif /* __SOUP_FILTER_INPUT_STREAM_H__ */

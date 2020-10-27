@@ -21,6 +21,10 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+struct _SoupCacheClientInputStream {
+	GFilterInputStream parent_instance;
+};
+
 G_DEFINE_TYPE (SoupCacheClientInputStream, soup_cache_client_input_stream, G_TYPE_FILTER_INPUT_STREAM)
 
 static void

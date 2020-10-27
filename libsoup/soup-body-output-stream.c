@@ -22,7 +22,11 @@ typedef enum {
 	SOUP_BODY_OUTPUT_STREAM_STATE_DONE
 } SoupBodyOutputStreamState;
 
-struct _SoupBodyOutputStreamPrivate {
+struct _SoupBodyOutputStream {
+	GFilterOutputStream parent_instance;
+};
+
+typedef struct {
 	GOutputStream *base_stream;
 	char           buf[20];
 
@@ -31,7 +35,7 @@ struct _SoupBodyOutputStreamPrivate {
 	goffset        written;
 	SoupBodyOutputStreamState chunked_state;
 	gboolean       eof;
-};
+} SoupBodyOutputStreamPrivate;
 
 enum {
 	PROP_0,
@@ -59,15 +63,15 @@ G_DEFINE_TYPE_WITH_CODE (SoupBodyOutputStream, soup_body_output_stream, G_TYPE_F
 static void
 soup_body_output_stream_init (SoupBodyOutputStream *stream)
 {
-	stream->priv = soup_body_output_stream_get_instance_private (stream);
 }
 
 static void
 soup_body_output_stream_constructed (GObject *object)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
-	bostream->priv->base_stream = g_filter_output_stream_get_base_stream (G_FILTER_OUTPUT_STREAM (bostream));
+	priv->base_stream = g_filter_output_stream_get_base_stream (G_FILTER_OUTPUT_STREAM (bostream));
 }
 
 static void
@@ -75,15 +79,16 @@ soup_body_output_stream_set_property (GObject *object, guint prop_id,
 				      const GValue *value, GParamSpec *pspec)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
 	switch (prop_id) {
 	case PROP_ENCODING:
-		bostream->priv->encoding = g_value_get_enum (value);
-		if (bostream->priv->encoding == SOUP_ENCODING_CHUNKED)
-			bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE;
+		priv->encoding = g_value_get_enum (value);
+		if (priv->encoding == SOUP_ENCODING_CHUNKED)
+			priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE;
 		break;
 	case PROP_CONTENT_LENGTH:
-		bostream->priv->write_length = g_value_get_uint64 (value);
+		priv->write_length = g_value_get_uint64 (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -96,10 +101,11 @@ soup_body_output_stream_get_property (GObject *object, guint prop_id,
 				      GValue *value, GParamSpec *pspec)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
 	switch (prop_id) {
 	case PROP_ENCODING:
-		g_value_set_enum (value, bostream->priv->encoding);
+		g_value_set_enum (value, priv->encoding);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -122,27 +128,28 @@ soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 				   GCancellable          *cancellable,
 				   GError               **error)
 {
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 	gssize nwrote, my_count;
 
 	/* If the caller tries to write too much to a Content-Length
 	 * encoded stream, we truncate at the right point, but keep
 	 * accepting additional data until they stop.
 	 */
-	if (bostream->priv->write_length) {
-		my_count = MIN (count, bostream->priv->write_length - bostream->priv->written);
+	if (priv->write_length) {
+		my_count = MIN (count, priv->write_length - priv->written);
 		if (my_count == 0) {
-			bostream->priv->eof = TRUE;
+			priv->eof = TRUE;
 			return count;
 		}
 	} else
 		my_count = count;
 
-	nwrote = g_pollable_stream_write (bostream->priv->base_stream,
+	nwrote = g_pollable_stream_write (priv->base_stream,
 					  buffer, my_count,
 					  blocking, cancellable, error);
 
-	if (nwrote > 0 && bostream->priv->write_length) {
-		bostream->priv->written += nwrote;
+	if (nwrote > 0 && priv->write_length) {
+		priv->written += nwrote;
 		soup_body_output_stream_wrote_data (bostream, nwrote);
 	}
 
@@ -160,13 +167,14 @@ soup_body_output_stream_write_chunked (SoupBodyOutputStream  *bostream,
 				       GCancellable          *cancellable,
 				       GError               **error)
 {
-	char *buf = bostream->priv->buf;
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
+	char *buf = priv->buf;
 	gssize nwrote, len;
 
 again:
 	len = strlen (buf);
 	if (len) {
-		nwrote = g_pollable_stream_write (bostream->priv->base_stream,
+		nwrote = g_pollable_stream_write (priv->base_stream,
 						  buf, len, blocking,
 						  cancellable, error);
 		if (nwrote < 0)
@@ -175,19 +183,19 @@ again:
 		goto again;
 	}
 
-	switch (bostream->priv->chunked_state) {
+	switch (priv->chunked_state) {
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE:
-		g_snprintf (buf, sizeof (bostream->priv->buf),
+		g_snprintf (buf, sizeof (priv->buf),
 			    "%lx\r\n", (gulong)count);
 
 		if (count > 0)
-			bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK;
+			priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK;
 		else
-			bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_TRAILERS;
+			priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_TRAILERS;
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK:
-		nwrote = g_pollable_stream_write (bostream->priv->base_stream,
+		nwrote = g_pollable_stream_write (priv->base_stream,
 						  buffer, count, blocking,
 						  cancellable, error);
 		if (nwrote > 0)
@@ -196,21 +204,21 @@ again:
 		if (nwrote < (gssize)count)
 			return nwrote;
 
-		bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_END;
+		priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_END;
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_END:
-		strncpy (buf, "\r\n", sizeof (bostream->priv->buf));
-		bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
+		strncpy (buf, "\r\n", sizeof (priv->buf));
+		priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_TRAILERS:
-		strncpy (buf, "\r\n", sizeof (bostream->priv->buf));
-		bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
+		strncpy (buf, "\r\n", sizeof (priv->buf));
+		priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_DONE:
-		bostream->priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE;
+		priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE;
 		return count;
 	}
 
@@ -225,11 +233,12 @@ soup_body_output_stream_write_fn (GOutputStream  *stream,
 				  GError        **error)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
-	if (bostream->priv->eof)
+	if (priv->eof)
 		return count;
 
-	switch (bostream->priv->encoding) {
+	switch (priv->encoding) {
 	case SOUP_ENCODING_CHUNKED:
 		return soup_body_output_stream_write_chunked (bostream, buffer, count,
 							      TRUE, cancellable, error);
@@ -246,9 +255,10 @@ soup_body_output_stream_close_fn (GOutputStream  *stream,
 				  GError        **error)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
-	if (bostream->priv->encoding == SOUP_ENCODING_CHUNKED &&
-	    bostream->priv->chunked_state == SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE) {
+	if (priv->encoding == SOUP_ENCODING_CHUNKED &&
+	    priv->chunked_state == SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE) {
 		if (soup_body_output_stream_write_chunked (bostream, NULL, 0, TRUE, cancellable, error) == -1)
 			return FALSE;
 	}
@@ -260,9 +270,10 @@ static gboolean
 soup_body_output_stream_is_writable (GPollableOutputStream *stream)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
-	return bostream->priv->eof ||
-		g_pollable_output_stream_is_writable (G_POLLABLE_OUTPUT_STREAM (bostream->priv->base_stream));
+	return priv->eof ||
+		g_pollable_output_stream_is_writable (G_POLLABLE_OUTPUT_STREAM (priv->base_stream));
 }
 
 static gssize
@@ -272,11 +283,12 @@ soup_body_output_stream_write_nonblocking (GPollableOutputStream  *stream,
 					   GError                **error)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
-	if (bostream->priv->eof)
+	if (priv->eof)
 		return count;
 
-	switch (bostream->priv->encoding) {
+	switch (priv->encoding) {
 	case SOUP_ENCODING_CHUNKED:
 		return soup_body_output_stream_write_chunked (bostream, buffer, count,
 							      FALSE, NULL, error);
@@ -292,12 +304,13 @@ soup_body_output_stream_create_source (GPollableOutputStream *stream,
 				       GCancellable *cancellable)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
+        SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 	GSource *base_source, *pollable_source;
 
-	if (bostream->priv->eof)
+	if (priv->eof)
 		base_source = g_timeout_source_new (0);
 	else
-		base_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (bostream->priv->base_stream), cancellable);
+		base_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (priv->base_stream), cancellable);
 	g_source_set_dummy_callback (base_source);
 
 	pollable_source = g_pollable_source_new (G_OBJECT (stream));
