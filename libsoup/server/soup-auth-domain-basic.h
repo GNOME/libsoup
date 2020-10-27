@@ -13,9 +13,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_4
 G_DECLARE_FINAL_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP, AUTH_DOMAIN_BASIC, SoupAuthDomain)
 
-#define SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK "auth-callback"
-#define SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA     "auth-data"
-
 SOUP_AVAILABLE_IN_2_4
 SoupAuthDomain *soup_auth_domain_basic_new (const char *optname1,
 					    ...) G_GNUC_NULL_TERMINATED;

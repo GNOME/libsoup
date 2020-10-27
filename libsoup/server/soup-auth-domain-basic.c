@@ -110,7 +110,7 @@ soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
  * @...: option name/value pairs
  *
  * Creates a #SoupAuthDomainBasic. You must set the
- * %SOUP_AUTH_DOMAIN_REALM parameter, to indicate the realm name to be
+ * SoupAuthDomain:realm property, to indicate the realm name to be
  * returned with the authentication challenge to the client. Other
  * parameters are optional.
  *
@@ -172,8 +172,8 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  * based on @callback's return value.
  *
  * You can also set the auth callback by setting the
- * %SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK and
- * %SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA properties, which can also be
+ * SoupAuthDomainBasic:auth-callback and
+ * SoupAuthDomainBasic:auth-data properties, which can also be
  * used to set the callback at construct time.
  **/
 void
@@ -192,8 +192,8 @@ soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
 	priv->auth_data = user_data;
 	priv->auth_dnotify = dnotify;
 
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK);
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA);
+	g_object_notify (G_OBJECT (domain), "auth-callback");
+	g_object_notify (G_OBJECT (domain), "auth-data");
 }
 
 static void
@@ -313,29 +313,17 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	object_class->get_property = soup_auth_domain_basic_get_property;
 
 	/**
-	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK:
-	 *
-	 * Alias for the #SoupAuthDomainBasic:auth-callback property.
-	 * (The #SoupAuthDomainBasicAuthCallback.)
-	 **/
-	/**
 	 * SoupAuthDomainBasic:auth-callback: (type SoupAuthDomainBasicAuthCallback)
 	 *
 	 * The #SoupAuthDomainBasicAuthCallback
 	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_CALLBACK,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK,
+		g_param_spec_pointer ("auth-callback",
 				      "Authentication callback",
 				      "Password-checking callback",
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA:
-	 *
-	 * Alias for the #SoupAuthDomainBasic:auth-data property.
-	 * (The data to pass to the #SoupAuthDomainBasicAuthCallback.)
-	 **/
 	/**
 	 * SoupAuthDomainBasic:auth-data:
 	 *
@@ -343,7 +331,7 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_DATA,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA,
+		g_param_spec_pointer ("auth-data",
 				      "Authentication callback data",
 				      "Data to pass to authentication callback",
 				      G_PARAM_READWRITE |

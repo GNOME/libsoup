@@ -295,7 +295,7 @@ do_basics_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE, cache,
+					 "add-feature", cache,
 					 NULL);
 
 	g_signal_connect (session, "request-queued",
@@ -489,7 +489,7 @@ do_cancel_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE, cache,
+					 "add-feature", cache,
 					 NULL);
 	g_signal_connect (session, "request-unqueued",
 			  G_CALLBACK (request_unqueued), NULL);
@@ -522,7 +522,7 @@ do_cancel_test (gconstpointer data)
 	soup_test_session_abort_unref (session);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE, cache,
+					 "add-feature", cache,
 					 NULL);
 	g_signal_connect (session, "request-unqueued",
 			  G_CALLBACK (request_unqueued), NULL);
@@ -583,7 +583,7 @@ do_refcounting_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE, cache,
+					 "add-feature", cache,
 					 NULL);
 
 	last_request_validated = last_request_hit_network = FALSE;
@@ -638,7 +638,7 @@ do_headers_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE, cache,
+					 "add-feature", cache,
 					 NULL);
 
 	g_signal_connect (session, "request-queued",
@@ -715,7 +715,7 @@ do_leaks_test (gconstpointer data)
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE, cache,
+					 "add-feature", cache,
 					 NULL);
 
 	debug_printf (2, "  Initial requests\n");

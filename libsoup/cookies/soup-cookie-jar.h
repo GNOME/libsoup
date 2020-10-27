@@ -28,9 +28,6 @@ struct _SoupCookieJarClass {
 	gpointer padding[6];
 };
 
-#define SOUP_COOKIE_JAR_READ_ONLY "read-only"
-#define SOUP_COOKIE_JAR_ACCEPT_POLICY "accept-policy"
-
 typedef enum {
 	SOUP_COOKIE_JAR_ACCEPT_ALWAYS,
 	SOUP_COOKIE_JAR_ACCEPT_NEVER,

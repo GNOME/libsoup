@@ -493,7 +493,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	/* properties */
 	g_object_class_install_property (
 		 object_class, PROP_GSOCKET,
-		 g_param_spec_object (SOUP_SOCKET_GSOCKET,
+		 g_param_spec_object ("gsocket",
 				      "GSocket",
 				      "The socket's underlying GSocket",
 				      G_TYPE_SOCKET,
@@ -501,51 +501,34 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		 object_class, PROP_IOSTREAM,
-		 g_param_spec_object (SOUP_SOCKET_IOSTREAM,
+		 g_param_spec_object ("iostream",
 				      "GIOStream",
 				      "The socket's underlying GIOStream",
 				      G_TYPE_IO_STREAM,
 				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
 				      G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_SOCKET_LOCAL_ADDRESS:
-	 *
-	 * Alias for the #SoupSocket:local-address property. (Address
-	 * of local end of socket.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_LOCAL_ADDRESS,
-		g_param_spec_object (SOUP_SOCKET_LOCAL_ADDRESS,
+		g_param_spec_object ("local-address",
 				     "Local address",
 				     "Address of local end of socket",
 				     G_TYPE_INET_SOCKET_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SOCKET_REMOTE_ADDRESS:
-	 *
-	 * Alias for the #SoupSocket:remote-address property. (Address
-	 * of remote end of socket.)
-	 **/
+
 	g_object_class_install_property (
 		object_class, PROP_REMOTE_ADDRESS,
-		g_param_spec_object (SOUP_SOCKET_REMOTE_ADDRESS,
+		g_param_spec_object ("remote-address",
 				     "Remote address",
 				     "Address of remote end of socket",
 				     G_TYPE_SOCKET_ADDRESS,
 				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_SOCKET_REMOTE_CONNECTABLE:
-	 *
-	 * Alias for the #SoupSocket:remote-connectable property. (Address
-	 * to connect to.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_REMOTE_CONNECTABLE,
-		g_param_spec_object (SOUP_SOCKET_REMOTE_CONNECTABLE,
+		g_param_spec_object ("remote-connectable",
 				     "Remote address",
 				     "Address to connect to",
 				     G_TYPE_SOCKET_CONNECTABLE,
@@ -575,15 +558,9 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * simply never return %SOUP_SOCKET_WOULD_BLOCK, and so the
 	 * code that handles that case just won't get used for them.
 	 **/
-	/**
-	 * SOUP_SOCKET_FLAG_NONBLOCKING:
-	 *
-	 * Alias for the #SoupSocket:non-blocking property. (Whether
-	 * or not the socket uses non-blocking I/O.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_NON_BLOCKING,
-		g_param_spec_boolean (SOUP_SOCKET_FLAG_NONBLOCKING,
+		g_param_spec_boolean ("non-blocking",
 				      "Non-blocking",
 				      "Whether or not the socket uses non-blocking I/O",
 				      TRUE,
@@ -591,17 +568,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_IPV6_ONLY,
-		g_param_spec_boolean (SOUP_SOCKET_IPV6_ONLY,
+		g_param_spec_boolean ("ipv6-only",
 				      "IPv6 only",
 				      "IPv6 only",
 				      FALSE,
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SOCKET_IS_SERVER:
-	 *
-	 * Alias for the #SoupSocket:is-server property, qv.
-	 **/
 	/**
 	 * SoupSocket:is-server:
 	 *
@@ -613,79 +585,54 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_SERVER,
-		g_param_spec_boolean (SOUP_SOCKET_IS_SERVER,
+		g_param_spec_boolean ("is-server",
 				      "Server",
 				      "Whether or not the socket is a server socket",
 				      FALSE,
 				      G_PARAM_READABLE |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SOCKET_SSL_CREDENTIALS:
-	 *
-	 * Alias for the #SoupSocket:ssl-creds property.
-	 * (SSL credential information.)
-	 **/
 	/* For historical reasons, there's only a single property
 	 * here, which is a GTlsDatabase for client sockets, and
 	 * a GTlsCertificate for server sockets. Whee!
 	 */
 	g_object_class_install_property (
 		object_class, PROP_SSL_CREDENTIALS,
-		g_param_spec_pointer (SOUP_SOCKET_SSL_CREDENTIALS,
+		g_param_spec_pointer ("ssl-creds",
 				      "SSL credentials",
 				      "SSL credential information, passed from the session to the SSL implementation",
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SOCKET_SSL_STRICT:
-	 *
-	 * Alias for the #SoupSocket:ssl-strict property.
-	 **/
+
 	g_object_class_install_property (
 		object_class, PROP_SSL_STRICT,
-		g_param_spec_boolean (SOUP_SOCKET_SSL_STRICT,
+		g_param_spec_boolean ("ssl-strict",
 				      "Strictly validate SSL certificates",
 				      "Whether certificate errors should be considered a connection error",
 				      TRUE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SOCKET_SSL_FALLBACK:
-	 *
-	 * Alias for the #SoupSocket:ssl-fallback property.
-	 **/
+
 	g_object_class_install_property (
 		object_class, PROP_SSL_FALLBACK,
-		g_param_spec_boolean (SOUP_SOCKET_SSL_FALLBACK,
+		g_param_spec_boolean ("ssl-fallback",
 				      "SSLv3 fallback",
 				      "Use SSLv3 instead of TLS (client-side only)",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SOCKET_TRUSTED_CERTIFICATE:
-	 *
-	 * Alias for the #SoupSocket:trusted-certificate
-	 * property.
-	 **/
+
 	g_object_class_install_property (
 		object_class, PROP_TRUSTED_CERTIFICATE,
-		g_param_spec_boolean (SOUP_SOCKET_TRUSTED_CERTIFICATE,
+		g_param_spec_boolean ("trusted-certificate",
 				     "Trusted Certificate",
 				     "Whether the server certificate is trusted, if this is an SSL socket",
 				     FALSE,
 				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_SOCKET_TIMEOUT:
-	 *
-	 * Alias for the #SoupSocket:timeout property. (The timeout
-	 * in seconds for blocking socket I/O operations.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_TIMEOUT,
-		g_param_spec_uint (SOUP_SOCKET_TIMEOUT,
+		g_param_spec_uint ("timeout",
 				   "Timeout value",
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
@@ -693,10 +640,11 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				   G_PARAM_STATIC_STRINGS));
 
 	/**
-	 * SOUP_SOCKET_TLS_CERTIFICATE:
+	 * SoupSocket:tls-certificate:
 	 *
-	 * Alias for the #SoupSocket:tls-certificate
-	 * property. Note that this property's value is only useful
+	 * The peer's TLS certificate.
+         * 
+         * Note that this property's value is only useful
 	 * if the socket is for a TLS connection, and only reliable
 	 * after some data has been transferred to or from it.
 	 *
@@ -704,17 +652,18 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE,
-		g_param_spec_object (SOUP_SOCKET_TLS_CERTIFICATE,
+		g_param_spec_object ("tls-certificate",
 				     "TLS certificate",
 				     "The peer's TLS certificate",
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_SOCKET_TLS_ERRORS:
+	 * SoupSocket:tls-errors:
 	 *
-	 * Alias for the #SoupSocket:tls-errors
-	 * property. Note that this property's value is only useful
+         * Errors with the peer's TLS certificate.
+         * 
+	 * Note that this property's value is only useful
 	 * if the socket is for a TLS connection, and only reliable
 	 * after some data has been transferred to or from it.
 	 *
@@ -722,7 +671,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TLS_ERRORS,
-		g_param_spec_flags (SOUP_SOCKET_TLS_ERRORS,
+		g_param_spec_flags ("tls-errors",
 				    "TLS errors",
 				    "Errors with the peer's TLS certificate",
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
@@ -731,7 +680,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 
 	g_object_class_install_property (
 		 object_class, PROP_SOCKET_PROPERTIES,
-		 g_param_spec_boxed (SOUP_SOCKET_SOCKET_PROPERTIES,
+		 g_param_spec_boxed ("socket-properties",
 				     "Socket properties",
 				     "Socket properties",
 				     SOUP_TYPE_SOCKET_PROPERTIES,

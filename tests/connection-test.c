@@ -541,7 +541,7 @@ do_max_conns_test (void)
 	g_test_bug ("634422");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_MAX_CONNS, MAX_CONNS,
+					 "max-conns", MAX_CONNS,
 					 NULL);
 	do_max_conns_test_for_session (session);
 	soup_test_session_abort_unref (session);
@@ -769,7 +769,7 @@ do_connection_state_test_for_session (SoupSession *session)
 
 	resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_PROXY_RESOLVER, resolver,
+		      "proxy-resolver", resolver,
 		      NULL);
 	g_object_unref (resolver);
 
@@ -908,7 +908,7 @@ do_connection_event_test_for_session (SoupSession *session)
 
 	resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_PROXY_RESOLVER, resolver,
+		      "proxy-resolver", resolver,
 		      NULL);
 	g_object_unref (resolver);
 

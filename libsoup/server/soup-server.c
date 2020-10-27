@@ -103,7 +103,7 @@
  * 
  * If you want to process https connections in addition to (or instead
  * of) http connections, you can either set the
- * %SOUP_SERVER_TLS_CERTIFICATE property when creating the server, or
+ * SoupServer:tls-certificate property when creating the server, or
  * else call soup_server_set_ssl_cert_file() after creating it.
  *
  * Once the server is set up, make one or more calls to
@@ -476,13 +476,6 @@ soup_server_class_init (SoupServerClass *server_class)
 
 	/* properties */
 	/**
-	 * SOUP_SERVER_TLS_CERTIFICATE:
-	 *
-	 * Alias for the #SoupServer:tls-certificate property, qv.
-	 *
-	 * Since: 2.38
-	 */
-	/**
 	 * SoupServer:tls-certificate:
 	 *
 	 * A #GTlsCertificate that has a #GTlsCertificate:private-key
@@ -496,22 +489,15 @@ soup_server_class_init (SoupServerClass *server_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE,
-		g_param_spec_object (SOUP_SERVER_TLS_CERTIFICATE,
+		g_param_spec_object ("tls-certificate",
 				     "TLS certificate",
 				     "GTlsCertificate to use for https",
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_SERVER_RAW_PATHS:
-	 *
-	 * Alias for the #SoupServer:raw-paths property. (If %TRUE,
-	 * percent-encoding in the Request-URI path will not be
-	 * automatically decoded.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_RAW_PATHS,
-		g_param_spec_boolean (SOUP_SERVER_RAW_PATHS,
+		g_param_spec_boolean ("raw-paths",
 				      "Raw paths",
 				      "If %TRUE, percent-encoding in the Request-URI path will not be automatically decoded.",
 				      FALSE,
@@ -545,14 +531,9 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
 	 **/
-	/**
-	 * SOUP_SERVER_SERVER_HEADER:
-	 *
-	 * Alias for the #SoupServer:server-header property, qv.
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_SERVER_HEADER,
-		g_param_spec_string (SOUP_SERVER_SERVER_HEADER,
+		g_param_spec_string ("server-header",
 				     "Server header",
 				     "Server header",
 				     NULL,
@@ -573,22 +554,15 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * The default value is an array containing the single element
 	 * <literal>"*"</literal>, a special value which means that
 	 * any scheme except "https" is considered to be an alias for
-	 * "http".
+	 * SoupServer:http.
 	 *
 	 * See also #SoupServer:https-aliases.
 	 *
 	 * Since: 2.44
 	 */
-	/**
-	 * SOUP_SERVER_HTTP_ALIASES:
-	 *
-	 * Alias for the #SoupServer:http-aliases property, qv.
-	 *
-	 * Since: 2.44
-	 */
 	g_object_class_install_property (
 		object_class, PROP_HTTP_ALIASES,
-		g_param_spec_boxed (SOUP_SERVER_HTTP_ALIASES,
+		g_param_spec_boxed ("http-aliases",
 				    "http aliases",
 				    "URI schemes that are considered aliases for 'http'",
 				    G_TYPE_STRV,
@@ -605,16 +579,9 @@ soup_server_class_init (SoupServerClass *server_class)
 	 *
 	 * Since: 2.44
 	 */
-	/**
-	 * SOUP_SERVER_HTTPS_ALIASES:
-	 *
-	 * Alias for the #SoupServer:https-aliases property, qv.
-	 *
-	 * Since: 2.44
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_HTTPS_ALIASES,
-		g_param_spec_boxed (SOUP_SERVER_HTTPS_ALIASES,
+		g_param_spec_boxed ("https-aliases",
 				    "https aliases",
 				    "URI schemes that are considered aliases for 'https'",
 				    G_TYPE_STRV,
@@ -625,13 +592,6 @@ soup_server_class_init (SoupServerClass *server_class)
          *
          * Add support for #SoupWebsocketExtension of the given type.
          * (Shortcut for calling soup_server_add_websocket_extension().)
-         *
-         * Since: 2.68
-         **/
-        /**
-         * SOUP_SERVER_ADD_WEBSOCKET_EXTENSION: (skip)
-         *
-         * Alias for the #SoupServer:add-websocket-extension property, qv.
          *
          * Since: 2.68
          **/
@@ -647,13 +607,6 @@ soup_server_class_init (SoupServerClass *server_class)
          *
          * Remove support for #SoupWebsocketExtension of the given type. (Shortcut for
          * calling soup_server_remove_websocket_extension().)
-         *
-         * Since: 2.68
-         **/
-        /**
-         * SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION: (skip)
-         *
-         * Alias for the #SoupServer:remove-websocket-extension property, qv.
          *
          * Since: 2.68
          **/
@@ -1138,8 +1091,8 @@ soup_server_accept_iostream (SoupServer     *server,
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
 			       "iostream", stream,
-			       SOUP_SOCKET_LOCAL_ADDRESS, local_addr,
-			       SOUP_SOCKET_REMOTE_CONNECTABLE, remote_addr,
+			       "local-address", local_addr,
+			       "remote-connectable", remote_addr,
 			       NULL);
 
 	if (!sock)
@@ -1238,12 +1191,12 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 		}
 
 		g_object_set (G_OBJECT (listener),
-			      SOUP_SOCKET_SSL_CREDENTIALS, priv->tls_cert,
+			      "ssl-creds", priv->tls_cert,
 			      NULL);
 	}
 
 	g_object_get (G_OBJECT (listener),
-		      SOUP_SOCKET_IS_SERVER, &is_listening,
+		      "is-server", &is_listening,
 		      NULL);
 	if (!is_listening) {
 		if (!soup_socket_listen_full (listener, error)) {
@@ -1319,8 +1272,8 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
         ipv6_only = g_socket_address_get_family (address) == G_SOCKET_FAMILY_IPV6;
-	listener = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, address,
-				    SOUP_SOCKET_IPV6_ONLY, ipv6_only,
+	listener = soup_socket_new ("local-address", address,
+				    "ipv6-only", ipv6_only,
 				    NULL);
 
 	success = soup_server_listen_internal (server, listener, options, error);
@@ -1546,8 +1499,8 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
 	listener = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
-				   SOUP_SOCKET_GSOCKET, socket,
-				   SOUP_SOCKET_IPV6_ONLY, TRUE,
+				   "gsocket", socket,
+				   "ipv6-only", TRUE,
 				   NULL);
 	if (!listener)
 		return FALSE;
@@ -1596,7 +1549,7 @@ soup_server_get_uris (SoupServer *server)
 		addr = soup_socket_get_local_address (listener);
 		inet_addr = g_inet_socket_address_get_address (addr);
 		ip = g_inet_address_to_string (inet_addr);
-		g_object_get (G_OBJECT (listener), SOUP_SOCKET_SSL_CREDENTIALS, &creds, NULL);
+		g_object_get (G_OBJECT (listener), "ssl-creds", &creds, NULL);
 
 		uri = soup_uri_new (NULL);
 		soup_uri_set_scheme (uri, creds ? "https" : "http");
@@ -1630,7 +1583,7 @@ soup_server_get_uris (SoupServer *server)
  * "/foo%<!-- -->2Fbar" is treated the same as "/foo/bar". If your
  * server is serving resources in some non-POSIX-filesystem namespace,
  * you may want to distinguish those as two distinct paths. In that
- * case, you can set the %SOUP_SERVER_RAW_PATHS property when creating
+ * case, you can set the SoupServer:raw-paths property when creating
  * the #SoupServer, and it will leave those characters undecoded. (You
  * may want to call soup_uri_normalize() to decode any percent-encoded
  * characters that you aren't handling specially.)
@@ -1901,7 +1854,7 @@ soup_server_remove_handler (SoupServer *server, const char *path)
  * doesn't contain authentication), @server will automatically reject
  * the request with an appropriate status (401 Unauthorized or 407
  * Proxy Authentication Required). If the request used the
- * "100-continue" Expectation, @server will reject it before the
+ * SoupServer:100-continue Expectation, @server will reject it before the
  * request body is sent.
  **/
 void

@@ -30,7 +30,7 @@ a few additional options:
 
 <variablelist>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-TLS-CERTIFICATE:CAPS"><literal>SOUP_SERVER_TLS_CERTIFICATE</literal></link></term>
+	<term><link linkend="SoupServer:tls-certificate"><literal>"tls-certificate"</literal></link></term>
 	<listitem><para>
 	    A <link
 	    linkend="GTlsCertificate"><type>GTlsCertificate</type></link>
@@ -39,7 +39,7 @@ a few additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-RAW-PATHS:CAPS"><literal>SOUP_SERVER_RAW_PATHS</literal></link></term>
+	<term><link linkend="SoupServer:raw-paths"><literal>"raw-paths"</literal></link></term>
 	<listitem><para>
 	    Set this to <literal>TRUE</literal> if you don't want
 	    <application>libsoup</application> to decode %-encoding
@@ -49,15 +49,15 @@ a few additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-SERVER-HEADER:CAPS"><literal>SOUP_SERVER_SERVER_HEADER</literal></link></term>
+	<term><link linkend="SoupServer:server-header"><literal>"server-header"</literal></link></term>
 	<listitem><para>
 	    Allows you to set a Server header string that will be sent
 	    on all responses.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-HTTP-ALIASES:CAPS"><literal>SOUP_SERVER_HTTP_ALIASES</literal></link>
-	and <link linkend="SOUP-SERVER-HTTPS-ALIASES:CAPS"><literal>SOUP_SERVER_HTTPS_ALIASES</literal></link></term>
+	<term><link linkend="SoupServer:http-aliases"><literal>"http-aliases"</literal></link>
+	and <link linkend="SoupServer:https-aliases"><literal>"https-aliases"</literal></link></term>
 	<listitem><para>
 	    Allow you to tell the server to recognize additional URI
 	    schemes as aliases for "<literal>http</literal>" or
@@ -88,7 +88,7 @@ a few additional options:
 
 <para>
   To set up an HTTPS server, you must first either set the <link
-  linkend="SOUP-SERVER-TLS-CERTIFICATE:CAPS"><literal>SOUP_SERVER_TLS_CERTIFICATE</literal></link>
+  linkend="SoupServer:tls-certificate"><literal>SoupServer:tls-certificate</literal></link>
   property, or else call <link
   linkend="soup-server-set-ssl-cert-file"><function>soup_server_set_ssl_cert_file</function></link>.
   After that you can pass the <link
@@ -317,11 +317,11 @@ linkend="soup-server-add-auth-domain"><function>soup_server_add_auth_domain</fun
 	SoupAuthDomain *domain;
 
 	domain = soup_auth_domain_basic_new (
-		SOUP_AUTH_DOMAIN_REALM, "My Realm",
-		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
-		SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA, auth_data,
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/foo",
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/bar/private",
+		"realm", "My Realm",
+		"auth-callback", auth_callback,
+		"auth-data", auth_data,
+		"add-path", "/foo",
+		"add-path", "/bar/private",
 		NULL);
 	soup_server_add_auth_domain (server, domain);
 	g_object_unref (domain);

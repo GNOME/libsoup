@@ -277,7 +277,7 @@ soup_test_session_new (GType type, ...)
 		}
 
 		g_object_set (G_OBJECT (session),
-			      SOUP_SESSION_TLS_DATABASE, tlsdb,
+			      "tls-database", tlsdb,
 			      NULL);
 		g_clear_object (&tlsdb);
 	}
@@ -439,7 +439,7 @@ soup_test_server_new (SoupTestServerOptions options)
 		}
 	}
 
-	server = soup_server_new (SOUP_SERVER_TLS_CERTIFICATE, cert,
+	server = soup_server_new ("tls-certificate", cert,
 				  NULL);
 	g_clear_object (&cert);
 

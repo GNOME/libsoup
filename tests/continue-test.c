@@ -519,9 +519,9 @@ setup_server (void)
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 
 	auth_domain = soup_auth_domain_basic_new (
-		SOUP_AUTH_DOMAIN_REALM, "continue-test",
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/auth",
-		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
+		"realm", "continue-test",
+		"add-path", "/auth",
+		"auth-callback", auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);

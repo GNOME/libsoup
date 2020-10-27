@@ -14,8 +14,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_68
 G_DECLARE_FINAL_TYPE (SoupHSTSEnforcerDB, soup_hsts_enforcer_db, SOUP, HSTS_ENFORCER_DB, SoupHSTSEnforcer)
 
-#define SOUP_HSTS_ENFORCER_DB_FILENAME  "filename"
-
 SOUP_AVAILABLE_IN_2_68
 SoupHSTSEnforcer *soup_hsts_enforcer_db_new (const char *filename);
 

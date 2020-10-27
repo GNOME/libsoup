@@ -120,7 +120,7 @@ soup_hsts_enforcer_db_new (const char *filename)
 	g_return_val_if_fail (filename != NULL, NULL);
 
 	return g_object_new (SOUP_TYPE_HSTS_ENFORCER_DB,
-			     SOUP_HSTS_ENFORCER_DB_FILENAME, filename,
+			     "filename", filename,
 			     NULL);
 }
 
@@ -332,7 +332,7 @@ soup_hsts_enforcer_db_class_init (SoupHSTSEnforcerDBClass *db_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_FILENAME,
-		g_param_spec_string (SOUP_HSTS_ENFORCER_DB_FILENAME,
+		g_param_spec_string ("filename",
 				     "Filename",
 				     "HSTS policy storage filename",
 				     NULL,

@@ -43,12 +43,6 @@ struct _SoupAuthClass {
 	gpointer padding[6];
 };
 
-#define SOUP_AUTH_SCHEME_NAME      "scheme-name"
-#define SOUP_AUTH_REALM            "realm"
-#define SOUP_AUTH_HOST             "host"
-#define SOUP_AUTH_IS_FOR_PROXY     "is-for-proxy"
-#define SOUP_AUTH_IS_AUTHENTICATED "is-authenticated"
-
 SOUP_AVAILABLE_IN_2_4
 SoupAuth   *soup_auth_new                   (GType          type,
 					     SoupMessage   *msg,

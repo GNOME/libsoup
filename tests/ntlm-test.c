@@ -653,7 +653,7 @@ do_retrying_test (TestServer *ts,
 	debug_printf (1, "  /alice\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_AUTH_NTLM,
+					 "add-feature-by-type", SOUP_TYPE_AUTH_NTLM,
 					 NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (retry_test_authenticate), &retried);
@@ -675,7 +675,7 @@ do_retrying_test (TestServer *ts,
 	debug_printf (1, "  /bob\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_AUTH_NTLM,
+					 "add-feature-by-type", SOUP_TYPE_AUTH_NTLM,
 					 NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (retry_test_authenticate), &retried);

@@ -41,26 +41,6 @@ soup_message_get_site_for_cookies
 soup_message_set_site_for_cookies
 soup_message_get_is_top_level_navigation
 soup_message_set_is_top_level_navigation
-<SUBSECTION>
-SOUP_MESSAGE_METHOD
-SOUP_MESSAGE_URI
-SOUP_MESSAGE_HTTP_VERSION
-SOUP_MESSAGE_FLAGS
-SOUP_MESSAGE_STATUS_CODE
-SOUP_MESSAGE_REASON_PHRASE
-SOUP_MESSAGE_SERVER_SIDE
-SOUP_MESSAGE_FIRST_PARTY
-SOUP_MESSAGE_PRIORITY
-SOUP_MESSAGE_REQUEST_BODY
-SOUP_MESSAGE_REQUEST_BODY_DATA
-SOUP_MESSAGE_REQUEST_HEADERS
-SOUP_MESSAGE_RESPONSE_BODY
-SOUP_MESSAGE_RESPONSE_BODY_DATA
-SOUP_MESSAGE_RESPONSE_HEADERS
-SOUP_MESSAGE_TLS_CERTIFICATE
-SOUP_MESSAGE_TLS_ERRORS
-SOUP_MESSAGE_IS_TOP_LEVEL_NAVIGATION
-SOUP_MESSAGE_SITE_FOR_COOKIES
 <SUBSECTION Standard>
 SOUP_MESSAGE
 SOUP_IS_MESSAGE
@@ -259,12 +239,6 @@ soup_server_remove_auth_domain
 <SUBSECTION>
 soup_server_pause_message
 soup_server_unpause_message
-<SUBSECTION>
-SOUP_SERVER_TLS_CERTIFICATE
-SOUP_SERVER_RAW_PATHS
-SOUP_SERVER_SERVER_HEADER
-SOUP_SERVER_HTTP_ALIASES
-SOUP_SERVER_HTTPS_ALIASES
 <SUBSECTION Standard>
 SOUP_SERVER
 SOUP_IS_SERVER
@@ -312,8 +286,6 @@ soup_server_message_get_type
 <TITLE>SoupAuthDomain</TITLE>
 SoupAuthDomain
 <SUBSECTION>
-soup_auth_domain_add_path
-soup_auth_domain_remove_path
 SoupAuthDomainFilter
 soup_auth_domain_set_filter
 soup_auth_domain_get_realm
@@ -325,15 +297,6 @@ soup_auth_domain_check_password
 soup_auth_domain_covers
 soup_auth_domain_accepts
 soup_auth_domain_challenge
-<SUBSECTION>
-SOUP_AUTH_DOMAIN_REALM
-SOUP_AUTH_DOMAIN_PROXY
-SOUP_AUTH_DOMAIN_ADD_PATH
-SOUP_AUTH_DOMAIN_REMOVE_PATH
-SOUP_AUTH_DOMAIN_FILTER
-SOUP_AUTH_DOMAIN_FILTER_DATA
-SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK
-SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA
 <SUBSECTION Private>
 soup_auth_domain_try_generic_auth_callback
 <SUBSECTION Standard>
@@ -355,9 +318,6 @@ soup_auth_domain_basic_new
 <SUBSECTION>
 SoupAuthDomainBasicAuthCallback
 soup_auth_domain_basic_set_auth_callback
-<SUBSECTION>
-SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK
-SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA
 <SUBSECTION Standard>
 SOUP_AUTH_DOMAIN_BASIC
 SOUP_IS_AUTH_DOMAIN_BASIC
@@ -378,9 +338,6 @@ soup_auth_domain_digest_new
 SoupAuthDomainDigestAuthCallback
 soup_auth_domain_digest_set_auth_callback
 soup_auth_domain_digest_encode_password
-<SUBSECTION>
-SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK
-SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA
 <SUBSECTION Standard>
 SOUP_AUTH_DOMAIN_DIGEST
 SOUP_IS_AUTH_DOMAIN_DIGEST
@@ -432,25 +389,6 @@ soup_session_get_features
 soup_session_get_feature
 soup_session_get_feature_for_message
 soup_session_has_feature
-<SUBSECTION>
-SOUP_SESSION_PROXY_RESOLVER
-SOUP_SESSION_MAX_CONNS
-SOUP_SESSION_MAX_CONNS_PER_HOST
-SOUP_SESSION_TLS_DATABASE
-SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE
-SOUP_SESSION_SSL_STRICT
-SOUP_SESSION_TLS_INTERACTION
-SOUP_SESSION_TIMEOUT
-SOUP_SESSION_IDLE_TIMEOUT
-SOUP_SESSION_USER_AGENT
-SOUP_SESSION_ADD_FEATURE
-SOUP_SESSION_ADD_FEATURE_BY_TYPE
-SOUP_SESSION_REMOVE_FEATURE_BY_TYPE
-SOUP_SESSION_ACCEPT_LANGUAGE
-SOUP_SESSION_ACCEPT_LANGUAGE_AUTO
-SOUP_SESSION_HTTP_ALIASES
-SOUP_SESSION_HTTPS_ALIASES
-SOUP_SESSION_LOCAL_ADDRESS
 <SUBSECTION Standard>
 SOUP_IS_SESSION
 SOUP_IS_SESSION_CLASS
@@ -523,12 +461,6 @@ soup_auth_is_ready
 soup_auth_get_authorization
 soup_auth_get_protection_space
 soup_auth_free_protection_space
-<SUBSECTION>
-SOUP_AUTH_SCHEME_NAME
-SOUP_AUTH_REALM
-SOUP_AUTH_HOST
-SOUP_AUTH_IS_FOR_PROXY
-SOUP_AUTH_IS_AUTHENTICATED
 <SUBSECTION Private>
 SoupAuthBasic
 SoupAuthDigest
@@ -662,9 +594,6 @@ soup_logger_set_response_filter
 <SUBSECTION>
 SoupLoggerPrinter
 soup_logger_set_printer
-<SUBSECTION>
-SOUP_LOGGER_LEVEL
-SOUP_LOGGER_MAX_BODY_SIZE
 <SUBSECTION Standard>
 SoupLoggerClass
 soup_logger_get_type
@@ -750,9 +679,6 @@ soup_cookie_jar_get_accept_policy
 soup_cookie_jar_set_accept_policy
 <SUBSECTION>
 soup_cookie_jar_is_persistent
-<SUBSECTION>
-SOUP_COOKIE_JAR_READ_ONLY
-SOUP_COOKIE_JAR_ACCEPT_POLICY
 <SUBSECTION Standard>
 SoupCookieJarClass
 SOUP_COOKIE_JAR
@@ -809,8 +735,6 @@ SoupMultipartInputStreamPrivate
 <TITLE>SoupCookieJarText</TITLE>
 SoupCookieJarText
 soup_cookie_jar_text_new
-<SUBSECTION>
-SOUP_COOKIE_JAR_TEXT_FILENAME
 <SUBSECTION Standard>
 SoupCookieJarTextClass
 SOUP_COOKIE_JAR_TEXT
@@ -827,8 +751,6 @@ soup_cookie_jar_text_get_type
 <TITLE>SoupCookieJarDB</TITLE>
 SoupCookieJarDB
 soup_cookie_jar_db_new
-<SUBSECTION>
-SOUP_COOKIE_JAR_DB_FILENAME
 <SUBSECTION Standard>
 SoupCookieJarDBClass
 SOUP_COOKIE_JAR_DB
@@ -1137,8 +1059,6 @@ soup_hsts_enforcer_set_policy
 soup_hsts_enforcer_set_session_policy
 soup_hsts_enforcer_get_domains
 soup_hsts_enforcer_get_policies
-<SUBSECTION>
-SOUP_HSTS_ENFORCER_DB_FILENAME
 <SUBSECTION Standard>
 SOUP_HSTS_ENFORCER
 SOUP_HSTS_ENFORCER_CLASS

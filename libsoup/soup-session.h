@@ -15,25 +15,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_42
 G_DECLARE_FINAL_TYPE (SoupSession, soup_session, SOUP, SESSION, GObject)
 
-#define SOUP_SESSION_LOCAL_ADDRESS          "local-address"
-#define SOUP_SESSION_PROXY_RESOLVER         "proxy-resolver"
-#define SOUP_SESSION_MAX_CONNS              "max-conns"
-#define SOUP_SESSION_MAX_CONNS_PER_HOST     "max-conns-per-host"
-#define SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE "ssl-use-system-ca-file"
-#define SOUP_SESSION_TLS_DATABASE           "tls-database"
-#define SOUP_SESSION_SSL_STRICT             "ssl-strict"
-#define SOUP_SESSION_TLS_INTERACTION        "tls-interaction"
-#define SOUP_SESSION_TIMEOUT                "timeout"
-#define SOUP_SESSION_USER_AGENT             "user-agent"
-#define SOUP_SESSION_ACCEPT_LANGUAGE        "accept-language"
-#define SOUP_SESSION_ACCEPT_LANGUAGE_AUTO   "accept-language-auto"
-#define SOUP_SESSION_IDLE_TIMEOUT           "idle-timeout"
-#define SOUP_SESSION_ADD_FEATURE            "add-feature"
-#define SOUP_SESSION_ADD_FEATURE_BY_TYPE    "add-feature-by-type"
-#define SOUP_SESSION_REMOVE_FEATURE_BY_TYPE "remove-feature-by-type"
-#define SOUP_SESSION_HTTP_ALIASES       "http-aliases"
-#define SOUP_SESSION_HTTPS_ALIASES      "https-aliases"
-
 SOUP_AVAILABLE_IN_ALL
 GQuark soup_session_error_quark (void);
 #define SOUP_SESSION_ERROR soup_session_error_quark ()

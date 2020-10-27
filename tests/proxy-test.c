@@ -94,8 +94,8 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 	 * connections/auth aren't cached between tests.
 	 */
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
-					 SOUP_SESSION_SSL_STRICT, FALSE,
+					 "proxy-resolver", proxy_resolvers[proxy],
+					 "ssl-strict", FALSE,
 					 NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
@@ -194,7 +194,7 @@ do_proxy_fragment_test (gconstpointer data)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[SIMPLE_PROXY],
+					 "proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
 	req_uri = soup_uri_new_with_base (base_uri, "/#foo");
@@ -221,7 +221,7 @@ do_proxy_redirect_test (void)
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[SIMPLE_PROXY],
+					 "proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
 	req_uri = soup_uri_new (HTTPS_SERVER);
@@ -296,8 +296,8 @@ do_proxy_auth_cache_test (void)
 	g_free (cache_dir);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[AUTH_PROXY],
-					 SOUP_SESSION_ADD_FEATURE, cache,
+					 "proxy-resolver", proxy_resolvers[AUTH_PROXY],
+					 "add-feature", cache,
 					 NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);

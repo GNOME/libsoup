@@ -144,70 +144,65 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 
 	/* properties */
 	/**
-	 * SOUP_AUTH_SCHEME_NAME:
-	 *
-	 * An alias for the #SoupAuth:scheme-name property. (The
-	 * authentication scheme name.)
+	 * SoupAuth:scheme-name:
+         *
+         * The authentication scheme name.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_SCHEME_NAME,
-		g_param_spec_string (SOUP_AUTH_SCHEME_NAME,
+		g_param_spec_string ("scheme-name",
 				     "Scheme name",
 				     "Authentication scheme name",
 				     NULL,
 				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_REALM:
+	 * SoupAuth:realm:
 	 *
-	 * An alias for the #SoupAuth:realm property. (The
-	 * authentication realm.)
+	 * The authentication realm.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_REALM,
-		g_param_spec_string (SOUP_AUTH_REALM,
+		g_param_spec_string ("realm",
 				     "Realm",
 				     "Authentication realm",
 				     NULL,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_HOST:
+	 * SoupAuth:host:
 	 *
-	 * An alias for the #SoupAuth:host property. (The
-	 * host being authenticated to.)
+	 * The host being authenticated to.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_HOST,
-		g_param_spec_string (SOUP_AUTH_HOST,
+		g_param_spec_string ("host",
 				     "Host",
 				     "Authentication host",
 				     NULL,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_IS_FOR_PROXY:
+	 * SoupAuth:is-for-proxy:
 	 *
-	 * An alias for the #SoupAuth:is-for-proxy property. (Whether
-	 * or not the auth is for a proxy server.)
+	 * Whether or not the auth is for a proxy server.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_FOR_PROXY,
-		g_param_spec_boolean (SOUP_AUTH_IS_FOR_PROXY,
+		g_param_spec_boolean ("is-for-proxy",
 				      "For Proxy",
 				      "Whether or not the auth is for a proxy server",
 				      FALSE,
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_IS_AUTHENTICATED:
+	 * SoupAuth:is-authenticated:
 	 *
-	 * An alias for the #SoupAuth:is-authenticated property.
-	 * (Whether or not the auth has been authenticated.)
+	 * Whether or not the auth has been authenticated.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_AUTHENTICATED,
-		g_param_spec_boolean (SOUP_AUTH_IS_AUTHENTICATED,
+		g_param_spec_boolean ("is-authenticated",
 				      "Authenticated",
 				      "Whether or not the auth is authenticated",
 				      FALSE,
@@ -242,8 +237,8 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	g_return_val_if_fail (auth_header != NULL, NULL);
 
 	auth = g_object_new (type,
-			     SOUP_AUTH_IS_FOR_PROXY, (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
-			     SOUP_AUTH_HOST, soup_message_get_uri (msg)->host,
+			     "is-for-proxy", (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
+			     "host", soup_message_get_uri (msg)->host,
 			     NULL);
 
 	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
@@ -311,7 +306,7 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	was_authenticated = soup_auth_is_authenticated (auth);
 	success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
 	if (was_authenticated != soup_auth_is_authenticated (auth))
-		g_object_notify (G_OBJECT (auth), SOUP_AUTH_IS_AUTHENTICATED);
+		g_object_notify (G_OBJECT (auth), "is-authenticated");
 	soup_header_free_param_list (params);
 	return success;
 }
@@ -337,7 +332,7 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
 	was_authenticated = soup_auth_is_authenticated (auth);
 	SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
 	if (was_authenticated != soup_auth_is_authenticated (auth))
-		g_object_notify (G_OBJECT (auth), SOUP_AUTH_IS_AUTHENTICATED);
+		g_object_notify (G_OBJECT (auth), "is-authenticated");
 }
 
 /**

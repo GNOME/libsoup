@@ -35,7 +35,7 @@ do_unconnected_socket_test (void)
 
         localhost = g_inet_socket_address_new_from_string ("127.0.0.1", 0);
 
-	sock = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, localhost,
+	sock = soup_socket_new ("local-address", localhost,
 				NULL);
 	g_assert_true (sock != NULL);
 
@@ -59,7 +59,7 @@ do_unconnected_socket_test (void)
 	assert_host_equals (addr, "127.0.0.1");
 	g_assert_cmpuint (g_inet_socket_address_get_port (addr), >, 0);
 
-	client = soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, soup_socket_get_local_address (sock),
+	client = soup_socket_new ("remote-connectable", soup_socket_get_local_address (sock),
 				  NULL);
 	res = soup_socket_connect_sync (client, NULL);
 	g_assert_cmpuint (res, ==, SOUP_STATUS_OK);
@@ -71,7 +71,7 @@ do_unconnected_socket_test (void)
 	g_assert_cmpuint (g_inet_socket_address_get_port (addr), >, 0);
 	g_object_unref (client);
 
-	client = soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, soup_socket_get_local_address (sock),
+	client = soup_socket_new ("remote-connectable", soup_socket_get_local_address (sock),
 				  NULL);
 	/* save it for later */
 
@@ -152,15 +152,15 @@ do_socket_from_fd_client_test (void)
 	g_assert_no_error (error);
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-                               SOUP_SOCKET_GSOCKET, gsock,
+                               "gsocket", gsock,
 			       NULL);
 	g_assert_no_error (error);
 	g_assert_nonnull (sock);
 
 	g_object_get (G_OBJECT (sock),
-		      SOUP_SOCKET_LOCAL_ADDRESS, &local,
-		      SOUP_SOCKET_REMOTE_ADDRESS, &remote,
-		      SOUP_SOCKET_IS_SERVER, &is_server,
+		      "local-address", &local,
+		      "remote-address", &remote,
+		      "is-server", &is_server,
 		      NULL);
 	g_assert_cmpint (socket_get_fd (sock), ==, g_socket_get_fd (gsock));
 	g_assert_false (is_server);
@@ -210,14 +210,14 @@ do_socket_from_fd_server_test (void)
 	g_assert_no_error (error);
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-			       SOUP_SOCKET_GSOCKET, gsock,
+			       "gsocket", gsock,
 			       NULL);
 	g_assert_no_error (error);
 	g_assert_nonnull (sock);
 
 	g_object_get (G_OBJECT (sock),
-		      SOUP_SOCKET_LOCAL_ADDRESS, &local,
-		      SOUP_SOCKET_IS_SERVER, &is_server,
+		      "local-address", &local,
+		      "is-server", &is_server,
 		      NULL);
 	g_assert_cmpint (socket_get_fd (sock), ==, g_socket_get_fd (gsock));
 	g_assert_true (is_server);
@@ -255,7 +255,7 @@ do_socket_from_fd_bad_test (void)
 	g_assert_false (g_socket_is_connected (gsock));
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-			       SOUP_SOCKET_GSOCKET, gsock,
+			       "gsocket", gsock,
 			       NULL);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
 	g_clear_error (&error);
@@ -297,15 +297,15 @@ do_socket_from_fd_bad_test (void)
 	g_assert_nonnull (gsock2);
 
 	sock2 = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-				SOUP_SOCKET_GSOCKET, gsock2,
+				"gsocket", gsock2,
 				NULL);
 	g_assert_no_error (error);
 	g_assert_nonnull (sock2);
 
 	g_object_get (G_OBJECT (sock2),
-		      SOUP_SOCKET_LOCAL_ADDRESS, &local,
-		      SOUP_SOCKET_REMOTE_ADDRESS, &remote,
-		      SOUP_SOCKET_IS_SERVER, &is_server,
+		      "local-address", &local,
+		      "remote-address", &remote,
+		      "is-server", &is_server,
 		      NULL);
 	g_assert_cmpint (socket_get_fd (sock2), ==, g_socket_get_fd (gsock2));
 	g_assert_true (soup_socket_is_connected (sock2));

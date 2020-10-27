@@ -893,7 +893,7 @@ soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 	if (SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg)) {
 		if (msg->method != SOUP_METHOD_HEAD) {
 			g_object_set (msg,
-				      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
+				      "method", SOUP_METHOD_GET,
 				      NULL);
 		}
 		soup_message_set_request_body (msg, NULL, NULL, 0);
@@ -1561,9 +1561,9 @@ get_connection_for_host (SoupSession *session,
 
 	ensure_socket_props (session);
 	conn = g_object_new (SOUP_TYPE_CONNECTION,
-			     SOUP_CONNECTION_REMOTE_URI, host->uri,
-			     SOUP_CONNECTION_SSL, soup_uri_is_https (host->uri, priv->https_aliases),
-			     SOUP_CONNECTION_SOCKET_PROPERTIES, priv->socket_props,
+			     "remote-uri", host->uri,
+			     "ssl", soup_uri_is_https (host->uri, priv->https_aliases),
+			     "socket-properties", priv->socket_props,
 			     NULL);
 
 	g_signal_connect (conn, "disconnected",
@@ -2079,7 +2079,7 @@ soup_session_abort (SoupSession *session)
  *
  * Adds @feature's functionality to @session. You can also add a
  * feature to the session at construct time by using the
- * %SOUP_SESSION_ADD_FEATURE property.
+ * SoupSession:add-feature property.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
@@ -2115,7 +2115,7 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * a "subfeature". This can be used to add new #SoupAuth types, for instance.
  *
  * You can also add a feature to the session at construct time by
- * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
+ * using the SoupSession:add-feature-by-type property.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
@@ -2181,7 +2181,7 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
  * Removes all features of type @feature_type (or any subclass of
  * @feature_type) from @session. You can also remove standard features
  * from the session at construct time by using the
- * %SOUP_SESSION_REMOVE_FEATURE_BY_TYPE property.
+ * SoupSession:remove-feature-by-type property.
  *
  * Since: 2.24
  **/
@@ -2484,27 +2484,17 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.42
 	 */
-	/**
-	 * SOUP_SESSION_PROXY_RESOLVER:
-	 *
-	 * Alias for the #SoupSession:proxy-resolver property, qv.
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_PROXY_RESOLVER,
-		g_param_spec_object (SOUP_SESSION_PROXY_RESOLVER,
+		g_param_spec_object ("proxy-resolver",
 				     "Proxy Resolver",
 				     "The GProxyResolver to use for this session",
 				     G_TYPE_PROXY_RESOLVER,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SESSION_MAX_CONNS:
-	 *
-	 * Alias for the #SoupSession:max-conns property, qv.
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS,
-		g_param_spec_int (SOUP_SESSION_MAX_CONNS,
+		g_param_spec_int ("max-conns",
 				  "Max Connection Count",
 				  "The maximum number of connections that the session can open at once",
 				  1,
@@ -2512,14 +2502,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  SOUP_SESSION_MAX_CONNS_DEFAULT,
 				  G_PARAM_READWRITE |
 				  G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SESSION_MAX_CONNS_PER_HOST:
-	 *
-	 * Alias for the #SoupSession:max-conns-per-host property, qv.
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS_PER_HOST,
-		g_param_spec_int (SOUP_SESSION_MAX_CONNS_PER_HOST,
+		g_param_spec_int ("max-conns-per-host",
 				  "Max Per-Host Connection Count",
 				  "The maximum number of connections that the session can open at once to a given host",
 				  1,
@@ -2541,30 +2526,15 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.24
 	 **/
-	/**
-	 * SOUP_SESSION_IDLE_TIMEOUT:
-	 *
-	 * Alias for the #SoupSession:idle-timeout property, qv.
-	 *
-	 * Since: 2.24
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_IDLE_TIMEOUT,
-		g_param_spec_uint (SOUP_SESSION_IDLE_TIMEOUT,
+		g_param_spec_uint ("idle-timeout",
 				   "Idle Timeout",
 				   "Connection lifetime when idle",
 				   0, G_MAXUINT, 60,
 				   G_PARAM_READWRITE |
 				   G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE:
-	 *
-	 * Alias for the #SoupSession:ssl-use-system-ca-file property,
-	 * qv.
-	 *
-	 * Since: 2.38
-	 **/
 	/**
 	 * SoupSession:ssl-use-system-ca-file:
 	 *
@@ -2584,19 +2554,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_USE_SYSTEM_CA_FILE,
-		g_param_spec_boolean (SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE,
+		g_param_spec_boolean ("ssl-use-system-ca-file",
 				      "Use system CA file",
 				      "Use the system certificate database",
 				      TRUE,
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SESSION_TLS_DATABASE:
-	 *
-	 * Alias for the #SoupSession:tls-database property, qv.
-	 *
-	 * Since: 2.38
-	 **/
 	/**
 	 * SoupSession:tls-database:
 	 *
@@ -2615,19 +2578,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TLS_DATABASE,
-		g_param_spec_object (SOUP_SESSION_TLS_DATABASE,
+		g_param_spec_object ("tls-database",
 				     "TLS Database",
 				     "TLS database to use",
 				     G_TYPE_TLS_DATABASE,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_SESSION_SSL_STRICT:
-	 *
-	 * Alias for the #SoupSession:ssl-strict property, qv.
-	 *
-	 * Since: 2.30
-	 **/
 	/**
 	 * SoupSession:ssl-strict:
 	 *
@@ -2654,7 +2610,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_SSL_STRICT,
-		g_param_spec_boolean (SOUP_SESSION_SSL_STRICT,
+		g_param_spec_boolean ("ssl-strict",
 				      "Strictly validate SSL certificates",
 				      "Whether certificate errors should be considered a connection error",
 				      TRUE,
@@ -2678,14 +2634,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * the length of time that idle persistent connections will be
 	 * kept open).
 	 */
-	/**
-	 * SOUP_SESSION_TIMEOUT:
-	 *
-	 * Alias for the #SoupSession:timeout property, qv.
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_TIMEOUT,
-		g_param_spec_uint (SOUP_SESSION_TIMEOUT,
+		g_param_spec_uint ("timeout",
 				   "Timeout value",
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
@@ -2719,14 +2670,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * (eg, "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
 	 **/
-	/**
-	 * SOUP_SESSION_USER_AGENT:
-	 *
-	 * Alias for the #SoupSession:user-agent property, qv.
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_USER_AGENT,
-		g_param_spec_string (SOUP_SESSION_USER_AGENT,
+		g_param_spec_string ("user-agent",
 				     "User-Agent string",
 				     "User-Agent string",
 				     NULL,
@@ -2744,16 +2690,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.30
 	 **/
-	/**
-	 * SOUP_SESSION_ACCEPT_LANGUAGE:
-	 *
-	 * Alias for the #SoupSession:accept-language property, qv.
-	 *
-	 * Since: 2.30
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_LANGUAGE,
-		g_param_spec_string (SOUP_SESSION_ACCEPT_LANGUAGE,
+		g_param_spec_string ("accept-language",
 				     "Accept-Language string",
 				     "Accept-Language string",
 				     NULL,
@@ -2772,16 +2711,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.30
 	 **/
-	/**
-	 * SOUP_SESSION_ACCEPT_LANGUAGE_AUTO:
-	 *
-	 * Alias for the #SoupSession:accept-language-auto property, qv.
-	 *
-	 * Since: 2.30
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_LANGUAGE_AUTO,
-		g_param_spec_boolean (SOUP_SESSION_ACCEPT_LANGUAGE_AUTO,
+		g_param_spec_boolean ("accept-language-auto",
 				      "Accept-Language automatic mode",
 				      "Accept-Language automatic mode",
 				      FALSE,
@@ -2796,16 +2728,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.24
 	 **/
-	/**
-	 * SOUP_SESSION_ADD_FEATURE: (skip)
-	 *
-	 * Alias for the #SoupSession:add-feature property, qv.
-	 *
-	 * Since: 2.24
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_ADD_FEATURE,
-		g_param_spec_object (SOUP_SESSION_ADD_FEATURE,
+		g_param_spec_object ("add-feature",
 				     "Add Feature",
 				     "Add a feature object to the session",
 				     SOUP_TYPE_SESSION_FEATURE,
@@ -2819,16 +2744,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.24
 	 **/
-	/**
-	 * SOUP_SESSION_ADD_FEATURE_BY_TYPE: (skip)
-	 *
-	 * Alias for the #SoupSession:add-feature-by-type property, qv.
-	 *
-	 * Since: 2.24
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_ADD_FEATURE_BY_TYPE,
-		g_param_spec_gtype (SOUP_SESSION_ADD_FEATURE_BY_TYPE,
+		g_param_spec_gtype ("add-feature-by-type",
 				    "Add Feature By Type",
 				    "Add a feature object of the given type to the session",
 				    G_TYPE_OBJECT,
@@ -2842,17 +2760,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.24
 	 **/
-	/**
-	 * SOUP_SESSION_REMOVE_FEATURE_BY_TYPE: (skip)
-	 *
-	 * Alias for the #SoupSession:remove-feature-by-type property,
-	 * qv.
-	 *
-	 * Since: 2.24
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_REMOVE_FEATURE_BY_TYPE,
-		g_param_spec_gtype (SOUP_SESSION_REMOVE_FEATURE_BY_TYPE,
+		g_param_spec_gtype ("remove-feature-by-type",
 				    "Remove Feature By Type",
 				    "Remove features of the given type from the session",
 				    G_TYPE_OBJECT,
@@ -2874,16 +2784,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.38
 	 */
-	/**
-	 * SOUP_SESSION_HTTP_ALIASES:
-	 *
-	 * Alias for the #SoupSession:http-aliases property, qv.
-	 *
-	 * Since: 2.38
-	 */
 	g_object_class_install_property (
 		object_class, PROP_HTTP_ALIASES,
-		g_param_spec_boxed (SOUP_SESSION_HTTP_ALIASES,
+		g_param_spec_boxed ("http-aliases",
 				    "http aliases",
 				    "URI schemes that are considered aliases for 'http'",
 				    G_TYPE_STRV,
@@ -2901,29 +2804,15 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Since: 2.38
 	 */
-	/**
-	 * SOUP_SESSION_HTTPS_ALIASES:
-	 *
-	 * Alias for the #SoupSession:https-aliases property, qv.
-	 *
-	 * Since: 2.38
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_HTTPS_ALIASES,
-		g_param_spec_boxed (SOUP_SESSION_HTTPS_ALIASES,
+		g_param_spec_boxed ("https-aliases",
 				    "https aliases",
 				    "URI schemes that are considered aliases for 'https'",
 				    G_TYPE_STRV,
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_SESSION_LOCAL_ADDRESS:
-	 *
-	 * Alias for the #SoupSession:local-address property, qv.
-	 *
-	 * Since: 2.42
-	 **/
 	/**
 	 * SoupSession:local-address:
 	 *
@@ -2937,20 +2826,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_LOCAL_ADDRESS,
-		g_param_spec_object (SOUP_SESSION_LOCAL_ADDRESS,
+		g_param_spec_object ("local-address",
 				     "Local address",
 				     "Address of local end of socket",
 				     G_TYPE_INET_SOCKET_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_SESSION_TLS_INTERACTION:
-	 *
-	 * Alias for the #SoupSession:tls-interaction property, qv.
-	 *
-	 * Since: 2.48
-	 **/
 	/**
 	 * SoupSession:tls-interaction:
 	 *
@@ -2962,7 +2844,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TLS_INTERACTION,
-		g_param_spec_object (SOUP_SESSION_TLS_INTERACTION,
+		g_param_spec_object ("tls-interaction",
 				     "TLS Interaction",
 				     "TLS interaction to use",
 				     G_TYPE_TLS_INTERACTION,
@@ -4111,7 +3993,7 @@ steal_connection (SoupSession          *session,
 
         sock = soup_connection_get_socket (conn);
         g_object_set (sock,
-                      SOUP_SOCKET_TIMEOUT, 0,
+                      "timeout", 0,
                       NULL);
 
 	if (item->connect_only)

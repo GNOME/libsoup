@@ -37,12 +37,6 @@ struct _SoupServerClass {
 	gpointer padding[6];
 };
 
-#define SOUP_SERVER_TLS_CERTIFICATE "tls-certificate"
-#define SOUP_SERVER_RAW_PATHS       "raw-paths"
-#define SOUP_SERVER_SERVER_HEADER   "server-header"
-#define SOUP_SERVER_HTTP_ALIASES    "http-aliases"
-#define SOUP_SERVER_HTTPS_ALIASES   "https-aliases"
-
 SOUP_AVAILABLE_IN_2_4
 SoupServer     *soup_server_new                (const char               *optname1,
 					        ...) G_GNUC_NULL_TERMINATED;

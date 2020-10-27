@@ -224,10 +224,10 @@ main (int argc, char **argv)
 	soup_uri_free (parsed);
 
 	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
-				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
-				SOUP_SESSION_USER_AGENT, "get ",
-				SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+				"add-feature-by-type", SOUP_TYPE_CONTENT_DECODER,
+				"add-feature-by-type", SOUP_TYPE_COOKIE_JAR,
+				"user-agent", "get ",
+				"accept-language-auto", TRUE,
 				NULL);
 	if (ntlm)
 		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
@@ -247,7 +247,7 @@ main (int argc, char **argv)
 			exit (1);
 		}
 		interaction = _get_tls_cert_interaction_new (client_cert);
-		g_object_set (session, SOUP_SESSION_TLS_INTERACTION, interaction, NULL);
+		g_object_set (session, "tls-interaction", interaction, NULL);
 	}
 
 	if (debug) {
@@ -267,7 +267,7 @@ main (int argc, char **argv)
 
 		resolver = g_simple_proxy_resolver_new (proxy, NULL);
 		g_object_set (G_OBJECT (session),
-			      SOUP_SESSION_PROXY_RESOLVER, resolver,
+			      "proxy-resolver", resolver,
 			      NULL);
 		soup_uri_free (proxy_uri);
 		g_object_unref (resolver);

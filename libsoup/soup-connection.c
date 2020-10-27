@@ -175,7 +175,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 	/* properties */
 	g_object_class_install_property (
 		object_class, PROP_REMOTE_URI,
-		g_param_spec_boxed (SOUP_CONNECTION_REMOTE_URI,
+		g_param_spec_boxed ("remote-uri",
 				    "Remote URI",
 				    "The URI of the HTTP server",
 				    SOUP_TYPE_URI,
@@ -183,7 +183,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				    G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_SOCKET_PROPERTIES,
-		g_param_spec_boxed (SOUP_CONNECTION_SOCKET_PROPERTIES,
+		g_param_spec_boxed ("socket-properties",
 				    "Socket properties",
 				    "Socket properties",
 				    SOUP_TYPE_SOCKET_PROPERTIES,
@@ -191,7 +191,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				    G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_STATE,
-		g_param_spec_enum (SOUP_CONNECTION_STATE,
+		g_param_spec_enum ("state",
 				   "Connection state",
 				   "Current state of connection",
 				   SOUP_TYPE_CONNECTION_STATE, SOUP_CONNECTION_NEW,
@@ -199,7 +199,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				   G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_SSL,
-		g_param_spec_boolean (SOUP_CONNECTION_SSL,
+		g_param_spec_boolean ("ssl",
 				      "Connection uses TLS",
 				      "Whether the connection should use TLS",
 				      FALSE,G_PARAM_READWRITE |
@@ -408,8 +408,8 @@ soup_connection_connect_async (SoupConnection      *conn,
 			      NULL);
 
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, remote_addr,
-				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
+		soup_socket_new ("remote-connectable", remote_addr,
+				 "socket-properties", priv->socket_props,
 				 NULL);
 	g_object_unref (remote_addr);
 
@@ -453,9 +453,9 @@ soup_connection_connect_sync (SoupConnection  *conn,
 			      NULL);
 
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_REMOTE_CONNECTABLE, remote_addr,
-				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
-				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
+		soup_socket_new ("remote-connectable", remote_addr,
+				 "socket-properties", priv->socket_props,
+				 "non-blocking", FALSE,
 				 NULL);
 	g_object_unref (remote_addr);
 

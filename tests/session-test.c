@@ -243,8 +243,8 @@ test_session_properties (const char *name,
 	GTlsDatabase *tlsdb = NULL;
 
 	g_object_get (G_OBJECT (session),
-		      SOUP_SESSION_PROXY_RESOLVER, &proxy_resolver,
-		      SOUP_SESSION_TLS_DATABASE, &tlsdb,
+		      "proxy-resolver", &proxy_resolver,
+		      "tls-database", &tlsdb,
 		      NULL);
 
 	soup_test_assert (proxy_resolver == expected_proxy_resolver,
@@ -279,7 +279,7 @@ do_property_tests (void)
 	g_object_unref (session);
 
 	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_PROXY_RESOLVER, NULL,
+				"proxy-resolver", NULL,
 				NULL);
 	test_session_properties ("Session with NULL :proxy-resolver", session,
 				 NULL, default_tlsdb);
@@ -287,7 +287,7 @@ do_property_tests (void)
 
 	proxy_resolver = g_simple_proxy_resolver_new (NULL, NULL);
 	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_PROXY_RESOLVER, proxy_resolver,
+				"proxy-resolver", proxy_resolver,
 				NULL);
 	test_session_properties ("Session with non-NULL :proxy-resolver", session,
 				 proxy_resolver, default_tlsdb);
@@ -295,7 +295,7 @@ do_property_tests (void)
 	g_object_unref (session);
 
 	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_TLS_DATABASE, NULL,
+				"tls-database", NULL,
 				NULL);
 	test_session_properties ("Session with NULL :tls-database", session,
 				 default_proxy_resolver, NULL);
@@ -313,7 +313,7 @@ do_property_tests (void)
 		g_assert_no_error (error);
 
 		session = g_object_new (SOUP_TYPE_SESSION,
-					SOUP_SESSION_TLS_DATABASE, tlsdb,
+					"tls-database", tlsdb,
 					NULL);
 		test_session_properties ("Session with non-NULL :tls-database", session,
 					 default_proxy_resolver, tlsdb);
@@ -322,14 +322,14 @@ do_property_tests (void)
 	}
 
 	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, FALSE,
+				"ssl-use-system-ca-file", FALSE,
 				NULL);
 	test_session_properties ("Session with :ssl-use-system-ca-file FALSE", session,
 				 default_proxy_resolver, NULL);
 	g_object_unref (session);
 
 	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
+				"ssl-use-system-ca-file", TRUE,
 				NULL);
 	test_session_properties ("Session with :ssl-use-system-ca-file TRUE", session,
 				 default_proxy_resolver, default_tlsdb);

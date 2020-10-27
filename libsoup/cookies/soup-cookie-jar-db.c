@@ -128,8 +128,8 @@ soup_cookie_jar_db_new (const char *filename, gboolean read_only)
 	g_return_val_if_fail (filename != NULL, NULL);
 
 	return g_object_new (SOUP_TYPE_COOKIE_JAR_DB,
-			     SOUP_COOKIE_JAR_DB_FILENAME, filename,
-			     SOUP_COOKIE_JAR_READ_ONLY, read_only,
+			     "filename", filename,
+			     "read-only", read_only,
 			     NULL);
 }
 
@@ -332,15 +332,9 @@ soup_cookie_jar_db_class_init (SoupCookieJarDBClass *db_class)
 	object_class->set_property = soup_cookie_jar_db_set_property;
 	object_class->get_property = soup_cookie_jar_db_get_property;
 
-	/**
-	 * SOUP_COOKIE_JAR_DB_FILENAME:
-	 *
-	 * Alias for the #SoupCookieJarDB:filename property. (The
-	 * cookie-storage filename.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_FILENAME,
-		g_param_spec_string (SOUP_COOKIE_JAR_DB_FILENAME,
+		g_param_spec_string ("filename",
 				     "Filename",
 				     "Cookie-storage filename",
 				     NULL,

@@ -427,7 +427,7 @@ make_auto_ntlm_auth (SoupAuthManagerPrivate *priv, SoupAuthHost *host)
 		return FALSE;
 
 	auth = g_object_new (SOUP_TYPE_AUTH_NTLM,
-			     SOUP_AUTH_HOST, host->uri->host,
+			     "host", host->uri->host,
 			     NULL);
 	record_auth_for_uri (priv, host->uri, auth, FALSE);
 	g_object_unref (auth);

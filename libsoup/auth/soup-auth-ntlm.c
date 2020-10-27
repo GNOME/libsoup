@@ -397,8 +397,8 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 		conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
 
 	g_object_set (G_OBJECT (auth),
-		      SOUP_AUTH_REALM, priv->domain,
-		      SOUP_AUTH_HOST, soup_message_get_uri (msg)->host,
+		      "realm", priv->domain,
+		      "host", soup_message_get_uri (msg)->host,
 		      NULL);
 	return success;
 }

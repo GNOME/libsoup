@@ -13,8 +13,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_26
 G_DECLARE_FINAL_TYPE (SoupCookieJarText, soup_cookie_jar_text, SOUP, COOKIE_JAR_TEXT, SoupCookieJar)
 
-#define SOUP_COOKIE_JAR_TEXT_FILENAME  "filename"
-
 SOUP_AVAILABLE_IN_2_26
 SoupCookieJar *soup_cookie_jar_text_new (const char *filename,
 					 gboolean    read_only);

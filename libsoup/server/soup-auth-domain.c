@@ -27,7 +27,7 @@
  *
  * In order for an auth domain to have any effect, you must add one or
  * more paths to it (via soup_auth_domain_add_path() or the
- * %SOUP_AUTH_DOMAIN_ADD_PATH property). To require authentication for
+ * SoupAuthDomain:add-path property). To require authentication for
  * all ordinary requests, add the path "/". (Note that this does not
  * include the special "*" URI (eg, "OPTIONS *"), which must be added
  * as a separate path if you want to cover it.)
@@ -184,120 +184,94 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	object_class->set_property = soup_auth_domain_set_property;
 	object_class->get_property = soup_auth_domain_get_property;
 
-	/**
-	 * SOUP_AUTH_DOMAIN_REALM:
-	 *
-	 * Alias for the #SoupAuthDomain:realm property. (The realm of
-	 * this auth domain.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_REALM,
-		g_param_spec_string (SOUP_AUTH_DOMAIN_REALM,
+		g_param_spec_string ("realm",
 				     "Realm",
 				     "The realm of this auth domain",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_AUTH_DOMAIN_PROXY:
-	 *
-	 * Alias for the #SoupAuthDomain:proxy property. (Whether or
-	 * not this is a proxy auth domain.)
-	 **/
+
 	g_object_class_install_property (
 		object_class, PROP_PROXY,
-		g_param_spec_boolean (SOUP_AUTH_DOMAIN_PROXY,
+		g_param_spec_boolean ("proxy",
 				      "Proxy",
 				      "Whether or not this is a proxy auth domain",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				      G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_DOMAIN_ADD_PATH:
+	 * SoupAuthDomain:add-path:
 	 *
-	 * Alias for the #SoupAuthDomain:add-path property. (Shortcut
-	 * for calling soup_auth_domain_add_path().)
+	 * Shortcut for calling soup_auth_domain_add_path().
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_ADD_PATH,
-		g_param_spec_string (SOUP_AUTH_DOMAIN_ADD_PATH,
+		g_param_spec_string ("add-path",
 				     "Add a path",
 				     "Add a path covered by this auth domain",
 				     NULL,
 				     G_PARAM_WRITABLE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_DOMAIN_REMOVE_PATH:
+	 * SoupAuthDomain:remove-path:
 	 *
-	 * Alias for the #SoupAuthDomain:remove-path property.
-	 * (Shortcut for calling soup_auth_domain_remove_path().)
+         * Shortcut for calling soup_auth_domain_remove_path().
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_REMOVE_PATH,
-		g_param_spec_string (SOUP_AUTH_DOMAIN_REMOVE_PATH,
+		g_param_spec_string ("remove-path",
 				     "Remove a path",
 				     "Remove a path covered by this auth domain",
 				     NULL,
 				     G_PARAM_WRITABLE |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_AUTH_DOMAIN_FILTER:
-	 *
-	 * Alias for the #SoupAuthDomain:filter property. (The
-	 * #SoupAuthDomainFilter for the domain.)
-	 **/
+
 	/**
 	 * SoupAuthDomain:filter: (type SoupAuthDomainFilter)
 	 *
-	 * The #SoupAuthDomainFilter for the domain
+	 * The #SoupAuthDomainFilter for the domain.
 	 */
 	g_object_class_install_property (
 		object_class, PROP_FILTER,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_FILTER,
+		g_param_spec_pointer ("filter",
 				      "Filter",
 				      "A filter for deciding whether or not to require authentication",
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_DOMAIN_FILTER_DATA:
+	 * SoupAuthDomain:filter-data:
 	 *
-	 * Alias for the #SoupAuthDomain:filter-data property. (Data
-	 * to pass to the #SoupAuthDomainFilter.)
+	 * Data to pass to the #SoupAuthDomainFilter.
 	 **/
-	/**
-	 * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback)
-	 *
-	 * The #SoupAuthDomainGenericAuthCallback for the domain
-	 */
 	g_object_class_install_property (
 		object_class, PROP_FILTER_DATA,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_FILTER_DATA,
+		g_param_spec_pointer ("filter-data",
 				      "Filter data",
 				      "Data to pass to filter",
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK:
+	 * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback)
 	 *
-	 * Alias for the #SoupAuthDomain:generic-auth-callback property.
-	 * (The #SoupAuthDomainGenericAuthCallback.)
+	 * The #SoupAuthDomainGenericAuthCallback.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_GENERIC_AUTH_CALLBACK,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK,
+		g_param_spec_pointer ("generic-auth-callback",
 				      "Generic authentication callback",
 				      "An authentication callback that can be used with any SoupAuthDomain subclass",
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA:
+	 * SoupAuthDomain:generic-auth-data:
 	 *
-	 * Alias for the #SoupAuthDomain:generic-auth-data property.
-	 * (The data to pass to the #SoupAuthDomainGenericAuthCallback.)
+         * The data to pass to the #SoupAuthDomainGenericAuthCallback.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_GENERIC_AUTH_DATA,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA,
+		g_param_spec_pointer ("generic-auth-data",
 				      "Authentication callback data",
 				      "Data to pass to auth callback",
 				      G_PARAM_READWRITE |
@@ -313,7 +287,7 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
  * server will require authentication (unless overridden by
  * soup_auth_domain_remove_path() or soup_auth_domain_set_filter()).
  *
- * You can also add paths by setting the %SOUP_AUTH_DOMAIN_ADD_PATH
+ * You can also add paths by setting the SoupAuthDomain:add-path
  * property, which can also be used to add one or more paths at
  * construct time.
  **/
@@ -346,7 +320,7 @@ soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
  * otherwise be unnecessary.
  *
  * You can also remove paths by setting the
- * %SOUP_AUTH_DOMAIN_REMOVE_PATH property, which can also be used to
+ * SoupAuthDomain:remove-path property, which can also be used to
  * remove one or more paths at construct time.
  **/
 void
@@ -402,8 +376,8 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
  * GET and PUT, those methods would default to being NOT allowed for
  * unauthenticated users.
  *
- * You can also set the filter by setting the %SOUP_AUTH_DOMAIN_FILTER
- * and %SOUP_AUTH_DOMAIN_FILTER_DATA properties, which can also be
+ * You can also set the filter by setting the SoupAuthDomain:filter
+ * and SoupAuthDomain:filter-data properties, which can also be
  * used to set the filter at construct time.
  **/
 void
@@ -421,8 +395,8 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
 	priv->filter_data = filter_data;
 	priv->filter_dnotify = dnotify;
 
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_FILTER);
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_FILTER_DATA);
+	g_object_notify (G_OBJECT (domain), "filter");
+	g_object_notify (G_OBJECT (domain), "filter-data");
 }
 
 /**
@@ -499,8 +473,8 @@ soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
 	priv->auth_data = auth_data;
 	priv->auth_dnotify = dnotify;
 
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK);
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA);
+	g_object_notify (G_OBJECT (domain), "generic-auth-callback");
+	g_object_notify (G_OBJECT (domain), "generic-auth-data");
 }
 
 gboolean

@@ -515,101 +515,56 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_IO_STREAM);
 
 	/* properties */
-	/**
-	 * SOUP_MESSAGE_METHOD:
-	 *
-	 * Alias for the #SoupMessage:method property. (The message's
-	 * HTTP method.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_METHOD,
-		g_param_spec_string (SOUP_MESSAGE_METHOD,
+		g_param_spec_string ("method",
 				     "Method",
 				     "The message's HTTP method",
 				     SOUP_METHOD_GET,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_URI:
-	 *
-	 * Alias for the #SoupMessage:uri property. (The message's
-	 * #SoupURI.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_URI,
-		g_param_spec_boxed (SOUP_MESSAGE_URI,
+		g_param_spec_boxed ("uri",
 				    "URI",
 				    "The message's Request-URI",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_HTTP_VERSION:
-	 *
-	 * Alias for the #SoupMessage:http-version property. (The
-	 * message's #SoupHTTPVersion.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_HTTP_VERSION,
-		g_param_spec_enum (SOUP_MESSAGE_HTTP_VERSION,
+		g_param_spec_enum ("http-version",
 				   "HTTP Version",
 				   "The HTTP protocol version to use",
 				   SOUP_TYPE_HTTP_VERSION,
 				   SOUP_HTTP_1_1,
 				   G_PARAM_READWRITE |
 				   G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_FLAGS:
-	 *
-	 * Alias for the #SoupMessage:flags property. (The message's
-	 * #SoupMessageFlags.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_FLAGS,
-		g_param_spec_flags (SOUP_MESSAGE_FLAGS,
+		g_param_spec_flags ("flags",
 				    "Flags",
 				    "Various message options",
 				    SOUP_TYPE_MESSAGE_FLAGS,
 				    0,
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_STATUS_CODE:
-	 *
-	 * Alias for the #SoupMessage:status-code property. (The
-	 * message's HTTP response status code.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_STATUS_CODE,
-		g_param_spec_uint (SOUP_MESSAGE_STATUS_CODE,
+		g_param_spec_uint ("status-code",
 				   "Status code",
 				   "The HTTP response status code",
 				   0, 999, 0,
 				   G_PARAM_READWRITE |
 				   G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_REASON_PHRASE:
-	 *
-	 * Alias for the #SoupMessage:reason-phrase property. (The
-	 * message's HTTP response reason phrase.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_REASON_PHRASE,
-		g_param_spec_string (SOUP_MESSAGE_REASON_PHRASE,
+		g_param_spec_string ("reason-phrase",
 				     "Reason phrase",
 				     "The HTTP response reason phrase",
 				     NULL,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_FIRST_PARTY:
-	 *
-	 * Alias for the #SoupMessage:first-party property. (The
-	 * #SoupURI loaded in the application when the message was
-	 * queued.)
-	 *
-	 * Since: 2.30
-	 **/
 	/**
 	 * SoupMessage:first-party:
 	 *
@@ -620,7 +575,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_FIRST_PARTY,
-		g_param_spec_boxed (SOUP_MESSAGE_FIRST_PARTY,
+		g_param_spec_boxed ("first-party",
 				    "First party",
 				    "The URI loaded in the application when the message was requested.",
 				    SOUP_TYPE_URI,
@@ -635,7 +590,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_SITE_FOR_COOKIES,
-		g_param_spec_boxed (SOUP_MESSAGE_SITE_FOR_COOKIES,
+		g_param_spec_boxed ("site-for-cookies",
 				    "Site for cookies",
 				    "The URI for the site to compare cookies against",
 				    SOUP_TYPE_URI,
@@ -649,47 +604,27 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_IS_TOP_LEVEL_NAVIGATION,
-		g_param_spec_boolean (SOUP_MESSAGE_IS_TOP_LEVEL_NAVIGATION,
+		g_param_spec_boolean ("is-top-level-navigation",
 				     "Is top-level navigation",
 				     "If the current messsage is navigating between top-levels",
 				     FALSE,
 				     G_PARAM_READWRITE));
-	/**
-	 * SOUP_MESSAGE_REQUEST_HEADERS:
-	 *
-	 * Alias for the #SoupMessage:request-headers property. (The
-	 * message's HTTP request headers.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_REQUEST_HEADERS,
-		g_param_spec_boxed (SOUP_MESSAGE_REQUEST_HEADERS,
+		g_param_spec_boxed ("request-headers",
 				    "Request Headers",
 				    "The HTTP request headers",
 				    SOUP_TYPE_MESSAGE_HEADERS,
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_RESPONSE_HEADERS:
-	 *
-	 * Alias for the #SoupMessage:response-headers property. (The
-	 * message's HTTP response headers.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_RESPONSE_HEADERS,
-		g_param_spec_boxed (SOUP_MESSAGE_RESPONSE_HEADERS,
+		g_param_spec_boxed ("response-headers",
 				    "Response Headers",
 				     "The HTTP response headers",
 				    SOUP_TYPE_MESSAGE_HEADERS,
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_TLS_CERTIFICATE:
-	 *
-	 * Alias for the #SoupMessage:tls-certificate property. (The
-	 * TLS certificate associated with the message, if any.)
-	 *
-	 * Since: 2.34
-	 **/
 	/**
 	 * SoupMessage:tls-certificate:
 	 *
@@ -699,20 +634,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 */	 
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE,
-		g_param_spec_object (SOUP_MESSAGE_TLS_CERTIFICATE,
+		g_param_spec_object ("tls-certificate",
 				     "TLS Certificate",
 				     "The TLS certificate associated with the message",
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_MESSAGE_TLS_ERRORS:
-	 *
-	 * Alias for the #SoupMessage:tls-errors property. (The
-	 * verification errors on #SoupMessage:tls-certificate.)
-	 *
-	 * Since: 2.34
-	 **/
 	/**
 	 * SoupMessage:tls-errors:
 	 *
@@ -722,14 +649,14 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 */	 
 	g_object_class_install_property (
 		object_class, PROP_TLS_ERRORS,
-		g_param_spec_flags (SOUP_MESSAGE_TLS_ERRORS,
+		g_param_spec_flags ("tls-errors",
 				    "TLS Errors",
 				    "The verification errors on the message's TLS certificate",
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS));
 	/**
-	 * SOUP_MESSAGE_PRIORITY:
+	 SoupMessage:priority:
 	 *
 	 * Sets the priority of the #SoupMessage. See
 	 * soup_message_set_priority() for further details.
@@ -738,7 +665,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_PRIORITY,
-		g_param_spec_enum (SOUP_MESSAGE_PRIORITY,
+		g_param_spec_enum ("priority",
 				   "Priority",
 				   "The priority of the message",
 				   SOUP_TYPE_MESSAGE_PRIORITY,
@@ -793,8 +720,8 @@ SoupMessage *
 soup_message_new_from_uri (const char *method, SoupURI *uri)
 {
 	return g_object_new (SOUP_TYPE_MESSAGE,
-			     SOUP_MESSAGE_METHOD, method,
-			     SOUP_MESSAGE_URI, uri,
+			     "method", method,
+			     "uri", uri,
 			     NULL);
 }
 
@@ -1154,12 +1081,12 @@ soup_message_cleanup_response (SoupMessage *msg)
 	}
 	priv->http_version = priv->orig_http_version;
 
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FLAGS);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_TLS_CERTIFICATE);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_TLS_ERRORS);
+	g_object_notify (G_OBJECT (msg), "status-code");
+	g_object_notify (G_OBJECT (msg), "reason-phrase");
+	g_object_notify (G_OBJECT (msg), "http-version");
+	g_object_notify (G_OBJECT (msg), "flags");
+	g_object_notify (G_OBJECT (msg), "tls-certificate");
+	g_object_notify (G_OBJECT (msg), "tls-errors");
 }
 
 /**
@@ -1216,7 +1143,7 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 	priv = soup_message_get_instance_private (msg);
 
 	priv->msg_flags = flags;
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FLAGS);
+	g_object_notify (G_OBJECT (msg), "flags");
 }
 
 /**
@@ -1259,7 +1186,7 @@ soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 	priv->http_version = version;
 	if (msg->status_code == SOUP_STATUS_NONE)
 		priv->orig_http_version = version;
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
+	g_object_notify (G_OBJECT (msg), "http-version");
 }
 
 /**
@@ -1351,7 +1278,7 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 		soup_uri_free (priv->uri);
 	priv->uri = soup_uri_copy (uri);
 
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_URI);
+	g_object_notify (G_OBJECT (msg), "uri");
 }
 
 /**
@@ -1392,8 +1319,8 @@ soup_message_set_status (SoupMessage *msg, guint status_code)
 
 	msg->status_code = status_code;
 	msg->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
+	g_object_notify (G_OBJECT (msg), "status-code");
+	g_object_notify (G_OBJECT (msg), "reason-phrase");
 }
 
 /**
@@ -1417,8 +1344,8 @@ soup_message_set_status_full (SoupMessage *msg,
 
 	msg->status_code = status_code;
 	msg->reason_phrase = g_strdup (reason_phrase);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
+	g_object_notify (G_OBJECT (msg), "status-code");
+	g_object_notify (G_OBJECT (msg), "reason-phrase");
 }
 
 /**
@@ -1570,7 +1497,7 @@ soup_message_set_first_party (SoupMessage *msg,
 	}
 
 	priv->first_party = soup_uri_copy (first_party);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FIRST_PARTY);
+	g_object_notify (G_OBJECT (msg), "first-party");
 }
 
 /**
@@ -1631,7 +1558,7 @@ soup_message_set_site_for_cookies (SoupMessage *msg,
 	}
 
 	priv->site_for_cookies = site_for_cookies ? soup_uri_copy (site_for_cookies) : NULL;
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_SITE_FOR_COOKIES);
+	g_object_notify (G_OBJECT (msg), "site-for-cookies");
 }
 
 /**
@@ -1658,7 +1585,7 @@ soup_message_set_is_top_level_navigation (SoupMessage *msg,
 		return;
 
 	priv->is_top_level_navigation = is_top_level_navigation;
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_IS_TOP_LEVEL_NAVIGATION);
+	g_object_notify (G_OBJECT (msg), "is-top-level-navigation");
 }
 
 /**
@@ -1689,19 +1616,19 @@ soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
 		GTlsCertificateFlags errors;
 
 		g_object_get (sock,
-			      SOUP_SOCKET_TLS_CERTIFICATE, &certificate,
-			      SOUP_SOCKET_TLS_ERRORS, &errors,
+			      "tls-certificate", &certificate,
+			      "tls-errors", &errors,
 			      NULL);
 		g_object_set (msg,
-			      SOUP_MESSAGE_TLS_CERTIFICATE, certificate,
-			      SOUP_MESSAGE_TLS_ERRORS, errors,
+			      "tls-certificate", certificate,
+			      "tls-errors", errors,
 			      NULL);
 		if (certificate)
 			g_object_unref (certificate);
 	} else {
 		g_object_set (msg,
-			      SOUP_MESSAGE_TLS_CERTIFICATE, NULL,
-			      SOUP_MESSAGE_TLS_ERRORS, 0,
+			      "tls-certificate", NULL,
+			      "tls-errors", 0,
 			      NULL);
 	}
 }
@@ -1785,7 +1712,7 @@ soup_message_set_priority (SoupMessage        *msg,
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	g_object_set (msg, SOUP_MESSAGE_PRIORITY, priority, NULL);
+	g_object_set (msg, "priority", priority, NULL);
 }
 
 /**

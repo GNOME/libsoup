@@ -80,7 +80,7 @@ typedef struct {
  *
  * A #GType corresponding to HTTP-based GSS-Negotiate authentication.
  * #SoupSessions do not support this type by default; if you want to
- * enable support for it, call soup_session_add_feature_by_type(),
+ * enable support for it, call "add-feature-by-type"(),
  * passing %SOUP_TYPE_AUTH_NEGOTIATE.
  *
  * This auth type will only work if libsoup was compiled with GSSAPI
@@ -303,7 +303,7 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 static void
 soup_auth_negotiate_init (SoupAuthNegotiate *negotiate)
 {
-	g_object_set (G_OBJECT (negotiate), SOUP_AUTH_REALM, "", NULL);
+	g_object_set (G_OBJECT (negotiate), "realm", "", NULL);
 }
 
 static void

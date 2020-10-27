@@ -446,7 +446,7 @@ do_one_accept_language_test (const char *language, const char *expected_header)
 	debug_printf (1, "  LANGUAGE=%s\n", language);
 	g_setenv ("LANGUAGE", language, TRUE);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+					 "accept-language-auto", TRUE,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	soup_test_session_send_message (session, msg);
@@ -642,7 +642,7 @@ do_aliases_test (void)
 	if (tls_available) {
 		debug_printf (1, "  foo-means-https\n");
 		session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 SOUP_SESSION_HTTPS_ALIASES, aliases,
+						 "https-aliases", aliases,
 						 NULL);
 		do_aliases_test_for_session (session, "https");
 		soup_test_session_abort_unref (session);
@@ -771,9 +771,9 @@ main (int argc, char **argv)
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	auth_domain = soup_auth_domain_basic_new (
-		SOUP_AUTH_DOMAIN_REALM, "misc-test",
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/auth",
-		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
+		"realm", "misc-test",
+		"add-path", "/auth",
+		"auth-callback", auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);

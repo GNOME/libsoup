@@ -270,14 +270,14 @@ main (int argc, char **argv)
 			g_printerr ("Unable to create server: %s\n", error->message);
 			exit (1);
 		}
-		server = soup_server_new (SOUP_SERVER_SERVER_HEADER, "simple-httpd ",
-					  SOUP_SERVER_TLS_CERTIFICATE, cert,
+		server = soup_server_new ("server-header", "simple-httpd ",
+					  "tls-certificate", cert,
 					  NULL);
 		g_object_unref (cert);
 
 		soup_server_listen_all (server, port, SOUP_SERVER_LISTEN_HTTPS, &error);
 	} else {
-		server = soup_server_new (SOUP_SERVER_SERVER_HEADER, "simple-httpd ",
+		server = soup_server_new ("server-header", "simple-httpd ",
 					  NULL);
 		soup_server_listen_all (server, port, 0, &error);
 	}

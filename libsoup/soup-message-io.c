@@ -489,8 +489,8 @@ parse_headers (SoupMessage  *msg,
 		return SOUP_STATUS_MALFORMED;
 	}
 
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
-	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
+	g_object_notify (G_OBJECT (msg), "status-code");
+	g_object_notify (G_OBJECT (msg), "reason-phrase");
 
 	if (version < soup_message_get_http_version (msg))
 		soup_message_set_http_version (msg, version);

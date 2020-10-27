@@ -182,28 +182,15 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE,
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE);
 
-	/**
-	 * SOUP_COOKIE_JAR_READ_ONLY:
-	 *
-	 * Alias for the #SoupCookieJar:read-only property. (Whether
-	 * or not the cookie jar is read-only.)
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_READ_ONLY,
-		g_param_spec_boolean (SOUP_COOKIE_JAR_READ_ONLY,
+		g_param_spec_boolean ("read-only",
 				      "Read-only",
 				      "Whether or not the cookie jar is read-only",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				      G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SOUP_COOKIE_JAR_ACCEPT_POLICY:
-	 *
-	 * Alias for the #SoupCookieJar:accept-policy property.
-	 *
-	 * Since: 2.30
-	 */
 	/**
 	 * SoupCookieJar:accept-policy:
 	 *
@@ -213,7 +200,7 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_POLICY,
-		g_param_spec_enum (SOUP_COOKIE_JAR_ACCEPT_POLICY,
+		g_param_spec_enum ("accept-policy",
 				   "Accept-policy",
 				   "The policy the jar should follow to accept or reject cookies",
 				   SOUP_TYPE_COOKIE_JAR_ACCEPT_POLICY,
@@ -1008,7 +995,7 @@ soup_cookie_jar_set_accept_policy (SoupCookieJar *jar,
 
 	if (priv->accept_policy != policy) {
 		priv->accept_policy = policy;
-		g_object_notify (G_OBJECT (jar), SOUP_COOKIE_JAR_ACCEPT_POLICY);
+		g_object_notify (G_OBJECT (jar), "accept-policy");
 	}
 }
 

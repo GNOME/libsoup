@@ -113,7 +113,7 @@ soup_auth_domain_digest_get_property (GObject *object, guint prop_id,
  * @...: option name/value pairs
  *
  * Creates a #SoupAuthDomainDigest. You must set the
- * %SOUP_AUTH_DOMAIN_REALM parameter, to indicate the realm name to be
+ * SoupAuthDomain:realm property, to indicate the realm name to be
  * returned with the authentication challenge to the client. Other
  * parameters are optional.
  *
@@ -166,8 +166,8 @@ soup_auth_domain_digest_new (const char *optname1, ...)
  * based on @callback's return value.
  *
  * You can also set the auth callback by setting the
- * %SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK and
- * %SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA properties, which can also be
+ * SoupAuthDomainDigest:auth-callback and
+ * SoupAuthDomainDigest:auth-data properties, which can also be
  * used to set the callback at construct time.
  **/
 void
@@ -186,8 +186,8 @@ soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
 	priv->auth_data = user_data;
 	priv->auth_dnotify = dnotify;
 
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK);
-	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA);
+	g_object_notify (G_OBJECT (domain), "auth-callback");
+	g_object_notify (G_OBJECT (domain), "auth-data");
 }
 
 static gboolean
@@ -421,29 +421,17 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	object_class->get_property = soup_auth_domain_digest_get_property;
 
 	/**
-	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK:
-	 *
-	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
-	 * (The #SoupAuthDomainDigestAuthCallback.)
-	 **/
-	/**
 	 * SoupAuthDomainDigest:auth-callback: (type SoupAuthDomainDigestAuthCallback)
 	 *
 	 * The #SoupAuthDomainDigestAuthCallback
 	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_CALLBACK,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK,
+		g_param_spec_pointer ("auth-callback",
 				      "Authentication callback",
 				      "Password-finding callback",
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA:
-	 *
-	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
-	 * (The #SoupAuthDomainDigestAuthCallback.)
-	 **/
 	/**
 	 * SoupAuthDomainDigest:auth-data:
 	 *
@@ -451,7 +439,7 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	 */
 	g_object_class_install_property (
 		object_class, PROP_AUTH_DATA,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA,
+		g_param_spec_pointer ("auth-data",
 				      "Authentication callback data",
 				      "Data to pass to authentication callback",
 				      G_PARAM_READWRITE |

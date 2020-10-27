@@ -246,8 +246,8 @@ do_server_aliases_test (ServerData *sd, gconstpointer test_data)
 	g_test_bug ("703694");
 
 	g_object_set (G_OBJECT (sd->server),
-		      SOUP_SERVER_HTTP_ALIASES, http_aliases,
-		      SOUP_SERVER_HTTPS_ALIASES, https_aliases,
+		      "http-aliases", http_aliases,
+		      "https-aliases", https_aliases,
 		      NULL);
 
 	for (i = 0; http_good[i]; i++)
@@ -1400,7 +1400,7 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 
 	resolver = g_simple_proxy_resolver_new (proxy_uri_str, NULL);
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 SOUP_SESSION_PROXY_RESOLVER, resolver,
+					 "proxy-resolver", resolver,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", sd->ssl_base_uri);
 	soup_test_session_send_message (session, msg);

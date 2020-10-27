@@ -382,9 +382,9 @@ main (int argc, char **argv)
 		SoupAuthDomain *auth_domain;
 
 		auth_domain = soup_auth_domain_basic_new (
-			SOUP_AUTH_DOMAIN_REALM, "simple-proxy",
-			SOUP_AUTH_DOMAIN_PROXY, TRUE,
-			SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
+			"realm", "simple-proxy",
+			"proxy", TRUE,
+			"auth-callback", auth_callback,
 			NULL);
 		soup_server_add_auth_domain (server, auth_domain);
 		g_object_unref (auth_domain);

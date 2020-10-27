@@ -36,12 +36,12 @@ do_strictness_test (gconstpointer data)
 					 NULL);
 	if (!test->strict) {
 		g_object_set (G_OBJECT (session),
-			      SOUP_SESSION_SSL_STRICT, FALSE,
+			      "ssl-strict", FALSE,
 			      NULL);
 	}
 	if (!test->with_ca_list) {
 		g_object_set (G_OBJECT (session),
-			      SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
+			      "ssl-use-system-ca-file", TRUE,
 			      NULL);
 	}
 
@@ -217,7 +217,7 @@ do_tls_interaction_test (void)
 
 	interaction = g_object_new (test_tls_interaction_get_type (), NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_TLS_INTERACTION, interaction,
+		      "tls-interaction", interaction,
 		      NULL);
 	g_object_unref (interaction);
 

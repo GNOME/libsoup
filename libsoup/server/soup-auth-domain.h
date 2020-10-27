@@ -28,15 +28,6 @@ struct _SoupAuthDomainClass {
 	gpointer padding[6];
 };
 
-#define SOUP_AUTH_DOMAIN_REALM       "realm"
-#define SOUP_AUTH_DOMAIN_PROXY       "proxy"
-#define SOUP_AUTH_DOMAIN_ADD_PATH    "add-path"
-#define SOUP_AUTH_DOMAIN_REMOVE_PATH "remove-path"
-#define SOUP_AUTH_DOMAIN_FILTER      "filter"
-#define SOUP_AUTH_DOMAIN_FILTER_DATA "filter-data"
-#define SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK "generic-auth-callback"
-#define SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA     "generic-auth-data"
-
 typedef gboolean (*SoupAuthDomainFilter) (SoupAuthDomain    *domain,
 					  SoupServerMessage *msg,
 					  gpointer           user_data);

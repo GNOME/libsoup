@@ -224,16 +224,9 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	 *
 	 * Since: 2.56
 	 */
-	/**
-	 * SOUP_LOGGER_LEVEL:
-	 *
-	 * Alias for the #SoupLogger:level property, qv.
-	 *
-	 * Since: 2.56
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_LEVEL,
-		g_param_spec_enum (SOUP_LOGGER_LEVEL,
+		g_param_spec_enum ("level",
 				    "Level",
 				    "The level of logging output",
 				    SOUP_TYPE_LOGGER_LOG_LEVEL,
@@ -250,16 +243,9 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	 *
 	 * Since: 2.56
 	 */
-	/**
-	 * SOUP_LOGGER_MAX_BODY_SIZE:
-	 *
-	 * Alias for the #SoupLogger:max-body-size property, qv.
-	 *
-	 * Since: 2.56
-	 **/
 	g_object_class_install_property (
 		object_class, PROP_MAX_BODY_SIZE,
-		g_param_spec_int (SOUP_LOGGER_MAX_BODY_SIZE,
+		g_param_spec_int ("max-body-size",
 				    "Max Body Size",
 				    "The maximum body size to output",
 				    -1,
@@ -300,8 +286,8 @@ SoupLogger *
 soup_logger_new (SoupLoggerLogLevel level, int max_body_size)
 {
 	return g_object_new (SOUP_TYPE_LOGGER,
-			     SOUP_LOGGER_LEVEL, level,
-			     SOUP_LOGGER_MAX_BODY_SIZE, max_body_size,
+			     "level", level,
+			     "max-body-size", max_body_size,
 			     NULL);
 }
 

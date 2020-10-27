@@ -31,11 +31,6 @@ typedef enum {
 	SOUP_CONNECTION_DISCONNECTED
 } SoupConnectionState;
 
-#define SOUP_CONNECTION_REMOTE_URI        "remote-uri"
-#define SOUP_CONNECTION_SOCKET_PROPERTIES "socket-properties"
-#define SOUP_CONNECTION_STATE             "state"
-#define SOUP_CONNECTION_SSL               "ssl"
-
 void            soup_connection_connect_async    (SoupConnection       *conn,
 						  GCancellable         *cancellable,
 						  GAsyncReadyCallback   callback,

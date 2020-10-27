@@ -212,7 +212,7 @@ do_server_auth_test (gconstpointer data)
 		 (TEST_USES_BASIC (i) || TEST_USES_DIGEST (i)) && TEST_GOOD_AUTH (i));
 
 	/* 8. No auth required again. (Makes sure that
-	 * SOUP_AUTH_DOMAIN_REMOVE_PATH works.)
+	 * SoupAuthDomain:remove-path works.)
 	 */
 	do_test (base_uri, "/Any/Not/foo",
 		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
@@ -345,21 +345,21 @@ main (int argc, char **argv)
 				 server_callback, NULL, NULL);
 
 	auth_domain = soup_auth_domain_basic_new (
-		SOUP_AUTH_DOMAIN_REALM, "server-auth-test",
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/Basic",
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/Any",
-		SOUP_AUTH_DOMAIN_REMOVE_PATH, "/Any/Not",
-		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, basic_auth_callback,
+		"realm", "server-auth-test",
+		"add-path", "/Basic",
+		"add-path", "/Any",
+		"remove-path", "/Any/Not",
+		"auth-callback", basic_auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);
 
 	auth_domain = soup_auth_domain_digest_new (
-		SOUP_AUTH_DOMAIN_REALM, "server-auth-test",
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/Digest",
-		SOUP_AUTH_DOMAIN_ADD_PATH, "/Any",
-		SOUP_AUTH_DOMAIN_REMOVE_PATH, "/Any/Not",
-		SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK, digest_auth_callback,
+		"realm", "server-auth-test",
+		"add-path", "/Digest",
+		"add-path", "/Any",
+		"remove-path", "/Any/Not",
+		"auth-callback", digest_auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);

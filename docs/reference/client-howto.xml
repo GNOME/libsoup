@@ -41,7 +41,7 @@ you can specify various additional options:
 
 <variablelist>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-MAX-CONNS:CAPS"><literal>SOUP_SESSION_MAX_CONNS</literal></link></term>
+	<term><link linkend="SoupSession:max-conns"><literal>"max-conns"</literal></link></term>
 	<listitem><para>
 	    Allows you to set the maximum total number of connections
 	    the session will have open at one time. (Once it reaches
@@ -51,7 +51,7 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-MAX-CONNS-PER-HOST:CAPS"><literal>SOUP_SESSION_MAX_CONNS_PER_HOST</literal></link></term>
+	<term><link linkend="SoupSession:max-conns-per-host"><literal>"max-conns-per-host"</literal></link></term>
 	<listitem><para>
 	    Allows you to set the maximum total number of connections
 	    the session will have open <emphasis>to a single
@@ -59,27 +59,27 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-USER-AGENT:CAPS"><literal>SOUP_SESSION_USER_AGENT</literal></link></term>
+	<term><link linkend="SoupSession:user-agent"><literal>"user-agent"</literal></link></term>
 	<listitem><para>
 	    Allows you to set a User-Agent string that will be sent
 	    on all outgoing requests.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-ACCEPT-LANGUAGE:CAPS"><literal>SOUP_SESSION_ACCEPT_LANGUAGE</literal></link>
-	and <link linkend="SOUP-SESSION-ACCEPT-LANGUAGE-AUTO:CAPS"><literal>SOUP_SESSION_ACCEPT_LANGUAGE_AUTO</literal></link></term>
+	<term><link linkend="SoupSession:accept-language"><literal>"accept-language"</literal></link>
+	and <link linkend="SoupSession:accept-language-auto"><literal>"accept-language-auto"</literal></link></term>
 	<listitem><para>
 	    Allow you to set an Accept-Language header on all outgoing
-	    requests. <literal>SOUP_SESSION_ACCEPT_LANGUAGE</literal>
+	    requests. <literal>"accept-language"</literal>
 	    takes a list of language tags to use, while
-	    <literal>SOUP_SESSION_ACCEPT_LANGUAGE_AUTO</literal>
+	    <literal>"accept-language-auto"</literal>
 	    automatically generates the list from the user's locale
 	    settings.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-HTTP-ALIASES:CAPS"><literal>SOUP_SESSION_HTTP_ALIASES</literal></link>
-	and <link linkend="SOUP-SESSION-HTTPS-ALIASES:CAPS"><literal>SOUP_SESSION_HTTPS_ALIASES</literal></link></term>
+	<term><link linkend="SoupSession:http-aliases"><literal>"http-aliases"</literal></link>
+	and <link linkend="SoupSession:https-aliases"><literal>"https-aliases"</literal></link></term>
 	<listitem><para>
 	    Allow you to tell the session to recognize additional URI
 	    schemes as aliases for "<literal>http</literal>" or
@@ -91,10 +91,10 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-PROXY-RESOLVER:CAPS"><literal>SOUP_SESSION_PROXY_RESOLVER</literal></link></term>
+	<term><link linkend="SoupSession:proxy-resolver"><literal>"proxy-resolver"</literal></link></term>
 	<listitem>
 	    <para>
-		<link linkend="SOUP-SESSION-PROXY-RESOLVER:CAPS"><literal>SOUP_SESSION_PROXY_RESOLVER</literal></link>
+		<link linkend="SoupSession:proxy-resolver"><literal>"proxy-resolver"</literal></link>
 		specifies a <link
 		linkend="GProxyResolver"><type>GProxyResolver</type></link>
 		to use to determine the HTTP proxies to use. By default,
@@ -105,7 +105,7 @@ you can specify various additional options:
 	</listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-ADD-FEATURE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE</literal></link> and <link linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE_BY_TYPE</literal></link></term>
+	<term><link linkend="SoupSession:add-feature"><literal>"add-feature"</literal></link> and <link linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE:CAPS"><literal>"add-feature-by-type"</literal></link></term>
 	<listitem><para>
 	    These allow you to specify <link
 	    linkend="SoupSessionFeature"><type>SoupSessionFeature</type></link>s
@@ -136,9 +136,9 @@ which takes no arguments.
 Additional session functionality is provided as <link
 linkend="SoupSessionFeature"><type>SoupSessionFeature</type></link>s,
 which can be added to a session, via the <link
-linkend="SOUP-SESSION-ADD-FEATURE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE</literal></link>
+linkend="SoupSession:add-feature"><literal>"add-feature"</literal></link>
 and <link
-linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE_BY_TYPE</literal></link>
+linkend="SoupSession:add-feature-by-type"><literal>"add-feature-by-type"</literal></link>
 options at session-construction-time, or afterward via the <link
 linkend="soup-session-add-feature"><function>soup_session_add_feature</function></link>
 and <link
@@ -204,7 +204,7 @@ application might do something like the following:
 
 <informalexample><programlisting>
 	session = soup_session_new_with_options (
-		SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER,
+		"add-feature-by-type", SOUP_TYPE_CONTENT_SNIFFER,
 		NULL);
 
 	if (debug_level) {
