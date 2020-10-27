@@ -236,7 +236,6 @@ soup_server_remove_websocket_extension
 <SUBSECTION>
 soup_server_add_auth_domain
 soup_server_remove_auth_domain
-<SUBSECTION>
 soup_server_pause_message
 soup_server_unpause_message
 <SUBSECTION Standard>
@@ -379,8 +378,6 @@ soup_session_abort
 soup_session_would_redirect
 soup_session_redirect_message
 <SUBSECTION>
-soup_session_pause_message
-soup_session_unpause_message
 soup_session_add_feature
 soup_session_add_feature_by_type
 soup_session_remove_feature

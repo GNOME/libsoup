@@ -34,13 +34,6 @@ SoupSession    *soup_session_new_with_options (const char *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
 SOUP_AVAILABLE_IN_2_4
-void            soup_session_pause_message    (SoupSession           *session,
-					       SoupMessage           *msg);
-SOUP_AVAILABLE_IN_2_4
-void            soup_session_unpause_message  (SoupSession           *session,
-					       SoupMessage           *msg);
-
-SOUP_AVAILABLE_IN_2_4
 void            soup_session_cancel_message   (SoupSession           *session,
 					       SoupMessage           *msg,
 					       guint                  status_code);
