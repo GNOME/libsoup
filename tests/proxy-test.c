@@ -46,6 +46,27 @@ authenticate (SoupMessage *msg,
 	      SoupAuth    *auth,
 	      gboolean     retrying)
 {
+	if (soup_auth_is_for_proxy (auth)) {
+		char *uri;
+		int i;
+		gboolean found = FALSE;
+
+		uri = g_strdup_printf ("http://%s", soup_auth_get_authority (auth));
+		for (i = 1; i < G_N_ELEMENTS (proxies) && !found; i++) {
+			if (strcmp (uri, proxies[i]) == 0)
+				found = TRUE;
+		}
+		g_free (uri);
+		g_assert_true (found);
+	} else {
+		SoupURI *uri = soup_message_get_uri (msg);
+		char *authority;
+
+		authority = g_strdup_printf ("%s:%d", uri->host, uri->port);
+		g_assert_cmpstr (authority, ==, soup_auth_get_authority (auth));
+		g_free (authority);
+	}
+
 	if (!retrying) {
 		soup_auth_authenticate (auth, "user1", "realm1");
 

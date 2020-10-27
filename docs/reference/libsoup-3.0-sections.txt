@@ -449,7 +449,7 @@ soup_auth_negotiate_supported
 <SUBSECTION>
 soup_auth_is_for_proxy
 soup_auth_get_scheme_name
-soup_auth_get_host
+soup_auth_get_authority
 soup_auth_get_realm
 soup_auth_get_info
 <SUBSECTION>

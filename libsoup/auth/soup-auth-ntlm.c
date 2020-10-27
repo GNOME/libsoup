@@ -307,6 +307,8 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	SoupAuthNTLMPrivate *priv = soup_auth_ntlm_get_instance_private (auth_ntlm);
 	SoupNTLMConnectionState *conn = state;
 	gboolean success = TRUE;
+	SoupURI *uri;
+	char *authority;
 
 	/* Note that we only return FALSE if some sort of parsing error
 	 * occurs. Otherwise, the SoupAuth is still reusable (though it may
@@ -396,10 +398,14 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	if (conn->state == SOUP_NTLM_SENT_REQUEST)
 		conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
 
+	uri = soup_message_get_uri (msg);
+	authority = g_strdup_printf ("%s:%d", uri->host, uri->port);
 	g_object_set (G_OBJECT (auth),
 		      "realm", priv->domain,
-		      "host", soup_message_get_uri (msg)->host,
+		      "authority", authority,
 		      NULL);
+	g_free (authority);
+
 	return success;
 }
 

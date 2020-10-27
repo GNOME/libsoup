@@ -98,7 +98,7 @@ static gboolean soup_gss_build_response (SoupNegotiateConnectionState *conn,
 					 SoupAuth *auth, GError **err);
 static void soup_gss_client_cleanup (SoupNegotiateConnectionState *conn);
 static gboolean soup_gss_client_init (SoupNegotiateConnectionState *conn,
-				      const char *host, GError **err);
+				      const char *authority, GError **err);
 static int soup_gss_client_step (SoupNegotiateConnectionState *conn,
 				 const char *host, GError **err);
 
@@ -472,7 +472,7 @@ static gboolean
 soup_gss_build_response (SoupNegotiateConnectionState *conn, SoupAuth *auth, GError **err)
 {
 	if (!conn->initialized)
-		if (!soup_gss_client_init (conn, soup_auth_get_host (auth), err))
+		if (!soup_gss_client_init (conn, soup_auth_get_authority (auth), err))
 			return FALSE;
 
 	if (soup_gss_client_step (conn, "", err) != AUTH_GSS_CONTINUE)
@@ -527,19 +527,21 @@ soup_gss_error (OM_uint32 err_maj, OM_uint32 err_min, GError **err)
 }
 
 static gboolean
-soup_gss_client_init (SoupNegotiateConnectionState *conn, const gchar *host, GError **err)
+soup_gss_client_init (SoupNegotiateConnectionState *conn, const gchar *authority, GError **err)
 {
 	OM_uint32 maj_stat, min_stat;
 	gchar *service = NULL;
 	gss_buffer_desc token = GSS_C_EMPTY_BUFFER;
 	gboolean ret = FALSE;
-	gchar *h;
+	char *host;
+	const char *p;
 
 	conn->server_name = GSS_C_NO_NAME;
 	conn->context = GSS_C_NO_CONTEXT;
 
-	h = g_ascii_strdown (host, -1);
-	service = g_strconcat ("HTTP@", h, NULL);
+	p = g_strrstr (authority, ":");
+	host = g_ascii_strdown (authority, p ? strlen (authority) - strlen (p) : -1);
+	service = g_strconcat ("HTTP@", host, NULL);
 	token.length = strlen (service);
 	token.value = (gchar *) service;
 
@@ -557,7 +559,7 @@ soup_gss_client_init (SoupNegotiateConnectionState *conn, const gchar *host, GEr
 	conn->initialized = TRUE;
 	ret = TRUE;
 out:
-	g_free (h);
+	g_free (host);
 	g_free (service);
 	return ret;
 }

@@ -37,7 +37,7 @@
 
 typedef struct {
         char *realm;
-	char *host;
+	char *authority;
 	gboolean proxy;
 	gboolean cancelled;
 } SoupAuthPrivate;
@@ -49,7 +49,7 @@ enum {
 
 	PROP_SCHEME_NAME,
 	PROP_REALM,
-	PROP_HOST,
+	PROP_AUTHORITY,
 	PROP_IS_FOR_PROXY,
 	PROP_IS_AUTHENTICATED,
 	PROP_IS_CANCELLED,
@@ -81,7 +81,7 @@ soup_auth_finalize (GObject *object)
 	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	g_free (priv->realm);
-	g_free (priv->host);
+	g_free (priv->authority);
 
 	G_OBJECT_CLASS (soup_auth_parent_class)->finalize (object);
 }
@@ -98,9 +98,9 @@ soup_auth_set_property (GObject *object, guint prop_id,
 		g_free (priv->realm);
 		priv->realm = g_value_dup_string (value);
 		break;
-	case PROP_HOST:
-		g_free (priv->host);
-		priv->host = g_value_dup_string (value);
+	case PROP_AUTHORITY:
+		g_free (priv->authority);
+		priv->authority = g_value_dup_string (value);
 		break;
 	case PROP_IS_FOR_PROXY:
 		priv->proxy = g_value_get_boolean (value);
@@ -125,8 +125,8 @@ soup_auth_get_property (GObject *object, guint prop_id,
 	case PROP_REALM:
 		g_value_set_string (value, soup_auth_get_realm (auth));
 		break;
-	case PROP_HOST:
-		g_value_set_string (value, soup_auth_get_host (auth));
+	case PROP_AUTHORITY:
+		g_value_set_string (value, soup_auth_get_authority (auth));
 		break;
 	case PROP_IS_FOR_PROXY:
 		g_value_set_boolean (value, priv->proxy);
@@ -188,15 +188,15 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
-	 * SoupAuth:host:
+	 * SoupAuth:authority:
 	 *
-	 * The host being authenticated to.
+	 * The authority (host:port) being authenticated to.
 	 **/
 	g_object_class_install_property (
-		object_class, PROP_HOST,
-		g_param_spec_string ("host",
-				     "Host",
-				     "Authentication host",
+		object_class, PROP_AUTHORITY,
+		g_param_spec_string ("authority",
+				     "Authority",
+				     "Authentication authority",
 				     NULL,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
@@ -264,6 +264,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	GHashTable *params;
 	const char *scheme;
 	SoupURI *uri;
+	char *authority;
 
 	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
@@ -273,10 +274,12 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	if (!uri)
 		return NULL;
 
+	authority = g_strdup_printf ("%s:%d", uri->host, uri->port);
 	auth = g_object_new (type,
 			     "is-for-proxy", (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
-			     "host", uri->host,
+			     "authority", authority,
 			     NULL);
+	g_free (authority);
 
 	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
@@ -440,21 +443,21 @@ soup_auth_get_scheme_name (SoupAuth *auth)
 }
 
 /**
- * soup_auth_get_host:
+ * soup_auth_get_authority:
  * @auth: a #SoupAuth
  *
- * Returns the host that @auth is associated with.
+ * Returns the authority (host:port) that @auth is associated with.
  *
- * Return value: the hostname
+ * Returns: the authority
  **/
 const char *
-soup_auth_get_host (SoupAuth *auth)
+soup_auth_get_authority (SoupAuth *auth)
 {
 	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return priv->host;
+	return priv->authority;
 }
 
 /**

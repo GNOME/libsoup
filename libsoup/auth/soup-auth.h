@@ -56,8 +56,8 @@ SOUP_AVAILABLE_IN_2_4
 gboolean    soup_auth_is_for_proxy          (SoupAuth      *auth);
 SOUP_AVAILABLE_IN_2_4
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
-SOUP_AVAILABLE_IN_2_4
-const char *soup_auth_get_host              (SoupAuth      *auth);
+SOUP_AVAILABLE_IN_ALL
+const char *soup_auth_get_authority         (SoupAuth      *auth);
 SOUP_AVAILABLE_IN_2_4
 const char *soup_auth_get_realm             (SoupAuth      *auth);
 SOUP_AVAILABLE_IN_2_4
