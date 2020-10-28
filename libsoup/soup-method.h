@@ -26,7 +26,7 @@ G_BEGIN_DECLS
  * most useful in SoupServer handlers. Eg:
  * 
  * <informalexample><programlisting>
- * 	if (msg->method != SOUP_METHOD_GET &amp;&amp; msg->method != SOUP_METHOD_HEAD) {
+ * 	if (soup_message_get_method (msg) != SOUP_METHOD_GET &amp;&amp; soup_message_get_method (msg) != SOUP_METHOD_HEAD) {
  * 		soup_message_set_status (msg, SOUP_METHOD_NOT_IMPLEMENTED);
  * 		return;
  * 	}

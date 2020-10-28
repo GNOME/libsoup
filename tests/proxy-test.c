@@ -84,8 +84,8 @@ set_close_on_connect (SoupMessage *msg,
 	 * the connection when returning a 407 in response to a
 	 * CONNECT. (Rude!)
 	 */
-	if (msg->method == SOUP_METHOD_CONNECT) {
-		soup_message_headers_append (msg->request_headers,
+	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
+		soup_message_headers_append (soup_message_get_request_headers (msg),
 					     "Connection", "close");
 	}
 }
@@ -130,7 +130,7 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 
 	soup_test_session_send_message (session, msg);
 
-	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
+	debug_printf (1, "  %d %s\n", soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
 	soup_test_assert_message_status (msg, expected);
 
 	g_object_unref (msg);
@@ -243,7 +243,7 @@ do_proxy_redirect_test (void)
 	req_uri = soup_uri_new (HTTPS_SERVER);
 	soup_uri_set_path (req_uri, "/redirected");
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
-	soup_message_headers_append (msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (msg),
 				     "Connection", "close");
 	soup_test_session_send_message (session, msg);
 
@@ -290,7 +290,7 @@ do_proxy_auth_request (const char *url, SoupSession *session, gboolean do_read)
 	g_clear_error (&error);
 	g_object_unref (stream);
 
-	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
+	debug_printf (1, "  %d %s\n", soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	g_object_unref (msg);

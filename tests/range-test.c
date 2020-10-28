@@ -67,16 +67,16 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 	GBytes *body;
 
 	debug_printf (1, "    Range: %s\n",
-		      soup_message_headers_get_one (msg->request_headers, "Range"));
+		      soup_message_headers_get_one (soup_message_get_request_headers (msg), "Range"));
 
 	body = soup_test_session_async_send (session, msg);
 
 	if (!succeed) {
 		soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
-		if (msg->status_code != SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
+		if (soup_message_get_status (msg) != SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
 			const char *content_range;
 
-			content_range = soup_message_headers_get_one (msg->response_headers,
+			content_range = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 								      "Content-Range");
 			if (content_range)
 				debug_printf (1, "    Content-Range: %s\n", content_range);
@@ -89,10 +89,10 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
 
 	content_type = soup_message_headers_get_content_type (
-		msg->response_headers, NULL);
+		soup_message_get_response_headers (msg), NULL);
 	g_assert_cmpstr (content_type, !=, "multipart/byteranges");
 
-	check_part (msg->response_headers, body, TRUE, start, end);
+	check_part (soup_message_get_response_headers (msg), body, TRUE, start, end);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 }
@@ -104,7 +104,7 @@ request_single_range (SoupSession *session, const char *uri,
 	SoupMessage *msg;
 
 	msg = soup_message_new ("GET", uri);
-	soup_message_headers_set_range (msg->request_headers, start, end);
+	soup_message_headers_set_range (soup_message_get_request_headers (msg), start, end);
 	do_single_range (session, msg, start, end, succeed);
 }
 
@@ -118,16 +118,16 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 	GBytes *body;
 
 	debug_printf (1, "    Range: %s\n",
-		      soup_message_headers_get_one (msg->request_headers, "Range"));
+		      soup_message_headers_get_one (soup_message_get_request_headers (msg), "Range"));
 
 	body = soup_test_session_async_send (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
 
-	content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
+	content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), NULL);
 	g_assert_cmpstr (content_type, ==, "multipart/byteranges");
 
-	multipart = soup_multipart_new_from_message (msg->response_headers, body);
+	multipart = soup_multipart_new_from_message (soup_message_get_response_headers (msg), body);
 	g_bytes_unref (body);
 
 	if (!multipart) {
@@ -166,7 +166,7 @@ request_double_range (SoupSession *session, const char *uri,
 	ranges[0].end = first_end;
 	ranges[1].start = second_start;
 	ranges[1].end = second_end;
-	soup_message_headers_set_ranges (msg->request_headers, ranges, 2);
+	soup_message_headers_set_ranges (soup_message_get_request_headers (msg), ranges, 2);
 
 	if (expected_return_ranges == 1) {
 		do_single_range (session, msg,
@@ -194,7 +194,7 @@ request_triple_range (SoupSession *session, const char *uri,
 	ranges[1].end = second_end;
 	ranges[2].start = third_start;
 	ranges[2].end = third_end;
-	soup_message_headers_set_ranges (msg->request_headers, ranges, 3);
+	soup_message_headers_set_ranges (soup_message_get_request_headers (msg), ranges, 3);
 
 	if (expected_return_ranges == 1) {
 		do_single_range (session, msg,
@@ -221,7 +221,7 @@ request_semi_invalid_range (SoupSession *session, const char *uri,
 	ranges[1].end = bad_end;
 	ranges[2].start = second_good_start;
 	ranges[2].end = second_good_end;
-	soup_message_headers_set_ranges (msg->request_headers, ranges, 3);
+	soup_message_headers_set_ranges (soup_message_get_request_headers (msg), ranges, 3);
 
 	do_multi_range (session, msg, 2);
 }

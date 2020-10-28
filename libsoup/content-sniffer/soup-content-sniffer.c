@@ -775,11 +775,11 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	char *sniffed_type = NULL;
 	gboolean no_sniff = FALSE;
 
-	content_type = soup_message_headers_get_content_type (msg->response_headers, params);
+	content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), params);
 
 	/* MIMESNIFF: 7 Determining the sniffed MIME type of a resource. */
 
-	x_content_type_options = soup_message_headers_get_one (msg->response_headers, "X-Content-Type-Options");
+	x_content_type_options = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Content-Type-Options");
 	if (!g_strcmp0 (x_content_type_options, "nosniff"))
 		no_sniff = TRUE;
 

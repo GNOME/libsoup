@@ -85,7 +85,7 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 	SoupContentDecoderCreator converter_creator;
 	GConverter *converter;
 
-	header = soup_message_headers_get_list (msg->response_headers,
+	header = soup_message_headers_get_list (soup_message_get_response_headers (msg),
 						"Content-Encoding");
 	if (!header)
 		return NULL;
@@ -93,7 +93,7 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 	/* Workaround for an apache bug (bgo 613361) */
 	if (!g_ascii_strcasecmp (header, "gzip") ||
 	    !g_ascii_strcasecmp (header, "x-gzip")) {
-		const char *content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
+		const char *content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), NULL);
 
 		if (content_type &&
 		    (!g_ascii_strcasecmp (content_type, "application/gzip") ||
@@ -248,9 +248,9 @@ static void
 soup_content_decoder_request_queued (SoupSessionFeature *feature,
 				     SoupMessage        *msg)
 {
-	if (!soup_message_headers_get_one (msg->request_headers,
+	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					   "Accept-Encoding")) {
-		soup_message_headers_append (msg->request_headers,
+		soup_message_headers_append (soup_message_get_request_headers (msg),
 					     "Accept-Encoding",
 					     ACCEPT_ENCODING_HEADER);
 	}

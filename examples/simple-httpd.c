@@ -117,7 +117,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		return;
 	}
 
-	if (msg->method == SOUP_METHOD_GET) {
+	if (soup_message_get_method (msg) == SOUP_METHOD_GET) {
 		GMappedFile *mapping;
 		GBytes *buffer;
 
@@ -132,7 +132,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 						     (GDestroyNotify)g_mapped_file_unref, g_steal_pointer (&mapping));
 		soup_message_body_append_bytes (msg->response_body, buffer);
 		g_bytes_unref (buffer);
-	} else /* msg->method == SOUP_METHOD_HEAD */ {
+	} else /* soup_message_get_method (msg) == SOUP_METHOD_HEAD */ {
 		char *length;
 
 		/* We could just use the same code for both GET and
@@ -140,7 +140,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		 * But we'll optimize and avoid the extra I/O.
 		 */
 		length = g_strdup_printf ("%lu", (gulong)st.st_size);
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (soup_message_get_response_headers (msg),
 					     "Content-Length", length);
 		g_free (length);
 	}
@@ -156,7 +156,7 @@ do_put (SoupServer *server, SoupMessage *msg, const char *path)
 	gboolean created = TRUE;
 
 	if (g_stat (path, &st) != -1) {
-		const char *match = soup_message_headers_get_one (msg->request_headers, "If-None-Match");
+		const char *match = soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-None-Match");
 		if (match && !strcmp (match, "*")) {
 			soup_message_set_status (msg, SOUP_STATUS_CONFLICT);
 			return;
@@ -191,9 +191,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 
-	g_print ("%s %s HTTP/1.%d\n", msg->method, path,
+	g_print ("%s %s HTTP/1.%d\n", soup_message_get_method (msg), path,
 		 soup_message_get_http_version (msg));
-	soup_message_headers_iter_init (&iter, msg->request_headers);
+	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value))
 		g_print ("%s: %s\n", name, value);
 	if (msg->request_body->length)
@@ -201,15 +201,15 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	file_path = g_strdup_printf (".%s", path);
 
-	if (msg->method == SOUP_METHOD_GET || msg->method == SOUP_METHOD_HEAD)
+	if (soup_message_get_method (msg) == SOUP_METHOD_GET || soup_message_get_method (msg) == SOUP_METHOD_HEAD)
 		do_get (server, msg, file_path);
-	else if (msg->method == SOUP_METHOD_PUT)
+	else if (soup_message_get_method (msg) == SOUP_METHOD_PUT)
 		do_put (server, msg, file_path);
 	else
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 
 	g_free (file_path);
-	g_print ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
+	g_print ("  -> %d %s\n\n", soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
 }
 
 static void

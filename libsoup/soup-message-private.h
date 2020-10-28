@@ -17,37 +17,6 @@
 typedef struct _SoupClientMessageIOData SoupClientMessageIOData;
 void soup_client_message_io_data_free (SoupClientMessageIOData *io);
 
-typedef struct {
-	SoupClientMessageIOData *io_data;
-
-	guint              msg_flags;
-	gboolean           server_side;
-
-	SoupContentSniffer *sniffer;
-	gsize              bytes_for_sniffing;
-
-	SoupHTTPVersion    http_version, orig_http_version;
-
-	SoupURI           *uri;
-
-	SoupAuth          *auth, *proxy_auth;
-	SoupConnection    *connection;
-
-	GHashTable        *disabled_features;
-
-	SoupURI           *first_party;
-	SoupURI           *site_for_cookies;
-
-	GTlsCertificate      *tls_certificate;
-	GTlsCertificateFlags  tls_errors;
-
-	SoupRequest       *request;
-
-	SoupMessagePriority priority;
-
-	gboolean is_top_level_navigation;
-} SoupMessagePrivate;
-
 void             soup_message_cleanup_response (SoupMessage      *msg);
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
@@ -165,5 +134,13 @@ void                soup_message_set_content_sniffer    (SoupMessage        *msg
 							 SoupContentSniffer *sniffer);
 void                soup_message_set_bytes_for_sniffing (SoupMessage        *msg,
 							 gsize               bytes);
+
+GInputStream       *soup_message_get_request_body_stream (SoupMessage        *msg);
+
+void                soup_message_set_reason_phrase       (SoupMessage        *msg,
+                                                          const char         *reason_phrase);
+
+void                soup_message_set_method              (SoupMessage        *msg,
+                                                          const char         *method);
 
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

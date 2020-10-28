@@ -285,16 +285,16 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	char *uristr;
 
 	uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
-	g_print ("[%p] %s %s HTTP/1.%d\n", msg, msg->method, uristr,
+	g_print ("[%p] %s %s HTTP/1.%d\n", msg, soup_message_get_method (msg), uristr,
 		 soup_message_get_http_version (msg));
 
-	if (msg->method == SOUP_METHOD_CONNECT) {
+	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		try_tunnel (server, msg, context);
 		return;
 	}
 
-        msg2 = soup_message_new (msg->method, uristr);
-	soup_message_headers_foreach (msg->request_headers, copy_header,
+        msg2 = soup_message_new (soup_message_get_method (msg), uristr);
+	soup_message_headers_foreach (soup_message_get_request_headers (msg), copy_header,
 				      msg2->request_headers);
 	soup_message_headers_remove (msg2->request_headers, "Host");
 	soup_message_headers_remove (msg2->request_headers, "Connection");
@@ -304,7 +304,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_message_body_append_bytes (msg2->request_body, request);
 		g_bytes_unref (request);
 	}
-	soup_message_headers_set_encoding (msg->response_headers,
+	soup_message_headers_set_encoding (soup_message_get_response_headers (msg),
 					   SOUP_ENCODING_CHUNKED);
 
 	g_signal_connect (msg2, "got_headers",

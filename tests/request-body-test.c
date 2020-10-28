@@ -5,6 +5,7 @@
  */
 
 #include "test-utils.h"
+#include "soup-message-private.h"
 
 static SoupSession *session;
 static SoupURI *base_uri;
@@ -74,7 +75,7 @@ restarted (SoupMessage *msg,
         ptd->nwrote = 0;
 
         /* FIXME: The 302 redirect will turn it into a GET request */
-        msg->method = SOUP_METHOD_PUT;
+        soup_message_set_method (msg, SOUP_METHOD_PUT);
 
         if (ptd->stream) {
                 g_object_unref (ptd->stream);
@@ -125,7 +126,7 @@ do_request_test (gconstpointer data)
         soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
         g_assert_cmpint (g_bytes_get_size (ptd.bytes), ==, ptd.nwrote);
 
-        server_md5 = soup_message_headers_get_one (msg->response_headers,
+        server_md5 = soup_message_headers_get_one (soup_message_get_response_headers (msg),
                                                    "Content-MD5");
         g_assert_cmpstr (client_md5, ==, server_md5);
 

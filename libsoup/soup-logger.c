@@ -517,7 +517,7 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 		return;
 
 	uri = soup_message_get_uri (msg);
-	if (msg->method == SOUP_METHOD_CONNECT) {
+	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "CONNECT %s:%u HTTP/1.%d",
 				   uri->host, uri->port,
@@ -525,7 +525,7 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	} else {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "%s %s%s%s HTTP/1.%d",
-				   msg->method, uri->path,
+				   soup_message_get_method (msg), uri->path,
 				   uri->query ? "?" : "",
 				   uri->query ? uri->query : "",
 				   soup_message_get_http_version (msg));
@@ -554,7 +554,7 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
-	if (!soup_message_headers_get_one (msg->request_headers, "Host")) {
+	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg), "Host")) {
 		char *uri_host;
 
 		if (strchr (uri->host, ':'))
@@ -572,7 +572,7 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 		if (uri_host != uri->host)
 			g_free (uri_host);
 	}
-	soup_message_headers_iter_init (&iter, msg->request_headers);
+	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		if (!g_ascii_strcasecmp (name, "Authorization") &&
 		    !g_ascii_strncasecmp (value, "Basic ", 6))
@@ -604,7 +604,7 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '<',
 			   "HTTP/1.%d %u %s\n",
 			   soup_message_get_http_version (msg),
-			   msg->status_code, msg->reason_phrase);
+			   soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
 
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '<',
 			   "Soup-Debug-Timestamp: %lu",
@@ -617,7 +617,7 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
-	soup_message_headers_iter_init (&iter, msg->response_headers);
+	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '<',
 				   "%s: %s", name, value);
@@ -650,7 +650,7 @@ got_informational (SoupMessage *msg, gpointer user_data)
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
-	if (msg->status_code == SOUP_STATUS_CONTINUE && msg->request_body_stream) {
+	if (soup_message_get_status (msg) == SOUP_STATUS_CONTINUE && soup_message_get_request_body_stream (msg)) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "[Now sending request body...]");
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");

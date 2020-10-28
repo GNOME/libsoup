@@ -42,19 +42,19 @@ get_url (const char *url)
 	name = soup_message_get_uri (msg)->path;
 
 	if (!debug) {
-		if (msg->status_code == SOUP_STATUS_SSL_FAILED) {
+		if (soup_message_get_status (msg) == SOUP_STATUS_SSL_FAILED) {
 			GTlsCertificateFlags flags;
 
 			if (soup_message_get_https_status (msg, NULL, &flags))
-				g_print ("%s: %d %s (0x%x)\n", name, msg->status_code, msg->reason_phrase, flags);
+				g_print ("%s: %d %s (0x%x)\n", name, soup_message_get_status (msg), soup_message_get_reason_phrase (msg), flags);
 			else
-				g_print ("%s: %d %s (no handshake status)\n", name, msg->status_code, msg->reason_phrase);
-		} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-			g_print ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
+				g_print ("%s: %d %s (no handshake status)\n", name, soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
+		} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg)))
+			g_print ("%s: %d %s\n", name, soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
 	}
 
-	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
-		header = soup_message_headers_get_one (msg->response_headers,
+	if (SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg))) {
+		header = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						       "Location");
 		if (header) {
 			SoupURI *uri;
@@ -69,7 +69,7 @@ get_url (const char *url)
 			g_free (uri_string);
 			soup_uri_free (uri);
 		}
-	} else if (!head && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+	} else if (!head && SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
 		if (output_file_path) {
 			output_file = fopen (output_file_path, "w");
 			if (!output_file)

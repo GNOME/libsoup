@@ -163,7 +163,7 @@ identify_auth (SoupMessage *msg)
 	const char *header;
 	int num;
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					       "Authorization");
 	if (!header)
 		return 0;
@@ -199,7 +199,7 @@ handler (SoupMessage *msg, gpointer data)
 	auth = identify_auth (msg);
 
 	debug_printf (1, "  %d %s (using %s)\n",
-		      msg->status_code, msg->reason_phrase,
+		      soup_message_get_status (msg), soup_message_get_reason_phrase (msg),
 		      auths[auth]);
 
 	if (*expected) {
@@ -508,7 +508,7 @@ async_authenticate (SoupMessage *msg,
 	 * it, because it already knows it's going to need the auth.
 	 * Ignore that.
 	 */
-	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
+	if (soup_message_get_status (msg) != SOUP_STATUS_UNAUTHORIZED) {
 		debug_printf (2, "    (ignoring)\n");
 		return FALSE;
 	}
@@ -570,7 +570,7 @@ static void
 do_async_auth_good_password_test (void)
 {
 	SoupSession *session;
-	SoupMessage *msg1, *msg2, *msg3, msg2_bak;
+	SoupMessage *msg1, *msg2, *msg3;
 	char *uri;
 	SoupAuth *auth = NULL;
 	int remaining;
@@ -601,11 +601,8 @@ do_async_auth_good_password_test (void)
 	soup_test_assert_message_status (msg2, SOUP_STATUS_UNAUTHORIZED);
 
 	/* msg2 should be done at this point; assuming everything is
-	 * working correctly, the session won't look at it again; we
-	 * ensure that if it does, it will crash the test program.
+	 * working correctly, the session won't look at it again.
 	 */
-	memcpy (&msg2_bak, msg2, sizeof (SoupMessage));
-	memset (msg2, 0, sizeof (SoupMessage));
 
 	msg3 = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg3), "id", GINT_TO_POINTER (3));
@@ -637,7 +634,6 @@ do_async_auth_good_password_test (void)
 
 	g_object_unref (msg1);
 	g_object_unref (msg3);
-	memcpy (msg2, &msg2_bak, sizeof (SoupMessage));
 	g_object_unref (msg2);
 
 	g_free (uri);
@@ -772,7 +768,7 @@ select_auth_authenticate (SoupMessage    *msg,
 	const char *header, *basic, *digest;
 	int round = retrying ? 1 : 0;
 
-	header = soup_message_headers_get_list (msg->response_headers,
+	header = soup_message_headers_get_list (soup_message_get_response_headers (msg),
 						"WWW-Authenticate");
 	basic = strstr (header, "Basic");
 	digest = strstr (header, "Digest");
@@ -1119,7 +1115,7 @@ do_infinite_auth_test (void)
 	soup_test_session_send_message (session, msg);
 	g_test_assert_expected_messages ();
 
-	soup_test_assert (msg->status_code != SOUP_STATUS_CANCELLED,
+	soup_test_assert (soup_message_get_status (msg) != SOUP_STATUS_CANCELLED,
 			  "Got stuck in loop");
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
 
@@ -1510,7 +1506,7 @@ do_message_has_authorization_header_test (void)
 	soup_auth_manager_clear_cached_credentials (manager);
 
 	msg = soup_message_new ("GET", uri);
-	soup_message_headers_replace (msg->request_headers, "Authorization", token);
+	soup_message_headers_replace (soup_message_get_request_headers (msg), "Authorization", token);
 	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (has_authorization_header_authenticate_assert),
 			  NULL);
@@ -1521,7 +1517,7 @@ do_message_has_authorization_header_test (void)
 	/* Check that we can also provide our own Authorization header when not using credentials cache. */
 	soup_auth_manager_clear_cached_credentials (manager);
 	msg = soup_message_new ("GET", uri);
-	soup_message_headers_replace (msg->request_headers, "Authorization", token);
+	soup_message_headers_replace (soup_message_get_request_headers (msg), "Authorization", token);
 	soup_message_set_flags (msg, soup_message_get_flags (msg) | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);

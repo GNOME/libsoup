@@ -798,15 +798,15 @@ msg_starting_cb (SoupMessage *msg, gpointer feature)
 	                                                               soup_message_get_first_party (msg),
 							               soup_message_get_site_for_cookies (msg),
 								       TRUE,
-							               SOUP_METHOD_IS_SAFE (msg->method),
+							               SOUP_METHOD_IS_SAFE (soup_message_get_method (msg)),
 							               soup_message_get_is_top_level_navigation (msg));
 	if (cookies != NULL) {
 		char *cookie_header = soup_cookies_to_cookie_header (cookies);
-		soup_message_headers_replace (msg->request_headers, "Cookie", cookie_header);
+		soup_message_headers_replace (soup_message_get_request_headers (msg), "Cookie", cookie_header);
 		g_free (cookie_header);
 		g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 	} else {
-		soup_message_headers_remove (msg->request_headers, "Cookie");
+		soup_message_headers_remove (soup_message_get_request_headers (msg), "Cookie");
 	}
 }
 

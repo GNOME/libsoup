@@ -227,7 +227,7 @@ soup_multipart_input_stream_constructed (GObject *object)
 	base_stream = G_FILTER_INPUT_STREAM (multipart)->base_stream;
 	priv->base_stream = SOUP_FILTER_INPUT_STREAM (soup_filter_input_stream_new (base_stream));
 
-	soup_message_headers_get_content_type (priv->msg->response_headers,
+	soup_message_headers_get_content_type (soup_message_get_response_headers (priv->msg),
 					       &params);
 
 	boundary = g_hash_table_lookup (params, "boundary");

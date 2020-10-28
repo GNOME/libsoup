@@ -154,7 +154,7 @@ check_response (CodingTestData *data,
 
 	soup_test_assert_message_status (data->msg, SOUP_STATUS_OK);
 
-	coding = soup_message_headers_get_one (data->msg->response_headers, "Content-Encoding");
+	coding = soup_message_headers_get_one (soup_message_get_response_headers (data->msg), "Content-Encoding");
 	g_assert_cmpstr (coding, ==, expected_encoding);
 
 	if (status != NO_CHECK) {
@@ -164,7 +164,7 @@ check_response (CodingTestData *data,
 			g_assert_false (soup_message_get_flags (data->msg) & SOUP_MESSAGE_CONTENT_DECODED);
 	}
 
-	type = soup_message_headers_get_one (data->msg->response_headers, "Content-Type");
+	type = soup_message_headers_get_one (soup_message_get_response_headers (data->msg), "Content-Type");
 	g_assert_cmpstr (type, ==, expected_content_type);
 
 	g_assert_true (g_bytes_equal (body, data->response));
@@ -234,7 +234,7 @@ do_coding_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 	g_test_bug ("606352");
 	g_test_bug ("676477");
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "trailing-junk");
 
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
@@ -249,7 +249,7 @@ do_coding_test_gzip_bad_server (CodingTestData *data, gconstpointer test_data)
 
 	g_test_bug ("613361");
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "force-encode");
 
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
@@ -267,7 +267,7 @@ do_coding_test_deflate (CodingTestData *data, gconstpointer test_data)
 {
 	GBytes *body;
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "prefer-deflate-zlib");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
@@ -282,7 +282,7 @@ do_coding_test_deflate_with_junk (CodingTestData *data, gconstpointer test_data)
 	g_test_bug ("606352");
 	g_test_bug ("676477");
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
@@ -296,7 +296,7 @@ do_coding_test_deflate_bad_server (CodingTestData *data, gconstpointer test_data
 
 	g_test_bug ("613361");
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, body);
@@ -308,7 +308,7 @@ do_coding_test_deflate_raw (CodingTestData *data, gconstpointer test_data)
 {
 	GBytes *body;
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "prefer-deflate-raw");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
@@ -322,7 +322,7 @@ do_coding_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer test_
 
 	g_test_bug ("613361");
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "force-encode, prefer-deflate-raw");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, body);
@@ -336,7 +336,7 @@ do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 
 	g_test_bug ("697527");
 
-	soup_message_headers_append (data->msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "empty");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
 	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, body);

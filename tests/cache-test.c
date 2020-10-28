@@ -167,7 +167,7 @@ do_request (SoupSession        *session,
 	va_start (ap, response_headers);
 	while ((header = va_arg (ap, const char *))) {
 		value = va_arg (ap, const char *);
-		soup_message_headers_append (msg->request_headers,
+		soup_message_headers_append (soup_message_get_request_headers (msg),
 					     header, value);
 	}
 	va_end (ap);
@@ -182,7 +182,7 @@ do_request (SoupSession        *session,
 	}
 
 	if (response_headers)
-		soup_message_headers_foreach (msg->response_headers, copy_headers, response_headers);
+		soup_message_headers_foreach (soup_message_get_response_headers (msg), copy_headers, response_headers);
 
 	g_object_unref (msg);
 
@@ -254,9 +254,9 @@ do_request_with_cancel (SoupSession          *session,
 static void
 message_starting (SoupMessage *msg, gpointer data)
 {
-	if (soup_message_headers_get_one (msg->request_headers,
+	if (soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					  "If-Modified-Since") ||
-	    soup_message_headers_get_one (msg->request_headers,
+	    soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					  "If-None-Match")) {
 		debug_printf (2, "    Conditional request for %s\n",
 			      soup_message_get_uri (msg)->path);
@@ -277,7 +277,7 @@ static void
 request_unqueued (SoupSession *session, SoupMessage *msg,
 		  gpointer data)
 {
-	if (msg->status_code == SOUP_STATUS_CANCELLED)
+	if (soup_message_get_status (msg) == SOUP_STATUS_CANCELLED)
 		cancelled_requests++;
 	last_request_unqueued = TRUE;
 }

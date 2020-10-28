@@ -297,7 +297,8 @@ soup_multipart_append_part (SoupMultipart      *multipart,
 	 * 2) We can't change SoupMessageHeaders to not just do a ref
 	 *    from g_boxed_copy, because that would break language
 	 *    bindings (which need to be able to hold a ref on
-	 *    msg->request_headers, but don't want to duplicate it).
+	 *    soup_message_get_request_headers (msg), but don't want
+         *    to duplicate it).
 	 *
 	 * 3) We don't want to steal the reference to @headers,
 	 *    because then we'd have to either also steal the

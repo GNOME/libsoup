@@ -269,7 +269,7 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	soup_message_headers_iter_init (&iter, msg->response_headers);
+	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		SoupURI *uri;
 		GHashTable *params;

@@ -307,19 +307,19 @@ do_cookies_parsing_test (void)
 
 	/* "httponly" is case-insensitive, and its value (if any) is ignored */
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
-	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
+	soup_message_headers_append (soup_message_get_request_headers (msg), "Echo-Set-Cookie",
 				     "one=1; httponly; max-age=100");
 	soup_test_session_send_message (session, msg);
 	g_object_unref (msg);
 
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
-	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
+	soup_message_headers_append (soup_message_get_request_headers (msg), "Echo-Set-Cookie",
 				     "two=2; HttpOnly; max-age=100; SameSite=Invalid");
 	soup_test_session_send_message (session, msg);
 	g_object_unref (msg);
 
 	msg = soup_message_new_from_uri ("GET", first_party_uri);
-	soup_message_headers_append (msg->request_headers, "Echo-Set-Cookie",
+	soup_message_headers_append (soup_message_get_request_headers (msg), "Echo-Set-Cookie",
 				     "three=3; httpONLY=Wednesday; max-age=100; SameSite=Lax");
 	soup_test_session_send_message (session, msg);
 	g_object_unref (msg);

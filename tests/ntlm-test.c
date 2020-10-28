@@ -239,7 +239,7 @@ prompt_check (SoupMessage *msg, gpointer user_data)
 	NTLMState *state = user_data;
 	const char *header;
 
-	header = soup_message_headers_get_list (msg->response_headers,
+	header = soup_message_headers_get_list (soup_message_get_response_headers (msg),
 						"WWW-Authenticate");
 	if (header && strstr (header, "Basic "))
 		state->got_basic_prompt = TRUE;
@@ -257,7 +257,7 @@ challenge_check (SoupMessage *msg, gpointer user_data)
 	NTLMState *state = user_data;
 	const char *header;
 
-	header = soup_message_headers_get_list (msg->response_headers,
+	header = soup_message_headers_get_list (soup_message_get_response_headers (msg),
 						"WWW-Authenticate");
 	if (header && !strncmp (header, "NTLM ", 5))
 		state->got_ntlm_challenge = TRUE;
@@ -269,7 +269,7 @@ request_check (SoupMessage *msg, gpointer user_data)
 	NTLMState *state = user_data;
 	const char *header;
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					       "Authorization");
 	if (header && !strncmp (header, "NTLM " NTLM_REQUEST_START,
 				strlen ("NTLM " NTLM_REQUEST_START)))
@@ -287,7 +287,7 @@ response_check (SoupMessage *msg, gpointer user_data)
 	guint32 flags;
 	int nt_resp_sz;
 
-	header = soup_message_headers_get_one (msg->request_headers,
+	header = soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					       "Authorization");
 	if (header && !strncmp (header, "NTLM " NTLM_RESPONSE_START,
 				strlen ("NTLM " NTLM_RESPONSE_START)))
@@ -395,8 +395,8 @@ do_message (SoupSession *session,
 	} else if (do_basic)
 		debug_printf (1, " no-basic-response???");
 
-	debug_printf (1, " -> %s", msg->reason_phrase);
-	if (msg->status_code != status_code)
+	debug_printf (1, " -> %s", soup_message_get_reason_phrase (msg));
+	if (soup_message_get_status (msg) != status_code)
 		debug_printf (1, "???");
 	debug_printf (1, "\n");
 

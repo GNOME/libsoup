@@ -126,9 +126,9 @@ got_headers (SoupMessage *msg, gpointer user_data)
 	TestRequest **treq = user_data;
 	const char *location;
 
-	debug_printf (2, "    -> %d %s\n", msg->status_code,
-		      msg->reason_phrase);
-	location = soup_message_headers_get_one (msg->response_headers,
+	debug_printf (2, "    -> %d %s\n", soup_message_get_status (msg),
+		      soup_message_get_reason_phrase (msg));
+	location = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						 "Location");
 	if (location)
 		debug_printf (2, "       Location: %s\n", location);
@@ -145,7 +145,7 @@ restarted (SoupMessage *msg, gpointer user_data)
 	TestRequest **treq = user_data;
 	SoupURI *uri = soup_message_get_uri (msg);
 
-	debug_printf (2, "    %s %s\n", msg->method, uri->path);
+	debug_printf (2, "    %s %s\n", soup_message_get_method (msg), uri->path);
 
 	if ((*treq)->method && !(*treq)->repeat)
 		(*treq)++;
@@ -153,7 +153,7 @@ restarted (SoupMessage *msg, gpointer user_data)
 	soup_test_assert ((*treq)->method,
 			  "Expected to be done");
 
-	g_assert_cmpstr (msg->method, ==, (*treq)->method);
+	g_assert_cmpstr (soup_message_get_method (msg), ==, (*treq)->method);
 	g_assert_cmpstr (uri->path, ==, (*treq)->path);
 }
 
@@ -172,7 +172,7 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	msg = soup_message_new_from_uri (test->requests[0].method, uri);
 	soup_uri_free (uri);
 
-	if (msg->method == SOUP_METHOD_POST) {
+	if (soup_message_get_method (msg) == SOUP_METHOD_POST) {
 		GBytes *request_body;
 
 		request_body = g_bytes_new_static ("post body", strlen ("post body"));

@@ -3,8 +3,7 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#ifndef __SOUP_MESSAGE_H__
-#define __SOUP_MESSAGE_H__ 1
+#pragma once
 
 #include "soup-types.h"
 #include "soup-message-body.h"
@@ -13,51 +12,9 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_MESSAGE            (soup_message_get_type ())
-#define SOUP_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_MESSAGE, SoupMessage))
-#define SOUP_MESSAGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_MESSAGE, SoupMessageClass))
-#define SOUP_IS_MESSAGE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_MESSAGE))
-#define SOUP_IS_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_MESSAGE))
-#define SOUP_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_MESSAGE, SoupMessageClass))
-
-struct _SoupMessage {
-	GObject parent;
-
-	/*< public >*/
-	const char         *method;
-
-	guint               status_code;
-	char               *reason_phrase;
-
-	GInputStream       *request_body_stream;
-	SoupMessageHeaders *request_headers;
-	SoupMessageHeaders *response_headers;
-};
-
-typedef struct {
-	GObjectClass parent_class;
-
-	/* signals */
-	void     (*wrote_headers)       (SoupMessage *msg);
-	void     (*wrote_body)          (SoupMessage *msg);
-	void     (*got_informational)   (SoupMessage *msg);
-	void     (*got_headers)         (SoupMessage *msg);
-	void     (*got_body)            (SoupMessage *msg);
-	void     (*restarted)           (SoupMessage *msg);
-	void     (*finished)            (SoupMessage *msg);
-	void     (*starting)            (SoupMessage *msg);
-	void     (*authenticate)        (SoupMessage *msg,
-					 SoupAuth    *auth,
-					 gboolean     retrying);
-
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-} SoupMessageClass;
-
-SOUP_AVAILABLE_IN_2_4
-GType soup_message_get_type (void);
+#define SOUP_TYPE_MESSAGE (soup_message_get_type ())
+SOUP_AVAILABLE_IN_ALL
+G_DECLARE_FINAL_TYPE (SoupMessage, soup_message, SOUP, MESSAGE, GObject)
 
 SOUP_AVAILABLE_IN_2_4
 SoupMessage   *soup_message_new                 (const char        *method,
@@ -182,6 +139,19 @@ void                soup_message_set_priority   (SoupMessage        *msg,
 SOUP_AVAILABLE_IN_2_44
 SoupMessagePriority soup_message_get_priority   (SoupMessage        *msg);
 
-G_END_DECLS
+SOUP_AVAILABLE_IN_ALL
+const char         *soup_message_get_method     (SoupMessage        *msg);
 
-#endif /* __SOUP_MESSAGE_H__ */
+SOUP_AVAILABLE_IN_ALL
+SoupStatus          soup_message_get_status     (SoupMessage        *msg);
+
+SOUP_AVAILABLE_IN_ALL
+const char         *soup_message_get_reason_phrase (SoupMessage     *msg);
+
+SOUP_AVAILABLE_IN_ALL
+SoupMessageHeaders *soup_message_get_request_headers  (SoupMessage  *msg);
+
+SOUP_AVAILABLE_IN_ALL
+SoupMessageHeaders *soup_message_get_response_headers (SoupMessage  *msg);
+
+G_END_DECLS

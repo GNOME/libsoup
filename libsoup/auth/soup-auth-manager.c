@@ -236,11 +236,11 @@ soup_auth_manager_attach (SoupSessionFeature *feature, SoupSession *session)
 static inline const char *
 auth_header_for_message (SoupMessage *msg)
 {
-	if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
-		return soup_message_headers_get_list (msg->response_headers,
+	if (soup_message_get_status (msg) == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+		return soup_message_headers_get_list (soup_message_get_response_headers (msg),
 						      "Proxy-Authenticate");
 	} else {
-		return soup_message_headers_get_list (msg->response_headers,
+		return soup_message_headers_get_list (soup_message_get_response_headers (msg),
 						      "WWW-Authenticate");
 	}
 }
@@ -441,7 +441,7 @@ update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy
 	char *token;
 
 	if (soup_message_get_auth (msg))
-		soup_message_headers_remove (msg->request_headers, authorization_header);
+		soup_message_headers_remove (soup_message_get_request_headers (msg), authorization_header);
 
 	if (!auth)
 		return;
@@ -450,7 +450,7 @@ update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy
 	if (!token)
 		return;
 
-	soup_message_headers_replace (msg->request_headers, authorization_header, token);
+	soup_message_headers_replace (soup_message_get_request_headers (msg), authorization_header, token);
 	g_free (token);
 }
 
@@ -755,7 +755,7 @@ auth_msg_starting (SoupMessage *msg, gpointer manager)
 
 	g_mutex_lock (&priv->lock);
 
-	if (msg->method != SOUP_METHOD_CONNECT) {
+	if (soup_message_get_method (msg) != SOUP_METHOD_CONNECT) {
 		auth = lookup_auth (priv, msg);
 		if (auth) {
 			authenticate_auth (manager, auth, msg, FALSE, FALSE, FALSE);

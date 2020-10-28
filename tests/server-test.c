@@ -140,7 +140,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
-	handled_by = soup_message_headers_get_one (msg->response_headers,
+	handled_by = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						   "X-Handled-By");
 	g_assert_cmpstr (handled_by, ==, NULL);
 	g_object_unref (msg);
@@ -152,7 +152,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	handled_by = soup_message_headers_get_one (msg->response_headers,
+	handled_by = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						   "X-Handled-By");
 	g_assert_cmpstr (handled_by, ==, "star_callback");
 	g_object_unref (msg);
@@ -945,7 +945,7 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	if (pause)
-		soup_message_headers_append (msg->request_headers, "X-Test-Server-Pause", "true");
+		soup_message_headers_append (soup_message_get_request_headers (msg), "X-Test-Server-Pause", "true");
 	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 	g_bytes_unref (body);
@@ -1142,7 +1142,7 @@ do_early_multi_test (ServerData *sd, gconstpointer test_data)
 		else
 			soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
 
-		header = soup_message_headers_get_one (msg->response_headers, "X-Early");
+		header = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Early");
 		if (multi_tests[i].expect_early)
 			g_assert_cmpstr (header, ==, "yes");
 		else
@@ -1406,7 +1406,7 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	handled_by = soup_message_headers_get_one (msg->response_headers, "X-Handled-By");
+	handled_by = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Handled-By");
 	g_assert_cmpstr (handled_by, ==, "server_callback");
 
 	g_object_unref (msg);

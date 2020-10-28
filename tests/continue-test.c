@@ -109,9 +109,9 @@ do_message (const char *path, gboolean long_body,
 	body = long_body ? LONG_BODY : SHORT_BODY;
 	request_body = g_bytes_new_static (body, strlen (body));
 	soup_message_set_request_body_from_bytes (msg, "text/plain", request_body);
-	soup_message_headers_append (msg->request_headers, "Connection", "close");
+	soup_message_headers_append (soup_message_get_request_headers (msg), "Connection", "close");
 	if (expect_continue) {
-		soup_message_headers_set_expectations (msg->request_headers,
+		soup_message_headers_set_expectations (soup_message_get_request_headers (msg),
 						       SOUP_EXPECTATION_CONTINUE);
 	}
 

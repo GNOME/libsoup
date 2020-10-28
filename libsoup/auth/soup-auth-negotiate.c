@@ -353,11 +353,11 @@ check_server_response (SoupMessage *msg, gpointer auth)
 	if (auth != soup_message_get_auth (msg))
 		return;
 
-	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED)
+	if (soup_message_get_status (msg) == SOUP_STATUS_UNAUTHORIZED)
 		return;
 
 	/* FIXME: need to check for proxy-auth too */
-	auth_headers = soup_message_headers_get_one (msg->response_headers,
+	auth_headers = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						     "WWW-Authenticate");
 	if (!auth_headers || g_ascii_strncasecmp (auth_headers, "Negotiate ", 10) != 0) {
 		g_warning ("Failed to parse auth header");
@@ -383,7 +383,7 @@ check_server_response (SoupMessage *msg, gpointer auth)
 		 * Try to behave in the right way (pass the token to
 		 * gss_init_sec_context()), show a warning, but don't fail
 		 * if the server returned 200. */
-		if (msg->status_code == SOUP_STATUS_OK)
+		if (soup_message_get_status (msg) == SOUP_STATUS_OK)
 			priv->is_authenticated = TRUE;
 		else
 			conn->state = SOUP_NEGOTIATE_FAILED;

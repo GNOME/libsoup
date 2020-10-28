@@ -57,6 +57,49 @@
  * trying to do.
  */
 
+struct _SoupMessage {
+	GObject parent_instance;
+};
+
+typedef struct {
+	SoupClientMessageIOData *io_data;
+
+        SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
+
+	GInputStream      *request_body_stream;
+        const char        *method;
+        char              *reason_phrase;
+        SoupStatus         status_code;
+
+	guint              msg_flags;
+	gboolean           server_side;
+
+	SoupContentSniffer *sniffer;
+	gsize              bytes_for_sniffing;
+
+	SoupHTTPVersion    http_version, orig_http_version;
+
+	SoupURI           *uri;
+
+	SoupAuth          *auth, *proxy_auth;
+	SoupConnection    *connection;
+
+	GHashTable        *disabled_features;
+
+	SoupURI           *first_party;
+	SoupURI           *site_for_cookies;
+
+	GTlsCertificate      *tls_certificate;
+	GTlsCertificateFlags  tls_errors;
+
+	SoupRequest       *request;
+
+	SoupMessagePriority priority;
+
+	gboolean is_top_level_navigation;
+} SoupMessagePrivate;
+
 G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
 
 enum {
@@ -110,8 +153,8 @@ soup_message_init (SoupMessage *msg)
 	priv->http_version = priv->orig_http_version = SOUP_HTTP_1_1;
 	priv->priority = SOUP_MESSAGE_PRIORITY_NORMAL;
 
-	msg->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
-	msg->response_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+	priv->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+	priv->response_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
 }
 
 static void
@@ -133,11 +176,11 @@ soup_message_finalize (GObject *object)
 
 	g_clear_object (&priv->tls_certificate);
 
-	soup_message_headers_free (msg->request_headers);
-	soup_message_headers_free (msg->response_headers);
-	g_clear_object (&msg->request_body_stream);
+	soup_message_headers_free (priv->request_headers);
+	soup_message_headers_free (priv->response_headers);
+	g_clear_object (&priv->request_body_stream);
 
-	g_free (msg->reason_phrase);
+	g_free (priv->reason_phrase);
 
 	G_OBJECT_CLASS (soup_message_parent_class)->finalize (object);
 }
@@ -151,7 +194,7 @@ soup_message_set_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_METHOD:
-		msg->method = g_intern_string (g_value_get_string (value));
+		priv->method = g_intern_string (g_value_get_string (value));
 		break;
 	case PROP_URI:
 		soup_message_set_uri (msg, g_value_get_boxed (value));
@@ -172,7 +215,7 @@ soup_message_set_property (GObject *object, guint prop_id,
 		soup_message_set_status (msg, g_value_get_uint (value));
 		break;
 	case PROP_REASON_PHRASE:
-		soup_message_set_status_full (msg, msg->status_code,
+		soup_message_set_status_full (msg, priv->status_code,
 					      g_value_get_string (value));
 		break;
 	case PROP_FIRST_PARTY:
@@ -212,7 +255,7 @@ soup_message_get_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_METHOD:
-		g_value_set_string (value, msg->method);
+		g_value_set_string (value, priv->method);
 		break;
 	case PROP_URI:
 		g_value_set_boxed (value, priv->uri);
@@ -230,19 +273,19 @@ soup_message_get_property (GObject *object, guint prop_id,
 		g_value_set_flags (value, priv->msg_flags);
 		break;
 	case PROP_STATUS_CODE:
-		g_value_set_uint (value, msg->status_code);
+		g_value_set_uint (value, priv->status_code);
 		break;
 	case PROP_REASON_PHRASE:
-		g_value_set_string (value, msg->reason_phrase);
+		g_value_set_string (value, priv->reason_phrase);
 		break;
 	case PROP_FIRST_PARTY:
 		g_value_set_boxed (value, priv->first_party);
 		break;
 	case PROP_REQUEST_HEADERS:
-		g_value_set_boxed (value, msg->request_headers);
+		g_value_set_boxed (value, priv->request_headers);
 		break;
 	case PROP_RESPONSE_HEADERS:
-		g_value_set_boxed (value, msg->response_headers);
+		g_value_set_boxed (value, priv->response_headers);
 		break;
 	case PROP_TLS_CERTIFICATE:
 		g_value_set_object (value, priv->tls_certificate);
@@ -282,7 +325,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("wrote_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, wrote_headers),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -318,7 +361,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("wrote_body",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, wrote_body),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -341,7 +384,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("got_informational",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, got_informational),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -369,7 +412,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("got_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, got_headers),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -388,7 +431,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("got_body",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, got_body),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -431,7 +474,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("starting",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, starting),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -449,7 +492,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("restarted",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, restarted),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -465,7 +508,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, finished),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
@@ -497,7 +540,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 		g_signal_new ("authenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (SoupMessageClass, authenticate),
+			      0,
 			      g_signal_accumulator_true_handled, NULL,
 			      NULL,
 			      G_TYPE_BOOLEAN, 2,
@@ -769,21 +812,23 @@ soup_message_set_request_body (SoupMessage  *msg,
         g_return_if_fail (content_type != NULL || content_length == 0);
         g_return_if_fail (content_type == NULL || G_IS_INPUT_STREAM (stream));
 
-        g_clear_object (&msg->request_body_stream);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        g_clear_object (&priv->request_body_stream);
 
         if (content_type) {
                 g_warn_if_fail (strchr (content_type, '/') != NULL);
 
-                if (soup_message_headers_get_content_type (msg->request_headers, NULL) != content_type)
-                        soup_message_headers_replace (msg->request_headers, "Content-Type", content_type);
+                if (soup_message_headers_get_content_type (priv->request_headers, NULL) != content_type)
+                        soup_message_headers_replace (priv->request_headers, "Content-Type", content_type);
                 if (content_length == -1)
-                        soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
+                        soup_message_headers_set_encoding (priv->request_headers, SOUP_ENCODING_CHUNKED);
                 else
-                        soup_message_headers_set_content_length (msg->request_headers, content_length);
-                msg->request_body_stream = g_object_ref (stream);
+                        soup_message_headers_set_content_length (priv->request_headers, content_length);
+                priv->request_body_stream = g_object_ref (stream);
         } else {
-                soup_message_headers_remove (msg->request_headers, "Content-Type");
-                soup_message_headers_remove (msg->request_headers, "Content-Length");
+                soup_message_headers_remove (priv->request_headers, "Content-Type");
+                soup_message_headers_remove (priv->request_headers, "Content-Length");
         }
 }
 
@@ -868,7 +913,9 @@ soup_message_starting (SoupMessage *msg)
 void
 soup_message_restarted (SoupMessage *msg)
 {
-	g_clear_object (&msg->request_body_stream);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	g_clear_object (&priv->request_body_stream);
 
 	g_signal_emit (msg, signals[RESTARTED], 0);
 }
@@ -911,9 +958,10 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 			    gpointer invocation_hint, gpointer marshal_data)
 {
 	SoupMessage *msg = g_value_get_object (&param_values[0]);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 	const char *header_name = marshal_data;
 
-	if (soup_message_headers_get_one (msg->response_headers, header_name)) {
+	if (soup_message_headers_get_one (priv->response_headers, header_name)) {
 		closure->marshal (closure, return_value, n_param_values,
 				  param_values, invocation_hint,
 				  ((GCClosure *)closure)->callback);
@@ -967,9 +1015,10 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
 			    gpointer invocation_hint, gpointer marshal_data)
 {
 	SoupMessage *msg = g_value_get_object (&param_values[0]);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 	guint status = GPOINTER_TO_UINT (marshal_data);
 
-	if (msg->status_code == status) {
+	if (priv->status_code == status) {
 		closure->marshal (closure, return_value, n_param_values,
 				  param_values, invocation_hint,
 				  ((GCClosure *)closure)->callback);
@@ -1078,7 +1127,7 @@ soup_message_get_uri_for_auth (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+	if (priv->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
 		/* When loaded from the disk cache, the connection is NULL. */
                 return priv->connection ? soup_connection_get_proxy_uri (priv->connection) : NULL;
 	}
@@ -1116,14 +1165,14 @@ soup_message_cleanup_response (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	soup_message_headers_clear (msg->response_headers);
+	soup_message_headers_clear (priv->response_headers);
 
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
 
-	msg->status_code = SOUP_STATUS_NONE;
-	if (msg->reason_phrase) {
-		g_free (msg->reason_phrase);
-		msg->reason_phrase = NULL;
+	priv->status_code = SOUP_STATUS_NONE;
+	if (priv->reason_phrase) {
+		g_free (priv->reason_phrase);
+		priv->reason_phrase = NULL;
 	}
 	priv->http_version = priv->orig_http_version;
 
@@ -1230,7 +1279,7 @@ soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 	priv = soup_message_get_instance_private (msg);
 
 	priv->http_version = version;
-	if (msg->status_code == SOUP_STATUS_NONE)
+	if (priv->status_code == SOUP_STATUS_NONE)
 		priv->orig_http_version = version;
 	g_object_notify (G_OBJECT (msg), "http-version");
 }
@@ -1271,12 +1320,12 @@ soup_message_is_keepalive (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	if (msg->status_code == SOUP_STATUS_OK &&
-	    msg->method == SOUP_METHOD_CONNECT)
+	if (priv->status_code == SOUP_STATUS_OK &&
+	    priv->method == SOUP_METHOD_CONNECT)
 		return TRUE;
 
 	/* Not persistent if the server sent a terminate-by-EOF response */
-	if (soup_message_headers_get_encoding (msg->response_headers) == SOUP_ENCODING_EOF)
+	if (soup_message_headers_get_encoding (priv->response_headers) == SOUP_ENCODING_EOF)
 		return FALSE;
 
 	if (priv->http_version == SOUP_HTTP_1_0) {
@@ -1286,14 +1335,14 @@ soup_message_is_keepalive (SoupMessage *msg)
 		 * doesn't request it. So ignore c_conn.
 		 */
 
-		if (!soup_message_headers_header_contains (msg->response_headers,
+		if (!soup_message_headers_header_contains (priv->response_headers,
 							   "Connection", "Keep-Alive"))
 			return FALSE;
 	} else {
 		/* Normally persistent unless either side requested otherwise */
-		if (soup_message_headers_header_contains (msg->request_headers,
+		if (soup_message_headers_header_contains (priv->request_headers,
 							  "Connection", "close") ||
-		    soup_message_headers_header_contains (msg->response_headers,
+		    soup_message_headers_header_contains (priv->response_headers,
 							  "Connection", "close"))
 			return FALSE;
 
@@ -1361,10 +1410,12 @@ soup_message_set_status (SoupMessage *msg, guint status_code)
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (status_code != 0);
 
-	g_free (msg->reason_phrase);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	msg->status_code = status_code;
-	msg->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
+	g_free (priv->reason_phrase);
+
+	priv->status_code = status_code;
+	priv->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
 	g_object_notify (G_OBJECT (msg), "status-code");
 	g_object_notify (G_OBJECT (msg), "reason-phrase");
 }
@@ -1386,10 +1437,12 @@ soup_message_set_status_full (SoupMessage *msg,
 	g_return_if_fail (status_code != 0);
 	g_return_if_fail (reason_phrase != NULL);
 
-	g_free (msg->reason_phrase);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	msg->status_code = status_code;
-	msg->reason_phrase = g_strdup (reason_phrase);
+	g_free (priv->reason_phrase);
+
+	priv->status_code = status_code;
+	priv->reason_phrase = g_strdup (reason_phrase);
 	g_object_notify (G_OBJECT (msg), "status-code");
 	g_object_notify (G_OBJECT (msg), "reason-phrase");
 }
@@ -1827,4 +1880,92 @@ soup_message_set_bytes_for_sniffing (SoupMessage *msg, gsize bytes)
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	priv->bytes_for_sniffing = bytes;
+}
+
+GInputStream *
+soup_message_get_request_body_stream (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->request_body_stream;
+}
+
+/**
+ * soup_message_get_method:
+ * @msg: The #SoupMessage
+ *
+ * Returns: The method of this message
+ */
+const char *
+soup_message_get_method (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->method;
+}
+
+/**
+ * soup_message_get_status:
+ * @msg: The #SoupMessage
+ *
+ * Returns: The #SoupStatus
+ */
+SoupStatus
+soup_message_get_status (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->status_code;
+}
+
+/**
+ * soup_message_get_reason_phrase:
+ * @msg: The #SoupMessage
+ *
+ * Returns the reason phrase for the status of this message.
+ *
+ * Returns: Phrase or %NULL
+ */
+const char *
+soup_message_get_reason_phrase (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->reason_phrase; 
+}
+
+SoupMessageHeaders *
+soup_message_get_request_headers (SoupMessage  *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->request_headers; 
+}
+
+SoupMessageHeaders *
+soup_message_get_response_headers (SoupMessage  *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->response_headers; 
+}
+
+void
+soup_message_set_reason_phrase (SoupMessage *msg, const char *reason_phrase)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        g_free (priv->reason_phrase);
+        priv->reason_phrase = g_strdup (reason_phrase);
+}
+
+void
+soup_message_set_method (SoupMessage *msg,
+                         const char  *method)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        g_return_if_fail (method != NULL);
+
+        priv->method = g_intern_string (method);
 }

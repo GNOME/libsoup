@@ -53,12 +53,12 @@ do_strictness_test (gconstpointer data)
 	g_assert_true (soup_message_get_https_status (msg, NULL, &flags));
 
 	g_test_bug ("665182");
-	if (test->with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
+	if (test->with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg)))
 		g_assert_true (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
 	else
 		g_assert_false (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
 
-	if (msg->status_code == SOUP_STATUS_SSL_FAILED &&
+	if (soup_message_get_status (msg) == SOUP_STATUS_SSL_FAILED &&
 	    test->expected_status != SOUP_STATUS_SSL_FAILED)
 		debug_printf (1, "              tls error flags: 0x%x\n", flags);
 

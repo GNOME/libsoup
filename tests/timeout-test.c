@@ -41,7 +41,7 @@ do_message_to_session (SoupSession *session, SoupURI *uri,
 #endif
 
 	soup_test_assert_message_status (msg, expected_status);
-	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
+	if (SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg)))
 		g_assert_true (soup_message_is_keepalive (msg));
 	g_assert_true (finished);
 

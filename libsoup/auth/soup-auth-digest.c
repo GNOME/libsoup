@@ -390,7 +390,7 @@ authentication_info_cb (SoupMessage *msg, gpointer data)
 	if (auth != soup_message_get_auth (msg))
 		return;
 
-	header = soup_message_headers_get_one (msg->response_headers,
+	header = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 					       soup_auth_is_for_proxy (auth) ?
 					       "Proxy-Authentication-Info" :
 					       "Authentication-Info");
@@ -423,7 +423,7 @@ soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 	g_return_val_if_fail (uri != NULL, NULL);
 	url = soup_uri_to_string (uri, TRUE);
 
-	soup_auth_digest_compute_response (msg->method, url, priv->hex_a1,
+	soup_auth_digest_compute_response (soup_message_get_method (msg), url, priv->hex_a1,
 					   priv->qop, priv->nonce,
 					   priv->cnonce, priv->nc,
 					   response);

@@ -327,7 +327,7 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 			 */
 			conn->state = SOUP_NTLM_FAILED;
 			if (soup_message_is_keepalive (msg)) {
-				soup_message_headers_append (msg->response_headers,
+				soup_message_headers_append (soup_message_get_response_headers (msg),
 							     "Connection", "close");
 			}
 			return TRUE;
@@ -494,7 +494,7 @@ got_final_auth_result (SoupMessage *msg, gpointer data)
 	if (auth != soup_message_get_auth (msg))
 		return;
 
-	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED)
+	if (soup_message_get_status (msg) != SOUP_STATUS_UNAUTHORIZED)
 		priv->password_state = SOUP_NTLM_PASSWORD_ACCEPTED;
 }
 

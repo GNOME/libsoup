@@ -276,7 +276,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 
 	authority = g_strdup_printf ("%s:%d", uri->host, uri->port);
 	auth = g_object_new (type,
-			     "is-for-proxy", (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
+			     "is-for-proxy", (soup_message_get_status (msg) == SOUP_STATUS_PROXY_UNAUTHORIZED),
 			     "authority", authority,
 			     NULL);
 	g_free (authority);

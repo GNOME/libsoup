@@ -768,18 +768,18 @@ free_host (SoupSessionHost *host)
 }
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_GET(session, msg) \
-	((msg)->status_code == SOUP_STATUS_SEE_OTHER || \
-	 ((msg)->status_code == SOUP_STATUS_FOUND && \
-	  !SOUP_METHOD_IS_SAFE ((msg)->method)) || \
-	 ((msg)->status_code == SOUP_STATUS_MOVED_PERMANENTLY && \
-	  (msg)->method == SOUP_METHOD_POST))
+	(soup_message_get_status (msg) == SOUP_STATUS_SEE_OTHER || \
+	 (soup_message_get_status (msg) == SOUP_STATUS_FOUND && \
+	  !SOUP_METHOD_IS_SAFE (soup_message_get_method (msg))) || \
+	 (soup_message_get_status (msg) == SOUP_STATUS_MOVED_PERMANENTLY && \
+	  soup_message_get_method (msg) == SOUP_METHOD_POST))
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_SAFE(session, msg) \
-	(((msg)->status_code == SOUP_STATUS_MOVED_PERMANENTLY || \
-	  (msg)->status_code == SOUP_STATUS_PERMANENT_REDIRECT || \
-	  (msg)->status_code == SOUP_STATUS_TEMPORARY_REDIRECT || \
-	  (msg)->status_code == SOUP_STATUS_FOUND) && \
-	 SOUP_METHOD_IS_SAFE ((msg)->method))
+	((soup_message_get_status (msg) == SOUP_STATUS_MOVED_PERMANENTLY || \
+	  soup_message_get_status (msg) == SOUP_STATUS_PERMANENT_REDIRECT || \
+	  soup_message_get_status (msg) == SOUP_STATUS_TEMPORARY_REDIRECT || \
+	  soup_message_get_status (msg) == SOUP_STATUS_FOUND) && \
+	 SOUP_METHOD_IS_SAFE (soup_message_get_method (msg)))
 
 static inline SoupURI *
 redirection_uri (SoupMessage *msg)
@@ -787,7 +787,7 @@ redirection_uri (SoupMessage *msg)
 	const char *new_loc;
 	SoupURI *new_uri;
 
-	new_loc = soup_message_headers_get_one (msg->response_headers,
+	new_loc = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						"Location");
 	if (!new_loc)
 		return NULL;
@@ -826,7 +826,7 @@ soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 		return FALSE;
 
 	/* and a Location header that parses to an http URI */
-	if (!soup_message_headers_get_one (msg->response_headers, "Location"))
+	if (!soup_message_headers_get_one (soup_message_get_response_headers (msg), "Location"))
 		return FALSE;
 	new_uri = redirection_uri (msg);
 	if (!new_uri)
@@ -876,13 +876,13 @@ soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 		return FALSE;
 
 	if (SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg)) {
-		if (msg->method != SOUP_METHOD_HEAD) {
+		if (soup_message_get_method (msg) != SOUP_METHOD_HEAD) {
 			g_object_set (msg,
 				      "method", SOUP_METHOD_GET,
 				      NULL);
 		}
 		soup_message_set_request_body (msg, NULL, NULL, 0);
-		soup_message_headers_set_encoding (msg->request_headers,
+		soup_message_headers_set_encoding (soup_message_get_request_headers (msg),
 						   SOUP_ENCODING_NONE);
 	}
 
@@ -943,7 +943,7 @@ message_restarted (SoupMessage *msg, gpointer user_data)
 
 	if (item->conn &&
 	    (!soup_message_is_keepalive (msg) ||
-	     SOUP_STATUS_IS_REDIRECTION (msg->status_code))) {
+	     SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))) {
 		if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE)
 			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 		soup_session_set_item_connection (item->session, item, NULL);
@@ -1002,14 +1002,14 @@ soup_session_send_queue_item (SoupSession *session,
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	if (priv->user_agent) {
-		soup_message_headers_replace (item->msg->request_headers,
+		soup_message_headers_replace (soup_message_get_request_headers (item->msg),
 					      "User-Agent", priv->user_agent);
 	}
 
 	if (priv->accept_language &&
-	    !soup_message_headers_get_list (item->msg->request_headers,
+	    !soup_message_headers_get_list (soup_message_get_request_headers (item->msg),
 					    "Accept-Language")) {
-		soup_message_headers_append (item->msg->request_headers,
+		soup_message_headers_append (soup_message_get_request_headers (item->msg),
 					     "Accept-Language",
 					     priv->accept_language);
 	}
@@ -1019,13 +1019,13 @@ soup_session_send_queue_item (SoupSession *session,
 	 * a short period of time, as we wouldn't need to establish
 	 * new connections. Keep alive is implicit for HTTP 1.1.
 	 */
-	if (!soup_message_headers_header_contains (item->msg->request_headers,
+	if (!soup_message_headers_header_contains (soup_message_get_request_headers (item->msg),
 						   "Connection", "Keep-Alive") &&
-	    !soup_message_headers_header_contains (item->msg->request_headers,
+	    !soup_message_headers_header_contains (soup_message_get_request_headers (item->msg),
 						   "Connection", "close") &&
-	    !soup_message_headers_header_contains (item->msg->request_headers,
+	    !soup_message_headers_header_contains (soup_message_get_request_headers (item->msg),
 						   "Connection", "Upgrade")) {
-		soup_message_headers_append (item->msg->request_headers,
+		soup_message_headers_append (soup_message_get_request_headers (item->msg),
 					     "Connection", "Keep-Alive");
 	}
 
@@ -1173,8 +1173,8 @@ soup_session_unqueue_item (SoupSession          *session,
 	if (item->conn) {
 		if (item->conn_is_dedicated)
 			dedicated_conn = g_object_ref (item->conn);
-		else if (item->msg->method != SOUP_METHOD_CONNECT ||
-			 !SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code))
+		else if (soup_message_get_method (item->msg) != SOUP_METHOD_CONNECT ||
+			 !SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (item->msg)))
 			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 		soup_session_set_item_connection (session, item, NULL);
 	}
@@ -1333,7 +1333,7 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 	soup_message_finished (tunnel_item->msg);
 	soup_message_queue_item_unref (tunnel_item);
 
-	if (item->msg->status_code)
+	if (soup_message_get_status (item->msg))
 		item->state = SOUP_MESSAGE_FINISHING;
 	soup_message_set_https_status (item->msg, item->conn);
 
@@ -1343,7 +1343,7 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		soup_connection_disconnect (item->conn);
 		soup_session_set_item_connection (session, item, NULL);
-		if (item->msg->status_code == 0)
+		if (soup_message_get_status (item->msg) == 0)
 			soup_session_set_item_status (session, item, status, error);
 	}
 
@@ -1391,7 +1391,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 	tunnel_item->state = SOUP_MESSAGE_FINISHED;
 	soup_session_unqueue_item (session, tunnel_item);
 
-	status = tunnel_item->msg->status_code;
+	status = soup_message_get_status (tunnel_item->msg);
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		tunnel_complete (tunnel_item, status, NULL);
 		return;
@@ -1454,7 +1454,7 @@ connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *erro
 	status = status_from_connect_error (item, error);
 	soup_connection_disconnect (conn);
 	if (item->state == SOUP_MESSAGE_CONNECTING) {
-		if (item->msg->status_code == 0)
+		if (soup_message_get_status (item->msg) == 0)
 			soup_session_set_item_status (session, item, status, error);
 		soup_session_set_item_connection (session, item, NULL);
 		item->state = SOUP_MESSAGE_READY;
@@ -1590,7 +1590,7 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	need_new_connection =
 		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_NEW_CONNECTION) ||
 		(!(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IDEMPOTENT) &&
-		 !SOUP_METHOD_IS_IDEMPOTENT (item->msg->method));
+		 !SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (item->msg)));
 	ignore_connection_limits =
 		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
 
@@ -1681,8 +1681,8 @@ soup_session_process_queue_item (SoupSession          *session,
 				break;
 			}
 
-			if (item->msg->status_code) {
-				if (item->msg->status_code == SOUP_STATUS_TRY_AGAIN) {
+			if (soup_message_get_status (item->msg)) {
+				if (soup_message_get_status (item->msg) == SOUP_STATUS_TRY_AGAIN) {
 					soup_message_cleanup_response (item->msg);
 					item->state = SOUP_MESSAGE_STARTING;
 				} else
@@ -1754,7 +1754,7 @@ async_run_queue (SoupSession *session)
 		msg = item->msg;
 
 		/* CONNECT messages are handled specially */
-		if (msg->method == SOUP_METHOD_CONNECT)
+		if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
 			continue;
 
 		if (!item->async ||
@@ -1824,7 +1824,7 @@ soup_session_requeue_message (SoupSession *session, SoupMessage *msg)
 	g_return_if_fail (item != NULL);
 
 	if (item->resend_count >= SOUP_SESSION_MAX_RESEND_COUNT) {
-		if (SOUP_STATUS_IS_REDIRECTION (msg->status_code))
+		if (SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))
 			soup_message_set_status (msg, SOUP_STATUS_TOO_MANY_REDIRECTS);
 		else
 			g_warning ("SoupMessage %p stuck in infinite loop?", msg);
@@ -2806,8 +2806,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 static gboolean
 expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
 {
-	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED ||
-	    msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+	if (soup_message_get_status (msg) == SOUP_STATUS_UNAUTHORIZED ||
+	    soup_message_get_status (msg) == SOUP_STATUS_PROXY_UNAUTHORIZED) {
 		SoupSessionFeature *feature =
 			soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER);
 		return !feature || !soup_message_disables_feature (msg, feature);
@@ -2841,13 +2841,13 @@ async_send_request_return_result (SoupMessageQueueItem *item,
 		if (stream)
 			g_object_unref (stream);
 		g_task_return_error (task, g_error_copy (item->error));
-	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
+	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (item->msg))) {
 		if (stream)
 			g_object_unref (stream);
 		g_task_return_new_error (task, SOUP_HTTP_ERROR,
-					 item->msg->status_code,
+					 soup_message_get_status (item->msg),
 					 "%s",
-					 item->msg->reason_phrase);
+					 soup_message_get_reason_phrase (item->msg));
 	} else
 		g_task_return_pointer (task, stream, g_object_unref);
 	g_object_unref (task);
@@ -3032,7 +3032,7 @@ async_return_from_cache (SoupMessageQueueItem *item,
 
 	soup_message_got_headers (item->msg);
 
-	content_type = soup_message_headers_get_content_type (item->msg->response_headers, &params);
+	content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (item->msg), &params);
 	if (content_type) {
 		soup_message_content_sniffed (item->msg, content_type, params);
 		g_hash_table_unref (params);
@@ -3088,7 +3088,7 @@ conditional_get_ready_cb (SoupSession               *session,
 
 	soup_cache_update_from_conditional_request (data->cache, data->conditional_msg);
 
-	if (data->conditional_msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
+	if (soup_message_get_status (data->conditional_msg) == SOUP_STATUS_NOT_MODIFIED) {
 		stream = soup_cache_send_response (data->cache, data->item->msg);
 		if (stream) {
 			async_return_from_cache (data->item, stream);
@@ -3411,10 +3411,10 @@ soup_session_send (SoupSession   *session,
 		g_clear_object (&stream);
 		if (error)
 			*error = g_error_copy (item->error);
-	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg))) {
 		g_clear_object (&stream);
-		g_set_error_literal (error, SOUP_HTTP_ERROR, msg->status_code,
-				     msg->reason_phrase);
+		g_set_error_literal (error, SOUP_HTTP_ERROR, soup_message_get_status (msg),
+				     soup_message_get_reason_phrase (msg));
 	} else if (!stream)
 		stream = g_memory_input_stream_new ();
 
@@ -3500,9 +3500,9 @@ get_http_got_headers (SoupMessage         *msg,
         const char *content_type;
         GHashTable *params = NULL;
 
-        content_length = soup_message_headers_get_content_length (msg->response_headers);
+        content_length = soup_message_headers_get_content_length (soup_message_get_response_headers (msg));
         data->content_length = content_length != 0 ? content_length : -1;
-        content_type = soup_message_headers_get_content_type (msg->response_headers, &params);
+        content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), &params);
         session_get_async_data_set_content_type (data, content_type, params);
         g_clear_pointer (&params, g_hash_table_destroy);
 }
@@ -4052,8 +4052,8 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 		client = soup_websocket_connection_new_with_extensions (stream,
 									soup_message_get_uri (item->msg),
 									SOUP_WEBSOCKET_CONNECTION_CLIENT,
-									soup_message_headers_get_one (msg->request_headers, "Origin"),
-									soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Protocol"),
+									soup_message_headers_get_one (soup_message_get_request_headers (msg), "Origin"),
+									soup_message_headers_get_one (soup_message_get_response_headers (msg), "Sec-WebSocket-Protocol"),
 									accepted_extensions);
 		g_object_unref (stream);
 		g_task_return_pointer (task, client, g_object_unref);
@@ -4178,7 +4178,7 @@ soup_session_get_original_message_for_authentication (SoupSession *session,
 	if (!item)
                 return msg;
 
-	if (msg->method != SOUP_METHOD_CONNECT) {
+	if (soup_message_get_method (msg) != SOUP_METHOD_CONNECT) {
 		soup_message_queue_item_unref (item);
 		return msg;
 	}

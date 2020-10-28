@@ -200,7 +200,7 @@ do_content_length_framing_test (void)
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
-	declared_length = soup_message_headers_get_content_length (msg->response_headers);
+	declared_length = soup_message_headers_get_content_length (soup_message_get_response_headers (msg));
 	debug_printf (2, "    Content-Length: %lu, body: %s\n",
 		      (gulong)declared_length, (char *)g_bytes_get_data (body, NULL));
 	g_assert_cmpint (g_bytes_get_size (body), <, declared_length);
@@ -216,7 +216,7 @@ do_content_length_framing_test (void)
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
-	declared_length = soup_message_headers_get_content_length (msg->response_headers);
+	declared_length = soup_message_headers_get_content_length (soup_message_get_response_headers (msg));
 	g_assert_cmpint (g_bytes_get_size (body), ==, declared_length);
 
 	soup_uri_free (request_uri);
@@ -602,7 +602,7 @@ do_non_persistent_test_for_session (SoupSession *session)
 			  &socket);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_message_headers_append (msg->request_headers, "Connection", "close");
+	soup_message_headers_append (soup_message_get_request_headers (msg), "Connection", "close");
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (np_request_finished), loop);
 	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);

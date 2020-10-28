@@ -480,9 +480,9 @@ soup_form_request_new_from_multipart (const char *uri,
 	GBytes *body = NULL;
 
 	msg = soup_message_new ("POST", uri);
-	soup_multipart_to_message (multipart, msg->request_headers, &body);
+	soup_multipart_to_message (multipart, soup_message_get_request_headers (msg), &body);
 	soup_message_set_request_body_from_bytes (msg,
-						  soup_message_headers_get_content_type (msg->request_headers, NULL),
+						  soup_message_headers_get_content_type (soup_message_get_request_headers (msg), NULL),
 						  body);
 	g_bytes_unref (body);
 

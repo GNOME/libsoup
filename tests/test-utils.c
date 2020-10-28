@@ -366,7 +366,7 @@ soup_test_session_send_message (SoupSession *session,
 	if (stream)
 		g_object_unref (stream);
 
-	return msg->status_code;
+	return soup_message_get_status (msg);
 }
 
 static void

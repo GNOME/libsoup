@@ -114,9 +114,9 @@ G_STMT_START {								\
 	guint _status = (status);					\
 	char *_message;							\
 									\
-	if (G_UNLIKELY (_msg->status_code != _status)) {		\
+	if (G_UNLIKELY (soup_message_get_status (_msg) != _status)) {		\
 		_message = g_strdup_printf ("Unexpected status %d %s (expected %d %s)", \
-					    _msg->status_code, _msg->reason_phrase,     \
+					    soup_message_get_status (_msg), soup_message_get_reason_phrase (_msg),     \
 					    _status, soup_status_get_phrase (_status)); \
 		g_assertion_message (G_LOG_DOMAIN,			\
 				     __FILE__, __LINE__, G_STRFUNC,	\

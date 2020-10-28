@@ -912,7 +912,7 @@ soup_cookies_from_response (SoupMessage *msg)
 	 * soup_message_headers_get_list() since Set-Cookie isn't
 	 * properly mergeable/unmergeable.
 	 */
-	soup_message_headers_iter_init (&iter, msg->response_headers);
+	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		if (g_ascii_strcasecmp (name, "Set-Cookie") != 0)
 			continue;
@@ -951,7 +951,7 @@ soup_cookies_from_request (SoupMessage *msg)
 	gpointer name, value;
 	const char *header;
 
-	header = soup_message_headers_get_one (msg->request_headers, "Cookie");
+	header = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Cookie");
 	if (!header)
 		return NULL;
 
@@ -988,7 +988,7 @@ soup_cookies_to_response (GSList *cookies, SoupMessage *msg)
 	header = g_string_new (NULL);
 	while (cookies) {
 		serialize_cookie (cookies->data, header, TRUE);
-		soup_message_headers_append (msg->response_headers,
+		soup_message_headers_append (soup_message_get_response_headers (msg),
 					     "Set-Cookie", header->str);
 		g_string_truncate (header, 0);
 		cookies = cookies->next;
@@ -1014,13 +1014,13 @@ soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
 {
 	GString *header;
 
-	header = g_string_new (soup_message_headers_get_one (msg->request_headers,
+	header = g_string_new (soup_message_headers_get_one (soup_message_get_request_headers (msg),
 							     "Cookie"));
 	while (cookies) {
 		serialize_cookie (cookies->data, header, FALSE);
 		cookies = cookies->next;
 	}
-	soup_message_headers_replace (msg->request_headers,
+	soup_message_headers_replace (soup_message_get_request_headers (msg),
 				      "Cookie", header->str);
 	g_string_free (header, TRUE);
 }

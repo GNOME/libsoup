@@ -230,7 +230,7 @@ server_callback (SoupServer        *server,
 	const char *mime_type;
 	GByteArray *body;
 
-	if (msg->method != SOUP_METHOD_GET) {
+	if (soup_message_get_method (msg) != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}

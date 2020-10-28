@@ -159,20 +159,20 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 	gboolean has_max_age = FALSE;
 
 	/* 1. The request method must be cacheable */
-	if (msg->method == SOUP_METHOD_GET)
+	if (soup_message_get_method (msg) == SOUP_METHOD_GET)
 		cacheability = SOUP_CACHE_CACHEABLE;
-	else if (msg->method == SOUP_METHOD_HEAD ||
-		 msg->method == SOUP_METHOD_TRACE ||
-		 msg->method == SOUP_METHOD_CONNECT)
+	else if (soup_message_get_method (msg) == SOUP_METHOD_HEAD ||
+		 soup_message_get_method (msg) == SOUP_METHOD_TRACE ||
+		 soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
 		return SOUP_CACHE_UNCACHEABLE;
 	else
 		return (SOUP_CACHE_UNCACHEABLE | SOUP_CACHE_INVALIDATES);
 
-	content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
+	content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), NULL);
 	if (content_type && !g_ascii_strcasecmp (content_type, "multipart/x-mixed-replace"))
 		return SOUP_CACHE_UNCACHEABLE;
 
-	cache_control = soup_message_headers_get_list (msg->response_headers, "Cache-Control");
+	cache_control = soup_message_headers_get_list (soup_message_get_response_headers (msg), "Cache-Control");
 	if (cache_control && *cache_control) {
 		GHashTable *hash;
 
@@ -210,11 +210,11 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 
 	/* Section 13.9 */
 	if ((soup_message_get_uri (msg))->query &&
-	    !soup_message_headers_get_one (msg->response_headers, "Expires") &&
+	    !soup_message_headers_get_one (soup_message_get_response_headers (msg), "Expires") &&
 	    !has_max_age)
 		return SOUP_CACHE_UNCACHEABLE;
 
-	switch (msg->status_code) {
+	switch (soup_message_get_status (msg)) {
 	case SOUP_STATUS_PARTIAL_CONTENT:
 		/* We don't cache partial responses, but they only
 		 * invalidate cached full responses if the headers
@@ -251,18 +251,18 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 		/* Any 5xx status or any 4xx status not handled above
 		 * is uncacheable but doesn't break the cache.
 		 */
-		if ((msg->status_code >= SOUP_STATUS_BAD_REQUEST &&
-		     msg->status_code <= SOUP_STATUS_FAILED_DEPENDENCY) ||
-		    msg->status_code >= SOUP_STATUS_INTERNAL_SERVER_ERROR)
+		if ((soup_message_get_status (msg) >= SOUP_STATUS_BAD_REQUEST &&
+		     soup_message_get_status (msg) <= SOUP_STATUS_FAILED_DEPENDENCY) ||
+		    soup_message_get_status (msg) >= SOUP_STATUS_INTERNAL_SERVER_ERROR)
 			return SOUP_CACHE_UNCACHEABLE;
 
 		/* An unrecognized 2xx, 3xx, or 4xx response breaks
 		 * the cache.
 		 */
-		if ((msg->status_code > SOUP_STATUS_PARTIAL_CONTENT &&
-		     msg->status_code < SOUP_STATUS_MULTIPLE_CHOICES) ||
-		    (msg->status_code > SOUP_STATUS_TEMPORARY_REDIRECT &&
-		     msg->status_code < SOUP_STATUS_INTERNAL_SERVER_ERROR))
+		if ((soup_message_get_status (msg) > SOUP_STATUS_PARTIAL_CONTENT &&
+		     soup_message_get_status (msg) < SOUP_STATUS_MULTIPLE_CHOICES) ||
+		    (soup_message_get_status (msg) > SOUP_STATUS_TEMPORARY_REDIRECT &&
+		     soup_message_get_status (msg) < SOUP_STATUS_INTERNAL_SERVER_ERROR))
 			return (SOUP_CACHE_UNCACHEABLE | SOUP_CACHE_INVALIDATES);
 		break;
 	}
@@ -462,13 +462,13 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	entry = g_slice_new0 (SoupCacheEntry);
 	entry->dirty = FALSE;
 	entry->being_validated = FALSE;
-	entry->status_code = msg->status_code;
+	entry->status_code = soup_message_get_status (msg);
 	entry->response_time = response_time;
 	entry->uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 
 	/* Headers */
 	entry->headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
-	copy_end_to_end_headers (msg->response_headers, entry->headers);
+	copy_end_to_end_headers (soup_message_get_response_headers (msg), entry->headers);
 
 	/* LRU list */
 	entry->hits = 0;
@@ -712,7 +712,7 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	soup_message_set_status (msg, entry->status_code);
 
 	/* Headers */
-	copy_end_to_end_headers (entry->headers, msg->response_headers);
+	copy_end_to_end_headers (entry->headers, soup_message_get_response_headers (msg));
 
 	/* Create the cache stream. */
 	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
@@ -1113,7 +1113,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 	 * (TODO: although we could return the headers for HEAD
 	 * probably).
 	 */
-	if (msg->method != SOUP_METHOD_GET)
+	if (soup_message_get_method (msg) != SOUP_METHOD_GET)
 		return SOUP_CACHE_RESPONSE_STALE;
 
 	/* 3. Selecting request-headers nominated by the stored
@@ -1124,8 +1124,8 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* 4. The request is a conditional request issued by the client.
 	 */
-	if (soup_message_headers_get_one (msg->request_headers, "If-Modified-Since") ||
-	    soup_message_headers_get_list (msg->request_headers, "If-None-Match"))
+	if (soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-Modified-Since") ||
+	    soup_message_headers_get_list (soup_message_get_request_headers (msg), "If-None-Match"))
 		return SOUP_CACHE_RESPONSE_STALE;
 
 	/* 5. The presented request and stored response are free from
@@ -1136,10 +1136,10 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* For HTTP 1.0 compatibility. RFC2616 section 14.9.4
 	 */
-	if (soup_message_headers_header_contains (msg->request_headers, "Pragma", "no-cache"))
+	if (soup_message_headers_header_contains (soup_message_get_request_headers (msg), "Pragma", "no-cache"))
 		return SOUP_CACHE_RESPONSE_STALE;
 
-	cache_control = soup_message_headers_get_list (msg->request_headers, "Cache-Control");
+	cache_control = soup_message_headers_get_list (soup_message_get_request_headers (msg), "Cache-Control");
 	if (cache_control && *cache_control) {
 		GHashTable *hash = soup_header_parse_param_list (cache_control);
 
@@ -1381,13 +1381,13 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 
 	/* Copy the data we need from the original message */
 	uri = soup_message_get_uri (original);
-	msg = soup_message_new_from_uri (original->method, uri);
+	msg = soup_message_new_from_uri (soup_message_get_method (original), uri);
 	soup_message_set_flags (msg, soup_message_get_flags (original));
 	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
 
-	soup_message_headers_foreach (original->request_headers,
+	soup_message_headers_foreach (soup_message_get_request_headers (original),
 				      (SoupMessageHeadersForeachFunc)copy_headers,
-				      msg->request_headers);
+				      soup_message_get_request_headers (msg));
 
 	disabled_features = soup_message_get_disabled_features (original);
 	for (f = disabled_features; f; f = f->next)
@@ -1395,11 +1395,11 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	g_list_free (disabled_features);
 
 	if (last_modified)
-		soup_message_headers_append (msg->request_headers,
+		soup_message_headers_append (soup_message_get_request_headers (msg),
 					     "If-Modified-Since",
 					     last_modified);
 	if (etag)
-		soup_message_headers_append (msg->request_headers,
+		soup_message_headers_append (soup_message_get_request_headers (msg),
 					     "If-None-Match",
 					     etag);
 
@@ -1430,11 +1430,11 @@ soup_cache_update_from_conditional_request (SoupCache   *cache,
 
 	entry->being_validated = FALSE;
 
-	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
-		soup_message_headers_foreach (msg->response_headers,
+	if (soup_message_get_status (msg) == SOUP_STATUS_NOT_MODIFIED) {
+		soup_message_headers_foreach (soup_message_get_response_headers (msg),
 					      (SoupMessageHeadersForeachFunc) remove_headers,
 					      entry->headers);
-		copy_end_to_end_headers (msg->response_headers, entry->headers);
+		copy_end_to_end_headers (soup_message_get_response_headers (msg), entry->headers);
 
 		soup_cache_entry_set_freshness (entry, msg, cache);
 	}

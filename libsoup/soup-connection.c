@@ -258,8 +258,8 @@ current_msg_got_body (SoupMessage *msg, gpointer user_data)
 	priv->unused_timeout = 0;
 
 	if (priv->proxy_uri &&
-	    msg->method == SOUP_METHOD_CONNECT &&
-	    SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+	    soup_message_get_method (msg) == SOUP_METHOD_CONNECT &&
+	    SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
 		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
 
 		/* We're now effectively no longer proxying */
@@ -292,7 +292,7 @@ set_current_msg (SoupConnection *conn, SoupMessage *msg)
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	if (priv->current_msg) {
-		g_return_if_fail (priv->current_msg->method == SOUP_METHOD_CONNECT);
+		g_return_if_fail (soup_message_get_method (priv->current_msg) == SOUP_METHOD_CONNECT);
 		clear_current_msg (conn);
 	}
 
@@ -304,7 +304,7 @@ set_current_msg (SoupConnection *conn, SoupMessage *msg)
 	g_signal_connect (msg, "got-body",
 			  G_CALLBACK (current_msg_got_body), conn);
 
-	if (priv->proxy_uri && msg->method == SOUP_METHOD_CONNECT)
+	if (priv->proxy_uri && soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
 		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATING, NULL);
 
 	g_object_thaw_notify (G_OBJECT (conn));

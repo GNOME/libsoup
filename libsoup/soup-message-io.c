@@ -281,7 +281,7 @@ write_headers (SoupMessage          *msg,
 	else
 		uri_host = uri->host;
 
-	if (msg->method == SOUP_METHOD_CONNECT) {
+	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
 		uri_string = g_strdup_printf ("%s:%d", uri_host, uri->port);
 	} else {
@@ -301,10 +301,10 @@ write_headers (SoupMessage          *msg,
 	}
 
 	g_string_append_printf (header, "%s %s HTTP/1.%d\r\n",
-				msg->method, uri_string,
+				soup_message_get_method (msg), uri_string,
 				(soup_message_get_http_version (msg) == SOUP_HTTP_1_0) ? 0 : 1);
 
-	if (!soup_message_headers_get_one (msg->request_headers, "Host")) {
+	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg), "Host")) {
 		if (soup_uri_uses_default_port (uri)) {
 			g_string_append_printf (header, "Host: %s\r\n",
 						uri_host);
@@ -317,9 +317,9 @@ write_headers (SoupMessage          *msg,
 	if (uri_host != uri->host)
 		g_free (uri_host);
 
-	*encoding = soup_message_headers_get_encoding (msg->request_headers);
+	*encoding = soup_message_headers_get_encoding (soup_message_get_request_headers (msg));
 
-	soup_message_headers_iter_init (&iter, msg->request_headers);
+	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value))
 		g_string_append_printf (header, "%s: %s\r\n", name, value);
 	g_string_append (header, "\r\n");
@@ -370,9 +370,9 @@ io_write (SoupMessage *msg, gboolean blocking,
 		g_string_truncate (io->write_buf, 0);
 
 		if (io->write_encoding == SOUP_ENCODING_CONTENT_LENGTH)
-			io->write_length = soup_message_headers_get_content_length (msg->request_headers);
+			io->write_length = soup_message_headers_get_content_length (soup_message_get_request_headers (msg));
 
-		if (soup_message_headers_get_expectations (msg->request_headers) & SOUP_EXPECTATION_CONTINUE) {
+		if (soup_message_headers_get_expectations (soup_message_get_request_headers (msg)) & SOUP_EXPECTATION_CONTINUE) {
 			/* Need to wait for the Continue response */
 			io->write_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
 			io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
@@ -397,14 +397,14 @@ io_write (SoupMessage *msg, gboolean blocking,
 			break;
 		}
 
-		if (msg->request_body_stream) {
+		if (soup_message_get_request_body_stream (msg)) {
 			g_signal_connect_object (io->body_ostream,
 						 "wrote-data",
 						 G_CALLBACK (request_body_stream_wrote_data_cb),
 						 msg, G_CONNECT_SWAPPED);
 			if (blocking) {
 				nwrote = g_output_stream_splice (io->body_ostream,
-								 msg->request_body_stream,
+								 soup_message_get_request_body_stream (msg),
 								 G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
 								 cancellable,
 								 error);
@@ -416,7 +416,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 				io->async_wait = g_cancellable_new ();
 				g_main_context_push_thread_default (io->async_context);
 				g_output_stream_splice_async (io->body_ostream,
-							      msg->request_body_stream,
+							      soup_message_get_request_body_stream (msg),
 							      G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
 							      soup_client_message_io_data_get_priority (client_io),
 							      cancellable,
@@ -474,36 +474,37 @@ parse_headers (SoupMessage  *msg,
 	       GError      **error)
 {
 	SoupHTTPVersion version;
+        char *reason_phrase;
+        SoupStatus status;
 
-	g_free(msg->reason_phrase);
-	msg->reason_phrase = NULL;
+        soup_message_set_reason_phrase (msg, NULL);
 
 	if (!soup_headers_parse_response (headers, headers_len,
-					  msg->response_headers,
+					  soup_message_get_response_headers (msg),
 					  &version,
-					  &msg->status_code,
-					  &msg->reason_phrase)) {
+					  &status,
+					  &reason_phrase)) {
 		g_set_error_literal (error, SOUP_SESSION_ERROR,
 				     SOUP_SESSION_ERROR_PARSING,
 				     _("Could not parse HTTP response"));
 		return SOUP_STATUS_MALFORMED;
 	}
 
-	g_object_notify (G_OBJECT (msg), "status-code");
-	g_object_notify (G_OBJECT (msg), "reason-phrase");
+        soup_message_set_status_full (msg, status, reason_phrase);
+        g_free (reason_phrase);
 
 	if (version < soup_message_get_http_version (msg))
 		soup_message_set_http_version (msg, version);
 
-	if ((msg->method == SOUP_METHOD_HEAD ||
-	     msg->status_code  == SOUP_STATUS_NO_CONTENT ||
-	     msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
-	     SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) ||
-	    (msg->method == SOUP_METHOD_CONNECT &&
-	     SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)))
+	if ((soup_message_get_method (msg) == SOUP_METHOD_HEAD ||
+	     soup_message_get_status (msg)  == SOUP_STATUS_NO_CONTENT ||
+	     soup_message_get_status (msg)  == SOUP_STATUS_NOT_MODIFIED ||
+	     SOUP_STATUS_IS_INFORMATIONAL (soup_message_get_status (msg))) ||
+	    (soup_message_get_method (msg) == SOUP_METHOD_CONNECT &&
+	     SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))))
 		*encoding = SOUP_ENCODING_NONE;
 	else
-		*encoding = soup_message_headers_get_encoding (msg->response_headers);
+		*encoding = soup_message_headers_get_encoding (soup_message_get_response_headers (msg));
 
 	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
 		g_set_error_literal (error, SOUP_SESSION_ERROR,
@@ -553,14 +554,14 @@ io_read (SoupMessage *msg, gboolean blocking,
 			 * closed when we're done.
 			 */
 			soup_message_set_status (msg, status);
-			soup_message_headers_append (msg->request_headers,
+			soup_message_headers_append (soup_message_get_request_headers (msg),
 						     "Connection", "close");
 			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 			break;
 		}
 
-		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
-			if (msg->status_code == SOUP_STATUS_CONTINUE &&
+		if (SOUP_STATUS_IS_INFORMATIONAL (soup_message_get_status (msg))) {
+			if (soup_message_get_status (msg) == SOUP_STATUS_CONTINUE &&
 			    io->write_state == SOUP_MESSAGE_IO_STATE_BLOCKING) {
 				/* Pause the reader, unpause the writer */
 				io->read_state =
@@ -597,7 +598,7 @@ io_read (SoupMessage *msg, gboolean blocking,
 		}
 
 		if (io->read_encoding == SOUP_ENCODING_CONTENT_LENGTH) {
-			io->read_length = soup_message_headers_get_content_length (msg->response_headers);
+			io->read_length = soup_message_headers_get_content_length (soup_message_get_response_headers (msg));
 
 			if (!soup_message_is_keepalive (msg)) {
 				/* Some servers suck and send
@@ -690,7 +691,7 @@ request_is_restartable (SoupMessage *msg, GError *error)
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
 		error->domain != G_TLS_ERROR &&
-		SOUP_METHOD_IS_IDEMPOTENT (msg->method));
+		SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (msg)));
 }
 
 static gboolean
@@ -767,8 +768,8 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 	    io->write_state == SOUP_MESSAGE_IO_STATE_DONE) {
 		SoupURI *uri = soup_message_get_uri (msg);
 		char *uri_str = soup_uri_to_string (uri, FALSE);
-		const gchar *last_modified = soup_message_headers_get_one (msg->request_headers, "Last-Modified");
-		const gchar *etag = soup_message_headers_get_one (msg->request_headers, "ETag");
+		const gchar *last_modified = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Last-Modified");
+		const gchar *etag = soup_message_headers_get_one (soup_message_get_request_headers (msg), "ETag");
 
 		/* FIXME: Expand and generalise sysprof support:
 		 * https://gitlab.gnome.org/GNOME/sysprof/-/issues/43 */
@@ -804,7 +805,7 @@ soup_message_io_update_status (SoupMessage  *msg,
 		soup_message_set_status_full (msg,
 					      SOUP_STATUS_SSL_FAILED,
 					      error->message);
-	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code) &&
+	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg)) &&
 		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
 		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
 	}
@@ -998,9 +999,9 @@ soup_message_io_get_response_istream (SoupMessage  *msg,
 	SoupClientMessageIOData *io = soup_message_get_io_data (msg);
 	GInputStream *client_stream;
 
-	if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+	if (SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg))) {
 		g_set_error_literal (error, SOUP_HTTP_ERROR,
-				     msg->status_code, msg->reason_phrase);
+				     soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
 		return NULL;
 	}
 

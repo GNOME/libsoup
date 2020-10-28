@@ -111,7 +111,7 @@ got_headers (SoupMessage *msg, int *headers_count)
 
 	*headers_count = *headers_count + 1;
 
-	soup_message_headers_iter_init (&iter, msg->response_headers);
+	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
 
 	is_next = soup_message_headers_iter_next (&iter, &name, &value);
 	check_is_next (is_next);
@@ -428,7 +428,7 @@ test_multipart (gconstpointer data)
 	passes = 0;
 
 	/* Force the server to close the connection. */
-	soup_message_headers_append (msg->request_headers,
+	soup_message_headers_append (soup_message_get_request_headers (msg),
 				     "Connection", "close");
 
 	g_signal_connect (msg, "got_headers",
@@ -453,7 +453,7 @@ test_multipart (gconstpointer data)
 	while (g_main_context_pending (NULL))
 		g_main_context_iteration (NULL, FALSE);
 
-	content_type = soup_message_headers_get_content_type (msg->response_headers, &params);
+	content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), &params);
 
 	if (content_type &&
 	    g_str_has_prefix (content_type, "multipart/") &&

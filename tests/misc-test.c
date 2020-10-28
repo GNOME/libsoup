@@ -115,7 +115,7 @@ do_host_test (void)
 
 	one = soup_message_new_from_uri ("GET", base_uri);
 	two = soup_message_new_from_uri ("GET", base_uri);
-	soup_message_headers_replace (two->request_headers, "Host", "foo");
+	soup_message_headers_replace (soup_message_get_request_headers (two), "Host", "foo");
 
 	body_one = soup_test_session_send (session, one, NULL, NULL);
 	body_two = soup_test_session_send (session, two, NULL, NULL);
@@ -153,7 +153,7 @@ do_host_big_header (void)
 	for (i = 0; i < 2048; i++) {
 		char *key = g_strdup_printf ("test-long-header-key%d", i);
 		char *value = g_strdup_printf ("test-long-header-key%d", i);
-		soup_message_headers_append (msg->request_headers, key, value);
+		soup_message_headers_append (soup_message_get_request_headers (msg), key, value);
 		g_free (value);
 		g_free (key);
 	}
@@ -459,7 +459,7 @@ do_one_accept_language_test (const char *language, const char *expected_header)
 	soup_test_session_abort_unref (session);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	val = soup_message_headers_get_list (msg->request_headers,
+	val = soup_message_headers_get_list (soup_message_get_request_headers (msg),
 					     "Accept-Language");
 	g_assert_cmpstr (val, ==, expected_header);
 
@@ -624,11 +624,11 @@ do_aliases_test_for_session (SoupSession *session,
 	uri = soup_uri_new_with_base (base_uri, "/alias-redirect");
 	msg = soup_message_new_from_uri ("GET", uri);
 	if (redirect_protocol)
-		soup_message_headers_append (msg->request_headers, "X-Redirect-Protocol", redirect_protocol);
+		soup_message_headers_append (soup_message_get_request_headers (msg), "X-Redirect-Protocol", redirect_protocol);
 	soup_uri_free (uri);
 	soup_test_session_send_message (session, msg);
 
-	redirected_protocol = soup_message_headers_get_one (msg->response_headers, "X-Redirected-Protocol");
+	redirected_protocol = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Redirected-Protocol");
 
 	g_assert_cmpstr (redirect_protocol, ==, redirected_protocol);
 	if (redirect_protocol)
