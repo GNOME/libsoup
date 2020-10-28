@@ -25,33 +25,39 @@ typedef enum {
 } SoupConnectionState;
 
 void            soup_connection_connect_async    (SoupConnection       *conn,
+						  int                   io_priority,
 						  GCancellable         *cancellable,
 						  GAsyncReadyCallback   callback,
 						  gpointer              user_data);
 gboolean        soup_connection_connect_finish   (SoupConnection       *conn,
 						  GAsyncResult         *result,
 						  GError              **error);
-gboolean        soup_connection_connect_sync     (SoupConnection       *conn,
+gboolean        soup_connection_connect          (SoupConnection       *conn,
 						  GCancellable         *cancellable,
 						  GError              **error);
-gboolean        soup_connection_start_ssl_sync   (SoupConnection       *conn,
-						  GCancellable         *cancellable,
-						  GError              **error);
-void            soup_connection_start_ssl_async  (SoupConnection       *conn,
-						  GCancellable         *cancellable,
-						  GAsyncReadyCallback   callback,
-						  gpointer              user_data);
-gboolean        soup_connection_start_ssl_finish (SoupConnection       *conn,
-						  GAsyncResult         *result,
-						  GError              **error);
-
+void            soup_connection_tunnel_handshake_async  (SoupConnection     *conn,
+							 int                 io_priority,
+							 GCancellable       *cancellable,
+							 GAsyncReadyCallback callback,
+							 gpointer            user_data);
+gboolean        soup_connection_tunnel_handshake_finish (SoupConnection *conn,
+							 GAsyncResult   *result,
+							 GError        **error);
+gboolean        soup_connection_tunnel_handshake        (SoupConnection *conn,
+							 GCancellable   *cancellable,
+							 GError        **error);
 void            soup_connection_disconnect     (SoupConnection   *conn);
 
-SoupSocket     *soup_connection_get_socket     (SoupConnection   *conn);
+GSocket        *soup_connection_get_socket     (SoupConnection   *conn);
+GIOStream      *soup_connection_get_iostream   (SoupConnection   *conn);
+GIOStream      *soup_connection_steal_iostream (SoupConnection   *conn);
 SoupURI        *soup_connection_get_remote_uri (SoupConnection   *conn);
 SoupURI        *soup_connection_get_proxy_uri  (SoupConnection   *conn);
 gboolean        soup_connection_is_via_proxy   (SoupConnection   *conn);
 gboolean        soup_connection_is_tunnelled   (SoupConnection   *conn);
+gboolean        soup_connection_get_tls_info   (SoupConnection   *conn,
+						GTlsCertificate **certificate,
+						GTlsCertificateFlags *errors);
 
 SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,

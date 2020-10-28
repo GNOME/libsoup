@@ -91,19 +91,17 @@ soup_message_io_finished (SoupMessage *msg)
 	g_object_unref (msg);
 }
 
-GIOStream *
-soup_message_io_steal (SoupMessage *msg)
+void
+soup_message_io_stolen (SoupMessage *msg)
 {
 	SoupClientMessageIOData *io;
 	SoupMessageIOCompletionFn completion_cb;
 	gpointer completion_data;
-	GIOStream *iostream;
 
 	io = soup_message_get_io_data (msg);
-	if (!io || !io->base.iostream)
-		return NULL;
+	if (!io)
+		return;
 
-	iostream = g_object_ref (io->base.iostream);
 	completion_cb = io->base.completion_cb;
 	completion_data = io->base.completion_data;
 
@@ -112,8 +110,6 @@ soup_message_io_steal (SoupMessage *msg)
 	if (completion_cb)
 		completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_STOLEN, completion_data);
 	g_object_unref (msg);
-
-	return iostream;
 }
 
 static gint
@@ -1021,7 +1017,7 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 	io->item = item;
 	soup_message_queue_item_ref (item);
 	io->cancellable = io->item->cancellable;
-	io->base.iostream = g_object_ref (soup_socket_get_iostream (soup_connection_get_socket (io->item->conn)));
+	io->base.iostream = g_object_ref (soup_connection_get_iostream (io->item->conn));
 	io->base.istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (io->base.iostream));
 	io->base.ostream = g_io_stream_get_output_stream (io->base.iostream);
 	io->base.async_context = g_main_context_ref_thread_default ();

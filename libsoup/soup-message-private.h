@@ -52,7 +52,7 @@ void       soup_message_io_pause       (SoupMessage *msg);
 void       soup_message_io_unpause     (SoupMessage *msg);
 gboolean   soup_message_is_io_paused   (SoupMessage *msg);
 gboolean   soup_message_io_in_progress (SoupMessage *msg);
-GIOStream *soup_message_io_steal       (SoupMessage *msg);
+void       soup_message_io_stolen      (SoupMessage *msg);
 
 gboolean soup_message_io_read_headers          (SoupMessage           *msg,
                                                 SoupFilterInputStream *stream,

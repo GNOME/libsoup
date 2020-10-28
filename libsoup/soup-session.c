@@ -1360,15 +1360,13 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 }
 
 static void
-tunnel_handshake_complete (GObject      *object,
-			   GAsyncResult *result,
-			   gpointer      user_data)
+tunnel_handshake_complete (SoupConnection       *conn,
+			   GAsyncResult         *result,
+			   SoupMessageQueueItem *tunnel_item)
 {
-	SoupConnection *conn = SOUP_CONNECTION (object);
-	SoupMessageQueueItem *tunnel_item = user_data;
 	GError *error = NULL;
 
-	soup_connection_start_ssl_finish (conn, result, &error);
+	soup_connection_tunnel_handshake_finish (conn, result, &error);
 	tunnel_complete (tunnel_item, 0, error);
 }
 
@@ -1404,13 +1402,17 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 	}
 
 	if (tunnel_item->async) {
-		soup_connection_start_ssl_async (item->conn, item->cancellable,
-						 tunnel_handshake_complete,
-						 tunnel_item);
+		soup_connection_tunnel_handshake_async (item->conn,
+							item->task ?
+							g_task_get_priority (item->task) :
+							G_PRIORITY_DEFAULT,
+							item->cancellable,
+							(GAsyncReadyCallback)tunnel_handshake_complete,
+							tunnel_item);
 	} else {
 		GError *error = NULL;
 
-		soup_connection_start_ssl_sync (item->conn, item->cancellable, &error);
+		soup_connection_tunnel_handshake (item->conn, item->cancellable, &error);
 		tunnel_complete (tunnel_item, 0, error);
 	}
 }
@@ -1643,13 +1645,17 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 
 	if (item->async) {
 		soup_message_queue_item_ref (item);
-		soup_connection_connect_async (item->conn, item->cancellable,
+		soup_connection_connect_async (item->conn,
+					       item->task ?
+					       g_task_get_priority (item->task) :
+					       G_PRIORITY_DEFAULT,
+					       item->cancellable,
 					       connect_async_complete, item);
 		return FALSE;
 	} else {
 		GError *error = NULL;
 
-		soup_connection_connect_sync (item->conn, item->cancellable, &error);
+		soup_connection_connect (item->conn, item->cancellable, &error);
 		connect_complete (item, conn, error);
 
 		return TRUE;
@@ -3934,7 +3940,6 @@ steal_connection (SoupSession          *session,
 {
         SoupSessionPrivate *priv = soup_session_get_instance_private (session);
         SoupConnection *conn;
-        SoupSocket *sock;
         SoupSessionHost *host;
         GIOStream *stream;
 
@@ -3947,19 +3952,10 @@ steal_connection (SoupSession          *session,
         drop_connection (session, host, conn);
         g_mutex_unlock (&priv->conn_lock);
 
-        sock = soup_connection_get_socket (conn);
-        g_object_set (sock,
-                      "timeout", 0,
-                      NULL);
-
-	if (item->connect_only)
-		stream = g_object_ref (soup_socket_get_connection (sock));
-	else
-		stream = soup_message_io_steal (item->msg);
-        g_object_set_data_full (G_OBJECT (stream), "GSocket",
-                                soup_socket_steal_gsocket (sock),
-                                g_object_unref);
-        g_object_unref (conn);
+	stream = soup_connection_steal_iostream (conn);
+	if (!item->connect_only)
+		soup_message_io_stolen (item->msg);
+	g_object_unref (conn);
 
 	return stream;
 }

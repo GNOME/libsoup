@@ -1704,29 +1704,16 @@ soup_message_get_is_top_level_navigation (SoupMessage *msg)
 void
 soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
 {
-	SoupSocket *sock;
+	GTlsCertificate *certificate = NULL;
+	GTlsCertificateFlags errors = 0;
 
-	sock = conn ? soup_connection_get_socket (conn) : NULL;
-	if (sock && soup_socket_is_ssl (sock)) {
-		GTlsCertificate *certificate;
-		GTlsCertificateFlags errors;
+	if (conn)
+		soup_connection_get_tls_info (conn, &certificate, &errors);
 
-		g_object_get (sock,
-			      "tls-certificate", &certificate,
-			      "tls-errors", &errors,
-			      NULL);
-		g_object_set (msg,
-			      "tls-certificate", certificate,
-			      "tls-errors", errors,
-			      NULL);
-		if (certificate)
-			g_object_unref (certificate);
-	} else {
-		g_object_set (msg,
-			      "tls-certificate", NULL,
-			      "tls-errors", 0,
-			      NULL);
-	}
+	g_object_set (msg,
+		      "tls-certificate", certificate,
+		      "tls-errors", errors,
+		      NULL);
 }
 
 /**

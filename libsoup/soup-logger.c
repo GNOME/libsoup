@@ -41,7 +41,7 @@
  * <informalexample><screen>
  * > POST /unauth HTTP/1.1
  * > Soup-Debug-Timestamp: 1200171744
- * > Soup-Debug: SoupSessionAsync 1 (0x612190), SoupMessage 1 (0x617000), SoupSocket 1 (0x612220)
+ * > Soup-Debug: SoupSessionAsync 1 (0x612190), SoupMessage 1 (0x617000), GSocket 1 (0x612220)
  * > Host: localhost
  * > Content-Type: text/plain
  * > Connection: close
@@ -60,7 +60,7 @@
  * received.
  *
  * The <literal>Soup-Debug</literal> line gives further debugging
- * information about the #SoupSession, #SoupMessage, and #SoupSocket
+ * information about the #SoupSession, #SoupMessage, and #GSocket
  * involved; the hex numbers are the addresses of the objects in
  * question (which may be useful if you are running in a debugger).
  * The decimal IDs are simply counters that uniquely identify objects
@@ -502,7 +502,7 @@ soup_logger_print_basic_auth (SoupLogger *logger, const char *value)
 
 static void
 print_request (SoupLogger *logger, SoupMessage *msg,
-	       SoupSocket *socket, gboolean restarted)
+	       GSocket *socket, gboolean restarted)
 {
 	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
 	SoupLoggerLogLevel log_level;
@@ -686,7 +686,7 @@ starting (SoupMessage *msg, gpointer user_data)
 	gboolean restarted;
 	guint msg_id;
 	SoupConnection *conn;
-	SoupSocket *socket;
+	GSocket *socket;
 
 	msg_id = soup_logger_get_id (logger, msg);
 	if (msg_id)

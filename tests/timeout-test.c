@@ -17,7 +17,7 @@ message_finished (SoupMessage *msg, gpointer user_data)
 static void
 request_started_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
-	SoupSocket **ret = user_data;
+	GSocket **ret = user_data;
         SoupConnection *conn = soup_message_get_connection (msg);
 
 	*ret = soup_connection_get_socket (conn);
@@ -58,8 +58,8 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 			  SoupURI *fast_uri,
 			  SoupURI *slow_uri)
 {
-	SoupSocket *ret, *idle_first = NULL, *idle_second;
-	SoupSocket *plain_first = NULL, *plain_second;
+	GSocket *ret, *idle_first = NULL, *idle_second;
+	GSocket *plain_first = NULL, *plain_second;
 
 	if (idle_session) {
 		g_signal_connect (idle_session, "request-started",

@@ -228,10 +228,10 @@ do_content_length_framing_test (void)
 
 static void
 message_started_socket_collector (SoupMessage *msg,
-				  SoupSocket **sockets)
+				  GSocket    **sockets)
 {
         SoupConnection *conn = soup_message_get_connection (msg);
-        SoupSocket *socket = soup_connection_get_socket (conn);
+        GSocket *socket = soup_connection_get_socket (conn);
 	int i;
 
 	debug_printf (2, "      msg %p => socket %p\n", msg, socket);
@@ -265,7 +265,7 @@ static void
 do_timeout_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
-	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
+	GSocket *sockets[4] = { NULL, NULL, NULL, NULL };
 	SoupURI *timeout_uri;
 	int i;
 	GBytes *body;
@@ -332,7 +332,7 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
+	GSocket *sockets[4] = { NULL, NULL, NULL, NULL };
 	SoupURI *timeout_uri;
 	GCancellable *cancellable;
 	GInputStream *response;
@@ -549,10 +549,10 @@ do_max_conns_test (void)
 
 static void
 np_message_started (SoupMessage *msg,
-		    SoupSocket **save_socket)
+		    GSocket    **save_socket)
 {
         SoupConnection *conn = soup_message_get_connection (msg);
-        SoupSocket *socket = soup_connection_get_socket (conn);
+        GSocket *socket = soup_connection_get_socket (conn);
 
 	*save_socket = g_object_ref (socket);
 }
@@ -568,12 +568,11 @@ np_request_queued (SoupSession *session,
 }
 
 static void
-np_request_unqueued (SoupSession *session, SoupMessage *msg,
-		     gpointer user_data)
+np_request_unqueued (SoupSession *session,
+		     SoupMessage *msg,
+		     GSocket    **socket)
 {
-	SoupSocket *socket = *(SoupSocket **)user_data;
-
-	g_assert_false (soup_socket_is_connected (socket));
+	g_assert_false (g_socket_is_connected (*socket));
 }
 
 static void
@@ -589,7 +588,7 @@ static void
 do_non_persistent_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
-	SoupSocket *socket = NULL;
+	GSocket *socket = NULL;
 	GMainLoop *loop;
 
 	loop = g_main_loop_new (NULL, FALSE);
@@ -631,7 +630,7 @@ static void
 do_non_idempotent_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
-	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
+	GSocket *sockets[4] = { NULL, NULL, NULL, NULL };
 	int i;
 	GBytes *body;
 
