@@ -14,6 +14,12 @@ soup_message_set_http_version
 soup_message_get_http_version
 soup_message_get_uri
 soup_message_set_uri
+soup_message_get_method
+soup_message_get_status
+soup_message_get_reason_phrase
+<SUBSECTION>
+soup_message_get_request_headers
+soup_message_get_response_headers
 <SUBSECTION>
 soup_message_set_status
 soup_message_set_status_full
