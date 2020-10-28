@@ -30,10 +30,6 @@
 
 /**
  * SoupHSTSPolicy:
- * @domain: The domain or hostname that the policy applies to
- * @max_age: The maximum age, in seconds, that the policy is valid
- * @expires: the policy expiration time, or %NULL for a permanent session policy
- * @include_subdomains: %TRUE if the policy applies on subdomains
  *
  * #SoupHSTSPolicy implements HTTP policies, as described by
  * [RFC 6797](http://tools.ietf.org/html/rfc6797).

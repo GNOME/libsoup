@@ -31,14 +31,6 @@
 
 /**
  * SoupCookie:
- * @name: the cookie name
- * @value: the cookie value
- * @domain: the "domain" attribute, or else the hostname that the
- * cookie came from.
- * @path: the "path" attribute, or %NULL
- * @expires: the cookie expiration time, or %NULL for a session cookie
- * @secure: %TRUE if the cookie should only be tranferred over SSL
- * @http_only: %TRUE if the cookie should not be exposed to scripts
  *
  * An HTTP cookie.
  *

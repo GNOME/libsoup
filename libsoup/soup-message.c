@@ -37,11 +37,6 @@
 
 /**
  * SoupMessage:
- * @method: the HTTP method
- * @status_code: the HTTP status code
- * @reason_phrase: the status phrase associated with @status_code
- * @request_headers: the request headers
- * @response_headers: the response headers
  *
  * Represents an HTTP message being sent or received.
  *

@@ -1079,6 +1079,8 @@ soup_hsts_policy_copy
 soup_hsts_policy_equal
 soup_hsts_policy_free
 soup_hsts_policy_get_domain
+soup_hsts_policy_get_max_age
+soup_hsts_policy_get_expires
 soup_hsts_policy_is_expired
 soup_hsts_policy_includes_subdomains
 soup_hsts_policy_is_session_policy
