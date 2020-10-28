@@ -64,6 +64,16 @@
  * Since: 2.24
  **/
 
+struct _SoupCookie {
+	char      *name;
+	char      *value;
+	char      *domain;
+	char      *path;
+	GDateTime *expires;
+	gboolean   secure;
+	gboolean   http_only;
+};
+
 G_DEFINE_BOXED_TYPE (SoupCookie, soup_cookie, soup_cookie_copy, soup_cookie_free)
 
 /**

@@ -256,8 +256,8 @@ compare_cookies (gconstpointer a, gconstpointer b, gpointer jar)
 	/* "Cookies with longer path fields are listed before cookies
 	 * with shorter path field."
 	 */
-	alen = ca->path ? strlen (ca->path) : 0;
-	blen = cb->path ? strlen (cb->path) : 0;
+	alen = soup_cookie_get_path (ca) ? strlen (soup_cookie_get_path (ca)) : 0;
+	blen = soup_cookie_get_path (cb) ? strlen (soup_cookie_get_path (cb)) : 0;
 	if (alen != blen)
 		return blen - alen;
 
@@ -331,7 +331,7 @@ get_cookies (SoupCookieJar *jar,
 			GSList *next = domain_cookies->next;
 			SoupCookie *cookie = domain_cookies->data;
 
-			if (cookie->expires && soup_date_time_is_past (cookie->expires)) {
+			if (soup_cookie_get_expires (cookie) && soup_date_time_is_past (soup_cookie_get_expires (cookie))) {
 				cookies_to_remove = g_slist_append (cookies_to_remove,
 								    cookie);
 				new_head = g_slist_delete_link (new_head, domain_cookies);
@@ -342,7 +342,7 @@ get_cookies (SoupCookieJar *jar,
 			           cookie_is_valid_for_same_site_policy (cookie, is_safe_method, uri, top_level,
 				                                         site_for_cookies, is_top_level_navigation,
 									 for_http) &&
-				   (for_http || !cookie->http_only))
+				   (for_http || !soup_cookie_get_http_only (cookie)))
 				cookies = g_slist_append (cookies, copy_cookies ? soup_cookie_copy (cookie) : cookie);
 
 			domain_cookies = next;
@@ -509,10 +509,10 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
 	if (first_party == NULL || first_party->host == NULL)
 		return TRUE;
 
-	normalized_cookie_domain = normalize_cookie_domain (cookie->domain);
+	normalized_cookie_domain = normalize_cookie_domain (soup_cookie_get_domain (cookie));
 	cookie_base_domain = soup_tld_get_base_domain (normalized_cookie_domain, NULL);
 	if (cookie_base_domain == NULL)
-		cookie_base_domain = cookie->domain;
+		cookie_base_domain = soup_cookie_get_domain (cookie);
 
 	first_party_base_domain = soup_tld_get_base_domain (first_party->host, NULL);
 	if (first_party_base_domain == NULL)
@@ -531,7 +531,7 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
 	 * previously visited directly.
 	 */
 	priv = soup_cookie_jar_get_instance_private (jar);
-	return !g_hash_table_lookup (priv->domains, cookie->domain);
+	return !g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
 }
 
 /**
@@ -566,8 +566,8 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 	g_return_if_fail (cookie != NULL);
 
 	/* Never accept cookies for public domains. */
-	if (!g_hostname_is_ip_address (cookie->domain) &&
-	    soup_tld_domain_is_public_suffix (cookie->domain)) {
+	if (!g_hostname_is_ip_address (soup_cookie_get_domain (cookie)) &&
+	    soup_tld_domain_is_public_suffix (soup_cookie_get_domain (cookie))) {
 		soup_cookie_free (cookie);
 		return;
 	}
@@ -588,17 +588,17 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 		return;
 	}
 
-	old_cookies = g_hash_table_lookup (priv->domains, cookie->domain);
+	old_cookies = g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
 	for (oc = old_cookies; oc; oc = oc->next) {
 		old_cookie = oc->data;
-		if (!strcmp (cookie->name, old_cookie->name) &&
-		    !g_strcmp0 (cookie->path, old_cookie->path)) {
+		if (!strcmp (soup_cookie_get_name (cookie), soup_cookie_get_name (old_cookie)) &&
+		    !g_strcmp0 (soup_cookie_get_path (cookie), soup_cookie_get_path (old_cookie))) {
 			if (soup_cookie_get_secure (oc->data) && uri != NULL && !soup_uri_is_https (uri, NULL)) {
 				/* We do not allow overwriting secure cookies from an insecure origin
 				 * https://tools.ietf.org/html/draft-ietf-httpbis-cookie-alone-01
 				 */
 				soup_cookie_free (cookie);
-			} else if (cookie->expires && soup_date_time_is_past (cookie->expires)) {
+			} else if (soup_cookie_get_expires (cookie) && soup_date_time_is_past (soup_cookie_get_expires (cookie))) {
 				/* The new cookie has an expired date,
 				 * this is the way the the server has
 				 * of telling us that we have to
@@ -606,7 +606,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 				 */
 				old_cookies = g_slist_delete_link (old_cookies, oc);
 				g_hash_table_insert (priv->domains,
-						     g_strdup (cookie->domain),
+						     g_strdup (soup_cookie_get_domain (cookie)),
 						     old_cookies);
 				soup_cookie_jar_changed (jar, old_cookie, NULL);
 				soup_cookie_free (old_cookie);
@@ -623,7 +623,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 	}
 
 	/* The new cookie is... a new cookie */
-	if (cookie->expires && soup_date_time_is_past (cookie->expires)) {
+	if (soup_cookie_get_expires (cookie) && soup_date_time_is_past (soup_cookie_get_expires (cookie))) {
 		soup_cookie_free (cookie);
 		return;
 	}
@@ -632,7 +632,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, SoupURI
 		last->next = g_slist_append (NULL, cookie);
 	else {
 		old_cookies = g_slist_append (NULL, cookie);
-		g_hash_table_insert (priv->domains, g_strdup (cookie->domain),
+		g_hash_table_insert (priv->domains, g_strdup (soup_cookie_get_domain (cookie)),
 				     old_cookies);
 	}
 
@@ -900,7 +900,7 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
-	cookies = g_hash_table_lookup (priv->domains, cookie->domain);
+	cookies = g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
 	if (cookies == NULL)
 		return;
 
@@ -909,7 +909,7 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
 		if (soup_cookie_equal (cookie, c)) {
 			cookies = g_slist_delete_link (cookies, p);
 			g_hash_table_insert (priv->domains,
-					     g_strdup (cookie->domain),
+					     g_strdup (soup_cookie_get_domain (cookie)),
 					     cookies);
 			soup_cookie_jar_changed (jar, c, NULL);
 			soup_cookie_free (c);

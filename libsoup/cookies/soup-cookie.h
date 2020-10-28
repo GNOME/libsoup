@@ -23,15 +23,7 @@ typedef enum {
 	SOUP_SAME_SITE_POLICY_STRICT,
 } SoupSameSitePolicy;
 
-struct _SoupCookie {
-	char      *name;
-	char      *value;
-	char      *domain;
-	char      *path;
-	GDateTime *expires;
-	gboolean   secure;
-	gboolean   http_only;
-};
+typedef struct _SoupCookie SoupCookie;
 
 SOUP_AVAILABLE_IN_2_24
 GType soup_cookie_get_type (void);

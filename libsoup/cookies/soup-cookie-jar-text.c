@@ -262,14 +262,14 @@ write_cookie (FILE *out, SoupCookie *cookie)
 	fseek (out, 0, SEEK_END);
 
 	fprintf (out, "%s%s\t%s\t%s\t%s\t%lu\t%s\t%s\t%s\n",
-		 cookie->http_only ? "#HttpOnly_" : "",
-		 cookie->domain,
-		 *cookie->domain == '.' ? "TRUE" : "FALSE",
-		 cookie->path,
-		 cookie->secure ? "TRUE" : "FALSE",
-		 (gulong)g_date_time_to_unix (cookie->expires),
-		 cookie->name,
-		 cookie->value,
+		 soup_cookie_get_http_only (cookie) ? "#HttpOnly_" : "",
+		 soup_cookie_get_domain (cookie),
+		 *soup_cookie_get_domain (cookie) == '.' ? "TRUE" : "FALSE",
+		 soup_cookie_get_path (cookie),
+		 soup_cookie_get_secure (cookie) ? "TRUE" : "FALSE",
+		 (gulong)g_date_time_to_unix (soup_cookie_get_expires (cookie)),
+		 soup_cookie_get_name (cookie),
+		 soup_cookie_get_value (cookie),
 		 same_site_policy_to_string (soup_cookie_get_same_site_policy (cookie)));
 }
 
@@ -357,7 +357,7 @@ soup_cookie_jar_text_changed (SoupCookieJar *jar,
 			fprintf (out, "# To delete cookies, use the Cookie Manager.\n\n");
 		}
 
-		if (new_cookie->expires)
+		if (soup_cookie_get_expires (new_cookie))
 			write_cookie (out, new_cookie);
 
 		if (fclose (out) != 0) {

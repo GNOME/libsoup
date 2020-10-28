@@ -288,24 +288,24 @@ soup_cookie_jar_db_changed (SoupCookieJar *jar,
 
 	if (old_cookie) {
 		query = sqlite3_mprintf (QUERY_DELETE,
-					 old_cookie->name,
-					 old_cookie->domain);
+					 soup_cookie_get_name (old_cookie),
+					 soup_cookie_get_domain (old_cookie));
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
 
-	if (new_cookie && new_cookie->expires) {
+	if (new_cookie && soup_cookie_get_expires (new_cookie)) {
 		gulong expires;
 		
-		expires = (gulong)g_date_time_to_unix (new_cookie->expires);
+		expires = (gulong)g_date_time_to_unix (soup_cookie_get_expires (new_cookie));
 		query = sqlite3_mprintf (QUERY_INSERT, 
-					 new_cookie->name,
-					 new_cookie->value,
-					 new_cookie->domain,
-					 new_cookie->path,
+					 soup_cookie_get_name (new_cookie),
+					 soup_cookie_get_value (new_cookie),
+					 soup_cookie_get_domain (new_cookie),
+					 soup_cookie_get_path (new_cookie),
 					 expires,
-					 new_cookie->secure,
-					 new_cookie->http_only,
+					 soup_cookie_get_secure (new_cookie),
+					 soup_cookie_get_http_only (new_cookie),
 					 soup_cookie_get_same_site_policy (new_cookie));
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
