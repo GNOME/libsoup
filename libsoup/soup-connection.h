@@ -13,14 +13,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_CONNECTION (soup_connection_get_type ())
-G_DECLARE_DERIVABLE_TYPE (SoupConnection, soup_connection, SOUP, CONNECTION, GObject)
-
-struct _SoupConnectionClass {
-	GObjectClass parent_class;
-
-	/* signals */
-	void (*disconnected)    (SoupConnection *);
-};
+G_DECLARE_FINAL_TYPE (SoupConnection, soup_connection, SOUP, CONNECTION, GObject)
 
 typedef enum {
 	SOUP_CONNECTION_NEW,

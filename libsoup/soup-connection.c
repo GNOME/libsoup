@@ -15,6 +15,10 @@
 #include "soup-socket-private.h"
 #include "soup-private-enum-types.h"
 
+struct _SoupConnection {
+        GObject parent_instance;
+};
+
 typedef struct {
 	SoupSocket  *socket;
 	SoupSocketProperties *socket_props;
@@ -167,7 +171,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupConnectionClass, disconnected),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
