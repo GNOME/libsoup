@@ -56,6 +56,13 @@
  * Since: 2.68
  **/
 
+struct _SoupHSTSPolicy {
+	char                 *domain;
+	unsigned long         max_age;
+	GDateTime            *expires;
+	gboolean              include_subdomains;
+};
+
 G_DEFINE_BOXED_TYPE (SoupHSTSPolicy, soup_hsts_policy, soup_hsts_policy_copy, soup_hsts_policy_free)
 
 /**
@@ -385,6 +392,38 @@ soup_hsts_policy_is_session_policy (SoupHSTSPolicy *policy)
 	g_return_val_if_fail (policy != NULL, FALSE);
 
 	return !policy->expires;
+}
+
+/**
+ * soup_hsts_policy_get_expires:
+ * @policy: a #SoupHSTSPolicy
+ *
+ * Returns the expiration date for @policy.
+ *
+ * Returns: A #GDateTime or %NULL if unset
+ */
+GDateTime *
+soup_hsts_policy_get_expires (SoupHSTSPolicy *policy)
+{
+        g_return_val_if_fail (policy != NULL, NULL);
+
+        return policy->expires;
+}
+
+/**
+ * soup_hsts_policy_get_max_age:
+ * @policy: a #SoupHSTSPolicy
+ *
+ * Returns the max age for @policy.
+ *
+ * Returns: Max age in seconds
+ */
+gulong
+soup_hsts_policy_get_max_age (SoupHSTSPolicy *policy)
+{
+        g_return_val_if_fail (policy != NULL, 0);
+
+        return policy->max_age;
 }
 
 /**

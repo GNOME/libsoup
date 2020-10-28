@@ -449,9 +449,9 @@ on_idna_test_enforcer_changed (SoupHSTSEnforcer *enforcer, SoupHSTSPolicy *old, 
 	/* If NULL, then instead of replacing we're adding a new
 	 * policy and somewhere we're failing to canonicalize a hostname. */
 	g_assert_nonnull (old);
-	g_assert_cmpstr (old->domain, ==, new->domain);
+	g_assert_cmpstr (soup_hsts_policy_get_domain (old), ==, soup_hsts_policy_get_domain (new));
 	/*  Domains should not have punycoded segments at this point. */
-	g_assert_false (g_hostname_is_ascii_encoded (old->domain));
+	g_assert_false (g_hostname_is_ascii_encoded (soup_hsts_policy_get_domain (old)));
 }
 
 static void
@@ -543,7 +543,7 @@ do_hsts_get_policies_test (void)
 	g_assert_nonnull (policies);
 	g_assert_cmpint (g_list_length (policies), ==, 1);
 	policy = (SoupHSTSPolicy*)policies->data;
-	g_assert_cmpstr (policy->domain, ==, "gnome.org");
+	g_assert_cmpstr (soup_hsts_policy_get_domain (policy), ==, "gnome.org");
 	g_list_free_full (policies, (GDestroyNotify)soup_hsts_policy_free);
 
 	policy = soup_hsts_policy_new ("gnome.org", SOUP_HSTS_POLICY_MAX_AGE_PAST, FALSE);
@@ -553,7 +553,7 @@ do_hsts_get_policies_test (void)
 	policies = soup_hsts_enforcer_get_policies (enforcer, TRUE);
 	g_assert_cmpint (g_list_length (policies), ==, 1);
 	policy = (SoupHSTSPolicy*)policies->data;
-	g_assert_cmpstr (policy->domain, ==, "freedesktop.org");
+	g_assert_cmpstr (soup_hsts_policy_get_domain (policy), ==, "freedesktop.org");
 	g_list_free_full (policies, (GDestroyNotify)soup_hsts_policy_free);
 	g_object_unref(enforcer);
 }

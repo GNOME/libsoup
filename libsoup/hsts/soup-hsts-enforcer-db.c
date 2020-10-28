@@ -267,23 +267,23 @@ soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
 
 	if (old_policy && !new_policy) {
 		query = sqlite3_mprintf (QUERY_DELETE,
-					 old_policy->domain);
+					 soup_hsts_policy_get_domain (old_policy));
 		g_assert (query);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
 
 	/* Insert the new policy or update the existing one. */
-	if (new_policy && new_policy->expires) {
+	if (new_policy && soup_hsts_policy_get_expires (new_policy)) {
 		gulong expires;
 
-		expires = (gulong)g_date_time_to_unix (new_policy->expires);
+		expires = (gulong)g_date_time_to_unix (soup_hsts_policy_get_expires (new_policy));
 		query = sqlite3_mprintf (QUERY_INSERT,
-					 new_policy->domain,
-					 new_policy->domain,
-					 new_policy->max_age,
+					 soup_hsts_policy_get_domain (new_policy),
+					 soup_hsts_policy_get_domain (new_policy),
+					 soup_hsts_policy_get_max_age (new_policy),
 					 expires,
-					 new_policy->include_subdomains);
+					 soup_hsts_policy_includes_subdomains (new_policy));
 		g_assert (query);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);

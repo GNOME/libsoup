@@ -10,12 +10,7 @@
 
 G_BEGIN_DECLS
 
-struct _SoupHSTSPolicy {
-	char                 *domain;
-	unsigned long         max_age;
-	GDateTime            *expires;
-	gboolean              include_subdomains;
-};
+typedef struct _SoupHSTSPolicy SoupHSTSPolicy;
 
 SOUP_AVAILABLE_IN_2_68
 GType		 soup_hsts_policy_get_type (void);
@@ -54,6 +49,12 @@ gboolean	 soup_hsts_policy_is_session_policy	(SoupHSTSPolicy *policy);
 
 SOUP_AVAILABLE_IN_2_68
 void		 soup_hsts_policy_free			(SoupHSTSPolicy *policy);
+
+SOUP_AVAILABLE_IN_ALL
+GDateTime       *soup_hsts_policy_get_expires           (SoupHSTSPolicy *policy);
+
+SOUP_AVAILABLE_IN_ALL
+gulong           soup_hsts_policy_get_max_age           (SoupHSTSPolicy *policy);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupHSTSPolicy, soup_hsts_policy_free)
 
