@@ -27,26 +27,7 @@ G_BEGIN_DECLS
 
 #define SOUP_TYPE_WEBSOCKET_CONNECTION (soup_websocket_connection_get_type ())
 SOUP_AVAILABLE_IN_2_50
-G_DECLARE_DERIVABLE_TYPE (SoupWebsocketConnection, soup_websocket_connection, SOUP, WEBSOCKET_CONNECTION, GObject)
-
-struct _SoupWebsocketConnectionClass {
-	GObjectClass parent;
-
-	/* signals */
-	void      (* message)     (SoupWebsocketConnection *self,
-				   SoupWebsocketDataType type,
-				   GBytes *message);
-
-	void      (* error)       (SoupWebsocketConnection *self,
-				   GError *error);
-
-	void      (* closing)     (SoupWebsocketConnection *self);
-
-	void      (* closed)      (SoupWebsocketConnection *self);
-
-	void      (* pong)        (SoupWebsocketConnection *self,
-				   GBytes *message);
-};
+G_DECLARE_FINAL_TYPE (SoupWebsocketConnection, soup_websocket_connection, SOUP, WEBSOCKET_CONNECTION, GObject)
 
 SOUP_AVAILABLE_IN_2_50
 SoupWebsocketConnection *soup_websocket_connection_new (GIOStream                    *stream,

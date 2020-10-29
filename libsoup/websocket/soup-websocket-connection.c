@@ -113,6 +113,10 @@ typedef struct {
 	gboolean pending;
 } Frame;
 
+struct _SoupWebsocketConnection {
+        GObject parent_instance;
+};
+
 typedef struct {
 	GIOStream *io_stream;
 	SoupWebsocketConnectionType connection_type;
@@ -1653,7 +1657,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	signals[MESSAGE] = g_signal_new ("message",
 					 SOUP_TYPE_WEBSOCKET_CONNECTION,
 					 G_SIGNAL_RUN_FIRST,
-					 G_STRUCT_OFFSET (SoupWebsocketConnectionClass, message),
+					 0,
 					 NULL, NULL, g_cclosure_marshal_generic,
 					 G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_BYTES);
 
@@ -1671,7 +1675,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	signals[ERROR] = g_signal_new ("error",
 				       SOUP_TYPE_WEBSOCKET_CONNECTION,
 				       G_SIGNAL_RUN_FIRST,
-				       G_STRUCT_OFFSET (SoupWebsocketConnectionClass, error),
+				       0,
 				       NULL, NULL, g_cclosure_marshal_generic,
 				       G_TYPE_NONE, 1, G_TYPE_ERROR);
 
@@ -1686,7 +1690,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	signals[CLOSING] = g_signal_new ("closing",
 					 SOUP_TYPE_WEBSOCKET_CONNECTION,
 					 G_SIGNAL_RUN_LAST,
-					 G_STRUCT_OFFSET (SoupWebsocketConnectionClass, closing),
+					 0,
 					 NULL, NULL, g_cclosure_marshal_generic,
 					 G_TYPE_NONE, 0);
 
@@ -1706,7 +1710,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	signals[CLOSED] = g_signal_new ("closed",
 					SOUP_TYPE_WEBSOCKET_CONNECTION,
 					G_SIGNAL_RUN_FIRST,
-					G_STRUCT_OFFSET (SoupWebsocketConnectionClass, closed),
+					0,
 					NULL, NULL, g_cclosure_marshal_generic,
 					G_TYPE_NONE, 0);
 
@@ -1727,7 +1731,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	signals[PONG] = g_signal_new ("pong",
 				      SOUP_TYPE_WEBSOCKET_CONNECTION,
 				      G_SIGNAL_RUN_FIRST,
-				      G_STRUCT_OFFSET (SoupWebsocketConnectionClass, pong),
+				      0,
 				      NULL, NULL, g_cclosure_marshal_generic,
 				      G_TYPE_NONE, 1, G_TYPE_BYTES);
 }
