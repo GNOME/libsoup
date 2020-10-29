@@ -12,15 +12,7 @@ G_BEGIN_DECLS
 
 #define SOUP_TYPE_AUTH_MANAGER (soup_auth_manager_get_type ())
 SOUP_AVAILABLE_IN_2_4
-G_DECLARE_DERIVABLE_TYPE (SoupAuthManager, soup_auth_manager, SOUP, AUTH_MANAGER, GObject)
-
-struct _SoupAuthManagerClass {
-	GObjectClass parent_class;
-
-	void (*authenticate) (SoupAuthManager *manager, SoupMessage *msg,
-			      SoupAuth *auth, gboolean retrying);
-        gpointer padding[4];
-};
+G_DECLARE_FINAL_TYPE (SoupAuthManager, soup_auth_manager, SOUP, AUTH_MANAGER, GObject)
 
 SOUP_AVAILABLE_IN_2_4
 void  soup_auth_manager_use_auth (SoupAuthManager *manager,

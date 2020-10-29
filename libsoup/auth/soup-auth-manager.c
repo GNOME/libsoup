@@ -58,6 +58,9 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+struct _SoupAuthManager {
+        GObject parent_instance;
+};
 
 typedef struct {
 	SoupSession *session;
@@ -139,7 +142,7 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 		g_signal_new ("authenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupAuthManagerClass, authenticate),
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 3,
