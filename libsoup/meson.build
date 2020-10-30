@@ -145,11 +145,6 @@ endif
 
 install_headers(soup_installed_headers, subdir : includedir)
 
-version_cdata = configuration_data()
-version_cdata.set('SOUP_MAJOR_VERSION', soup_version_major)
-version_cdata.set('SOUP_MINOR_VERSION', soup_version_minor)
-version_cdata.set('SOUP_MICRO_VERSION', soup_version_micro)
-
 soup_version_h = configure_file(
   input : 'soup-version.h.in',
   output : 'soup-version.h',

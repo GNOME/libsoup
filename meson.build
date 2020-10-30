@@ -7,10 +7,6 @@ project('libsoup', 'c',
 gnome = import('gnome')
 
 soup_version = meson.project_version()
-version_arr = soup_version.split('.')
-soup_version_major = version_arr[0]
-soup_version_minor = version_arr[1]
-soup_version_micro = version_arr[2]
 
 # Before making a release, the libversion string should be modified.
 #
