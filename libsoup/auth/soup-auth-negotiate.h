@@ -10,7 +10,6 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_AUTH_NEGOTIATE (soup_auth_negotiate_get_type())
 SOUP_AVAILABLE_IN_2_54
 G_DECLARE_FINAL_TYPE (SoupAuthNegotiate, soup_auth_negotiate, SOUP, AUTH_NEGOTIATE, SoupConnectionAuth)
 

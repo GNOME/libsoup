@@ -13,11 +13,7 @@ extern "C" {
 #define __SOUP_H_INSIDE__
 
 #include "auth/soup-auth.h"
-#include "auth/soup-auth-basic.h"
-#include "auth/soup-auth-digest.h"
 #include "auth/soup-auth-manager.h"
-#include "auth/soup-auth-negotiate.h"
-#include "auth/soup-auth-ntlm.h"
 #include "cache/soup-cache.h"
 #include "content-sniffer/soup-content-decoder.h"
 #include "content-sniffer/soup-content-sniffer.h"

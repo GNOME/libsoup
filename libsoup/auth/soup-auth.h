@@ -97,4 +97,21 @@ void        soup_auth_free_protection_space (SoupAuth      *auth,
 SOUP_AVAILABLE_IN_2_54
 gboolean    soup_auth_negotiate_supported   (void);
 
+#define SOUP_TYPE_AUTH_BASIC (soup_auth_basic_get_type ())
+SOUP_AVAILABLE_IN_2_4
+GType soup_auth_basic_get_type (void);
+
+#define SOUP_TYPE_AUTH_DIGEST (soup_auth_digest_get_type ())
+SOUP_AVAILABLE_IN_2_4
+GType soup_auth_digest_get_type (void);
+
+#define SOUP_TYPE_AUTH_NTLM (soup_auth_ntlm_get_type ())
+SOUP_AVAILABLE_IN_2_4
+GType soup_auth_ntlm_get_type (void);
+
+#define SOUP_TYPE_AUTH_NEGOTIATE (soup_auth_negotiate_get_type ())
+SOUP_AVAILABLE_IN_2_54
+GType soup_auth_negotiate_get_type (void);
+
+
 G_END_DECLS

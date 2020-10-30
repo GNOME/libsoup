@@ -10,7 +10,6 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_CONNECTION_AUTH (soup_connection_auth_get_type ())
-_SOUP_EXTERN
 G_DECLARE_DERIVABLE_TYPE (SoupConnectionAuth, soup_connection_auth, SOUP, CONNECTION_AUTH, SoupAuth)
 
 struct _SoupConnectionAuthClass {

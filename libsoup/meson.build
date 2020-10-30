@@ -90,12 +90,7 @@ soup_private_enum_headers = [
 
 soup_introspection_headers = [
   'auth/soup-auth.h',
-  'auth/soup-auth-basic.h',
-  'auth/soup-auth-digest.h',
   'auth/soup-auth-manager.h',
-  'auth/soup-auth-negotiate.h',
-  'auth/soup-auth-ntlm.h',
-  'auth/soup-connection-auth.h', # FIXME: Keep private
 
   'cache/soup-cache.h',
 

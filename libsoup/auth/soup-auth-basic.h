@@ -9,7 +9,6 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_AUTH_BASIC (soup_auth_basic_get_type ())
 SOUP_AVAILABLE_IN_2_4
 G_DECLARE_FINAL_TYPE (SoupAuthBasic, soup_auth_basic, SOUP, AUTH_BASIC, SoupAuth)
 
