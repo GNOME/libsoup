@@ -36,10 +36,6 @@ extern "C" {
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-multipart.h>
 #include <libsoup/soup-multipart-input-stream.h>
-#include <libsoup/soup-request.h>
-#include <libsoup/soup-request-data.h>
-#include <libsoup/soup-request-file.h>
-#include <libsoup/soup-request-http.h>
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-session-feature.h>
 #include <libsoup/soup-status.h>
