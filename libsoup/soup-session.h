@@ -58,11 +58,6 @@ GInputStream   *soup_session_send             (SoupSession           *session,
 					       GError               **error);
 
 SOUP_AVAILABLE_IN_2_38
-void            soup_session_prefetch_dns     (SoupSession           *session,
-					       const char            *hostname,
-					       GCancellable          *cancellable);
-
-SOUP_AVAILABLE_IN_2_38
 gboolean        soup_session_would_redirect   (SoupSession           *session,
 					       SoupMessage           *msg);
 SOUP_AVAILABLE_IN_2_38
