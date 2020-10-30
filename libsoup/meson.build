@@ -150,10 +150,12 @@ version_cdata.set('SOUP_MAJOR_VERSION', soup_version_major)
 version_cdata.set('SOUP_MINOR_VERSION', soup_version_minor)
 version_cdata.set('SOUP_MICRO_VERSION', soup_version_micro)
 
-soup_version_h = configure_file(input : 'soup-version.h.in',
+soup_version_h = configure_file(
+  input : 'soup-version.h.in',
   output : 'soup-version.h',
   install_dir : join_paths(get_option('includedir'), includedir),
-  configuration : version_cdata)
+  command : [find_program('generate-version-header.py'), '@INPUT@', '@OUTPUT@', meson.project_version()]
+)
 
 enum_types = 'soup-enum-types'
 soup_enums = gnome.mkenums('soup-enum-types',
