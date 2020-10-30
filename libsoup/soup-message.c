@@ -88,8 +88,6 @@ typedef struct {
 	GTlsCertificate      *tls_certificate;
 	GTlsCertificateFlags  tls_errors;
 
-	SoupRequest       *request;
-
 	SoupMessagePriority priority;
 
 	gboolean is_top_level_navigation;

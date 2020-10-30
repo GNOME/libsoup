@@ -422,7 +422,7 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
  * @base_stream: the #GInputStream returned by sending the request.
  *
  * Creates a new #SoupMultipartInputStream that wraps the
- * #GInputStream obtained by sending the #SoupRequest. Reads should
+ * #GInputStream obtained by sending the #SoupMessage. Reads should
  * not be done directly through this object, use the input streams
  * returned by soup_multipart_input_stream_next_part() or its async
  * counterpart instead.
