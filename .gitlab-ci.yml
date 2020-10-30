@@ -37,6 +37,7 @@ fedora-meson-x86_64:
 
 coverage:
   stage: coverage
+  needs: [fedora-meson-x86_64]
   except:
     - tags
   artifacts:
@@ -57,9 +58,12 @@ reference:
     # FIXME: ninja -C _build libsoup-3.0-doc fails
     - ninja -C _build install
     - mv _build/docs/reference/html/ _reference/
+    - .gitlab-ci/check-docs.py
   artifacts:
     paths:
+      - _build/docs/reference/libsoup-3.0-*.txt
       - _reference
+  coverage: '/^([\d]+\%) symbol docs coverage\.\s+/'
 
 pages:
   stage: deploy
