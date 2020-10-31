@@ -8,7 +8,6 @@ libsoup/soup-body-input-stream.c
 libsoup/soup-directory-input-stream.c
 libsoup/soup-message-io.c
 libsoup/soup-message-io-data.c
-libsoup/soup-request.c
 libsoup/soup-session.c
 libsoup/soup-socket.c
 libsoup/soup-tld.c
