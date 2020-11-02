@@ -7,7 +7,7 @@
 #include <config.h>
 #endif
 
-#include "soup-socket-private.h"
+#include "soup-socket-properties.h"
 #include "soup.h"
 
 SoupSocketProperties *

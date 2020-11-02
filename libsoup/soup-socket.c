@@ -16,6 +16,7 @@
 
 #include "soup-socket.h"
 #include "soup-socket-private.h"
+#include "soup-socket-properties.h"
 #include "soup.h"
 #include "soup-filter-input-stream.h"
 #include "soup-io-stream.h"

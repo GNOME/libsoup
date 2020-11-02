@@ -13,7 +13,7 @@
 #include "soup.h"
 #include "soup-io-stream.h"
 #include "soup-message-queue.h"
-#include "soup-socket-private.h"
+#include "soup-socket-properties.h"
 #include "soup-private-enum-types.h"
 #include <gio/gnetworking.h>
 

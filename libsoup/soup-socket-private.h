@@ -40,35 +40,4 @@ SoupURI   *soup_socket_get_http_proxy_uri      (SoupSocket           *sock);
 gboolean   soup_socket_listen_full             (SoupSocket           *sock,
                                                 GError              **error);
 
-
-
-typedef struct {
-	GProxyResolver *proxy_resolver;
-	GInetSocketAddress *local_addr;
-
-	GTlsDatabase *tlsdb;
-	GTlsInteraction *tls_interaction;
-	gboolean ssl_strict;
-
-	guint io_timeout;
-	guint idle_timeout;
-
-	/*< private >*/
-	guint ref_count;
-} SoupSocketProperties;
-
-GType soup_socket_properties_get_type (void);
-#define SOUP_TYPE_SOCKET_PROPERTIES (soup_socket_properties_get_type ())
-
-SoupSocketProperties *soup_socket_properties_new   (GProxyResolver     *proxy_resolver,
-			                            GInetSocketAddress *local_addr,
-						    GTlsDatabase       *tlsdb,
-						    GTlsInteraction    *tls_interaction,
-						    gboolean            ssl_strict,
-						    guint               io_timeout,
-						    guint               idle_timeout);
-
-SoupSocketProperties *soup_socket_properties_ref   (SoupSocketProperties *props);
-void                  soup_socket_properties_unref (SoupSocketProperties *props);
-
 #endif /* __SOUP_SOCKET_PRIVATE_H__ */
