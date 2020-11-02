@@ -5,7 +5,7 @@
  */
 
 #include "test-utils.h"
-#include "libsoup/soup-socket-private.h"
+#include "libsoup/server/soup-socket-private.h"
 
 #include <fcntl.h>
 #include <gio/gnetworking.h>

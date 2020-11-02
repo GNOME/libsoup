@@ -46,6 +46,7 @@ soup_sources = [
   'server/soup-server.c',
   'server/soup-server-io.c',
   'server/soup-server-message.c',
+  'server/soup-socket.c',
 
   'websocket/soup-websocket.c',
   'websocket/soup-websocket-connection.c',
@@ -76,7 +77,6 @@ soup_sources = [
   'soup-multipart-input-stream.c',
   'soup-session.c',
   'soup-session-feature.c',
-  'soup-socket.c',
   'soup-socket-properties.c',
   'soup-status.c',
   'soup-tld.c',
