@@ -1,3 +1,5 @@
+fs = import('fs')
+
 ignore_headers = [
   'gconstructor.h',
   'soup.h',
@@ -48,6 +50,31 @@ scan_args = [
 glib_prefix = glib_dep.get_pkgconfig_variable('prefix')
 glib_docpath = glib_prefix / 'share' / 'gtk-doc' / 'html'
 
+content_files = [
+    'build-howto.xml',
+    'server-howto.xml',
+]
+
+expand_content_md_files = [
+  'client-howto.md',
+]
+
+# Needed for gtk-markdown-to-docbook.py
+pandoc = find_program('pandoc', required: true)
+expand_md = find_program('gtk-markdown-to-docbook.py')
+expand_md_targets = []
+foreach t : expand_content_md_files
+  content_files += custom_target(t,
+    input : [ t ],
+    output : [ fs.replace_suffix(t, '.xml') ],
+    command : [ expand_md, '@INPUT@', '@OUTPUT@'],
+    # At least in meson 0.55.3 this target wouldn't build even though its
+    # listed in the content_files
+    build_by_default : true,
+  )
+endforeach
+
+
 gnome.gtkdoc('libsoup-3.0',
   main_xml : 'libsoup-3.0-docs.xml',
   src_dir : srcdir,
@@ -63,9 +90,5 @@ gnome.gtkdoc('libsoup-3.0',
   ],
   dependencies : libsoup_dep,
   install : true,
-  content_files: [
-    'build-howto.xml',
-    'client-howto.xml',
-    'server-howto.xml'
-  ]
+  content_files : content_files,
 )
