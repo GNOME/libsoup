@@ -233,8 +233,6 @@ soup_server_add_handler
 soup_server_add_early_handler
 soup_server_remove_handler
 <SUBSECTION>
-SOUP_SERVER_ADD_WEBSOCKET_EXTENSION
-SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION
 SoupServerWebsocketCallback
 soup_server_add_websocket_handler
 soup_server_add_websocket_extension

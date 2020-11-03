@@ -601,16 +601,9 @@ soup_server_class_init (SoupServerClass *server_class)
          *
          * Since: 2.68
          **/
-        /**
-         * SOUP_SERVER_ADD_WEBSOCKET_EXTENSION: (skip)
-         *
-         * Alias for %SoupServer:add-websocket-extension
-         *
-         * Since: 2.68
-         */
         g_object_class_install_property (
                 object_class, PROP_ADD_WEBSOCKET_EXTENSION,
-                g_param_spec_gtype (SOUP_SERVER_ADD_WEBSOCKET_EXTENSION,
+                g_param_spec_gtype ("add-websocket-extension",
                                     "Add support for a WebSocket extension",
                                     "Add support for a WebSocket extension of the given type",
                                     SOUP_TYPE_WEBSOCKET_EXTENSION,
@@ -623,16 +616,9 @@ soup_server_class_init (SoupServerClass *server_class)
          *
          * Since: 2.68
          **/
-        /**
-         * SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION: (skip)
-         *
-         * Alias for %SoupServer:remove-websocket-extension
-         *
-         * Since: 2.68
-         */
         g_object_class_install_property (
                 object_class, PROP_REMOVE_WEBSOCKET_EXTENSION,
-                g_param_spec_gtype (SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION,
+                g_param_spec_gtype ("remove-websocket-extension",
                                     "Remove support for a WebSocket extension",
                                     "Remove support for a WebSocket extension of the given type",
                                     SOUP_TYPE_WEBSOCKET_EXTENSION,
@@ -1967,7 +1953,7 @@ soup_server_unpause_message (SoupServer        *server,
  * to handle the request.
  *
  * You can also add support for a WebSocket extension to the server at
- * construct time by using the %SOUP_SERVER_ADD_WEBSOCKET_EXTENSION property.
+ * construct time by using the #SoupServer:add-websocket-extension property.
  * Note that #SoupWebsocketExtensionDeflate is supported by default, use
  * soup_server_remove_websocket_extension() if you want to disable it.
  *
