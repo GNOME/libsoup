@@ -400,12 +400,10 @@ soup_multipart_to_message (SoupMultipart      *multipart,
 			   GBytes            **dest_body)
 {
 	SoupMessageHeaders *part_headers;
-	SoupMessageBody *body;
 	GBytes *part_body;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 	GString *str;
-	GBytes *buffer;
 	GHashTable *params;
 	guint i;
 
@@ -416,13 +414,14 @@ soup_multipart_to_message (SoupMultipart      *multipart,
 					       params);
 	g_hash_table_destroy (params);
 
-	body = soup_message_body_new ();
+	str = g_string_new (NULL);
 
 	for (i = 0; i < multipart->bodies->len; i++) {
 		part_headers = multipart->headers->pdata[i];
 		part_body = multipart->bodies->pdata[i];
 
-		str = g_string_new (i == 0 ? NULL : "\r\n");
+		if (i > 0)
+			g_string_append (str, "\r\n");
 		g_string_append (str, "--");
 		g_string_append (str, multipart->boundary);
 		g_string_append (str, "\r\n");
@@ -430,28 +429,21 @@ soup_multipart_to_message (SoupMultipart      *multipart,
 		while (soup_message_headers_iter_next (&iter, &name, &value))
 			g_string_append_printf (str, "%s: %s\r\n", name, value);
 		g_string_append (str, "\r\n");
-
-                buffer = g_string_free_to_bytes (str);
-                soup_message_body_append_bytes (body, buffer);
-                g_bytes_unref (buffer);
-
-		soup_message_body_append_bytes (body, part_body);
+		g_string_append_len (str,
+				     g_bytes_get_data (part_body, NULL),
+				     g_bytes_get_size (part_body));
 	}
 
-	str = g_string_new ("\r\n--");
+	g_string_append (str, "\r\n--");
 	g_string_append (str, multipart->boundary);
 	g_string_append (str, "--\r\n");
-	buffer = g_string_free_to_bytes (str);
-	soup_message_body_append_bytes (body, buffer);
-	g_bytes_unref (buffer);
 
 	/* (The "\r\n" after the close-delimiter seems wrong according
 	 * to my reading of RFCs 2046 and 2616, but that's what
 	 * everyone else does.)
 	 */
 
-	*dest_body = soup_message_body_flatten (body);
-	soup_message_body_free (body);
+	*dest_body = g_string_free_to_bytes (str);
 }
 
 /**
