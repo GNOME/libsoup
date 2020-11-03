@@ -22,7 +22,6 @@
     <xi:include href="xml/soup-cookie.xml"/>
     <xi:include href="xml/soup-message.xml"/>
     <xi:include href="xml/soup-message-headers.xml"/>
-    <xi:include href="xml/soup-message-body.xml"/>
     <xi:include href="xml/soup-headers.xml"/>
     <xi:include href="xml/soup-method.xml"/>
     <xi:include href="xml/soup-multipart.xml"/>
@@ -36,6 +35,7 @@
     <title>HTTP Server</title>
     <xi:include href="xml/soup-server.xml"/>
     <xi:include href="xml/soup-server-message.xml"/>
+    <xi:include href="xml/soup-message-body.xml"/>
   </chapter>
 
   <chapter>
