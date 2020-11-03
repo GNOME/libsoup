@@ -17,7 +17,7 @@
 #include "soup-filter-input-stream.h"
 #include "soup-server-message-private.h"
 #include "soup-misc.h"
-#include "soup-socket-private.h"
+#include "soup-socket.h"
 
 struct _SoupServerMessageIOData {
         SoupMessageIOData base;

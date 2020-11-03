@@ -5,7 +5,7 @@
  */
 
 #include "test-utils.h"
-#include "libsoup/server/soup-socket-private.h"
+#include "libsoup/server/soup-socket.h"
 
 #include <fcntl.h>
 #include <gio/gnetworking.h>
@@ -28,7 +28,10 @@ do_unconnected_socket_test (void)
 	GInetSocketAddress *addr;
         GSocketAddress *localhost;
 	SoupSocket *sock;
-	SoupSocket *client;
+	GSocketClient *client;
+	GSocketConnectable *remote_connectable;
+	GSocketConnection *conn;
+	GSocket *client_socket;
 	guint res;
 
 	g_test_bug ("673083");
@@ -51,7 +54,7 @@ do_unconnected_socket_test (void)
 	g_test_assert_expected_messages ();
 	g_assert_null (addr);
 
-	res = soup_socket_listen (sock);
+	res = soup_socket_listen (sock, NULL);
 	g_assert_true (res);
 
 	addr = soup_socket_get_local_address (sock);
@@ -59,20 +62,25 @@ do_unconnected_socket_test (void)
 	assert_host_equals (addr, "127.0.0.1");
 	g_assert_cmpuint (g_inet_socket_address_get_port (addr), >, 0);
 
-	client = soup_socket_new ("remote-connectable", soup_socket_get_local_address (sock),
-				  NULL);
-	res = soup_socket_connect_sync (client, NULL);
-	g_assert_cmpuint (res, ==, SOUP_STATUS_OK);
-	addr = soup_socket_get_local_address (client);
+	client = g_socket_client_new ();
+	remote_connectable = G_SOCKET_CONNECTABLE (soup_socket_get_local_address (sock));
+	conn = g_socket_client_connect (client, remote_connectable, NULL, NULL);
+	g_assert_true (conn != NULL);
+	client_socket = g_socket_connection_get_socket (conn);
+	g_assert_true (client_socket != NULL);
+	addr = G_INET_SOCKET_ADDRESS (g_socket_get_local_address (client_socket, NULL));
 	g_assert_true (addr != NULL);
-	addr = soup_socket_get_remote_address (client);
+	g_object_unref (addr);
+	addr = G_INET_SOCKET_ADDRESS (g_socket_get_remote_address (client_socket, NULL));
 	g_assert_true (addr != NULL);
 	assert_host_equals (addr, "127.0.0.1");
 	g_assert_cmpuint (g_inet_socket_address_get_port (addr), >, 0);
+	g_object_unref (addr);
+	g_object_unref (conn);
 	g_object_unref (client);
 
-	client = soup_socket_new ("remote-connectable", soup_socket_get_local_address (sock),
-				  NULL);
+	client = g_socket_client_new ();
+	remote_connectable = G_SOCKET_CONNECTABLE (soup_socket_get_local_address (sock));
 	/* save it for later */
 
 	/* listening socket fails with ENOTCONN */
@@ -94,21 +102,8 @@ do_unconnected_socket_test (void)
 	g_test_assert_expected_messages ();
 	g_assert_null (addr);
 
-	/* has never been connected */
-	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
-			       "*socket not connected*");
-	addr = soup_socket_get_local_address (client);
-	g_test_assert_expected_messages ();
-	g_assert_null (addr);
-
-	res = soup_socket_connect_sync (client, NULL);
-	g_assert_cmpuint (res, ==, SOUP_STATUS_CANT_CONNECT);
-
-	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
-			       "*socket not connected*");
-	addr = soup_socket_get_local_address (client);
-	g_test_assert_expected_messages ();
-	g_assert_null (addr);
+	conn = g_socket_client_connect (client, remote_connectable, NULL, NULL);
+	g_assert_false (conn != NULL);
 
 	g_object_unref (localhost);
 	g_object_unref (client);

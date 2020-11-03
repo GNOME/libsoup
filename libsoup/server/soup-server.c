@@ -18,8 +18,8 @@
 #include "soup.h"
 #include "soup-server-message-private.h"
 #include "soup-misc.h"
-#include "soup-path-map.h" 
-#include "soup-socket-private.h"
+#include "soup-path-map.h"
+#include "soup-socket.h"
 #include "websocket/soup-websocket.h"
 #include "websocket/soup-websocket-connection.h"
 #include "websocket/soup-websocket-extension-deflate.h"
@@ -1205,7 +1205,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 		      "is-server", &is_listening,
 		      NULL);
 	if (!is_listening) {
-		if (!soup_socket_listen_full (listener, error)) {
+		if (!soup_socket_listen (listener, error)) {
 			GInetSocketAddress *addr =  soup_socket_get_local_address (listener);
 			GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
 			char *local_ip = g_inet_address_to_string (inet_addr);

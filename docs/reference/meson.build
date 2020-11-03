@@ -25,7 +25,6 @@ ignore_headers = [
   'soup-cache-private.h',
   'soup-cache-client-input-stream.h',
   'soup-socket.h',
-  'soup-socket-private.h',
   'soup-socket-properties.h',
   'soup-websocket-extension-manager-private.h',
   'soup-misc.h',
