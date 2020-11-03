@@ -856,7 +856,7 @@ soup_server_message_get_remote_host (SoupServerMessage *msg)
  * #SoupServer. This happens immediately, regardless of the current
  * state of the connection; if the response to @msg has not yet finished
  * being sent, then it will be discarded; you can steal the connection from a
- * #SoupServerMessage:wrote-informational or #SoupServerMessage:wrote-body signal
+ * #SoupServerMessage::wrote-informational or #SoupServerMessage::wrote-body signal
  * handler if you need to wait for part or all of the response to be sent.
  *
  * Note that when calling this function from C, @msg will most

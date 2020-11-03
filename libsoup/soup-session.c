@@ -68,7 +68,7 @@
 /**
  * SoupSession:
  *
- * Class managing options and state for #SoupMessages.
+ * Class managing options and state for #SoupMessage<!-- -->s.
  */
 
 typedef struct {

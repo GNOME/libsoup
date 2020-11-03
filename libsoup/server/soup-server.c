@@ -1641,7 +1641,7 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
  * be used for that case.)
  *
  * For requests under @path (that have not already been assigned a
- * status code by a #SoupAuthDomain, an early #SoupServerHandler, or a
+ * status code by a #SoupAuthDomain, an early server handler, or a
  * signal handler), @callback will be invoked after receiving the
  * request body; the message's #SoupMessage:method,
  * #SoupMessage:request-headers, and #SoupMessage:request-body fields

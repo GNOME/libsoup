@@ -19,11 +19,11 @@ G_BEGIN_DECLS
  * arbitrary strings to soup_message_new() if you prefer.
  * 
  * The thing that these defines <emphasis>are</emphasis> useful for is
- * performing quick comparisons against #SoupMessage's %method field;
- * because that field always contains an interned string, and these
- * macros return interned strings, you can compare %method directly
+ * performing quick comparisons against soup_message_get_method();
+ * because #SoupMessage always contains an interned string, and these
+ * macros return interned strings, you can compare methods directly
  * against these macros rather than needing to use strcmp(). This is
- * most useful in SoupServer handlers. Eg:
+ * most useful in #SoupServer handlers. Eg:
  * 
  * <informalexample><programlisting>
  * 	if (soup_message_get_method (msg) != SOUP_METHOD_GET &amp;&amp; soup_message_get_method (msg) != SOUP_METHOD_HEAD) {

@@ -91,13 +91,13 @@ soup_message_body_new (void)
  * @accumulate: whether or not to accumulate body chunks in @body
  *
  * Sets or clears the accumulate flag on @body. (The default value is
- * %TRUE.) If set to %FALSE, @body's %data field will not be filled in
+ * %TRUE.) If set to %FALSE, @body's data field will not be filled in
  * after the body is fully sent/received, and the chunks that make up
  * @body may be discarded when they are no longer needed.
  *
  * If you set the flag to %FALSE on the #SoupMessage request_body of a
  * client-side message, it will block the accumulation of chunks into
- * @body's %data field, but it will not normally cause the chunks to
+ * @body's data field, but it will not normally cause the chunks to
  * be discarded after being written like in the server-side
  * #SoupMessage response_body case, because the request body needs to
  * be kept around in case the request needs to be sent a second time
