@@ -27,12 +27,11 @@ typedef enum {
 
 static void
 wrote_body_data (SoupMessage *msg,
-                 GBytes      *chunk,
+		 guint        count,
                  PutTestData *ptd)
 {
-        debug_printf (2, "  wrote_body_data, %d bytes\n",
-                      (int)g_bytes_get_size (chunk));
-        ptd->nwrote += g_bytes_get_size (chunk);
+        debug_printf (2, "  wrote_body_data, %u bytes\n", count);
+        ptd->nwrote += count;
 }
 
 static GChecksum *

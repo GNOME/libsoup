@@ -169,12 +169,7 @@ static void
 request_body_stream_wrote_data_cb (SoupMessage *msg,
 				   guint        count)
 {
-	GBytes *chunk;
-
-	/* FIXME: Change SoupMessage::wrote-body-data to pass just the size */
-	chunk = g_bytes_new_static ("", count);
-	soup_message_wrote_body_data (msg, chunk);
-	g_bytes_unref (chunk);
+	soup_message_wrote_body_data (msg, count);
 }
 
 static void

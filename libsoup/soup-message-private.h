@@ -89,7 +89,7 @@ GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
 
 void soup_message_wrote_headers     (SoupMessage *msg);
 void soup_message_wrote_body_data   (SoupMessage *msg,
-				     GBytes      *chunk);
+				     gsize        chunk_size);
 void soup_message_wrote_body        (SoupMessage *msg);
 void soup_message_got_informational (SoupMessage *msg);
 void soup_message_got_headers       (SoupMessage *msg);

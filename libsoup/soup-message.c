@@ -326,7 +326,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	/**
 	 * SoupMessage::wrote-body-data:
 	 * @msg: the message
-	 * @chunk: the data written
+	 * @chunk_size: the number of bytes written
 	 *
 	 * Emitted immediately after writing a portion of the message
 	 * body to the network.
@@ -334,14 +334,14 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * Since: 2.24
 	 **/
 	signals[WROTE_BODY_DATA] =
-		g_signal_new ("wrote_body_data",
+		g_signal_new ("wrote-body-data",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      0, /* FIXME after next ABI break */
+			      0,
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 1,
-			      G_TYPE_BYTES);
+			      G_TYPE_UINT);
 
 	/**
 	 * SoupMessage::wrote-body:
@@ -862,9 +862,10 @@ soup_message_wrote_headers (SoupMessage *msg)
 }
 
 void
-soup_message_wrote_body_data (SoupMessage *msg, GBytes *chunk)
+soup_message_wrote_body_data (SoupMessage *msg,
+			      gsize        chunk_size)
 {
-	g_signal_emit (msg, signals[WROTE_BODY_DATA], 0, chunk);
+	g_signal_emit (msg, signals[WROTE_BODY_DATA], 0, chunk_size);
 }
 
 void
