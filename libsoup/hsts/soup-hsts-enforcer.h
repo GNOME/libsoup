@@ -26,6 +26,8 @@ G_DECLARE_DERIVABLE_TYPE (SoupHSTSEnforcer, soup_hsts_enforcer, SOUP, HSTS_ENFOR
  * policies.
  * @changed: The class closure for the #SoupHSTSEnforcer::changed signal.
  * @hsts_enforced: The class closure for the #SoupHSTSEnforcer::hsts-enforced signal.
+ *
+ * Class structure for #SoupHSTSEnforcer.
  **/
 struct _SoupHSTSEnforcerClass {
 	GObjectClass parent_class;

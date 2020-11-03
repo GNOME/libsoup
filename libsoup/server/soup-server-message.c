@@ -34,6 +34,12 @@
  * the response.
  **/
 
+/**
+ * SoupServerMessage:
+ *
+ * Class represnting an HTTP request and response pair for a server.
+ */
+
 struct _SoupServerMessage {
         GObject             parent;
 

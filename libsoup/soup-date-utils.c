@@ -29,6 +29,8 @@
  * @section_id: SoupDateTime
  * @title: DateTime Utilities
  * @short_description: Functions to help working with #GDateTime and HTTP
+ *
+ * These are simple utility functions to help using #GDateTime.
  */
 
 /**

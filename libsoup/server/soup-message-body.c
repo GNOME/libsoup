@@ -33,6 +33,8 @@
  * @SOUP_MEMORY_COPY: The passed-in data belongs to the caller and
  * libsoup will copy it into new memory leaving the caller free
  * to reuse the original memory.
+ *
+ * The lifetime of the memory being passed.
  **/
 
 /**

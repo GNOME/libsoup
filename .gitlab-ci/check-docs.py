@@ -21,4 +21,4 @@ with open('_build/docs/reference/libsoup-3.0-undocumented.txt') as f:
 if undocumented_list:
     print('There is missing documentation for these symbols:')
     print(undocumented_list)
-    # sys.exit(1)
+    sys.exit(1)

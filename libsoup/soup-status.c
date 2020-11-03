@@ -17,6 +17,7 @@
  * @section_id: SoupStatus
  * @short_description: HTTP (and libsoup) status codes
  *
+ * HTTP (and libsoup) status codes.
  **/
 
 /**

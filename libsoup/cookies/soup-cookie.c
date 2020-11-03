@@ -812,6 +812,8 @@ soup_cookie_set_same_site_policy (SoupCookie         *cookie,
  * soup_cookie_get_same_site_policy:
  * @cookie: a #SoupCookie
  *
+ * Returns the same-site policy for this cookie.
+ *
  * Returns: a #SoupSameSitePolicy
  *
  * Since: 2.70

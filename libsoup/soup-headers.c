@@ -21,6 +21,8 @@
  * @section_id: SoupHeaders
  * @title: SoupHeaders
  * @short_description: Functions to help working with HTTP Headers
+ *
+ * These are utility functions to help working with HTTP headers.
  */
 
 /**

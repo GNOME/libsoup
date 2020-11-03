@@ -37,6 +37,12 @@
  * Since: 2.40
  **/
 
+/**
+ * SoupMultipartInputStream:
+ *
+ * Class for handling streams of multipart messages.
+ */
+
 enum {
 	PROP_0,
 

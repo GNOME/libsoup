@@ -39,6 +39,12 @@
  * those requests that don't need it.
  **/
 
+/**
+ * SoupAuthDomain:
+ *
+ * Class managing authentication for #SoupServer.
+ */
+
 enum {
 	PROP_0,
 

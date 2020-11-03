@@ -20,6 +20,7 @@
  * @short_description: multipart HTTP message bodies
  * @see_also: #SoupMessageBody, #SoupMessageHeaders
  *
+ * Functions to use multi-part HTTP messages.
  **/
 
 /**

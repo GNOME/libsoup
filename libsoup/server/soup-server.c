@@ -120,6 +120,12 @@
  * #GMainContext.
  */
 
+/**
+ * SoupServer:
+ *
+ * Class implementing an HTTP server.
+ */
+
 enum {
 	REQUEST_STARTED,
 	REQUEST_READ,
@@ -595,6 +601,13 @@ soup_server_class_init (SoupServerClass *server_class)
          *
          * Since: 2.68
          **/
+        /**
+         * SOUP_SERVER_ADD_WEBSOCKET_EXTENSION: (skip)
+         *
+         * Alias for %SoupServer:add-websocket-extension
+         *
+         * Since: 2.68
+         */
         g_object_class_install_property (
                 object_class, PROP_ADD_WEBSOCKET_EXTENSION,
                 g_param_spec_gtype (SOUP_SERVER_ADD_WEBSOCKET_EXTENSION,
@@ -610,6 +623,13 @@ soup_server_class_init (SoupServerClass *server_class)
          *
          * Since: 2.68
          **/
+        /**
+         * SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION: (skip)
+         *
+         * Alias for %SoupServer:remove-websocket-extension
+         *
+         * Since: 2.68
+         */
         g_object_class_install_property (
                 object_class, PROP_REMOVE_WEBSOCKET_EXTENSION,
                 g_param_spec_gtype (SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION,

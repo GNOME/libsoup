@@ -15,6 +15,8 @@ G_BEGIN_DECLS
  * @SOUP_SAME_SITE_POLICY_LAX: The cookie is withheld on cross-site requests but exposed on cross-site navigations
  * @SOUP_SAME_SITE_POLICY_STRICT: The cookie is only exposed for same-site requests
  *
+ * Represents the same-site policies of a cookie.
+ *
  * Since: 2.70
  */
 typedef enum {

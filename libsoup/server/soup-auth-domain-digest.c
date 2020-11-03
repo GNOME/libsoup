@@ -24,6 +24,12 @@
  * authentication.
  **/
 
+/**
+ * SoupAuthDomainDigest:
+ *
+ * Subclass of #SoupAuthDomain for Digest authentication.
+ */
+
 enum {
 	PROP_0,
 

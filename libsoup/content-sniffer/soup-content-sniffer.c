@@ -35,6 +35,12 @@
  * Since: 2.28
  **/
 
+/**
+ * SoupContentSniffer:
+ *
+ * Class that attempts to sniff the mime type of messages.
+ */
+
 static void soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 static SoupContentProcessorInterface *soup_content_sniffer_default_content_processor_interface;

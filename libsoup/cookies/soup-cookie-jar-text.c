@@ -21,8 +21,14 @@
  * @short_description: Text-file-based ("cookies.txt") Cookie Jar
  *
  * #SoupCookieJarText is a #SoupCookieJar that reads cookies from and
- * writes them to a text file in the Mozilla "cookies.txt" format.
+ * writes them to a text file in format similar to Mozilla's "cookies.txt".
  **/
+
+/**
+ * SoupCookieJarText:
+ *
+ * Subclass of #SoupCookieJar that stores cookies in a text file.
+ */
 
 enum {
 	PROP_0,

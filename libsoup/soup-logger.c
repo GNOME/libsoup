@@ -89,11 +89,15 @@
  * event of the #SoupMessage::finished signal.
  **/
 
+/**
+ * SoupLogger:
+ *
+ * Class implementing logging.
+ */
+
 struct _SoupLogger {
 	GObject parent;
-
 };
-
 
 typedef struct {
 	/* We use a mutex so that if requests are being run in

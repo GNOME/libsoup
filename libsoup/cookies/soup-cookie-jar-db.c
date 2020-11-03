@@ -30,6 +30,12 @@
  * renamed to avoid conflicting.)
  **/
 
+/**
+ * SoupCookieJarDB:
+ *
+ * Subclass of #SoupCookieJar that stores cookies in a sqlite database.
+ */
+
 enum {
 	PROP_0,
 

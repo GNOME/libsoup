@@ -31,6 +31,12 @@
  * of long-term cookie persistence.
  **/
 
+/**
+ * SoupCookieJar:
+ *
+ * Class that stores cookies in memory.
+ */
+
 enum {
 	CHANGED,
 	LAST_SIGNAL

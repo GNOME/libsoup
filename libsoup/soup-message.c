@@ -1685,6 +1685,9 @@ soup_message_set_is_top_level_navigation (SoupMessage *msg,
  * soup_message_get_is_top_level_navigation:
  * @msg: a #SoupMessage
  *
+ * Returns if this message is set as a top level navigation.
+ * Used for same-site policy checks.
+ *
  * Since: 2.70
  **/
 gboolean
@@ -1888,7 +1891,9 @@ soup_message_get_request_body_stream (SoupMessage *msg)
  * soup_message_get_method:
  * @msg: The #SoupMessage
  *
- * Returns: The method of this message
+ * Returns the method of this message.
+ * 
+ * Returns: A method such as %SOUP_METHOD_GET
  */
 const char *
 soup_message_get_method (SoupMessage *msg)
@@ -1902,6 +1907,8 @@ soup_message_get_method (SoupMessage *msg)
  * soup_message_get_status:
  * @msg: The #SoupMessage
  *
+ * Returns the set status of this message.
+ * 
  * Returns: The #SoupStatus
  */
 SoupStatus
@@ -1928,6 +1935,14 @@ soup_message_get_reason_phrase (SoupMessage *msg)
         return priv->reason_phrase; 
 }
 
+/**
+ * soup_message_get_request_headers:
+ * @msg: The #SoupMessage
+ *
+ * Returns the headers sent with the request.
+ *
+ * Returns: The #SoupMessageHeaders
+ */
 SoupMessageHeaders *
 soup_message_get_request_headers (SoupMessage  *msg)
 {
@@ -1936,6 +1951,14 @@ soup_message_get_request_headers (SoupMessage  *msg)
         return priv->request_headers; 
 }
 
+/**
+ * soup_message_get_response_headers:
+ * @msg: The #SoupMessage
+ *
+ * Returns the headers recieved with the response.
+ * 
+ * Returns: The #SoupMessageHeaders
+ */
 SoupMessageHeaders *
 soup_message_get_response_headers (SoupMessage  *msg)
 {

@@ -65,6 +65,12 @@
  * subtypes) have a #SoupContentDecoder by default.
  **/
 
+/**
+ * SoupSession:
+ *
+ * Class managing options and state for #SoupMessages.
+ */
+
 typedef struct {
 	SoupURI         *uri;
 	GNetworkAddress *addr;

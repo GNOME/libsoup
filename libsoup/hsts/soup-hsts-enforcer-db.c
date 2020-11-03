@@ -26,6 +26,12 @@
  * database as a backend for persistency.
  **/
 
+/**
+ * SoupHSTSEnforcerDB:
+ *
+ * Subclass of #SoupHSTSEnforcer using an sqlite database.
+ */
+
 enum {
 	PROP_0,
 

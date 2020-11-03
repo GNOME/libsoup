@@ -37,6 +37,12 @@
  */
 
 /**
+ * SoupWebsocketExtension:
+ *
+ * Class for impelementing websocket extensions.
+ */
+
+/**
  * SoupWebsocketExtensionClass:
  * @name: the name of the extension
  * @parent_class: the parent class

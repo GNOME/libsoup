@@ -1385,7 +1385,7 @@ soup_uri_is_https (SoupURI *uri, char **aliases)
 #define BASE64_INDICATOR_LEN (sizeof (";base64") - 1)
 
 /**
- * soup_uri_decode_data:
+ * soup_uri_decode_data_uri:
  * @uri: a data URI, in string form
  * @content_type: (out) (nullable) (transfer full): location to store content type, or %NULL
  *

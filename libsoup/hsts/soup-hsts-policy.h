@@ -16,6 +16,11 @@ SOUP_AVAILABLE_IN_2_68
 GType		 soup_hsts_policy_get_type (void);
 #define SOUP_TYPE_HSTS_POLICY (soup_hsts_policy_get_type())
 
+/**
+ * SOUP_HSTS_POLICY_MAX_AGE_PAST:
+ *
+ * An expiration date that is always in the past.
+ */
 #define SOUP_HSTS_POLICY_MAX_AGE_PAST (0)
 
 SOUP_AVAILABLE_IN_2_68

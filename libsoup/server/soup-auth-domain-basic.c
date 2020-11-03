@@ -22,6 +22,12 @@
  * cleartext password) authentication.
  **/
 
+/**
+ * SoupAuthDomainBasic:
+ *
+ * Subclass of #SoupAuthDomain for Basic authentication.
+ */
+
 enum {
 	PROP_0,
 

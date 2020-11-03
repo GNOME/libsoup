@@ -36,6 +36,12 @@
  **/
 
 /**
+ * SoupAuthManager:
+ *
+ * Class for managing client-side HTTP authentication.
+ */
+
+/**
  * SOUP_TYPE_AUTH_MANAGER:
  *
  * The #GType of #SoupAuthManager; you can use this with

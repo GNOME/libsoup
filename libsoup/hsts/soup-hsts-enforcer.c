@@ -42,6 +42,12 @@
  *
  **/
 
+/**
+ * SoupHSTSEnforcer:
+ *
+ * Class for storing and enforcing a #SoupHSTSPolicy.
+ */
+
 static void soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 enum {

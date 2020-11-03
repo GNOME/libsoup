@@ -50,6 +50,12 @@
  * #SoupCache implements a file-based cache for HTTP resources.
  */
 
+/**
+ * SoupCache:
+ *
+ * Class implementing caching for HTTP resources.
+ */
+
 static void soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 static SoupContentProcessorInterface *soup_cache_default_content_processor_interface;

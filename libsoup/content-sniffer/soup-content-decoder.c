@@ -53,6 +53,12 @@
  * Since: 2.30
  **/
 
+/**
+ * SoupContentDecoder:
+ *
+ * Class handling decoding of HTTP messages.
+ */
+
 struct _SoupContentDecoder {
 	GObject parent;
 };
