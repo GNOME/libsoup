@@ -22,6 +22,14 @@ static const StrictnessTest strictness_tests[] = {
 	  FALSE, FALSE, SOUP_STATUS_OK },
 };
 
+static gboolean
+accept_certificate (SoupMessage *msg,
+		    GTlsCertificate *certificate,
+		    GTlsCertificateFlags errors)
+{
+	return TRUE;
+}
+
 static void
 do_strictness_test (gconstpointer data)
 {
@@ -34,11 +42,6 @@ do_strictness_test (gconstpointer data)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 NULL);
-	if (!test->strict) {
-		g_object_set (G_OBJECT (session),
-			      "ssl-strict", FALSE,
-			      NULL);
-	}
 	if (!test->with_ca_list) {
 		g_object_set (G_OBJECT (session),
 			      "ssl-use-system-ca-file", TRUE,
@@ -46,11 +49,16 @@ do_strictness_test (gconstpointer data)
 	}
 
 	msg = soup_message_new_from_uri ("GET", uri);
+	if (!test->strict) {
+		g_signal_connect (msg, "accept-certificate",
+				  G_CALLBACK (accept_certificate), NULL);
+	}
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, test->expected_status);
 
 	g_test_bug ("690176");
-	g_assert_true (soup_message_get_https_status (msg, NULL, &flags));
+	g_assert_nonnull (soup_message_get_tls_certificate (msg));
+	flags = soup_message_get_tls_certificate_errors (msg);
 
 	g_test_bug ("665182");
 	if (test->with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg)))
@@ -225,7 +233,7 @@ do_tls_interaction_test (void)
 	msg = soup_message_new_from_uri ("GET", test_uri);
 	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_true (soup_message_get_https_status (msg, NULL, NULL));
+	g_assert_nonnull (soup_message_get_tls_certificate (msg));
 	g_bytes_unref (body);
 	g_object_unref (msg);
 

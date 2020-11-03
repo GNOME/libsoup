@@ -43,6 +43,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 
 enum {
 	EVENT,
+	ACCEPT_CERTIFICATE,
 	DISCONNECTED,
 	LAST_SIGNAL
 };
@@ -56,6 +57,8 @@ enum {
 	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
 	PROP_SSL,
+	PROP_TLS_CERTIFICATE,
+	PROP_TLS_CERTIFICATE_ERRORS,
 
 	LAST_PROP
 };
@@ -154,6 +157,12 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	case PROP_SSL:
 		g_value_set_boolean (value, priv->ssl);
 		break;
+	case PROP_TLS_CERTIFICATE:
+		g_value_set_object (value, soup_connection_get_tls_certificate (SOUP_CONNECTION (object)));
+		break;
+	case PROP_TLS_CERTIFICATE_ERRORS:
+		g_value_set_flags (value, soup_connection_get_tls_certificate_errors (SOUP_CONNECTION (object)));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -182,6 +191,16 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_TYPE_NONE, 2,
 			      G_TYPE_SOCKET_CLIENT_EVENT,
 			      G_TYPE_IO_STREAM);
+	signals[ACCEPT_CERTIFICATE] =
+		g_signal_new ("accept-certificate",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              g_signal_accumulator_true_handled, NULL,
+                              NULL,
+                              G_TYPE_BOOLEAN, 2,
+                              G_TYPE_TLS_CERTIFICATE,
+                              G_TYPE_TLS_CERTIFICATE_FLAGS);
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -223,6 +242,22 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "Whether the connection should use TLS",
 				      FALSE,G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
+	g_object_class_install_property (
+                object_class, PROP_TLS_CERTIFICATE,
+		g_param_spec_object ("tls-certificate",
+                                     "TLS Certificate",
+                                     "The TLS certificate associated with the connection",
+                                     G_TYPE_TLS_CERTIFICATE,
+                                     G_PARAM_READABLE |
+	                             G_PARAM_STATIC_STRINGS));
+	g_object_class_install_property (
+                object_class, PROP_TLS_CERTIFICATE_ERRORS,
+                g_param_spec_flags ("tls-certificate-errors",
+                                    "TLS Certificate Errors",
+                                    "The verification errors on the connections's TLS certificate",
+                                    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
+                                    G_PARAM_READABLE |
+                                    G_PARAM_STATIC_STRINGS));
 }
 
 static void
@@ -378,12 +413,21 @@ new_socket_client (SoupConnection *conn)
 }
 
 static gboolean
-tls_connection_accept_certificate (GTlsConnection      *conn,
-                                   GTlsCertificate     *cert,
-                                   GTlsCertificateFlags errors,
-                                   gpointer             user_data)
+tls_connection_accept_certificate (SoupConnection      *conn,
+                                   GTlsCertificate     *tls_certificate,
+                                   GTlsCertificateFlags tls_errors)
 {
-        return TRUE;
+	gboolean accept = FALSE;
+
+        g_signal_emit (conn, signals[ACCEPT_CERTIFICATE], 0,
+		       tls_certificate, tls_errors, &accept);
+        return accept;
+}
+
+static void
+tls_connection_peer_certificate_changed (SoupConnection *conn)
+{
+	g_object_notify (G_OBJECT (conn), "tls-certificate");
 }
 
 static GTlsClientConnection *
@@ -405,11 +449,12 @@ new_tls_connection (SoupConnection    *conn,
         if (!tls_connection)
                 return NULL;
 
-        if (!priv->socket_props->ssl_strict) {
-                g_signal_connect_object (tls_connection, "accept-certificate",
-                                         G_CALLBACK (tls_connection_accept_certificate),
-                                         conn, 0);
-        }
+	g_signal_connect_object (tls_connection, "accept-certificate",
+				 G_CALLBACK (tls_connection_accept_certificate),
+				 conn, G_CONNECT_SWAPPED);
+	g_signal_connect_object (tls_connection, "notify::peer-certificate",
+				 G_CALLBACK (tls_connection_peer_certificate_changed),
+				 conn, G_CONNECT_SWAPPED);
 
         return tls_connection;
 }
@@ -1013,4 +1058,34 @@ soup_connection_send_request (SoupConnection           *conn,
 		priv->reusable = FALSE;
 
 	soup_message_send_request (item, completion_cb, user_data);
+}
+
+GTlsCertificate *
+soup_connection_get_tls_certificate (SoupConnection *conn)
+{
+	SoupConnectionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
+
+	priv = soup_connection_get_instance_private (conn);
+
+	if (!G_IS_TLS_CONNECTION (priv->connection))
+		return NULL;
+
+	return g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (priv->connection));
+}
+
+GTlsCertificateFlags
+soup_connection_get_tls_certificate_errors (SoupConnection *conn)
+{
+	SoupConnectionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), 0);
+
+	priv = soup_connection_get_instance_private (conn);
+
+	if (!G_IS_TLS_CONNECTION (priv->connection))
+		return 0;
+
+	return g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->connection));
 }

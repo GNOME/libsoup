@@ -80,10 +80,11 @@ void             soup_message_set_flags           (SoupMessage           *msg,
 SOUP_AVAILABLE_IN_2_4
 SoupMessageFlags soup_message_get_flags           (SoupMessage           *msg);
 
-SOUP_AVAILABLE_IN_2_34
-gboolean         soup_message_get_https_status    (SoupMessage           *msg,
-						   GTlsCertificate      **certificate,
-						   GTlsCertificateFlags  *errors);
+SOUP_AVAILABLE_IN_ALL
+GTlsCertificate     *soup_message_get_tls_certificate        (SoupMessage *msg);
+
+SOUP_AVAILABLE_IN_ALL
+GTlsCertificateFlags soup_message_get_tls_certificate_errors (SoupMessage *msg);
 
 
 /* Specialized signal handlers */

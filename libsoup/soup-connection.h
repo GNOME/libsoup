@@ -70,6 +70,8 @@ void            soup_connection_send_request   (SoupConnection           *conn,
 						SoupMessageIOCompletionFn completion_cb,
 						gpointer                  user_data);
 
+GTlsCertificate     *soup_connection_get_tls_certificate        (SoupConnection *conn);
+GTlsCertificateFlags soup_connection_get_tls_certificate_errors (SoupConnection *conn);
 G_END_DECLS
 
 #endif /* __SOUP_CONNECTION_H__ */

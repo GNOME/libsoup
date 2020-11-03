@@ -14,7 +14,6 @@ typedef struct {
 
 	GTlsDatabase *tlsdb;
 	GTlsInteraction *tls_interaction;
-	gboolean ssl_strict;
 
 	guint io_timeout;
 	guint idle_timeout;
@@ -30,7 +29,6 @@ SoupSocketProperties *soup_socket_properties_new   (GProxyResolver     *proxy_re
 			                            GInetSocketAddress *local_addr,
 						    GTlsDatabase       *tlsdb,
 						    GTlsInteraction    *tls_interaction,
-						    gboolean            ssl_strict,
 						    guint               io_timeout,
 						    guint               idle_timeout);
 

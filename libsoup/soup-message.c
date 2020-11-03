@@ -86,7 +86,7 @@ typedef struct {
 	SoupURI           *site_for_cookies;
 
 	GTlsCertificate      *tls_certificate;
-	GTlsCertificateFlags  tls_errors;
+	GTlsCertificateFlags  tls_certificate_errors;
 
 	SoupMessagePriority priority;
 
@@ -111,6 +111,7 @@ enum {
 
 	AUTHENTICATE,
 	NETWORK_EVENT,
+	ACCEPT_CERTIFICATE,
 
 	LAST_SIGNAL
 };
@@ -130,7 +131,7 @@ enum {
 	PROP_REQUEST_HEADERS,
 	PROP_RESPONSE_HEADERS,
 	PROP_TLS_CERTIFICATE,
-	PROP_TLS_ERRORS,
+	PROP_TLS_CERTIFICATE_ERRORS,
 	PROP_PRIORITY,
 	PROP_SITE_FOR_COOKIES,
 	PROP_IS_TOP_LEVEL_NAVIGATION,
@@ -155,6 +156,8 @@ soup_message_finalize (GObject *object)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	soup_message_set_connection (msg, NULL);
 
 	soup_client_message_io_data_free (priv->io_data);
 
@@ -214,22 +217,6 @@ soup_message_set_property (GObject *object, guint prop_id,
 	case PROP_FIRST_PARTY:
 		soup_message_set_first_party (msg, g_value_get_boxed (value));
 		break;
-	case PROP_TLS_CERTIFICATE:
-		if (priv->tls_certificate)
-			g_object_unref (priv->tls_certificate);
-		priv->tls_certificate = g_value_dup_object (value);
-		if (priv->tls_errors)
-			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		else if (priv->tls_certificate)
-			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		break;
-	case PROP_TLS_ERRORS:
-		priv->tls_errors = g_value_get_flags (value);
-		if (priv->tls_errors)
-			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		else if (priv->tls_certificate)
-			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		break;
 	case PROP_PRIORITY:
 		priv->priority = g_value_get_enum (value);
 		break;
@@ -283,8 +270,8 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_CERTIFICATE:
 		g_value_set_object (value, priv->tls_certificate);
 		break;
-	case PROP_TLS_ERRORS:
-		g_value_set_flags (value, priv->tls_errors);
+	case PROP_TLS_CERTIFICATE_ERRORS:
+		g_value_set_flags (value, priv->tls_certificate_errors);
 		break;
 	case PROP_PRIORITY:
 		g_value_set_enum (value, priv->priority);
@@ -572,6 +559,32 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_SOCKET_CLIENT_EVENT,
 			      G_TYPE_IO_STREAM);
 
+	/**
+	 * SoupMessage::accept-certificate:
+	 * @msg: the message
+	 * @tls_certificate: the peer's #GTlsCertificate
+	 * @tls_errors: the tls errors of @tls_certificate
+	 *
+	 * Emitted during the @msg's connection TLS handshake
+	 * after an unacceptable TLS certificate has been received.
+	 * You can return %TRUE to accept @tls_certificate despite
+	 * @tls_errors.
+	 *
+	 * Returns: %TRUE to accept the TLS certificate and stop other
+	 *     handlers from being invoked, or %FALSE to propagate the
+	 *     event further.
+	 */
+	signals[ACCEPT_CERTIFICATE] =
+		g_signal_new ("accept-certificate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      g_signal_accumulator_true_handled, NULL,
+			      NULL,
+			      G_TYPE_BOOLEAN, 2,
+			      G_TYPE_TLS_CERTIFICATE,
+			      G_TYPE_TLS_CERTIFICATE_FLAGS);
+
 	/* properties */
 	g_object_class_install_property (
 		object_class, PROP_METHOD,
@@ -689,29 +702,29 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * The #GTlsCertificate associated with the message
 	 *
 	 * Since: 2.34
-	 */	 
+	 */
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE,
 		g_param_spec_object ("tls-certificate",
 				     "TLS Certificate",
 				     "The TLS certificate associated with the message",
 				     G_TYPE_TLS_CERTIFICATE,
-				     G_PARAM_READWRITE |
+				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
-	 * SoupMessage:tls-errors:
+	 * SoupMessage:tls-certificate-errors:
 	 *
 	 * The verification errors on #SoupMessage:tls-certificate
 	 *
 	 * Since: 2.34
-	 */	 
+	 */
 	g_object_class_install_property (
-		object_class, PROP_TLS_ERRORS,
-		g_param_spec_flags ("tls-errors",
-				    "TLS Errors",
+		object_class, PROP_TLS_CERTIFICATE_ERRORS,
+		g_param_spec_flags ("tls-certificate-errors",
+				    "TLS Certificate Errors",
 				    "The verification errors on the message's TLS certificate",
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
-				    G_PARAM_READWRITE |
+				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS));
 	/**
 	 SoupMessage:priority:
@@ -918,15 +931,6 @@ void
 soup_message_finished (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[FINISHED], 0);
-}
-
-void
-soup_message_network_event (SoupMessage         *msg,
-			    GSocketClientEvent   event,
-			    GIOStream           *connection)
-{
-	g_signal_emit (msg, signals[NETWORK_EVENT], 0,
-		       event, connection);
 }
 
 gboolean
@@ -1137,13 +1141,79 @@ soup_message_get_connection (SoupMessage *msg)
 	return priv->connection;
 }
 
+static void
+re_emit_connection_event (SoupMessage       *msg,
+                          GSocketClientEvent event,
+                          GIOStream         *connection)
+{
+	g_signal_emit (msg, signals[NETWORK_EVENT], 0,
+		       event, connection);
+}
+
+static gboolean
+re_emit_accept_certificate (SoupMessage          *msg,
+			    GTlsCertificate      *tls_certificate,
+			    GTlsCertificateFlags *tls_errors)
+{
+	gboolean accept = FALSE;
+
+	g_signal_emit (msg, signals[ACCEPT_CERTIFICATE], 0,
+		       tls_certificate, tls_errors, &accept);
+	return accept;
+}
+
+static void
+re_emit_tls_certificate_changed (SoupMessage    *msg,
+				 GParamSpec     *pspec,
+				 SoupConnection *conn)
+{
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+	GTlsCertificate *tls_certificate;
+	GTlsCertificateFlags tls_errors;
+
+	tls_certificate = soup_connection_get_tls_certificate (conn);
+	tls_errors = soup_connection_get_tls_certificate_errors (conn);
+	if (priv->tls_certificate == tls_certificate && priv->tls_certificate_errors == tls_errors)
+		return;
+
+	g_clear_object (&priv->tls_certificate);
+	priv->tls_certificate = tls_certificate ? g_object_ref (tls_certificate) : NULL;
+	priv->tls_certificate_errors = tls_errors;
+	if (priv->tls_certificate_errors)
+		priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+	else if (priv->tls_certificate)
+		priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+	g_object_notify (G_OBJECT (msg), "tls-certificate");
+	g_object_notify (G_OBJECT (msg), "tls-certificate-errors");
+}
+
 void
 soup_message_set_connection (SoupMessage    *msg,
 			     SoupConnection *conn)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+	if (priv->connection) {
+		g_signal_handlers_disconnect_by_data (priv->connection, msg);
+		g_object_remove_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
+	}
+
 	priv->connection = conn;
+	if (!priv->connection)
+		return;
+
+	g_object_add_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
+	re_emit_tls_certificate_changed (msg, NULL, conn);
+
+	g_signal_connect_object (priv->connection, "event",
+				 G_CALLBACK (re_emit_connection_event),
+				 msg, G_CONNECT_SWAPPED);
+	g_signal_connect_object (priv->connection, "accept-certificate",
+				 G_CALLBACK (re_emit_accept_certificate),
+				 msg, G_CONNECT_SWAPPED);
+	g_signal_connect_object (priv->connection, "notify::tls-certificate",
+				 G_CALLBACK (re_emit_tls_certificate_changed),
+				 msg, G_CONNECT_SWAPPED);
 }
 
 /**
@@ -1175,7 +1245,7 @@ soup_message_cleanup_response (SoupMessage *msg)
 	g_object_notify (G_OBJECT (msg), "http-version");
 	g_object_notify (G_OBJECT (msg), "flags");
 	g_object_notify (G_OBJECT (msg), "tls-certificate");
-	g_object_notify (G_OBJECT (msg), "tls-errors");
+	g_object_notify (G_OBJECT (msg), "tls-certificate-errors");
 }
 
 /**
@@ -1701,53 +1771,49 @@ soup_message_get_is_top_level_navigation (SoupMessage *msg)
 	return priv->is_top_level_navigation;
 }
 
-void
-soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
-{
-	GTlsCertificate *certificate = NULL;
-	GTlsCertificateFlags errors = 0;
-
-	if (conn)
-		soup_connection_get_tls_info (conn, &certificate, &errors);
-
-	g_object_set (msg,
-		      "tls-certificate", certificate,
-		      "tls-errors", errors,
-		      NULL);
-}
-
 /**
- * soup_message_get_https_status:
+ * soup_message_get_tls_certificate:
  * @msg: a #SoupMessage
- * @certificate: (out) (transfer none): @msg's TLS certificate
- * @errors: (out): the verification status of @certificate
  *
- * If @msg is using https (or attempted to use https but got
- * %SOUP_STATUS_SSL_FAILED), this retrieves the #GTlsCertificate
- * associated with its connection, and the #GTlsCertificateFlags
- * showing what problems, if any, have been found with that
- * certificate.
+ * Gets the #GTlsCertificate associated with @msg's connection.
+ * Note that this is not set yet during the emission of
+ * SoupMessage::accept-certificate signal.
  *
- * Return value: %TRUE if @msg used/attempted https, %FALSE if not
- *
- * Since: 2.34
+ * Returns: (transfer none) (nullable): @msg's TLS certificate,
+ *    or %NULL if @msg's connection is not SSL.
  */
-gboolean
-soup_message_get_https_status (SoupMessage           *msg,
-			       GTlsCertificate      **certificate,
-			       GTlsCertificateFlags  *errors)
+GTlsCertificate *
+soup_message_get_tls_certificate (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	priv = soup_message_get_instance_private (msg);
 
-	if (certificate)
-		*certificate = priv->tls_certificate;
-	if (errors)
-		*errors = priv->tls_errors;
-	return priv->tls_certificate != NULL;
+	return priv->tls_certificate;
+}
+
+/**
+ * soup_message_get_tls_certificate_errors:
+ * @msg: a #SoupMessage
+ *
+ * Gets the errors associated with validating @msg's TLS certificate.
+ * Note that this is not set yet during the emission of
+ * SoupMessage::accept-certificate signal.
+ *
+ * Returns: a #GTlsCertificateFlags with @msg's TLS certificate errors.
+ */
+GTlsCertificateFlags
+soup_message_get_tls_certificate_errors (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
+
+	priv = soup_message_get_instance_private (msg);
+
+	return priv->tls_certificate_errors;
 }
 
 /**

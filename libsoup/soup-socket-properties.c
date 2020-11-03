@@ -15,7 +15,6 @@ soup_socket_properties_new (GProxyResolver     *proxy_resolver,
 			    GInetSocketAddress *local_addr,
 			    GTlsDatabase       *tlsdb,
 			    GTlsInteraction    *tls_interaction,
-			    gboolean            ssl_strict,
 			    guint               io_timeout,
 			    guint               idle_timeout)
 {
@@ -29,7 +28,6 @@ soup_socket_properties_new (GProxyResolver     *proxy_resolver,
 
 	props->tlsdb = tlsdb ? g_object_ref (tlsdb) : NULL;
 	props->tls_interaction = tls_interaction ? g_object_ref (tls_interaction) : NULL;
-	props->ssl_strict = ssl_strict;
 
 	props->io_timeout = io_timeout;
 	props->idle_timeout = idle_timeout;

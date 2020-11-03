@@ -6,18 +6,12 @@ static void
 do_ssl_test_for_session (SoupSession *session, SoupURI *uri)
 {
 	SoupMessage *msg;
-	GTlsCertificate *cert = NULL;
-	GTlsCertificateFlags flags;
-	gboolean is_https;
 
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_SSL_FAILED);
 
-	is_https = soup_message_get_https_status (msg, &cert, &flags);
-	soup_test_assert (!is_https, "get_http_status() returned TRUE? (flags %x)", flags);
-
-	g_assert_null (cert);
+	g_assert_null (soup_message_get_tls_certificate (msg));
 	g_assert_false (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
 
 	g_object_unref (msg);

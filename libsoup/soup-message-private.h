@@ -109,13 +109,6 @@ gboolean soup_message_disables_feature (SoupMessage *msg,
 
 GList *soup_message_get_disabled_features (SoupMessage *msg);
 
-void soup_message_set_https_status (SoupMessage    *msg,
-				    SoupConnection *conn);
-
-void soup_message_network_event (SoupMessage         *msg,
-				 GSocketClientEvent   event,
-				 GIOStream           *connection);
-
 GInputStream *soup_message_setup_body_istream (GInputStream *body_stream,
 					       SoupMessage *msg,
 					       SoupSession *session,

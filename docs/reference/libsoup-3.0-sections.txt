@@ -24,7 +24,8 @@ soup_message_get_response_headers
 soup_message_set_status
 soup_message_set_status_full
 soup_message_is_keepalive
-soup_message_get_https_status
+soup_message_get_tls_certificate
+soup_message_get_tls_certificate_errors
 <SUBSECTION>
 soup_message_set_first_party
 soup_message_get_first_party

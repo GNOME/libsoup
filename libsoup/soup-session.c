@@ -95,7 +95,6 @@ typedef struct {
 
 	GTlsDatabase *tlsdb;
 	GTlsInteraction *tls_interaction;
-	gboolean ssl_strict;
 	gboolean tlsdb_use_default;
 
 	guint io_timeout, idle_timeout;
@@ -181,7 +180,6 @@ enum {
 	PROP_MAX_CONNS_PER_HOST,
 	PROP_SSL_USE_SYSTEM_CA_FILE,
 	PROP_TLS_DATABASE,
-	PROP_SSL_STRICT,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_USER_AGENT,
@@ -253,9 +251,6 @@ soup_session_init (SoupSession *session)
 	g_object_unref (auth_manager);
 
         soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
-
-	priv->ssl_strict = TRUE;
-
 
         /* If the user overrides the proxy or tlsdb during construction,
                 * we don't want to needlessly resolve the extension point. So
@@ -339,7 +334,6 @@ ensure_socket_props (SoupSession *session)
 							 priv->local_addr,
 							 priv->tlsdb,
 							 priv->tls_interaction,
-							 priv->ssl_strict,
 							 priv->io_timeout,
 							 priv->idle_timeout);
 }
@@ -473,10 +467,6 @@ soup_session_set_property (GObject *object, guint prop_id,
 		priv->tls_interaction = g_value_dup_object (value);
 		socket_props_changed = TRUE;
 		break;
-	case PROP_SSL_STRICT:
-		priv->ssl_strict = g_value_get_boolean (value);
-		socket_props_changed = TRUE;
-		break;
 	case PROP_TIMEOUT:
 		priv->io_timeout = g_value_get_uint (value);
 		socket_props_changed = TRUE;
@@ -585,9 +575,6 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_TLS_INTERACTION:
 		g_value_set_object (value, priv->tls_interaction);
-		break;
-	case PROP_SSL_STRICT:
-		g_value_set_boolean (value, priv->ssl_strict);
 		break;
 	case PROP_TIMEOUT:
 		g_value_set_uint (value, priv->io_timeout);
@@ -911,35 +898,14 @@ redirect_handler (SoupMessage *msg,
 }
 
 static void
-re_emit_connection_event (SoupConnection      *conn,
-			  GSocketClientEvent   event,
-			  GIOStream           *connection,
-			  gpointer             user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-
-	soup_message_network_event (item->msg, event, connection);
-}
-
-static void
 soup_session_set_item_connection (SoupSession          *session,
 				  SoupMessageQueueItem *item,
 				  SoupConnection       *conn)
 {
-	if (item->conn) {
-		g_signal_handlers_disconnect_by_func (item->conn, re_emit_connection_event, item);
-		g_object_unref (item->conn);
-	}
-
-	item->conn = conn;
+	g_clear_object (&item->conn);
+	item->conn = conn ? g_object_ref (conn) : NULL;
 	item->conn_is_dedicated = FALSE;
 	soup_message_set_connection (item->msg, conn);
-
-	if (item->conn) {
-		g_object_ref (item->conn);
-		g_signal_connect (item->conn, "event",
-				  G_CALLBACK (re_emit_connection_event), item);
-	}
 }
 
 static void
@@ -1341,7 +1307,6 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 
 	if (soup_message_get_status (item->msg))
 		item->state = SOUP_MESSAGE_FINISHING;
-	soup_message_set_https_status (item->msg, item->conn);
 
 	item->error = error;
 	if (!status)
@@ -1450,8 +1415,6 @@ connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *erro
 {
 	SoupSession *session = item->session;
 	guint status;
-
-	soup_message_set_https_status (item->msg, item->conn);
 
 	if (!error) {
 		item->state = SOUP_MESSAGE_CONNECTED;
@@ -1637,7 +1600,6 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 
 	if (soup_connection_get_state (item->conn) != SOUP_CONNECTION_NEW) {
 		item->state = SOUP_MESSAGE_READY;
-		soup_message_set_https_status (item->msg, item->conn);
 		return TRUE;
 	}
 
@@ -2546,38 +2508,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_TYPE_TLS_DATABASE,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupSession:ssl-strict:
-	 *
-	 * Normally, if #SoupSession:tls-database is set (including if
-	 * it was set via #SoupSession:ssl-use-system-ca-file),
-	 * then libsoup will reject any
-	 * certificate that is invalid (ie, expired) or that is not
-	 * signed by one of the given CA certificates, and the
-	 * #SoupMessage will fail with the status
-	 * %SOUP_STATUS_SSL_FAILED.
-	 *
-	 * If you set #SoupSession:ssl-strict to %FALSE, then all
-	 * certificates will be accepted, and you will need to call
-	 * soup_message_get_https_status() to distinguish valid from
-	 * invalid certificates. (This can be used, eg, if you want to
-	 * accept invalid certificates after giving some sort of
-	 * warning.)
-	 *
-	 * For a plain #SoupSession, if the session has no CA file or
-	 * TLS database, and this property is %TRUE, then all
-	 * certificates will be rejected.
-	 *
-	 * Since: 2.30
-	 */
-	g_object_class_install_property (
-		object_class, PROP_SSL_STRICT,
-		g_param_spec_boolean ("ssl-strict",
-				      "Strictly validate SSL certificates",
-				      "Whether certificate errors should be considered a connection error",
-				      TRUE,
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupSession:timeout:

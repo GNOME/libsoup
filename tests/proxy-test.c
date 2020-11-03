@@ -90,6 +90,14 @@ set_close_on_connect (SoupMessage *msg,
 	}
 }
 
+static gboolean
+accept_certificate (SoupMessage         *msg,
+		    GTlsCertificate     *certificate,
+		    GTlsCertificateFlags errors)
+{
+	return TRUE;
+}
+
 static void
 test_url (const char *url, int proxy, guint expected, gboolean close)
 {
@@ -110,7 +118,6 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 	 */
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 "proxy-resolver", proxy_resolvers[proxy],
-					 "ssl-strict", FALSE,
 					 NULL);
 
 	msg = soup_message_new (SOUP_METHOD_GET, url);
@@ -121,6 +128,8 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 
 	g_signal_connect (msg, "authenticate",
                           G_CALLBACK (authenticate), NULL);
+	g_signal_connect (msg, "accept-certificate",
+			  G_CALLBACK (accept_certificate), NULL);
 
 	if (close) {
 		/* FIXME g_test_bug ("611663") */

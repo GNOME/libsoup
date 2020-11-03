@@ -771,7 +771,7 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 					       "wrote %" G_GOFFSET_FORMAT "B, "
 					       "Last-Modified: %s, "
 					       "ETag: %s",
-					       soup_message_get_https_status (msg, NULL, NULL) ? "HTTPS" : "HTTP",
+					       soup_message_get_tls_certificate (msg) ? "HTTPS" : "HTTP",
 					       uri_str, io->read_length, io->write_length,
 					       (last_modified != NULL) ? last_modified : "(unset)",
 					       (etag != NULL) ? etag : "(unset)");

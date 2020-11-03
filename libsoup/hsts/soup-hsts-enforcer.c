@@ -517,7 +517,7 @@ on_sts_known_host_message_starting (SoupMessage *msg, SoupHSTSEnforcer *hsts_enf
 	   any errors with the underlying secure transport for STS
 	   known hosts. */
 
-	soup_message_get_https_status (msg, NULL, &errors);
+	errors = soup_message_get_tls_certificate_errors (msg);
 	if (errors)
 		soup_session_cancel_message (priv->session, msg, SOUP_STATUS_CANCELLED);
 }
