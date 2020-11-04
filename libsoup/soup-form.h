@@ -34,23 +34,6 @@ SOUP_AVAILABLE_IN_2_4
 char        *soup_form_encode_valist    (const char   *first_field,
 					 va_list       args);
 
-SOUP_AVAILABLE_IN_2_4
-SoupMessage *soup_form_request_new                (const char     *method,
-						   const char     *uri,
-						   const char     *first_field,
-						   ...) G_GNUC_NULL_TERMINATED;
-SOUP_AVAILABLE_IN_2_4
-SoupMessage *soup_form_request_new_from_hash      (const char     *method,
-						   const char     *uri,
-						   GHashTable     *form_data_set);
-SOUP_AVAILABLE_IN_2_4
-SoupMessage *soup_form_request_new_from_datalist  (const char     *method,
-						   const char     *uri,
-						   GData         **form_data_set);
-SOUP_AVAILABLE_IN_2_26
-SoupMessage *soup_form_request_new_from_multipart (const char     *uri,
-						   SoupMultipart  *multipart);
-
 G_END_DECLS
 
 #endif /* __SOUP_FORM_H__ */

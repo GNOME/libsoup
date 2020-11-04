@@ -797,6 +797,100 @@ soup_message_new_from_uri (const char *method, SoupURI *uri)
 }
 
 /**
+ * soup_message_new_from_encoded_form:
+ * @method: the HTTP method for the created request (GET, POST or PUT)
+ * @uri_string: the destination endpoint (as a string)
+ * @encoded_form: (transfer full): a encoded form
+ *
+ * Creates a new #SoupMessage and sets it up to send the given @encoded_form
+ * to @uri via @method. If @method is "GET", it will include the form data
+ * into @uri's query field, and if @method is "POST" or "PUT", it will be set as
+ * request body.
+ * This function takes the ownership of @encoded_form, that will be released
+ * with g_free() when no longer in use. See also soup_form_encode(),
+ * soup_form_encode_hash() and soup_form_encode_datalist().
+ *
+ * Returns: (transfer full) (nullable): the new #SoupMessage, or %NULL if @uri_string
+ *     could not be parsed or @method is not "GET, "POST" or "PUT"
+ */
+SoupMessage *
+soup_message_new_from_encoded_form (const char *method,
+                                    const char *uri_string,
+                                    char       *encoded_form)
+{
+        SoupMessage *msg = NULL;
+        SoupURI *uri;
+
+        g_return_val_if_fail (method != NULL, NULL);
+        g_return_val_if_fail (uri_string != NULL, NULL);
+        g_return_val_if_fail (encoded_form != NULL, NULL);
+
+        uri = soup_uri_new (uri_string);
+        if (!uri || !uri->host) {
+                g_free (encoded_form);
+                soup_uri_free (uri);
+                return NULL;
+        }
+
+        if (strcmp (method, "GET") == 0) {
+                g_free (uri->query);
+                uri->query = encoded_form;
+                msg = soup_message_new_from_uri (method, uri);
+        } else if (strcmp (method, "POST") == 0 || strcmp (method, "PUT") == 0) {
+                GBytes *body;
+
+                msg = soup_message_new_from_uri (method, uri);
+                body = g_bytes_new_take (encoded_form, strlen (encoded_form));
+                soup_message_set_request_body_from_bytes (msg, SOUP_FORM_MIME_TYPE_URLENCODED, body);
+                g_bytes_unref (body);
+        } else {
+                g_free (encoded_form);
+        }
+
+        soup_uri_free (uri);
+
+        return msg;
+}
+
+/**
+ * soup_message_new_from_multipart:
+ * @uri_string: the destination endpoint (as a string)
+ * @multipart: a #SoupMultipart
+ *
+ * Creates a new #SoupMessage and sets it up to send @multipart to
+ * @uri_string via POST.
+ *
+ * Returns: (transfer full) (nullable): the new #SoupMessage, or %NULL if @uri_string
+ *     could not be parsed
+ */
+SoupMessage *
+soup_message_new_from_multipart (const char    *uri_string,
+                                 SoupMultipart *multipart)
+{
+        SoupMessage *msg = NULL;
+        SoupURI *uri;
+        GBytes *body = NULL;
+
+        g_return_val_if_fail (uri_string != NULL, NULL);
+        g_return_val_if_fail (multipart != NULL, NULL);
+
+        uri = soup_uri_new (uri_string);
+        if (!uri || !uri->host) {
+                soup_uri_free (uri);
+                return NULL;
+        }
+
+        msg = soup_message_new_from_uri ("POST", uri);
+        soup_multipart_to_message (multipart, soup_message_get_request_headers (msg), &body);
+        soup_message_set_request_body_from_bytes (msg,
+                                                  soup_message_headers_get_content_type (soup_message_get_request_headers (msg), NULL),
+                                                  body);
+        g_bytes_unref (body);
+
+        return msg;
+}
+
+/**
  * soup_message_set_request_body:
  * @msg: the message
  * @content_type: (allow-none): MIME Content-Type of the body

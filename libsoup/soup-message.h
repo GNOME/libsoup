@@ -9,6 +9,7 @@
 #include "soup-message-body.h"
 #include "soup-message-headers.h"
 #include "soup-method.h"
+#include "soup-multipart.h"
 
 G_BEGIN_DECLS
 
@@ -17,11 +18,20 @@ SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupMessage, soup_message, SOUP, MESSAGE, GObject)
 
 SOUP_AVAILABLE_IN_2_4
-SoupMessage   *soup_message_new                 (const char        *method,
-						 const char        *uri_string);
+SoupMessage   *soup_message_new                   (const char        *method,
+						   const char        *uri_string);
 SOUP_AVAILABLE_IN_2_4
-SoupMessage   *soup_message_new_from_uri        (const char        *method,
-						 SoupURI           *uri);
+SoupMessage   *soup_message_new_from_uri          (const char        *method,
+						   SoupURI           *uri);
+
+SOUP_AVAILABLE_IN_ALL
+SoupMessage   *soup_message_new_from_encoded_form (const char        *method,
+						   const char        *uri_string,
+						   char              *encoded_form);
+
+SOUP_AVAILABLE_IN_ALL
+SoupMessage   *soup_message_new_from_multipart    (const char        *uri_string,
+						   SoupMultipart     *multipart);
 
 SOUP_AVAILABLE_IN_ALL
 void           soup_message_set_request_body    (SoupMessage       *msg,

@@ -36,7 +36,7 @@ static struct {
 };
 
 static void
-do_hello_test (int n, gboolean extra, const char *uri)
+do_hello_test_curl (int n, gboolean extra, const char *uri)
 {
 	GPtrArray *args;
 	char *title_arg = NULL, *name_arg = NULL;
@@ -86,7 +86,7 @@ do_hello_test (int n, gboolean extra, const char *uri)
 }
 
 static void
-do_hello_tests (gconstpointer uri)
+do_hello_tests_curl (gconstpointer uri)
 {
 	int n;
 
@@ -96,8 +96,56 @@ do_hello_tests (gconstpointer uri)
 	}
 
 	for (n = 0; n < G_N_ELEMENTS (tests); n++) {
-		do_hello_test (n, FALSE, uri);
-		do_hello_test (n, TRUE, uri);
+		do_hello_test_curl (n, FALSE, uri);
+		do_hello_test_curl (n, TRUE, uri);
+	}
+}
+
+static void
+do_hello_test_libsoup (int n, gboolean extra, const char *uri)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	GData *data;
+	GBytes *body;
+
+	debug_printf (1, "%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
+		      tests[n].title ? tests[n].title : "(null)",
+		      tests[n].name  ? tests[n].name  : "(null)",
+		      extra ? " + extra" : "");
+
+	g_datalist_init (&data);
+	if (tests[n].title)
+		g_datalist_set_data (&data, "title", (gpointer)tests[n].title);
+	if (tests[n].name)
+		g_datalist_set_data (&data, "n@me", (gpointer)tests[n].name);
+	if (extra)
+		g_datalist_set_data (&data, "extra", (gpointer)"something");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+
+	msg = soup_message_new_from_encoded_form ("GET",
+						  uri,
+						  soup_form_encode_datalist (&data));
+	g_datalist_clear (&data);
+
+	body = soup_test_session_send (session, msg, NULL, NULL);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_assert_cmpmem (tests[n].result, strlen (tests[n].result), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
+
+	g_bytes_unref (body);
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+}
+
+static void
+do_hello_tests_libsoup (gconstpointer uri)
+{
+	int n;
+
+	for (n = 0; n < G_N_ELEMENTS (tests); n++) {
+		do_hello_test_libsoup (n, FALSE, uri);
+		do_hello_test_libsoup (n, TRUE, uri);
 	}
 }
 
@@ -204,7 +252,7 @@ do_md5_test_libsoup (gconstpointer data)
 	g_bytes_unref (buffer);
 	soup_multipart_append_form_string (multipart, "fmt", "text");
 
-	msg = soup_form_request_new_from_multipart (uri, multipart);
+	msg = soup_message_new_from_multipart (uri, multipart);
 	soup_multipart_free (multipart);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
@@ -456,7 +504,8 @@ main (int argc, char **argv)
 
 	if (run_tests) {
 		uri = soup_uri_new_with_base (base_uri, "/hello");
-		g_test_add_data_func_full ("/forms/hello", soup_uri_to_string (uri, FALSE), do_hello_tests, g_free);
+		g_test_add_data_func_full ("/forms/hello/curl", soup_uri_to_string (uri, FALSE), do_hello_tests_curl, g_free);
+		g_test_add_data_func_full ("/forms/hello/libsoup", soup_uri_to_string (uri, FALSE), do_hello_tests_libsoup, g_free);
 		soup_uri_free (uri);
 
 		uri = soup_uri_new_with_base (base_uri, "/md5");
