@@ -68,7 +68,6 @@ typedef struct {
         SoupStatus         status_code;
 
 	guint              msg_flags;
-	gboolean           server_side;
 
 	SoupContentSniffer *sniffer;
 	gsize              bytes_for_sniffing;
