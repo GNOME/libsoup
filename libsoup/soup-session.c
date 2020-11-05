@@ -3979,14 +3979,14 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 	item->callback = NULL;
 
 	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
-	if (soup_websocket_client_verify_handshake_with_extensions (item->msg, supported_extensions, &accepted_extensions, &error)) {
+	if (soup_websocket_client_verify_handshake (item->msg, supported_extensions, &accepted_extensions, &error)) {
 		stream = soup_session_steal_connection (item->session, item->msg);
-		client = soup_websocket_connection_new_with_extensions (stream,
-									soup_message_get_uri (item->msg),
-									SOUP_WEBSOCKET_CONNECTION_CLIENT,
-									soup_message_headers_get_one (soup_message_get_request_headers (msg), "Origin"),
-									soup_message_headers_get_one (soup_message_get_response_headers (msg), "Sec-WebSocket-Protocol"),
-									accepted_extensions);
+		client = soup_websocket_connection_new (stream,
+							soup_message_get_uri (item->msg),
+							SOUP_WEBSOCKET_CONNECTION_CLIENT,
+							soup_message_headers_get_one (soup_message_get_request_headers (msg), "Origin"),
+							soup_message_headers_get_one (soup_message_get_response_headers (msg), "Sec-WebSocket-Protocol"),
+							accepted_extensions);
 		g_object_unref (stream);
 		g_task_return_pointer (task, client, g_object_unref);
 		g_object_unref (task);
@@ -4049,7 +4049,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
-	soup_websocket_client_prepare_handshake_with_extensions (msg, origin, protocols, supported_extensions);
+	soup_websocket_client_prepare_handshake (msg, origin, protocols, supported_extensions);
 
 	/* When the client is to _Establish a WebSocket Connection_ given a set
 	 * of (/host/, /port/, /resource name/, and /secure/ flag), along with a

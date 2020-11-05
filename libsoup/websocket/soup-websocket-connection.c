@@ -1743,32 +1743,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
  * @type: the type of connection (client/side)
  * @origin: (allow-none): the Origin of the client
  * @protocol: (allow-none): the subprotocol in use
- *
- * Creates a #SoupWebsocketConnection on @stream. This should be
- * called after completing the handshake to begin using the WebSocket
- * protocol.
- *
- * Returns: a new #SoupWebsocketConnection
- *
- * Since: 2.50
- */
-SoupWebsocketConnection *
-soup_websocket_connection_new (GIOStream                    *stream,
-			       SoupURI                      *uri,
-			       SoupWebsocketConnectionType   type,
-			       const char                   *origin,
-			       const char                   *protocol)
-{
-	return soup_websocket_connection_new_with_extensions (stream, uri, type, origin, protocol, NULL);
-}
-
-/**
- * soup_websocket_connection_new_with_extensions:
- * @stream: a #GIOStream connected to the WebSocket server
- * @uri: the URI of the connection
- * @type: the type of connection (client/side)
- * @origin: (allow-none): the Origin of the client
- * @protocol: (allow-none): the subprotocol in use
  * @extensions: (element-type SoupWebsocketExtension) (transfer full): a #GList of #SoupWebsocketExtension objects
  *
  * Creates a #SoupWebsocketConnection on @stream with the given active @extensions.
@@ -1776,16 +1750,14 @@ soup_websocket_connection_new (GIOStream                    *stream,
  * protocol.
  *
  * Returns: a new #SoupWebsocketConnection
- *
- * Since: 2.68
  */
 SoupWebsocketConnection *
-soup_websocket_connection_new_with_extensions (GIOStream                    *stream,
-                                               SoupURI                      *uri,
-                                               SoupWebsocketConnectionType   type,
-                                               const char                   *origin,
-                                               const char                   *protocol,
-                                               GList                        *extensions)
+soup_websocket_connection_new (GIOStream                    *stream,
+			       SoupURI                      *uri,
+			       SoupWebsocketConnectionType   type,
+			       const char                   *origin,
+			       const char                   *protocol,
+			       GList                        *extensions)
 {
         g_return_val_if_fail (G_IS_IO_STREAM (stream), NULL);
         g_return_val_if_fail (uri != NULL, NULL);

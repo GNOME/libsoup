@@ -246,34 +246,6 @@ choose_subprotocol (SoupServerMessage *msg,
 /**
  * soup_websocket_client_prepare_handshake:
  * @msg: a #SoupMessage
- * @origin: (allow-none): the "Origin" header to set
- * @protocols: (allow-none) (array zero-terminated=1): list of
- *   protocols to offer
- *
- * Adds the necessary headers to @msg to request a WebSocket
- * handshake. The message body and non-WebSocket-related headers are
- * not modified.
- *
- * Use soup_websocket_client_prepare_handshake_with_extensions() if you
- * want to include "Sec-WebSocket-Extensions" header in the request.
- *
- * This is a low-level function; if you use
- * soup_session_websocket_connect_async() to create a WebSocket
- * connection, it will call this for you.
- *
- * Since: 2.50
- */
-void
-soup_websocket_client_prepare_handshake (SoupMessage  *msg,
-					 const char   *origin,
-					 char        **protocols)
-{
-	soup_websocket_client_prepare_handshake_with_extensions (msg, origin, protocols, NULL);
-}
-
-/**
- * soup_websocket_client_prepare_handshake_with_extensions:
- * @msg: a #SoupMessage
  * @origin: (nullable): the "Origin" header to set
  * @protocols: (nullable) (array zero-terminated=1): list of
  *   protocols to offer
@@ -288,14 +260,12 @@ soup_websocket_client_prepare_handshake (SoupMessage  *msg,
  * This is a low-level function; if you use
  * soup_session_websocket_connect_async() to create a WebSocket
  * connection, it will call this for you.
- *
- * Since: 2.68
  */
 void
-soup_websocket_client_prepare_handshake_with_extensions (SoupMessage *msg,
-                                                         const char  *origin,
-                                                         char       **protocols,
-                                                         GPtrArray   *supported_extensions)
+soup_websocket_client_prepare_handshake (SoupMessage *msg,
+					 const char  *origin,
+					 char       **protocols,
+					 GPtrArray   *supported_extensions)
 {
 	guint32 raw[4];
 	char *key;
@@ -367,49 +337,6 @@ soup_websocket_client_prepare_handshake_with_extensions (SoupMessage *msg,
 		}
 		g_string_free (extensions, TRUE);
 	}
-}
-
-/**
- * soup_websocket_server_check_handshake:
- * @msg: #SoupMessage containing the client side of a WebSocket handshake
- * @origin: (allow-none): expected Origin header
- * @protocols: (allow-none) (array zero-terminated=1): allowed WebSocket
- *   protocols.
- * @error: return location for a #GError
- *
- * Examines the method and request headers in @msg and determines
- * whether @msg contains a valid handshake request.
- *
- * If @origin is non-%NULL, then only requests containing a matching
- * "Origin" header will be accepted. If @protocols is non-%NULL, then
- * only requests containing a compatible "Sec-WebSocket-Protocols"
- * header will be accepted.
- *
- * Requests containing "Sec-WebSocket-Extensions" header will be
- * accepted even if the header is not valid. To check a request
- * with extensions you need to use
- * soup_websocket_server_check_handshake_with_extensions() and provide
- * the list of supported extension types.
- *
- * Normally soup_websocket_server_process_handshake() will take care
- * of this for you, and if you use soup_server_add_websocket_handler()
- * to handle accepting WebSocket connections, it will call that for
- * you. However, this function may be useful if you need to perform
- * more complicated validation; eg, accepting multiple different Origins,
- * or handling different protocols depending on the path.
- *
- * Returns: %TRUE if @msg contained a valid WebSocket handshake,
- *   %FALSE and an error if not.
- *
- * Since: 2.50
- */
-gboolean
-soup_websocket_server_check_handshake (SoupServerMessage *msg,
-				       const char        *expected_origin,
-				       char             **protocols,
-				       GError           **error)
-{
-	return soup_websocket_server_check_handshake_with_extensions (msg, expected_origin, protocols, NULL, error);
 }
 
 static gboolean
@@ -605,7 +532,7 @@ process_extensions (const char  *extensions,
 }
 
 /**
- * soup_websocket_server_check_handshake_with_extensions:
+ * soup_websocket_server_check_handshake:
  * @msg: #SoupServerMessage containing the client side of a WebSocket handshake
  * @origin: (nullable): expected Origin header
  * @protocols: (nullable) (array zero-terminated=1): allowed WebSocket
@@ -624,7 +551,7 @@ process_extensions (const char  *extensions,
  * only requests containing valid supported extensions in
  * "Sec-WebSocket-Extensions" header will be accepted.
  *
- * Normally soup_websocket_server_process_handshake_with_extensions()
+ * Normally soup_websocket_server_process_handshake()
  * will take care of this for you, and if you use
  * soup_server_add_websocket_handler() to handle accepting WebSocket
  * connections, it will call that for you. However, this function may
@@ -634,15 +561,13 @@ process_extensions (const char  *extensions,
  *
  * Returns: %TRUE if @msg contained a valid WebSocket handshake,
  *   %FALSE and an error if not.
- *
- * Since: 2.68
  */
 gboolean
-soup_websocket_server_check_handshake_with_extensions (SoupServerMessage *msg,
-                                                       const char        *expected_origin,
-                                                       char             **protocols,
-                                                       GPtrArray         *supported_extensions,
-                                                       GError           **error)
+soup_websocket_server_check_handshake (SoupServerMessage *msg,
+				       const char        *expected_origin,
+				       char             **protocols,
+				       GPtrArray         *supported_extensions,
+				       GError           **error)
 {
 	const char *origin;
 	const char *key;
@@ -747,45 +672,6 @@ respond_handshake_bad (SoupServerMessage *msg,
 /**
  * soup_websocket_server_process_handshake:
  * @msg: #SoupServerMessage containing the client side of a WebSocket handshake
- * @expected_origin: (allow-none): expected Origin header
- * @protocols: (allow-none) (array zero-terminated=1): allowed WebSocket
- *   protocols.
- *
- * Examines the method and request headers in @msg and (assuming @msg
- * contains a valid handshake request), fills in the handshake
- * response.
- *
- * If @expected_origin is non-%NULL, then only requests containing a matching
- * "Origin" header will be accepted. If @protocols is non-%NULL, then
- * only requests containing a compatible "Sec-WebSocket-Protocols"
- * header will be accepted.
- *
- * Requests containing "Sec-WebSocket-Extensions" header will be
- * accepted even if the header is not valid. To process a request
- * with extensions you need to use
- * soup_websocket_server_process_handshake_with_extensions() and provide
- * the list of supported extension types.
- *
- * This is a low-level function; if you use
- * soup_server_add_websocket_handler() to handle accepting WebSocket
- * connections, it will call this for you.
- *
- * Returns: %TRUE if @msg contained a valid WebSocket handshake
- *   request and was updated to contain a handshake response. %FALSE if not.
- *
- * Since: 2.50
- */
-gboolean
-soup_websocket_server_process_handshake (SoupServerMessage *msg,
-					 const char        *expected_origin,
-					 char             **protocols)
-{
-	return soup_websocket_server_process_handshake_with_extensions (msg, expected_origin, protocols, NULL, NULL);
-}
-
-/**
- * soup_websocket_server_process_handshake_with_extensions:
- * @msg: #SoupServerMessage containing the client side of a WebSocket handshake
  * @expected_origin: (nullable): expected Origin header
  * @protocols: (nullable) (array zero-terminated=1): allowed WebSocket
  *   protocols.
@@ -812,15 +698,13 @@ soup_websocket_server_process_handshake (SoupServerMessage *msg,
  *
  * Returns: %TRUE if @msg contained a valid WebSocket handshake
  *   request and was updated to contain a handshake response. %FALSE if not.
- *
- * Since: 2.68
  */
 gboolean
-soup_websocket_server_process_handshake_with_extensions (SoupServerMessage *msg,
-                                                         const char        *expected_origin,
-                                                         char             **protocols,
-                                                         GPtrArray         *supported_extensions,
-                                                         GList            **accepted_extensions)
+soup_websocket_server_process_handshake (SoupServerMessage *msg,
+					 const char        *expected_origin,
+					 char             **protocols,
+					 GPtrArray         *supported_extensions,
+					 GList            **accepted_extensions)
 {
 	const char *chosen_protocol = NULL;
 	const char *key;
@@ -833,7 +717,7 @@ soup_websocket_server_process_handshake_with_extensions (SoupServerMessage *msg,
 	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), FALSE);
 	g_return_val_if_fail (accepted_extensions == NULL || *accepted_extensions == NULL, FALSE);
 
-	if (!soup_websocket_server_check_handshake_with_extensions (msg, expected_origin, protocols, supported_extensions, &error)) {
+	if (!soup_websocket_server_check_handshake (msg, expected_origin, protocols, supported_extensions, &error)) {
 		if (g_error_matches (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_BAD_ORIGIN))
@@ -909,37 +793,6 @@ soup_websocket_server_process_handshake_with_extensions (SoupServerMessage *msg,
  * soup_websocket_client_verify_handshake:
  * @msg: #SoupMessage containing both client and server sides of a
  *   WebSocket handshake
- * @error: return location for a #GError
- *
- * Looks at the response status code and headers in @msg and
- * determines if they contain a valid WebSocket handshake response
- * (given the handshake request in @msg's request headers).
- *
- * If the response contains the "Sec-WebSocket-Extensions" header,
- * the handshake will be considered invalid. You need to use
- * soup_websocket_client_verify_handshake_with_extensions() to handle
- * responses with extensions.
- *
- * This is a low-level function; if you use
- * soup_session_websocket_connect_async() to create a WebSocket
- * connection, it will call this for you.
- *
- * Returns: %TRUE if @msg contains a completed valid WebSocket
- *   handshake, %FALSE and an error if not.
- *
- * Since: 2.50
- */
-gboolean
-soup_websocket_client_verify_handshake (SoupMessage  *msg,
-					GError      **error)
-{
-	return soup_websocket_client_verify_handshake_with_extensions (msg, NULL, NULL, error);
-}
-
-/**
- * soup_websocket_client_verify_handshake_with_extensions:
- * @msg: #SoupMessage containing both client and server sides of a
- *   WebSocket handshake
  * @supported_extensions: (nullable) (element-type GObject.TypeClass): list
  *   of supported extension types
  * @accepted_extensions: (out) (optional) (element-type SoupWebsocketExtension): a
@@ -960,14 +813,12 @@ soup_websocket_client_verify_handshake (SoupMessage  *msg,
  *
  * Returns: %TRUE if @msg contains a completed valid WebSocket
  *   handshake, %FALSE and an error if not.
- *
- * Since: 2.68
  */
 gboolean
-soup_websocket_client_verify_handshake_with_extensions (SoupMessage *msg,
-                                                        GPtrArray   *supported_extensions,
-                                                        GList      **accepted_extensions,
-                                                        GError     **error)
+soup_websocket_client_verify_handshake (SoupMessage *msg,
+					GPtrArray   *supported_extensions,
+					GList      **accepted_extensions,
+					GError     **error)
 {
 	const char *protocol, *request_protocols, *extensions, *accept_key;
 	char *expected_accept_key;

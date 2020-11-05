@@ -920,11 +920,11 @@ complete_websocket_upgrade (SoupServer        *server,
 
 	g_object_ref (msg);
 	stream = soup_server_message_steal_connection (msg);
-	conn = soup_websocket_connection_new_with_extensions (stream, uri,
-							      SOUP_WEBSOCKET_CONNECTION_SERVER,
-							      soup_message_headers_get_one (soup_server_message_get_request_headers (msg), "Origin"),
-							      soup_message_headers_get_one (soup_server_message_get_response_headers (msg), "Sec-WebSocket-Protocol"),
-							      handler->websocket_extensions);
+	conn = soup_websocket_connection_new (stream, uri,
+					      SOUP_WEBSOCKET_CONNECTION_SERVER,
+					      soup_message_headers_get_one (soup_server_message_get_request_headers (msg), "Origin"),
+					      soup_message_headers_get_one (soup_server_message_get_response_headers (msg), "Sec-WebSocket-Protocol"),
+					      handler->websocket_extensions);
 	handler->websocket_extensions = NULL;
 	g_object_unref (stream);
 
@@ -959,11 +959,11 @@ got_body (SoupServer        *server,
 		SoupServerPrivate *priv;
 
 		priv = soup_server_get_instance_private (server);
-		if (soup_websocket_server_process_handshake_with_extensions (msg,
-									     handler->websocket_origin,
-									     handler->websocket_protocols,
-									     priv->websocket_extension_types,
-									     &handler->websocket_extensions)) {
+		if (soup_websocket_server_process_handshake (msg,
+							     handler->websocket_origin,
+							     handler->websocket_protocols,
+							     priv->websocket_extension_types,
+							     &handler->websocket_extensions)) {
 			g_signal_connect_object (msg, "wrote-informational",
 						 G_CALLBACK (complete_websocket_upgrade),
 						 server, G_CONNECT_SWAPPED);

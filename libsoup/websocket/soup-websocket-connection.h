@@ -29,19 +29,13 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_2_50
 G_DECLARE_FINAL_TYPE (SoupWebsocketConnection, soup_websocket_connection, SOUP, WEBSOCKET_CONNECTION, GObject)
 
-SOUP_AVAILABLE_IN_2_50
+SOUP_AVAILABLE_IN_ALL
 SoupWebsocketConnection *soup_websocket_connection_new (GIOStream                    *stream,
 							SoupURI                      *uri,
 							SoupWebsocketConnectionType   type,
 							const char                   *origin,
-							const char                   *protocol);
-SOUP_AVAILABLE_IN_2_68
-SoupWebsocketConnection *soup_websocket_connection_new_with_extensions (GIOStream                    *stream,
-                                                                        SoupURI                      *uri,
-                                                                        SoupWebsocketConnectionType   type,
-                                                                        const char                   *origin,
-                                                                        const char                   *protocol,
-                                                                        GList                        *extensions);
+							const char                   *protocol,
+							GList                        *extensions);
 
 SOUP_AVAILABLE_IN_2_50
 GIOStream *         soup_websocket_connection_get_io_stream  (SoupWebsocketConnection *self);
