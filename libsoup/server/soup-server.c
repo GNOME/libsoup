@@ -191,8 +191,6 @@ enum {
 	PROP_SERVER_HEADER,
 	PROP_HTTP_ALIASES,
 	PROP_HTTPS_ALIASES,
-	PROP_ADD_WEBSOCKET_EXTENSION,
-	PROP_REMOVE_WEBSOCKET_EXTENSION,
 
 	LAST_PROP
 };
@@ -330,12 +328,6 @@ soup_server_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_HTTPS_ALIASES:
 		set_aliases (&priv->https_aliases, g_value_get_boxed (value));
-		break;
-	case PROP_ADD_WEBSOCKET_EXTENSION:
-		soup_server_add_websocket_extension (server, g_value_get_gtype (value));
-		break;
-	case PROP_REMOVE_WEBSOCKET_EXTENSION:
-		soup_server_remove_websocket_extension (server, g_value_get_gtype (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -592,37 +584,6 @@ soup_server_class_init (SoupServerClass *server_class)
 				    "URI schemes that are considered aliases for 'https'",
 				    G_TYPE_STRV,
 				    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * SoupServer:add-websocket-extension: (skip)
-         *
-         * Add support for #SoupWebsocketExtension of the given type.
-         * (Shortcut for calling soup_server_add_websocket_extension().)
-         *
-         * Since: 2.68
-         **/
-        g_object_class_install_property (
-                object_class, PROP_ADD_WEBSOCKET_EXTENSION,
-                g_param_spec_gtype ("add-websocket-extension",
-                                    "Add support for a WebSocket extension",
-                                    "Add support for a WebSocket extension of the given type",
-                                    SOUP_TYPE_WEBSOCKET_EXTENSION,
-                                    G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
-        /**
-         * SoupServer:remove-websocket-extension: (skip)
-         *
-         * Remove support for #SoupWebsocketExtension of the given type. (Shortcut for
-         * calling soup_server_remove_websocket_extension().)
-         *
-         * Since: 2.68
-         **/
-        g_object_class_install_property (
-                object_class, PROP_REMOVE_WEBSOCKET_EXTENSION,
-                g_param_spec_gtype ("remove-websocket-extension",
-                                    "Remove support for a WebSocket extension",
-                                    "Remove support for a WebSocket extension of the given type",
-                                    SOUP_TYPE_WEBSOCKET_EXTENSION,
-                                    G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 }
 
 /**

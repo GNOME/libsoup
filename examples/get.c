@@ -224,11 +224,11 @@ main (int argc, char **argv)
 	soup_uri_free (parsed);
 
 	session = g_object_new (SOUP_TYPE_SESSION,
-				"add-feature-by-type", SOUP_TYPE_CONTENT_DECODER,
-				"add-feature-by-type", SOUP_TYPE_COOKIE_JAR,
 				"user-agent", "get ",
 				"accept-language-auto", TRUE,
 				NULL);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 	if (ntlm)
 		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
 	if (ca_file)

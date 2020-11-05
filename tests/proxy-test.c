@@ -324,9 +324,8 @@ do_proxy_auth_cache_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION,
 					 "proxy-resolver", proxy_resolvers[AUTH_PROXY],
-					 "add-feature", cache,
 					 NULL);
-
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
 	url = g_strconcat (HTTP_SERVER, "/Basic/realm1/", NULL);
 
 	debug_printf (1, "  GET %s via %s (from network)\n", url, proxy_names[AUTH_PROXY]);

@@ -186,9 +186,6 @@ enum {
 	PROP_ACCEPT_LANGUAGE,
 	PROP_ACCEPT_LANGUAGE_AUTO,
 	PROP_IDLE_TIMEOUT,
-	PROP_ADD_FEATURE,
-	PROP_ADD_FEATURE_BY_TYPE,
-	PROP_REMOVE_FEATURE_BY_TYPE,
 	PROP_HTTP_ALIASES,
 	PROP_HTTPS_ALIASES,
 	PROP_LOCAL_ADDRESS,
@@ -505,15 +502,6 @@ soup_session_set_property (GObject *object, guint prop_id,
 	case PROP_IDLE_TIMEOUT:
 		priv->idle_timeout = g_value_get_uint (value);
 		socket_props_changed = TRUE;
-		break;
-	case PROP_ADD_FEATURE:
-		soup_session_add_feature (session, g_value_get_object (value));
-		break;
-	case PROP_ADD_FEATURE_BY_TYPE:
-		soup_session_add_feature_by_type (session, g_value_get_gtype (value));
-		break;
-	case PROP_REMOVE_FEATURE_BY_TYPE:
-		soup_session_remove_feature_by_type (session, g_value_get_gtype (value));
 		break;
 	case PROP_HTTP_ALIASES:
 		set_aliases (&priv->http_aliases, g_value_get_boxed (value));
@@ -2033,9 +2021,7 @@ soup_session_abort (SoupSession *session)
  * @session: a #SoupSession
  * @feature: an object that implements #SoupSessionFeature
  *
- * Adds @feature's functionality to @session. You can also add a
- * feature to the session at construct time by using the
- * SoupSession:add-feature property.
+ * Adds @feature's functionality to @session.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
@@ -2069,9 +2055,6 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * If @feature_type is not a #SoupSessionFeature type, this gives each
  * existing feature on @session the chance to accept @feature_type as
  * a "subfeature". This can be used to add new #SoupAuth types, for instance.
- *
- * You can also add a feature to the session at construct time by
- * using the SoupSession:add-feature-by-type property.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
@@ -2609,54 +2592,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 
-	/**
-	 * SoupSession:add-feature: (skip)
-	 *
-	 * Add a feature object to the session. (Shortcut for calling
-	 * soup_session_add_feature().)
-	 *
-	 * Since: 2.24
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_ADD_FEATURE,
-		g_param_spec_object ("add-feature",
-				     "Add Feature",
-				     "Add a feature object to the session",
-				     SOUP_TYPE_SESSION_FEATURE,
-				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupSession:add-feature-by-type: (skip)
-	 *
-	 * Add a feature object of the given type to the session.
-	 * (Shortcut for calling soup_session_add_feature_by_type().)
-	 *
-	 * Since: 2.24
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_ADD_FEATURE_BY_TYPE,
-		g_param_spec_gtype ("add-feature-by-type",
-				    "Add Feature By Type",
-				    "Add a feature object of the given type to the session",
-				    G_TYPE_OBJECT,
-				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupSession:remove-feature-by-type: (skip)
-	 *
-	 * Remove feature objects from the session. (Shortcut for
-	 * calling soup_session_remove_feature_by_type().)
-	 *
-	 * Since: 2.24
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_REMOVE_FEATURE_BY_TYPE,
-		g_param_spec_gtype ("remove-feature-by-type",
-				    "Remove Feature By Type",
-				    "Remove features of the given type from the session",
-				    G_TYPE_OBJECT,
-				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:http-aliases:
 	 *

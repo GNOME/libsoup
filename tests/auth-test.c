@@ -900,16 +900,16 @@ do_select_auth_test (void)
 
 	basic_auth_domain = soup_auth_domain_basic_new (
 		"realm", "auth-test",
-		"add-path", "/",
 		"auth-callback", server_basic_auth_callback,
 		NULL);
+        soup_auth_domain_add_path (basic_auth_domain, "/");
 	soup_server_add_auth_domain (server, basic_auth_domain);
 
 	digest_auth_domain = soup_auth_domain_digest_new (
 		"realm", "auth-test",
-		"add-path", "/",
 		"auth-callback", server_digest_auth_callback,
 		NULL);
+        soup_auth_domain_add_path (digest_auth_domain, "/");
 	soup_server_add_auth_domain (server, digest_auth_domain);
 
 	debug_printf (1, "  Testing with no auth\n");
@@ -1051,9 +1051,9 @@ do_auth_close_test (void)
 
 	basic_auth_domain = soup_auth_domain_basic_new (
 		"realm", "auth-test",
-		"add-path", "/",
 		"auth-callback", server_basic_auth_callback,
 		NULL);
+        soup_auth_domain_add_path (basic_auth_domain, "/");
 	soup_server_add_auth_domain (server, basic_auth_domain);
 	g_object_unref (basic_auth_domain);
 
@@ -1178,9 +1178,9 @@ do_disappearing_auth_test (void)
 
 	auth_domain = soup_auth_domain_basic_new (
 						  "realm", "auth-test",
-						  "add-path", "/",
 						  "auth-callback", server_basic_auth_callback,
 						  NULL);
+        soup_auth_domain_add_path (auth_domain, "/");
 	soup_server_add_auth_domain (server, auth_domain);
 	g_signal_connect (server, "request-read",
 			  G_CALLBACK (disappear_request_read), NULL);

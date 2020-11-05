@@ -294,9 +294,8 @@ do_basics_test (gconstpointer data)
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "add-feature", cache,
-					 NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
 
 	g_signal_connect (session, "request-queued",
 			  G_CALLBACK (request_queued), NULL);
@@ -488,9 +487,9 @@ do_cancel_test (gconstpointer data)
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "add-feature", cache,
-					 NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
+
 	g_signal_connect (session, "request-unqueued",
 			  G_CALLBACK (request_unqueued), NULL);
 
@@ -521,9 +520,9 @@ do_cancel_test (gconstpointer data)
 
 	soup_test_session_abort_unref (session);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "add-feature", cache,
-					 NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
+
 	g_signal_connect (session, "request-unqueued",
 			  G_CALLBACK (request_unqueued), NULL);
 
@@ -582,9 +581,8 @@ do_refcounting_test (gconstpointer data)
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "add-feature", cache,
-					 NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
 
 	last_request_validated = last_request_hit_network = FALSE;
 	cancelled_requests = 0;
@@ -637,9 +635,8 @@ do_headers_test (gconstpointer data)
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "add-feature", cache,
-					 NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
 
 	g_signal_connect (session, "request-queued",
 			  G_CALLBACK (request_queued), NULL);
@@ -714,9 +711,8 @@ do_leaks_test (gconstpointer data)
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "add-feature", cache,
-					 NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
 
 	debug_printf (2, "  Initial requests\n");
 	body = do_request (session, base_uri, "GET", "/1", NULL,

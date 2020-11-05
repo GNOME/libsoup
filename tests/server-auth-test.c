@@ -346,21 +346,21 @@ main (int argc, char **argv)
 
 	auth_domain = soup_auth_domain_basic_new (
 		"realm", "server-auth-test",
-		"add-path", "/Basic",
-		"add-path", "/Any",
-		"remove-path", "/Any/Not",
 		"auth-callback", basic_auth_callback,
 		NULL);
+        soup_auth_domain_add_path (auth_domain, "/Basic");
+        soup_auth_domain_add_path (auth_domain, "/Any");
+        soup_auth_domain_remove_path (auth_domain, "/Any/Not");
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);
 
 	auth_domain = soup_auth_domain_digest_new (
 		"realm", "server-auth-test",
-		"add-path", "/Digest",
-		"add-path", "/Any",
-		"remove-path", "/Any/Not",
 		"auth-callback", digest_auth_callback,
 		NULL);
+        soup_auth_domain_add_path (auth_domain, "/Digest");
+        soup_auth_domain_add_path (auth_domain, "/Any");
+        soup_auth_domain_remove_path (auth_domain, "/Any/Not");
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);
 

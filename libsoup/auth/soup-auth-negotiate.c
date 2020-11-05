@@ -80,7 +80,7 @@ typedef struct {
  *
  * A #GType corresponding to HTTP-based GSS-Negotiate authentication.
  * #SoupSessions do not support this type by default; if you want to
- * enable support for it, call "add-feature-by-type"(),
+ * enable support for it, call soup_session_add_feature_by_type(),
  * passing %SOUP_TYPE_AUTH_NEGOTIATE.
  *
  * This auth type will only work if libsoup was compiled with GSSAPI

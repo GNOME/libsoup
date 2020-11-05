@@ -156,16 +156,12 @@ on_request_queued (SoupSession *session,
 static SoupSession *
 hsts_session_new (SoupHSTSEnforcer *enforcer)
 {
-	SoupSession *session;
+	SoupSession *session = session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	if (enforcer)
-		session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 "add-feature", enforcer,
-						 NULL);
+                soup_session_add_feature (session, SOUP_SESSION_FEATURE (enforcer));
 	else
-		session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 "add-feature-by-type", SOUP_TYPE_HSTS_ENFORCER,
-						 NULL);
+                soup_session_add_feature_by_type (session, SOUP_TYPE_HSTS_ENFORCER);
 
 	g_signal_connect (session, "request-queued", G_CALLBACK (on_request_queued), NULL);
 

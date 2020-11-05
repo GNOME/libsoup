@@ -50,8 +50,6 @@ enum {
 
 	PROP_REALM,
 	PROP_PROXY,
-	PROP_ADD_PATH,
-	PROP_REMOVE_PATH,
 	PROP_FILTER,
 	PROP_FILTER_DATA,
 	PROP_GENERIC_AUTH_CALLBACK,
@@ -115,14 +113,6 @@ soup_auth_domain_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_PROXY:
 		priv->proxy = g_value_get_boolean (value);
-		break;
-	case PROP_ADD_PATH:
-		soup_auth_domain_add_path (auth_domain,
-					   g_value_get_string (value));
-		break;
-	case PROP_REMOVE_PATH:
-		soup_auth_domain_remove_path (auth_domain,
-					      g_value_get_string (value));
 		break;
 	case PROP_FILTER:
 		priv->filter = g_value_get_pointer (value);
@@ -207,32 +197,6 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				      G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupAuthDomain:add-path:
-	 *
-	 * Shortcut for calling soup_auth_domain_add_path().
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_ADD_PATH,
-		g_param_spec_string ("add-path",
-				     "Add a path",
-				     "Add a path covered by this auth domain",
-				     NULL,
-				     G_PARAM_WRITABLE |
-				     G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupAuthDomain:remove-path:
-	 *
-         * Shortcut for calling soup_auth_domain_remove_path().
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_REMOVE_PATH,
-		g_param_spec_string ("remove-path",
-				     "Remove a path",
-				     "Remove a path covered by this auth domain",
-				     NULL,
-				     G_PARAM_WRITABLE |
-				     G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupAuthDomain:filter: (type SoupAuthDomainFilter)
