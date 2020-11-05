@@ -1368,9 +1368,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 
 	if (tunnel_item->async) {
 		soup_connection_tunnel_handshake_async (item->conn,
-							item->task ?
-							g_task_get_priority (item->task) :
-							G_PRIORITY_DEFAULT,
+							item->io_priority,
 							item->cancellable,
 							(GAsyncReadyCallback)tunnel_handshake_complete,
 							tunnel_item);
@@ -1399,6 +1397,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 	tunnel_item = soup_session_append_queue_item (session, msg,
 						      item->async,
 						      NULL, NULL);
+	tunnel_item->io_priority = item->io_priority;
 	tunnel_item->related = item;
 	soup_message_queue_item_ref (item);
 	soup_session_set_item_connection (session, tunnel_item, item->conn);
@@ -1608,9 +1607,7 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	if (item->async) {
 		soup_message_queue_item_ref (item);
 		soup_connection_connect_async (item->conn,
-					       item->task ?
-					       g_task_get_priority (item->task) :
-					       G_PRIORITY_DEFAULT,
+					       item->io_priority,
 					       item->cancellable,
 					       connect_async_complete, item);
 		return FALSE;
@@ -2900,7 +2897,7 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 		 */
 		g_output_stream_splice_async (ostream, stream,
 					      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-					      g_task_get_priority (item->task),
+					      item->io_priority,
 					      item->cancellable,
 					      send_async_spliced, item);
 		return;
@@ -2944,7 +2941,7 @@ async_send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 	if (item->task) {
 		item->io_started = TRUE;
 		soup_message_io_run_until_read_async (item->msg,
-						      g_task_get_priority (item->task),
+						      item->io_priority,
 						      item->cancellable,
 						      (GAsyncReadyCallback)run_until_read_done,
 						      item);
@@ -3119,7 +3116,7 @@ async_respond_from_cache (SoupSession          *session,
 		soup_message_queue_item_ref (item);
 		soup_message_disable_feature (conditional_msg, SOUP_TYPE_CACHE);
 		soup_session_send_async (session, conditional_msg,
-					 g_task_get_priority (item->task),
+					 item->io_priority,
 					 item->cancellable,
 					 (GAsyncReadyCallback)conditional_get_ready_cb,
 					 data);
@@ -3168,6 +3165,7 @@ soup_session_send_async (SoupSession         *session,
 
 	item = soup_session_append_queue_item (session, msg, TRUE,
 					       NULL, NULL);
+	item->io_priority = io_priority;
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (async_send_request_restarted), item);
 	g_signal_connect (msg, "finished",
@@ -4006,6 +4004,7 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
  * @origin: (allow-none): origin of the connection
  * @protocols: (allow-none) (array zero-terminated=1): a
  *   %NULL-terminated array of protocols supported
+ * @io_priority: the I/O priority of the request
  * @cancellable: a #GCancellable
  * @callback: the callback to invoke
  * @user_data: data for @callback
@@ -4036,6 +4035,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 				      SoupMessage          *msg,
 				      const char           *origin,
 				      char                **protocols,
+				      int                   io_priority,
 				      GCancellable         *cancellable,
 				      GAsyncReadyCallback   callback,
 				      gpointer              user_data)
@@ -4063,6 +4063,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	task = g_task_new (session, cancellable, callback, user_data);
 	item = soup_session_append_queue_item (session, msg, TRUE,
 					       websocket_connect_async_complete, task);
+	item->io_priority = io_priority;
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
 	soup_message_add_status_code_handler (msg, "got-informational",

@@ -286,6 +286,7 @@ client_connect (Test *test,
 
 	soup_session_websocket_connect_async (test->session, test->msg,
 					      origin, (char **) protocols,
+					      G_PRIORITY_DEFAULT,
 					      NULL, callback, user_data);
 }
 
@@ -458,7 +459,8 @@ test_handshake_unsupported_extension (Test *test,
         test->msg = soup_message_new ("GET", url);
         g_free (url);
 
-	soup_session_websocket_connect_async (test->session, test->msg, NULL, NULL, NULL,
+	soup_session_websocket_connect_async (test->session, test->msg, NULL, NULL,
+					      G_PRIORITY_DEFAULT, NULL,
 					      got_client_connection, test);
 	WAIT_UNTIL (test->server != NULL);
 	WAIT_UNTIL (test->msg == NULL);

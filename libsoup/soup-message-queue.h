@@ -55,6 +55,7 @@ struct _SoupMessageQueueItem {
 	guint connect_only      : 1;
 	guint priority          : 3;
 	guint resend_count      : 5;
+	int io_priority;
 
 	SoupMessageQueueItemState state;
 

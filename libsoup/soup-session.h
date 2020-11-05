@@ -134,6 +134,7 @@ void                     soup_session_websocket_connect_async  (SoupSession     
 								SoupMessage          *msg,
 								const char           *origin,
 								char                **protocols,
+								int                   io_priority,
 								GCancellable         *cancellable,
 								GAsyncReadyCallback   callback,
 								gpointer              user_data);
