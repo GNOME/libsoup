@@ -1394,6 +1394,9 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	priv = soup_message_get_instance_private (msg);
 
+	if (priv->msg_flags == flags)
+		return;
+
 	priv->msg_flags = flags;
 	g_object_notify (G_OBJECT (msg), "flags");
 }
@@ -1416,6 +1419,65 @@ soup_message_get_flags (SoupMessage *msg)
 	priv = soup_message_get_instance_private (msg);
 
 	return priv->msg_flags;
+}
+
+/**
+ * soup_message_add_flags:
+ * @msg: a #SoupMessage
+ * @flags: a set of #SoupMessageFlags values
+ *
+ * Adds @flags to the set of @msg's flags
+ */
+void
+soup_message_add_flags (SoupMessage     *msg,
+			SoupMessageFlags flags)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	priv = soup_message_get_instance_private (msg);
+	soup_message_set_flags (msg, priv->msg_flags | flags);
+}
+
+/**
+ * soup_message_query_flags:
+ * @msg: a #SoupMessage
+ * @flags: a set of #SoupMessageFlags values
+ *
+ * Queries if @flags are present in the set of @msg's flags
+ *
+ * Returns: %TRUE if @flags are enabled in @msg
+ */
+gboolean
+soup_message_query_flags (SoupMessage     *msg,
+			  SoupMessageFlags flags)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+
+        priv = soup_message_get_instance_private (msg);
+	return priv->msg_flags & flags;
+}
+
+/**
+ * soup_message_remove_flags:
+ * @msg: a #SoupMessage
+ * @flags: a set of #SoupMessageFlags values
+ *
+ * Removes @flags from the set of @msg's flags
+ */
+void
+soup_message_remove_flags (SoupMessage     *msg,
+			   SoupMessageFlags flags)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+        priv = soup_message_get_instance_private (msg);
+	soup_message_set_flags (msg, priv->msg_flags & ~flags);
 }
 
 /**

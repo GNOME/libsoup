@@ -91,6 +91,18 @@ SOUP_AVAILABLE_IN_2_4
 SoupMessageFlags soup_message_get_flags           (SoupMessage           *msg);
 
 SOUP_AVAILABLE_IN_ALL
+void             soup_message_add_flags           (SoupMessage           *msg,
+						   SoupMessageFlags       flags);
+
+SOUP_AVAILABLE_IN_ALL
+void             soup_message_remove_flags        (SoupMessage           *msg,
+						   SoupMessageFlags       flags);
+
+SOUP_AVAILABLE_IN_ALL
+gboolean         soup_message_query_flags         (SoupMessage           *msg,
+                                                   SoupMessageFlags       flags);
+
+SOUP_AVAILABLE_IN_ALL
 GTlsCertificate     *soup_message_get_tls_certificate        (SoupMessage *msg);
 
 SOUP_AVAILABLE_IN_ALL

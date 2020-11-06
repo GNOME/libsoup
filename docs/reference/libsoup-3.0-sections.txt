@@ -38,6 +38,9 @@ soup_message_add_status_code_handler
 SoupMessageFlags
 soup_message_set_flags
 soup_message_get_flags
+soup_message_add_flags
+soup_message_remove_flags
+soup_message_query_flags
 <SUBSECTION>
 soup_message_disable_feature
 soup_message_is_feature_disabled

@@ -656,6 +656,63 @@ do_aliases_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_msg_flags_test (void)
+{
+	SoupMessage *msg;
+
+	msg = soup_message_new ("GET", "http://foo.org");
+
+	/* Flags are initially empty */
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, 0);
+	g_assert_false (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT));
+
+	/* Set a single flag */
+	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, SOUP_MESSAGE_NO_REDIRECT);
+	g_assert_true (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT));
+	g_assert_false (soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION));
+
+	/* Add another flag */
+	soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, (SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_NEW_CONNECTION));
+	g_assert_true (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_NEW_CONNECTION));
+
+	/* Add an existing flag */
+	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, (SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_NEW_CONNECTION));
+        g_assert_true (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_NEW_CONNECTION));
+
+	/* Remove a single flag */
+	soup_message_remove_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, SOUP_MESSAGE_NO_REDIRECT);
+        g_assert_true (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT));
+        g_assert_false (soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION));
+
+	/* Remove a non-existing flag */
+	soup_message_remove_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, SOUP_MESSAGE_NO_REDIRECT);
+        g_assert_true (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT));
+        g_assert_false (soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION));
+
+	/* Add a set of flags */
+	soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION | SOUP_MESSAGE_IDEMPOTENT | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, (SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_NEW_CONNECTION | SOUP_MESSAGE_IDEMPOTENT | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE));
+	g_assert_true (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_NEW_CONNECTION | SOUP_MESSAGE_IDEMPOTENT | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE));
+
+	/* Remove a set of flags */
+	soup_message_remove_flags (msg, (SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_IDEMPOTENT));
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, (SOUP_MESSAGE_NEW_CONNECTION | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE));
+	g_assert_true (soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE));
+
+	/* Remove all flags */
+	soup_message_set_flags (msg, 0);
+	g_assert_cmpuint (soup_message_get_flags (msg), ==, 0);
+        g_assert_false (soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT | SOUP_MESSAGE_NEW_CONNECTION | SOUP_MESSAGE_IDEMPOTENT | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE));
+
+	g_object_unref (msg);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -693,6 +750,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/cancel-while-reading/req/delayed", do_cancel_while_reading_delayed_req_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/preemptive", do_cancel_while_reading_preemptive_req_test);
 	g_test_add_func ("/misc/aliases", do_aliases_test);
+	g_test_add_func ("/misc/msg-flags", do_msg_flags_test);
 
 	ret = g_test_run ();
 
