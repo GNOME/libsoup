@@ -24,8 +24,6 @@
  * at an arbitrary point rather than containing a complete compressed
  * representation.
  *
- * If the wrapped conversion succeeds, then the wrapper will set the
- * %SOUP_MESSAGE_CONTENT_DECODED flag on its message.
  */
 
 enum {
@@ -249,10 +247,8 @@ soup_converter_wrapper_real_convert (GConverter *converter,
 				      flags, bytes_read, bytes_written,
 				      &my_error);
 	if (result != G_CONVERTER_ERROR) {
-		if (!priv->started) {
-			soup_message_add_flags (priv->msg, SOUP_MESSAGE_CONTENT_DECODED);
+		if (!priv->started)
 			priv->started = TRUE;
-		}
 
 		if (result == G_CONVERTER_FINISHED &&
 		    !(flags & G_CONVERTER_INPUT_AT_END)) {

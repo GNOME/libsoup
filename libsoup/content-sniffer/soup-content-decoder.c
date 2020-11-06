@@ -35,16 +35,13 @@
  * soup_session_add_feature() or soup_session_add_feature_by_type().
  *
  * If #SoupContentDecoder successfully decodes the Content-Encoding,
- * it will set the %SOUP_MESSAGE_CONTENT_DECODED flag on the message,
- * and the message body and the chunks in the #SoupMessage::got_chunk
- * signals will contain the decoded data; however, the message headers
+ * the message body will contain the decoded data; however, the message headers
  * will be unchanged (and so "Content-Encoding" will still be present,
  * "Content-Length" will describe the original encoded length, etc).
  *
  * If "Content-Encoding" contains any encoding types that
  * #SoupContentDecoder doesn't recognize, then none of the encodings
- * will be decoded (and the %SOUP_MESSAGE_CONTENT_DECODED flag will
- * not be set).
+ * will be decoded.
  *
  * (Note that currently there is no way to (automatically) use
  * Content-Encoding when sending a request body, or to pick specific

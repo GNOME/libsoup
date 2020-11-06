@@ -1320,8 +1320,6 @@ soup_message_cleanup_response (SoupMessage *msg)
 
 	soup_message_headers_clear (priv->response_headers);
 
-	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
-
 	priv->status_code = SOUP_STATUS_NONE;
 	if (priv->reason_phrase) {
 		g_free (priv->reason_phrase);
@@ -1332,7 +1330,6 @@ soup_message_cleanup_response (SoupMessage *msg)
 	g_object_notify (G_OBJECT (msg), "status-code");
 	g_object_notify (G_OBJECT (msg), "reason-phrase");
 	g_object_notify (G_OBJECT (msg), "http-version");
-	g_object_notify (G_OBJECT (msg), "flags");
 	g_object_notify (G_OBJECT (msg), "tls-certificate");
 	g_object_notify (G_OBJECT (msg), "tls-certificate-errors");
 }
@@ -1341,10 +1338,6 @@ soup_message_cleanup_response (SoupMessage *msg)
  * SoupMessageFlags:
  * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
  *   (3xx) responses received by this message.
- * @SOUP_MESSAGE_CONTENT_DECODED: Set by #SoupContentDecoder to
- *   indicate that it has removed the Content-Encoding on a message (and
- *   so headers such as Content-Length may no longer accurately describe
- *   the body).
  * @SOUP_MESSAGE_NEW_CONNECTION: Requests that the message should be
  *   sent on a newly-created connection, not reusing an existing
  *   persistent connection. Note that messages with non-idempotent

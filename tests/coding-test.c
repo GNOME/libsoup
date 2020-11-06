@@ -137,17 +137,10 @@ typedef enum {
 	CODING_TEST_EMPTY       = (1 << 1)
 } CodingTestType;
 
-typedef enum {
-	NO_CHECK,
-	EXPECT_DECODED,
-	EXPECT_NOT_DECODED
-} MessageContentStatus;
-
 static void
 check_response (CodingTestData *data,
 		const char *expected_encoding,
 		const char *expected_content_type,
-		MessageContentStatus status,
 		GBytes *body)
 {
 	const char *coding, *type;
@@ -156,13 +149,6 @@ check_response (CodingTestData *data,
 
 	coding = soup_message_headers_get_one (soup_message_get_response_headers (data->msg), "Content-Encoding");
 	g_assert_cmpstr (coding, ==, expected_encoding);
-
-	if (status != NO_CHECK) {
-		if (status == EXPECT_DECODED)
-			g_assert_true (soup_message_get_flags (data->msg) & SOUP_MESSAGE_CONTENT_DECODED);
-		else
-			g_assert_false (soup_message_get_flags (data->msg) & SOUP_MESSAGE_CONTENT_DECODED);
-	}
 
 	type = soup_message_headers_get_one (soup_message_get_response_headers (data->msg), "Content-Type");
 	g_assert_cmpstr (type, ==, expected_content_type);
@@ -211,7 +197,7 @@ do_coding_test_plain (CodingTestData *data, gconstpointer test_data)
 	GBytes *body;
 
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, NULL, "text/plain", EXPECT_NOT_DECODED, body);
+	check_response (data, NULL, "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -221,7 +207,7 @@ do_coding_test_gzip (CodingTestData *data, gconstpointer test_data)
 	GBytes *body;
 
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "gzip", "text/plain", EXPECT_DECODED, body);
+	check_response (data, "gzip", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -237,7 +223,7 @@ do_coding_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 				     "X-Test-Options", "trailing-junk");
 
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "gzip", "text/plain", EXPECT_DECODED, body);
+	check_response (data, "gzip", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -257,7 +243,7 @@ do_coding_test_gzip_bad_server (CodingTestData *data, gconstpointer test_data)
 	 * from what the server sent... which happens to be the
 	 * uncompressed data.
 	 */
-	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, body);
+	check_response (data, "gzip", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -269,7 +255,7 @@ do_coding_test_deflate (CodingTestData *data, gconstpointer test_data)
 	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "prefer-deflate-zlib");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
+	check_response (data, "deflate", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -284,7 +270,7 @@ do_coding_test_deflate_with_junk (CodingTestData *data, gconstpointer test_data)
 	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
+	check_response (data, "deflate", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -298,7 +284,7 @@ do_coding_test_deflate_bad_server (CodingTestData *data, gconstpointer test_data
 	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, body);
+	check_response (data, "deflate", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -310,7 +296,7 @@ do_coding_test_deflate_raw (CodingTestData *data, gconstpointer test_data)
 	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "prefer-deflate-raw");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "deflate", "text/plain", EXPECT_DECODED, body);
+	check_response (data, "deflate", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -324,7 +310,7 @@ do_coding_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer test_
 	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "force-encode, prefer-deflate-raw");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "deflate", "text/plain", EXPECT_NOT_DECODED, body);
+	check_response (data, "deflate", "text/plain", body);
 	g_bytes_unref (body);
 }
 
@@ -338,7 +324,7 @@ do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 	soup_message_headers_append (soup_message_get_request_headers (data->msg),
 				     "X-Test-Options", "empty");
 	body = soup_test_session_send (data->session, data->msg, NULL, NULL);
-	check_response (data, "gzip", "text/plain", EXPECT_NOT_DECODED, body);
+	check_response (data, "gzip", "text/plain", body);
 	g_bytes_unref (body);
 }
 
