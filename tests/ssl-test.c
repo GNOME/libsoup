@@ -61,9 +61,9 @@ do_strictness_test (gconstpointer data)
 
 	g_test_bug ("665182");
 	if (test->with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg)))
-		g_assert_true (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
+		g_assert_cmpuint (flags, ==, 0);
 	else
-		g_assert_false (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
+		g_assert_cmpuint (flags, !=, 0);
 
 	if (soup_message_get_status (msg) == SOUP_STATUS_SSL_FAILED &&
 	    test->expected_status != SOUP_STATUS_SSL_FAILED)

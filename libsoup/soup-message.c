@@ -1272,10 +1272,6 @@ re_emit_tls_certificate_changed (SoupMessage    *msg,
 	g_clear_object (&priv->tls_certificate);
 	priv->tls_certificate = tls_certificate ? g_object_ref (tls_certificate) : NULL;
 	priv->tls_certificate_errors = tls_errors;
-	if (priv->tls_certificate_errors)
-		priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-	else if (priv->tls_certificate)
-		priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
 	g_object_notify (G_OBJECT (msg), "tls-certificate");
 	g_object_notify (G_OBJECT (msg), "tls-certificate-errors");
 }
@@ -1349,9 +1345,6 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   indicate that it has removed the Content-Encoding on a message (and
  *   so headers such as Content-Length may no longer accurately describe
  *   the body).
- * @SOUP_MESSAGE_CERTIFICATE_TRUSTED: if set after an https response
- *   has been received, indicates that the server's SSL certificate is
- *   trusted according to the session's CA.
  * @SOUP_MESSAGE_NEW_CONNECTION: Requests that the message should be
  *   sent on a newly-created connection, not reusing an existing
  *   persistent connection. Note that messages with non-idempotent

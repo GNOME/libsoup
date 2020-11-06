@@ -76,11 +76,10 @@ gboolean         soup_message_get_is_top_level_navigation (SoupMessage      *msg
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT              = (1 << 1),
 	SOUP_MESSAGE_CONTENT_DECODED          = (1 << 2),
-	SOUP_MESSAGE_CERTIFICATE_TRUSTED      = (1 << 3),
-	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 4),
-	SOUP_MESSAGE_IDEMPOTENT               = (1 << 5),
-	SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS = (1 << 6),
-	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 7)
+	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 3),
+	SOUP_MESSAGE_IDEMPOTENT               = (1 << 4),
+	SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS = (1 << 5),
+	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 6)
 } SoupMessageFlags;
 
 SOUP_AVAILABLE_IN_2_4

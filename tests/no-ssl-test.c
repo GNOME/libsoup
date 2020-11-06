@@ -12,7 +12,7 @@ do_ssl_test_for_session (SoupSession *session, SoupURI *uri)
 	soup_test_assert_message_status (msg, SOUP_STATUS_SSL_FAILED);
 
 	g_assert_null (soup_message_get_tls_certificate (msg));
-	g_assert_false (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
+	g_assert_cmpuint (soup_message_get_tls_certificate_errors (msg), ==, 0);
 
 	g_object_unref (msg);
 }
