@@ -1347,12 +1347,6 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   regardless its #SoupMessage:method, and allows reuse of existing
  *   idle connections, instead of always requiring a new one, unless
  *   #SOUP_MESSAGE_NEW_CONNECTION is set.
- * @SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS: Request that a new connection is
- *   created for the message if there aren't idle connections available
- *   and it's not possible to create new connections due to any of the
- *   connection limits has been reached. If a dedicated connection is
- *   eventually created for this message, it will be dropped when the
- *   message finishes. Since 2.50
  * @SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE: The #SoupAuthManager should not use
  *   the credentials cache for this message, neither to use cached credentials
  *   to automatically authenticate this message nor to cache the credentials

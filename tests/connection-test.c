@@ -462,7 +462,7 @@ max_conns_message_complete (SoupMessage *msg, gpointer user_data)
 static void
 do_max_conns_test_for_session (SoupSession *session)
 {
-	SoupMessage *msgs[TEST_CONNS + 1];
+	SoupMessage *msgs[TEST_CONNS];
 	int i;
 
 	max_conns_loop = g_main_loop_new (NULL, TRUE);
@@ -472,7 +472,7 @@ do_max_conns_test_for_session (SoupSession *session)
 	g_signal_connect (session, "request-queued",
 			  G_CALLBACK (max_conns_request_queued), NULL);
 	msgs_done = 0;
-	for (i = 0; i < TEST_CONNS - 1; i++) {
+	for (i = 0; i < TEST_CONNS; i++) {
 		msgs[i] = soup_message_new_from_uri ("GET", base_uri);
 		g_signal_connect (msgs[i], "finished",
 				  G_CALLBACK (max_conns_message_complete), NULL);
@@ -486,19 +486,8 @@ do_max_conns_test_for_session (SoupSession *session)
 		g_source_remove (quit_loop_timeout);
 	quit_loop_timeout = g_timeout_add (1000, quit_loop, NULL);
 
-	for (i = 0; i < TEST_CONNS - 1; i++)
+	for (i = 0; i < TEST_CONNS; i++)
 		g_signal_handlers_disconnect_by_func (msgs[i], max_conns_message_started, NULL);
-
-	/* Message with SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS should start */
-	msgs[i] = soup_message_new_from_uri ("GET", base_uri);
-	soup_message_add_flags (msgs[i], SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
-	g_signal_connect (msgs[i], "finished",
-			  G_CALLBACK (max_conns_message_complete), NULL);
-	soup_session_send_async (session, msgs[i], G_PRIORITY_DEFAULT, NULL, NULL, NULL);
-
-	g_main_loop_run (max_conns_loop);
-	g_assert_cmpint (msgs_done, ==, MAX_CONNS + 1);
-	g_signal_handlers_disconnect_by_func (session, max_conns_request_queued, NULL);
 
 	msgs_done = 0;
 	g_idle_add (idle_start_server, NULL);
