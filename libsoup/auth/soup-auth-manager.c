@@ -476,7 +476,7 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (auth && soup_auth_is_ready (auth, msg))
 		return auth;
 
-	if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
+	if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 		return NULL;
 
 	uri = soup_message_get_uri_for_auth (msg);
@@ -515,7 +515,7 @@ lookup_proxy_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (auth && soup_auth_is_ready (auth, msg))
 		return auth;
 
-	if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
+	if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 		return NULL;
 
 	return priv->proxy_auth;
@@ -651,7 +651,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 		}
 	}
 
-	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)) {
+	if (!soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)) {
 		SoupAuth *new_auth;
 
 		new_auth = record_auth_for_uri (priv, soup_message_get_uri_for_auth (msg),
@@ -677,17 +677,13 @@ auth_got_body (SoupMessage *msg, gpointer manager)
 	g_mutex_lock (&priv->lock);
 	auth = lookup_auth (priv, msg);
 	if (auth && soup_auth_is_ready (auth, msg)) {
-		if (SOUP_IS_CONNECTION_AUTH (auth)) {
-			SoupMessageFlags flags;
-
-			flags = soup_message_get_flags (msg);
-			soup_message_set_flags (msg, flags & ~SOUP_MESSAGE_NEW_CONNECTION);
-		}
+		if (SOUP_IS_CONNECTION_AUTH (auth))
+			soup_message_remove_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
 
 		/* When not using cached credentials, update the Authorization header
 		 * right before requeuing the message.
 		 */
-		if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
+		if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 			update_authorization_header (msg, auth, FALSE);
 
 		soup_session_requeue_message (priv->session, msg);
@@ -711,7 +707,7 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 			prior_auth_failed = TRUE;
 	}
 
-	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
+	if (!soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 		auth = priv->proxy_auth ? g_object_ref (priv->proxy_auth) : NULL;
 
 	if (!auth) {
@@ -720,7 +716,7 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 			g_mutex_unlock (&priv->lock);
 			return;
 		}
-		if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
+		if (!soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 			priv->proxy_auth = g_object_ref (auth);
 	}
 
@@ -745,7 +741,7 @@ proxy_auth_got_body (SoupMessage *msg, gpointer manager)
 		/* When not using cached credentials, update the Authorization header
 		 * right before requeuing the message.
 		 */
-		if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
+		if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 			update_authorization_header (msg, auth, TRUE);
 		soup_session_requeue_message (priv->session, msg);
 	}
@@ -759,7 +755,7 @@ auth_msg_starting (SoupMessage *msg, gpointer manager)
         SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupAuth *auth;
 
-	if (soup_message_get_flags (msg) & SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)
+	if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 		return;
 
 	g_mutex_lock (&priv->lock);

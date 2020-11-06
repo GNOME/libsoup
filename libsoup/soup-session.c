@@ -934,7 +934,7 @@ soup_session_append_queue_item (SoupSession        *session,
 	host->num_messages++;
 	g_mutex_unlock (&priv->conn_lock);
 
-	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
+	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_header_handler (
 			msg, "got_body", "Location",
 			G_CALLBACK (redirect_handler), item);
@@ -1380,7 +1380,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 
 	uri = soup_connection_get_remote_uri (item->conn);
 	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, uri);
-	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
 						      item->async,
@@ -1546,11 +1546,11 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	soup_session_cleanup_connections (session, FALSE);
 
 	need_new_connection =
-		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_NEW_CONNECTION) ||
-		(!(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IDEMPOTENT) &&
+		(soup_message_query_flags (item->msg, SOUP_MESSAGE_NEW_CONNECTION)) ||
+		(!soup_message_query_flags (item->msg, SOUP_MESSAGE_IDEMPOTENT) &&
 		 !SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (item->msg)));
 	ignore_connection_limits =
-		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
+		 soup_message_query_flags (item->msg, SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
 
 	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_message (session, item->msg);
@@ -2687,7 +2687,7 @@ expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
 		return !feature || !soup_message_disables_feature (msg, feature);
 	}
 
-	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT))
+	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT))
 		return soup_session_would_redirect (session, msg);
 
 	return FALSE;
@@ -3978,7 +3978,6 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	SoupMessageQueueItem *item;
 	GTask *task;
 	GPtrArray *supported_extensions;
-	SoupMessageFlags flags;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
@@ -3992,8 +3991,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	 * the case of web browsers, it MUST open a connection, send an opening
 	 * handshake, and read the server's handshake in response.
 	 */
-	flags = soup_message_get_flags (msg);
-	soup_message_set_flags (msg, flags | SOUP_MESSAGE_NEW_CONNECTION);
+	soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
 
 	task = g_task_new (session, cancellable, callback, user_data);
 	item = soup_session_append_queue_item (session, msg, TRUE,

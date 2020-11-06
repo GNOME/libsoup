@@ -67,7 +67,7 @@ session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_stat
         GBytes *body;
 
 	msg = soup_message_new ("GET", uri);
-	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 	body = soup_test_session_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, expected_status);
         g_bytes_unref (body);

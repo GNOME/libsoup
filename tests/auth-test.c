@@ -431,11 +431,9 @@ do_digest_nonce_test (SoupSession *session,
 	gboolean got_401;
 
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
-	if (!use_auth_cache) {
-		SoupMessageFlags flags = soup_message_get_flags (msg);
+	if (!use_auth_cache)
+		soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 
-		soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
-	}
 	if (expect_signal) {
 		g_signal_connect (msg, "authenticate",
 				  G_CALLBACK (digest_nonce_authenticate),
@@ -1340,7 +1338,6 @@ do_message_do_not_use_auth_cache_test (void)
 	SoupSession *session;
 	SoupAuthManager *manager;
 	SoupMessage *msg;
-	SoupMessageFlags flags;
 	SoupURI *soup_uri;
 	char *uri;
 
@@ -1362,8 +1359,7 @@ do_message_do_not_use_auth_cache_test (void)
 	soup_uri_set_user (soup_uri, "user1");
 	soup_uri_set_password (soup_uri, "realm1");
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
-	flags = soup_message_get_flags (msg);
-	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
@@ -1382,8 +1378,7 @@ do_message_do_not_use_auth_cache_test (void)
 	 * and we don't have the authenticate signal, it should respond with 401
 	 */
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
-	flags = soup_message_get_flags (msg);
-	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
 	g_object_unref (msg);
@@ -1421,7 +1416,6 @@ do_async_message_do_not_use_auth_cache_test (void)
 	SoupMessage *msg;
 	char *uri;
 	SoupAuth *auth = NULL;
-	SoupMessageFlags flags;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -1433,8 +1427,7 @@ do_async_message_do_not_use_auth_cache_test (void)
 	g_free (uri);
 	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (async_no_auth_cache_authenticate), &auth);
-	flags = soup_message_get_flags (msg);
-	soup_message_set_flags (msg, flags | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_no_auth_cache_finished), NULL);
 	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
@@ -1518,7 +1511,7 @@ do_message_has_authorization_header_test (void)
 	soup_auth_manager_clear_cached_credentials (manager);
 	msg = soup_message_new ("GET", uri);
 	soup_message_headers_replace (soup_message_get_request_headers (msg), "Authorization", token);
-	soup_message_set_flags (msg, soup_message_get_flags (msg) | SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+	soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
 	soup_test_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);

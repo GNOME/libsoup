@@ -250,8 +250,7 @@ soup_converter_wrapper_real_convert (GConverter *converter,
 				      &my_error);
 	if (result != G_CONVERTER_ERROR) {
 		if (!priv->started) {
-			SoupMessageFlags message_flags = soup_message_get_flags (priv->msg);
-			soup_message_set_flags (priv->msg, message_flags | SOUP_MESSAGE_CONTENT_DECODED);
+			soup_message_add_flags (priv->msg, SOUP_MESSAGE_CONTENT_DECODED);
 			priv->started = TRUE;
 		}
 

@@ -463,7 +463,6 @@ static void
 do_max_conns_test_for_session (SoupSession *session)
 {
 	SoupMessage *msgs[TEST_CONNS + 1];
-	SoupMessageFlags flags;
 	int i;
 
 	max_conns_loop = g_main_loop_new (NULL, TRUE);
@@ -492,8 +491,7 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	/* Message with SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS should start */
 	msgs[i] = soup_message_new_from_uri ("GET", base_uri);
-	flags = soup_message_get_flags (msgs[i]);
-	soup_message_set_flags (msgs[i], flags | SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
+	soup_message_add_flags (msgs[i], SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
 	g_signal_connect (msgs[i], "finished",
 			  G_CALLBACK (max_conns_message_complete), NULL);
 	soup_session_send_async (session, msgs[i], G_PRIORITY_DEFAULT, NULL, NULL, NULL);
