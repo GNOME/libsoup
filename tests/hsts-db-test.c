@@ -112,7 +112,7 @@ hsts_db_session_new (void)
 {
 	SoupHSTSEnforcer *hsts_db = soup_hsts_enforcer_db_new (DB_FILE);
 
-	SoupSession *session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	SoupSession *session = soup_test_session_new (NULL);
         soup_session_add_feature (session, SOUP_SESSION_FEATURE (hsts_db));
 	g_signal_connect (session, "request-queued", G_CALLBACK (on_request_queued), NULL);
 	g_object_unref (hsts_db);

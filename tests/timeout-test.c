@@ -121,18 +121,15 @@ do_async_timeout_tests (gconstpointer data)
 	} else
 		extra_slow = FALSE;
 
-	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 "timeout", extra_slow ? 3 : 1,
+	timeout_session = soup_test_session_new ("timeout", extra_slow ? 3 : 1,
 						 NULL);
-	idle_session = soup_test_session_new (SOUP_TYPE_SESSION,
-					      "idle-timeout", extra_slow ? 2 : 1,
+	idle_session = soup_test_session_new ("idle-timeout", extra_slow ? 2 : 1,
 					      NULL);
 	/* The "plain" session also has an idle timeout, but it's longer
 	 * than the test takes, so for our purposes it should behave like
 	 * it has no timeout.
 	 */
-	plain_session = soup_test_session_new (SOUP_TYPE_SESSION,
-					       "idle-timeout", 20,
+	plain_session = soup_test_session_new ("idle-timeout", 20,
 					       NULL);
 
 	do_msg_tests_for_session (timeout_session, idle_session, plain_session,
@@ -162,12 +159,10 @@ do_sync_timeout_tests (gconstpointer data)
 	} else
 		extra_slow = FALSE;
 
-	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 "timeout", extra_slow ? 3 : 1,
+	timeout_session = soup_test_session_new ("timeout", extra_slow ? 3 : 1,
 						 NULL);
 	/* SoupSession:timeout doesn't work with sync sessions */
-	plain_session = soup_test_session_new (SOUP_TYPE_SESSION,
-					       NULL);
+	plain_session = soup_test_session_new (NULL);
 	do_msg_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);
 	soup_test_session_abort_unref (timeout_session);
 	soup_test_session_abort_unref (plain_session);
@@ -226,7 +221,7 @@ main (int argc, char **argv)
 		https_uri = soup_test_server_get_uri (server, "https", "127.0.0.1");
 
 		/* The 1-second timeouts are too fast for some machines... */
-		test_session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+		test_session = soup_test_session_new (NULL);
 		start = g_get_monotonic_time ();
 #if 0
 		do_message_to_session (test_session, uri, NULL, SOUP_STATUS_OK);

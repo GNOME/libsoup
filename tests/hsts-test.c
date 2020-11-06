@@ -156,7 +156,7 @@ on_request_queued (SoupSession *session,
 static SoupSession *
 hsts_session_new (SoupHSTSEnforcer *enforcer)
 {
-	SoupSession *session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	SoupSession *session = soup_test_session_new (NULL);
 
 	if (enforcer)
                 soup_session_add_feature (session, SOUP_SESSION_FEATURE (enforcer));

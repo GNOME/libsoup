@@ -184,7 +184,7 @@ main (int argc, char **argv)
         loop = g_main_loop_new (NULL, TRUE);
 
         base_uri = soup_test_server_get_uri (server, "http", NULL);
-        session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        session = soup_test_session_new (NULL);
 
         g_test_add_data_func ("/request-body/sync/stream", GINT_TO_POINTER (0), do_request_test);
         g_test_add_data_func ("/request-body/sync/bytes", GINT_TO_POINTER (BYTES), do_request_test);

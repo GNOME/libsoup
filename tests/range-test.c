@@ -340,7 +340,7 @@ do_apache_range_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	do_range_test (session, "http://127.0.0.1:47524/", TRUE, FALSE);
 
@@ -367,7 +367,7 @@ do_libsoup_range_test (void)
 	SoupURI *base_uri;
 	char *base_uri_str;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);

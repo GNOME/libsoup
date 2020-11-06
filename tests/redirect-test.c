@@ -335,8 +335,7 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 
-	async_session = soup_test_session_new (SOUP_TYPE_SESSION,
-					       NULL);
+	async_session = soup_test_session_new (NULL);
 
 	for (n = 0; n < n_tests; n++) {
 		path = g_strdup_printf ("/redirect/msg/%d-%s-%d", n,

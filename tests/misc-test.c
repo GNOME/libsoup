@@ -111,7 +111,7 @@ do_host_test (void)
 
 	g_test_bug ("539803");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	one = soup_message_new_from_uri ("GET", base_uri);
 	two = soup_message_new_from_uri ("GET", base_uri);
@@ -147,7 +147,7 @@ do_host_big_header (void)
 
 	g_test_bug ("792173");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	for (i = 0; i < 2048; i++) {
@@ -212,7 +212,7 @@ do_callback_unref_test (void)
 	bad_uri = soup_test_server_get_uri (bad_server, "http", NULL);
 	soup_test_server_quit_unref (bad_server);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	g_object_add_weak_pointer (G_OBJECT (session), (gpointer *)&session);
 
 	loop = g_main_loop_new (NULL, TRUE);
@@ -301,7 +301,7 @@ do_msg_reuse_test (void)
 
 	signal_ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_signal_ids);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	debug_printf (1, "  First message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
@@ -387,7 +387,7 @@ do_early_abort_test (void)
 	g_test_bug ("596074");
 	g_test_bug ("618641");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 
 	context = g_main_context_default ();
@@ -404,7 +404,7 @@ do_early_abort_test (void)
 	g_main_loop_unref (loop);
 	soup_test_session_abort_unref (session);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 
 	g_signal_connect (msg, "network-event",
@@ -424,7 +424,7 @@ do_early_abort_test (void)
 
 	g_test_bug ("668098");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 
 	g_signal_connect (msg, "starting",
@@ -451,8 +451,7 @@ do_one_accept_language_test (const char *language, const char *expected_header)
 
 	debug_printf (1, "  LANGUAGE=%s\n", language);
 	g_setenv ("LANGUAGE", language, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "accept-language-auto", TRUE,
+	session = soup_test_session_new ("accept-language-auto", TRUE,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	soup_test_session_send_message (session, msg);
@@ -540,7 +539,7 @@ do_cancel_while_reading_test (void)
 	g_test_bug ("637741");
 	g_test_bug ("676038");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_cancel_while_reading_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -577,8 +576,7 @@ do_cancel_while_reading_immediate_req_test (void)
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+	session = soup_test_session_new (NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
 }
@@ -591,8 +589,7 @@ do_cancel_while_reading_delayed_req_test (void)
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_SOON;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+	session = soup_test_session_new (NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
 }
@@ -607,8 +604,7 @@ do_cancel_while_reading_preemptive_req_test (void)
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+	session = soup_test_session_new (NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
 }
@@ -647,8 +643,7 @@ do_aliases_test (void)
 
 	if (tls_available) {
 		debug_printf (1, "  foo-means-https\n");
-		session = soup_test_session_new (SOUP_TYPE_SESSION,
-						 "https-aliases", aliases,
+		session = soup_test_session_new ("https-aliases", aliases,
 						 NULL);
 		do_aliases_test_for_session (session, "https");
 		soup_test_session_abort_unref (session);
@@ -656,8 +651,7 @@ do_aliases_test (void)
 		debug_printf (1, "  foo-means-https -- SKIPPING\n");
 
 	debug_printf (1, "  foo-means-nothing\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+	session = soup_test_session_new (NULL);
 	do_aliases_test_for_session (session, NULL);
 	soup_test_session_abort_unref (session);
 }

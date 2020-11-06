@@ -21,7 +21,7 @@ force_io_streams_init (void)
 	server = soup_test_server_new (TRUE);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("POST", base_uri);
 	soup_test_session_send_message (session, msg);
 	g_object_unref (msg);

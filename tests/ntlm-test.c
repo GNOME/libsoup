@@ -423,7 +423,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	gboolean bob_via_ntlm = use_ntlm && bob;
 	gboolean alice_via_basic = !use_ntlm && alice;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	if (user && use_ntlm && !use_builtin_ntlm)
 		g_setenv ("NTLMUSER", user, TRUE);
@@ -672,7 +672,7 @@ do_retrying_test (TestServer *ts,
 
 	debug_printf (1, "  /alice\n");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
         soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
 
 	uri = soup_uri_new_with_base (ts->uri, "/alice");
@@ -693,7 +693,7 @@ do_retrying_test (TestServer *ts,
 
 	debug_printf (1, "  /bob\n");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
         soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
 	retried = FALSE;
 	uri = soup_uri_new_with_base (ts->uri, "/bob");

@@ -122,7 +122,7 @@ do_hello_test_libsoup (int n, gboolean extra, const char *uri)
 	if (extra)
 		g_datalist_set_data (&data, "extra", (gpointer)"something");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	msg = soup_message_new_from_encoded_form ("GET",
 						  uri,
@@ -255,7 +255,7 @@ do_md5_test_libsoup (gconstpointer data)
 	msg = soup_message_new_from_multipart (uri, multipart);
 	soup_multipart_free (multipart);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	body = soup_test_session_send (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);

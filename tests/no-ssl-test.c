@@ -25,7 +25,7 @@ do_ssl_tests (gconstpointer data)
 
 	g_test_bug ("700518");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_ssl_test_for_session (session, uri);
 	soup_test_session_abort_unref (session);
 }

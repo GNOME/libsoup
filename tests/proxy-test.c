@@ -116,8 +116,7 @@ test_url (const char *url, int proxy, guint expected, gboolean close)
 	/* We create a new session for each request to ensure that
 	 * connections/auth aren't cached between tests.
 	 */
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "proxy-resolver", proxy_resolvers[proxy],
+	session = soup_test_session_new ("proxy-resolver", proxy_resolvers[proxy],
 					 NULL);
 
 	msg = soup_message_new (SOUP_METHOD_GET, url);
@@ -218,8 +217,7 @@ do_proxy_fragment_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
+	session = soup_test_session_new ("proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
 	req_uri = soup_uri_new_with_base (base_uri, "/#foo");
@@ -245,8 +243,7 @@ do_proxy_redirect_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
+	session = soup_test_session_new ("proxy-resolver", proxy_resolvers[SIMPLE_PROXY],
 					 NULL);
 
 	req_uri = soup_uri_new (HTTPS_SERVER);
@@ -322,8 +319,7 @@ do_proxy_auth_cache_test (void)
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
 	g_free (cache_dir);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "proxy-resolver", proxy_resolvers[AUTH_PROXY],
+	session = soup_test_session_new ("proxy-resolver", proxy_resolvers[AUTH_PROXY],
 					 NULL);
         soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
 	url = g_strconcat (HTTP_SERVER, "/Basic/realm1/", NULL);

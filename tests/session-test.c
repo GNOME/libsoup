@@ -169,7 +169,7 @@ do_plain_tests (void)
 {
 	SoupSession *session;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_test_for_session (session, TRUE, TRUE, FALSE);
 	soup_test_session_abort_unref (session);
 }
@@ -202,7 +202,7 @@ do_priority_tests (void)
 
 	g_test_bug ("696277");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	g_object_set (session, "max-conns", 1, NULL);
 
 	expected_priorities[0] = SOUP_MESSAGE_PRIORITY_HIGH;
@@ -350,7 +350,7 @@ do_features_test (void)
 	GSList *features;
 	SoupSessionFeature *feature;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	features = soup_session_get_features (session, SOUP_TYPE_SESSION_FEATURE);
 	/* SoupAuthManager is always added */
@@ -441,7 +441,7 @@ do_read_uri_test (gconstpointer data)
         GError *error = NULL;
         GetTestFlags flags = GPOINTER_TO_UINT (data);
 
-        session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        session = soup_test_session_new (NULL);
 
         uri = soup_uri_new_with_base (base_uri, "/index.txt");
         uri_string = soup_uri_to_string (uri, FALSE);
@@ -520,7 +520,7 @@ do_load_uri_error_tests (void)
         SoupSession *session;
         guint i;
 
-        session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        session = soup_test_session_new (NULL);
 
         for (i = 0; i < G_N_ELEMENTS (get_error_tests); i++) {
                 GError *error = NULL;

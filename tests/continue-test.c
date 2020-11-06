@@ -131,7 +131,7 @@ do_message (const char *path, gboolean long_body,
 			  G_CALLBACK (restarted), request_body);
 
 	events = NULL;
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
         g_assert (SOUP_IS_MESSAGE (msg));
 	response_body = soup_test_session_async_send (session, msg);
         g_assert (SOUP_IS_MESSAGE (msg));

@@ -189,7 +189,7 @@ do_content_length_framing_test (void)
 
 	g_test_bug ("611481");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	debug_printf (1, "  Content-Length larger than message body length\n");
 	request_uri = soup_uri_new_with_base (base_uri, "/content-length/long");
@@ -320,7 +320,7 @@ do_persistent_connection_timeout_test (void)
 	g_test_bug ("631525");
 
 	debug_printf (1, "  Normal session, message API\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_timeout_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -337,7 +337,7 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 	int i;
 	char buf[8192];
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	g_signal_connect (session, "request-queued",
 			  G_CALLBACK (request_queued_socket_collector),
@@ -538,8 +538,7 @@ do_max_conns_test (void)
 
 	g_test_bug ("634422");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "max-conns", MAX_CONNS,
+	session = soup_test_session_new ("max-conns", MAX_CONNS,
 					 NULL);
 	do_max_conns_test_for_session (session);
 	soup_test_session_abort_unref (session);
@@ -619,7 +618,7 @@ do_non_persistent_connection_test (void)
 
 	g_test_bug ("578990");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_non_persistent_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -667,7 +666,7 @@ do_non_idempotent_connection_test (void)
 {
 	SoupSession *session;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_non_idempotent_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -787,7 +786,7 @@ do_connection_state_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_connection_state_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
@@ -926,7 +925,7 @@ do_connection_event_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	do_connection_event_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }

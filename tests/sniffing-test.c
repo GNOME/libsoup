@@ -356,8 +356,7 @@ main (int argc, char **argv)
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+	session = soup_test_session_new (NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
 	g_test_add_data_func ("/sniffing/signals/no-sniffer",

@@ -177,8 +177,7 @@ setup_coding_test (CodingTestData *data, gconstpointer test_data)
 	SoupMessage *msg;
 	SoupURI *uri;
 
-	data->session = soup_test_session_new (SOUP_TYPE_SESSION,
-					       NULL);
+	data->session = soup_test_session_new (NULL);
 
 	uri = soup_uri_new_with_base (base_uri, "/mbox");
 

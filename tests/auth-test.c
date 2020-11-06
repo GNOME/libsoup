@@ -302,7 +302,7 @@ do_pipelined_auth_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	authenticated = FALSE;
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
@@ -469,7 +469,7 @@ do_digest_expiration_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 	do_digest_nonce_test (session, "First", uri, TRUE, TRUE, TRUE);
@@ -578,7 +578,7 @@ do_async_auth_good_password_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 
@@ -659,7 +659,7 @@ do_async_auth_bad_password_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 
@@ -709,7 +709,7 @@ do_async_auth_no_password_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 
@@ -803,7 +803,7 @@ select_auth_test_one (SoupURI *uri,
 	SoupMessage *msg;
 	SoupSession *session;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	if (disable_digest)
 		soup_session_remove_feature_by_type (session, SOUP_TYPE_AUTH_DIGEST);
 
@@ -1060,7 +1060,7 @@ do_auth_close_test (void)
 	g_signal_connect (server, "request-started",
 			  G_CALLBACK (auth_close_request_started), NULL);
 
-	acd.session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	acd.session = soup_test_session_new (NULL);
 	acd.msg = soup_message_new_from_uri ("GET", uri);
 	g_signal_connect (acd.msg, "authenticate",
 			  G_CALLBACK (auth_close_authenticate), &acd);
@@ -1102,7 +1102,7 @@ do_infinite_auth_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	msg = soup_message_new ("GET", uri);
 	g_signal_connect (msg, "authenticate",
@@ -1185,7 +1185,7 @@ do_disappearing_auth_test (void)
 	g_signal_connect (server, "request-read",
 			  G_CALLBACK (disappear_request_read), NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	counter = 0;
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -1255,7 +1255,7 @@ do_batch_tests (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	base = soup_uri_new (base_uri);
 
 	for (i = 0; current_tests[i].url; i++) {
@@ -1320,7 +1320,7 @@ do_clear_credentials_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 	do_digest_nonce_test (session, "First", uri, TRUE, TRUE, TRUE);
@@ -1346,7 +1346,7 @@ do_message_do_not_use_auth_cache_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 
@@ -1426,7 +1426,7 @@ do_async_message_do_not_use_auth_cache_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	loop = g_main_loop_new (NULL, TRUE);
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 
 	msg = soup_message_new ("GET", uri);
@@ -1489,7 +1489,7 @@ do_message_has_authorization_header_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 
 	msg = soup_message_new ("GET", uri);
@@ -1577,7 +1577,7 @@ do_cancel_after_retry_test (void)
 
         SOUP_TEST_SKIP_IF_NO_APACHE;
 
-        session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+        session = soup_test_session_new (NULL);
 	data.session = session;
         data.cancellable = g_cancellable_new ();
 

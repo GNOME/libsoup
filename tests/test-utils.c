@@ -247,18 +247,16 @@ apache_cleanup (void)
 #endif /* HAVE_APACHE */
 
 SoupSession *
-soup_test_session_new (GType type, ...)
+soup_test_session_new (const char *propname, ...)
 {
 	va_list args;
-	const char *propname;
 	SoupSession *session;
 	GTlsDatabase *tlsdb;
 	char *cafile;
 	GError *error = NULL;
 
-	va_start (args, type);
-	propname = va_arg (args, const char *);
-	session = (SoupSession *)g_object_new_valist (type, propname, args);
+	va_start (args, propname);
+	session = (SoupSession *)g_object_new_valist (SOUP_TYPE_SESSION, propname, args);
 	va_end (args);
 
 	if (tls_available) {

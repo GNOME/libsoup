@@ -146,8 +146,7 @@ test1_thread (gpointer user_data)
 
         async_context = g_main_context_new ();
         g_main_context_push_thread_default (async_context);
-        session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+        session = soup_test_session_new (NULL);
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
@@ -204,8 +203,7 @@ do_test2 (void)
 
 	async_context = g_main_context_new ();
         g_main_context_push_thread_default (async_context);
-        session = soup_test_session_new (SOUP_TYPE_SESSION,
-                                         NULL);
+        session = soup_test_session_new (NULL);
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
@@ -263,8 +261,7 @@ do_multicontext_test (void)
 	GMainContext *context1, *context2;
 	GMainLoop *loop1, *loop2;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+	session = soup_test_session_new (NULL);
 
 	context1 = g_main_context_new ();
 	loop1 = g_main_loop_new (context1, FALSE);

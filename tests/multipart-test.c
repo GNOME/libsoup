@@ -489,8 +489,7 @@ main (int argc, char **argv)
 	/* FIXME: I had to raise the number of connections allowed here, otherwise I
 	 * was hitting the limit, which indicates some connections are not dying.
 	 */
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "max-conns", 20,
+	session = soup_test_session_new ("max-conns", 20,
 					 "max-conns-per-host", 20,
 					 NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);

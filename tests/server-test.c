@@ -131,7 +131,7 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 
 	g_test_bug ("590751");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	star_uri = soup_uri_copy (sd->base_uri);
 	soup_uri_set_path (star_uri, "*");
 
@@ -272,7 +272,7 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 
 	g_test_bug ("667635");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	uri = soup_uri_new_with_base (sd->base_uri, "/..%2ftest");
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -401,7 +401,7 @@ do_ipv6_test (ServerData *sd, gconstpointer test_data)
 
 	sd->base_uri = soup_test_server_get_uri (sd->server, "http", "::1");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	debug_printf (1, "  HTTP/1.1\n");
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
@@ -462,7 +462,7 @@ do_multi_test (ServerData *sd, SoupURI *uri1, SoupURI *uri2)
 
 	server_add_handler (sd, NULL, multi_server_callback, NULL, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	uristr = soup_uri_to_string (uri1, FALSE);
 	msg = soup_message_new ("GET", uristr);
@@ -644,7 +644,7 @@ do_gsocket_import_test (void)
 	g_assert_cmpint (g_slist_length (listeners), ==, 1);
 	g_slist_free (listeners);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
 	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -710,7 +710,7 @@ do_fd_import_test (void)
 	g_assert_cmpint (g_slist_length (listeners), ==, 1);
 	g_slist_free (listeners);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
 	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -917,7 +917,7 @@ do_fail_404_test (ServerData *sd, gconstpointer test_data)
 
 	server_add_handler (sd, "/not-a-match", unhandled_server_callback, &usd, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	body = soup_test_session_async_send (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
@@ -942,7 +942,7 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 
 	server_add_handler (sd, NULL, unhandled_server_callback, &usd, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	if (pause)
 		soup_message_headers_append (soup_message_get_request_headers (msg), "X-Test-Server-Pause", "true");
@@ -1016,7 +1016,7 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 
 	server_add_early_handler (sd, NULL, early_stream_callback, NULL, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	msg = soup_message_new_from_uri ("POST", sd->base_uri);
 
@@ -1056,7 +1056,7 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 
 	server_add_early_handler (sd, NULL, early_respond_callback, NULL, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	/* The early handler will intercept, and the normal handler will be skipped */
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
@@ -1120,7 +1120,7 @@ do_early_multi_test (ServerData *sd, gconstpointer test_data)
 	server_add_handler (sd, "/both", server_callback, NULL, NULL);
 	server_add_early_handler (sd, "/both", early_multi_callback, NULL, NULL);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	for (i = 0; i < G_N_ELEMENTS (multi_tests); i++) {
 		uri = soup_uri_new_with_base (sd->base_uri, multi_tests[i].path);
@@ -1399,8 +1399,7 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 	soup_server_add_handler (proxy, NULL, proxy_server_callback, NULL, NULL);
 
 	resolver = g_simple_proxy_resolver_new (proxy_uri_str, NULL);
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 "proxy-resolver", resolver,
+	session = soup_test_session_new ("proxy-resolver", resolver,
 					 NULL);
 	msg = soup_message_new_from_uri ("GET", sd->ssl_base_uri);
 	soup_test_session_send_message (session, msg);

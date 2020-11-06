@@ -40,8 +40,7 @@ do_strictness_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION,
-					 NULL);
+	session = soup_test_session_new (NULL);
 	if (!test->with_ca_list) {
 		g_object_set (G_OBJECT (session),
 			      "ssl-use-system-ca-file", TRUE,
@@ -214,7 +213,7 @@ do_tls_interaction_test (void)
 	soup_uri_set_port (test_uri, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (bound_address)));
 	g_object_unref (bound_address);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	session = soup_test_session_new (NULL);
 
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);

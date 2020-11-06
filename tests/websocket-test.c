@@ -266,7 +266,7 @@ client_connect (Test *test,
 	SoupCookieJar *jar;
 	GList *l;
 
-	test->session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	test->session = soup_test_session_new (NULL);
 	if (test->enable_extensions)
 		soup_session_add_feature_by_type (test->session, SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER);
 
@@ -451,7 +451,7 @@ test_handshake_unsupported_extension (Test *test,
 	soup_server_add_websocket_handler (test->soup_server, "/unix", NULL, NULL,
 					   got_server_connection, test, NULL);
 
-	test->session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	test->session = soup_test_session_new (NULL);
 	g_signal_connect (test->session, "request-unqueued",
 			  G_CALLBACK (request_unqueued),
 			  test);
