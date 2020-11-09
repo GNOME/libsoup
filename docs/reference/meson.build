@@ -10,7 +10,6 @@ ignore_headers = [
   'soup-connection-auth.h',
   'soup-message-queue.h',
   'soup-path-map.h',
-  'soup-directory-input-stream.h',
   'soup-http-input-stream.h',
   'soup-converter-wrapper.h',
   'soup-body-input-stream.h',

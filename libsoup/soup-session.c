@@ -17,7 +17,6 @@
 #include "auth/soup-auth-ntlm.h"
 #include "cache/soup-cache-private.h"
 #include "soup-connection.h"
-#include "soup-directory-input-stream.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup-message-queue.h"
