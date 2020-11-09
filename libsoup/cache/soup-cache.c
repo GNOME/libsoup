@@ -37,7 +37,7 @@
 #include "soup-cache-client-input-stream.h"
 #include "soup-cache-input-stream.h"
 #include "soup-cache-private.h"
-#include "content-sniffer/soup-content-processor.h"
+#include "soup-content-processor.h"
 #include "soup-message-private.h"
 #include "soup.h"
 #include "soup-message-private.h"

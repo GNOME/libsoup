@@ -20,7 +20,7 @@
 #include "soup-body-output-stream.h"
 #include "soup-client-input-stream.h"
 #include "soup-connection.h"
-#include "content-sniffer/soup-content-processor.h"
+#include "soup-content-processor.h"
 #include "content-sniffer/soup-content-sniffer-stream.h"
 #include "soup-filter-input-stream.h"
 #include "soup-message-private.h"

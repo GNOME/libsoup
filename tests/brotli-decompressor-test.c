@@ -19,7 +19,7 @@
  */
 
 #include "test-utils.h"
-#include "content-sniffer/soup-brotli-decompressor.h"
+#include "soup-brotli-decompressor.h"
 
 static void
 test_brotli (void)

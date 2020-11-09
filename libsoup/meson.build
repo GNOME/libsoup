@@ -16,11 +16,12 @@ soup_sources = [
   'cache/soup-cache-client-input-stream.c',
   'cache/soup-cache-input-stream.c',
 
-  'content-sniffer/soup-content-decoder.c',
-  'content-sniffer/soup-content-processor.c',
+  'content-decoder/soup-content-decoder.c',
+  'content-decoder/soup-content-processor.c',
+  'content-decoder/soup-converter-wrapper.c',
+
   'content-sniffer/soup-content-sniffer.c',
   'content-sniffer/soup-content-sniffer-stream.c',
-  'content-sniffer/soup-converter-wrapper.c',
 
   'cookies/soup-cookie.c',
   'cookies/soup-cookie-jar.c',
@@ -86,7 +87,8 @@ soup_introspection_headers = [
 
   'cache/soup-cache.h',
 
-  'content-sniffer/soup-content-decoder.h',
+  'content-decoder/soup-content-decoder.h',
+
   'content-sniffer/soup-content-sniffer.h',
 
   'cookies/soup-cookie.h',
@@ -131,7 +133,7 @@ soup_introspection_headers = [
 soup_installed_headers = soup_introspection_headers
 
 if brotlidec_dep.found()
-  soup_sources += 'content-sniffer/soup-brotli-decompressor.c'
+  soup_sources += 'content-decoder/soup-brotli-decompressor.c'
 endif
 
 
@@ -180,6 +182,7 @@ libsoup_includes = [
   include_directories([
     'auth',
     'cookies',
+    'content-decoder',
     'hsts',
     'server',
     'websocket',

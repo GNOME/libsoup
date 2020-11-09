@@ -10,7 +10,7 @@
 #include "soup-message.h"
 #include "soup-message-io-data.h"
 #include "auth/soup-auth.h"
-#include "content-sniffer/soup-content-processor.h"
+#include "soup-content-processor.h"
 #include "content-sniffer/soup-content-sniffer.h"
 #include "soup-session.h"
 

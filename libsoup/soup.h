@@ -15,7 +15,7 @@ extern "C" {
 #include "auth/soup-auth.h"
 #include "auth/soup-auth-manager.h"
 #include "cache/soup-cache.h"
-#include "content-sniffer/soup-content-decoder.h"
+#include "content-decoder/soup-content-decoder.h"
 #include "content-sniffer/soup-content-sniffer.h"
 #include "cookies/soup-cookie.h"
 #include "cookies/soup-cookie-jar.h"
