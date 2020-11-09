@@ -126,19 +126,18 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	GUri *star_uri;
 	const char *handled_by;
 
 	g_test_bug ("590751");
 
-        g_test_skip ("The literal path \"*\" is not a valid GUri");
-        return;
-
 	session = soup_test_session_new (NULL);
-        star_uri = g_uri_parse_relative (sd->base_uri, "*", SOUP_HTTP_URI_FLAGS, NULL);
 
 	debug_printf (1, "  Testing with no handler\n");
-	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
+	msg = g_object_new (SOUP_TYPE_MESSAGE,
+                            "method", SOUP_METHOD_OPTIONS,
+                            "uri", sd->base_uri,
+                            "options-ping", TRUE,
+                            NULL);
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
@@ -150,7 +149,11 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	server_add_handler (sd, "*", server_star_callback, NULL, NULL);
 
 	debug_printf (1, "  Testing with handler\n");
-	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
+	msg = g_object_new (SOUP_TYPE_MESSAGE,
+                            "method", SOUP_METHOD_OPTIONS,
+                            "uri", sd->base_uri,
+                            "options-ping", TRUE,
+                            NULL);
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -160,7 +163,6 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
-	g_uri_unref (star_uri);
 }
 
 static void

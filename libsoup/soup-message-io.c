@@ -279,10 +279,12 @@ write_headers (SoupMessage          *msg,
 		/* Proxy expects full URI to destination. Otherwise
 		 * just the path.
 		 */
-                if (!proxy)
-                        uri_string = soup_uri_get_path_and_query (uri);
-                else
+                if (proxy)
                         uri_string = g_uri_to_string (uri);
+                else if (soup_message_is_options_ping (msg))
+                        uri_string = g_strdup ("*");
+                else
+                        uri_string = soup_uri_get_path_and_query (uri);
 
 		if (proxy && g_uri_get_fragment (uri)) {
 			/* Strip fragment */

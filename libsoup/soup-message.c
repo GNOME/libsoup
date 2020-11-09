@@ -90,6 +90,7 @@ typedef struct {
 	SoupMessagePriority priority;
 
 	gboolean is_top_level_navigation;
+        gboolean options_ping;
 } SoupMessagePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
@@ -134,6 +135,7 @@ enum {
 	PROP_PRIORITY,
 	PROP_SITE_FOR_COOKIES,
 	PROP_IS_TOP_LEVEL_NAVIGATION,
+        PROP_OPTIONS_PING,
 
 	LAST_PROP
 };
@@ -219,6 +221,9 @@ soup_message_set_property (GObject *object, guint prop_id,
 	case PROP_PRIORITY:
 		priv->priority = g_value_get_enum (value);
 		break;
+	case PROP_OPTIONS_PING:
+		priv->options_ping = g_value_get_boolean (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -275,6 +280,9 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_PRIORITY:
 		g_value_set_enum (value, priv->priority);
 		break;
+	case PROP_OPTIONS_PING:
+                g_value_set_boolean (value, priv->options_ping);
+                break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -742,6 +750,22 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   SOUP_MESSAGE_PRIORITY_NORMAL,
 				   G_PARAM_READWRITE |
 				   G_PARAM_STATIC_STRINGS));
+
+	/**
+	 * SoupMessage:options-ping:
+	 *
+	 * The #SoupMessage is intended to be used to send
+         * `OPTIONS *` to a server and the path of
+         * #SoupMessage:uri will be ignored.
+	 */
+	g_object_class_install_property (
+		object_class, PROP_OPTIONS_PING,
+		g_param_spec_boolean ("options-ping",
+				      "Options Ping",
+				      "The message is an OPTIONS ping",
+                                      FALSE,
+				      G_PARAM_READWRITE |
+				      G_PARAM_STATIC_STRINGS));
 }
 
 
@@ -2198,4 +2222,12 @@ soup_message_set_method (SoupMessage *msg,
         g_return_if_fail (method != NULL);
 
         priv->method = g_intern_string (method);
+}
+
+gboolean
+soup_message_is_options_ping (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->options_ping;
 }

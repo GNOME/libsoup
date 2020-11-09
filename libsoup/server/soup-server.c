@@ -721,15 +721,23 @@ soup_server_get_listeners (SoupServer *server)
  */
 #define NORMALIZED_PATH(path) ((path) && *(path) ? (path) : "/")
 
+static const char *
+get_msg_path (SoupServerMessage *msg)
+{
+        /* A GUri cannot hold a path of "*" so we handle that */
+        if (soup_server_message_is_options_ping (msg))
+                return "*";
+        else
+                return NORMALIZED_PATH (g_uri_get_path (soup_server_message_get_uri (msg)));
+}
+
 static SoupServerHandler *
 get_handler (SoupServer        *server,
 	     SoupServerMessage *msg)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
-	GUri *uri;
 
-	uri = soup_server_message_get_uri (msg);
-	return soup_path_map_lookup (priv->handlers, NORMALIZED_PATH (g_uri_get_path (uri)));
+	return soup_path_map_lookup (priv->handlers, get_msg_path (msg));
 }
 
 static void
@@ -757,11 +765,11 @@ call_handler (SoupServer        *server,
 
 	if (early) {
 		(*handler->early_callback) (server, msg,
-					    g_uri_get_path (uri), form_data_set,
+					    get_msg_path (msg), form_data_set,
 					    handler->early_user_data);
 	} else {
 		(*handler->callback) (server, msg,
-				      g_uri_get_path (uri), form_data_set,
+				      get_msg_path (msg), form_data_set,
 				      handler->user_data);
 	}
 

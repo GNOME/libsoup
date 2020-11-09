@@ -592,10 +592,11 @@ parse_headers (SoupServerMessage *msg,
 
 	if (!strcmp (req_path, "*") && req_host) {
 		/* Eg, "OPTIONS * HTTP/1.1" */
-		url = g_strdup_printf ("%s://%s/*",
+		url = g_strdup_printf ("%s://%s/",
 				       soup_socket_is_ssl (sock) ? "https" : "http",
 				       req_host);
 		uri = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, NULL);
+                soup_server_message_set_options_ping (msg, TRUE);
 		g_free (url);
 	} else if (soup_server_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		/* Authority */

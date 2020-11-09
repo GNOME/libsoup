@@ -68,6 +68,8 @@ struct _SoupServerMessage {
         SoupMessageHeaders *response_headers;
 
         SoupServerMessageIOData *io_data;
+
+        gboolean                 options_ping;
 };
 
 struct _SoupServerMessageClass {
@@ -567,6 +569,29 @@ soup_server_message_set_method (SoupServerMessage *msg,
                                 const char        *method)
 {
         msg->method = g_intern_string (method);
+}
+
+void
+soup_server_message_set_options_ping (SoupServerMessage *msg,
+                                      gboolean           is_options_ping)
+{
+        msg->options_ping = is_options_ping;
+}
+
+/**
+ * soup_server_message_is_options_ping:
+ * @msg: a #SoupServerMessage
+ *
+ * Gets if @msg represents an OPTIONS message with the path `*`.
+ * 
+ * Returns: %TRUE if is an OPTIONS ping
+ */
+gboolean
+soup_server_message_is_options_ping (SoupServerMessage *msg)
+{
+        g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), FALSE);
+
+        return msg->options_ping;
 }
 
 /**

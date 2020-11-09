@@ -281,6 +281,7 @@ soup_server_message_get_socket
 soup_server_message_get_local_address
 soup_server_message_get_remote_address
 soup_server_message_get_remote_host
+soup_server_message_is_options_ping
 soup_server_message_steal_connection
 <SUBSECTION Standard>
 SOUP_SERVER_MESSAGE

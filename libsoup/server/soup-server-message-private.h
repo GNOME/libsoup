@@ -40,6 +40,8 @@ void               soup_server_message_finished            (SoupServerMessage   
 void               soup_server_message_read_request        (SoupServerMessage        *msg,
                                                             SoupMessageIOCompletionFn completion_cb,
                                                             gpointer                  user_data);
+void               soup_server_message_set_options_ping    (SoupServerMessage        *msg,
+                                                            gboolean                  is_options_ping);
 
 typedef struct _SoupServerMessageIOData SoupServerMessageIOData;
 void                     soup_server_message_io_data_free  (SoupServerMessageIOData *io);

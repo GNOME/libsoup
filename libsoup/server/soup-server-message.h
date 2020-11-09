@@ -74,6 +74,9 @@ const char         *soup_server_message_get_remote_host       (SoupServerMessage
 SOUP_AVAILABLE_IN_ALL
 GIOStream          *soup_server_message_steal_connection      (SoupServerMessage *msg);
 
+SOUP_AVAILABLE_IN_ALL
+gboolean            soup_server_message_is_options_ping       (SoupServerMessage *msg);
+
 G_END_DECLS
 
 #endif /* __SOUP_SERVER_MESSAGE_H__ */
