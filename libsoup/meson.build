@@ -3,14 +3,7 @@ subdir('include')
 
 pkg = import('pkgconfig')
 
-resources = gnome.compile_resources('soup-resources',
-    'soup.gresource.xml',
-    c_name: 'soup',
-    source_dir: '.'
-)
-
 soup_sources = [
-  resources,
   'auth/soup-auth.c',
   'auth/soup-auth-basic.c',
   'auth/soup-auth-digest.c',
