@@ -184,8 +184,12 @@ test1_thread (gpointer user_data)
 /* Test 2: An async session in the main thread with its own
  * async_context runs independently of the default main loop.
  */
-
-static gboolean idle_test2_fail (gpointer user_data);
+static gboolean
+idle_test2_fail (gpointer user_data)
+{
+	soup_test_assert (FALSE, "idle ran");
+	return FALSE;
+}
 
 static void
 do_test2 (void)
@@ -223,13 +227,6 @@ do_test2 (void)
 }
 
 #if 0
-static gboolean
-idle_test2_fail (gpointer user_data)
-{
-	soup_test_assert (FALSE, "idle ran");
-	return FALSE;
-}
-
 static void
 request_started (SoupMessage *msg, gpointer user_data)
 {
