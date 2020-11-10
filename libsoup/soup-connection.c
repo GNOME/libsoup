@@ -553,17 +553,17 @@ connect_async_ready_cb (GSocketClient *client,
 
         connection = g_socket_client_connect_finish (client, result, &error);
         if (!connection) {
+		g_clear_object (&priv->cancellable);
                 g_task_return_error (task, error);
                 g_object_unref (task);
-                g_clear_object (&priv->cancellable);
                 return;
         }
 
         if (!soup_connection_connected (conn, connection, &error)) {
+		g_clear_object (&priv->cancellable);
                 g_task_return_error (task, error);
                 g_object_unref (task);
                 g_object_unref (connection);
-                g_clear_object (&priv->cancellable);
                 return;
         }
 
@@ -743,9 +743,9 @@ soup_connection_tunnel_handshake_async (SoupConnection     *conn,
 
         tls_connection = new_tls_connection (conn, G_SOCKET_CONNECTION (priv->connection), &error);
         if (!tls_connection) {
+		g_clear_object (&priv->cancellable);
                 g_task_return_error (task, error);
                 g_object_unref (task);
-                g_clear_object (&priv->cancellable);
                 return;
         }
 
