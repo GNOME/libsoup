@@ -21,14 +21,6 @@
  **/
 
 /**
- * SOUP_STATUS_IS_TRANSPORT_ERROR:
- * @status: a status code
- *
- * Tests if @status is a libsoup transport error.
- *
- * Return value: %TRUE or %FALSE
- **/
-/**
  * SOUP_STATUS_IS_INFORMATIONAL:
  * @status: an HTTP status code
  *
@@ -73,18 +65,6 @@
  * SoupStatus:
  * @SOUP_STATUS_NONE: No status available. (Eg, the message has not
  * been sent yet)
- * @SOUP_STATUS_CANCELLED: Message was cancelled locally
- * @SOUP_STATUS_CANT_RESOLVE: Unable to resolve destination host name
- * @SOUP_STATUS_CANT_RESOLVE_PROXY: Unable to resolve proxy host name
- * @SOUP_STATUS_CANT_CONNECT: Unable to connect to remote host
- * @SOUP_STATUS_CANT_CONNECT_PROXY: Unable to connect to proxy
- * @SOUP_STATUS_SSL_FAILED: SSL/TLS negotiation failed
- * @SOUP_STATUS_IO_ERROR: A network error occurred, or the other end
- * closed the connection unexpectedly
- * @SOUP_STATUS_MALFORMED: Malformed data (usually a programmer error)
- * @SOUP_STATUS_TRY_AGAIN: Used internally
- * @SOUP_STATUS_TOO_MANY_REDIRECTS: There were too many redirections
- * @SOUP_STATUS_TLS_FAILED: Used internally
  * @SOUP_STATUS_CONTINUE: 100 Continue (HTTP)
  * @SOUP_STATUS_SWITCHING_PROTOCOLS: 101 Switching Protocols (HTTP)
  * @SOUP_STATUS_PROCESSING: 102 Processing (WebDAV)
@@ -175,17 +155,6 @@ static const struct {
 	guint code;
 	const char *phrase;
 } reason_phrases [] = {
-	/* Transport errors */
-	{ SOUP_STATUS_CANCELLED,                  "Cancelled" },
-	{ SOUP_STATUS_CANT_RESOLVE,               "Cannot resolve hostname" },
-	{ SOUP_STATUS_CANT_RESOLVE_PROXY,         "Cannot resolve proxy hostname" },
-	{ SOUP_STATUS_CANT_CONNECT,               "Cannot connect to destination" },
-	{ SOUP_STATUS_CANT_CONNECT_PROXY,         "Cannot connect to proxy" },
-	{ SOUP_STATUS_SSL_FAILED,                 "SSL handshake failed" },
-	{ SOUP_STATUS_IO_ERROR,                   "Connection terminated unexpectedly" },
-	{ SOUP_STATUS_MALFORMED,                  "Message Corrupt" },
-	{ SOUP_STATUS_TOO_MANY_REDIRECTS,         "Too many redirects" },
-
 	/* Informational */
 	{ SOUP_STATUS_CONTINUE,                   "Continue" },
 	{ SOUP_STATUS_SWITCHING_PROTOCOLS,        "Switching Protocols" },
@@ -279,32 +248,6 @@ soup_status_get_phrase (guint status_code)
 
 	return "Unknown Error";
 }
-
-/**
- * soup_status_proxify:
- * @status_code: a status code
- *
- * Turns %SOUP_STATUS_CANT_RESOLVE into
- * %SOUP_STATUS_CANT_RESOLVE_PROXY and %SOUP_STATUS_CANT_CONNECT into
- * %SOUP_STATUS_CANT_CONNECT_PROXY. Other status codes are passed
- * through unchanged.
- *
- * Return value: the "proxified" equivalent of @status_code.
- *
- * Since: 2.26
- **/
-guint
-soup_status_proxify (guint status_code)
-{
-	if (status_code == SOUP_STATUS_CANT_RESOLVE)
-		return SOUP_STATUS_CANT_RESOLVE_PROXY;
-	else if (status_code == SOUP_STATUS_CANT_CONNECT)
-		return SOUP_STATUS_CANT_CONNECT_PROXY;
-	else
-		return status_code;
-}
-
-G_DEFINE_QUARK (soup-http-error-quark, soup_http_error)
 
 /**
  * SoupHTTPVersion:

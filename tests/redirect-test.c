@@ -19,6 +19,7 @@ typedef struct {
 typedef struct {
 	TestRequest requests[3];
 	guint final_status;
+	guint error_code;
 	const char *bugref;
 } TestCase;
 
@@ -27,96 +28,99 @@ static TestCase tests[] = {
 
 	{ { { "GET", "/301", 301 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 	{ { { "GET", "/302", 302 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 	{ { { "GET", "/303", 303 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 	{ { { "GET", "/307", 307 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 	{ { { "GET", "/308", 308 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 	{ { { "HEAD", "/301", 301 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200, "551190" },
+	    { NULL } }, 200, 0, "551190" },
 	{ { { "HEAD", "/302", 302 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200, "551190" },
+	    { NULL } }, 200, 0, "551190" },
 	/* 303 is a nonsensical response to HEAD, but some sites do
 	 * it anyway. :-/
 	 */
 	{ { { "HEAD", "/303", 303 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200, "600830" },
+	    { NULL } }, 200, 0, "600830" },
 	{ { { "HEAD", "/307", 307 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200, "551190" },
+	    { NULL } }, 200, 0, "551190" },
 	{ { { "HEAD", "/308", 308 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200, "551190" },
+	    { NULL } }, 200, 0, "551190" },
 
 	/* A non-redirecty response to a GET or HEAD should not */
 
 	{ { { "GET", "/300", 300 },
-	    { NULL } }, 300, NULL },
+	    { NULL } }, 300, 0, NULL },
 	{ { { "GET", "/304", 304 },
-	    { NULL } }, 304, NULL },
+	    { NULL } }, 304, 0, NULL },
 	{ { { "GET", "/305", 305 },
-	    { NULL } }, 305, NULL },
+	    { NULL } }, 305, 0, NULL },
 	{ { { "GET", "/306", 306 },
-	    { NULL } }, 306, NULL },
+	    { NULL } }, 306, 0, NULL },
 	{ { { "HEAD", "/300", 300 },
-	    { NULL } }, 300, "551190" },
+	    { NULL } }, 300, 0, "551190" },
 	{ { { "HEAD", "/304", 304 },
-	    { NULL } }, 304, "551190" },
+	    { NULL } }, 304, 0, "551190" },
 	{ { { "HEAD", "/305", 305 },
-	    { NULL } }, 305, "551190" },
+	    { NULL } }, 305, 0, "551190" },
 	{ { { "HEAD", "/306", 306 },
-	    { NULL } }, 306, "551190" },
+	    { NULL } }, 306, 0, "551190" },
 	
 	/* Test double-redirect */
 
 	{ { { "GET", "/301/302", 301 },
 	    { "GET", "/302", 302 },
-	    { "GET", "/", 200 } }, 200, NULL },
+	    { "GET", "/", 200 } }, 200, 0, NULL },
 	{ { { "HEAD", "/301/302", 301 },
 	    { "HEAD", "/302", 302 },
-	    { "HEAD", "/", 200 } }, 200, "551190" },
+	    { "HEAD", "/", 200 } }, 200, 0, "551190" },
 
 	/* POST should only automatically redirect on 301, 302 and 303 */
 
 	{ { { "POST", "/301", 301 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, "586692" },
+	    { NULL } }, 200, 0, "586692" },
 	{ { { "POST", "/302", 302 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 	{ { { "POST", "/303", 303 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 	{ { { "POST", "/307", 307 },
-	    { NULL } }, 307, NULL },
+	    { NULL } }, 307, 0, NULL },
 
 	/* Test behavior with recoverably-bad Location header */
 	{ { { "GET", "/bad", 302 },
 	    { "GET", "/bad%20with%20spaces", 200 },
-	    { NULL } }, 200, "566530" },
+	    { NULL } }, 200, 0, "566530" },
 
 	{ { { "GET", "/bad-no-host", 302 },
-	    { NULL } }, 302, "528882" },
+	    { NULL } }, 302, SOUP_SESSION_ERROR_REDIRECT_BAD_URI, "528882" },
+
+	{ { { "GET", "/bad-no-location", 302 },
+	    { NULL } }, 302, SOUP_SESSION_ERROR_REDIRECT_NO_LOCATION, NULL},
 
 	/* Test infinite redirection */
 	{ { { "GET", "/bad-recursive", 302, TRUE },
-	    { NULL } }, SOUP_STATUS_TOO_MANY_REDIRECTS, "604383" },
+	    { NULL } }, 302, SOUP_SESSION_ERROR_TOO_MANY_REDIRECTS, "604383" },
 
 	/* Test redirection to a different server */
 	{ { { "GET", "/server2", 302 },
 	    { "GET", "/on-server2", 200 },
-	    { NULL } }, 200, NULL },
+	    { NULL } }, 200, 0, NULL },
 };
 static const int n_tests = G_N_ELEMENTS (tests);
 
@@ -164,6 +168,7 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	SoupMessage *msg;
 	GBytes *body;
 	TestRequest *treq;
+	GError *error = NULL;
 
 	if (test->bugref)
 		g_test_bug (test->bugref);
@@ -186,10 +191,15 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
 
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, &error);
 
 	soup_test_assert_message_status (msg, test->final_status);
+	if (test->error_code)
+		g_assert_error (error, SOUP_SESSION_ERROR, test->error_code);
+	else
+		g_assert_no_error (error);
 
+	g_clear_error (&error);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 }
@@ -239,6 +249,10 @@ server_callback (SoupServer        *server,
 			soup_message_headers_replace (response_headers,
 						      "Location",
 						      "about:blank");
+		} else if (!strcmp (path, "/bad-no-location")) {
+			soup_server_message_set_status (msg, SOUP_STATUS_FOUND, NULL);
+			soup_message_headers_replace (response_headers,
+						      "Location", "");
 		} else if (!strcmp (path, "/bad with spaces"))
 			soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 		else

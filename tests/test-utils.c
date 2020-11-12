@@ -301,15 +301,22 @@ soup_test_session_abort_unref (SoupSession *session)
 	g_object_unref (session);
 }
 
+typedef struct {
+	GBytes *body;
+	GError *error;
+	gboolean done;
+} SendAsyncData;
+
 static void
-send_async_ready_cb (SoupSession  *session,
-		     GAsyncResult *result,
-		     GBytes      **body)
+send_async_ready_cb (SoupSession   *session,
+		     GAsyncResult  *result,
+		     SendAsyncData *data)
 {
 	GInputStream *istream;
 	GOutputStream *ostream;
 
-	istream = soup_session_send_finish (session, result, NULL);
+	data->done = TRUE;
+	istream = soup_session_send_finish (session, result, &data->error);
 	if (!istream)
 		return;
 
@@ -318,40 +325,46 @@ send_async_ready_cb (SoupSession  *session,
 				istream,
 				G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
 				G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-				NULL, NULL);
-	*body = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
+				NULL,
+				&data->error);
+	data->body = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
 	g_object_unref (ostream);
 	g_object_unref (istream);
 }
 
 static void
 on_message_finished (SoupMessage *msg,
-		     gboolean    *message_finished)
+                    gboolean    *message_finished)
 {
         *message_finished = TRUE;
 }
 
 GBytes *
 soup_test_session_async_send (SoupSession *session,
-			      SoupMessage *msg)
+			      SoupMessage *msg,
+			      GError     **error)
 {
-        gboolean message_finished = FALSE;
+	gboolean message_finished = FALSE;
 	GMainContext *async_context = g_main_context_ref_thread_default ();
 	gulong signal_id;
-	GBytes *body = NULL;
+	SendAsyncData data = { NULL, NULL, FALSE };
 
 	signal_id = g_signal_connect (msg, "finished",
-				      G_CALLBACK (on_message_finished), &message_finished);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
-				 (GAsyncReadyCallback)send_async_ready_cb, &body);
+                                     G_CALLBACK (on_message_finished), &message_finished);
 
-	while (!message_finished)
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+				 (GAsyncReadyCallback)send_async_ready_cb, &data);
+
+	while (!data.done || !message_finished)
 		g_main_context_iteration (async_context, TRUE);
 
 	g_signal_handler_disconnect (msg, signal_id);
 
+	if (data.error)
+		g_propagate_error (error, data.error);
+
         g_main_context_unref (async_context);
-	return body;
+	return data.body;
 }
 
 guint
@@ -681,8 +694,7 @@ cancel_message_or_cancellable (CancelData *cancel_data)
 	if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE) {
 		SoupMessage *msg = cancel_data->msg;
 
-		soup_session_cancel_message (cancel_data->session, msg,
-					     SOUP_STATUS_CANCELLED);
+		soup_session_cancel_message (cancel_data->session, msg, 0);
 		g_object_unref (msg);
 	} else if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE) {
 		g_cancellable_cancel (cancel_data->cancellable);

@@ -211,7 +211,7 @@ do_signals_test (gboolean should_content_sniff,
 			  "signal::content_sniffed", content_sniffed, NULL,
 			  NULL);
 
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 
 	if (should_content_sniff) {
 		soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") != NULL,
@@ -300,7 +300,7 @@ test_sniffing (const char *path, const char *expected_type)
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	g_assert_cmpstr (sniffed_type, ==, expected_type);
 	g_free (sniffed_type);
 	g_bytes_unref (body);
@@ -352,7 +352,7 @@ test_disabled (gconstpointer data)
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 
 	g_assert_null (sniffed_type);
 	g_bytes_unref (body);

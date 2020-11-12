@@ -659,7 +659,7 @@ io_read (SoupServerMessage *msg,
         case SOUP_MESSAGE_IO_STATE_HEADERS:
                 if (!soup_message_io_data_read_headers (io, FALSE, NULL, error)) {
 			if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT))
-				soup_server_message_set_status (msg, SOUP_STATUS_MALFORMED, NULL);
+				soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
                         return FALSE;
 		}
 
@@ -851,9 +851,7 @@ io_run (SoupServerMessage *msg)
 								 NULL);
                 g_source_attach (io->io_source, io->async_context);
         } else if (soup_server_message_get_io_data (msg) == server_io) {
-		if (!SOUP_STATUS_IS_TRANSPORT_ERROR (soup_server_message_get_status (msg, NULL)))
-			soup_server_message_set_status (msg, SOUP_STATUS_IO_ERROR, error ? error->message : NULL);
-
+		soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, error ? error->message : NULL);
 		soup_server_message_io_finished (msg);
 	}
 	g_object_unref (msg);

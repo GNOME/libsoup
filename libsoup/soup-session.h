@@ -23,7 +23,11 @@ typedef enum {
 	SOUP_SESSION_ERROR_BAD_URI,
 	SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,
 	SOUP_SESSION_ERROR_PARSING,
-	SOUP_SESSION_ERROR_ENCODING
+	SOUP_SESSION_ERROR_ENCODING,
+	SOUP_SESSION_ERROR_TOO_MANY_REDIRECTS,
+	SOUP_SESSION_ERROR_TOO_MANY_RESTARTS,
+	SOUP_SESSION_ERROR_REDIRECT_NO_LOCATION,
+	SOUP_SESSION_ERROR_REDIRECT_BAD_URI
 } SoupSessionError;
 
 SOUP_AVAILABLE_IN_2_42
@@ -62,7 +66,8 @@ gboolean        soup_session_would_redirect   (SoupSession           *session,
 					       SoupMessage           *msg);
 SOUP_AVAILABLE_IN_2_38
 gboolean        soup_session_redirect_message (SoupSession           *session,
-					       SoupMessage           *msg);
+					       SoupMessage           *msg,
+					       GError               **error);
 
 SOUP_AVAILABLE_IN_2_24
 void                soup_session_add_feature            (SoupSession        *session,

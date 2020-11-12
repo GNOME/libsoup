@@ -1425,7 +1425,7 @@ soup_cache_cancel_conditional_request (SoupCache   *cache,
 	if (entry)
 		entry->being_validated = FALSE;
 
-	soup_session_cancel_message (priv->session, msg, SOUP_STATUS_CANCELLED);
+	soup_session_cancel_message (priv->session, msg, SOUP_STATUS_NONE);
 }
 
 void

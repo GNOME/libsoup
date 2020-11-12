@@ -93,7 +93,7 @@ do_request (SoupSession *session, GUri *base_uri, char *path)
 	msg = soup_message_new_from_uri ("GET", uri);
 	g_uri_unref (uri);
 
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpint (g_bytes_get_size (body), ==, g_bytes_get_size (full_response));

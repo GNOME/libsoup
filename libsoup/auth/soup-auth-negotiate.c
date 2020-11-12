@@ -95,12 +95,12 @@ G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CO
 static gboolean check_auth_trusted_uri (SoupConnectionAuth *auth,
 					SoupMessage *msg);
 static gboolean soup_gss_build_response (SoupNegotiateConnectionState *conn,
-					 SoupAuth *auth, GError **err);
+					 SoupAuth *auth, char **error_message);
 static void soup_gss_client_cleanup (SoupNegotiateConnectionState *conn);
 static gboolean soup_gss_client_init (SoupNegotiateConnectionState *conn,
-				      const char *authority, GError **err);
+				      const char *authority, char **error_message);
 static int soup_gss_client_step (SoupNegotiateConnectionState *conn,
-				 const char *host, GError **err);
+				 const char *host, char **error_message);
 
 static GSList *trusted_uris;
 static GSList *blacklisted_uris;
@@ -194,23 +194,23 @@ soup_auth_negotiate_get_connection_authorization (SoupConnectionAuth *auth,
 	char *header = NULL;
 
 	if (conn->state == SOUP_NEGOTIATE_NEW) {
-		GError *err = NULL;
+		char *error_message = NULL;
 
 		if (!check_auth_trusted_uri (auth, msg)) {
 			conn->state = SOUP_NEGOTIATE_FAILED;
 			return NULL;
 		}
 
-		if (!soup_gss_build_response (conn, SOUP_AUTH (auth), &err)) {
-                        g_assert (err); /* Silence scan-build */
+		if (!soup_gss_build_response (conn, SOUP_AUTH (auth), &error_message)) {
+			g_assert (error_message); /* Silence scan-build */
 			/* FIXME: report further upward via
 			 * soup_message_get_error_message  */
 			if (conn->initialized)
-				g_warning ("gssapi step failed: %s", err->message);
+				g_warning ("gssapi step failed: %s", error_message);
 			else
-				g_warning ("gssapi init failed: %s", err->message);
+				g_warning ("gssapi init failed: %s", error_message);
 			conn->state = SOUP_NEGOTIATE_FAILED;
-			g_clear_error (&err);
+			g_clear_pointer (&error_message, g_free);
 
 			return NULL;
 		}
@@ -243,7 +243,7 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 #ifdef LIBSOUP_HAVE_GSSAPI
 	gboolean success = TRUE;
 	SoupNegotiateConnectionState *conn = state;
-	GError *err = NULL;
+	char *error_message = NULL;
 
 	if (!check_auth_trusted_uri (auth, msg)) {
 		conn->state = SOUP_NEGOTIATE_FAILED;
@@ -260,7 +260,7 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 		}
 
 		conn->state = SOUP_NEGOTIATE_RECEIVED_CHALLENGE;
-		if (soup_gss_build_response (conn, SOUP_AUTH (auth), &err)) {
+		if (soup_gss_build_response (conn, SOUP_AUTH (auth), &error_message)) {
 			/* Connect the signal only once per message */
 			if (!g_object_get_data (G_OBJECT (msg), "negotiate-got-headers-connected")) {
 				/* Wait for the 2xx response to verify server response */
@@ -277,17 +277,17 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 			}
 			goto out;
 		} else {
-                        g_assert (err); /* Silence scan-build */
+                        g_assert (error_message); /* Silence scan-build */
 			/* FIXME: report further upward via
 			 * soup_message_get_error_message  */
 			if (conn->initialized)
-				g_warning ("gssapi step failed: %s", err->message);
+				g_warning ("gssapi step failed: %s", error_message);
 			else
-				g_warning ("gssapi init failed: %s", err->message);
+				g_warning ("gssapi init failed: %s", error_message);
 			success = FALSE;
 		}
 	} else if (!strncmp (header, "Negotiate ", 10)) {
-		if (soup_gss_client_step (conn, header + 10, &err) == AUTH_GSS_CONTINUE) {
+		if (soup_gss_client_step (conn, header + 10, &error_message) == AUTH_GSS_CONTINUE) {
 			conn->state = SOUP_NEGOTIATE_RECEIVED_CHALLENGE;
 			goto out;
 		}
@@ -295,7 +295,7 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 
 	conn->state = SOUP_NEGOTIATE_FAILED;
  out:
-	g_clear_error (&err);
+	g_clear_pointer (&error_message, g_free);
 	return success;
 #else
 	return FALSE;
@@ -343,7 +343,7 @@ check_server_response (SoupMessage *msg, gpointer auth)
 {
 	gint ret;
 	const char *auth_headers;
-	GError *err = NULL;
+	char *error_message = NULL;
 	SoupAuthNegotiate *negotiate = auth;
 	SoupAuthNegotiatePrivate *priv = soup_auth_negotiate_get_instance_private (negotiate);
 	SoupNegotiateConnectionState *conn;
@@ -367,7 +367,7 @@ check_server_response (SoupMessage *msg, gpointer auth)
 		goto out;
 	}
 
-	ret = soup_gss_client_step (conn, auth_headers + 10, &err);
+	ret = soup_gss_client_step (conn, auth_headers + 10, &error_message);
 
 	switch (ret) {
 	case AUTH_GSS_COMPLETE:
@@ -377,8 +377,9 @@ check_server_response (SoupMessage *msg, gpointer auth)
 		conn->state = SOUP_NEGOTIATE_RECEIVED_CHALLENGE;
 		break;
 	case AUTH_GSS_ERROR:
-		if (err)
-			g_warning ("%s", err->message);
+		if (error_message)
+			g_warning ("%s", error_message);
+
 		/* Unfortunately, so many programs (curl, Firefox, ..) ignore
 		 * the return token that is included in the response, so it is
 		 * possible that there are servers that send back broken stuff.
@@ -394,7 +395,7 @@ check_server_response (SoupMessage *msg, gpointer auth)
 		conn->state = SOUP_NEGOTIATE_FAILED;
 	}
  out:
-	g_clear_error (&err);
+	g_clear_pointer (&error_message, g_free);
 }
 
 /* Check if scheme://host:port from message matches the given URI. */
@@ -471,20 +472,20 @@ check_auth_trusted_uri (SoupConnectionAuth *auth, SoupMessage *msg)
 }
 
 static gboolean
-soup_gss_build_response (SoupNegotiateConnectionState *conn, SoupAuth *auth, GError **err)
+soup_gss_build_response (SoupNegotiateConnectionState *conn, SoupAuth *auth, char **error_message)
 {
 	if (!conn->initialized)
-		if (!soup_gss_client_init (conn, soup_auth_get_authority (auth), err))
+		if (!soup_gss_client_init (conn, soup_auth_get_authority (auth), error_message))
 			return FALSE;
 
-	if (soup_gss_client_step (conn, "", err) != AUTH_GSS_CONTINUE)
+	if (soup_gss_client_step (conn, "", error_message) != AUTH_GSS_CONTINUE)
 		return FALSE;
 
 	return TRUE;
 }
 
 static void
-soup_gss_error (OM_uint32 err_maj, OM_uint32 err_min, GError **err)
+soup_gss_error (OM_uint32 err_maj, OM_uint32 err_min, char **error_message)
 {
 	OM_uint32 maj_stat, min_stat, msg_ctx = 0;
 	gss_buffer_desc status;
@@ -514,14 +515,11 @@ soup_gss_error (OM_uint32 err_maj, OM_uint32 err_min, GError **err)
 			gss_release_buffer (&min_stat, &status);
 		}
 
-		if (err && *err == NULL) {
-			g_set_error (err,
-				     SOUP_HTTP_ERROR,
-				     SOUP_STATUS_UNAUTHORIZED,
-				     "%s: %s",
-				     buf_maj,
-				     buf_min ? buf_min : "");
+		if (error_message && *error_message == NULL) {
+			*error_message = g_strdup_printf ("%s: %s", buf_maj,
+							  buf_min ? buf_min : "");
 		}
+
 		g_free (buf_maj);
 		g_free (buf_min);
 		buf_min = buf_maj = NULL;
@@ -529,7 +527,7 @@ soup_gss_error (OM_uint32 err_maj, OM_uint32 err_min, GError **err)
 }
 
 static gboolean
-soup_gss_client_init (SoupNegotiateConnectionState *conn, const gchar *authority, GError **err)
+soup_gss_client_init (SoupNegotiateConnectionState *conn, const gchar *authority, char **error_message)
 {
 	OM_uint32 maj_stat, min_stat;
 	gchar *service = NULL;
@@ -553,7 +551,7 @@ soup_gss_client_init (SoupNegotiateConnectionState *conn, const gchar *authority
 				    &conn->server_name);
 
 	if (GSS_ERROR (maj_stat)) {
-		soup_gss_error (maj_stat, min_stat, err);
+		soup_gss_error (maj_stat, min_stat, error_message);
 		ret = FALSE;
 		goto out;
 	}
@@ -567,7 +565,7 @@ out:
 }
 
 static gint
-soup_gss_client_step (SoupNegotiateConnectionState *conn, const gchar *challenge, GError **err)
+soup_gss_client_step (SoupNegotiateConnectionState *conn, const gchar *challenge, char **error_message)
 {
 	OM_uint32 maj_stat, min_stat;
 	gss_buffer_desc in = GSS_C_EMPTY_BUFFER;
@@ -597,7 +595,7 @@ soup_gss_client_step (SoupNegotiateConnectionState *conn, const gchar *challenge
 					 NULL);
 
 	if ((maj_stat != GSS_S_COMPLETE) && (maj_stat != GSS_S_CONTINUE_NEEDED)) {
-		soup_gss_error (maj_stat, min_stat, err);
+		soup_gss_error (maj_stat, min_stat, error_message);
 		ret = AUTH_GSS_ERROR;
 		goto out;
 	}

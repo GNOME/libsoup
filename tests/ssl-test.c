@@ -15,7 +15,7 @@ static const StrictnessTest strictness_tests[] = {
 	{ "/ssl/strictness/strict/with-ca",
 	  TRUE, TRUE, SOUP_STATUS_OK },
 	{ "/ssl/strictness/strict/without-ca",
-	  TRUE, FALSE, SOUP_STATUS_SSL_FAILED },
+	  TRUE, FALSE, SOUP_STATUS_NONE },
 	{ "/ssl/strictness/non-strict/with-ca",
 	  FALSE, TRUE, SOUP_STATUS_OK },
 	{ "/ssl/strictness/non-strict/without-ca",
@@ -36,7 +36,9 @@ do_strictness_test (gconstpointer data)
 	const StrictnessTest *test = data;
 	SoupSession *session;
 	SoupMessage *msg;
+	GBytes *body;
 	GTlsCertificateFlags flags = 0;
+	GError *error = NULL;
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
@@ -52,23 +54,27 @@ do_strictness_test (gconstpointer data)
 		g_signal_connect (msg, "accept-certificate",
 				  G_CALLBACK (accept_certificate), NULL);
 	}
-	soup_test_session_send_message (session, msg);
+	body = soup_test_session_send (session, msg, NULL, &error);
 	soup_test_assert_message_status (msg, test->expected_status);
+	if (test->expected_status != SOUP_STATUS_OK)
+		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE);
 
 	g_test_bug ("690176");
 	g_assert_nonnull (soup_message_get_tls_certificate (msg));
 	flags = soup_message_get_tls_certificate_errors (msg);
 
 	g_test_bug ("665182");
-	if (test->with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg)))
+	if (test->with_ca_list && !error)
 		g_assert_cmpuint (flags, ==, 0);
 	else
 		g_assert_cmpuint (flags, !=, 0);
 
-	if (soup_message_get_status (msg) == SOUP_STATUS_SSL_FAILED &&
-	    test->expected_status != SOUP_STATUS_SSL_FAILED)
+	if (soup_message_get_status (msg) == SOUP_STATUS_NONE &&
+	    test->expected_status != SOUP_STATUS_NONE)
 		debug_printf (1, "              tls error flags: 0x%x\n", flags);
 
+	g_clear_pointer (&body, g_bytes_unref);
+	g_clear_error (&error);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -218,8 +224,9 @@ do_tls_interaction_test (void)
 
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	body = soup_test_session_async_send (session, msg);
-	soup_test_assert_message_status (msg, SOUP_STATUS_SSL_FAILED);
+	body = soup_test_session_async_send (session, msg, &error);
+	g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+	g_clear_error (&error);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 
@@ -231,7 +238,7 @@ do_tls_interaction_test (void)
 
 	/* With a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_nonnull (soup_message_get_tls_certificate (msg));
 	g_bytes_unref (body);

@@ -409,7 +409,7 @@ do_ipv6_test (ServerData *sd, gconstpointer test_data)
 
 	debug_printf (1, "  HTTP/1.1\n");
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_bytes_unref (body);
 	g_object_unref (msg);
@@ -417,7 +417,7 @@ do_ipv6_test (ServerData *sd, gconstpointer test_data)
 	debug_printf (1, "  HTTP/1.0\n");
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	soup_message_set_http_version (msg, SOUP_HTTP_1_0);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_bytes_unref (body);
 	g_object_unref (msg);
@@ -470,7 +470,7 @@ do_multi_test (ServerData *sd, GUri *uri1, GUri *uri2)
 
 	uristr = g_uri_to_string (uri1);
 	msg = soup_message_new ("GET", uristr);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpmem (uristr, strlen (uristr), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 	g_bytes_unref (body);
@@ -479,7 +479,7 @@ do_multi_test (ServerData *sd, GUri *uri1, GUri *uri2)
 
 	uristr = g_uri_to_string (uri2);
 	msg = soup_message_new ("GET", uristr);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpmem (uristr, strlen (uristr), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 	g_bytes_unref (body);
@@ -650,7 +650,7 @@ do_gsocket_import_test (void)
 
 	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_bytes_unref (body);
 	g_object_unref (msg);
@@ -716,7 +716,7 @@ do_fd_import_test (void)
 
 	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_bytes_unref (body);
 	g_object_unref (msg);
@@ -923,7 +923,7 @@ do_fail_404_test (ServerData *sd, gconstpointer test_data)
 
 	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
 	g_bytes_unref (body);
 	g_object_unref (msg);
@@ -950,7 +950,7 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	if (pause)
 		soup_message_headers_append (soup_message_get_request_headers (msg), "X-Test-Server-Pause", "true");
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 	g_bytes_unref (body);
 	g_object_unref (msg);

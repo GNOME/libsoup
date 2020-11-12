@@ -54,7 +54,8 @@ typedef enum {
 SoupSession *soup_test_session_new                (const char *propname, ...);
 void         soup_test_session_abort_unref        (SoupSession *session);
 GBytes      *soup_test_session_async_send         (SoupSession *session,
-						   SoupMessage *msg);
+						   SoupMessage *msg,
+						   GError     **error);
 guint        soup_test_session_send_message       (SoupSession *session,
 						   SoupMessage *msg);
 

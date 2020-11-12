@@ -504,7 +504,7 @@ do_max_conns_test_for_session (SoupSession *session)
 		 * session" error.
 		 */
 		for (i = 0; i < TEST_CONNS; i++)
-			soup_session_cancel_message (session, msgs[i], SOUP_STATUS_CANCELLED);
+			soup_session_cancel_message (session, msgs[i], 0);
 		g_main_loop_run (max_conns_loop);
 	}
 
@@ -728,7 +728,7 @@ do_one_connection_state_test (SoupSession         *session,
 	g_signal_connect (msg, "network-event",
 			  G_CALLBACK (message_network_event),
 			  state);
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_bytes_unref (body);
 	g_object_unref (msg);

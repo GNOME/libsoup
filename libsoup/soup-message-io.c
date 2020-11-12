@@ -460,7 +460,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 	return TRUE;
 }
 
-static guint
+static gboolean
 parse_headers (SoupMessage  *msg,
 	       char         *headers,
 	       guint         headers_len,
@@ -481,7 +481,7 @@ parse_headers (SoupMessage  *msg,
 		g_set_error_literal (error, SOUP_SESSION_ERROR,
 				     SOUP_SESSION_ERROR_PARSING,
 				     _("Could not parse HTTP response"));
-		return SOUP_STATUS_MALFORMED;
+		return FALSE;
 	}
 
         soup_message_set_status_full (msg, status, reason_phrase);
@@ -504,10 +504,10 @@ parse_headers (SoupMessage  *msg,
 		g_set_error_literal (error, SOUP_SESSION_ERROR,
 				     SOUP_SESSION_ERROR_ENCODING,
 				     _("Unrecognized HTTP response encoding"));
-		return SOUP_STATUS_MALFORMED;
+		return FALSE;
 	}
 
-	return SOUP_STATUS_OK;
+	return TRUE;
 }
 
 /* Attempts to push forward the reading side of @msg's I/O. Returns
@@ -522,24 +522,21 @@ io_read (SoupMessage *msg, gboolean blocking,
 {
 	SoupClientMessageIOData *client_io = soup_message_get_io_data (msg);
 	SoupMessageIOData *io = &client_io->base;
-	guint status;
+	gboolean succeeded;
 
 	switch (io->read_state) {
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
-		if (!soup_message_io_data_read_headers (io, blocking, cancellable, error)) {
-			if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT))
-                                soup_message_set_status (msg, SOUP_STATUS_MALFORMED);
+		if (!soup_message_io_data_read_headers (io, blocking, cancellable, error))
 			return FALSE;
-		}
 
-		status = parse_headers (msg,
-					(char *)io->read_header_buf->data,
-					io->read_header_buf->len,
-					&io->read_encoding,
-					error);
+		succeeded = parse_headers (msg,
+					   (char *)io->read_header_buf->data,
+					   io->read_header_buf->len,
+					   &io->read_encoding,
+					   error);
 		g_byte_array_set_size (io->read_header_buf, 0);
 
-		if (status != SOUP_STATUS_OK) {
+		if (!succeeded) {
 			/* Either we couldn't parse the headers, or they
 			 * indicated something that would mean we wouldn't
 			 * be able to parse the body. (Eg, unknown
@@ -547,7 +544,6 @@ io_read (SoupMessage *msg, gboolean blocking,
 			 * reading, and make sure the connection gets
 			 * closed when we're done.
 			 */
-			soup_message_set_status (msg, status);
 			soup_message_headers_append (soup_message_get_request_headers (msg),
 						     "Connection", "close");
 			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
@@ -684,6 +680,7 @@ request_is_restartable (SoupMessage *msg, GError *error)
 		soup_connection_get_ever_used (client_io->item->conn) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
+		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
 		error->domain != G_TLS_ERROR &&
 		SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (msg)));
 }
@@ -721,15 +718,6 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 	}
 
 	if (my_error) {
-		if (request_is_restartable (msg, my_error)) {
-			/* Connection got closed, but we can safely try again */
-			g_error_free (my_error);
-			g_set_error_literal (error, SOUP_HTTP_ERROR,
-					     SOUP_STATUS_TRY_AGAIN, "");
-			g_object_unref (msg);
-			return FALSE;
-		}
-
 		g_propagate_error (error, my_error);
 		g_object_unref (msg);
 		return FALSE;
@@ -788,20 +776,14 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 }
 
 static void
-soup_message_io_update_status (SoupMessage  *msg,
-			       GError       *error)
+soup_message_io_finish (SoupMessage  *msg,
+			GError       *error)
 {
-	if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
+	if (request_is_restartable (msg, error)) {
 		SoupClientMessageIOData *io = soup_message_get_io_data (msg);
 
+		/* Connection got closed, but we can safely try again. */
 		io->item->state = SOUP_MESSAGE_RESTARTING;
-	} else if (error->domain == G_TLS_ERROR) {
-		soup_message_set_status_full (msg,
-					      SOUP_STATUS_SSL_FAILED,
-					      error->message);
-	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg)) &&
-		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
-		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
 	}
 
 	soup_message_io_finished (msg);
@@ -847,7 +829,7 @@ soup_message_io_run (SoupMessage *msg,
 		g_source_attach (io->io_source, io->async_context);
 	} else {
 		if (soup_message_get_io_data (msg) == client_io)
-			soup_message_io_update_status (msg, error);
+			soup_message_io_finish (msg, error);
 		g_error_free (error);
 
 	}
@@ -870,7 +852,7 @@ soup_message_io_run_until_read (SoupMessage  *msg,
 		return TRUE;
 
 	if (soup_message_get_io_data (msg) == io)
-		soup_message_io_update_status (msg, *error);
+		soup_message_io_finish (msg, *error);
 
 	return FALSE;
 }
@@ -923,7 +905,7 @@ io_run_until_read_async (SoupMessage *msg,
         }
 
         if (soup_message_get_io_data (msg) == client_io)
-                soup_message_io_update_status (msg, error);
+                soup_message_io_finish (msg, error);
 
         g_task_return_error (task, error);
         g_object_unref (task);
@@ -992,12 +974,6 @@ soup_message_io_get_response_istream (SoupMessage  *msg,
 {
 	SoupClientMessageIOData *io = soup_message_get_io_data (msg);
 	GInputStream *client_stream;
-
-	if (SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg))) {
-		g_set_error_literal (error, SOUP_HTTP_ERROR,
-				     soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
-		return NULL;
-	}
 
 	client_stream = soup_client_input_stream_new (io->base.body_istream, msg);
 	g_signal_connect (client_stream, "eof",

@@ -208,6 +208,14 @@ enum {
  *   be parsed
  * @SOUP_SESSION_ERROR_ENCODING: the server's response was in an
  *   unsupported format
+ * @SOUP_SESSION_ERROR_TOO_MANY_REDIRECTS: the message has been redirected
+ *   too many times
+ * @SOUP_SESSION_ERROR_TOO_MANY_RESTARTS: the message has been restarted
+ *   too many times
+ * @SOUP_SESSION_ERROR_REDIRECT_NO_LOCATION: failed to redirect message because
+ *   Location header was missing or empty in response
+ * @SOUP_SESSION_ERROR_REDIRECT_BAD_URI: failed to redirect message because
+ *   Location header contains an invalid URI
  *
  * A #SoupSession error.
  */
@@ -777,23 +785,39 @@ free_host (SoupSessionHost *host)
 	  soup_message_get_status (msg) == SOUP_STATUS_FOUND) && \
 	 SOUP_METHOD_IS_SAFE (soup_message_get_method (msg)))
 
-static inline GUri *
-redirection_uri (SoupMessage *msg)
+static GUri *
+redirection_uri (SoupSession *session,
+		 SoupMessage *msg,
+		 GError     **error)
 {
+	SoupSessionPrivate *priv;
 	const char *new_loc;
 	GUri *new_uri;
 
 	new_loc = soup_message_headers_get_one (soup_message_get_response_headers (msg),
 						"Location");
-	if (!new_loc)
+	if (!new_loc || !*new_loc) {
+		g_set_error_literal (error,
+				     SOUP_SESSION_ERROR,
+				     SOUP_SESSION_ERROR_REDIRECT_NO_LOCATION,
+				     _("Location header is missing or empty in response headers"));
 		return NULL;
+	}
 
         new_uri = g_uri_parse_relative (soup_message_get_uri (msg), new_loc, SOUP_HTTP_URI_FLAGS, NULL);
 	if (!new_uri)
                 return NULL;
-        
-        if (!g_uri_get_host (new_uri)) {
+
+	priv = soup_session_get_instance_private (session);
+	if (!g_uri_get_host (new_uri) || !*g_uri_get_host (new_uri) ||
+	    (!soup_uri_is_http (new_uri, priv->http_aliases) &&
+	     !soup_uri_is_https (new_uri, priv->https_aliases))) {
 		g_uri_unref (new_uri);
+		g_set_error (error,
+			     SOUP_SESSION_ERROR,
+			     SOUP_SESSION_ERROR_REDIRECT_BAD_URI,
+			     _("Invalid URI “%s” in Location response header"),
+			     new_loc);
 		return NULL;
 	}
 
@@ -816,35 +840,58 @@ redirection_uri (SoupMessage *msg)
 gboolean
 soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 {
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	GUri *new_uri;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
 	/* It must have an appropriate status code and method */
 	if (!SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
 	    !SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg))
 		return FALSE;
 
-	/* and a Location header that parses to an http URI */
-	if (!soup_message_headers_get_one (soup_message_get_response_headers (msg), "Location"))
-		return FALSE;
-	new_uri = redirection_uri (msg);
+	new_uri = redirection_uri (session, msg, NULL);
 	if (!new_uri)
 		return FALSE;
-	if (!g_uri_get_host (new_uri) || !*g_uri_get_host (new_uri) ||
-	    (!soup_uri_is_http (new_uri, priv->http_aliases) &&
-	     !soup_uri_is_https (new_uri, priv->https_aliases))) {
-		g_uri_unref (new_uri);
-		return FALSE;
-	}
 
 	g_uri_unref (new_uri);
 	return TRUE;
+}
+
+static gboolean
+soup_session_requeue_item (SoupSession          *session,
+			   SoupMessageQueueItem *item,
+			   GError              **error)
+{
+	gboolean retval;
+
+	if (item->resend_count >= SOUP_SESSION_MAX_RESEND_COUNT) {
+		if (SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (item->msg))) {
+			g_set_error_literal (error,
+					     SOUP_SESSION_ERROR,
+					     SOUP_SESSION_ERROR_TOO_MANY_REDIRECTS,
+					     _("Too many redirects"));
+		} else {
+			g_set_error_literal (error,
+					     SOUP_SESSION_ERROR,
+					     SOUP_SESSION_ERROR_TOO_MANY_RESTARTS,
+					     _("Message was restarted too many times"));
+		}
+		retval = FALSE;
+	} else {
+		item->resend_count++;
+		item->state = SOUP_MESSAGE_RESTARTING;
+		retval = TRUE;
+	}
+
+	return retval;
 }
 
 /**
  * soup_session_redirect_message:
  * @session: the session
  * @msg: a #SoupMessage that has received a 3xx response
+ * @error: return location for a #GError, or %NULL
  *
  * Updates @msg's URI according to its status code and "Location"
  * header, and requeues it on @session. Use this when you have set
@@ -866,11 +913,20 @@ soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
  * Since: 2.38
  */
 gboolean
-soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
+soup_session_redirect_message (SoupSession *session,
+			       SoupMessage *msg,
+			       GError     **error)
 {
+	SoupSessionPrivate *priv;
 	GUri *new_uri;
+	SoupMessageQueueItem *item;
+	gboolean retval;
 
-	new_uri = redirection_uri (msg);
+	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+	g_return_val_if_fail (!error || *error == NULL, FALSE);
+
+	new_uri = redirection_uri (session, msg, error);
 	if (!new_uri)
 		return FALSE;
 
@@ -888,8 +944,12 @@ soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 	soup_message_set_uri (msg, new_uri);
 	g_uri_unref (new_uri);
 
-	soup_session_requeue_message (session, msg);
-	return TRUE;
+	priv = soup_session_get_instance_private (session);
+	item = soup_message_queue_lookup (priv->queue, msg);
+	retval = soup_session_requeue_item (session, item, error);
+	soup_message_queue_item_unref (item);
+
+	return retval;
 }
 
 static void
@@ -899,8 +959,11 @@ redirect_handler (SoupMessage *msg,
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
 
-	if (soup_session_would_redirect (session, msg))
-		soup_session_redirect_message (session, msg);
+	if (!SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
+	    !SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg))
+		return;
+
+	soup_session_redirect_message (session, msg, &item->error);
 }
 
 static void
@@ -1184,51 +1247,6 @@ soup_session_unqueue_item (SoupSession          *session,
 }
 
 static void
-soup_session_set_item_status (SoupSession          *session,
-			      SoupMessageQueueItem *item,
-			      guint                 status_code,
-			      GError               *error)
-{
-	GUri *uri = NULL;
-
-	switch (status_code) {
-	case SOUP_STATUS_CANT_RESOLVE:
-	case SOUP_STATUS_CANT_CONNECT:
-		uri = soup_message_get_uri (item->msg);
-		break;
-
-	case SOUP_STATUS_CANT_RESOLVE_PROXY:
-	case SOUP_STATUS_CANT_CONNECT_PROXY:
-		if (item->conn)
-			uri = soup_connection_get_proxy_uri (item->conn);
-		break;
-
-	case SOUP_STATUS_SSL_FAILED:
-		if (!g_tls_backend_supports_tls (g_tls_backend_get_default ())) {
-			soup_message_set_status_full (item->msg, status_code,
-						      "TLS/SSL support not available; install glib-networking");
-			return;
-		}
-		break;
-
-	default:
-		break;
-	}
-
-	if (error)
-		soup_message_set_status_full (item->msg, status_code, error->message);
-	else if (uri && g_uri_get_host (uri)) {
-		char *msg = g_strdup_printf ("%s (%s)",
-					     soup_status_get_phrase (status_code),
-					     g_uri_get_host (uri));
-		soup_message_set_status_full (item->msg, status_code, msg);
-		g_free (msg);
-	} else
-		soup_message_set_status (item->msg, status_code);
-}
-
-
-static void
 message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
@@ -1250,41 +1268,6 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 	}
 }
 
-static guint
-status_from_connect_error (SoupMessageQueueItem *item, GError *error)
-{
-	guint status;
-
-	if (!error)
-		return SOUP_STATUS_OK;
-
-	if (error->domain == G_TLS_ERROR)
-		status = SOUP_STATUS_SSL_FAILED;
-	else if (error->domain == G_RESOLVER_ERROR)
-		status = SOUP_STATUS_CANT_RESOLVE;
-	else if (error->domain == G_IO_ERROR) {
-		if (error->code == G_IO_ERROR_CANCELLED)
-			status = SOUP_STATUS_CANCELLED;
-		else if (error->code == G_IO_ERROR_HOST_UNREACHABLE ||
-			 error->code == G_IO_ERROR_NETWORK_UNREACHABLE ||
-			 error->code == G_IO_ERROR_CONNECTION_REFUSED)
-			status = SOUP_STATUS_CANT_CONNECT;
-		else if (error->code == G_IO_ERROR_PROXY_FAILED ||
-			 error->code == G_IO_ERROR_PROXY_AUTH_FAILED ||
-			 error->code == G_IO_ERROR_PROXY_NEED_AUTH ||
-			 error->code == G_IO_ERROR_PROXY_NOT_ALLOWED)
-			status = SOUP_STATUS_CANT_CONNECT_PROXY;
-		else
-			status = SOUP_STATUS_IO_ERROR;
-	} else
-		status = SOUP_STATUS_IO_ERROR;
-
-	if (item->conn && soup_connection_is_via_proxy (item->conn))
-		return soup_status_proxify (status);
-	else
-		return status;
-}
-
 static void
 tunnel_complete (SoupMessageQueueItem *tunnel_item,
 		 guint status, GError *error)
@@ -1297,18 +1280,17 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 
 	if (soup_message_get_status (item->msg))
 		item->state = SOUP_MESSAGE_FINISHING;
+	else if (item->state == SOUP_MESSAGE_TUNNELING)
+		item->state = SOUP_MESSAGE_READY;
 
 	item->error = error;
-	if (!status)
-		status = status_from_connect_error (item, error);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status) || item->error) {
 		soup_connection_disconnect (item->conn);
 		soup_session_set_item_connection (session, item, NULL);
-		if (soup_message_get_status (item->msg) == 0)
-			soup_session_set_item_status (session, item, status, error);
+		if (!error && soup_message_get_status (item->msg) == SOUP_STATUS_NONE)
+			soup_message_set_status (item->msg, status);
 	}
 
-	item->state = SOUP_MESSAGE_READY;
 	if (item->async)
 		soup_session_kick_queue (session);
 	soup_message_queue_item_unref (item);
@@ -1322,7 +1304,7 @@ tunnel_handshake_complete (SoupConnection       *conn,
 	GError *error = NULL;
 
 	soup_connection_tunnel_handshake_finish (conn, result, &error);
-	tunnel_complete (tunnel_item, 0, error);
+	tunnel_complete (tunnel_item, SOUP_STATUS_OK, error);
 }
 
 static void
@@ -1344,14 +1326,14 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 			return;
 		}
 
-		soup_message_set_status (msg, SOUP_STATUS_TRY_AGAIN);
+		item->state = SOUP_MESSAGE_RESTARTING;
 	}
 
 	tunnel_item->state = SOUP_MESSAGE_FINISHED;
 	soup_session_unqueue_item (session, tunnel_item);
 
 	status = soup_message_get_status (tunnel_item->msg);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status) || item->state == SOUP_MESSAGE_RESTARTING) {
 		tunnel_complete (tunnel_item, status, NULL);
 		return;
 	}
@@ -1366,7 +1348,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 		GError *error = NULL;
 
 		soup_connection_tunnel_handshake (item->conn, item->cancellable, &error);
-		tunnel_complete (tunnel_item, 0, error);
+		tunnel_complete (tunnel_item, SOUP_STATUS_OK, error);
 	}
 }
 
@@ -1403,7 +1385,6 @@ static void
 connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *error)
 {
 	SoupSession *session = item->session;
-	guint status;
 
 	if (!error) {
 		item->state = SOUP_MESSAGE_CONNECTED;
@@ -1411,11 +1392,8 @@ connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *erro
 	}
 
 	item->error = error;
-	status = status_from_connect_error (item, error);
 	soup_connection_disconnect (conn);
 	if (item->state == SOUP_MESSAGE_CONNECTING) {
-		if (soup_message_get_status (item->msg) == 0)
-			soup_session_set_item_status (session, item, status, error);
 		soup_session_set_item_connection (session, item, NULL);
 		item->state = SOUP_MESSAGE_READY;
 	}
@@ -1621,12 +1599,8 @@ soup_session_process_queue_item (SoupSession          *session,
 				break;
 			}
 
-			if (soup_message_get_status (item->msg)) {
-				if (soup_message_get_status (item->msg) == SOUP_STATUS_TRY_AGAIN) {
-					soup_message_cleanup_response (item->msg);
-					item->state = SOUP_MESSAGE_STARTING;
-				} else
-					item->state = SOUP_MESSAGE_FINISHING;
+			if (item->error || soup_message_get_status (item->msg)) {
+				item->state = SOUP_MESSAGE_FINISHING;
 				break;
 			}
 
@@ -1752,27 +1726,14 @@ idle_run_queue_dnotify (gpointer user_data)
  * again.
  **/
 void
-soup_session_requeue_message (SoupSession *session, SoupMessage *msg)
+soup_session_requeue_message (SoupSession *session,
+			      SoupMessage *msg)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
 
-	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-
 	item = soup_message_queue_lookup (priv->queue, msg);
-	g_return_if_fail (item != NULL);
-
-	if (item->resend_count >= SOUP_SESSION_MAX_RESEND_COUNT) {
-		if (SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))
-			soup_message_set_status (msg, SOUP_STATUS_TOO_MANY_REDIRECTS);
-		else
-			g_warning ("SoupMessage %p stuck in infinite loop?", msg);
-	} else {
-		item->resend_count++;
-		item->state = SOUP_MESSAGE_RESTARTING;
-	}
-
+	soup_session_requeue_item (session, item, &item->error);
 	soup_message_queue_item_unref (item);
 }
 
@@ -1887,8 +1848,7 @@ soup_session_unpause_message (SoupSession *session,
  * soup_session_cancel_message:
  * @session: a #SoupSession
  * @msg: the message to cancel
- * @status_code: status code to set on @msg (generally
- * %SOUP_STATUS_CANCELLED)
+ * @status_code: status code to set on @msg
  *
  * Causes @session to immediately finish processing @msg (regardless
  * of its current state) with a final status_code of @status_code. You
@@ -1935,7 +1895,6 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg, guint statu
 			soup_message_io_unpause (msg);
 	}
 
-	soup_message_set_status (msg, status_code);
 	g_cancellable_cancel (item->cancellable);
 
 	soup_session_kick_queue (item->session);
@@ -1968,8 +1927,7 @@ soup_session_abort (SoupSession *session)
 	for (item = soup_message_queue_first (priv->queue);
 	     item;
 	     item = soup_message_queue_next (priv->queue, item)) {
-		soup_session_cancel_message (session, item->msg,
-					     SOUP_STATUS_CANCELLED);
+		soup_session_cancel_message (session, item->msg, SOUP_STATUS_NONE);
 	}
 
 	/* Close all idle connections */
@@ -2668,8 +2626,10 @@ expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
 		return !feature || !soup_message_disables_feature (msg, feature);
 	}
 
-	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT))
-		return soup_session_would_redirect (session, msg);
+	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
+		return SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) ||
+			SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg);
+	}
 
 	return FALSE;
 }
@@ -2696,13 +2656,6 @@ async_send_request_return_result (SoupMessageQueueItem *item,
 		if (stream)
 			g_object_unref (stream);
 		g_task_return_error (task, g_error_copy (item->error));
-	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (item->msg))) {
-		if (stream)
-			g_object_unref (stream);
-		g_task_return_new_error (task, SOUP_HTTP_ERROR,
-					 soup_message_get_status (item->msg),
-					 "%s",
-					 soup_message_get_reason_phrase (item->msg));
 	} else
 		g_task_return_pointer (task, stream, g_object_unref);
 	g_object_unref (task);
@@ -2831,8 +2784,11 @@ run_until_read_done (SoupMessage          *msg,
 	GError *error = NULL;
 
 	soup_message_io_run_until_read_finish (msg, result, &error);
-	if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN))
+	if (error && !item->io_started) {
+		/* Message was restarted, we'll try again. */
+		g_error_free (error);
 		return;
+	}
 
 	if (!error)
 		stream = soup_message_io_get_response_istream (msg, &error);
@@ -2920,7 +2876,6 @@ cancel_cache_response (SoupMessageQueueItem *item)
 {
 	item->paused = FALSE;
 	item->state = SOUP_MESSAGE_FINISHING;
-	soup_message_set_status (item->msg, SOUP_STATUS_CANCELLED);
 	soup_session_kick_queue (item->session);
 }
 
@@ -3096,15 +3051,6 @@ soup_session_send_async (SoupSession         *session,
 	item->task = g_task_new (session, item->cancellable, callback, user_data);
 	g_task_set_priority (item->task, io_priority);
 	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
-
-	/* Do not check for cancellations as we do not want to
-	 * overwrite custom error messages set during cancellations
-	 * (for example SOUP_HTTP_ERROR is set for cancelled messages
-	 * in async_send_request_return_result() (status_code==1
-	 * means CANCEL and is considered a TRANSPORT_ERROR)).
-	 */
-	g_task_set_check_cancellable (item->task, FALSE);
-
 	if (async_respond_from_cache (session, item))
 		item->state = SOUP_MESSAGE_CACHED;
 	else
@@ -3215,7 +3161,8 @@ soup_session_send (SoupSession   *session,
 
 		/* Send request, read headers */
 		if (!soup_message_io_run_until_read (msg, item->cancellable, &my_error)) {
-			if (g_error_matches (my_error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
+			if (item->state == SOUP_MESSAGE_RESTARTING) {
+				/* Message was restarted, we'll try again. */
 				g_clear_error (&my_error);
 				continue;
 			}
@@ -3267,10 +3214,6 @@ soup_session_send (SoupSession   *session,
 		g_clear_object (&stream);
 		if (error)
 			*error = g_error_copy (item->error);
-	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg))) {
-		g_clear_object (&stream);
-		g_set_error_literal (error, SOUP_HTTP_ERROR, soup_message_get_status (msg),
-				     soup_message_get_reason_phrase (msg));
 	} else if (!stream)
 		stream = g_memory_input_stream_new ();
 

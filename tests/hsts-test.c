@@ -109,11 +109,17 @@ session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_stat
 {
 	SoupMessage *msg;
 	GBytes *body;
+	GError *error = NULL;
 
 	msg = soup_message_new ("GET", uri);
 	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_test_session_send (session, msg, NULL, &error);
+	if (expected_status == SOUP_STATUS_NONE)
+		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE);
+	else
+		g_assert_no_error (error);
 	soup_test_assert_message_status (msg, expected_status);
+	g_clear_error (&error);
 	g_bytes_unref (body);
 	g_object_unref (msg);
 }
@@ -289,7 +295,7 @@ do_hsts_subdomains_test (void)
 	/* The enforcer should cause the request to ask for an HTTPS
 	   uri, which will fail with an SSL error as there's no server
 	   in subdomain.localhost. */
-	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_SSL_FAILED);
+	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_NONE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -422,7 +428,7 @@ do_hsts_utf8_address_test (void)
 	/* The enforcer should cause the request to ask for an HTTPS
 	   uri, which will fail with an SSL error as there's no server
 	   in 食狮.中国.localhost. */
-	session_get_uri (session, "http://食狮.中国.localhost", SOUP_STATUS_SSL_FAILED);
+	session_get_uri (session, "http://食狮.中国.localhost", SOUP_STATUS_NONE);
 	soup_test_session_abort_unref (session);
 }
 

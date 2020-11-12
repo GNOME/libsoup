@@ -59,21 +59,29 @@ finished_cb (SoupMessage *msg,
 static void
 cancel_message_cb (SoupMessage *msg, gpointer session)
 {
-	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
+	soup_session_cancel_message (session, msg, 0);
+}
+
+static void
+cancel_message_send_done (SoupSession  *session,
+			  GAsyncResult *result,
+			  GError      **error)
+{
+	g_assert_null (soup_session_send_finish (session, result, error));
 	g_main_loop_quit (loop);
 }
 
 static void
 do_test_for_session (SoupSession *session,
 		     gboolean queue_is_async,
-		     gboolean send_is_blocking,
-		     gboolean cancel_is_immediate)
+		     gboolean send_is_blocking)
 {
 	SoupMessage *msg;
 	gboolean finished, local_timeout;
 	guint timeout_id;
 	GUri *timeout_uri;
 	GBytes *body;
+	GError *error = NULL;
 
 	debug_printf (1, "  queue_message\n");
 	debug_printf (2, "    requesting timeout\n");
@@ -133,33 +141,19 @@ do_test_for_session (SoupSession *session,
 
 	debug_printf (1, "  cancel_message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	finished = FALSE;
-	g_signal_connect (msg, "finished",
-			  G_CALLBACK (finished_cb), &finished);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+				 (GAsyncReadyCallback)cancel_message_send_done,
+				 &error);
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (cancel_message_cb), session);
 
 	loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (loop);
 
-	if (cancel_is_immediate)
-		g_assert_true (finished);
-	else
-		g_assert_false (finished);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 
-	if (!finished) {
-		debug_printf (2, "    waiting for finished\n");
-		while (!finished)
-			g_main_context_iteration (NULL, TRUE);
-		/* We need one iteration more because finished is emitted
-		 * right before the item is unqueued.
-		 */
-		g_main_context_iteration (NULL, TRUE);
-	}
 	g_main_loop_unref (loop);
-
-	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
+	g_clear_error (&error);
 	g_object_unref (msg);
 }
 
@@ -169,7 +163,7 @@ do_plain_tests (void)
 	SoupSession *session;
 
 	session = soup_test_session_new (NULL);
-	do_test_for_session (session, TRUE, TRUE, FALSE);
+	do_test_for_session (session, TRUE, TRUE);
 	soup_test_session_abort_unref (session);
 }
 

@@ -11,7 +11,6 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_STATUS_IS_TRANSPORT_ERROR(status) ((status) >  0   && (status) < 100)
 #define SOUP_STATUS_IS_INFORMATIONAL(status)   ((status) >= 100 && (status) < 200)
 #define SOUP_STATUS_IS_SUCCESSFUL(status)      ((status) >= 200 && (status) < 300)
 #define SOUP_STATUS_IS_REDIRECTION(status)     ((status) >= 300 && (status) < 400)
@@ -21,20 +20,6 @@ G_BEGIN_DECLS
 typedef enum {
 	SOUP_STATUS_NONE,
 
-	/* Transport Errors */
-	SOUP_STATUS_CANCELLED                       = 1,
-	SOUP_STATUS_CANT_RESOLVE,
-	SOUP_STATUS_CANT_RESOLVE_PROXY,
-	SOUP_STATUS_CANT_CONNECT,
-	SOUP_STATUS_CANT_CONNECT_PROXY,
-	SOUP_STATUS_SSL_FAILED,
-	SOUP_STATUS_IO_ERROR,
-	SOUP_STATUS_MALFORMED,
-	SOUP_STATUS_TRY_AGAIN,
-	SOUP_STATUS_TOO_MANY_REDIRECTS,
-	SOUP_STATUS_TLS_FAILED,
-
-	/* HTTP Status Codes */
 	SOUP_STATUS_CONTINUE                        = 100,
 	SOUP_STATUS_SWITCHING_PROTOCOLS             = 101,
 	SOUP_STATUS_PROCESSING                      = 102, /* WebDAV */
@@ -100,17 +85,5 @@ typedef enum {
 
 SOUP_AVAILABLE_IN_2_4
 const char *soup_status_get_phrase (guint status_code);
-SOUP_AVAILABLE_IN_2_26
-guint       soup_status_proxify    (guint status_code);
-
-/**
- * SOUP_HTTP_ERROR:
- *
- * A #GError domain representing an HTTP status. Use a #SoupStatus for
- * the <structfield>code</structfield> value.
- **/
-#define SOUP_HTTP_ERROR (soup_http_error_quark())
-SOUP_AVAILABLE_IN_2_4
-GQuark soup_http_error_quark (void);
 
 G_END_DECLS

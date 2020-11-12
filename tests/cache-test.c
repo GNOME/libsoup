@@ -129,7 +129,6 @@ static char *do_request (SoupSession        *session,
 static gboolean last_request_hit_network;
 static gboolean last_request_validated;
 static gboolean last_request_unqueued;
-static guint cancelled_requests;
 
 static void
 copy_headers (const char         *name,
@@ -229,7 +228,6 @@ do_request_with_cancel (SoupSession          *session,
 	GCancellable *cancellable;
 
 	last_request_validated = last_request_hit_network = last_request_unqueued = FALSE;
-	cancelled_requests = 0;
 
 	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri (method, uri);
@@ -241,8 +239,10 @@ do_request_with_cancel (SoupSession          *session,
 		g_object_unref (stream);
 		g_object_unref (msg);
 		return;
-	} else
+	} else {
+		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 		g_clear_error (&error);
+	}
 
 	g_clear_object (&cancellable);
 	g_clear_object (&stream);
@@ -277,8 +277,6 @@ static void
 request_unqueued (SoupSession *session, SoupMessage *msg,
 		  gpointer data)
 {
-	if (soup_message_get_status (msg) == SOUP_STATUS_CANCELLED)
-		cancelled_requests++;
 	last_request_unqueued = TRUE;
 }
 
@@ -507,14 +505,12 @@ do_cancel_test (gconstpointer data)
 	debug_printf (1, "  Cancel fresh resource with soup_session_message_cancel()\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_MESSAGE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/1", flags);
-	g_assert_cmpint (cancelled_requests, ==, 1);
 	soup_test_assert (last_request_unqueued,
 			  "Cancelled request /1 not unqueued");
 
 	debug_printf (1, "  Cancel fresh resource with g_cancellable_cancel()\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/1", flags);
-	g_assert_cmpint (cancelled_requests, ==, 1);
 	soup_test_assert (last_request_unqueued,
 			  "Cancelled request /1 not unqueued");
 
@@ -530,14 +526,12 @@ do_cancel_test (gconstpointer data)
 	debug_printf (1, "  Cancel a revalidating resource with soup_session_message_cancel()\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_MESSAGE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/2", flags);
-	g_assert_cmpint (cancelled_requests, ==, 2);
 	soup_test_assert (last_request_unqueued,
 			  "Cancelled request /2 not unqueued");
 
 	debug_printf (1, "  Cancel a revalidating resource with g_cancellable_cancel()\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/2", flags);
-	g_assert_cmpint (cancelled_requests, ==, 2);
 	soup_test_assert (last_request_unqueued,
 			  "Cancelled request /2 not unqueued");
 
@@ -585,7 +579,6 @@ do_refcounting_test (gconstpointer data)
         soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
 
 	last_request_validated = last_request_hit_network = FALSE;
-	cancelled_requests = 0;
 
 	uri = g_uri_parse_relative (base_uri, "/1", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);

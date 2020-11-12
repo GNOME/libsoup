@@ -1065,7 +1065,7 @@ do_auth_close_test (void)
 	g_signal_connect (acd.msg, "authenticate",
 			  G_CALLBACK (auth_close_authenticate), &acd);
 	g_uri_unref (uri);
-	body = soup_test_session_async_send (acd.session, acd.msg);
+	body = soup_test_session_async_send (acd.session, acd.msg, NULL);
 
 	soup_test_assert_message_status (acd.msg, SOUP_STATUS_OK);
 
@@ -1099,6 +1099,7 @@ do_infinite_auth_test (void)
 	SoupMessage *msg;
 	char *uri;
 	int timeout;
+	GError *error = NULL;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -1110,17 +1111,13 @@ do_infinite_auth_test (void)
 	g_free (uri);
 
 	timeout = g_timeout_add (500, infinite_cancel, session);
-	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
-			       "*stuck in infinite loop*");
-	soup_test_session_send_message (session, msg);
-	g_test_assert_expected_messages ();
-
-	soup_test_assert (soup_message_get_status (msg) != SOUP_STATUS_CANCELLED,
-			  "Got stuck in loop");
+	g_assert_null (soup_session_send (session, msg, NULL, &error));
+	g_assert_error (error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_TOO_MANY_RESTARTS);
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
 
 	g_source_remove (timeout);
 	soup_test_session_abort_unref (session);
+	g_clear_error (&error);
 	g_object_unref (msg);
 }
 
@@ -1192,7 +1189,7 @@ do_disappearing_auth_test (void)
 	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (disappear_authenticate), &counter);
 
-	body = soup_test_session_async_send (session, msg);
+	body = soup_test_session_async_send (session, msg, NULL);
 
 	soup_test_assert (counter <= 2,
 			  "Got stuck in loop");
@@ -1537,7 +1534,7 @@ cancel_after_retry_authenticate (SoupMessage          *msg,
                                  CancelAfterRetryData *data)
 {
         if (retrying) {
-                soup_session_cancel_message (data->session, msg, SOUP_STATUS_CANCELLED);
+                soup_session_cancel_message (data->session, msg, 0);
                 g_cancellable_cancel (data->cancellable);
 
 		return FALSE;
