@@ -326,7 +326,6 @@ write_headers (SoupServerMessage  *msg,
  */
 static gboolean
 io_write (SoupServerMessage *msg,
-          GCancellable     *cancellable,
           GError          **error)
 {
         SoupServerMessageIOData *server_io = soup_server_message_get_io_data (msg);
@@ -364,7 +363,7 @@ io_write (SoupServerMessage *msg,
                                                           io->write_buf->str + io->written,
                                                           io->write_buf->len - io->written,
                                                           FALSE,
-                                                          cancellable, error);
+                                                          NULL, error);
                         if (nwrote == -1)
                                 return FALSE;
                         io->written += nwrote;
@@ -448,7 +447,7 @@ io_write (SoupServerMessage *msg,
                                                   (guchar*)g_bytes_get_data (server_io->write_chunk, NULL) + io->written,
                                                   g_bytes_get_size (server_io->write_chunk) - io->written,
                                                   FALSE,
-                                                  cancellable, error);
+                                                  NULL, error);
                 if (nwrote == -1)
                         return FALSE;
 
@@ -483,14 +482,14 @@ io_write (SoupServerMessage *msg,
         case SOUP_MESSAGE_IO_STATE_BODY_FLUSH:
                 if (io->body_ostream) {
                         if (io->write_encoding != SOUP_ENCODING_CHUNKED) {
-                                if (!g_output_stream_close (io->body_ostream, cancellable, error))
+                                if (!g_output_stream_close (io->body_ostream, NULL, error))
                                         return FALSE;
                                 g_clear_object (&io->body_ostream);
                         } else {
                                 io->async_wait = g_cancellable_new ();
                                 g_main_context_push_thread_default (io->async_context);
                                 g_output_stream_close_async (io->body_ostream,
-                                                             G_PRIORITY_DEFAULT, cancellable,
+                                                             G_PRIORITY_DEFAULT, NULL,
                                                              closed_async, g_object_ref (msg));
                                 g_main_context_pop_thread_default (io->async_context);
                         }
@@ -648,7 +647,6 @@ parse_headers (SoupServerMessage *msg,
  */
 static gboolean
 io_read (SoupServerMessage *msg,
-         GCancellable      *cancellable,
          GError           **error)
 {
         SoupServerMessageIOData *server_io = soup_server_message_get_io_data (msg);
@@ -659,7 +657,7 @@ io_read (SoupServerMessage *msg,
 
         switch (io->read_state) {
         case SOUP_MESSAGE_IO_STATE_HEADERS:
-                if (!soup_message_io_data_read_headers (io, FALSE, cancellable, error)) {
+                if (!soup_message_io_data_read_headers (io, FALSE, NULL, error)) {
 			if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT))
 				soup_server_message_set_status (msg, SOUP_STATUS_MALFORMED, NULL);
                         return FALSE;
@@ -725,7 +723,7 @@ io_read (SoupServerMessage *msg,
                                                 buf,
                                                 RESPONSE_BLOCK_SIZE,
                                                 FALSE,
-                                                cancellable, error);
+                                                NULL, error);
                 if (nread > 0) {
 			SoupMessageBody *request_body;
 
@@ -768,7 +766,6 @@ static gboolean
 io_run_until (SoupServerMessage *msg,
               SoupMessageIOState read_state,
               SoupMessageIOState write_state,
-              GCancellable      *cancellable,
               GError           **error)
 {
         SoupServerMessageIOData *server_io = soup_server_message_get_io_data (msg);
@@ -776,14 +773,8 @@ io_run_until (SoupServerMessage *msg,
         gboolean progress = TRUE, done;
         GError *my_error = NULL;
 
-        if (g_cancellable_set_error_if_cancelled (cancellable, error))
+        if (!io)
                 return FALSE;
-        else if (!io) {
-                g_set_error_literal (error, G_IO_ERROR,
-                                     G_IO_ERROR_CANCELLED,
-                                     _("Operation was cancelled"));
-                return FALSE;
-        }
 
         g_object_ref (msg);
 
@@ -791,9 +782,9 @@ io_run_until (SoupServerMessage *msg,
                (io->read_state < read_state || io->write_state < write_state)) {
 
                 if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->read_state))
-                        progress = io_read (msg, cancellable, &my_error);
+                        progress = io_read (msg, &my_error);
                 else if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->write_state))
-                        progress = io_write (msg, cancellable, &my_error);
+                        progress = io_write (msg, &my_error);
                 else
                         progress = FALSE;
         }
@@ -802,14 +793,9 @@ io_run_until (SoupServerMessage *msg,
                 g_propagate_error (error, my_error);
                 g_object_unref (msg);
                 return FALSE;
-        } else if (soup_server_message_get_io_data (msg) != server_io) {
-                g_set_error_literal (error, G_IO_ERROR,
-                                     G_IO_ERROR_CANCELLED,
-                                     _("Operation was cancelled"));
-                g_object_unref (msg);
-                return FALSE;
-        } else if (!io->async_wait &&
-                   g_cancellable_set_error_if_cancelled (cancellable, error)) {
+        }
+
+	if (soup_server_message_get_io_data (msg) != server_io) {
                 g_object_unref (msg);
                 return FALSE;
         }
@@ -856,7 +842,7 @@ io_run (SoupServerMessage *msg)
         if (io_run_until (msg,
                           SOUP_MESSAGE_IO_STATE_DONE,
                           SOUP_MESSAGE_IO_STATE_DONE,
-                          NULL, &error)) {
+                          &error)) {
                 soup_server_message_io_finished (msg);
         } else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
@@ -864,18 +850,14 @@ io_run (SoupServerMessage *msg)
 								 (SoupMessageIOSourceFunc)io_run_ready,
 								 NULL);
                 g_source_attach (io->io_source, io->async_context);
-        } else {
-                if (soup_server_message_get_io_data (msg) == server_io) {
-			if (!SOUP_STATUS_IS_TRANSPORT_ERROR (soup_server_message_get_status (msg, NULL)) &&
-			    !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
-                                soup_server_message_set_status (msg, SOUP_STATUS_IO_ERROR, NULL);
-                        }
-                        soup_server_message_io_finished (msg);
-                }
-                g_error_free (error);
+        } else if (soup_server_message_get_io_data (msg) == server_io) {
+		if (!SOUP_STATUS_IS_TRANSPORT_ERROR (soup_server_message_get_status (msg, NULL)))
+			soup_server_message_set_status (msg, SOUP_STATUS_IO_ERROR, error ? error->message : NULL);
 
-        }
-        g_object_unref (msg);
+		soup_server_message_io_finished (msg);
+	}
+	g_object_unref (msg);
+	g_clear_error (&error);
 }
 
 void
