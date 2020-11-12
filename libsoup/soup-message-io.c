@@ -484,7 +484,7 @@ parse_headers (SoupMessage  *msg,
 		return FALSE;
 	}
 
-        soup_message_set_status_full (msg, status, reason_phrase);
+        soup_message_set_status (msg, status, reason_phrase);
         g_free (reason_phrase);
 
 	if (version < soup_message_get_http_version (msg))

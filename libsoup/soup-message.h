@@ -122,18 +122,6 @@ guint          soup_message_add_status_code_handler (
 						 GCallback          callback,
 						 gpointer           user_data);
 
-/*
- * Status Setting
- */
-SOUP_AVAILABLE_IN_2_4
-void           soup_message_set_status          (SoupMessage       *msg, 
-						 guint              status_code);
-
-SOUP_AVAILABLE_IN_2_4
-void           soup_message_set_status_full     (SoupMessage       *msg, 
-						 guint              status_code, 
-						 const char        *reason_phrase);
-
 SOUP_AVAILABLE_IN_2_28
 void           soup_message_disable_feature     (SoupMessage       *msg,
 						 GType              feature_type);

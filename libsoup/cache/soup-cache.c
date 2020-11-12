@@ -715,7 +715,7 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	soup_message_starting (msg);
 
 	/* Status */
-	soup_message_set_status (msg, entry->status_code);
+	soup_message_set_status (msg, entry->status_code, NULL);
 
 	/* Headers */
 	copy_end_to_end_headers (entry->headers, soup_message_get_response_headers (msg));

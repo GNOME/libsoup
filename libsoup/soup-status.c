@@ -220,9 +220,7 @@ static const struct {
  * soup_status_get_phrase:
  * @status_code: an HTTP status code
  *
- * Looks up the stock HTTP description of @status_code. This is used
- * by soup_message_set_status() to get the correct text to go with a
- * given status code.
+ * Looks up the stock HTTP description of @status_code.
  *
  * <emphasis>There is no reason for you to ever use this
  * function.</emphasis> If you wanted the textual description for the

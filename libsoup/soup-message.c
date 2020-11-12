@@ -208,13 +208,6 @@ soup_message_set_property (GObject *object, guint prop_id,
 	case PROP_FLAGS:
 		soup_message_set_flags (msg, g_value_get_flags (value));
 		break;
-	case PROP_STATUS_CODE:
-		soup_message_set_status (msg, g_value_get_uint (value));
-		break;
-	case PROP_REASON_PHRASE:
-		soup_message_set_status_full (msg, priv->status_code,
-					      g_value_get_string (value));
-		break;
 	case PROP_FIRST_PARTY:
 		soup_message_set_first_party (msg, g_value_get_boxed (value));
 		break;
@@ -633,7 +626,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   "Status code",
 				   "The HTTP response status code",
 				   0, 999, 0,
-				   G_PARAM_READWRITE |
+				   G_PARAM_READABLE |
 				   G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_REASON_PHRASE,
@@ -641,7 +634,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "Reason phrase",
 				     "The HTTP response reason phrase",
 				     NULL,
-				     G_PARAM_READWRITE |
+				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupMessage:first-party:
@@ -1647,44 +1640,16 @@ soup_message_get_uri (SoupMessage *msg)
  * known value, it will also set @msg's reason_phrase.
  **/
 void
-soup_message_set_status (SoupMessage *msg, guint status_code)
+soup_message_set_status (SoupMessage *msg,
+			 guint        status_code,
+			 const char  *reason_phrase)
 {
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (status_code != 0);
-
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	g_free (priv->reason_phrase);
 
 	priv->status_code = status_code;
-	priv->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
-	g_object_notify (G_OBJECT (msg), "status-code");
-	g_object_notify (G_OBJECT (msg), "reason-phrase");
-}
-
-/**
- * soup_message_set_status_full:
- * @msg: a #SoupMessage
- * @status_code: an HTTP status code
- * @reason_phrase: a description of the status
- *
- * Sets @msg's status code and reason phrase.
- **/
-void
-soup_message_set_status_full (SoupMessage *msg,
-			      guint        status_code,
-			      const char  *reason_phrase)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (status_code != 0);
-	g_return_if_fail (reason_phrase != NULL);
-
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-
-	g_free (priv->reason_phrase);
-
-	priv->status_code = status_code;
-	priv->reason_phrase = g_strdup (reason_phrase);
+	priv->reason_phrase = g_strdup (reason_phrase ? reason_phrase : soup_status_get_phrase (status_code));
 	g_object_notify (G_OBJECT (msg), "status-code");
 	g_object_notify (G_OBJECT (msg), "reason-phrase");
 }

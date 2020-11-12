@@ -1288,7 +1288,7 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 		soup_connection_disconnect (item->conn);
 		soup_session_set_item_connection (session, item, NULL);
 		if (!error && soup_message_get_status (item->msg) == SOUP_STATUS_NONE)
-			soup_message_set_status (item->msg, status);
+			soup_message_set_status (item->msg, status, NULL);
 	}
 
 	if (item->async)

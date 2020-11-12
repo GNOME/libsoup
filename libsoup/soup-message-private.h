@@ -17,6 +17,9 @@
 typedef struct _SoupClientMessageIOData SoupClientMessageIOData;
 void soup_client_message_io_data_free (SoupClientMessageIOData *io);
 
+void             soup_message_set_status       (SoupMessage      *msg,
+						guint             status_code,
+						const char       *reason_phrase);
 void             soup_message_cleanup_response (SoupMessage      *msg);
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
