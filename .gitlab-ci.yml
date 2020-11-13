@@ -15,15 +15,11 @@ stages:
 
 fedora-test:
   extends: .build
-  variables:
-    CFLAGS: "-coverage -ftest-coverage -fprofile-arcs"
   script:
-    - meson _build -Dauto_features=enabled
+    - meson _build -Db_coverage=true -Dauto_features=enabled
     - ninja -C _build
-    - mkdir -p _coverage
-    - lcov --config-file .gitlab-ci/lcovrc --directory _build --capture --initial --output-file "_coverage/${CI_JOB_NAME}-baseline.lcov"
     - ninja -C _build test
-    - lcov --config-file .gitlab-ci/lcovrc --directory _build --capture --output-file "_coverage/${CI_JOB_NAME}.lcov"
+    - ninja -C _build coverage-html
   artifacts:
     reports:
       junit: "_build/${CI_JOB_NAME}-report.xml"
@@ -31,9 +27,9 @@ fedora-test:
     when: always
     paths:
       - "_build/config.h"
-      - "_build/meson-logs"
-      - "_build/${CI_JOB_NAME}-report.xml"
-      - "_coverage"
+      - "_build/meson-logs/testlog.txt"
+      - "_build/meson-logs/coveragereport"
+  coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
 
 fedora-scan:
   extends: .build
@@ -57,19 +53,6 @@ fedora-valgrind:
     when: on_failure
     paths:
       - _build/meson-logs/testlog-valgrind.txt
-
-coverage:
-  stage: coverage
-  needs: [fedora-test]
-  except:
-    - tags
-  artifacts:
-    name: "libsoup-${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
-    paths:
-      - _coverage/
-  script:
-    - bash -x ./.gitlab-ci/coverage-docker.sh
-  coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
 
 reference:
   stage: docs
