@@ -13,7 +13,7 @@ stages:
     # https://gitlab.gnome.org/Infrastructure/GitLab/issues/313
     - ipv6
 
-fedora-meson-x86_64:
+fedora-test:
   extends: .build
   variables:
     CFLAGS: "-coverage -ftest-coverage -fprofile-arcs"
@@ -35,9 +35,21 @@ fedora-meson-x86_64:
       - "_build/${CI_JOB_NAME}-report.xml"
       - "_coverage"
 
+fedora-scan:
+  extends: .build
+  allow_failure: true # TODO: Fix all errors
+  script:
+    - meson _build -Dauto_features=enabled
+    - ninja -C _build scan-build
+    - bash -c 'if [[ -n "$(ls -A _build/meson-logs/scanbuild/)" ]]; then echo "Scan build log found, assuming defects exist"; exit 1; fi'
+  artifacts:
+    when: on_failure
+    paths:
+      - _build/meson-logs/scanbuild
+
 coverage:
   stage: coverage
-  needs: [fedora-meson-x86_64]
+  needs: [fedora-test]
   except:
     - tags
   artifacts:
