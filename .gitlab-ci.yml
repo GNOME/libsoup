@@ -47,6 +47,17 @@ fedora-scan:
     paths:
       - _build/meson-logs/scanbuild
 
+fedora-valgrind:
+  extends: .build
+  allow_failure: true # Timesout sometime, todo investigate
+  script:
+    - meson _build -Dauto_features=enabled
+    - meson test -C _build --wrap=valgrind
+  artifacts:
+    when: on_failure
+    paths:
+      - _build/meson-logs/testlog-valgrind.txt
+
 coverage:
   stage: coverage
   needs: [fedora-test]
