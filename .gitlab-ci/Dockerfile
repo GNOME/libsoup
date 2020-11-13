@@ -16,6 +16,9 @@ RUN dnf update -y \
                       redhat-rpm-config \
                       samba-winbind-clients \
                       which \
+                      clang-analyzer \
+                      valgrind \
+                      libasan \
     && dnf clean all \
     && git clone https://gitlab.gnome.org/GNOME/glib.git \
     && pushd glib \
