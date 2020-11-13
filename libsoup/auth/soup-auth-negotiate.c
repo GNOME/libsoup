@@ -202,6 +202,7 @@ soup_auth_negotiate_get_connection_authorization (SoupConnectionAuth *auth,
 		}
 
 		if (!soup_gss_build_response (conn, SOUP_AUTH (auth), &err)) {
+                        g_assert (err); /* Silence scan-build */
 			/* FIXME: report further upward via
 			 * soup_message_get_error_message  */
 			if (conn->initialized)
@@ -276,6 +277,7 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 			}
 			goto out;
 		} else {
+                        g_assert (err); /* Silence scan-build */
 			/* FIXME: report further upward via
 			 * soup_message_get_error_message  */
 			if (conn->initialized)

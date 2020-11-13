@@ -812,10 +812,10 @@ select_auth_test_one (SoupURI *uri,
         sad.password = password;
 	soup_test_session_send_message (session, msg);
 
-	soup_test_assert (strcmp (sad.round[0].headers, first_headers) == 0,
+	soup_test_assert (g_strcmp0 (sad.round[0].headers, first_headers) == 0,
 			  "Header order wrong: expected %s, got %s",
 			  first_headers, sad.round[0].headers);
-	soup_test_assert (strcmp (sad.round[0].response, first_response) == 0,
+	soup_test_assert (g_strcmp0 (sad.round[0].response, first_response) == 0,
 			  "Selected auth type wrong: expected %s, got %s",
 			  first_response, sad.round[0].response);
 
@@ -824,10 +824,10 @@ select_auth_test_one (SoupURI *uri,
 	soup_test_assert (!sad.round[1].headers || second_headers,
 			  "Didn't expect a second round");
 	if (second_headers && second_response) {
-		soup_test_assert (strcmp (sad.round[1].headers, second_headers) == 0,
+		soup_test_assert (g_strcmp0 (sad.round[1].headers, second_headers) == 0,
 				  "Second round header order wrong: expected %s, got %s\n",
 				  second_headers, sad.round[1].headers);
-		soup_test_assert (strcmp (sad.round[1].response, second_response) == 0,
+		soup_test_assert (g_strcmp0 (sad.round[1].response, second_response) == 0,
 				  "Second round selected auth type wrong: expected %s, got %s\n",
 				  second_response, sad.round[1].response);
 	}

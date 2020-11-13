@@ -296,7 +296,9 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
 
 	name = intern_header_name (name, &setter);
 	while ((index = find_header (hdr_array, name, 0)) != -1) {
+#ifndef __clang_analyzer__ /* False positive for double-free */
 		g_free (hdr_array[index].value);
+#endif
 		g_array_remove_index (hdrs->array, index);
 	}
 	if (hdrs->concat)
