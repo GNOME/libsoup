@@ -53,61 +53,6 @@ soup_str_case_equal (gconstpointer v1,
 	return g_ascii_strcasecmp (string1, string2) == 0;
 }
 
-/**
- * soup_add_io_watch: (skip)
- * @async_context: (allow-none): the #GMainContext to dispatch the I/O
- * watch in, or %NULL for the default context
- * @chan: the #GIOChannel to watch
- * @condition: the condition to watch for
- * @function: the callback to invoke when @condition occurs
- * @data: user data to pass to @function
- *
- * Adds an I/O watch as with g_io_add_watch(), but using the given
- * @async_context.
- *
- * Return value: a #GSource, which can be removed from @async_context
- * with g_source_destroy().
- **/
-GSource *
-soup_add_io_watch (GMainContext *async_context,
-		   GIOChannel *chan, GIOCondition condition,
-		   GIOFunc function, gpointer data)
-{
-	GSource *watch = g_io_create_watch (chan, condition);
-	g_source_set_callback (watch, (GSourceFunc) function, data, NULL);
-	g_source_attach (watch, async_context);
-	g_source_unref (watch);
-	return watch;
-}
-
-/**
- * soup_add_idle: (skip)
- * @async_context: (allow-none): the #GMainContext to dispatch the I/O
- * watch in, or %NULL for the default context
- * @function: the callback to invoke at idle time
- * @data: user data to pass to @function
- *
- * Adds an idle event as with g_idle_add(), but using the given
- * @async_context.
- *
- * If you want @function to run "right away", use
- * soup_add_completion(), since that sets a higher priority on the
- * #GSource than soup_add_idle() does.
- *
- * Return value: a #GSource, which can be removed from @async_context
- * with g_source_destroy().
- **/
-GSource *
-soup_add_idle (GMainContext *async_context,
-	       GSourceFunc function, gpointer data)
-{
-	GSource *source = g_idle_source_new ();
-	g_source_set_callback (source, function, data, NULL);
-	g_source_attach (source, async_context);
-	g_source_unref (source);
-	return source;
-}
-
 GSource *
 soup_add_completion_reffed (GMainContext   *async_context,
 			    GSourceFunc     function,

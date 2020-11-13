@@ -13,14 +13,6 @@
 G_BEGIN_DECLS
 
 /* Non-default-GMainContext operations */
-GSource           *soup_add_io_watch         (GMainContext *async_context,
-					      GIOChannel   *chan,
-					      GIOCondition  condition,
-					      GIOFunc       function,
-					      gpointer      data);
-GSource           *soup_add_idle             (GMainContext *async_context,
-					      GSourceFunc   function,
-					      gpointer      data);
 GSource           *soup_add_completion	     (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);

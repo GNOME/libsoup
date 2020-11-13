@@ -181,8 +181,11 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
 	 * waiting one extra cycle after run_until_finish() returns.
 	 * Ugh. FIXME later when it's easier to do.
 	 */
-	soup_add_idle (g_main_context_get_thread_default (),
-		       idle_finish_close, task);
+	GSource *source = g_idle_source_new ();
+	g_source_set_callback (source, idle_finish_close, task, NULL);
+	g_source_attach (source, g_main_context_get_thread_default ());
+	g_source_unref (source);
+
 	return FALSE;
 }
 
