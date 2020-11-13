@@ -16,6 +16,10 @@ G_BEGIN_DECLS
 void               soup_add_completion	     (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
+GSource           *soup_add_completion_reffed (GMainContext   *async_context,
+                                               GSourceFunc     function,
+                                               gpointer        data,
+                                               GDestroyNotify  dnotify);
 GSource           *soup_add_timeout          (GMainContext *async_context,
 					      guint         interval,
 					      GSourceFunc   function,
@@ -64,11 +68,6 @@ gboolean soup_uri_is_https (SoupURI *uri, char **aliases);
 					   method == SOUP_METHOD_TRACE || \
 					   method == SOUP_METHOD_PUT || \
 					   method == SOUP_METHOD_DELETE)
-
-GSource *soup_add_completion_reffed (GMainContext   *async_context,
-				     GSourceFunc     function,
-				     gpointer        data,
-				     GDestroyNotify  dnotify);
 
 guint soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 						goffset              total_length,
