@@ -100,7 +100,7 @@ soup_add_completion (GMainContext *async_context,
  * Adds a timeout as with g_timeout_add(), but using the given
  * @async_context.
  *
- * Return value: a #GSource, which can be removed from @async_context
+ * Returns: (transfer full): a #GSource, which can be removed from @async_context
  * with g_source_destroy().
  **/
 GSource *
@@ -111,7 +111,6 @@ soup_add_timeout (GMainContext *async_context,
 	GSource *source = g_timeout_source_new (interval);
 	g_source_set_callback (source, function, data, NULL);
 	g_source_attach (source, async_context);
-	g_source_unref (source);
 	return source;
 }
 

@@ -1079,7 +1079,6 @@ drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *co
 								 HOST_KEEP_ALIVE,
 								 free_unused_host,
 								 host);
-			host->keep_alive_src = g_source_ref (host->keep_alive_src);
 		}
 	}
 

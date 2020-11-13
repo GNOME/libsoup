@@ -75,7 +75,6 @@ server_callback (SoupServer        *server,
 	sd->timeout = soup_add_timeout (
 		g_main_context_get_thread_default (),
 		200, add_body_chunk, sd);
-	g_source_ref (sd->timeout);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (request_finished), sd);
 }

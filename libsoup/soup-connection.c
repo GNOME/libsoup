@@ -296,7 +296,7 @@ stop_idle_timer (SoupConnectionPrivate *priv)
 {
 	if (priv->idle_timeout_src) {
 		g_source_destroy (priv->idle_timeout_src);
-		priv->idle_timeout_src = NULL;
+                g_clear_pointer (&priv->idle_timeout_src, g_source_unref);
 	}
 }
 

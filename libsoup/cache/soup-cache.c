@@ -1290,6 +1290,8 @@ soup_cache_flush (SoupCache *cache)
 		g_source_destroy (timeout);
 	else
 		g_warning ("Cache flush finished despite %d pending requests", priv->n_pending);
+
+        g_source_unref (timeout);
 }
 
 typedef void (* SoupCacheForeachFileFunc) (SoupCache *cache, const char *name, gpointer user_data);

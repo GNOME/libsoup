@@ -81,10 +81,12 @@ server_callback (SoupServer        *server,
 	}
 
 	if (!strcmp (path, "/slow")) {
+                GSource *timeout;
 		soup_server_pause_message (server, msg);
 		g_object_set_data (G_OBJECT (msg), "server", server);
-		soup_add_timeout (g_main_context_get_thread_default (),
-				  1000, timeout_finish_message, msg);
+		timeout = soup_add_timeout (g_main_context_get_thread_default (),
+                                            1000, timeout_finish_message, msg);
+                g_source_unref (timeout);
 	}
 
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
