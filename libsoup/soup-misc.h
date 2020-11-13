@@ -13,7 +13,7 @@
 G_BEGIN_DECLS
 
 /* Non-default-GMainContext operations */
-GSource           *soup_add_completion	     (GMainContext *async_context,
+void               soup_add_completion	     (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
 GSource           *soup_add_timeout          (GMainContext *async_context,

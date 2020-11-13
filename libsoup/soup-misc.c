@@ -67,7 +67,7 @@ soup_add_completion_reffed (GMainContext   *async_context,
 	return source;
 }
 
-/**
+/*
  * soup_add_completion: (skip)
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
@@ -78,12 +78,8 @@ soup_add_completion_reffed (GMainContext   *async_context,
  * default priority. Use this when you want to complete an action in
  * @async_context's main loop, as soon as possible.
  *
- * Return value: a #GSource, which can be removed from @async_context
- * with g_source_destroy().
- *
- * Since: 2.24
- **/
-GSource *
+ */
+void
 soup_add_completion (GMainContext *async_context,
 	             GSourceFunc function, gpointer data)
 {
@@ -91,7 +87,6 @@ soup_add_completion (GMainContext *async_context,
 
 	source = soup_add_completion_reffed (async_context, function, data, NULL);
 	g_source_unref (source);
-	return source;
 }
 
 /**
