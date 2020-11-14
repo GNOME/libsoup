@@ -62,7 +62,7 @@ typedef struct {
 	GBytes *flattened;
 	gboolean accumulate;
 	goffset base_offset;
-	int ref_count;
+	gatomicrefcount ref_count;
 } SoupMessageBodyPrivate;
 
 /**
@@ -80,7 +80,7 @@ soup_message_body_new (void)
 
 	priv = g_slice_new0 (SoupMessageBodyPrivate);
 	priv->accumulate = TRUE;
-	priv->ref_count = 1;
+	g_atomic_ref_count_init (&priv->ref_count);
 
 	return (SoupMessageBody *)priv;
 }
@@ -402,7 +402,7 @@ soup_message_body_copy (SoupMessageBody *body)
 {
 	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	g_atomic_int_inc (&priv->ref_count);
+	g_atomic_ref_count_inc (&priv->ref_count);
 	return body;
 }
 
@@ -418,7 +418,7 @@ soup_message_body_free (SoupMessageBody *body)
 {
 	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	if (!g_atomic_int_dec_and_test (&priv->ref_count))
+	if (!g_atomic_ref_count_dec (&priv->ref_count))
 		return;
 
 	soup_message_body_truncate (body);

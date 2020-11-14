@@ -59,7 +59,7 @@ struct _SoupMessageHeaders {
 	SoupExpectation expectations;
 	char *content_type;
 
-	int ref_count;
+	gatomicrefcount ref_count;
 };
 
 /**
@@ -82,7 +82,8 @@ soup_message_headers_new (SoupMessageHeadersType type)
 	hdrs->array = g_array_sized_new (TRUE, FALSE, sizeof (SoupHeader), 5);
 	hdrs->type = type;
 	hdrs->encoding = -1;
-	hdrs->ref_count = 1;
+
+        g_atomic_ref_count_init (&hdrs->ref_count);
 
 	return hdrs;
 }
@@ -90,7 +91,7 @@ soup_message_headers_new (SoupMessageHeadersType type)
 static SoupMessageHeaders *
 soup_message_headers_copy (SoupMessageHeaders *hdrs)
 {
-	g_atomic_int_inc (&hdrs->ref_count);
+	g_atomic_ref_count_inc (&hdrs->ref_count);
 	return hdrs;
 }
 
@@ -103,7 +104,7 @@ soup_message_headers_copy (SoupMessageHeaders *hdrs)
 void
 soup_message_headers_free (SoupMessageHeaders *hdrs)
 {
-	if (!g_atomic_int_dec_and_test (&hdrs->ref_count))
+	if (!g_atomic_ref_count_dec (&hdrs->ref_count))
 		return;
 
 	soup_message_headers_clear (hdrs);

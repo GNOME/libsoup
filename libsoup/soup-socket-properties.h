@@ -19,7 +19,7 @@ typedef struct {
 	guint idle_timeout;
 
 	/*< private >*/
-	guint ref_count;
+	gatomicrefcount ref_count;
 } SoupSocketProperties;
 
 GType soup_socket_properties_get_type (void);

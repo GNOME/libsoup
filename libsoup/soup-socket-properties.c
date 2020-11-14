@@ -21,7 +21,8 @@ soup_socket_properties_new (GProxyResolver     *proxy_resolver,
 	SoupSocketProperties *props;
 
 	props = g_slice_new (SoupSocketProperties);
-	props->ref_count = 1;
+
+        g_atomic_ref_count_init (&props->ref_count);
 
 	props->proxy_resolver = proxy_resolver ? g_object_ref (proxy_resolver) : NULL;
 	props->local_addr = local_addr ? g_object_ref (local_addr) : NULL;
@@ -38,14 +39,14 @@ soup_socket_properties_new (GProxyResolver     *proxy_resolver,
 SoupSocketProperties *
 soup_socket_properties_ref (SoupSocketProperties *props)
 {
-	g_atomic_int_inc (&props->ref_count);
+	g_atomic_ref_count_inc (&props->ref_count);
 	return props;
 }
 
 void
 soup_socket_properties_unref (SoupSocketProperties *props)
 {
-	if (!g_atomic_int_dec_and_test (&props->ref_count))
+	if (!g_atomic_ref_count_dec (&props->ref_count))
 		return;
 
 	g_clear_object (&props->proxy_resolver);
