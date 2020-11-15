@@ -1065,7 +1065,7 @@ do_auth_close_test (void)
 	g_signal_connect (acd.msg, "authenticate",
 			  G_CALLBACK (auth_close_authenticate), &acd);
 	g_uri_unref (uri);
-	body = soup_test_session_async_send (acd.session, acd.msg, NULL);
+	body = soup_test_session_async_send (acd.session, acd.msg, NULL, NULL);
 
 	soup_test_assert_message_status (acd.msg, SOUP_STATUS_OK);
 
@@ -1189,7 +1189,7 @@ do_disappearing_auth_test (void)
 	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (disappear_authenticate), &counter);
 
-	body = soup_test_session_async_send (session, msg, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
 
 	soup_test_assert (counter <= 2,
 			  "Got stuck in loop");
@@ -1522,20 +1522,14 @@ do_message_has_authorization_header_test (void)
 	soup_test_session_abort_unref (session);
 }
 
-typedef struct {
-	SoupSession *session;
-	GCancellable *cancellable;
-} CancelAfterRetryData;
-
 static gboolean
-cancel_after_retry_authenticate (SoupMessage          *msg,
-                                 SoupAuth             *auth,
-                                 gboolean              retrying,
-                                 CancelAfterRetryData *data)
+cancel_after_retry_authenticate (SoupMessage  *msg,
+                                 SoupAuth     *auth,
+                                 gboolean      retrying,
+                                 GCancellable *cancellable)
 {
         if (retrying) {
-                soup_session_cancel_message (data->session, msg, 0);
-                g_cancellable_cancel (data->cancellable);
+                g_cancellable_cancel (cancellable);
 
 		return FALSE;
 	}
@@ -1566,14 +1560,13 @@ do_cancel_after_retry_test (void)
         SoupSession *session;
         SoupMessage *msg;
         char *uri;
-	CancelAfterRetryData data;
+	GCancellable *cancellable;
         GMainLoop *loop;
 
         SOUP_TEST_SKIP_IF_NO_APACHE;
 
         session = soup_test_session_new (NULL);
-	data.session = session;
-        data.cancellable = g_cancellable_new ();
+        cancellable = g_cancellable_new ();
 
         loop = g_main_loop_new (NULL, FALSE);
 
@@ -1581,13 +1574,13 @@ do_cancel_after_retry_test (void)
         msg = soup_message_new ("GET", uri);
 	g_signal_connect (msg, "authenticate",
                           G_CALLBACK (cancel_after_retry_authenticate),
-                          &data);
-        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, data.cancellable,
+                          cancellable);
+        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
 				 (GAsyncReadyCallback)request_send_cb, loop);
         g_main_loop_run (loop);
 
         g_object_unref (msg);
-        g_object_unref (data.cancellable);
+        g_object_unref (cancellable);
         g_free (uri);
         soup_test_session_abort_unref (session);
 }

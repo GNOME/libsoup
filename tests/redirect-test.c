@@ -191,7 +191,7 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
 
-	body = soup_test_session_async_send (session, msg, &error);
+	body = soup_test_session_async_send (session, msg, NULL, &error);
 
 	soup_test_assert_message_status (msg, test->final_status);
 	if (test->error_code)

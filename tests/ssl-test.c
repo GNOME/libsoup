@@ -224,7 +224,7 @@ do_tls_interaction_test (void)
 
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	body = soup_test_session_async_send (session, msg, &error);
+	body = soup_test_session_async_send (session, msg, NULL, &error);
 	g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
 	g_clear_error (&error);
 	g_bytes_unref (body);
@@ -238,7 +238,7 @@ do_tls_interaction_test (void)
 
 	/* With a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
-	body = soup_test_session_async_send (session, msg, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_nonnull (soup_message_get_tls_certificate (msg));
 	g_bytes_unref (body);

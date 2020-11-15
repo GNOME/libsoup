@@ -57,9 +57,10 @@ finished_cb (SoupMessage *msg,
 }
 
 static void
-cancel_message_cb (SoupMessage *msg, gpointer session)
+cancel_message_cb (SoupMessage  *msg,
+		   GCancellable *cancellable)
 {
-	soup_session_cancel_message (session, msg, 0);
+	g_cancellable_cancel (cancellable);
 }
 
 static void
@@ -81,6 +82,7 @@ do_test_for_session (SoupSession *session,
 	guint timeout_id;
 	GUri *timeout_uri;
 	GBytes *body;
+	GCancellable *cancellable;
 	GError *error = NULL;
 
 	debug_printf (1, "  queue_message\n");
@@ -141,11 +143,12 @@ do_test_for_session (SoupSession *session,
 
 	debug_printf (1, "  cancel_message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+	cancellable = g_cancellable_new ();
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
 				 (GAsyncReadyCallback)cancel_message_send_done,
 				 &error);
 	g_signal_connect (msg, "wrote-headers",
-			  G_CALLBACK (cancel_message_cb), session);
+			  G_CALLBACK (cancel_message_cb), cancellable);
 
 	loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (loop);
@@ -154,6 +157,7 @@ do_test_for_session (SoupSession *session,
 
 	g_main_loop_unref (loop);
 	g_clear_error (&error);
+	g_object_unref (cancellable);
 	g_object_unref (msg);
 }
 

@@ -69,7 +69,7 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 	debug_printf (1, "    Range: %s\n",
 		      soup_message_headers_get_one (soup_message_get_request_headers (msg), "Range"));
 
-	body = soup_test_session_async_send (session, msg, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
 
 	if (!succeed) {
 		soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
@@ -120,7 +120,7 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 	debug_printf (1, "    Range: %s\n",
 		      soup_message_headers_get_one (soup_message_get_request_headers (msg), "Range"));
 
-	body = soup_test_session_async_send (session, msg, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
 

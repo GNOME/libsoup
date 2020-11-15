@@ -119,7 +119,7 @@ do_request_test (gconstpointer data)
                           G_CALLBACK (wrote_body_data), &ptd);
 
         if (flags & ASYNC)
-                soup_test_session_async_send (session, msg, NULL);
+                soup_test_session_async_send (session, msg, NULL, NULL);
         else
                 soup_test_session_send_message (session, msg);
         soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);

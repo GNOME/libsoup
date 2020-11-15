@@ -43,21 +43,20 @@ gboolean have_curl (void);
 
 typedef enum {
 	SOUP_TEST_REQUEST_NONE = 0,
-	SOUP_TEST_REQUEST_CANCEL_MESSAGE = (1 << 0),
-	SOUP_TEST_REQUEST_CANCEL_CANCELLABLE = (1 << 1),
-	SOUP_TEST_REQUEST_CANCEL_SOON = (1 << 2),
-	SOUP_TEST_REQUEST_CANCEL_IMMEDIATE = (1 << 3),
-	SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE = (1 << 4),
-	SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH = (1 << 5),
+	SOUP_TEST_REQUEST_CANCEL_SOON = (1 << 0),
+	SOUP_TEST_REQUEST_CANCEL_IMMEDIATE = (1 << 1),
+	SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE = (1 << 2),
+	SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH = (1 << 3),
 } SoupTestRequestFlags;
 
-SoupSession *soup_test_session_new                (const char *propname, ...);
-void         soup_test_session_abort_unref        (SoupSession *session);
-GBytes      *soup_test_session_async_send         (SoupSession *session,
-						   SoupMessage *msg,
-						   GError     **error);
-guint        soup_test_session_send_message       (SoupSession *session,
-						   SoupMessage *msg);
+SoupSession *soup_test_session_new                (const char   *propname, ...);
+void         soup_test_session_abort_unref        (SoupSession  *session);
+GBytes      *soup_test_session_async_send         (SoupSession  *session,
+						   SoupMessage  *msg,
+						   GCancellable *cancellable,
+						   GError      **error);
+guint        soup_test_session_send_message       (SoupSession  *session,
+						   SoupMessage  *msg);
 
 typedef enum {
 	SOUP_TEST_SERVER_DEFAULT             = 0,

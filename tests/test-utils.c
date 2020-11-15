@@ -340,9 +340,10 @@ on_message_finished (SoupMessage *msg,
 }
 
 GBytes *
-soup_test_session_async_send (SoupSession *session,
-			      SoupMessage *msg,
-			      GError     **error)
+soup_test_session_async_send (SoupSession  *session,
+			      SoupMessage  *msg,
+			      GCancellable *cancellable,
+			      GError      **error)
 {
 	gboolean message_finished = FALSE;
 	GMainContext *async_context = g_main_context_ref_thread_default ();
@@ -352,7 +353,7 @@ soup_test_session_async_send (SoupSession *session,
 	signal_id = g_signal_connect (msg, "finished",
                                      G_CALLBACK (on_message_finished), &message_finished);
 
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
 				 (GAsyncReadyCallback)send_async_ready_cb, &data);
 
 	while (!data.done || !message_finished)
@@ -660,53 +661,10 @@ async_as_sync_callback (GObject      *object,
 	g_main_loop_quit (data->loop);
 }
 
-typedef struct {
-	SoupSession *session;
-	SoupMessage  *msg;
-	GCancellable *cancellable;
-	SoupTestRequestFlags flags;
-} CancelData;
-
-static CancelData *
-create_cancel_data (SoupSession          *session,
-		    SoupMessage          *msg,
-		    GCancellable         *cancellable,
-		    SoupTestRequestFlags  flags)
-{
-	CancelData *cancel_data;
-
-	if (!flags)
-		return NULL;
-
-	cancel_data = g_slice_new0 (CancelData);
-	cancel_data->flags = flags;
-	if (flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE) {
-		cancel_data->session = session;
-		cancel_data->msg = g_object_ref (msg);
-	} else if (flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE)
-		cancel_data->cancellable = g_object_ref (cancellable);
-	return cancel_data;
-}
-
-inline static void
-cancel_message_or_cancellable (CancelData *cancel_data)
-{
-	if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE) {
-		SoupMessage *msg = cancel_data->msg;
-
-		soup_session_cancel_message (cancel_data->session, msg, 0);
-		g_object_unref (msg);
-	} else if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE) {
-		g_cancellable_cancel (cancel_data->cancellable);
-		g_object_unref (cancel_data->cancellable);
-	}
-	g_slice_free (CancelData, cancel_data);
-}
-
 static gboolean
-cancel_request_timeout (gpointer data)
+cancel_request_timeout (GCancellable *cancellable)
 {
-	cancel_message_or_cancellable ((CancelData *) data);
+	g_cancellable_cancel (cancellable);
 	return FALSE;
 }
 
@@ -719,26 +677,27 @@ soup_test_request_send (SoupSession   *session,
 {
 	AsyncAsSyncData data;
 	GInputStream *stream;
-	CancelData *cancel_data = create_cancel_data (session, msg, cancellable, flags);
 
 	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
-	if (cancel_data &&
-	    (flags & SOUP_TEST_REQUEST_CANCEL_SOON || flags & SOUP_TEST_REQUEST_CANCEL_IMMEDIATE)) {
+	if (flags & SOUP_TEST_REQUEST_CANCEL_SOON || flags & SOUP_TEST_REQUEST_CANCEL_IMMEDIATE) {
 		guint interval = flags & SOUP_TEST_REQUEST_CANCEL_SOON ? 100 : 0;
-		g_timeout_add_full (G_PRIORITY_HIGH, interval, cancel_request_timeout, cancel_data, NULL);
+		g_timeout_add_full (G_PRIORITY_HIGH, interval,
+				    (GSourceFunc)cancel_request_timeout,
+				    g_object_ref (cancellable), g_object_unref);
 	}
-	if (cancel_data && (flags & SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE))
-		cancel_message_or_cancellable (cancel_data);
+	if (flags & SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE)
+		g_cancellable_cancel (cancellable);
+
 	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
 				 async_as_sync_callback, &data);
 	g_main_loop_run (data.loop);
 
 	stream = soup_session_send_finish (session, data.result, error);
 
-	if (cancel_data && (flags &  SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH)) {
+	if (flags & SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH) {
 		GMainContext *context;
 
-		cancel_message_or_cancellable (cancel_data);
+		g_cancellable_cancel (cancellable);
 
 		context = g_main_loop_get_context (data.loop);
 		while (g_main_context_pending (context))

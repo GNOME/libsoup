@@ -307,14 +307,14 @@ do_msg_reuse_test (void)
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	g_signal_connect (msg, "authenticate",
                           G_CALLBACK (reuse_test_authenticate), NULL);
-	soup_test_session_async_send (session, msg, NULL);
+	soup_test_session_async_send (session, msg, NULL, NULL);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	debug_printf (1, "  Redirect message\n");
 	uri = g_uri_parse_relative (base_uri, "/redirect", SOUP_HTTP_URI_FLAGS, NULL);
 	soup_message_set_uri (msg, uri);
 	g_uri_unref (uri);
-	soup_test_session_async_send (session, msg, NULL);
+	soup_test_session_async_send (session, msg, NULL, NULL);
 	g_assert_true (soup_uri_equal (soup_message_get_uri (msg), base_uri));
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
@@ -322,10 +322,10 @@ do_msg_reuse_test (void)
 	uri = g_uri_parse_relative (base_uri, "/auth", SOUP_HTTP_URI_FLAGS, NULL);
 	soup_message_set_uri (msg, uri);
 	g_uri_unref (uri);
-	soup_test_session_async_send (session, msg, NULL);
+	soup_test_session_async_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	soup_message_set_uri (msg, base_uri);
-	soup_test_session_async_send (session, msg, NULL);
+	soup_test_session_async_send (session, msg, NULL, NULL);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	soup_test_session_abort_unref (session);
@@ -371,9 +371,10 @@ ea_message_network_event (SoupMessage       *msg,
 }
 
 static void
-ea_message_starting (SoupMessage *msg, SoupSession *session)
+ea_message_starting (SoupMessage  *msg,
+		     GCancellable *cancellable)
 {
-	soup_session_cancel_message (session, msg, 0);
+	g_cancellable_cancel (cancellable);
 }
 
 static void
@@ -381,6 +382,7 @@ do_early_abort_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
+	GCancellable *cancellable;
 	GMainContext *context;
 	GMainLoop *loop;
 	GError *error = NULL;
@@ -411,7 +413,7 @@ do_early_abort_test (void)
 	g_signal_connect (msg, "network-event",
 			  G_CALLBACK (ea_message_network_event),
 			  session);
-	g_assert_null (soup_test_session_async_send (session, msg, &error));
+	g_assert_null (soup_test_session_async_send (session, msg, NULL, &error));
 	debug_printf (2, "  Message 2 completed\n");
 
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
@@ -427,14 +429,16 @@ do_early_abort_test (void)
 
 	session = soup_test_session_new (NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
+	cancellable = g_cancellable_new ();
 
 	g_signal_connect (msg, "starting",
-			  G_CALLBACK (ea_message_starting), session);
-	g_assert_null (soup_test_session_async_send (session, msg, &error));
+			  G_CALLBACK (ea_message_starting), cancellable);
+	g_assert_null (soup_test_session_async_send (session, msg, cancellable, &error));
 	debug_printf (2, "  Message 3 completed\n");
 
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
+	g_object_unref (cancellable);
 	g_object_unref (msg);
 
 	while (g_main_context_pending (context))
@@ -485,13 +489,9 @@ do_accept_language_test (void)
 }
 
 static gboolean
-cancel_message_timeout (gpointer msg)
+cancel_message_timeout (GCancellable *cancellable)
 {
-	SoupSession *session = g_object_get_data (G_OBJECT (msg), "session");
-
-	soup_session_cancel_message (session, msg, 0);
-	g_object_unref (msg);
-	g_object_unref (session);
+	g_cancellable_cancel (cancellable);
 	return FALSE;
 }
 
@@ -500,20 +500,23 @@ do_cancel_while_reading_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
 	GUri *uri;
+	GCancellable *cancellable;
 	GError *error = NULL;
 
 	uri = g_uri_parse_relative (base_uri, "/slow", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
 	g_uri_unref (uri);
 
-	g_object_set_data (G_OBJECT (msg), "session", session);
-	g_object_ref (msg);
-	g_object_ref (session);
-	g_timeout_add (100, cancel_message_timeout, msg);
+	cancellable = g_cancellable_new ();
+	g_timeout_add_full (G_PRIORITY_DEFAULT, 100,
+			    (GSourceFunc)cancel_message_timeout,
+			    g_object_ref (cancellable),
+			    g_object_unref);
 
-	g_assert_null (soup_test_session_async_send (session, msg, &error));
+	g_assert_null (soup_test_session_async_send (session, msg, cancellable, &error));
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
+	g_object_unref (cancellable);
 	g_object_unref (msg);
 }
 
@@ -560,7 +563,7 @@ do_cancel_while_reading_immediate_req_test (void)
 
 	g_test_bug ("692310");
 
-	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
+	flags = SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 
 	session = soup_test_session_new (NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
@@ -573,7 +576,7 @@ do_cancel_while_reading_delayed_req_test (void)
 	SoupSession *session;
 	guint flags;
 
-	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_SOON;
+	flags = SOUP_TEST_REQUEST_CANCEL_SOON;
 
 	session = soup_test_session_new (NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
@@ -588,7 +591,7 @@ do_cancel_while_reading_preemptive_req_test (void)
 
 	g_test_bug ("637039");
 
-	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
+	flags = SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
 
 	session = soup_test_session_new (NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);

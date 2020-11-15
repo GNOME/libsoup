@@ -464,11 +464,13 @@ do_max_conns_test_for_session (SoupSession *session)
 {
 	SoupMessage *msgs[TEST_CONNS];
 	int i;
+	GCancellable *cancellable;
 
 	max_conns_loop = g_main_loop_new (NULL, TRUE);
 
 	g_mutex_lock (&server_mutex);
 
+	cancellable = g_cancellable_new ();
 	g_signal_connect (session, "request-queued",
 			  G_CALLBACK (max_conns_request_queued), NULL);
 	msgs_done = 0;
@@ -476,7 +478,7 @@ do_max_conns_test_for_session (SoupSession *session)
 		msgs[i] = soup_message_new_from_uri ("GET", base_uri);
 		g_signal_connect (msgs[i], "finished",
 				  G_CALLBACK (max_conns_message_complete), NULL);
-		soup_session_send_async (session, msgs[i], G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+		soup_session_send_async (session, msgs[i], G_PRIORITY_DEFAULT, cancellable, NULL, NULL);
 	}
 
 	g_main_loop_run (max_conns_loop);
@@ -503,11 +505,11 @@ do_max_conns_test_for_session (SoupSession *session)
 		/* Clean up so we don't get a spurious "Leaked
 		 * session" error.
 		 */
-		for (i = 0; i < TEST_CONNS; i++)
-			soup_session_cancel_message (session, msgs[i], 0);
+		g_cancellable_cancel (cancellable);
 		g_main_loop_run (max_conns_loop);
 	}
 
+	g_object_unref (cancellable);
 	g_main_loop_unref (max_conns_loop);
 	if (quit_loop_timeout) {
 		g_source_remove (quit_loop_timeout);
@@ -728,7 +730,7 @@ do_one_connection_state_test (SoupSession         *session,
 	g_signal_connect (msg, "network-event",
 			  G_CALLBACK (message_network_event),
 			  state);
-	body = soup_test_session_async_send (session, msg, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_bytes_unref (body);
 	g_object_unref (msg);
