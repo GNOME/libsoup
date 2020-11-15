@@ -363,8 +363,6 @@ SoupSessionError
 soup_session_new
 soup_session_new_with_options
 <SUBSECTION>
-soup_session_cancel_message
-<SUBSECTION>
 soup_session_send
 soup_session_send_async
 soup_session_send_finish

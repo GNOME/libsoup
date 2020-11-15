@@ -42,6 +42,7 @@
 #include "soup.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
+#include "soup-session-private.h"
 
 /**
  * SECTION:soup-cache
@@ -1425,7 +1426,7 @@ soup_cache_cancel_conditional_request (SoupCache   *cache,
 	if (entry)
 		entry->being_validated = FALSE;
 
-	soup_session_cancel_message (priv->session, msg, SOUP_STATUS_NONE);
+	soup_session_cancel_message (priv->session, msg);
 }
 
 void

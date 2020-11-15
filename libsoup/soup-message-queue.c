@@ -74,8 +74,11 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
  * soup_message_queue_unref_item() when you are done with.
  **/
 SoupMessageQueueItem *
-soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
-			   SoupSessionCallback callback, gpointer user_data)
+soup_message_queue_append (SoupMessageQueue   *queue,
+			   SoupMessage        *msg,
+			   GCancellable       *cancellable,
+			   SoupSessionCallback callback,
+			   gpointer            user_data)
 {
 	SoupMessageQueueItem *item;
 
@@ -88,7 +91,7 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 	item->msg = g_object_ref (msg);
 	item->callback = callback;
 	item->callback_data = user_data;
-	item->cancellable = g_cancellable_new ();
+	item->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 	item->priority = soup_message_get_priority (msg);
 
 	g_signal_connect (msg, "restarted",

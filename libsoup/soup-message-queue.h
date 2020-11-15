@@ -68,6 +68,7 @@ struct _SoupMessageQueueItem {
 SoupMessageQueue     *soup_message_queue_new        (SoupSession          *session);
 SoupMessageQueueItem *soup_message_queue_append     (SoupMessageQueue     *queue,
 						     SoupMessage          *msg,
+						     GCancellable         *cancellable,
 						     SoupSessionCallback   callback,
 						     gpointer              user_data);
 

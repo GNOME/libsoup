@@ -13,6 +13,7 @@
 #include "soup-hsts-enforcer.h"
 #include "soup-misc.h"
 #include "soup.h"
+#include "soup-session-private.h"
 
 /**
  * SECTION:soup-hsts-enforcer
@@ -534,7 +535,7 @@ on_sts_known_host_message_starting (SoupMessage *msg, SoupHSTSEnforcer *hsts_enf
 
 	errors = soup_message_get_tls_certificate_errors (msg);
 	if (errors)
-		soup_session_cancel_message (priv->session, msg, SOUP_STATUS_NONE);
+		soup_session_cancel_message (priv->session, msg);
 }
 
 static void

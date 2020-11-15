@@ -996,6 +996,7 @@ static SoupMessageQueueItem *
 soup_session_append_queue_item (SoupSession        *session,
 				SoupMessage        *msg,
 				gboolean            async,
+				GCancellable       *cancellable,
 				SoupSessionCallback callback,
 				gpointer            user_data)
 {
@@ -1006,7 +1007,7 @@ soup_session_append_queue_item (SoupSession        *session,
 
 	soup_message_cleanup_response (msg);
 
-	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
+	item = soup_message_queue_append (priv->queue, msg, cancellable, callback, user_data);
 	item->async = async;
 
 	g_mutex_lock (&priv->conn_lock);
@@ -1368,6 +1369,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
 						      item->async,
+						      item->cancellable,
 						      NULL, NULL);
 	tunnel_item->io_priority = item->io_priority;
 	tunnel_item->related = item;
@@ -1843,61 +1845,19 @@ soup_session_unpause_message (SoupSession *session,
 	soup_session_kick_queue (session);
 }
 
-
-/**
- * soup_session_cancel_message:
- * @session: a #SoupSession
- * @msg: the message to cancel
- * @status_code: status code to set on @msg
- *
- * Causes @session to immediately finish processing @msg (regardless
- * of its current state) with a final status_code of @status_code. You
- * may call this at any time after handing @msg off to @session; if
- * @session has started sending the request but has not yet received
- * the complete response, then it will close the request's connection.
- * Note that with requests that have side effects (eg,
- * <literal>POST</literal>, <literal>PUT</literal>,
- * <literal>DELETE</literal>) it is possible that you might cancel the
- * request after the server acts on it, but before it returns a
- * response, leaving the remote resource in an unknown state.
- *
- * If the message is cancelled while its response body is being read,
- * then the response body in @msg will be left partially-filled-in.
- * The response headers, on the other hand, will always be either
- * empty or complete.
- *
- * Note that cancelling an asynchronous message will merely queue its
- * callback to be run after returning to the main loop.
- **/
 void
-soup_session_cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
+soup_session_cancel_message (SoupSession *session,
+			     SoupMessage *msg)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
-
-	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	item = soup_message_queue_lookup (priv->queue, msg);
         /* If the message is already ending, don't do anything */
 	if (!item)
                 return;
 
-	if (item->state == SOUP_MESSAGE_FINISHED) {
-		soup_message_queue_item_unref (item);
-		return;
-	}
-
-	if (item->paused) {
-		item->paused = FALSE;
-
-		if (soup_message_io_in_progress (msg))
-			soup_message_io_unpause (msg);
-	}
-
 	g_cancellable_cancel (item->cancellable);
-
-	soup_session_kick_queue (item->session);
 	soup_message_queue_item_unref (item);
 }
 
@@ -1908,9 +1868,7 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg, guint statu
  * Cancels all pending requests in @session and closes all idle
  * persistent connections.
  *
- * The message cancellation has the same semantics as with
- * soup_session_cancel_message().
- **/
+ */
 void
 soup_session_abort (SoupSession *session)
 {
@@ -1927,7 +1885,7 @@ soup_session_abort (SoupSession *session)
 	for (item = soup_message_queue_first (priv->queue);
 	     item;
 	     item = soup_message_queue_next (priv->queue, item)) {
-		soup_session_cancel_message (session, item->msg, SOUP_STATUS_NONE);
+		g_cancellable_cancel (item->cancellable);
 	}
 
 	/* Close all idle connections */
@@ -2925,8 +2883,7 @@ idle_return_from_cache_cb (gpointer data)
 	GInputStream *istream;
 
 	if (item->state == SOUP_MESSAGE_FINISHED) {
-		/* The original request was cancelled using
-		 * soup_session_cancel_message () so it has been
+		/* The original request was cancelled so it has been
 		 * already handled by the cancellation code path.
 		 */
 		return FALSE;
@@ -2998,12 +2955,6 @@ async_respond_from_cache (SoupSession          *session,
 		return FALSE;
 }
 
-static void
-cancel_cancellable (G_GNUC_UNUSED GCancellable *cancellable, GCancellable *chained_cancellable)
-{
-	g_cancellable_cancel (chained_cancellable);
-}
-
 /**
  * soup_session_send_async:
  * @session: a #SoupSession
@@ -3036,18 +2987,12 @@ soup_session_send_async (SoupSession         *session,
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
 	item = soup_session_append_queue_item (session, msg, TRUE,
-					       NULL, NULL);
+					       cancellable, NULL, NULL);
 	item->io_priority = io_priority;
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (async_send_request_restarted), item);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_send_request_finished), item);
-
-	if (cancellable) {
-		g_cancellable_connect (cancellable, G_CALLBACK (cancel_cancellable),
-				       g_object_ref (item->cancellable),
-				       (GDestroyNotify) g_object_unref);
-	}
 
 	item->task = g_task_new (session, item->cancellable, callback, user_data);
 	g_task_set_priority (item->task, io_priority);
@@ -3146,13 +3091,7 @@ soup_session_send (SoupSession   *session,
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
 	item = soup_session_append_queue_item (session, msg, FALSE,
-					       NULL, NULL);
-
-	if (cancellable) {
-		g_cancellable_connect (cancellable, G_CALLBACK (cancel_cancellable),
-				       g_object_ref (item->cancellable),
-				       (GDestroyNotify) g_object_unref);
-	}
+					       cancellable, NULL, NULL);
 
 	while (!stream) {
 		/* Get a connection, etc */
@@ -3925,7 +3864,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
 
 	task = g_task_new (session, cancellable, callback, user_data);
-	item = soup_session_append_queue_item (session, msg, TRUE,
+	item = soup_session_append_queue_item (session, msg, TRUE, cancellable,
 					       websocket_connect_async_complete, task);
 	item->io_priority = io_priority;
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);

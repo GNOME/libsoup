@@ -31,7 +31,6 @@ struct _SoupClientMessageIOData {
 	SoupMessageIOData base;
 
         SoupMessageQueueItem *item;
-        GCancellable         *cancellable;
 
 #ifdef HAVE_SYSPROF
         gint64 begin_time_nsec;
@@ -803,7 +802,6 @@ soup_message_io_run (SoupMessage *msg,
 	SoupClientMessageIOData *client_io = soup_message_get_io_data (msg);
 	SoupMessageIOData *io = &client_io->base;
 	GError *error = NULL;
-	GCancellable *cancellable;
 
 	if (io->io_source) {
 		g_source_destroy (io->io_source);
@@ -812,16 +810,16 @@ soup_message_io_run (SoupMessage *msg,
 	}
 
 	g_object_ref (msg);
-	cancellable = client_io->cancellable ? g_object_ref (client_io->cancellable) : NULL;
 
 	if (io_run_until (msg, blocking,
 			  SOUP_MESSAGE_IO_STATE_DONE,
 			  SOUP_MESSAGE_IO_STATE_DONE,
-			  cancellable, &error)) {
+			  client_io->item->cancellable, &error)) {
 		soup_message_io_finished (msg);
 	} else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		g_clear_error (&error);
-		io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), cancellable,
+		io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg),
+								 client_io->item->cancellable,
 								 (SoupMessageIOSourceFunc)io_run_ready,
 								 NULL);
 		g_source_set_priority (io->io_source,
@@ -835,7 +833,6 @@ soup_message_io_run (SoupMessage *msg,
 	}
 
 	g_object_unref (msg);
-	g_clear_object (&cancellable);
 }
 
 gboolean
@@ -995,7 +992,6 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 
 	io->item = item;
 	soup_message_queue_item_ref (item);
-	io->cancellable = io->item->cancellable;
 	io->base.iostream = g_object_ref (soup_connection_get_iostream (io->item->conn));
 	io->base.istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (io->base.iostream));
 	io->base.ostream = g_io_stream_get_output_stream (io->base.iostream);
