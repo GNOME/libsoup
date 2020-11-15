@@ -750,6 +750,60 @@ do_async_auth_no_password_test (void)
 }
 
 typedef struct {
+	SoupAuth *auth;
+	GCancellable *cancellable;
+} AsyncAuthCancelData;
+
+static gboolean
+async_authenticate_cancel_idle (AsyncAuthCancelData *data)
+{
+	g_cancellable_cancel (data->cancellable);
+	return FALSE;
+}
+
+static gboolean
+async_authenticate_cancel_authenticate (SoupMessage         *msg,
+					SoupAuth            *auth,
+					gboolean             retrying,
+					AsyncAuthCancelData *data)
+{
+	data->auth = g_object_ref (auth);
+	g_idle_add ((GSourceFunc)async_authenticate_cancel_idle, data);
+
+	return TRUE;
+}
+
+static void
+do_async_auth_cancel_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	char *uri;
+	AsyncAuthCancelData data = { NULL, NULL };
+	GError *error = NULL;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	session = soup_test_session_new (NULL);
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+
+	msg = soup_message_new ("GET", uri);
+	data.cancellable = g_cancellable_new ();
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (async_authenticate_cancel_authenticate),
+			  &data);
+	soup_test_session_async_send (session, msg, data.cancellable, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+
+	g_object_unref (data.auth);
+	g_object_unref (data.cancellable);
+	g_object_unref (msg);
+	g_free (uri);
+
+	soup_test_session_abort_unref (session);
+}
+
+typedef struct {
 	const char *password;
 	struct {
 		const char *headers;
@@ -1603,6 +1657,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/async-auth/good-password", do_async_auth_good_password_test);
 	g_test_add_func ("/auth/async-auth/bad-password", do_async_auth_bad_password_test);
 	g_test_add_func ("/auth/async-auth/no-password", do_async_auth_no_password_test);
+	g_test_add_func ("/auth/async-auth/cancel", do_async_auth_cancel_test);
 	g_test_add_func ("/auth/select-auth", do_select_auth_test);
 	g_test_add_func ("/auth/auth-close", do_auth_close_test);
 	g_test_add_func ("/auth/infinite-auth", do_infinite_auth_test);

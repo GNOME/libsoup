@@ -821,7 +821,7 @@ soup_message_io_run (SoupMessage *msg,
 		soup_message_io_finished (msg);
 	} else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		g_clear_error (&error);
-		io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), NULL,
+		io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), cancellable,
 								 (SoupMessageIOSourceFunc)io_run_ready,
 								 NULL);
 		g_source_set_priority (io->io_source,
@@ -896,7 +896,7 @@ io_run_until_read_async (SoupMessage *msg,
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
-                io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), NULL,
+                io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), g_task_get_cancellable (task),
 								 (SoupMessageIOSourceFunc)io_run_until_read_ready,
 								 task);
 		g_source_set_priority (io->io_source, g_task_get_priority (task));

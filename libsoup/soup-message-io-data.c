@@ -210,7 +210,7 @@ soup_message_io_data_get_source (SoupMessageIOData     *io,
 	if (!io) {
 		base_source = g_timeout_source_new (0);
 	} else if (io->paused) {
-		base_source = NULL;
+		base_source = cancellable ? g_cancellable_source_new (cancellable) : NULL;
 	} else if (io->async_wait) {
 		base_source = g_cancellable_source_new (io->async_wait);
 	} else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->read_state)) {

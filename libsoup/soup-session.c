@@ -2801,6 +2801,7 @@ run_until_read_done (SoupMessage          *msg,
 	if (item->state != SOUP_MESSAGE_FINISHED) {
 		if (soup_message_io_in_progress (msg))
 			soup_message_io_finished (msg);
+		item->paused = FALSE;
 		item->state = SOUP_MESSAGE_FINISHING;
 		soup_session_process_queue_item (item->session, item, NULL, FALSE);
 	}
@@ -3222,7 +3223,7 @@ soup_session_send (SoupSession   *session,
 			soup_message_io_finished (msg);
 		else if (item->state != SOUP_MESSAGE_FINISHED)
 			item->state = SOUP_MESSAGE_FINISHING;
-
+		item->paused = FALSE;
 		if (item->state != SOUP_MESSAGE_FINISHED)
 			soup_session_process_queue_item (session, item, NULL, TRUE);
 	}
