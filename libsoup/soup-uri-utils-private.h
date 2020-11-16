@@ -18,10 +18,6 @@ gboolean     soup_uri_is_https              (GUri       *uri,
 
 gboolean     soup_uri_uses_default_port     (GUri       *uri);
 
-GUri        *soup_uri_copy_with_credentials (GUri       *uri,
-                                             const char *username,
-                                             const char *password);
-
 char        *soup_uri_get_path_and_query    (GUri       *uri);
 
 GUri        *soup_uri_copy_host             (GUri       *uri);

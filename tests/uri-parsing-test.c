@@ -46,6 +46,75 @@ do_equality_tests (void)
 	}
 }
 
+static void
+do_copy_tests (void)
+{
+        GUri *uri;
+        GUri *copy;
+        char *str;
+
+        uri = g_uri_parse ("http://127.0.0.1:1234/foo#bar", SOUP_HTTP_URI_FLAGS, NULL);
+
+        /* Exact copy */
+        copy = soup_uri_copy (uri, SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "http://127.0.0.1:1234/foo#bar");
+        g_free (str);
+        g_uri_unref (copy);
+
+        /* Update the path */
+        copy = soup_uri_copy (uri, SOUP_URI_PATH, "/baz", SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "http://127.0.0.1:1234/baz#bar");
+        g_free (str);
+        g_uri_unref (copy);
+
+        /* Add credentials */
+        copy = soup_uri_copy (uri, SOUP_URI_USER, "user", SOUP_URI_PASSWORD, "password", SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "http://user:password@127.0.0.1:1234/foo#bar");
+        g_free (str);
+        g_uri_unref (copy);
+
+        /* Remove the fragment and add a query */
+        copy = soup_uri_copy (uri, SOUP_URI_FRAGMENT, NULL, SOUP_URI_QUERY, "baz=1", SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "http://127.0.0.1:1234/foo?baz=1");
+        g_free (str);
+        g_uri_unref (copy);
+
+        /* Update host and port */
+        copy = soup_uri_copy (uri, SOUP_URI_HOST, "localhost", SOUP_URI_PORT, -1, SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "http://localhost/foo#bar");
+        g_free (str);
+        g_uri_unref (copy);
+
+        /* Update everything */
+        copy = soup_uri_copy (uri,
+                              SOUP_URI_SCHEME, "https",
+                              SOUP_URI_USER, "user",
+                              SOUP_URI_PASSWORD, "password",
+                              SOUP_URI_HOST, "localhost",
+                              SOUP_URI_PORT, 4321,
+                              SOUP_URI_PATH, "/baz",
+                              SOUP_URI_FRAGMENT, "foo",
+                              SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "https://user:password@localhost:4321/baz#foo");
+        g_free (str);
+        g_uri_unref (copy);
+
+        /* Convert to file */
+        copy = soup_uri_copy (uri, SOUP_URI_SCHEME, "file", SOUP_URI_HOST, "", SOUP_URI_PORT, -1, SOUP_URI_FRAGMENT, NULL, SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "file:///foo");
+        g_free (str);
+        g_uri_unref (copy);
+
+        g_uri_unref (uri);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -54,6 +123,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 
 	g_test_add_func ("/uri/equality", do_equality_tests);
+	g_test_add_func ("/uri/copy", do_copy_tests);
 
 	ret = g_test_run ();
 

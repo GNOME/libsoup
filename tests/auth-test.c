@@ -1317,7 +1317,7 @@ do_batch_tests (gconstpointer data)
 		if (current_tests[i].url_auth) {
 			gchar *username = g_strdup_printf ("user%c", current_tests[i].provided[0]);
 			gchar *password = g_strdup_printf ("realm%c", current_tests[i].provided[0]);
-                        GUri *tmp = soup_uri_copy_with_credentials (soup_uri, username, password);
+                        GUri *tmp = soup_uri_copy (soup_uri, SOUP_URI_USER, username, SOUP_URI_PASSWORD, password, SOUP_URI_NONE);
                         g_uri_unref (soup_uri);
                         soup_uri = tmp;
 			g_free (username);
@@ -1410,7 +1410,7 @@ do_message_do_not_use_auth_cache_test (void)
 	 * no matter whether the cache is used or not
 	 */
 	soup_uri = g_uri_parse (uri, SOUP_HTTP_URI_FLAGS, NULL);
-        auth_uri = soup_uri_copy_with_credentials (soup_uri, "user1", "realm1");
+        auth_uri = soup_uri_copy (soup_uri, SOUP_URI_USER, "user1", SOUP_URI_PASSWORD, "realm1", SOUP_URI_NONE);
 
 	msg = soup_message_new_from_uri (SOUP_METHOD_GET, auth_uri);
 	soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);

@@ -414,6 +414,7 @@ md5_post_callback (SoupServer        *server,
 	char *filename, *md5sum, *redirect_uri;
 	GBytes *file;
 	GUri *uri;
+	char *encoded_form;
 	SoupMultipart *multipart;
 	GBytes *body;
 	SoupMessageHeaders *request_headers;
@@ -438,11 +439,14 @@ md5_post_callback (SoupServer        *server,
 	md5sum = g_compute_checksum_for_bytes (G_CHECKSUM_MD5, file);
 	g_bytes_unref (file);
 
-	uri = soup_uri_copy_with_query_from_fields (soup_server_message_get_uri (msg),
-					            "file", filename ? filename : "",
-					            "md5sum", md5sum,
-					            "fmt", fmt ? fmt : "html",
-					            NULL);
+	encoded_form = soup_form_encode ("file", filename ? filename : "",
+					 "md5sum", md5sum,
+					 "fmt", fmt ? fmt : "html",
+					 NULL);
+	uri = soup_uri_copy (soup_server_message_get_uri (msg),
+			     SOUP_URI_QUERY, encoded_form,
+			     SOUP_URI_NONE);
+	g_free (encoded_form);
 	redirect_uri = g_uri_to_string (uri);
 
 	soup_server_message_set_redirect (msg, SOUP_STATUS_SEE_OTHER, redirect_uri);

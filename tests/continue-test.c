@@ -98,7 +98,7 @@ do_message (const char *path, gboolean long_body,
 	GBytes *response_body;
 
 	if (auth)
-                uri = soup_uri_copy_with_credentials (base_uri, "user", "pass");
+                uri = soup_uri_copy (base_uri, SOUP_URI_USER, "user", SOUP_URI_PASSWORD, "pass", SOUP_URI_NONE);
         else
                 uri = g_uri_ref (base_uri);
 

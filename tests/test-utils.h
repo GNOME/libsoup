@@ -92,8 +92,6 @@ GBytes     *soup_test_load_resource      (const char  *name,
 
 GBytes     *soup_test_get_index          (void);
 
-GUri       *soup_test_uri_set_port       (GUri *uri,
-                                          int   port);
 
 #ifdef G_HAVE_ISO_VARARGS
 #define soup_test_assert(expr, ...)				\

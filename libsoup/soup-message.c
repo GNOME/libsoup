@@ -812,23 +812,6 @@ soup_message_new_from_uri (const char *method, GUri *uri)
 			     NULL);
 }
 
-static GUri *
-copy_uri_with_new_query (GUri *uri, const char *query)
-{
-        return g_uri_build_with_user (
-                g_uri_get_flags (uri),
-                g_uri_get_scheme (uri),
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                g_uri_get_port (uri),
-                g_uri_get_path (uri),
-                query,
-                g_uri_get_fragment (uri)
-        );
-}
-
 /**
  * soup_message_new_from_encoded_form:
  * @method: the HTTP method for the created request (GET, POST or PUT)
@@ -866,7 +849,7 @@ soup_message_new_from_encoded_form (const char *method,
         }
 
         if (strcmp (method, "GET") == 0) {
-                GUri *new_uri = copy_uri_with_new_query (uri, encoded_form);
+                GUri *new_uri = soup_uri_copy (uri, SOUP_URI_QUERY, encoded_form, SOUP_URI_NONE);
                 msg = soup_message_new_from_uri (method, new_uri);
                 g_uri_unref (new_uri);
         } else if (strcmp (method, "POST") == 0 || strcmp (method, "PUT") == 0) {

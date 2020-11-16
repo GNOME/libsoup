@@ -554,7 +554,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	 */
 	if (g_uri_get_password (uri) && g_uri_get_user (uri)) {
 		soup_auth_authenticate (auth, g_uri_get_user (uri), g_uri_get_password (uri));
-                GUri *new_uri = soup_uri_copy_with_credentials (uri, NULL, NULL);
+                GUri *new_uri = soup_uri_copy (uri, SOUP_URI_USER, NULL, SOUP_URI_PASSWORD, NULL, SOUP_URI_NONE);
                 soup_message_set_uri (msg, new_uri); // QUESTION: This didn't emit a signal previously
                 g_uri_unref (new_uri);
 	} else if (!soup_auth_is_authenticated (auth) && can_interact) {

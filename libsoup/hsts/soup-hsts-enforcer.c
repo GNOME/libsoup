@@ -488,23 +488,6 @@ got_sts_header_cb (SoupMessage *msg, gpointer user_data)
 	soup_hsts_enforcer_process_sts_header (hsts_enforcer, msg);
 }
 
-static GUri *
-copy_uri_with_new_scheme (GUri *uri, const char *scheme, int port)
-{
-        return g_uri_build_with_user (
-                g_uri_get_flags (uri),
-                scheme,
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                port,
-                g_uri_get_path (uri),
-                g_uri_get_query (uri),
-                g_uri_get_fragment (uri)
-        );
-}
-
 static void
 rewrite_message_uri_to_https (SoupMessage *msg)
 {
@@ -518,7 +501,7 @@ rewrite_message_uri_to_https (SoupMessage *msg)
 	if (port == 80)
                 port = 443;
 
-        new_uri = copy_uri_with_new_scheme (uri, "https", port);
+        new_uri = soup_uri_copy (uri, SOUP_URI_SCHEME, "https", SOUP_URI_PORT, port, SOUP_URI_NONE);
 	soup_message_set_uri (msg, new_uri);
 	g_uri_unref (new_uri);
 }

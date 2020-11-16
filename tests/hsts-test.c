@@ -134,9 +134,9 @@ rewrite_message_uri (SoupMessage *msg)
 {
 	GUri *new_uri;
 	if (soup_uri_is_http (soup_message_get_uri (msg), NULL))
-		new_uri = soup_test_uri_set_port (soup_message_get_uri (msg), g_uri_get_port (http_uri));
+		new_uri = soup_uri_copy (soup_message_get_uri (msg), SOUP_URI_PORT, g_uri_get_port (http_uri), SOUP_URI_NONE);
 	else if (soup_uri_is_https (soup_message_get_uri (msg), NULL))
-		new_uri = soup_test_uri_set_port (soup_message_get_uri (msg), g_uri_get_port (https_uri));
+		new_uri = soup_uri_copy (soup_message_get_uri (msg), SOUP_URI_PORT, g_uri_get_port (https_uri), SOUP_URI_NONE);
 	else
 		g_assert_not_reached();
 	soup_message_set_uri (msg, new_uri);

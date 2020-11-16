@@ -159,23 +159,6 @@ got_headers (SoupMessage *msg)
 	g_object_set_data (G_OBJECT (msg), "got-headers", GINT_TO_POINTER (TRUE));
 }
 
-static GUri *
-uri_set_query (GUri *uri, const char *query)
-{
-        GUri *new_uri = g_uri_build (
-                g_uri_get_flags (uri),
-                g_uri_get_scheme (uri),
-                NULL,
-                g_uri_get_host (uri),
-                g_uri_get_port (uri),
-                g_uri_get_path (uri),
-                query,
-                g_uri_get_fragment (uri)
-        );
-        g_uri_unref (uri);
-        return new_uri;
-}
-
 static void
 do_signals_test (gboolean should_content_sniff,
 		 gboolean chunked_encoding,
@@ -192,16 +175,25 @@ do_signals_test (gboolean should_content_sniff,
 		      chunked_encoding ? "" : "!",
 		      empty_response ? "" : "!");
 
-	if (chunked_encoding)
-                uri = uri_set_query (uri, "chunked=yes");
+	if (chunked_encoding) {
+		GUri *copy = soup_uri_copy (uri, SOUP_URI_QUERY, "chunked=yes", SOUP_URI_NONE);
+		g_uri_unref (uri);
+		uri = copy;
+
+	}
 
 	if (empty_response) {
 		if (g_uri_get_query (uri)) {
 			char *new_query = g_strdup_printf ("%s&empty_response=yes", g_uri_get_query (uri));
-                        uri = uri_set_query (uri, new_query);
-			g_free (new_query);
-		} else
-			uri = uri_set_query (uri, "empty_response=yes");
+			GUri *copy = soup_uri_copy (uri, SOUP_URI_QUERY, new_query, SOUP_URI_NONE);
+     			g_free (new_query);
+			g_uri_unref (uri);
+			uri = copy;
+		} else {
+			GUri *copy = soup_uri_copy (uri, SOUP_URI_QUERY, "empty_response=yes", SOUP_URI_NONE);
+			g_uri_unref (uri);
+			uri = copy;
+		}
 	}
 
 	soup_message_set_uri (msg, uri);

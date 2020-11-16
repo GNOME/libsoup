@@ -777,23 +777,6 @@ call_handler (SoupServer        *server,
 		g_hash_table_unref (form_data_set);
 }
 
-static GUri *
-uri_set_path (GUri *uri, const char *path)
-{
-        return g_uri_build_with_user (
-                g_uri_get_flags (uri) ^ G_URI_FLAGS_ENCODED_PATH,
-                g_uri_get_scheme (uri),
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                g_uri_get_port (uri),
-                path,
-                g_uri_get_query (uri),
-                g_uri_get_fragment (uri)
-        );
-}
-
 static void
 got_headers (SoupServer        *server,
 	     SoupServerMessage *msg)
@@ -832,6 +815,7 @@ got_headers (SoupServer        *server,
 
 	if (!priv->raw_paths && g_uri_get_flags (uri) & G_URI_FLAGS_ENCODED_PATH) {
 		char *decoded_path;
+		GUri *copy;
 
                 decoded_path = g_uri_unescape_string (g_uri_get_path (uri), NULL);
 
@@ -851,9 +835,10 @@ got_headers (SoupServer        *server,
 			return;
 		}
 
-                uri = uri_set_path (uri, decoded_path);
-                soup_server_message_set_uri (msg, uri);
+                copy = soup_uri_copy (uri, SOUP_URI_PATH, decoded_path, SOUP_URI_NONE);
+                soup_server_message_set_uri (msg, copy);
 		g_free (decoded_path);
+		g_uri_unref (copy);
 	}
 
 	/* Now handle authentication. (We do this here so that if

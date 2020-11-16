@@ -670,24 +670,6 @@ soup_host_uri_equal (gconstpointer v1, gconstpointer v2)
 	return g_ascii_strcasecmp (one_host, two_host) == 0;
 }
 
-static GUri *
-copy_uri_with_new_scheme (GUri *uri, const char *scheme)
-{
-        return g_uri_build_with_user (
-                g_uri_get_flags (uri),
-                scheme,
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                g_uri_get_port (uri),
-                g_uri_get_path (uri),
-                g_uri_get_query (uri),
-                g_uri_get_fragment (uri)
-        );
-}
-
-
 static SoupSessionHost *
 soup_session_host_new (SoupSession *session, GUri *uri)
 {
@@ -699,10 +681,10 @@ soup_session_host_new (SoupSession *session, GUri *uri)
 	    g_strcmp0 (scheme, "https")) {
 		SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
-		if (soup_uri_is_https (uri, priv->https_aliases))
-                        host->uri = copy_uri_with_new_scheme (uri, "https");
-		else
-			host->uri = copy_uri_with_new_scheme (uri, "http");
+		host->uri = soup_uri_copy (uri,
+					   SOUP_URI_SCHEME, soup_uri_is_https (uri, priv->https_aliases) ?
+					   "https" : "http",
+					   SOUP_URI_NONE);
 	} else
                 host->uri = g_uri_ref (uri);
 
@@ -735,7 +717,9 @@ get_host_for_uri (SoupSession *session, GUri *uri)
 		return host;
 
 	if (!soup_uri_is_http (uri, NULL) && !soup_uri_is_https (uri, NULL)) {
-		uri = uri_tmp = copy_uri_with_new_scheme (uri, https ? "https" : "http");
+		uri = uri_tmp = soup_uri_copy (uri,
+					       SOUP_URI_SCHEME, https ? "https" : "http",
+					       SOUP_URI_NONE);
 	}
 	host = soup_session_host_new (session, uri);
 	if (uri_tmp)

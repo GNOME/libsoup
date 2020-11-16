@@ -867,21 +867,3 @@ soup_test_assert (gboolean expr, const char *fmt, ...)
 	}
 }
 #endif
-
-GUri *
-soup_test_uri_set_port (GUri *uri, int port)
-{
-        GUri *new_uri = g_uri_build_with_user (
-                g_uri_get_flags (uri),
-                g_uri_get_scheme (uri),
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                port,
-                g_uri_get_path (uri),
-                g_uri_get_query (uri),
-                g_uri_get_fragment (uri)
-        );
-        return new_uri;
-}

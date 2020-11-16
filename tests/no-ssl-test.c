@@ -45,30 +45,12 @@ server_handler (SoupServer        *server,
 					  "ok\r\n", 4);
 }
 
-static GUri *
-uri_set_scheme (GUri *uri, const char *scheme)
-{
-        GUri *new_uri = g_uri_build_with_user (
-                g_uri_get_flags (uri),
-                scheme,
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                g_uri_get_port (uri),
-                g_uri_get_path (uri),
-                g_uri_get_query (uri),
-                g_uri_get_fragment (uri)
-        );
-        g_uri_unref (uri);
-        return new_uri;
-}
-
 int
 main (int argc, char **argv)
 {
 	SoupServer *server;
 	GUri *uri;
+	GUri *ssl_uri;
 	int ret;
 
 	/* Force this test to use the dummy TLS backend */
@@ -83,13 +65,14 @@ main (int argc, char **argv)
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 	uri = soup_test_server_get_uri (server, "http", NULL);
-        uri = uri_set_scheme (uri, "https");
+        ssl_uri = soup_uri_copy (uri, SOUP_URI_SCHEME, "https", SOUP_URI_NONE);
+	g_uri_unref (uri);
 
-	g_test_add_data_func ("/no-ssl/request-error", uri, do_ssl_tests);
+	g_test_add_data_func ("/no-ssl/request-error", ssl_uri, do_ssl_tests);
 
 	ret = g_test_run ();
 
-	g_uri_unref (uri);
+	g_uri_unref (ssl_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

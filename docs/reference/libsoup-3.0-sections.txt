@@ -521,8 +521,8 @@ soup_uri_decode_data_uri
 <SUBSECTION>
 soup_uri_get_port_with_default
 <SUBSECTION>
-soup_uri_copy_with_query_from_form
-soup_uri_copy_with_query_from_fields
+SoupURIComponent
+soup_uri_copy
 </SECTION>
 
 <SECTION>

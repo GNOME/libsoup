@@ -179,86 +179,19 @@ soup_uri_uses_default_port (GUri *uri)
         return FALSE;
 }
 
-static GUri *
-soup_uri_copy_with_query (GUri *uri, const char *query)
-{
-        return g_uri_build_with_user (
-                g_uri_get_flags (uri) | G_URI_FLAGS_ENCODED_QUERY,
-                g_uri_get_scheme (uri),
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                g_uri_get_port (uri),
-                g_uri_get_path (uri),
-                query,
-                g_uri_get_fragment (uri)
-        );
-}
-
-/**
- * soup_uri_copy_with_query_from_form:
- * @uri: a #GUri
- * @form: (element-type utf8 utf8): a #GHashTable containing HTML form
- * information
- *
- * Sets @uri's query to the result of encoding @form according to the
- * HTML form rules. See soup_form_encode_hash() for more information.
- *
- * Returns: (transfer full): A new #GUri
- **/
-GUri *
-soup_uri_copy_with_query_from_form (GUri *uri, GHashTable *form)
-{
-	g_return_val_if_fail (uri != NULL, NULL);
-
-        char *query = soup_form_encode_hash (form);
-	GUri *new_uri = soup_uri_copy_with_query (uri, query);
-        g_free (query);
-	return new_uri;
-}
-
-/**
- * soup_uri_copy_with_query_from_fields:
- * @uri: a #GUri
- * @first_field: name of the first form field to encode into query
- * @...: value of @first_field, followed by additional field names
- * and values, terminated by %NULL.
- *
- * Sets @uri's query to the result of encoding the given form fields
- * and values according to the * HTML form rules. See
- * soup_form_encode() for more information.
- *
- * Returns: (transfer full): A new #GUri
- **/
-GUri *
-soup_uri_copy_with_query_from_fields (GUri       *uri,
-                                      const char *first_field,
-                                      ...)
-{
-	va_list args;
-
-	g_return_val_if_fail (uri != NULL, NULL);
-
-	va_start (args, first_field);
-	char *query = soup_form_encode_valist (first_field, args);
-	va_end (args);
-
-	GUri *new_uri = soup_uri_copy_with_query (uri, query);
-        g_free (query);
-	return new_uri;
-}
-
 GUri *
 soup_uri_copy_host (GUri *uri)
 {
         g_return_val_if_fail (uri != NULL, NULL);
 
-        return g_uri_build (g_uri_get_flags (uri),
-                            g_uri_get_scheme (uri), NULL,
-                            g_uri_get_host (uri),
-                            g_uri_get_port (uri),
-                            "/", NULL, NULL);
+        return soup_uri_copy (uri,
+                              SOUP_URI_USER, NULL,
+                              SOUP_URI_PASSWORD, NULL,
+                              SOUP_URI_AUTH_PARAMS, NULL,
+                              SOUP_URI_PATH, "/",
+                              SOUP_URI_QUERY, NULL,
+                              SOUP_URI_FRAGMENT, NULL,
+                              SOUP_URI_NONE);
 }
 
 /**
@@ -453,21 +386,81 @@ soup_uri_decode_data_uri (const char *uri,
         return bytes;
 }
 
+/**
+ * SoupURIComponent:
+ * @SOUP_URI_NONE: no component
+ * @SOUP_URI_SCHEME: the URI scheme component
+ * @SOUP_URI_USER: the URI user component
+ * @SOUP_URI_PASSWORD: the URI password component
+ * @SOUP_URI_AUTH_PARAMS: the URI authentication parameters component
+ * @SOUP_URI_HOST: the URI host component
+ * @SOUP_URI_PORT: the URI port component
+ * @SOUP_URI_PATH: the URI path component
+ * @SOUP_URI_QUERY: the URI query component
+ * @SOUP_URI_FRAGMENT: the URI fragment component
+ *
+ * Enum values passed to soup_uri_copy() to indicate the components of
+ * the URI that should be updated with the given values.
+ */
+
+/**
+ * soup_uri_copy: (skip)
+ * @uri: the #GUri to copy
+ * @first_component: first #SoupURIComponent to update
+ * @...: value of @first_component  followed by additional
+ *    components and values, terminated by %SOUP_URI_NONE
+ *
+ * Return a copy of @uri with the given components updated
+ *
+ * Returns: (transfer full): a new #GUri
+ */
 GUri *
-soup_uri_copy_with_credentials (GUri *uri, const char *username, const char *password)
+soup_uri_copy (GUri            *uri,
+               SoupURIComponent first_component,
+               ...)
 {
+        va_list args;
+        SoupURIComponent component = first_component;
+        gpointer values[SOUP_URI_FRAGMENT + 1];
+        gboolean values_to_set[SOUP_URI_FRAGMENT + 1];
+        GUriFlags flags = g_uri_get_flags (uri);
+
         g_return_val_if_fail (uri != NULL, NULL);
 
+        memset (&values_to_set, 0, sizeof (values_to_set));
+
+        va_start (args, first_component);
+        while (component != SOUP_URI_NONE) {
+                if (component == SOUP_URI_PORT)
+                        values[component] = GINT_TO_POINTER (va_arg (args, glong));
+                else
+                        values[component] = va_arg (args, gpointer);
+                values_to_set[component] = TRUE;
+                component = va_arg (args, SoupURIComponent);
+        }
+        va_end (args);
+
+        if (values_to_set[SOUP_URI_PASSWORD])
+                flags |= G_URI_FLAGS_HAS_PASSWORD;
+        if (values_to_set[SOUP_URI_AUTH_PARAMS])
+                flags |= G_URI_FLAGS_HAS_AUTH_PARAMS;
+        if (values_to_set[SOUP_URI_PATH])
+                flags |= G_URI_FLAGS_ENCODED_PATH;
+        if (values_to_set[SOUP_URI_QUERY])
+                flags |= G_URI_FLAGS_ENCODED_QUERY;
+        if (values_to_set[SOUP_URI_FRAGMENT])
+                flags |= G_URI_FLAGS_ENCODED_FRAGMENT;
         return g_uri_build_with_user (
-                g_uri_get_flags (uri) | G_URI_FLAGS_HAS_PASSWORD,
-                g_uri_get_scheme (uri),
-                username, password,
-                g_uri_get_auth_params (uri),
-                g_uri_get_host (uri),
-                g_uri_get_port (uri),
-                g_uri_get_path (uri),
-                g_uri_get_query (uri),
-                g_uri_get_fragment (uri)
+                flags,
+                values_to_set[SOUP_URI_SCHEME] ? values[SOUP_URI_SCHEME] : g_uri_get_scheme (uri),
+                values_to_set[SOUP_URI_USER] ? values[SOUP_URI_USER] : g_uri_get_user (uri),
+                values_to_set[SOUP_URI_PASSWORD] ? values[SOUP_URI_PASSWORD] : g_uri_get_password (uri),
+                values_to_set[SOUP_URI_AUTH_PARAMS] ? values[SOUP_URI_AUTH_PARAMS] : g_uri_get_auth_params (uri),
+                values_to_set[SOUP_URI_HOST] ? values[SOUP_URI_HOST] : g_uri_get_host (uri),
+                values_to_set[SOUP_URI_PORT] ? GPOINTER_TO_INT (values[SOUP_URI_PORT]) : g_uri_get_port (uri),
+                values_to_set[SOUP_URI_PATH] ? values[SOUP_URI_PATH] : g_uri_get_path (uri),
+                values_to_set[SOUP_URI_QUERY] ? values[SOUP_URI_QUERY] : g_uri_get_query (uri),
+                values_to_set[SOUP_URI_FRAGMENT] ? values[SOUP_URI_FRAGMENT] : g_uri_get_fragment (uri)
         );
 }
 
