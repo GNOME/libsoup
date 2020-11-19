@@ -5,8 +5,8 @@ deps = [
 
 examples = [
   'get',
-  'simple-httpd',
-  'simple-proxy'
+  # 'simple-httpd',
+  # FIXME: 'simple-proxy'
 ]
 
 foreach example: examples

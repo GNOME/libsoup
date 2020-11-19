@@ -18,78 +18,111 @@ static GMainLoop *loop;
 static gboolean debug, head, quiet;
 static const gchar *output_file_path = NULL;
 
+#define OUTPUT_BUFFER_SIZE 8192
+
 static void
-finished (SoupSession *session, SoupMessage *msg, gpointer loop)
+on_stream_splice (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	g_main_loop_quit (loop);
+        GError *error = NULL;
+        g_output_stream_splice_finish (G_OUTPUT_STREAM (source),
+                                       result,
+                                       &error);
+        if (error) {
+                g_printerr ("Failed to download: %s\n", error->message);
+                g_error_free (error);
+                g_main_loop_quit (loop);
+                return;
+        }
+
+        g_main_loop_quit (loop);
 }
 
 static void
-get_url (const char *url)
+on_read_ready (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	const char *name;
-	SoupMessage *msg;
-	const char *header;
-	FILE *output_file = NULL;
+        GInputStream *in = G_INPUT_STREAM (source);
+        GError *error = NULL;
+        gsize bytes_read = 0;
+        char *output_buffer = user_data;
 
-	msg = soup_message_new (head ? "HEAD" : "GET", url);
-	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+        g_input_stream_read_all_finish (in, result, &bytes_read, &error);
 
-        g_object_ref (msg);
-        soup_session_queue_message (session, msg, finished, loop);
-        g_main_loop_run (loop);
+        if (bytes_read) {
+                g_print ("%.*s", (int)bytes_read, output_buffer);
+        }
 
-	name = g_uri_get_path (soup_message_get_uri (msg));
-
-	if (!debug) {
-		if (soup_message_get_status (msg) == SOUP_STATUS_SSL_FAILED) {
-			GTlsCertificateFlags flags;
-
-			if (soup_message_get_https_status (msg, NULL, &flags))
-				g_print ("%s: %d %s (0x%x)\n", name, soup_message_get_status (msg), soup_message_get_reason_phrase (msg), flags);
-			else
-				g_print ("%s: %d %s (no handshake status)\n", name, soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
-		} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (soup_message_get_status (msg)))
-			g_print ("%s: %d %s\n", name, soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
-	}
-
-	if (SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg))) {
-		header = soup_message_headers_get_one (soup_message_get_response_headers (msg),
-						       "Location");
-		if (header) {
-			GUri *uri;
-			char *uri_string;
-
-			if (!debug && !quiet)
-				g_print ("  -> %s\n", header);
-
-			uri = g_uri_parse_relative (soup_message_get_uri (msg), header, SOUP_HTTP_URI_FLAGS, NULL);
-                        g_assert (uri != NULL);
-			uri_string = g_uri_to_string (uri);
-			get_url (uri_string);
-			g_free (uri_string);
-			g_uri_unref (uri);
-		}
-	} else if (!head && SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
-		if (output_file_path) {
-			output_file = fopen (output_file_path, "w");
-			if (!output_file)
-				g_printerr ("Error trying to create file %s.\n", output_file_path);
-		} else if (!quiet)
-			output_file = stdout;
-
-		if (output_file) {
-			fwrite (msg->response_body->data,
-				1,
-				msg->response_body->length,
-				output_file);
-
-			if (output_file_path)
-				fclose (output_file);
-		}
-	}
-	g_object_unref (msg);
+        if (error) {
+                g_printerr ("\nFailed to read stream: %s\n", error->message);
+                g_error_free (error);
+                g_free (output_buffer);
+                g_main_loop_quit (loop);
+        } else if (!bytes_read) {
+                g_print ("\n");
+                g_free (output_buffer);
+                g_main_loop_quit (loop);
+        } else {
+                g_input_stream_read_all_async (in, output_buffer, OUTPUT_BUFFER_SIZE,
+                                               G_PRIORITY_DEFAULT, NULL, on_read_ready, output_buffer);
+        }
 }
+
+static void
+on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+        GError *error = NULL;
+        SoupMessage *msg = user_data;
+        GInputStream *in = soup_session_send_finish (SOUP_SESSION (source), result, &error);
+
+        if (error) {
+                g_printerr ("Failed to send request: %s\n", error->message);
+                g_error_free (error);
+                g_main_loop_quit (loop);
+                return;
+        }
+
+        if (!debug) {
+                const char *path = g_uri_get_path (soup_message_get_uri (msg));
+                g_print ("%s: %d %s\n", path, soup_message_get_status (msg),
+                                      soup_message_get_reason_phrase (msg));
+        }
+
+        if (head || !SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
+                g_object_unref (in);
+                g_main_loop_quit (loop);
+                return;
+        }
+
+        if (output_file_path) {
+                GFile *output_file = g_file_new_for_commandline_arg (output_file_path);
+                GOutputStream *out = G_OUTPUT_STREAM (g_file_create (output_file, G_FILE_CREATE_NONE,
+                                                      NULL, &error));
+                if (error) {
+                        g_print ("Failed to create \"%s\": %s\n", output_file_path, error->message);
+                        g_error_free (error);
+                        g_object_unref (in);
+                        g_object_unref (output_file);
+                        g_main_loop_quit (loop);
+                        return;
+                }
+
+                /* Start downloading to the file */
+                g_output_stream_splice_async (G_OUTPUT_STREAM (out), in,
+                                        G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                        G_PRIORITY_DEFAULT,
+                                        NULL,
+                                        on_stream_splice,
+                                        NULL);
+
+                g_object_unref (out);
+	} else {
+                char *output_buffer = g_new (char, OUTPUT_BUFFER_SIZE);
+                g_input_stream_read_all_async (in, output_buffer, OUTPUT_BUFFER_SIZE,
+                                               G_PRIORITY_DEFAULT, NULL, on_read_ready, output_buffer);
+        }
+
+        g_object_unref (in);
+}
+
 
 /* Inline class for providing a pre-configured client certificate */
 typedef struct _GetTlsCertInteraction        GetTlsCertInteraction;
@@ -191,10 +224,9 @@ main (int argc, char **argv)
 {
 	GOptionContext *opts;
 	const char *url;
-	GUri *proxy_uri, *parsed;
+	GUri *parsed;
+        SoupMessage *msg;
 	GError *error = NULL;
-	SoupLogger *logger = NULL;
-	char *help;
 
 	opts = g_option_context_new (NULL);
 	g_option_context_add_main_entries (opts, entries, NULL);
@@ -209,13 +241,14 @@ main (int argc, char **argv)
 	}
 
 	if (argc != 2) {
-		help = g_option_context_get_help (opts, TRUE, NULL);
+		char *help = g_option_context_get_help (opts, TRUE, NULL);
 		g_printerr ("%s", help);
 		g_free (help);
 		exit (1);
 	}
 	g_option_context_free (opts);
 
+        /* Validate the URL */
 	url = argv[1];
 	parsed = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, &error);
 	if (!parsed) {
@@ -224,27 +257,47 @@ main (int argc, char **argv)
 	}
 	g_uri_unref (parsed);
 
-	session = g_object_new (SOUP_TYPE_SESSION,
-				"user-agent", "get ",
-				"accept-language-auto", TRUE,
-				NULL);
+        /* Build the session with all of the features we need */
+	session = soup_session_new_with_options ("user-agent", "get ",
+                                                 "accept-language-auto", TRUE,
+                                                 "timeout", 15,
+                                                 NULL);
         soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
         soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 	if (ntlm)
 		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
-	if (ca_file)
-		g_object_set (session, "ssl-ca-file", ca_file, NULL);
+#ifdef LIBSOUP_HAVE_GSSAPI
+	if (negotiate)
+		soup_session_add_feature_by_type (session,
+						  SOUP_TYPE_AUTH_NEGOTIATE);
+#endif
+
+        if (ca_file) {
+                GTlsDatabase *tls_db = g_tls_file_database_new (ca_file, &error);
+                if (error) {
+                        g_printerr ("Failed to load TLS database \"%s\": %s", ca_file, error->message);
+                        g_error_free (error);
+                        g_object_unref (session);
+                        exit (1);
+                }
+
+                g_object_set (session, "tls-database", tls_db, NULL);
+                g_object_unref (tls_db);
+        }
 
 	if (client_cert_file) {
 		GTlsCertificate *client_cert;
 		GetTlsCertInteraction *interaction;
 		if (!client_key_file) {
 			g_printerr ("--key is required with --cert\n");
+                        g_object_unref (session);
 			exit (1);
 		}
 		client_cert = g_tls_certificate_new_from_files (client_cert_file, client_key_file, &error);
 		if (!client_cert) {
 			g_printerr ("%s\n", error->message);
+                        g_error_free (error);
+                        g_object_unref (session);
 			exit (1);
 		}
 		interaction = _get_tls_cert_interaction_new (client_cert);
@@ -252,19 +305,19 @@ main (int argc, char **argv)
 	}
 
 	if (debug) {
-		logger = soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
+		SoupLogger *logger = soup_logger_new (SOUP_LOGGER_LOG_HEADERS);
 		soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
 		g_object_unref (logger);
 	}
 
 	if (proxy) {
 		GProxyResolver *resolver;
-                GError *error;
-		proxy_uri = g_uri_parse (proxy, SOUP_HTTP_URI_FLAGS, &error);
+		GUri *proxy_uri = g_uri_parse (proxy, SOUP_HTTP_URI_FLAGS, &error);
 		if (!proxy_uri) {
 			g_printerr ("Could not parse '%s' as URI: %s\n",
 				    proxy, error->message);
                         g_error_free (error);
+                        g_object_unref (session);
 			exit (1);
 		}
 
@@ -276,20 +329,19 @@ main (int argc, char **argv)
 		g_object_unref (resolver);
 	}
 
-#ifdef LIBSOUP_HAVE_GSSAPI
-	if (negotiate) {
-		soup_session_add_feature_by_type (session,
-						  SOUP_TYPE_AUTH_NEGOTIATE);
-	}
-#endif /* LIBSOUP_HAVE_GSSAPI */
+        /* Send the message */
+	msg = soup_message_new (head ? "HEAD" : "GET", url);
+        /* Note that soup_session_read_uri_async() and soup_session_load_uri_bytes_async()
+           are more simple APIs for common usage. This is a lower level example using
+           SoupMessage */
+        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, on_request_sent, msg);
 
-	loop = g_main_loop_new (NULL, TRUE);
-
-	get_url (url);
-
+        /* Run the loop */
+        loop = g_main_loop_new (NULL, FALSE);
+        g_main_loop_run (loop);
 	g_main_loop_unref (loop);
-
 	g_object_unref (session);
+        g_object_unref (msg);
 
 	return 0;
 }
