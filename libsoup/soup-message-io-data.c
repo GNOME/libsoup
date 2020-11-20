@@ -124,12 +124,6 @@ message_io_is_paused (GObject *msg)
 	return FALSE;
 }
 
-typedef struct {
-	GSource source;
-	GObject *msg;
-	gboolean paused;
-} SoupMessageIOSource;
-
 static gboolean
 message_io_source_check (GSource *source)
 {
@@ -143,66 +137,6 @@ message_io_source_check (GSource *source)
 		return FALSE;
 }
 
-static gboolean
-message_io_source_prepare (GSource *source,
-			   gint    *timeout)
-{
-	*timeout = -1;
-	return message_io_source_check (source);
-}
-
-static gboolean
-message_io_source_dispatch (GSource     *source,
-			    GSourceFunc  callback,
-			    gpointer     user_data)
-{
-	SoupMessageIOSourceFunc func = (SoupMessageIOSourceFunc)callback;
-	SoupMessageIOSource *message_source = (SoupMessageIOSource *)source;
-
-	return (*func) (message_source->msg, user_data);
-}
-
-static void
-message_io_source_finalize (GSource *source)
-{
-	SoupMessageIOSource *message_source = (SoupMessageIOSource *)source;
-
-	g_object_unref (message_source->msg);
-}
-
-static gboolean
-message_io_source_closure_callback (GObject *msg,
-				    gpointer data)
-{
-	GClosure *closure = data;
-	GValue param = G_VALUE_INIT;
-	GValue result_value = G_VALUE_INIT;
-	gboolean result;
-
-	g_value_init (&result_value, G_TYPE_BOOLEAN);
-
-	g_value_init (&param, G_TYPE_OBJECT);
-	g_value_set_object (&param, msg);
-
-	g_closure_invoke (closure, &result_value, 1, &param, NULL);
-
-	result = g_value_get_boolean (&result_value);
-	g_value_unset (&result_value);
-	g_value_unset (&param);
-
-	return result;
-}
-
-static GSourceFuncs message_io_source_funcs =
-{
-	message_io_source_prepare,
-	message_io_source_check,
-	message_io_source_dispatch,
-	message_io_source_finalize,
-	(GSourceFunc)message_io_source_closure_callback,
-	(GSourceDummyMarshal)g_cclosure_marshal_generic,
-};
-
 GSource *
 soup_message_io_data_get_source (SoupMessageIOData     *io,
 				 GObject                *msg,
@@ -211,7 +145,6 @@ soup_message_io_data_get_source (SoupMessageIOData     *io,
 				 gpointer                user_data)
 {
 	GSource *base_source, *source;
-	SoupMessageIOSource *message_source;
 
 	if (!io) {
 		base_source = g_timeout_source_new (0);
@@ -238,17 +171,7 @@ soup_message_io_data_get_source (SoupMessageIOData     *io,
 	} else
 		base_source = g_timeout_source_new (0);
 
-	source = g_source_new (&message_io_source_funcs, sizeof (SoupMessageIOSource));
-	g_source_set_name (source, "SoupMessageIOSource");
-	message_source = (SoupMessageIOSource *)source;
-	message_source->msg = g_object_ref (msg);
-	message_source->paused = io && io->paused;
-
-	if (base_source) {
-		g_source_set_dummy_callback (base_source);
-		g_source_add_child_source (source, base_source);
-		g_source_unref (base_source);
-	}
+        source = soup_message_io_source_new (base_source, msg, io && io->paused, message_io_source_check);
 	g_source_set_callback (source, (GSourceFunc) callback, user_data, NULL);
 	return source;
 }

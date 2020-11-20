@@ -8,6 +8,7 @@
 
 #include "soup-filter-input-stream.h"
 #include "soup-message-headers.h"
+#include "soup-message-io-source.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_STATE_NOT_STARTED,
@@ -82,9 +83,6 @@ gboolean soup_message_io_data_read_headers (SoupMessageIOData *io,
 					    GCancellable      *cancellable,
                                             gushort           *extra_bytes,
 					    GError           **error);
-
-typedef gboolean (*SoupMessageIOSourceFunc) (GObject *msg,
-					     gpointer user_data);
 
 GSource *soup_message_io_data_get_source   (SoupMessageIOData      *io,
 					    GObject                *msg,

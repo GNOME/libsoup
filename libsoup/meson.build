@@ -66,6 +66,7 @@ soup_sources = [
   'soup-message-io-data.c',
   'soup-message-metrics.c',
   'soup-message-queue-item.c',
+  'soup-message-io-source.c',
   'soup-method.c',
   'soup-misc.c',
   'soup-multipart.c',

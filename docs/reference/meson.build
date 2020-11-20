@@ -34,6 +34,7 @@ ignore_headers = [
   'soup-private-enum-types.h',
   'soup-server-message-private.h',
   'soup-message-io-data.h',
+  'soup-message-io-source.h',
   'soup-uri-utils-private.h',
   'soup-session-feature-private.h',
   'soup-message-metrics-private.h',
