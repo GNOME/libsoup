@@ -1025,34 +1025,42 @@ soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageIOCompletionFn completion_cb)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+	SoupMessageHeaders *request_headers;
 
-	if (priv->user_agent) {
-		soup_message_headers_replace (soup_message_get_request_headers (item->msg),
-					      "User-Agent", priv->user_agent);
-	}
+	request_headers = soup_message_get_request_headers (item->msg);
+	if (priv->user_agent)
+		soup_message_headers_replace (request_headers, "User-Agent", priv->user_agent);
 
-	if (priv->accept_language &&
-	    !soup_message_headers_get_list (soup_message_get_request_headers (item->msg),
-					    "Accept-Language")) {
-		soup_message_headers_append (soup_message_get_request_headers (item->msg),
-					     "Accept-Language",
-					     priv->accept_language);
-	}
+	if (priv->accept_language && !soup_message_headers_get_list (request_headers, "Accept-Language"))
+		soup_message_headers_append (request_headers, "Accept-Language", priv->accept_language);
 
 	/* Force keep alive connections for HTTP 1.0. Performance will
 	 * improve when issuing multiple requests to the same host in
 	 * a short period of time, as we wouldn't need to establish
 	 * new connections. Keep alive is implicit for HTTP 1.1.
 	 */
-	if (!soup_message_headers_header_contains (soup_message_get_request_headers (item->msg),
-						   "Connection", "Keep-Alive") &&
-	    !soup_message_headers_header_contains (soup_message_get_request_headers (item->msg),
-						   "Connection", "close") &&
-	    !soup_message_headers_header_contains (soup_message_get_request_headers (item->msg),
-						   "Connection", "Upgrade")) {
-		soup_message_headers_append (soup_message_get_request_headers (item->msg),
-					     "Connection", "Keep-Alive");
+	if (!soup_message_headers_header_contains (request_headers, "Connection", "Keep-Alive") &&
+	    !soup_message_headers_header_contains (request_headers, "Connection", "close") &&
+	    !soup_message_headers_header_contains (request_headers, "Connection", "Upgrade")) {
+		soup_message_headers_append (request_headers, "Connection", "Keep-Alive");
 	}
+
+        if (!soup_message_headers_get_one (request_headers, "Host")) {
+                GUri *uri = soup_message_get_uri (item->msg);
+                char *host;
+
+                host = soup_uri_get_host_for_headers (uri);
+                if (soup_uri_uses_default_port (uri))
+                        soup_message_headers_append (request_headers, "Host", host);
+                else {
+                        char *value;
+
+                        value = g_strdup_printf ("%s:%d", host, g_uri_get_port (uri));
+                        soup_message_headers_append (request_headers, "Host", value);
+                        g_free (value);
+                }
+                g_free (host);
+        }
 
 	soup_message_starting (item->msg);
 	if (item->state == SOUP_MESSAGE_RUNNING)

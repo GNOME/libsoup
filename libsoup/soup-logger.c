@@ -513,22 +513,6 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
-	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg), "Host")) {
-		char *uri_host = (char*)g_uri_get_host (uri);
-
-		if (strchr (uri_host, ':'))
-			uri_host = g_strdup_printf ("[%s]", uri_host);
-		else if (g_hostname_is_non_ascii (uri_host))
-			uri_host = g_hostname_to_ascii (uri_host);
-
-		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
-				   "Host: %s%c%u", uri_host,
-				   soup_uri_uses_default_port (uri) ? '\0' : ':',
-				   g_uri_get_port (uri));
-
-		if (uri_host != g_uri_get_host (uri))
-			g_free (uri_host);
-	}
 	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		if (!g_ascii_strcasecmp (name, "Authorization") &&
@@ -687,10 +671,7 @@ soup_logger_request_unqueued (SoupSessionFeature *logger,
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	g_signal_handlers_disconnect_by_func (msg, starting, logger);
-	g_signal_handlers_disconnect_by_func (msg, got_informational, logger);
-	g_signal_handlers_disconnect_by_func (msg, got_body, logger);
-	g_signal_handlers_disconnect_by_func (msg, finished, logger);
+	g_signal_handlers_disconnect_by_data (msg, logger);
 }
 
 static void
