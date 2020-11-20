@@ -45,6 +45,7 @@ tests = [
   ['header-parsing', true, []],
   ['hsts', true, []],
   ['hsts-db', true, []],
+  ['logger', true, []],
   ['misc', true, []],
   ['multipart', true, []],
   ['no-ssl', true, []],
