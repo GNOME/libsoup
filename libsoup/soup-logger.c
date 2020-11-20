@@ -41,12 +41,10 @@
  * <informalexample><screen>
  * > POST /unauth HTTP/1.1
  * > Soup-Debug-Timestamp: 1200171744
- * > Soup-Debug: SoupSessionAsync 1 (0x612190), SoupMessage 1 (0x617000), GSocket 1 (0x612220)
+ * > Soup-Debug: SoupSession 1 (0x612190), SoupMessage 1 (0x617000), GSocket 1 (0x612220)
  * > Host: localhost
  * > Content-Type: text/plain
  * > Connection: close
- * >
- * > This is a test.
  *
  * &lt; HTTP/1.1 201 Created
  * &lt; Soup-Debug-Timestamp: 1200171744
@@ -70,20 +68,18 @@
  *
  * Currently, the request half of the message is logged just before
  * the first byte of the request gets written to the network (from the
- * #SoupMessage::starting signal), which means that if you have
- * not made the complete request body available at that point, it will
- * not be logged.
+ * #SoupMessage::starting signal).
  *
  * The response is logged just after the last byte of the response
- * body is read from the network (from the #SoupMessage::got_body or
- * #SoupMessage::got_informational signal), which means that the
- * #SoupMessage::got_headers signal, and anything triggered off it
+ * body is read from the network (from the #SoupMessage::got-body or
+ * #SoupMessage::got-informational signal), which means that the
+ * #SoupMessage::got-headers signal, and anything triggered off it
  * (such as #SoupSession::authenticate) will be emitted
  * <emphasis>before</emphasis> the response headers are actually
  * logged.
  *
  * If the response doesn't happen to trigger the
- * #SoupMessage::got_body nor #SoupMessage::got_informational signals
+ * #SoupMessage::got-body nor #SoupMessage::got-informational signals
  * due to, for example, a cancellation before receiving the last byte
  * of the response body, the response will still be logged on the
  * event of the #SoupMessage::finished signal.
@@ -110,7 +106,6 @@ typedef struct {
 
 	SoupSession        *session;
 	SoupLoggerLogLevel  level;
-	int                 max_body_size;
 
 	SoupLoggerFilter    request_filter;
 	gpointer            request_filter_data;
@@ -129,7 +124,6 @@ enum {
 	PROP_0,
 
 	PROP_LEVEL,
-	PROP_MAX_BODY_SIZE,
 
 	LAST_PROP
 };
@@ -182,9 +176,6 @@ soup_logger_set_property (GObject *object, guint prop_id,
 	case PROP_LEVEL:
 		priv->level = g_value_get_enum (value);
 		break;
-	case PROP_MAX_BODY_SIZE:
-		priv->max_body_size = g_value_get_int (value);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -201,9 +192,6 @@ soup_logger_get_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_LEVEL:
 		g_value_set_enum (value, priv->level);
-		break;
-	case PROP_MAX_BODY_SIZE:
-		g_value_set_int (value, priv->max_body_size);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -237,26 +225,6 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 				    SOUP_LOGGER_LOG_MINIMAL,
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS));
-
-	/**
-	 * SoupLogger:max-body-size:
-	 *
-	 * If #SoupLogger:level is %SOUP_LOGGER_LOG_BODY, this gives
-	 * the maximum number of bytes of the body that will be logged.
-	 * (-1 means "no limit".)
-	 *
-	 * Since: 2.56
-	 */
-	g_object_class_install_property (
-		object_class, PROP_MAX_BODY_SIZE,
-		g_param_spec_int ("max-body-size",
-				    "Max Body Size",
-				    "The maximum body size to output",
-				    -1,
-				    G_MAXINT,
-				    -1,
-				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
 }
 
 /**
@@ -265,8 +233,6 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
  * @SOUP_LOGGER_LOG_MINIMAL: Log the Request-Line or Status-Line and
  * the Soup-Debug pseudo-headers
  * @SOUP_LOGGER_LOG_HEADERS: Log the full request/response headers
- * @SOUP_LOGGER_LOG_BODY: Log the full headers and request/response
- * bodies.
  *
  * Describes the level of logging output to provide.
  **/
@@ -274,11 +240,8 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 /**
  * soup_logger_new:
  * @level: the debug level
- * @max_body_size: the maximum body size to output, or -1
  *
- * Creates a new #SoupLogger with the given debug level. If @level is
- * %SOUP_LOGGER_LOG_BODY, @max_body_size gives the maximum number of
- * bytes of the body that will be logged. (-1 means "no limit".)
+ * Creates a new #SoupLogger with the given debug level.
  *
  * If you need finer control over what message parts are and aren't
  * logged, use soup_logger_set_request_filter() and
@@ -287,12 +250,9 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
  * Returns: a new #SoupLogger
  **/
 SoupLogger *
-soup_logger_new (SoupLoggerLogLevel level, int max_body_size)
+soup_logger_new (SoupLoggerLogLevel level)
 {
-	return g_object_new (SOUP_TYPE_LOGGER,
-			     "level", level,
-			     "max-body-size", max_body_size,
-			     NULL);
+	return g_object_new (SOUP_TYPE_LOGGER, "level", level, NULL);
 }
 
 /**
@@ -305,8 +265,7 @@ soup_logger_new (SoupLoggerLogLevel level, int max_body_size)
  * The prototype for a logging filter. The filter callback will be
  * invoked for each request or response, and should analyze it and
  * return a #SoupLoggerLogLevel value indicating how much of the
- * message to log. Eg, it might choose between %SOUP_LOGGER_LOG_BODY
- * and %SOUP_LOGGER_LOG_HEADERS depending on the Content-Type.
+ * message to log.
  *
  * Return value: a #SoupLoggerLogLevel value indicating how much of
  * the message to log
@@ -447,11 +406,6 @@ soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 	va_start (args, format);
 	data = g_strdup_vprintf (format, args);
 	va_end (args);
-
-	if (level == SOUP_LOGGER_LOG_BODY && priv->max_body_size > 0) {
-		if (strlen (data) > priv->max_body_size + 6)
-			strcpy (data + priv->max_body_size, "\n[...]");
-	}
 
 	line = data;
 	do {
