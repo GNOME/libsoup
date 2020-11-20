@@ -202,12 +202,62 @@ do_logger_filters_test (void)
 }
 
 static void
+do_logger_cookies_test (void)
+{
+        SoupSession *session;
+        SoupLogger *logger;
+        GUri *uri;
+        SoupMessage *msg;
+        LogData log = { NULL, NULL };
+
+        session = soup_test_session_new (NULL);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
+
+        logger = soup_logger_new (SOUP_LOGGER_LOG_HEADERS);
+        soup_logger_set_printer (logger, (SoupLoggerPrinter)printer, &log, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
+        g_object_unref (logger);
+
+        uri = g_uri_parse_relative (base_uri, "/cookies", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_test_session_send_message (session, msg);
+        g_uri_unref (uri);
+        g_object_unref (msg);
+
+        g_assert_nonnull (log.request);
+        g_assert_false (g_hash_table_contains (log.request, "Cookie"));
+
+        g_assert_nonnull (log.response);
+        g_assert_true (g_hash_table_contains (log.response, "Set-Cookie"));
+        g_assert_cmpstr (g_hash_table_lookup (log.response, "Set-Cookie"), ==, "foo=bar");
+        log_data_clear (&log);
+
+        msg = soup_message_new_from_uri ("GET", base_uri);
+        soup_test_session_send_message (session, msg);
+        g_object_unref (msg);
+
+        g_assert_nonnull (log.request);
+        g_assert_true (g_hash_table_contains (log.request, "Cookie"));
+        g_assert_cmpstr (g_hash_table_lookup (log.request, "Cookie"), ==, "foo=bar");
+
+        g_assert_nonnull (log.response);
+        g_assert_false (g_hash_table_contains (log.response, "Set-Cookie"));
+        log_data_clear (&log);
+
+        soup_test_session_abort_unref (session);
+}
+
+static void
 server_callback (SoupServer        *server,
                  SoupServerMessage *msg,
                  const char        *path,
                  GHashTable        *query,
                  gpointer           data)
 {
+        if (g_str_equal (path, "/cookies")) {
+                soup_message_headers_replace (soup_server_message_get_response_headers (msg),
+                                              "Set-Cookie", "foo=bar");
+        }
         soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
         soup_server_message_set_response (msg, "text/plain",
                                           SOUP_MEMORY_STATIC, "index", 5);
@@ -228,6 +278,7 @@ main (int argc, char **argv)
         g_test_add_func ("/logger/minimal", do_logger_minimal_test);
         g_test_add_func ("/logger/headers", do_logger_headers_test);
         g_test_add_func ("/logger/filters", do_logger_filters_test);
+        g_test_add_func ("/logger/cookies", do_logger_cookies_test);
 
         ret = g_test_run ();
 

@@ -651,9 +651,9 @@ soup_logger_request_queued (SoupSessionFeature *logger,
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	g_signal_connect (msg, "starting",
-			  G_CALLBACK (starting),
-			  logger);
+	g_signal_connect_after (msg, "starting",
+				G_CALLBACK (starting),
+				logger);
 	g_signal_connect (msg, "got-informational",
 			  G_CALLBACK (got_informational),
 			  logger);
