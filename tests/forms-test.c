@@ -108,6 +108,7 @@ do_hello_test_libsoup (int n, gboolean extra, const char *uri)
 	SoupMessage *msg;
 	GData *data;
 	GBytes *body;
+        char *encoded;
 
 	debug_printf (1, "%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
 		      tests[n].title ? tests[n].title : "(null)",
@@ -124,9 +125,11 @@ do_hello_test_libsoup (int n, gboolean extra, const char *uri)
 
 	session = soup_test_session_new (NULL);
 
+        encoded = soup_form_encode_datalist (&data);
 	msg = soup_message_new_from_encoded_form ("GET",
 						  uri,
-						  soup_form_encode_datalist (&data));
+						  encoded);
+        g_free (encoded);
 	g_datalist_clear (&data);
 
 	body = soup_test_session_send (session, msg, NULL, NULL);
