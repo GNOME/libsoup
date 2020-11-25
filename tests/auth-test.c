@@ -1637,6 +1637,7 @@ do_cancel_after_retry_test (void)
         g_object_unref (cancellable);
         g_free (uri);
         soup_test_session_abort_unref (session);
+        g_main_loop_unref (loop);
 }
 
 int
