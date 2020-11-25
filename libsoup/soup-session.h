@@ -58,14 +58,6 @@ GInputStream   *soup_session_send             (SoupSession           *session,
 					       GError               **error);
 
 SOUP_AVAILABLE_IN_ALL
-gboolean        soup_session_would_redirect   (SoupSession           *session,
-					       SoupMessage           *msg);
-SOUP_AVAILABLE_IN_ALL
-gboolean        soup_session_redirect_message (SoupSession           *session,
-					       SoupMessage           *msg,
-					       GError               **error);
-
-SOUP_AVAILABLE_IN_ALL
 void                soup_session_add_feature            (SoupSession        *session,
 							 SoupSessionFeature *feature);
 SOUP_AVAILABLE_IN_ALL

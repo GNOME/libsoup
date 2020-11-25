@@ -808,40 +808,6 @@ redirection_uri (SoupSession *session,
 	return new_uri;
 }
 
-/**
- * soup_session_would_redirect:
- * @session: a #SoupSession
- * @msg: a #SoupMessage that has response headers
- *
- * Checks if @msg contains a response that would cause @session to
- * redirect it to a new URL (ignoring @msg's %SOUP_MESSAGE_NO_REDIRECT
- * flag, and the number of times it has already been redirected).
- *
- * Return value: whether @msg would be redirected
- *
- * Since: 2.38
- */
-gboolean
-soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
-{
-	GUri *new_uri;
-
-	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
-
-	/* It must have an appropriate status code and method */
-	if (!SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
-	    !SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg))
-		return FALSE;
-
-	new_uri = redirection_uri (session, msg, NULL);
-	if (!new_uri)
-		return FALSE;
-
-	g_uri_unref (new_uri);
-	return TRUE;
-}
-
 static gboolean
 soup_session_requeue_item (SoupSession          *session,
 			   SoupMessageQueueItem *item,
@@ -896,7 +862,7 @@ soup_session_requeue_item (SoupSession          *session,
  *
  * Since: 2.38
  */
-gboolean
+static gboolean
 soup_session_redirect_message (SoupSession *session,
 			       SoupMessage *msg,
 			       GError     **error)

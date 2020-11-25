@@ -379,9 +379,6 @@ soup_session_websocket_connect_finish
 <SUBSECTION>
 soup_session_abort
 <SUBSECTION>
-soup_session_would_redirect
-soup_session_redirect_message
-<SUBSECTION>
 soup_session_add_feature
 soup_session_add_feature_by_type
 soup_session_remove_feature
