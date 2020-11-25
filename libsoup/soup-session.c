@@ -3332,10 +3332,8 @@ soup_session_read_uri_finish (SoupSession  *session,
                 data = g_task_get_task_data (task);
                 if (content_length)
                         *content_length = data->content_length;
-                if (content_type) {
-                        *content_type = data->content_type;
-                        data->content_type = NULL;
-                }
+                if (content_type)
+                        *content_type = g_steal_pointer (&data->content_type);
         }
 
         return g_task_propagate_pointer (task, error);
@@ -3460,8 +3458,8 @@ session_read_uri_async_ready_cb (SoupSession  *session,
                                  GTask        *task)
 {
         GInputStream *stream;
-        goffset content_length;
-        char *content_type;
+        goffset content_length = 0;
+        char *content_type = NULL;
         GOutputStream *ostream;
         GError *error = NULL;
 

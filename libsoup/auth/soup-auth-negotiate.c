@@ -605,7 +605,7 @@ soup_gss_client_step (SoupNegotiateConnectionState *conn, const gchar *challenge
 		gchar *response = g_base64_encode ((const guchar *) out.value, out.length);
 		conn->response_header = g_strconcat ("Negotiate ", response, NULL);
 		g_free (response);
-		maj_stat = gss_release_buffer (&min_stat, &out);
+		gss_release_buffer (&min_stat, &out);
 	}
 
 out:
@@ -624,6 +624,6 @@ soup_gss_client_cleanup (SoupNegotiateConnectionState *conn)
 	gss_release_name (&min_stat, &conn->server_name);
 	maj_stat = gss_delete_sec_context (&min_stat, &conn->context, GSS_C_NO_BUFFER);
 	if (maj_stat != GSS_S_COMPLETE)
-		maj_stat = gss_delete_sec_context (&min_stat, &conn->context, GSS_C_NO_BUFFER);
+		gss_delete_sec_context (&min_stat, &conn->context, GSS_C_NO_BUFFER);
 }
 #endif /* LIBSOUP_HAVE_GSSAPI */

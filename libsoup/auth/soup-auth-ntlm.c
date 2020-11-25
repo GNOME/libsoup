@@ -899,7 +899,7 @@ calc_ntlmv2_response (const char *user, const char *domain,
 	memcpy (p_blob += sizeof (blob_reserved), &blob_timestamp, sizeof (blob_timestamp));
 	memcpy (p_blob += sizeof (blob_timestamp), client_nonce, sizeof (client_nonce));
 	memcpy (p_blob += sizeof (client_nonce), blob_unknown, sizeof (blob_unknown));
-	memcpy (p_blob += sizeof (blob_unknown), target_info, target_info_sz);
+	memcpy (p_blob + sizeof (blob_unknown), target_info, target_info_sz);
 
 	/* create HMAC-MD5 hash of concatenated nonce and blob */
 	nonce_blob = g_malloc (NTLM_CHALLENGE_NONCE_LENGTH + blob_sz);

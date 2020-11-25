@@ -1105,6 +1105,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 	if (item != lru_item) {
 		priv->lru_start = g_list_remove_link (priv->lru_start, lru_item);
 		item = g_list_insert_sorted (item, lru_item->data, lru_compare_func);
+                (void)item; // Silence scan-build warning
 		g_list_free (lru_item);
 	}
 

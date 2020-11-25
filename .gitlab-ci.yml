@@ -37,7 +37,6 @@ fedora-test:
 
 fedora-scan:
   extends: .build
-  allow_failure: true # TODO: Fix all errors
   script:
     - meson _build -Dauto_features=enabled
     - ninja -C _build scan-build
