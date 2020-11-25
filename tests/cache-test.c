@@ -594,12 +594,14 @@ do_refcounting_test (gconstpointer data)
 
 	soup_cache_flush ((SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE));
 
-        g_test_skip ("FIXME: Session has 1 ref at the end, SessionAsync had a different clear_message function with different semantics.");
-        return;
-	soup_test_session_abort_unref (session);
-
 	g_object_unref (cache);
 	g_free (cache_dir);
+
+        g_test_skip ("FIXME: Session has 1 ref at the end, SessionAsync had a different clear_message function with different semantics.");
+
+        return;
+
+	soup_test_session_abort_unref (session);
 }
 
 static void
