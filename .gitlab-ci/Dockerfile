@@ -1,8 +1,8 @@
-FROM fedora:31
+FROM fedora:33
 
 RUN dnf update -y \
     && dnf install -y 'dnf-command(builddep)' \
-    && dnf builddep -y libsoup glib2 \
+    && dnf builddep -y libsoup glib2 gobject-introspection vala \
     && dnf install -y brotli-devel \
                       git \
                       gtk-doc \
@@ -19,13 +19,25 @@ RUN dnf update -y \
                       clang-analyzer \
                       valgrind \
                       libasan \
+                      sysprof-devel \
+                      autoconf-archive \
     && dnf clean all \
     && git clone https://gitlab.gnome.org/GNOME/glib.git \
     && pushd glib \
     && meson _build --prefix=/usr \
     && meson install -C _build \
     && popd \
-    && rm -rf glib
+    && git clone https://gitlab.gnome.org/GNOME/gobject-introspection.git \
+    && pushd gobject-introspection \
+    && meson _build --prefix=/usr \
+    && meson install -C _build \
+    && popd \
+    && git clone https://gitlab.gnome.org/GNOME/vala.git \
+    && pushd vala \
+    && ./autogen.sh --prefix=/usr \
+    && make install \
+    && popd \
+    && rm -rf glib gobject-introspection vala
 
 ARG HOST_USER_ID=5555
 ENV HOST_USER_ID ${HOST_USER_ID}
