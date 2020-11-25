@@ -1356,7 +1356,7 @@ send_invalid_encode_length_server_thread (gpointer user_data)
 	gsize written;
 	GError *error = NULL;
 
-	header_size = test->payload->len == 125 ? 6 : 10;
+	header_size = test->payload->len == 125 ? 5 : 10;
 	g_output_stream_write_all (g_io_stream_get_output_stream (test->test->raw_server),
 				   test->header, header_size, &written, NULL, &error);
 	g_assert_no_error (error);
