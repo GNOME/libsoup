@@ -43,6 +43,18 @@ fedora-scan:
     paths:
       - _build/meson-logs/scanbuild
 
+fedora-asan:
+  extends: .build
+  variables:
+    ASAN_OPTIONS: fast_unwind_on_malloc=0
+  script:
+    - meson _build -Dauto-features=enabled -Db_sanitize=address
+    - ninja -C _build test
+  artifacts:
+    when: on_failure
+    paths:
+      - "_build/meson-logs/testlog.txt"
+
 reference:
   stage: docs
   variables:

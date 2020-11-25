@@ -66,6 +66,10 @@ else
       '-Wno-missing-include-dirs',
   ]
 
+  if get_option('b_sanitize') == 'address'
+    test_cflags += '-fno-omit-frame-pointer'
+  endif
+
   common_flags += cc.get_supported_arguments(test_cflags)
 endif
 
