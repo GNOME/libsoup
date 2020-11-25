@@ -12,7 +12,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_SERVER (soup_server_get_type ())
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_DERIVABLE_TYPE (SoupServer, soup_server, SOUP, SERVER, GObject)
 
 typedef enum {
@@ -37,47 +37,47 @@ struct _SoupServerClass {
 	gpointer padding[6];
 };
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 SoupServer     *soup_server_new                (const char               *optname1,
 					        ...) G_GNUC_NULL_TERMINATED;
 
-SOUP_AVAILABLE_IN_2_48
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_set_ssl_cert_file  (SoupServer               *server,
 					        const char               *ssl_cert_file,
 					        const char               *ssl_key_file,
 					        GError                  **error);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_is_https           (SoupServer               *server);
 
-SOUP_AVAILABLE_IN_2_48
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_listen             (SoupServer               *server,
 					        GSocketAddress           *address,
 					        SoupServerListenOptions   options,
 					        GError                  **error);
-SOUP_AVAILABLE_IN_2_48
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_listen_all         (SoupServer               *server,
 					        guint                     port,
 					        SoupServerListenOptions   options,
 					        GError                  **error);
-SOUP_AVAILABLE_IN_2_48
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_listen_local       (SoupServer               *server,
 					        guint                     port,
 					        SoupServerListenOptions   options,
 					        GError                  **error);
-SOUP_AVAILABLE_IN_2_48
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_listen_socket      (SoupServer               *server,
 					        GSocket                  *socket,
 					        SoupServerListenOptions   options,
 					        GError                  **error);
-SOUP_AVAILABLE_IN_2_48
+SOUP_AVAILABLE_IN_ALL
 GSList         *soup_server_get_uris           (SoupServer               *server);
-SOUP_AVAILABLE_IN_2_48
+SOUP_AVAILABLE_IN_ALL
 GSList         *soup_server_get_listeners      (SoupServer               *server);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_disconnect         (SoupServer               *server);
 
-SOUP_AVAILABLE_IN_2_50
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_accept_iostream    (SoupServer               *server,
 						GIOStream                *stream,
 						GSocketAddress           *local_addr,
@@ -92,13 +92,13 @@ typedef void  (*SoupServerCallback)            (SoupServer         *server,
 						GHashTable         *query,
 						gpointer            user_data);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_add_handler        (SoupServer         *server,
 					        const char         *path,
 					        SoupServerCallback  callback,
 					        gpointer            user_data,
 					        GDestroyNotify      destroy);
-SOUP_AVAILABLE_IN_2_50
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_add_early_handler  (SoupServer         *server,
 						const char         *path,
 						SoupServerCallback  callback,
@@ -110,7 +110,7 @@ typedef void (*SoupServerWebsocketCallback) (SoupServer              *server,
 					     const char              *path,
 					     SoupWebsocketConnection *connection,
 					     gpointer                 user_data);
-SOUP_AVAILABLE_IN_2_50
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_add_websocket_handler (SoupServer                   *server,
 						   const char                   *path,
 						   const char                   *origin,
@@ -118,29 +118,29 @@ void            soup_server_add_websocket_handler (SoupServer                   
 						   SoupServerWebsocketCallback   callback,
 						   gpointer                      user_data,
 						   GDestroyNotify                destroy);
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_add_websocket_extension    (SoupServer *server,
 							GType       extension_type);
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_remove_websocket_extension (SoupServer *server,
 							GType       extension_type);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_remove_handler     (SoupServer         *server,
 					        const char         *path);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_add_auth_domain    (SoupServer         *server,
 					        SoupAuthDomain     *auth_domain);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_remove_auth_domain (SoupServer         *server,
 					        SoupAuthDomain     *auth_domain);
 
 /* I/O */
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_pause_message   (SoupServer        *server,
 					     SoupServerMessage *msg);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_server_unpause_message (SoupServer        *server,
 					     SoupServerMessage *msg);
 

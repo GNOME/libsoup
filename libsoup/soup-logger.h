@@ -10,7 +10,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_LOGGER (soup_logger_get_type ())
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupLogger, soup_logger, SOUP, LOGGER, GObject)
 
 typedef enum {

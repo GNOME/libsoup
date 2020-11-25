@@ -12,7 +12,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_SESSION soup_session_get_type ()
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupSession, soup_session, SOUP, SESSION, GObject)
 
 SOUP_AVAILABLE_IN_ALL
@@ -30,63 +30,63 @@ typedef enum {
 	SOUP_SESSION_ERROR_REDIRECT_BAD_URI
 } SoupSessionError;
 
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 SoupSession    *soup_session_new              (void);
 
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 SoupSession    *soup_session_new_with_options (const char *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void            soup_session_abort            (SoupSession           *session);
 
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 void            soup_session_send_async       (SoupSession           *session,
 					       SoupMessage           *msg,
 					       int                    io_priority,
 					       GCancellable          *cancellable,
 					       GAsyncReadyCallback    callback,
 					       gpointer               user_data);
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 GInputStream   *soup_session_send_finish      (SoupSession           *session,
 					       GAsyncResult          *result,
 					       GError               **error);
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 GInputStream   *soup_session_send             (SoupSession           *session,
 					       SoupMessage           *msg,
 					       GCancellable          *cancellable,
 					       GError               **error);
 
-SOUP_AVAILABLE_IN_2_38
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_session_would_redirect   (SoupSession           *session,
 					       SoupMessage           *msg);
-SOUP_AVAILABLE_IN_2_38
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_session_redirect_message (SoupSession           *session,
 					       SoupMessage           *msg,
 					       GError               **error);
 
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void                soup_session_add_feature            (SoupSession        *session,
 							 SoupSessionFeature *feature);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void                soup_session_add_feature_by_type    (SoupSession        *session,
 							 GType               feature_type);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void                soup_session_remove_feature         (SoupSession        *session,
 							 SoupSessionFeature *feature);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void                soup_session_remove_feature_by_type (SoupSession        *session,
 							 GType               feature_type);
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 gboolean            soup_session_has_feature            (SoupSession        *session,
 							 GType               feature_type);
-SOUP_AVAILABLE_IN_2_26
+SOUP_AVAILABLE_IN_ALL
 GSList             *soup_session_get_features           (SoupSession        *session,
 							 GType               feature_type);
-SOUP_AVAILABLE_IN_2_26
+SOUP_AVAILABLE_IN_ALL
 SoupSessionFeature *soup_session_get_feature            (SoupSession        *session,
 							 GType               feature_type);
-SOUP_AVAILABLE_IN_2_28
+SOUP_AVAILABLE_IN_ALL
 SoupSessionFeature *soup_session_get_feature_for_message(SoupSession        *session,
 							 GType               feature_type,
 							 SoupMessage        *msg);
@@ -130,7 +130,7 @@ GBytes             *soup_session_load_uri_bytes_finish  (SoupSession        *ses
 							 char              **content_type,
 							 GError            **error);
 
-SOUP_AVAILABLE_IN_2_50
+SOUP_AVAILABLE_IN_ALL
 void                     soup_session_websocket_connect_async  (SoupSession          *session,
 								SoupMessage          *msg,
 								const char           *origin,
@@ -140,7 +140,7 @@ void                     soup_session_websocket_connect_async  (SoupSession     
 								GAsyncReadyCallback   callback,
 								gpointer              user_data);
 
-SOUP_AVAILABLE_IN_2_50
+SOUP_AVAILABLE_IN_ALL
 SoupWebsocketConnection *soup_session_websocket_connect_finish (SoupSession          *session,
 								GAsyncResult         *result,
 								GError              **error);

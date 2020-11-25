@@ -27,7 +27,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_CACHE (soup_cache_get_type ())
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_DERIVABLE_TYPE (SoupCache, soup_cache, SOUP, CACHE, GObject)
 
 typedef enum {
@@ -57,23 +57,23 @@ struct _SoupCacheClass {
         gpointer padding[4];
 };
 
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 SoupCache *soup_cache_new          (const char    *cache_dir,
 				    SoupCacheType  cache_type);
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 void       soup_cache_flush        (SoupCache     *cache);
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 void       soup_cache_clear        (SoupCache     *cache);
 
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 void       soup_cache_dump         (SoupCache     *cache);
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 void       soup_cache_load         (SoupCache     *cache);
 
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 void       soup_cache_set_max_size (SoupCache     *cache,
 				    guint          max_size);
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 guint      soup_cache_get_max_size (SoupCache     *cache);
 
 G_END_DECLS

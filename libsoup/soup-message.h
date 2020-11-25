@@ -17,10 +17,10 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupMessage, soup_message, SOUP, MESSAGE, GObject)
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 SoupMessage   *soup_message_new                   (const char        *method,
 						   const char        *uri_string);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 SoupMessage   *soup_message_new_from_uri          (const char        *method,
 						   GUri              *uri);
 
@@ -43,34 +43,34 @@ void           soup_message_set_request_body_from_bytes (SoupMessage  *msg,
 							 const char   *content_type,
 							 GBytes       *bytes);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_set_http_version    (SoupMessage       *msg,
 						   SoupHTTPVersion    version);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 SoupHTTPVersion  soup_message_get_http_version    (SoupMessage       *msg);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 GUri           *soup_message_get_uri             (SoupMessage       *msg);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   GUri              *uri);
-SOUP_AVAILABLE_IN_2_30
+SOUP_AVAILABLE_IN_ALL
 GUri            *soup_message_get_first_party     (SoupMessage       *msg);
-SOUP_AVAILABLE_IN_2_30
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_set_first_party     (SoupMessage       *msg,
 						   GUri              *first_party);
-SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_ALL
 GUri            *soup_message_get_site_for_cookies (SoupMessage      *msg);
-SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_set_site_for_cookies (SoupMessage      *msg,
 						    GUri             *site_for_cookies);
-SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_set_is_top_level_navigation (SoupMessage      *msg,
 			                                   gboolean          is_top_level_navigation);
-SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_ALL
 gboolean         soup_message_get_is_top_level_navigation (SoupMessage      *msg);
 
 typedef enum {
@@ -80,11 +80,11 @@ typedef enum {
 	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 4)
 } SoupMessageFlags;
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_set_flags           (SoupMessage           *msg,
 						   SoupMessageFlags       flags);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 SoupMessageFlags soup_message_get_flags           (SoupMessage           *msg);
 
 SOUP_AVAILABLE_IN_ALL
@@ -107,14 +107,14 @@ GTlsCertificateFlags soup_message_get_tls_certificate_errors (SoupMessage *msg);
 
 
 /* Specialized signal handlers */
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 guint          soup_message_add_header_handler  (SoupMessage       *msg,
 						 const char        *signal,
 						 const char        *header,
 						 GCallback          callback,
 						 gpointer           user_data);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 guint          soup_message_add_status_code_handler (
 						 SoupMessage       *msg,
 						 const char        *signal,
@@ -122,11 +122,11 @@ guint          soup_message_add_status_code_handler (
 						 GCallback          callback,
 						 gpointer           user_data);
 
-SOUP_AVAILABLE_IN_2_28
+SOUP_AVAILABLE_IN_ALL
 void           soup_message_disable_feature     (SoupMessage       *msg,
 						 GType              feature_type);
 
-SOUP_AVAILABLE_IN_2_72
+SOUP_AVAILABLE_IN_ALL
 gboolean       soup_message_is_feature_disabled (SoupMessage       *msg,
 						 GType              feature_type);
 
@@ -139,12 +139,12 @@ typedef enum {
 	SOUP_MESSAGE_PRIORITY_VERY_HIGH
 } SoupMessagePriority;
 
-SOUP_AVAILABLE_IN_2_44
+SOUP_AVAILABLE_IN_ALL
 void                soup_message_set_priority   (SoupMessage        *msg,
 						 SoupMessagePriority priority);
 
 
-SOUP_AVAILABLE_IN_2_44
+SOUP_AVAILABLE_IN_ALL
 SoupMessagePriority soup_message_get_priority   (SoupMessage        *msg);
 
 SOUP_AVAILABLE_IN_ALL

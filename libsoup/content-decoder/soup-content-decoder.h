@@ -11,7 +11,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_CONTENT_DECODER            (soup_content_decoder_get_type ())
-SOUP_AVAILABLE_IN_2_30
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupContentDecoder, soup_content_decoder, SOUP, CONTENT_DECODER, GObject)
 
 G_END_DECLS

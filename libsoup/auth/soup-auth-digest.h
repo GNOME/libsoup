@@ -7,5 +7,5 @@
 
 #include "soup-auth.h"
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupAuthDigest, soup_auth_digest, SOUP, AUTH_DIGEST, SoupAuth)

@@ -91,16 +91,16 @@ G_BEGIN_DECLS
 
 {version_attributes}
 
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 guint    soup_get_major_version (void);
 
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 guint    soup_get_minor_version (void);
 
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 guint    soup_get_micro_version (void);
 
-SOUP_AVAILABLE_IN_2_42
+SOUP_AVAILABLE_IN_ALL
 gboolean soup_check_version     (guint major,
 				 guint minor,
 				 guint micro);

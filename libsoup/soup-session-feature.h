@@ -10,7 +10,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_SESSION_FEATURE (soup_session_feature_get_type ())
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_INTERFACE (SoupSessionFeature, soup_session_feature, SOUP, SESSION_FEATURE, GObject)
 
 struct _SoupSessionFeatureInterface {
@@ -36,10 +36,10 @@ struct _SoupSessionFeatureInterface {
 
 };
 
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void     soup_session_feature_attach         (SoupSessionFeature *feature,
 					      SoupSession        *session);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void     soup_session_feature_detach         (SoupSessionFeature *feature,
 					      SoupSession        *session);
 
@@ -50,13 +50,13 @@ SOUP_AVAILABLE_IN_ALL
 void     soup_session_feature_request_unqueued (SoupSessionFeature *feature,
 						SoupMessage        *msg);
 
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 gboolean soup_session_feature_add_feature    (SoupSessionFeature *feature,
 					      GType               type);
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 gboolean soup_session_feature_remove_feature (SoupSessionFeature *feature,
 					      GType               type);
-SOUP_AVAILABLE_IN_2_34
+SOUP_AVAILABLE_IN_ALL
 gboolean soup_session_feature_has_feature    (SoupSessionFeature *feature,
 					      GType               type);
 

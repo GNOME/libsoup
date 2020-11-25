@@ -28,7 +28,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_WEBSOCKET_EXTENSION (soup_websocket_extension_get_type ())
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_DERIVABLE_TYPE (SoupWebsocketExtension, soup_websocket_extension, SOUP, WEBSOCKET_EXTENSION, GObject)
 
 struct _SoupWebsocketExtensionClass {
@@ -59,23 +59,23 @@ struct _SoupWebsocketExtensionClass {
 	gpointer padding[6];
 };
 
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 gboolean                 soup_websocket_extension_configure                (SoupWebsocketExtension     *extension,
 									    SoupWebsocketConnectionType connection_type,
 									    GHashTable                 *params,
 									    GError                    **error);
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 char                    *soup_websocket_extension_get_request_params       (SoupWebsocketExtension     *extension);
 
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 char                    *soup_websocket_extension_get_response_params      (SoupWebsocketExtension     *extension);
 
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 GBytes                  *soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension     *extension,
 									    guint8                     *header,
 									    GBytes                     *payload,
 									    GError                    **error);
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 GBytes                  *soup_websocket_extension_process_incoming_message (SoupWebsocketExtension     *extension,
 									    guint8                     *header,
 									    GBytes                     *payload,

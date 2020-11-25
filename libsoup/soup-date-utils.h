@@ -28,11 +28,11 @@ typedef enum {
 	SOUP_DATE_COOKIE,
 } SoupDateFormat;
 
-SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_ALL
 char           *soup_date_time_to_string            (GDateTime      *date,
                                                      SoupDateFormat  format);
 
-SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_ALL
 GDateTime      *soup_date_time_new_from_http_string (const char     *date_string);
 
 G_END_DECLS

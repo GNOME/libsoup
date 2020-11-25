@@ -83,7 +83,7 @@ typedef enum {
         SOUP_HTTP_1_1 = 1  /*< nick=http-1-1 >*/
 } SoupHTTPVersion;
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 const char *soup_status_get_phrase (guint status_code);
 
 G_END_DECLS

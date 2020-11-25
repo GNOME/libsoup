@@ -14,9 +14,6 @@ with open(input_file) as i:
     template = i.read()
 
 versions = []
-for i in range(24, 73):
-    if is_stable(i):
-        versions.append((2, i))
 
 if major == 2:
     # Specific to 3.x dev releases

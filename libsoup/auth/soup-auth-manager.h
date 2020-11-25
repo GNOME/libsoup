@@ -11,15 +11,15 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_AUTH_MANAGER (soup_auth_manager_get_type ())
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupAuthManager, soup_auth_manager, SOUP, AUTH_MANAGER, GObject)
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void  soup_auth_manager_use_auth (SoupAuthManager *manager,
 				  GUri            *uri,
 				  SoupAuth        *auth);
 
-SOUP_AVAILABLE_IN_2_58
+SOUP_AVAILABLE_IN_ALL
 void soup_auth_manager_clear_cached_credentials (SoupAuthManager *manager);
 
 G_END_DECLS

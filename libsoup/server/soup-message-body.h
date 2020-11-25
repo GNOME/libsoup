@@ -20,51 +20,51 @@ typedef struct {
 	goffset     length;
 } SoupMessageBody;
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 GType soup_message_body_get_type (void);
 #define SOUP_TYPE_MESSAGE_BODY (soup_message_body_get_type ())
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 SoupMessageBody *soup_message_body_new           (void);
 
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_set_accumulate(SoupMessageBody *body,
 						  gboolean         accumulate);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 gboolean         soup_message_body_get_accumulate(SoupMessageBody *body);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_append        (SoupMessageBody *body,
 						  SoupMemoryUse    use,
 						  gconstpointer    data,
 						  gsize            length);
-SOUP_AVAILABLE_IN_2_32
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_append_take   (SoupMessageBody *body,
 						  guchar          *data,
 						  gsize            length);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_append_bytes (SoupMessageBody *body,
 						  GBytes          *buffer);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_truncate      (SoupMessageBody *body);
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_complete      (SoupMessageBody *body);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 GBytes          *soup_message_body_flatten       (SoupMessageBody *body);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 GBytes          *soup_message_body_get_chunk     (SoupMessageBody *body,
 						  goffset          offset);
 
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_got_chunk     (SoupMessageBody *body,
 						  GBytes          *chunk);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_wrote_chunk   (SoupMessageBody *body,
 						  GBytes          *chunk);
 
-SOUP_AVAILABLE_IN_2_4
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_free          (SoupMessageBody *body);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageBody, soup_message_body_free)

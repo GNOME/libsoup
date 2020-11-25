@@ -11,7 +11,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_CONTENT_SNIFFER (soup_content_sniffer_get_type ())
-SOUP_AVAILABLE_IN_2_28
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_DERIVABLE_TYPE (SoupContentSniffer, soup_content_sniffer, SOUP, CONTENT_SNIFFER, GObject)
 
 struct _SoupContentSnifferClass {
@@ -26,15 +26,15 @@ struct _SoupContentSnifferClass {
 	gpointer padding[6];
 };
 
-SOUP_AVAILABLE_IN_2_28
+SOUP_AVAILABLE_IN_ALL
 SoupContentSniffer *soup_content_sniffer_new             (void);
 
-SOUP_AVAILABLE_IN_2_28
+SOUP_AVAILABLE_IN_ALL
 char               *soup_content_sniffer_sniff           (SoupContentSniffer  *sniffer,
 							  SoupMessage         *msg,
 							  GBytes              *buffer,
 							  GHashTable         **params);
-SOUP_AVAILABLE_IN_2_28
+SOUP_AVAILABLE_IN_ALL
 gsize               soup_content_sniffer_get_buffer_size (SoupContentSniffer  *sniffer);
 
 G_END_DECLS

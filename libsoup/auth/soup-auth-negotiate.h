@@ -10,7 +10,7 @@
 
 G_BEGIN_DECLS
 
-SOUP_AVAILABLE_IN_2_54
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupAuthNegotiate, soup_auth_negotiate, SOUP, AUTH_NEGOTIATE, SoupConnectionAuth)
 
 G_END_DECLS

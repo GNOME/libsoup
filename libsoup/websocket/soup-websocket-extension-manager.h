@@ -27,7 +27,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER (soup_websocket_extension_manager_get_type ())
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupWebsocketExtensionManager, soup_websocket_extension_manager, SOUP, WEBSOCKET_EXTENSION_MANAGER, GObject)
 
 G_END_DECLS

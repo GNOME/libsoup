@@ -9,15 +9,15 @@
 
 G_BEGIN_DECLS
 
-SOUP_AVAILABLE_IN_2_40
+SOUP_AVAILABLE_IN_ALL
 const char *soup_tld_get_base_domain         (const char *hostname,
 					      GError    **error);
 
-SOUP_AVAILABLE_IN_2_40
+SOUP_AVAILABLE_IN_ALL
 gboolean    soup_tld_domain_is_public_suffix (const char *domain);
 
 /* Errors */
-SOUP_AVAILABLE_IN_2_40
+SOUP_AVAILABLE_IN_ALL
 GQuark soup_tld_error_quark (void);
 #define SOUP_TLD_ERROR soup_tld_error_quark()
 

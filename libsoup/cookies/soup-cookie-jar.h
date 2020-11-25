@@ -10,7 +10,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_COOKIE_JAR            (soup_cookie_jar_get_type ())
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_DERIVABLE_TYPE (SoupCookieJar, soup_cookie_jar, SOUP, COOKIE_JAR, GObject)
 
 struct _SoupCookieJarClass {
@@ -35,17 +35,17 @@ typedef enum {
 	SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY
 } SoupCookieJarAcceptPolicy;
 
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 SoupCookieJar *           soup_cookie_jar_new                         (void);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 char          *           soup_cookie_jar_get_cookies                 (SoupCookieJar             *jar,
 								       GUri                      *uri,
 								       gboolean                   for_http);
-SOUP_AVAILABLE_IN_2_40
+SOUP_AVAILABLE_IN_ALL
 GSList        *           soup_cookie_jar_get_cookie_list             (SoupCookieJar             *jar,
 								       GUri                      *uri,
 								       gboolean                   for_http);
-SOUP_AVAILABLE_IN_2_70
+SOUP_AVAILABLE_IN_ALL
 GSList        *           soup_cookie_jar_get_cookie_list_with_same_site_info (
 	                                                               SoupCookieJar             *jar,
 	                                                               GUri                      *uri,
@@ -54,38 +54,38 @@ GSList        *           soup_cookie_jar_get_cookie_list_with_same_site_info (
 								       gboolean                   for_http,
 								       gboolean                   is_safe_method,
 								       gboolean                   is_top_level_navigation);
-SOUP_AVAILABLE_IN_2_24
+SOUP_AVAILABLE_IN_ALL
 void                      soup_cookie_jar_set_cookie                  (SoupCookieJar             *jar,
 								       GUri                      *uri,
 								       const char                *cookie);
-SOUP_AVAILABLE_IN_2_30
+SOUP_AVAILABLE_IN_ALL
 void                      soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar             *jar,
 								       GUri                      *uri,
 								       GUri                      *first_party,
 								       const char                *cookie);
-SOUP_AVAILABLE_IN_2_26
+SOUP_AVAILABLE_IN_ALL
 void                      soup_cookie_jar_add_cookie                  (SoupCookieJar             *jar,
 								       SoupCookie                *cookie);
-SOUP_AVAILABLE_IN_2_40
+SOUP_AVAILABLE_IN_ALL
 void                      soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar             *jar,
 								       GUri                      *first_party,
 								       SoupCookie                *cookie);
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 void                      soup_cookie_jar_add_cookie_full             (SoupCookieJar             *jar,
                                                                        SoupCookie                *cookie,
 								       GUri                      *uri,
 								       GUri                      *first_party);
-SOUP_AVAILABLE_IN_2_26
+SOUP_AVAILABLE_IN_ALL
 void                      soup_cookie_jar_delete_cookie               (SoupCookieJar             *jar,
 								       SoupCookie                *cookie);
-SOUP_AVAILABLE_IN_2_26
+SOUP_AVAILABLE_IN_ALL
 GSList        *           soup_cookie_jar_all_cookies                 (SoupCookieJar             *jar);
-SOUP_AVAILABLE_IN_2_30
+SOUP_AVAILABLE_IN_ALL
 void                      soup_cookie_jar_set_accept_policy           (SoupCookieJar             *jar,
 								       SoupCookieJarAcceptPolicy  policy);
-SOUP_AVAILABLE_IN_2_30
+SOUP_AVAILABLE_IN_ALL
 SoupCookieJarAcceptPolicy soup_cookie_jar_get_accept_policy           (SoupCookieJar             *jar);
-SOUP_AVAILABLE_IN_2_40
+SOUP_AVAILABLE_IN_ALL
 gboolean                  soup_cookie_jar_is_persistent               (SoupCookieJar             *jar);
 
 G_END_DECLS

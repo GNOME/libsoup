@@ -27,7 +27,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE (soup_websocket_extension_deflate_get_type ())
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupWebsocketExtensionDeflate, soup_websocket_extension_deflate, SOUP, WEBSOCKET_EXTENSION_DEFLATE, SoupWebsocketExtension)
 
 G_END_DECLS

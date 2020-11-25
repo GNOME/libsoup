@@ -26,7 +26,7 @@
 G_BEGIN_DECLS
 
 #define SOUP_TYPE_BROTLI_DECOMPRESSOR (soup_brotli_decompressor_get_type())
-SOUP_AVAILABLE_IN_2_68
+SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupBrotliDecompressor, soup_brotli_decompressor, SOUP, BROTLI_DECOMPRESSOR, GObject)
 
 SoupBrotliDecompressor *soup_brotli_decompressor_new (void);
