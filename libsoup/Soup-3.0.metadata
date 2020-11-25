@@ -1,10 +1,6 @@
 // Vala-specific
-AuthDomain
-	.add_path#property skip
-	.remove_path#property skip
 form_* parent="Soup.Form" name="form_(.+)"
 form_encode_datalist.form_data_set type_arguments="string"
-form_request_new_from_datalist.form_data_set type_arguments="string"
 HTTPVersion.http_* name="http_(.+)"
 
 // Report upstream
@@ -22,7 +18,6 @@ Message
 	.add_status_code_handler skip=false
 	.request_*#property skip
 	.response_*#property skip
-	.set_request.req_body type="uint8[]" array_length_idx=3
 Server
 	.new skip=false
 Session
