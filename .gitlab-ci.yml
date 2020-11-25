@@ -48,7 +48,7 @@ fedora-asan:
   variables:
     ASAN_OPTIONS: fast_unwind_on_malloc=0
   script:
-    - meson _build -Dauto-features=enabled -Db_sanitize=address
+    - meson _build -Dauto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled
     - ninja -C _build test
   artifacts:
     when: on_failure
