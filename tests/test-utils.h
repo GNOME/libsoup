@@ -25,6 +25,14 @@ void debug_printf (int level, const char *format, ...) G_GNUC_PRINTF (2, 3);
 		}						\
 	} G_STMT_END
 
+#define SOUP_TEST_SKIP_IF_NO_IPV6                               \
+        G_STMT_START {                                          \
+                if (g_getenv ("SOUP_TEST_NO_IPV6")) {           \
+                        g_test_skip ("IPV6 is not available");  \
+                        return;                                 \
+                }                                               \
+        } G_STMT_END                                            \
+
 #ifdef HAVE_APACHE
 void apache_init    (void);
 void apache_cleanup (void);

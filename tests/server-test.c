@@ -385,18 +385,13 @@ do_ipv6_test (ServerData *sd, gconstpointer test_data)
 
 	g_test_bug ("666399");
 
+        SOUP_TEST_SKIP_IF_NO_IPV6;
+
 	sd->server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
 	server_add_handler (sd, NULL, ipv6_server_callback, NULL, NULL);
 
-	if (!soup_server_listen_local (sd->server, 0,
-				       SOUP_SERVER_LISTEN_IPV6_ONLY,
-				       &error)) {
-#if GLIB_CHECK_VERSION (2, 41, 0)
-		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED);
-#endif
-		g_test_skip ("no IPv6 support");
-		return;
-	}
+	soup_server_listen_local (sd->server, 0, SOUP_SERVER_LISTEN_IPV6_ONLY, &error);
+        g_assert_no_error (error);
 
 	sd->base_uri = soup_test_server_get_uri (sd->server, "http", "::1");
 
@@ -560,6 +555,8 @@ do_multi_family_test (ServerData *sd, gconstpointer test_data)
 	GUri *uri1, *uri2;
 	GError *error = NULL;
 
+        SOUP_TEST_SKIP_IF_NO_IPV6;
+
 	sd->server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
 
 	if (!soup_server_listen_local (sd->server, 0, 0, &error)) {
@@ -569,20 +566,6 @@ do_multi_family_test (ServerData *sd, gconstpointer test_data)
 	}
 
 	uris = soup_server_get_uris (sd->server);
-	if (g_slist_length (uris) == 1) {
-		gboolean ipv6_works;
-
-		/* No IPv6? Double-check */
-		ipv6_works = soup_server_listen_local (sd->server, 0,
-						       SOUP_SERVER_LISTEN_IPV6_ONLY,
-						       NULL);
-		if (ipv6_works)
-			g_assert_false (ipv6_works);
-		else
-			g_test_skip ("no IPv6 support");
-		return;
-	}
-
 	g_assert_cmpint (g_slist_length (uris), ==, 2);
 	uri1 = uris->data;
 	uri2 = uris->next->data;

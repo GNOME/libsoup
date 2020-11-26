@@ -385,8 +385,12 @@ static void
 server_listen (SoupServer *server)
 {
 	GError *error = NULL;
+        SoupServerListenOptions options = 0;
 
-	soup_server_listen_local (server, 0, 0, &error);
+        if (g_getenv ("SOUP_TEST_NO_IPV6"))
+                options = SOUP_SERVER_LISTEN_IPV4_ONLY;
+
+	soup_server_listen_local (server, 0, options, &error);
 	if (error) {
 		g_printerr ("Unable to create server: %s\n", error->message);
 		exit (1);
@@ -510,7 +514,8 @@ add_listener (SoupServer *server, const char *scheme, const char *host)
 
 	if (!g_strcmp0 (scheme, "https"))
 		options |= SOUP_SERVER_LISTEN_HTTPS;
-	if (!g_strcmp0 (host, "127.0.0.1"))
+
+	if (!g_strcmp0 (host, "127.0.0.1") || g_getenv ("SOUP_TEST_NO_IPV6"))
 		options |= SOUP_SERVER_LISTEN_IPV4_ONLY;
 	else if (!g_strcmp0 (host, "::1"))
 		options |= SOUP_SERVER_LISTEN_IPV6_ONLY;

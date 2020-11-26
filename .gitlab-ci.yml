@@ -47,9 +47,9 @@ fedora-asan:
   stage: build
   tags:
     - asan
-    - ipv6
   variables:
     ASAN_OPTIONS: fast_unwind_on_malloc=0
+    SOUP_TEST_NO_IPV6: 1
   script:
     - meson _build -Dauto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled
     - ninja -C _build test
