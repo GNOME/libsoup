@@ -69,6 +69,7 @@ reference:
     - ninja -C _build install
     - mv _build/docs/reference/html/ _reference/
     - .gitlab-ci/check-docs.py
+    - gtkdoc-rebase --html-dir=_reference/ --online
   artifacts:
     paths:
       - _build/docs/reference/libsoup-3.0-*.txt
