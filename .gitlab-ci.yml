@@ -44,7 +44,10 @@ fedora-scan:
       - _build/meson-logs/scanbuild
 
 fedora-asan:
-  extends: .build
+  stage: build
+  tags:
+    - asan
+    - ipv6
   variables:
     ASAN_OPTIONS: fast_unwind_on_malloc=0
   script:
