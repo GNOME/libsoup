@@ -24,7 +24,7 @@ RUN dnf update -y \
     && dnf clean all \
     && git clone https://gitlab.gnome.org/GNOME/glib.git \
     && pushd glib \
-    && meson _build --prefix=/usr \
+    && meson _build --prefix=/usr -Dgtk_doc=true \
     && meson install -C _build \
     && popd \
     && git clone https://gitlab.gnome.org/GNOME/gobject-introspection.git \
