@@ -497,7 +497,7 @@ rewrite_message_uri_to_https (SoupMessage *msg)
 	int port;
 
 	uri = soup_message_get_uri (msg);
-	port = soup_uri_get_port_with_default (uri);
+	port = g_uri_get_port (uri);
 	/* From the RFC: "If the URI contains an explicit port component that
 	   is not equal to "80", the port component value MUST be preserved;" */
 	if (port == 80)

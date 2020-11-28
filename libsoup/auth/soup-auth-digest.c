@@ -212,7 +212,7 @@ soup_auth_digest_get_protection_space (SoupAuth *auth, GUri *source_uri)
 			uri = g_uri_parse (d, SOUP_HTTP_URI_FLAGS, NULL);
 			if (uri &&
                             g_strcmp0 (g_uri_get_scheme (uri), g_uri_get_scheme (source_uri)) == 0 &&
-			    soup_uri_get_port_with_default (uri) == soup_uri_get_port_with_default (source_uri) &&
+			    g_uri_get_port (uri) == g_uri_get_port (source_uri) &&
 			    !strcmp (g_uri_get_host (uri), g_uri_get_host (source_uri)))
 				dir = g_strdup (g_uri_get_path (uri));
 			else

@@ -604,7 +604,7 @@ soup_connection_connect_async (SoupConnection      *conn,
         priv->remote_connectable =
                 g_object_new (G_TYPE_NETWORK_ADDRESS,
 			      "hostname", g_uri_get_host (priv->remote_uri),
-			      "port", soup_uri_get_port_with_default (priv->remote_uri),
+			      "port", g_uri_get_port (priv->remote_uri),
 			      "scheme", g_uri_get_scheme (priv->remote_uri),
                               NULL);
 
@@ -648,7 +648,7 @@ soup_connection_connect (SoupConnection  *conn,
         priv->remote_connectable =
 		g_object_new (G_TYPE_NETWORK_ADDRESS,
 			      "hostname", g_uri_get_host (priv->remote_uri),
-			      "port", soup_uri_get_port_with_default (priv->remote_uri),
+			      "port", g_uri_get_port (priv->remote_uri),
 			      "scheme", g_uri_get_scheme (priv->remote_uri),
 			      NULL);
 

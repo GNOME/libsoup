@@ -83,25 +83,6 @@ path_equal (const char *one, const char *two)
 	return !strcmp (one, two);
 }
 
-/**
- * soup_uri_get_port_with_default:
- * @uri: A #GUri
- *
- * If @uri has a port of `-1` this will return the default
- * port for the sheme it uses if known.
- *
- * Returns: The port to use with the @uri or `-1` if unknown.
- */
-int
-soup_uri_get_port_with_default (GUri *uri)
-{
-        int port = g_uri_get_port (uri);
-        if (port != -1)
-                return port;
-
-        return soup_scheme_default_port (g_uri_get_scheme (uri));
-}
-
 static gboolean
 flags_equal (GUriFlags flags1, GUriFlags flags2)
 {
@@ -130,7 +111,7 @@ soup_uri_equal (GUri *uri1, GUri *uri2)
 
        	if (!flags_equal (g_uri_get_flags (uri1), g_uri_get_flags (uri2))                  ||
             g_strcmp0 (g_uri_get_scheme (uri1), g_uri_get_scheme (uri2))                   ||
-	    soup_uri_get_port_with_default (uri1) != soup_uri_get_port_with_default (uri2) ||
+	    g_uri_get_port (uri1) != g_uri_get_port (uri2)                                 ||
 	    !parts_equal (g_uri_get_user (uri1), g_uri_get_user (uri2), FALSE)             ||
 	    !parts_equal (g_uri_get_password (uri1), g_uri_get_password (uri2), FALSE)     ||
 	    !parts_equal (g_uri_get_host (uri1), g_uri_get_host (uri2), TRUE)              ||
@@ -234,7 +215,6 @@ soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 	GUri *one = (GUri*)v1;
 	GUri *two = (GUri*)v2;
         const char *one_host, *two_host;
-        int one_port, two_port;
 
 	g_return_val_if_fail (one != NULL && two != NULL, one == two);
 
@@ -248,15 +228,7 @@ soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 	if (g_strcmp0 (g_uri_get_scheme (one), g_uri_get_scheme (two)) != 0)
 		return FALSE;
 
-        one_port = g_uri_get_port (one);
-        two_port = g_uri_get_port (two);
-
-        if (one_port == -1 && g_uri_get_scheme (one))
-                one_port = soup_scheme_default_port (g_uri_get_scheme (one));
-        if (two_port == -1 && g_uri_get_scheme (two))
-                two_port = soup_scheme_default_port (g_uri_get_scheme (two));
-
-	if (one_port != two_port)
+	if (g_uri_get_port (one) != g_uri_get_port (two))
 		return FALSE;
 
 	return g_ascii_strcasecmp (one_host, two_host) == 0;

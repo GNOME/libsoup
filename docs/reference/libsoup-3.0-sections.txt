@@ -507,8 +507,6 @@ SOUP_HTTP_URI_FLAGS
 <SUBSECTION>
 soup_uri_decode_data_uri
 <SUBSECTION>
-soup_uri_get_port_with_default
-<SUBSECTION>
 SoupURIComponent
 soup_uri_copy
 </SECTION>

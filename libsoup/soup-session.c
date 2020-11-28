@@ -691,7 +691,7 @@ soup_session_host_new (SoupSession *session, GUri *uri)
 
 	host->addr = g_object_new (G_TYPE_NETWORK_ADDRESS,
 				   "hostname", g_uri_get_host (host->uri),
-				   "port", soup_uri_get_port_with_default (host->uri),
+				   "port", g_uri_get_port (host->uri),
 				   "scheme", g_uri_get_scheme (host->uri),
 				   NULL);
 	host->keep_alive_src = NULL;

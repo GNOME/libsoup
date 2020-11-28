@@ -31,14 +31,12 @@ GBytes     *soup_uri_decode_data_uri       (const char *uri,
 SOUP_AVAILABLE_IN_ALL
 gboolean soup_uri_equal (GUri *uri1, GUri *uri2);
 
-SOUP_AVAILABLE_IN_ALL
-int          soup_uri_get_port_with_default      (GUri       *uri);
-
 
 SOUP_AVAILABLE_IN_ALL
 GUri       *soup_uri_copy (GUri *uri,
 			   SoupURIComponent first_component,
 			   ...);
+
 #define SOUP_HTTP_URI_FLAGS (G_URI_FLAGS_HAS_PASSWORD | G_URI_FLAGS_ENCODED_PATH | G_URI_FLAGS_ENCODED_QUERY | G_URI_FLAGS_ENCODED_FRAGMENT | G_URI_FLAGS_SCHEME_NORMALIZE)
 
 G_END_DECLS
