@@ -15,7 +15,7 @@
 
 static SoupSession *session;
 static GMainLoop *loop;
-static gboolean debug, head, quiet;
+static gboolean debug, quiet;
 static const gchar *output_file_path = NULL;
 
 #define OUTPUT_BUFFER_SIZE 8192
@@ -70,24 +70,12 @@ static void
 on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
 {
         GError *error = NULL;
-        SoupMessage *msg = user_data;
-        GInputStream *in = soup_session_send_finish (SOUP_SESSION (source), result, &error);
+        GInputStream *in = soup_session_read_uri_finish (SOUP_SESSION (source), result,
+                                                         NULL, NULL, &error);
 
         if (error) {
                 g_printerr ("Failed to send request: %s\n", error->message);
                 g_error_free (error);
-                g_main_loop_quit (loop);
-                return;
-        }
-
-        if (!debug) {
-                const char *path = g_uri_get_path (soup_message_get_uri (msg));
-                g_print ("%s: %d %s\n", path, soup_message_get_status (msg),
-                                      soup_message_get_reason_phrase (msg));
-        }
-
-        if (head || !SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
-                g_object_unref (in);
                 g_main_loop_quit (loop);
                 return;
         }
@@ -194,9 +182,6 @@ static GOptionEntry entries[] = {
 	{ "debug", 'd', 0,
 	  G_OPTION_ARG_NONE, &debug,
 	  "Show HTTP headers", NULL },
-	{ "head", 'h', 0,
-	  G_OPTION_ARG_NONE, &head,
-	  "Do HEAD rather than GET", NULL },
 	{ "ntlm", 'n', 0,
 	  G_OPTION_ARG_NONE, &ntlm,
 	  "Use NTLM authentication", NULL },
@@ -225,7 +210,6 @@ main (int argc, char **argv)
 	GOptionContext *opts;
 	const char *url;
 	GUri *parsed;
-        SoupMessage *msg;
 	GError *error = NULL;
 
 	opts = g_option_context_new (NULL);
@@ -329,19 +313,15 @@ main (int argc, char **argv)
 		g_object_unref (resolver);
 	}
 
-        /* Send the message */
-	msg = soup_message_new (head ? "HEAD" : "GET", url);
-        /* Note that soup_session_read_uri_async() and soup_session_load_uri_bytes_async()
-           are more simple APIs for common usage. This is a lower level example using
-           SoupMessage */
-        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, on_request_sent, msg);
+        /* Send the request */
+        soup_session_read_uri_async (session, url, G_PRIORITY_DEFAULT, NULL,
+                                     on_request_sent, NULL);
 
         /* Run the loop */
         loop = g_main_loop_new (NULL, FALSE);
         g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 	g_object_unref (session);
-        g_object_unref (msg);
 
 	return 0;
 }
