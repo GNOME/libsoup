@@ -4,6 +4,7 @@
  */
 
 #include "test-utils.h"
+#include "soup-uri-utils-private.h"
 
 #include <gio/gnetworking.h>
 

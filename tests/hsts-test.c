@@ -5,6 +5,7 @@
  */
 
 #include "test-utils.h"
+#include "soup-uri-utils-private.h"
 
 GUri *http_uri;
 GUri *https_uri;

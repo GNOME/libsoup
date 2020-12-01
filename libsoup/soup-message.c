@@ -15,6 +15,7 @@
 #include "soup.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
+#include "soup-uri-utils-private.h"
 
 /**
  * SECTION:soup-message

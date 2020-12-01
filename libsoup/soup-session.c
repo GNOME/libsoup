@@ -22,6 +22,7 @@
 #include "soup-message-queue.h"
 #include "soup-session-private.h"
 #include "soup-socket-properties.h"
+#include "soup-uri-utils-private.h"
 #include "websocket/soup-websocket.h"
 #include "websocket/soup-websocket-connection.h"
 #include "websocket/soup-websocket-extension-manager-private.h"

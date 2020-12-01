@@ -20,6 +20,7 @@
 #include "soup-misc.h"
 #include "soup-path-map.h"
 #include "soup-socket.h"
+#include "soup-uri-utils-private.h"
 #include "websocket/soup-websocket.h"
 #include "websocket/soup-websocket-connection.h"
 #include "websocket/soup-websocket-extension-deflate.h"

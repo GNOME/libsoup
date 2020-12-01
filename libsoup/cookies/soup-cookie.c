@@ -15,6 +15,7 @@
 #include "soup-cookie.h"
 #include "soup-date-utils-private.h"
 #include "soup-misc.h"
+#include "soup-uri-utils-private.h"
 #include "soup.h"
 
 /**

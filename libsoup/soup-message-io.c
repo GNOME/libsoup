@@ -26,6 +26,7 @@
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-misc.h"
+#include "soup-uri-utils-private.h"
 
 struct _SoupClientMessageIOData {
 	SoupMessageIOData base;

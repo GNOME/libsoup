@@ -13,9 +13,6 @@ extern "C" {
 #define __SOUP_H_INSIDE__
 
 #include <libsoup/soup-auth.h>
-#include <libsoup/soup-auth-domain.h>
-#include <libsoup/soup-auth-domain-basic.h>
-#include <libsoup/soup-auth-domain-digest.h>
 #include <libsoup/soup-auth-manager.h>
 #include <libsoup/soup-cache.h>
 #include <libsoup/soup-content-decoder.h>
@@ -36,7 +33,12 @@ extern "C" {
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-multipart.h>
 #include <libsoup/soup-multipart-input-stream.h>
+#include <libsoup/soup-auth-domain.h>
+#include <libsoup/soup-auth-domain-basic.h>
+#include <libsoup/soup-auth-domain-digest.h>
 #include <libsoup/soup-server.h>
+#include <libsoup/soup-server-message.h>
+#include <libsoup/soup-session.h>
 #include <libsoup/soup-session-feature.h>
 #include <libsoup/soup-status.h>
 #include <libsoup/soup-tld.h>

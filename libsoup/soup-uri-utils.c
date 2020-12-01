@@ -28,7 +28,7 @@
 
 #include <glib/gi18n-lib.h>
 
-#include "soup-uri-utils.h"
+#include "soup-uri-utils-private.h"
 #include "soup.h"
 #include "soup-misc.h"
 

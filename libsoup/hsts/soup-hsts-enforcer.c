@@ -14,6 +14,7 @@
 #include "soup-misc.h"
 #include "soup.h"
 #include "soup-session-private.h"
+#include "soup-uri-utils-private.h"
 
 /**
  * SECTION:soup-hsts-enforcer
