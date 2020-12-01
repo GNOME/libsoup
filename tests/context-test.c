@@ -94,6 +94,11 @@ static GMainLoop *test1_loop;
 static void
 do_test1 (void)
 {
+        if (g_getenv ("ASAN_OPTIONS")) {
+                g_test_skip ("Flaky timing with ASAN enabled");
+                return;
+        }
+
 	test1_loop = g_main_loop_new (NULL, FALSE);
 	g_idle_add (idle_start_test1_thread, NULL);
 	g_main_loop_run (test1_loop);
@@ -109,7 +114,7 @@ idle_start_test1_thread (gpointer user_data)
 	g_mutex_lock (&test1_mutex);
 	thread = g_thread_new ("test1_thread", test1_thread, NULL);
 
-	time = g_get_monotonic_time () + 10000000;
+	time = g_get_monotonic_time () + 5000000;
 	if (g_cond_wait_until (&test1_cond, &test1_mutex, time))
 		g_thread_join (thread);
 	else {
