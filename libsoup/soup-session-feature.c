@@ -9,7 +9,7 @@
 #include <config.h>
 #endif
 
-#include "soup-session-feature.h"
+#include "soup-session-feature-private.h"
 #include "soup.h"
 #include "soup-message-private.h"
 

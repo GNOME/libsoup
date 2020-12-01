@@ -26,7 +26,7 @@
 
 #include "soup-websocket-extension-manager.h"
 #include "soup-headers.h"
-#include "soup-session-feature.h"
+#include "soup-session-feature-private.h"
 #include "soup-websocket.h"
 #include "soup-websocket-extension.h"
 #include "soup-websocket-extension-deflate.h"

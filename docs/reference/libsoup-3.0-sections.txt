@@ -413,7 +413,6 @@ SOUP_SESSION_USE_NTLM
 <FILE>soup-session-feature</FILE>
 <TITLE>SoupSessionFeature</TITLE>
 SoupSessionFeature
-SoupSessionFeatureInterface
 <SUBSECTION Standard>
 soup_session_feature_get_type
 SOUP_SESSION_FEATURE
@@ -422,14 +421,6 @@ SOUP_SESSION_FEATURE_GET_CLASS
 SOUP_IS_SESSION_FEATURE
 SOUP_IS_SESSION_FEATURE_CLASS
 SOUP_TYPE_SESSION_FEATURE
-<SUBSECTION Private>
-soup_session_feature_attach
-soup_session_feature_detach
-soup_session_feature_request_queued
-soup_session_feature_request_unqueued
-soup_session_feature_add_feature
-soup_session_feature_has_feature
-soup_session_feature_remove_feature
 </SECTION>
 
 <SECTION>

@@ -14,6 +14,7 @@
 #include "auth/soup-auth-digest-private.h"
 #include "soup.h"
 #include "soup-message-private.h"
+#include "soup-uri-utils-private.h"
 
 #ifdef G_OS_WIN32
 #include <process.h>

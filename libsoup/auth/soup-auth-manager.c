@@ -17,6 +17,7 @@
 #include "soup-message-private.h"
 #include "soup-path-map.h"
 #include "soup-session-private.h"
+#include "soup-session-feature-private.h"
 #include "soup-uri-utils-private.h"
 
 /**

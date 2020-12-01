@@ -11,7 +11,7 @@
 
 #include "soup-content-decoder.h"
 #include "soup-converter-wrapper.h"
-#include "soup-session-feature.h"
+#include "soup-session-feature-private.h"
 #include "soup-message-private.h"
 #include "soup-headers.h"
 #ifdef WITH_BROTLI

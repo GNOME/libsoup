@@ -16,10 +16,11 @@
 #include <string.h>
 
 #include "soup-content-sniffer.h"
-#include "soup-session-feature.h"
+#include "soup-session-feature-private.h"
 #include "soup-content-processor.h"
 #include "soup-content-sniffer-stream.h"
 #include "soup-message-private.h"
+#include "soup-session-feature-private.h"
 
 /**
  * SECTION:soup-content-sniffer

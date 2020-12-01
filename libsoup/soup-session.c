@@ -21,6 +21,7 @@
 #include "soup-misc.h"
 #include "soup-message-queue.h"
 #include "soup-session-private.h"
+#include "soup-session-feature-private.h"
 #include "soup-socket-properties.h"
 #include "soup-uri-utils-private.h"
 #include "websocket/soup-websocket.h"

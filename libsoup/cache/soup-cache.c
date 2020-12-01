@@ -43,6 +43,7 @@
 #include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup-session-private.h"
+#include "soup-session-feature-private.h"
 
 /**
  * SECTION:soup-cache
