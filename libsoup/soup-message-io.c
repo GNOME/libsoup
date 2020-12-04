@@ -259,16 +259,20 @@ write_headers (SoupMessage          *msg,
 	       SoupEncoding         *encoding)
 {
 	GUri *uri = soup_message_get_uri (msg);
+	char *uri_host;
 	char *uri_string;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 
-	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
-		char *uri_host = soup_uri_get_host_for_headers (uri);
+        uri_host = (char*)g_uri_get_host (uri);
+	if (strchr (uri_host, ':'))
+		uri_host = g_strdup_printf ("[%.*s]", (int) strcspn (uri_host, "%"), uri_host);
+	else if (g_hostname_is_non_ascii (uri_host))
+		uri_host = g_hostname_to_ascii (uri_host);
 
+	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
 		uri_string = g_strdup_printf ("%s:%d", uri_host, g_uri_get_port (uri));
-		g_free (uri_host);
 	} else {
 		gboolean proxy = soup_connection_is_via_proxy (conn);
 
@@ -293,7 +297,19 @@ write_headers (SoupMessage          *msg,
 	g_string_append_printf (header, "%s %s HTTP/1.%d\r\n",
 				soup_message_get_method (msg), uri_string,
 				(soup_message_get_http_version (msg) == SOUP_HTTP_1_0) ? 0 : 1);
+
+	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg), "Host")) {
+		if (soup_uri_uses_default_port (uri)) {
+			g_string_append_printf (header, "Host: %s\r\n",
+						uri_host);
+		} else {
+			g_string_append_printf (header, "Host: %s:%d\r\n",
+						uri_host, g_uri_get_port (uri));
+		}
+	}
 	g_free (uri_string);
+	if (uri_host != g_uri_get_host (uri))
+		g_free (uri_host);
 
 	*encoding = soup_message_headers_get_encoding (soup_message_get_request_headers (msg));
 

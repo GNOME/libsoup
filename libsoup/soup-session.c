@@ -993,9 +993,9 @@ soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageIOCompletionFn completion_cb)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupMessageHeaders *request_headers;
+        SoupMessageHeaders *request_headers;
 
-	request_headers = soup_message_get_request_headers (item->msg);
+        request_headers = soup_message_get_request_headers (item->msg);
 	if (priv->user_agent)
 		soup_message_headers_replace (request_headers, "User-Agent", priv->user_agent);
 
@@ -1012,23 +1012,6 @@ soup_session_send_queue_item (SoupSession *session,
 	    !soup_message_headers_header_contains (request_headers, "Connection", "Upgrade")) {
 		soup_message_headers_append (request_headers, "Connection", "Keep-Alive");
 	}
-
-        if (!soup_message_headers_get_one (request_headers, "Host")) {
-                GUri *uri = soup_message_get_uri (item->msg);
-                char *host;
-
-                host = soup_uri_get_host_for_headers (uri);
-                if (soup_uri_uses_default_port (uri))
-                        soup_message_headers_append (request_headers, "Host", host);
-                else {
-                        char *value;
-
-                        value = g_strdup_printf ("%s:%d", host, g_uri_get_port (uri));
-                        soup_message_headers_append (request_headers, "Host", value);
-                        g_free (value);
-                }
-                g_free (host);
-        }
 
 	soup_message_starting (item->msg);
 	if (item->state == SOUP_MESSAGE_RUNNING)
