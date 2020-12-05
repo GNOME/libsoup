@@ -2086,6 +2086,8 @@ soup_message_get_method (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
         return priv->method;
 }
 
@@ -2101,6 +2103,8 @@ SoupStatus
 soup_message_get_status (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_STATUS_NONE);
 
         return priv->status_code;
 }
@@ -2118,6 +2122,8 @@ soup_message_get_reason_phrase (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
         return priv->reason_phrase; 
 }
 
@@ -2134,6 +2140,8 @@ soup_message_get_request_headers (SoupMessage  *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
         return priv->request_headers; 
 }
 
@@ -2149,6 +2157,8 @@ SoupMessageHeaders *
 soup_message_get_response_headers (SoupMessage  *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
         return priv->response_headers; 
 }
