@@ -51,6 +51,7 @@ typedef struct {
 	while (!(cond)) g_main_context_iteration (NULL, TRUE);	\
 	G_STMT_END
 
+/* LCOV_EXCL_START */
 static void
 on_error_not_reached (SoupWebsocketConnection *ws,
                       GError *error,
@@ -59,6 +60,7 @@ on_error_not_reached (SoupWebsocketConnection *ws,
 	/* At this point we know this will fail, but is informative */
 	g_assert_no_error (error);
 }
+/* LCOV_EXCL_STOP */
 
 static void
 on_error_copy (SoupWebsocketConnection *ws,
