@@ -105,6 +105,12 @@ server_callback  (SoupServer        *server,
 	}
 }
 
+static SoupMessageRedirectionFlags
+redirection_callback (SoupMessage *msg, GUri *location, guint redirect_count, gpointer user_data)
+{
+        return SOUP_MESSAGE_REDIRECTION_BLOCK;
+}
+
 static void
 session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_status)
 {
@@ -113,7 +119,7 @@ session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_stat
 	GError *error = NULL;
 
 	msg = soup_message_new ("GET", uri);
-	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+        g_signal_connect (msg, "redirection", G_CALLBACK (redirection_callback), NULL);
 	body = soup_test_session_send (session, msg, NULL, &error);
 	if (expected_status == SOUP_STATUS_NONE)
 		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE);

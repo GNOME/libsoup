@@ -323,6 +323,41 @@ server2_callback (SoupServer        *server,
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
+static SoupMessageRedirectionFlags
+redirection_callback (SoupMessage *msg, GUri *location, guint redirect_count, gpointer user_data)
+{
+        GUri *old_uri = soup_message_get_uri (msg);
+        gboolean *handled = user_data;
+
+        g_assert_cmpuint (redirect_count, ==, 1);
+        g_assert_false (soup_uri_equal (old_uri, location));
+
+        *handled = TRUE;
+        return SOUP_MESSAGE_REDIRECTION_BLOCK;
+}
+
+static void
+do_msg_redirection_signal_test (void)
+{
+       	GUri *uri = g_uri_parse_relative (base_uri, "301", SOUP_HTTP_URI_FLAGS, NULL);
+        SoupMessage *msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        gboolean handled = FALSE;
+        GError *error = NULL;
+
+        g_signal_connect (msg, "redirection", G_CALLBACK (redirection_callback), &handled);
+
+	GBytes *body = soup_test_session_async_send (async_session, msg, NULL, &error);
+
+        g_assert_no_error (error);
+        g_assert_true (handled);
+        soup_test_assert_message_status (msg, 301);
+        g_assert_true (soup_uri_equal (uri, soup_message_get_uri (msg)));
+
+        g_uri_unref (uri);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -359,6 +394,8 @@ main (int argc, char **argv)
 		g_test_add_data_func (path, &tests[n], do_async_msg_api_test);
 		g_free (path);
 	}
+
+        g_test_add_func ("/redirect/msg/redirection-signal", do_msg_redirection_signal_test);
 
 	ret = g_test_run ();
 

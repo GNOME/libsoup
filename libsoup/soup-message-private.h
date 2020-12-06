@@ -106,6 +106,9 @@ void soup_message_finished          (SoupMessage *msg);
 gboolean soup_message_authenticate  (SoupMessage *msg,
 				     SoupAuth    *auth,
 				     gboolean     retrying);
+SoupMessageRedirectionFlags soup_message_redirection (SoupMessage *msg,
+                                                      GUri        *location,
+                                                      guint        redirect_count);
 
 gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);

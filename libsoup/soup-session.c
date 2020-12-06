@@ -156,6 +156,9 @@ soup_session_process_queue_item (SoupSession          *session,
 				 gboolean             *should_cleanup,
 				 gboolean              loop);
 
+static void async_send_request_return_result (SoupMessageQueueItem *item,
+				              gpointer stream, GError *error);
+
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
 
@@ -813,11 +816,12 @@ redirection_uri (SoupSession *session,
 static gboolean
 soup_session_requeue_item (SoupSession          *session,
 			   SoupMessageQueueItem *item,
+                           gboolean              ignore_count,
 			   GError              **error)
 {
 	gboolean retval;
 
-	if (item->resend_count >= SOUP_SESSION_MAX_RESEND_COUNT) {
+	if (!ignore_count && item->resend_count >= SOUP_SESSION_MAX_RESEND_COUNT) {
 		if (SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (item->msg))) {
 			g_set_error_literal (error,
 					     SOUP_SESSION_ERROR,
@@ -839,48 +843,36 @@ soup_session_requeue_item (SoupSession          *session,
 	return retval;
 }
 
-/**
- * soup_session_redirect_message:
- * @session: the session
- * @msg: a #SoupMessage that has received a 3xx response
- * @error: return location for a #GError, or %NULL
- *
- * Updates @msg's URI according to its status code and "Location"
- * header, and requeues it on @session. Use this when you have set
- * %SOUP_MESSAGE_NO_REDIRECT on a message, but have decided to allow a
- * particular redirection to occur, or if you want to allow a
- * redirection that #SoupSession will not perform automatically (eg,
- * redirecting a non-safe method such as DELETE).
- *
- * If @msg's status code indicates that it should be retried as a GET
- * request, then @msg will be modified accordingly.
- *
- * If @msg has already been redirected too many times, this will
- * cause it to fail with %SOUP_STATUS_TOO_MANY_REDIRECTS.
- *
- * Return value: %TRUE if a redirection was applied, %FALSE if not
- * (eg, because there was no Location header, or it could not be
- * parsed).
- *
- * Since: 2.38
- */
-static gboolean
-soup_session_redirect_message (SoupSession *session,
-			       SoupMessage *msg,
-			       GError     **error)
+static void
+redirect_handler (SoupMessage *msg,
+		  gpointer     user_data)
 {
-	SoupSessionPrivate *priv;
-	GUri *new_uri;
-	SoupMessageQueueItem *item;
-	gboolean retval;
+	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
+        SoupMessageRedirectionFlags redirection_flags;
 
-	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
-	g_return_val_if_fail (!error || *error == NULL, FALSE);
+        if (!SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))
+                return;
 
-	new_uri = redirection_uri (session, msg, error);
+	GUri *new_uri = redirection_uri (session, msg, &item->error);
 	if (!new_uri)
-		return FALSE;
+		return;
+
+        redirection_flags = soup_message_redirection (msg, new_uri, item->resend_count + 1);
+
+        if (redirection_flags & SOUP_MESSAGE_REDIRECTION_BLOCK) {
+                item->state = SOUP_MESSAGE_FINISHING;
+                soup_session_kick_queue (session);
+                g_uri_unref (new_uri);
+                return;
+        }
+
+        if (!(redirection_flags & SOUP_MESSAGE_REDIRECTION_ALLOW_UNSAFE_METHOD) &&
+            !SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
+	    !SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg)) {
+                g_uri_unref (new_uri);
+		return;
+        }
 
 	if (SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg)) {
 		if (soup_message_get_method (msg) != SOUP_METHOD_HEAD) {
@@ -896,26 +888,9 @@ soup_session_redirect_message (SoupSession *session,
 	soup_message_set_uri (msg, new_uri);
 	g_uri_unref (new_uri);
 
-	priv = soup_session_get_instance_private (session);
-	item = soup_message_queue_lookup (priv->queue, msg);
-	retval = soup_session_requeue_item (session, item, error);
-	soup_message_queue_item_unref (item);
-
-	return retval;
-}
-
-static void
-redirect_handler (SoupMessage *msg,
-		  gpointer     user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-	SoupSession *session = item->session;
-
-	if (!SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
-	    !SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg))
-		return;
-
-	soup_session_redirect_message (session, msg, &item->error);
+	soup_session_requeue_item (session, item,
+                                   redirection_flags & SOUP_MESSAGE_REDIRECTION_ALLOW_REDIRECT_COUNT,
+                                   &item->error);
 }
 
 static void
@@ -967,11 +942,10 @@ soup_session_append_queue_item (SoupSession        *session,
 	host->num_messages++;
 	g_mutex_unlock (&priv->conn_lock);
 
-	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
-		soup_message_add_header_handler (
-			msg, "got_body", "Location",
-			G_CALLBACK (redirect_handler), item);
-	}
+        soup_message_add_header_handler (
+                msg, "got_body", "Location",
+                G_CALLBACK (redirect_handler), item);
+
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (message_restarted), item);
 
@@ -1308,7 +1282,6 @@ tunnel_connect (SoupMessageQueueItem *item)
 
 	uri = soup_connection_get_remote_uri (item->conn);
 	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, uri);
-	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
 						      item->async,
@@ -1678,7 +1651,7 @@ soup_session_requeue_message (SoupSession *session,
 	SoupMessageQueueItem *item;
 
 	item = soup_message_queue_lookup (priv->queue, msg);
-	soup_session_requeue_item (session, item, &item->error);
+	soup_session_requeue_item (session, item, FALSE, &item->error);
 	soup_message_queue_item_unref (item);
 }
 
@@ -2516,6 +2489,20 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_STATIC_STRINGS));
 }
 
+static gboolean
+is_tunnel_message (SoupSession *session, SoupMessage *msg)
+{
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+        SoupMessageQueueItem *item = soup_message_queue_lookup (priv->queue, msg);
+        gboolean ret;
+
+        g_assert (item);
+        ret = item->related != NULL;
+
+        soup_message_queue_item_unref (item);
+        return ret;
+}
+
 
 static gboolean
 expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
@@ -2527,12 +2514,12 @@ expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
 		return !feature || !soup_message_disables_feature (msg, feature);
 	}
 
-	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
-		return SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) ||
-			SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg);
-	}
+        /* Tunnel messages are never redirected */
+        if (is_tunnel_message (session, msg))
+                return FALSE;
 
-	return FALSE;
+        return SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) ||
+                SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg);
 }
 
 /* send_request_async */

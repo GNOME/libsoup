@@ -74,10 +74,9 @@ SOUP_AVAILABLE_IN_ALL
 gboolean         soup_message_get_is_top_level_navigation (SoupMessage      *msg);
 
 typedef enum {
-	SOUP_MESSAGE_NO_REDIRECT              = (1 << 1),
-	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 2),
-	SOUP_MESSAGE_IDEMPOTENT               = (1 << 3),
-	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 4)
+	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 1),
+	SOUP_MESSAGE_IDEMPOTENT               = (1 << 2),
+	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 3)
 } SoupMessageFlags;
 
 SOUP_AVAILABLE_IN_ALL
@@ -161,5 +160,12 @@ SoupMessageHeaders *soup_message_get_request_headers  (SoupMessage  *msg);
 
 SOUP_AVAILABLE_IN_ALL
 SoupMessageHeaders *soup_message_get_response_headers (SoupMessage  *msg);
+
+typedef enum {
+        SOUP_MESSAGE_REDIRECTION_DEFAULT = 0,
+        SOUP_MESSAGE_REDIRECTION_BLOCK = (1 << 1),
+        SOUP_MESSAGE_REDIRECTION_ALLOW_UNSAFE_METHOD = (1 << 2),
+        SOUP_MESSAGE_REDIRECTION_ALLOW_REDIRECT_COUNT = (1 << 3),
+} SoupMessageRedirectionFlags;
 
 G_END_DECLS

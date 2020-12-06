@@ -27,6 +27,8 @@ soup_message_is_keepalive
 soup_message_get_tls_certificate
 soup_message_get_tls_certificate_errors
 <SUBSECTION>
+SoupMessageRedirectionFlags
+<SUBSECTION>
 soup_message_set_first_party
 soup_message_get_first_party
 <SUBSECTION>
