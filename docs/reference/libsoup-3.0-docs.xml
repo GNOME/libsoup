@@ -10,82 +10,90 @@
     </releaseinfo>
   </bookinfo>
 
-  <chapter>
-    <title>Tutorial</title>
-    <xi:include href="build-howto.xml"/>
-    <xi:include href="client-howto.xml"/>
-    <xi:include href="server-howto.xml"/>
-  </chapter>
+  <part>
+    <title>Overview</title>
+    <chapter>
+        <title>Tutorial</title>
+        <xi:include href="build-howto.xml"/>
+        <xi:include href="client-howto.xml"/>
+        <xi:include href="server-howto.xml"/>
+    </chapter>
 
-  <chapter>
-    <title>Core HTTP API</title>
-    <xi:include href="xml/soup-cookie.xml"/>
-    <xi:include href="xml/soup-message.xml"/>
-    <xi:include href="xml/soup-message-headers.xml"/>
-    <xi:include href="xml/soup-headers.xml"/>
-    <xi:include href="xml/soup-method.xml"/>
-    <xi:include href="xml/soup-multipart.xml"/>
-    <xi:include href="xml/soup-multipart-input-stream.xml"/>
-    <xi:include href="xml/soup-session.xml"/>
-    <xi:include href="xml/soup-status.xml"/>
-  </chapter>
+    <xi:include href="migrating-from-libsoup-2.xml"/>
+  </part>
 
-  <chapter>
-    <title>HTTP Server</title>
-    <xi:include href="xml/soup-server.xml"/>
-    <xi:include href="xml/soup-server-message.xml"/>
-    <xi:include href="xml/soup-message-body.xml"/>
-  </chapter>
+  <part>
+    <title>API Reference</title>
+    <chapter>
+        <title>Core HTTP API</title>
+        <xi:include href="xml/soup-cookie.xml"/>
+        <xi:include href="xml/soup-message.xml"/>
+        <xi:include href="xml/soup-message-headers.xml"/>
+        <xi:include href="xml/soup-headers.xml"/>
+        <xi:include href="xml/soup-method.xml"/>
+        <xi:include href="xml/soup-multipart.xml"/>
+        <xi:include href="xml/soup-multipart-input-stream.xml"/>
+        <xi:include href="xml/soup-session.xml"/>
+        <xi:include href="xml/soup-status.xml"/>
+    </chapter>
 
-  <chapter>
-    <title>Additional Features</title>
-    <xi:include href="xml/soup-session-feature.xml"/>
-    <xi:include href="xml/soup-content-decoder.xml"/>
-    <xi:include href="xml/soup-content-sniffer.xml"/>
-    <xi:include href="xml/soup-logger.xml"/>
-    <section>
-      <title>Authentication</title>
-      <xi:include href="xml/soup-auth-manager.xml"/>
-      <xi:include href="xml/soup-auth.xml"/>
-      <xi:include href="xml/soup-auth-domain.xml"/>
-      <xi:include href="xml/soup-auth-domain-basic.xml"/>
-      <xi:include href="xml/soup-auth-domain-digest.xml"/>
-    </section>
-    <section>
-        <title>Caching</title>
-        <xi:include href="xml/soup-cache.xml"/>
-    </section>
-    <section>
-      <title>Cookie Storage Support</title>
-      <xi:include href="xml/soup-cookie-jar.xml"/>
-      <xi:include href="xml/soup-cookie-jar-text.xml"/>
-      <xi:include href="xml/soup-cookie-jar-db.xml"/>
-    </section>
-    <section>
-      <title>HSTS Support</title>
-      <xi:include href="xml/soup-hsts-enforcer.xml"/>
-      <xi:include href="xml/soup-hsts-enforcer-db.xml"/>
-      <xi:include href="xml/soup-hsts-policy.xml"/>
-    </section>
-  </chapter>
+    <chapter>
+        <title>HTTP Server</title>
+        <xi:include href="xml/soup-server.xml"/>
+        <xi:include href="xml/soup-server-message.xml"/>
+        <xi:include href="xml/soup-message-body.xml"/>
+    </chapter>
 
-  <chapter>
-    <title>Web Services APIs</title>
-    <xi:include href="xml/soup-form.xml"/>
-    <section>
-      <title>WebSocket Support</title>
-      <xi:include href="xml/soup-websocket.xml"/>
-      <xi:include href="xml/soup-websocket-extension.xml"/>
-    </section>
-  </chapter>
+    <chapter>
+        <title>Additional Features</title>
+        <xi:include href="xml/soup-session-feature.xml"/>
+        <xi:include href="xml/soup-content-decoder.xml"/>
+        <xi:include href="xml/soup-content-sniffer.xml"/>
+        <xi:include href="xml/soup-logger.xml"/>
+        <section>
+        <title>Authentication</title>
+        <xi:include href="xml/soup-auth-manager.xml"/>
+        <xi:include href="xml/soup-auth.xml"/>
+        <xi:include href="xml/soup-auth-domain.xml"/>
+        <xi:include href="xml/soup-auth-domain-basic.xml"/>
+        <xi:include href="xml/soup-auth-domain-digest.xml"/>
+        </section>
+        <section>
+            <title>Caching</title>
+            <xi:include href="xml/soup-cache.xml"/>
+        </section>
+        <section>
+        <title>Cookie Storage Support</title>
+        <xi:include href="xml/soup-cookie-jar.xml"/>
+        <xi:include href="xml/soup-cookie-jar-text.xml"/>
+        <xi:include href="xml/soup-cookie-jar-db.xml"/>
+        </section>
+        <section>
+        <title>HSTS Support</title>
+        <xi:include href="xml/soup-hsts-enforcer.xml"/>
+        <xi:include href="xml/soup-hsts-enforcer-db.xml"/>
+        <xi:include href="xml/soup-hsts-policy.xml"/>
+        </section>
+    </chapter>
 
-  <chapter>
-    <title>Utility API</title>
-    <xi:include href="xml/soup-date-utils.xml"/>
-    <xi:include href="xml/soup-tld.xml"/>
-    <xi:include href="xml/soup-uri-utils.xml"/>
-    <xi:include href="xml/soup-version.xml"/>
-  </chapter>
+    <chapter>
+        <title>Web Services APIs</title>
+        <xi:include href="xml/soup-form.xml"/>
+        <section>
+        <title>WebSocket Support</title>
+        <xi:include href="xml/soup-websocket.xml"/>
+        <xi:include href="xml/soup-websocket-extension.xml"/>
+        </section>
+    </chapter>
+
+    <chapter>
+        <title>Utility API</title>
+        <xi:include href="xml/soup-date-utils.xml"/>
+        <xi:include href="xml/soup-tld.xml"/>
+        <xi:include href="xml/soup-uri-utils.xml"/>
+        <xi:include href="xml/soup-version.xml"/>
+    </chapter>
+  </part>
 
   <index id="api-index-full">
     <title>Index of all symbols</title>

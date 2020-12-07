@@ -67,6 +67,7 @@ gnome.gtkdoc('libsoup-3.0',
   content_files: [
     'build-howto.xml',
     'client-howto.xml',
-    'server-howto.xml'
-  ]
+    'server-howto.xml',
+    'migrating-from-libsoup-2.xml',
+  ],
 )
