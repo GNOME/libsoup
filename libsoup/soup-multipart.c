@@ -83,9 +83,10 @@ generate_boundary (void)
  * Creates a new empty #SoupMultipart with a randomly-generated
  * boundary string. Note that @mime_type must be the full MIME type,
  * including "multipart/".
- *
+ * 
  * Return value: a new empty #SoupMultipart of the given @mime_type
  *
+ * See also: soup_message_new_from_multipart()
  * Since: 2.26
  **/
 SoupMultipart *
@@ -325,8 +326,7 @@ soup_multipart_append_part (SoupMultipart      *multipart,
  *
  * Adds a new MIME part containing @data to @multipart, using
  * "Content-Disposition: form-data", as per the HTML forms
- * specification. See soup_form_request_new_from_multipart() for more
- * details.
+ * specification.
  *
  * Since: 2.26
  **/ 
@@ -352,8 +352,7 @@ soup_multipart_append_form_string (SoupMultipart *multipart,
  *
  * Adds a new MIME part containing @body to @multipart, using
  * "Content-Disposition: form-data", as per the HTML forms
- * specification. See soup_form_request_new_from_multipart() for more
- * details.
+ * specification.
  *
  * Since: 2.26
  **/ 

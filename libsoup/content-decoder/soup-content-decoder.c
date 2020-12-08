@@ -29,10 +29,8 @@
  *
  * A #SoupContentDecoder will automatically be
  * added to the session by default. (You can use
- * %SOUP_SESSION_REMOVE_FEATURE_BY_TYPE at construct time if you don't
- * want this.) If you are using one of the deprecated #SoupSession
- * subclasses, you can add a #SoupContentDecoder to your session with
- * soup_session_add_feature() or soup_session_add_feature_by_type().
+ * soup_session_remove_feature_by_type() if you don't
+ * want this.)
  *
  * If #SoupContentDecoder successfully decodes the Content-Encoding,
  * the message body will contain the decoded data; however, the message headers

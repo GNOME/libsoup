@@ -142,8 +142,8 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 	 * Emitted when the manager requires the application to
 	 * provide authentication credentials.
 	 *
-	 * #SoupSession connects to this signal and emits its own
-	 * #SoupSession::authenticate signal when it is emitted, so
+	 * #SoupMessage connects to this signal and emits its own
+	 * #SoupMessage::authenticate signal when it is emitted, so
 	 * you shouldn't need to use this signal directly.
 	 */
 	signals[AUTHENTICATE] =

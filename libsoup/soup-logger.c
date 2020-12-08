@@ -76,7 +76,7 @@
  * body is read from the network (from the #SoupMessage::got-body or
  * #SoupMessage::got-informational signal), which means that the
  * #SoupMessage::got-headers signal, and anything triggered off it
- * (such as #SoupSession::authenticate) will be emitted
+ * (such as #SoupMessage::authenticate) will be emitted
  * <emphasis>before</emphasis> the response headers are actually
  * logged.
  *

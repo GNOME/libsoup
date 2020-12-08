@@ -1924,8 +1924,6 @@ soup_server_unpause_message (SoupServer        *server,
  * a new #SoupWebsocketExtension of type @extension_type will be created
  * to handle the request.
  *
- * You can also add support for a WebSocket extension to the server at
- * construct time by using the #SoupServer:add-websocket-extension property.
  * Note that #SoupWebsocketExtensionDeflate is supported by default, use
  * soup_server_remove_websocket_extension() if you want to disable it.
  *
@@ -1953,9 +1951,7 @@ soup_server_add_websocket_extension (SoupServer *server, GType extension_type)
  * @extension_type: a #GType
  *
  * Removes support for WebSocket extension of type @extension_type (or any subclass of
- * @extension_type) from @server. You can also remove extensions enabled by default
- * from the server at construct time by using the %SOUP_SERVER_REMOVE_WEBSOCKET_EXTENSION
- * property.
+ * @extension_type) from @server.
  *
  * Since: 2.68
  */

@@ -52,8 +52,7 @@
  * Additional #SoupSession functionality is provided by
  * #SoupSessionFeature objects, which can be added to a session with
  * soup_session_add_feature() or soup_session_add_feature_by_type()
- * (or at construct time with the %SOUP_SESSION_ADD_FEATURE_BY_TYPE
- * pseudo-property). For example, #SoupLogger provides support for
+ * For example, #SoupLogger provides support for
  * logging HTTP traffic, #SoupContentDecoder provides support for
  * compressed response handling, and #SoupContentSniffer provides
  * support for HTML5-style response body content sniffing.
@@ -2291,9 +2290,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Setting this to %FALSE (when it was previously %TRUE) will
 	 * clear the #SoupSession:tls-database field.
 	 *
-	 * See #SoupSession:ssl-strict for more information on how
-	 * https certificate validation is handled.
-	 *
 	 * Since: 2.38
 	 **/
 	g_object_class_install_property (
@@ -2314,9 +2310,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupSession:ssl-use-system-ca-file property will cause
 	 * this property to be set to a #GTlsDatabase corresponding to
 	 * the indicated file or system default.
-	 *
-	 * See #SoupSession:ssl-strict for more information on how
-	 * https certificate validation is handled.
 	 *
 	 * Since: 2.38
 	 **/

@@ -1370,7 +1370,7 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   the credentials cache for this message, neither to use cached credentials
  *   to automatically authenticate this message nor to cache the credentials
  *   after the message is successfully authenticated. This applies to both server
- *   and proxy authentication. Note that #SoupSession::authenticate signal will
+ *   and proxy authentication. Note that #SoupMessage::authenticate signal will
  *   be emitted, if you want to disable authentication for a message use
  *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead. Since 2.58
  *
@@ -1576,8 +1576,7 @@ soup_message_is_keepalive (SoupMessage *msg)
  * @uri: the new #GUri
  *
  * Sets @msg's URI to @uri. If @msg has already been sent and you want
- * to re-send it with the new URI, you need to call
- * soup_session_requeue_message().
+ * to re-send it with the new URI, you need to send it again.
  **/
 void
 soup_message_set_uri (SoupMessage *msg, GUri *uri)

@@ -248,6 +248,8 @@ encode_pair (GString *str, const char *name, const char *value)
  * soup_form_encode_datalist().
  *
  * Return value: the encoded form
+ *
+ * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode (const char *first_field, ...)
@@ -277,6 +279,8 @@ soup_form_encode (const char *first_field, ...)
  * ordering of the form fields, use soup_form_encode_datalist().
  *
  * Return value: the encoded form
+ *
+ * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode_hash (GHashTable *form_data_set)
@@ -307,6 +311,8 @@ datalist_encode_foreach (GQuark key_id, gpointer value, gpointer str)
  * of the form elements, which may be required in some situations.
  *
  * Return value: the encoded form
+ *
+ * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode_datalist (GData **form_data_set)
@@ -323,10 +329,11 @@ soup_form_encode_datalist (GData **form_data_set)
  * @args: pointer to additional values, as in soup_form_encode()
  *
  * See soup_form_encode(). This is mostly an internal method, used by
- * various other methods such as soup_uri_set_query_from_fields() and
- * soup_form_request_new().
+ * various other methods such as soup_form_encode().
  *
  * Return value: the encoded form
+ *
+ * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode_valist (const char *first_field, va_list args)
