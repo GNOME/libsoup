@@ -55,7 +55,7 @@ SOUP_AVAILABLE_IN_ALL
 GInputStream   *soup_session_send             (SoupSession           *session,
 					       SoupMessage           *msg,
 					       GCancellable          *cancellable,
-					       GError               **error);
+					       GError               **error) G_GNUC_WARN_UNUSED_RESULT;
 
 SOUP_AVAILABLE_IN_ALL
 void                soup_session_add_feature            (SoupSession        *session,
