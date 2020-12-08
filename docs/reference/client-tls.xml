@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://docbook.org/xml/5.1/rng/docbook.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<?xml-model href="http://docbook.org/xml/5.1/sch/docbook.sch" type="application/xml" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<sect1 xmlns="http://docbook.org/ns/docbook" 
+    xmlns:xlink="http://www.w3.org/1999/xlink" version="5.1">
+  <title>Everything TLS Related</title>
+  <para>libsoup comes with TLS support provided by glib-networking. This has multiple backends
+  including gnutls (default on all platforms), SChannel on Windows, or OpenSSL.</para>
+  <sect2>
+    <title>Accepting Invalid or Pinned Certificates</title>
+    <para>This makes use of the <literal>SoupMessage::accept-certificate</literal> signal.</para>
+<informalexample><programlisting><![CDATA[
+static gboolean
+accept_certificate_callback (SoupMessage *msg, GTlsCertificate *certificate,
+                             GTlsCertificateFlags tls_errors, gpointer user_data)
+{
+    // Here you can inspect @certificate or compare it against a trusted one
+    // and you can see what is considered invalid by @tls_errors.
+    // Returning TRUE trusts it anyway.
+    return TRUE;
+}
+
+int main (int argc, char **argv)
+{
+    SoupSession *session = soup_session_new ();
+    SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://example.org");
+    g_signal_connect (msg, "accept-certificate", G_CALLBACK (accept_certificate_callback), NULL);
+    GInputStream *in_stream = soup_session_send (session, msg, NULL, NULL);
+
+    if (in_stream) {
+        g_object_unref (in_stream);
+    }
+
+    return 0;
+}]]>
+</programlisting></informalexample>
+  </sect2>
+  <sect2>
+    <title>Setting a Custom CA</title>
+<informalexample><programlisting><![CDATA[
+{
+    GError *error = NULL;
+    // NOTE: This is blocking IO
+    GTlsDatabase *tls_db = g_tls_file_database_new ("/foo/ca.pem", &error);
+
+    if (error) {
+        g_printerr ("Failed to load certificates: %s\n", error->message);
+        g_error_free (error);
+        return;
+    }
+
+    SoupSession *session = soup_session_new_with_options ("tls-database", tls_db, NULL);
+    g_object_unref (tls_db);
+}]]>
+</programlisting></informalexample>
+  </sect2>
+  <sect2>
+    <title>Using Client Certificates</title>
+<informalexample><programlisting><![CDATA[
+// We must create a custom GTlsInteraction so lets do that inline
+typedef struct _GetTlsCertInteraction        GetTlsCertInteraction;
+typedef struct _GetTlsCertInteractionClass   GetTlsCertInteractionClass;
+
+static GType                    _get_tls_cert_interaction_get_type    (void) G_GNUC_CONST;
+static GetTlsCertInteraction *  _get_tls_cert_interaction_new         (GTlsCertificate *cert);
+
+struct _GetTlsCertInteraction
+{
+	GTlsInteraction parent_instance;
+	GTlsCertificate *cert;
+};
+
+struct _GetTlsCertInteractionClass
+{
+	GTlsInteractionClass parent_class;
+};
+
+G_DEFINE_TYPE (GetTlsCertInteraction, _get_tls_cert_interaction, G_TYPE_TLS_INTERACTION);
+
+static GTlsInteractionResult
+request_certificate (GTlsInteraction              *interaction,
+                     GTlsConnection               *connection,
+                     GTlsCertificateRequestFlags   flags,
+                     GCancellable                 *cancellable,
+                     GError                      **error)
+{
+	GetTlsCertInteraction *self = (GetTlsCertInteraction*)interaction;
+	g_tls_connection_set_certificate (connection, self->cert);
+	return G_TLS_INTERACTION_HANDLED;
+}
+
+static void
+_get_tls_cert_interaction_init (GetTlsCertInteraction *interaction)
+{
+}
+
+static void
+_get_tls_cert_interaction_class_init (GetTlsCertInteractionClass *klass)
+{
+	GTlsInteractionClass *interaction_class = G_TLS_INTERACTION_CLASS (klass);
+	interaction_class->request_certificate = request_certificate;
+}
+
+GetTlsCertInteraction *
+_get_tls_cert_interaction_new (GTlsCertificate *cert)
+{
+	GetTlsCertInteraction *self = g_object_new (_get_tls_cert_interaction_get_type (), NULL);
+	self->cert = g_object_ref (cert);
+	return self;
+}
+
+int main (int argc, char **argv)
+{
+    GError *error = NULL;
+    GTlsCertificate *client_cert = g_tls_certificate_new_from_file ("/foo/cert.pem", &error);
+
+    if (error) {
+        g_printerr ("Failed to load certificate: %s\n", error->message);
+        g_error_free (error);
+        return 1;
+    }
+
+    GTlsInteraction *interaction = _get_tls_cert_interaction_new (cert);
+    SoupSession *session = soup_session_new_with_options ("tls-interaction", interaction, NULL);
+
+    // Send a message
+
+    g_object_unref (interaction);
+    g_object_unref (client_cert);
+    return 0;
+}]]>
+</programlisting></informalexample>
+  </sect2>
+</sect1>

@@ -49,7 +49,7 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                         <link linkend="g-proxy-resolver-get-default"><function>g_proxy_resolver_get_default()</function></link></para>
                 </listitem>
                 <listitem>
-                    <para><type>SoupBuffer</type> has been replaced by <link linkend="GBytes"><type>GBytes</type></link> and <link linkend="GBytesArray"><type>GBytesArray</type></link></para>
+                    <para><type>SoupBuffer</type> has been replaced by <link linkend="GBytes"><type>GBytes</type></link> and <link linkend="GByteArray"><type>GByteArray</type></link></para>
                 </listitem>
                 <listitem>
                     <para><type>SoupDate</type> has been replaced by <link linkend="GDateTime"><type>GDateTime</type></link></para>
