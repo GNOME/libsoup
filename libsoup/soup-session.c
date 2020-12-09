@@ -849,7 +849,7 @@ redirect_handler (SoupMessage *msg,
 {
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
-        SoupMessageRedirectionFlags redirection_flags;
+        SoupMessageRedirectFlags redirection_flags;
 
         if (!SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))
                 return;
@@ -858,16 +858,16 @@ redirect_handler (SoupMessage *msg,
 	if (!new_uri)
 		return;
 
-        redirection_flags = soup_message_redirection (msg, new_uri, item->resend_count + 1);
+        redirection_flags = soup_message_redirect (msg, new_uri, item->resend_count + 1);
 
-        if (redirection_flags & SOUP_MESSAGE_REDIRECTION_BLOCK) {
+        if (redirection_flags & SOUP_MESSAGE_REDIRECT_BLOCK) {
                 item->state = SOUP_MESSAGE_FINISHING;
                 soup_session_kick_queue (session);
                 g_uri_unref (new_uri);
                 return;
         }
 
-        if (!(redirection_flags & SOUP_MESSAGE_REDIRECTION_ALLOW_UNSAFE_METHOD) &&
+        if (!(redirection_flags & SOUP_MESSAGE_REDIRECT_ALLOW_UNSAFE_METHOD) &&
             !SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
 	    !SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg)) {
                 g_uri_unref (new_uri);
@@ -889,7 +889,7 @@ redirect_handler (SoupMessage *msg,
 	g_uri_unref (new_uri);
 
 	soup_session_requeue_item (session, item,
-                                   redirection_flags & SOUP_MESSAGE_REDIRECTION_ALLOW_REDIRECT_COUNT,
+                                   redirection_flags & SOUP_MESSAGE_REDIRECT_ALLOW_REDIRECT_COUNT,
                                    &item->error);
 }
 

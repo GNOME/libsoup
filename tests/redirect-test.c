@@ -323,7 +323,7 @@ server2_callback (SoupServer        *server,
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
-static SoupMessageRedirectionFlags
+static SoupMessageRedirectFlags
 redirection_callback (SoupMessage *msg, GUri *location, guint redirect_count, gpointer user_data)
 {
         GUri *old_uri = soup_message_get_uri (msg);
@@ -333,7 +333,7 @@ redirection_callback (SoupMessage *msg, GUri *location, guint redirect_count, gp
         g_assert_false (soup_uri_equal (old_uri, location));
 
         *handled = TRUE;
-        return SOUP_MESSAGE_REDIRECTION_BLOCK;
+        return SOUP_MESSAGE_REDIRECT_BLOCK;
 }
 
 static void
@@ -344,7 +344,7 @@ do_msg_redirection_signal_test (void)
         gboolean handled = FALSE;
         GError *error = NULL;
 
-        g_signal_connect (msg, "redirection", G_CALLBACK (redirection_callback), &handled);
+        g_signal_connect (msg, "redirect", G_CALLBACK (redirection_callback), &handled);
 
 	GBytes *body = soup_test_session_async_send (async_session, msg, NULL, &error);
 

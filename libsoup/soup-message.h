@@ -162,10 +162,10 @@ SOUP_AVAILABLE_IN_ALL
 SoupMessageHeaders *soup_message_get_response_headers (SoupMessage  *msg);
 
 typedef enum {
-        SOUP_MESSAGE_REDIRECTION_DEFAULT = 0,
-        SOUP_MESSAGE_REDIRECTION_BLOCK = (1 << 1),
-        SOUP_MESSAGE_REDIRECTION_ALLOW_UNSAFE_METHOD = (1 << 2),
-        SOUP_MESSAGE_REDIRECTION_ALLOW_REDIRECT_COUNT = (1 << 3),
-} SoupMessageRedirectionFlags;
+        SOUP_MESSAGE_REDIRECT_DEFAULT = 0,
+        SOUP_MESSAGE_REDIRECT_BLOCK = (1 << 1),
+        SOUP_MESSAGE_REDIRECT_ALLOW_UNSAFE_METHOD = (1 << 2),
+        SOUP_MESSAGE_REDIRECT_ALLOW_REDIRECT_COUNT = (1 << 3),
+} SoupMessageRedirectFlags;
 
 G_END_DECLS

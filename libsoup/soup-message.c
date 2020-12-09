@@ -113,7 +113,7 @@ enum {
 	AUTHENTICATE,
 	NETWORK_EVENT,
 	ACCEPT_CERTIFICATE,
-        REDIRECTION,
+        REDIRECT,
 
 	LAST_SIGNAL
 };
@@ -593,7 +593,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_TLS_CERTIFICATE_FLAGS);
 
 	/**
-	 * SoupMessage::redirection:
+	 * SoupMessage::redirect:
 	 * @msg: the message
 	 * @location: the new redirected location
          * @redirect_count: count of redirects for @msg
@@ -604,16 +604,16 @@ soup_message_class_init (SoupMessageClass *message_class)
          * You can call soup_message_get_uri() to access the pre-redirect
          * URI.
          *
-	 * Returns: a #SoupMessageRedirectionFlags
+	 * Returns: a #SoupMessageRedirectFlags
 	 */
-	signals[REDIRECTION] =
-		g_signal_new ("redirection",
+	signals[REDIRECT] =
+		g_signal_new ("redirect",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      redirection_accumulator, NULL,
 			      NULL,
-			      SOUP_TYPE_MESSAGE_REDIRECTION_FLAGS, 2,
+			      SOUP_TYPE_MESSAGE_REDIRECT_FLAGS, 2,
 			      G_TYPE_URI,
                               G_TYPE_UINT);
 
@@ -2221,26 +2221,26 @@ soup_message_is_options_ping (SoupMessage *msg)
 }
 
 /**
- * SoupMessageRedirectionFlags:
- * @SOUP_MESSAGE_REDIRECTION_DEFAULT: The session will handled redirects
+ * SoupMessageRedirectFlags:
+ * @SOUP_MESSAGE_REDIRECT_DEFAULT: The session will handled redirects
  *   as normal. That is allowing them over safe methods.
- * @SOUP_MESSAGE_REDIRECTION_BLOCK: Override the default behavior preventing
+ * @SOUP_MESSAGE_REDIRECT_BLOCK: Override the default behavior preventing
  *   the redirect.
- * @SOUP_MESSAGE_REDIRECTION_ALLOW_UNSAFE_METHOD: Override the default behavior
+ * @SOUP_MESSAGE_REDIRECT_ALLOW_UNSAFE_METHOD: Override the default behavior
  *   allowing redirects over unsafe methods such as DELETE.
- * @SOUP_MESSAGE_REDIRECTION_ALLOW_REDIRECT_COUNT: Override the default behavior
+ * @SOUP_MESSAGE_REDIRECT_ALLOW_REDIRECT_COUNT: Override the default behavior
  *   ignoring the limit of number of redirects.
  *
- * Values returned by the #SoupMessage::redirection handler to alter the behavior
+ * Values returned by the #SoupMessage::redirect handler to alter the behavior
  * of redirects.
  **/
 
-SoupMessageRedirectionFlags
-soup_message_redirection (SoupMessage *msg, GUri *location, guint redirect_count)
+SoupMessageRedirectFlags
+soup_message_redirect (SoupMessage *msg, GUri *location, guint redirect_count)
 {
-        SoupMessageRedirectionFlags behavior = SOUP_MESSAGE_REDIRECTION_DEFAULT;
+        SoupMessageRedirectFlags behavior = SOUP_MESSAGE_REDIRECT_DEFAULT;
 
-	g_signal_emit (msg, signals[REDIRECTION], 0, location, redirect_count,
+	g_signal_emit (msg, signals[REDIRECT], 0, location, redirect_count,
 		       &behavior);
 
 	return behavior;
@@ -2252,10 +2252,10 @@ redirection_accumulator (GSignalInvocationHint *ihint,
                          const GValue          *handler_return,
                          gpointer               user_data)
 {
-        SoupMessageRedirectionFlags value;
+        SoupMessageRedirectFlags value;
 
         value = g_value_get_flags (handler_return);
         g_value_set_flags (return_accu, value);
 
-        return value == SOUP_MESSAGE_REDIRECTION_DEFAULT;
+        return value == SOUP_MESSAGE_REDIRECT_DEFAULT;
 }
