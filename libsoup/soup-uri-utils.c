@@ -489,16 +489,3 @@ soup_uri_copy_with_normalized_flags (GUri *uri)
                 g_uri_get_fragment (uri)
         );
 }
-
-char *
-soup_uri_get_host_for_headers (GUri *uri)
-{
-        const char *host = g_uri_get_host (uri);
-
-        if (strchr (host, ':'))
-                return g_strdup_printf ("[%.*s]", (int)strcspn (host, "%"), host);
-        if (g_hostname_is_non_ascii (host))
-                return g_hostname_to_ascii (host);
-
-        return g_strdup (host);
-}

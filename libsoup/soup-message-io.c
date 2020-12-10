@@ -259,12 +259,16 @@ write_headers (SoupMessage          *msg,
 	       SoupEncoding         *encoding)
 {
 	GUri *uri = soup_message_get_uri (msg);
-        char *uri_host;
+	char *uri_host;
 	char *uri_string;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 
-        uri_host = soup_uri_get_host_for_headers (uri);
+        uri_host = (char*)g_uri_get_host (uri);
+	if (strchr (uri_host, ':'))
+		uri_host = g_strdup_printf ("[%.*s]", (int) strcspn (uri_host, "%"), uri_host);
+	else if (g_hostname_is_non_ascii (uri_host))
+		uri_host = g_hostname_to_ascii (uri_host);
 
 	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
@@ -304,7 +308,8 @@ write_headers (SoupMessage          *msg,
 		}
 	}
 	g_free (uri_string);
-	g_free (uri_host);
+	if (uri_host != g_uri_get_host (uri))
+		g_free (uri_host);
 
 	*encoding = soup_message_headers_get_encoding (soup_message_get_request_headers (msg));
 

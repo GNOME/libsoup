@@ -516,14 +516,20 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 		return;
 
 	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg), "Host")) {
-		char *uri_host = soup_uri_get_host_for_headers (uri);
+		char *uri_host = (char*)g_uri_get_host (uri);
+
+		if (strchr (uri_host, ':'))
+			uri_host = g_strdup_printf ("[%s]", uri_host);
+		else if (g_hostname_is_non_ascii (uri_host))
+			uri_host = g_hostname_to_ascii (uri_host);
 
 		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
 				   "Host: %s%c%u", uri_host,
 				   soup_uri_uses_default_port (uri) ? '\0' : ':',
 				   g_uri_get_port (uri));
 
-		g_free (uri_host);
+		if (uri_host != g_uri_get_host (uri))
+			g_free (uri_host);
 	}
 	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {

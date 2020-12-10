@@ -28,8 +28,6 @@ gboolean     soup_uri_host_equal            (gconstpointer v1, gconstpointer v2)
 
 GUri        *soup_uri_copy_with_normalized_flags (GUri  *uri);
 
-char        *soup_uri_get_host_for_headers  (GUri       *uri);
-
 #define SOUP_URI_IS_VALID(x) (x && g_uri_get_host(x) && g_uri_get_host(x)[0])
 
 G_END_DECLS
