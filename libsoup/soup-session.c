@@ -870,6 +870,7 @@ soup_session_redirect_message (SoupSession *session,
 {
 	SoupSessionPrivate *priv;
 	GUri *new_uri;
+	char *host;
 	SoupMessageQueueItem *item;
 	gboolean retval;
 
@@ -891,6 +892,18 @@ soup_session_redirect_message (SoupSession *session,
 		soup_message_headers_set_encoding (soup_message_get_request_headers (msg),
 						   SOUP_ENCODING_NONE);
 	}
+
+	host = soup_uri_get_host_for_headers (new_uri);
+	if (soup_uri_uses_default_port (new_uri))
+		soup_message_headers_replace (soup_message_get_request_headers (msg), "Host", host);
+	else {
+		char *value;
+
+		value = g_strdup_printf ("%s:%d", host, g_uri_get_port (new_uri));
+		soup_message_headers_replace (soup_message_get_request_headers (msg), "Host", value);
+		g_free (value);
+	}
+	g_free (host);
 
 	soup_message_set_uri (msg, new_uri);
 	g_uri_unref (new_uri);
