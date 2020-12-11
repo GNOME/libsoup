@@ -7,7 +7,7 @@ variables:
 
 build:
   tags:
-    - non_aws
+    - ipv6
   before_script:
     - dnf update -y --nogpgcheck
     - dnf install -y 'dnf-command(builddep)'
