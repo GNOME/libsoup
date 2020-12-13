@@ -1,3 +1,7 @@
+Changes in libsoup from 2.64.2 to 2.64.3:
+
+	* Backport a large number of WebSocket fixes [!160, Claudio Saavedra]
+
 Changes in libsoup from 2.64.1 to 2.64.2:
 
 	* TLD tests updated (Claudio Saavedra)
