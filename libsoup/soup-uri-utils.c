@@ -344,11 +344,15 @@ soup_uri_decode_data_uri (const char *uri,
                 bytes = g_uri_unescape_bytes (start, -1, NULL, NULL);
 
                 if (base64 && bytes) {
-                        gsize content_length;
-                        GByteArray *unescaped_array = g_bytes_unref_to_array (bytes);
-                        g_base64_decode_inplace ((gchar*)unescaped_array->data, &content_length);
-                        unescaped_array->len = content_length;
-                        bytes = g_byte_array_free_to_bytes (unescaped_array);
+                        if (g_bytes_get_size (bytes) <= 1)
+                                g_clear_pointer (&bytes, g_bytes_unref);
+                        else {
+                                gsize content_length;
+                                GByteArray *unescaped_array = g_bytes_unref_to_array (bytes);
+                                g_base64_decode_inplace ((gchar*)unescaped_array->data, &content_length);
+                                unescaped_array->len = content_length;
+                                bytes = g_byte_array_free_to_bytes (unescaped_array);
+                        }
                 }
         } else {
                 bytes = g_bytes_new_static (NULL, 0);
