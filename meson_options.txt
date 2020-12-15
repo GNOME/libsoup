@@ -70,3 +70,9 @@ option('sysprof',
   value: 'auto',
   description: 'enable sysprof-capture support for profiling'
 )
+
+option('fuzzing',
+  type: 'feature',
+  value: 'disabled',
+  description: 'enable fuzzing support'
+)

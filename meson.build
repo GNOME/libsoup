@@ -1,6 +1,6 @@
 project('libsoup', 'c',
         version: '2.91.0',
-        meson_version : '>=0.50',
+        meson_version : '>= 0.53',
         license : 'LGPL2',
         default_options : 'c_std=c99')
 
@@ -66,8 +66,9 @@ else
       '-Wno-missing-include-dirs',
   ]
 
-  if get_option('b_sanitize') == 'address'
-    test_cflags += '-fno-omit-frame-pointer'
+  if get_option('b_sanitize') == 'address' or get_option('b_sanitize') == 'address,undefined' or \
+     get_option('fuzzing').enabled()
+    test_cflags += ['-fno-omit-frame-pointer', '-fno-optimize-sibling-calls']
   endif
 
   common_flags += cc.get_supported_arguments(test_cflags)
