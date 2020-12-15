@@ -64,6 +64,7 @@ else
       '-Wstrict-prototypes',
       '-Wno-format-zero-length',
       '-Wno-missing-include-dirs',
+      '-Wno-typedef-redefinition',
   ]
 
   if get_option('b_sanitize') == 'address' or get_option('b_sanitize') == 'address,undefined' or \
@@ -357,7 +358,7 @@ if find_program('xgettext', required : false).found()
 endif
 
 subdir('examples')
-
+subdir('fuzzing')
 if get_option('tests')
   subdir('tests')
  endif
