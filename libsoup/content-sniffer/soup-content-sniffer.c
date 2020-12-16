@@ -651,7 +651,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 		goto text_html;
 
 	/* Skip a leading UTF-8 BOM */
-	if (resource[0] == 0xEF && resource[1] == 0xBB && resource[2] == 0xBF)
+	if ((guchar)resource[0] == 0xEF && (guchar)resource[1] == 0xBB && (guchar)resource[2] == 0xBF)
 		pos = 3;
 
  look_for_tag:
