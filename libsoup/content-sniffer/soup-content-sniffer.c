@@ -507,6 +507,9 @@ sniff_unknown (SoupContentSniffer *sniffer, GBytes *buffer,
 	resource_length = MIN (512, resource_length);
 	guint i;
 
+        if (resource_length == 0)
+                return g_strdup ("application/octet-stream");
+
 	for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
 		SoupContentSnifferPattern *type_row = &(types_table[i]);
 
