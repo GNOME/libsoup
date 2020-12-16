@@ -311,8 +311,10 @@ soup_uri_decode_data_uri (const char *uri,
         if (!soup_uri)
                 return NULL;
 
-        if (g_strcmp0 (g_uri_get_scheme (soup_uri), "data") || g_uri_get_host (soup_uri) != NULL)
+        if (g_strcmp0 (g_uri_get_scheme (soup_uri), "data") || g_uri_get_host (soup_uri) != NULL) {
+                g_uri_unref (soup_uri);
                 return NULL;
+        }
 
         if (content_type)
                 *content_type = NULL;
