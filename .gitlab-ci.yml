@@ -58,18 +58,18 @@ fedora-asan:
     paths:
       - "_build/meson-logs/testlog.txt"
 
-fedora-fuzzing:
-  stage: build
-  allow_failure: true
-  variables:
-    CC: clang
-  script:
-    - meson _build -Dauto-features=enabled -Dfuzzing=enabled -Dintrospection=disabled -Dvapi=disabled
-    - meson test -C _build --suite=fuzzing --timeout-multiplier=10
-  artifacts:
-    when: on_failure
-    paths:
-      - _build/meson-logs/
+# fedora-fuzzing:
+#   stage: build
+#   allow_failure: true
+#   variables:
+#     CC: clang
+#   script:
+#     - meson _build -Dauto-features=enabled -Dfuzzing=enabled -Dintrospection=disabled -Dvapi=disabled
+#     - meson test -C _build --suite=fuzzing --timeout-multiplier=10
+#   artifacts:
+#     when: on_failure
+#     paths:
+#       - _build/meson-logs/
 
 reference:
   stage: docs
