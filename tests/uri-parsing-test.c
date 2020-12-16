@@ -115,6 +115,46 @@ do_copy_tests (void)
         g_uri_unref (uri);
 }
 
+#define CONTENT_TYPE_DEFAULT "text/plain;charset=US-ASCII"
+
+static struct {
+	const char *input;
+        const char *output;
+        const char *content_type;
+} data_uri_tests[] = {
+        { "invalid:", NULL, NULL },
+        { "data:", "", CONTENT_TYPE_DEFAULT },
+        { "data:hello", "hello", CONTENT_TYPE_DEFAULT },
+        { "data:text/plain,hello", "hello", "text/plain" },
+        { "data:text/plain;charset=UTF-8,hello", "hello", "text/plain;charset=UTF-8" },
+        { "data:text/plain;base64,aGVsbG8=", "hello", "text/plain" },
+        { "data:text/plain;base64,invalid=", "", "text/plain" },
+        { "data:,", "", CONTENT_TYPE_DEFAULT },
+};
+
+static void
+do_data_uri_tests (void)
+{
+	int i;
+
+	for (i = 0; i < G_N_ELEMENTS (data_uri_tests); i++) {
+                char *content_type = NULL;
+                GBytes *output = soup_uri_decode_data_uri (data_uri_tests[i].input, &content_type);
+
+                if (data_uri_tests[i].output == NULL) {
+                        g_assert_null (output);
+                        g_assert_null (content_type);
+                        continue;
+                }
+
+                g_assert_nonnull (output);
+                g_assert_cmpstr (content_type, ==, data_uri_tests[i].content_type);
+
+		g_free (content_type);
+		g_bytes_unref (output);
+	}
+}
+
 int
 main (int argc, char **argv)
 {
@@ -124,6 +164,7 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/uri/equality", do_equality_tests);
 	g_test_add_func ("/uri/copy", do_copy_tests);
+        g_test_add_func ("/data", do_data_uri_tests);
 
 	ret = g_test_run ();
 
