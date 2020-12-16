@@ -3,6 +3,7 @@ fs = import('fs')
 fuzz_targets = [
   'fuzz_decode_data_uri',
   'fuzz_cookie_parse',
+  'fuzz_content_sniffer',
 ]
 
 fuzzing_args = '-fsanitize=fuzzer,address,undefined'
@@ -29,8 +30,7 @@ if have_fuzzing and (fuzzing_feature.enabled() or fuzzing_feature.auto())
 
     test(target, exe,
       args: [
-        '-runs=500000',
-        '-jobs=16', # This will automatically limit itself to half your systems threads
+        '-runs=200000',
         '-artifact_prefix=meson-logs/' + target + '-',
         '-print_final_stats=1',
       ] + extra_args,
@@ -39,7 +39,7 @@ if have_fuzzing and (fuzzing_feature.enabled() or fuzzing_feature.auto())
         'UBSAN_OPTIONS=print_stacktrace=1',
       ],
       suite: 'fuzzing',
-      timeout: 240,
+      timeout: 360,
       priority: -1,
     )
   endforeach

@@ -1,0 +1,28 @@
+# These are just directly copied from soup-content-sniffer.c
+# and could surely be improved.
+
+# UTF-16 BOM
+"\xFE\xFF"
+# UTF-8 BOM
+"\xEF\xBB\xBF"
+# webm
+"\x1A\x45\xDF\xA3"
+# audio
+".snd"
+# aiff
+"FORM\x00\x00\x00\x00AIFF"
+# mpeg
+"ID3"
+# ogg
+"OggS\x00"
+# midi
+"MThd\x00\x00\x00\x06"
+# wave
+"RIFF\x00\x00\x00\x00WAVE"
+# avi
+"RIFF\x00\x00\x00\x00AVI "
+# HTML
+"<!DOCTYPE HTML"
+"<HTML"
+# XML
+"<?xml"
