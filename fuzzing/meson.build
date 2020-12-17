@@ -4,6 +4,7 @@ fuzz_targets = [
   'fuzz_decode_data_uri',
   'fuzz_cookie_parse',
   'fuzz_content_sniffer',
+  'fuzz_date_time',
 ]
 
 fuzzing_args = '-fsanitize=fuzzer,address,undefined'
