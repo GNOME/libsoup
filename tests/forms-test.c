@@ -43,7 +43,7 @@ do_hello_test_curl (int n, gboolean extra, const char *uri)
 	char *str_stdout = NULL;
 	GError *error = NULL;
 
-	debug_printf (1, "%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
+	debug_printf (1, "%2d. '%s' '%s'%s: \n", n * 2 + (extra ? 2 : 1),
 		      tests[n].title ? tests[n].title : "(null)",
 		      tests[n].name  ? tests[n].name  : "(null)",
 		      extra ? " + extra" : "");
@@ -110,7 +110,7 @@ do_hello_test_libsoup (int n, gboolean extra, const char *uri)
 	GBytes *body;
         char *encoded;
 
-	debug_printf (1, "%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
+	debug_printf (1, "%2d. '%s' '%s'%s: \n", n * 2 + (extra ? 2 : 1),
 		      tests[n].title ? tests[n].title : "(null)",
 		      tests[n].name  ? tests[n].name  : "(null)",
 		      extra ? " + extra" : "");

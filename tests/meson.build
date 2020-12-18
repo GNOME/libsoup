@@ -159,7 +159,13 @@ foreach test: tests
   )
   # Increase the timeout as on some architectures the tests could be slower
   # than the default 30 seconds.
-  test(test_name, test_target, env : env, is_parallel : test[1], timeout : 60)
+  test(test_name, test_target,
+    args : ['--debug'],
+    env : env,
+    is_parallel : test[1],
+    timeout : 60,
+    protocol : 'tap',
+  )
 endforeach
 
 executable('ntlm-test-helper', 'ntlm-test-helper.c',

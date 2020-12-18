@@ -123,9 +123,16 @@ void
 debug_printf (int level, const char *format, ...)
 {
 	va_list args;
+        static char last_char = '\n';
 
 	if (debug_level < level)
 		return;
+
+        /* Very hacky solution to outputing in the TAP format,
+         * every line starts with # */
+        if (last_char == '\n')
+                g_printf ("# ");
+        last_char = format[strlen (format) - 1];
 
 	va_start (args, format);
 	g_vprintf (format, args);

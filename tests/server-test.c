@@ -1207,7 +1207,7 @@ tunnel_wrote_cb (GObject      *object,
 			g_error_free (error);
 			return;
 		} else if (error) {
-			g_print ("Tunnel write failed: %s\n", error->message);
+			debug_printf (1, "Tunnel write failed: %s\n", error->message);
 			g_error_free (error);
 		}
 		tunnel_close (tunnel);
@@ -1253,7 +1253,7 @@ tunnel_read_cb (GObject      *object,
 			g_error_free (error);
 			return;
 		} else if (error) {
-			g_print ("Tunnel read failed: %s\n", error->message);
+			debug_printf (1, "Tunnel read failed: %s\n", error->message);
 			g_error_free (error);
 		}
 		tunnel_close (tunnel);
