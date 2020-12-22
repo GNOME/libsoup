@@ -8,152 +8,165 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-06-26 17:08+0000\n"
-"PO-Revision-Date: 2018-07-01 08:39+0200\n"
-"Last-Translator: Xavi Ivars <xavi.ivars@gmail.com>\n"
+"POT-Creation-Date: 2020-12-13 19:31+0000\n"
+"PO-Revision-Date: 2020-12-22 12:14+0100\n"
+"Last-Translator: Miquel-Àngel Burgos i Fradeja <miquel.angel.burgos@gmail."
+"com>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.0.6\n"
+"X-Generator: Poedit 2.4.1\n"
 "X-Project-Style: gnome\n"
 
-#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
-msgid "Connection terminated unexpectedly"
-msgstr "S'ha finalitzat la connexió inesperadament"
-
-#: libsoup/soup-body-input-stream.c:459
-msgid "Invalid seek request"
-msgstr "La petició de cerca no és vàlida"
-
-#: libsoup/soup-body-input-stream.c:487
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "No es pot truncar el SoupBodyInputStream"
-
-#: libsoup/soup-cache-input-stream.c:76
+#: libsoup/cache/soup-cache-input-stream.c:79
 msgid "Network stream unexpectedly closed"
 msgstr "S'ha tancat inesperadament el flux de xarxa"
 
-#: libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:295
 msgid "Failed to completely cache the resource"
 msgstr "No s'ha pogut carregar completament el recurs a la memòria cau"
 
-#: libsoup/soup-directory-input-stream.c:231
-msgid "Name"
-msgstr "Nom"
-
-#: libsoup/soup-directory-input-stream.c:232
-msgid "Size"
-msgstr "Mida"
-
-#: libsoup/soup-directory-input-stream.c:233
-msgid "Date Modified"
-msgstr "Data de modificació"
-
-#: libsoup/soup-converter-wrapper.c:189
+#: libsoup/content-decoder/soup-converter-wrapper.c:193
 #, c-format
 msgid "Output buffer is too small"
 msgstr "La memòria intermèdia de sortida és massa petita"
 
-#: libsoup/soup-message-client-io.c:39
-msgid "Could not parse HTTP response"
-msgstr "No s'ha pogut analitzar la resposta HTTP"
-
-#: libsoup/soup-message-client-io.c:62
-msgid "Unrecognized HTTP response encoding"
-msgstr "No es reconeix la codificació de la resposta HTTP"
-
-#: libsoup/soup-message-io.c:261
-msgid "Header too big"
-msgstr "Capçalera massa gran"
-
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
-msgid "Operation would block"
-msgstr "L'operació bloquejaria"
-
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
-msgid "Operation was cancelled"
-msgstr "S'ha cancel·lat l'operació"
-
-#: libsoup/soup-message-server-io.c:63
-msgid "Could not parse HTTP request"
-msgstr "No s'ha pogut analitzar la petició HTTP"
-
-#: libsoup/soup-request.c:141
-#, c-format
-msgid "No URI provided"
-msgstr "No s'ha proporcionat cap URI"
-
-#: libsoup/soup-request.c:151
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "L'URI «%s» no és vàlid: %s"
-
-#: libsoup/soup-server.c:1810
+#: libsoup/server/soup-server.c:1166
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "No es pot crear un servidor de TLS sense un certificat TLS"
 
-#: libsoup/soup-server.c:1827
+#: libsoup/server/soup-server.c:1185
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "No es pot escoltar a l'adreça %s, port %d: "
 
-#: libsoup/soup-session.c:4570
-#, c-format
-msgid "Could not parse URI “%s”"
-msgstr "No s'ha pogut analitzar l'URI «%s»"
+#: libsoup/server/soup-server-io.c:344 libsoup/server/soup-server-io.c:809
+#: libsoup/soup-message-io.c:327 libsoup/soup-message-io.c:726
+msgid "Operation would block"
+msgstr "L'operació bloquejaria"
 
-#: libsoup/soup-session.c:4607
+#: libsoup/server/soup-socket.c:116
+msgid "Could not import existing socket: "
+msgstr "No s'ha pogut importar un sòcol existent: "
+
+#: libsoup/server/soup-socket.c:125
+msgid "Can’t import unconnected socket"
+msgstr "No es pot importar un sòcol desconnectat"
+
+#: libsoup/soup-body-input-stream.c:148 libsoup/soup-body-input-stream.c:180
+#: libsoup/soup-body-input-stream.c:213 libsoup/soup-message-io-data.c:76
+msgid "Connection terminated unexpectedly"
+msgstr "S'ha finalitzat la connexió inesperadament"
+
+#: libsoup/soup-body-input-stream.c:474
+msgid "Invalid seek request"
+msgstr "La petició de cerca no és vàlida"
+
+#: libsoup/soup-body-input-stream.c:502
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "No es pot truncar el SoupBodyInputStream"
+
+#: libsoup/soup-message-io.c:467
+msgid "Could not parse HTTP response"
+msgstr "No s'ha pogut analitzar la resposta HTTP"
+
+#: libsoup/soup-message-io.c:490
+msgid "Unrecognized HTTP response encoding"
+msgstr "No es reconeix la codificació de la resposta HTTP"
+
+#: libsoup/soup-message-io.c:687 libsoup/soup-message-io.c:711
+msgid "Operation was cancelled"
+msgstr "S'ha cancel·lat l'operació"
+
+#: libsoup/soup-message-io-data.c:100
+msgid "Header too big"
+msgstr "Capçalera massa gran"
+
+#: libsoup/soup-session.c:788
+msgid "Location header is missing or empty in response headers"
+msgstr ""
+"La capçalera de la ubicació manca o és buida a les capçaleres de resposta"
+
+#: libsoup/soup-session.c:804
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "L'URI «%s» de la capçalera de resposta de la ubicació no és vàlid"
+
+#: libsoup/soup-session.c:824
+msgid "Too many redirects"
+msgstr "Massa redireccions"
+
+#: libsoup/soup-session.c:829
+msgid "Message was restarted too many times"
+msgstr "El missatge s'ha reiniciat massa cops"
+
+#: libsoup/soup-session.c:3258 libsoup/soup-session.c:3391
+#, c-format
+msgid "Could not parse URI “%s”: %s"
+msgstr "No s'ha pogut analitzar l'URI «%s»: %s"
+
+#: libsoup/soup-session.c:3273 libsoup/soup-session.c:3406
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "L'esquema d'URI «%s» és incompatible"
 
-#: libsoup/soup-session.c:4629
+#: libsoup/soup-session.c:3284 libsoup/soup-session.c:3417
 #, c-format
-msgid "Not an HTTP URI"
-msgstr "No és un URI HTTP"
+msgid "Invalid “%s” URI: %s"
+msgstr "L'URI «%s» no és vàlid: %s"
 
-#: libsoup/soup-session.c:4840
+#: libsoup/soup-session.c:3726
 msgid "The server did not accept the WebSocket handshake."
 msgstr ""
 "El servidor no ha acceptat la conformitat de la connexió del WebSocket."
 
-#: libsoup/soup-socket.c:148
-msgid "Can’t import non-socket as SoupSocket"
-msgstr "No es pot importar un objecte que no sigui un sòcol com a SoupSocket"
+#: libsoup/soup-tld.c:146
+msgid "No public-suffix list available."
+msgstr "No hi ha cap llista de sufixos pública disponible."
 
-#: libsoup/soup-socket.c:166
-msgid "Could not import existing socket: "
-msgstr "No s'ha pogut importar un sòcol existent: "
+#: libsoup/soup-tld.c:156 libsoup/soup-tld.c:172
+msgid "Invalid hostname"
+msgstr "El nom d'ordinador no és vàlid"
 
-#: libsoup/soup-socket.c:175
-msgid "Can’t import unconnected socket"
-msgstr "No es pot importar un sòcol desconnectat"
+#: libsoup/soup-tld.c:163
+msgid "Hostname is an IP address"
+msgstr "El nom d'ordinador és una adreça IP"
 
-#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
-#: libsoup/soup-websocket.c:539
+#: libsoup/soup-tld.c:184
+msgid "Hostname has no base domain"
+msgstr "El nom d'ordinador no té cap domini base"
+
+#: libsoup/soup-tld.c:192
+msgid "Not enough domains"
+msgstr "No hi ha prou dominis"
+
+#: libsoup/websocket/soup-websocket.c:405
+#: libsoup/websocket/soup-websocket.c:449
+#: libsoup/websocket/soup-websocket.c:465
 msgid "Server requested unsupported extension"
 msgstr "El servidor ha demanat una extensió no implementada"
 
-#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#: libsoup/websocket/soup-websocket.c:428
+#: libsoup/websocket/soup-websocket.c:620
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "La capçalera «%s» del WebSocket és incorrecta"
 
-#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#: libsoup/websocket/soup-websocket.c:429
+#: libsoup/websocket/soup-websocket.c:884
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "El servidor ha enviat una clau «%s» incorrecta"
 
-#: libsoup/soup-websocket.c:566
+#: libsoup/websocket/soup-websocket.c:492
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Paràmetre duplicat a l'extensió de la capçalera «%s» de WebSocket"
 
-#: libsoup/soup-websocket.c:567
+#: libsoup/websocket/soup-websocket.c:493
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
@@ -161,50 +174,54 @@ msgstr ""
 "El servidor ha retornat un paràmetre duplicat a l'extensió de la capçalera "
 "«%s» de WebSocket"
 
-#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+#: libsoup/websocket/soup-websocket.c:583
+#: libsoup/websocket/soup-websocket.c:593
 msgid "WebSocket handshake expected"
 msgstr "S'esperava una conformitat de la connexió del WebSocket"
 
-#: libsoup/soup-websocket.c:675
+#: libsoup/websocket/soup-websocket.c:601
 msgid "Unsupported WebSocket version"
 msgstr "Versió del WebSocket no implementada"
 
-#: libsoup/soup-websocket.c:684
+#: libsoup/websocket/soup-websocket.c:610
 msgid "Invalid WebSocket key"
 msgstr "Clau del WebSocket invàlida"
 
-#: libsoup/soup-websocket.c:703
+#: libsoup/websocket/soup-websocket.c:629
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Subprotocol del WebSocket no implementat"
 
-#: libsoup/soup-websocket.c:975
+#: libsoup/websocket/soup-websocket.c:835
 msgid "Server rejected WebSocket handshake"
 msgstr "El servidor ha rebutjat la conformitat de la connexió del WebSocket"
 
-#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+#: libsoup/websocket/soup-websocket.c:843
+#: libsoup/websocket/soup-websocket.c:852
 msgid "Server ignored WebSocket handshake"
 msgstr "El servidor ha ignorat la conformitat de la connexió del WebSocket"
 
-#: libsoup/soup-websocket.c:1004
+#: libsoup/websocket/soup-websocket.c:864
 msgid "Server requested unsupported protocol"
 msgstr "El servidor ha demanat un protocol no implementat"
 
-#: libsoup/soup-tld.c:150
-msgid "No public-suffix list available."
-msgstr "No hi ha cap llista de sufixos pública disponible."
+#~ msgid "Name"
+#~ msgstr "Nom"
 
-#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
-msgid "Invalid hostname"
-msgstr "El nom d'ordinador no és vàlid"
+#~ msgid "Size"
+#~ msgstr "Mida"
 
-#: libsoup/soup-tld.c:167
-msgid "Hostname is an IP address"
-msgstr "El nom d'ordinador és una adreça IP"
+#~ msgid "Date Modified"
+#~ msgstr "Data de modificació"
 
-#: libsoup/soup-tld.c:188
-msgid "Hostname has no base domain"
-msgstr "El nom d'ordinador no té cap domini base"
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "No s'ha pogut analitzar la petició HTTP"
 
-#: libsoup/soup-tld.c:196
-msgid "Not enough domains"
-msgstr "No hi ha prou dominis"
+#~ msgid "No URI provided"
+#~ msgstr "No s'ha proporcionat cap URI"
+
+#~ msgid "Not an HTTP URI"
+#~ msgstr "No és un URI HTTP"
+
+#~ msgid "Can’t import non-socket as SoupSocket"
+#~ msgstr ""
+#~ "No es pot importar un objecte que no sigui un sòcol com a SoupSocket"
