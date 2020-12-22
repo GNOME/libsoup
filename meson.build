@@ -164,7 +164,9 @@ libsysprof_capture_dep = dependency('sysprof-capture-4',
     'with_sysprofd=none',
     'help=false',
   ],
-  fallback: ['sysprof', 'libsysprof_capture_dep'],
+  # sysprof doesn't support Windows, so don't fall back to the subproject which fails to build,
+  # instead let it fail here so that sysprof gets skipped
+  fallback: (host_system != 'windows') ? ['sysprof', 'libsysprof_capture_dep'] : [],
 )
 cdata.set('HAVE_SYSPROF', libsysprof_capture_dep.found())
 
