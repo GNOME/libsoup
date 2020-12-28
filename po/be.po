@@ -1,28 +1,32 @@
-# Ihar Hrachyshka <ihar.hrachyshka@gmail.com>, 2012.
-# Yuras Shumovich <shumovichy@gmail.com>, 2017.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: libsoup master\n"
+"Project-Id-Version: 98e6872775a91bf27122ff608b6db605\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2018-06-10 17:49+0000\n"
-"PO-Revision-Date: 2018-09-06 18:16+0300\n"
-"Last-Translator: Yuras Shumovich <shumovichy@gmail.com>\n"
-"Language-Team: Belarusian <i18n-bel-gnome@googlegroups.com>\n"
-"Language: be\n"
+"POT-Creation-Date: 2020-09-17 06:36+0000\n"
+"PO-Revision-Date: 2020-12-28 13:08\n"
+"Last-Translator: Stephan Woidowski <swoidowski@t-online.de>\n"
+"Language-Team: Belarusian\n"
+"Language: be_BY\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.1.1\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || n%10>=5 && n%10<=9 || n%100>=11 && n%100<=14 ? 2 : 3);\n"
+"X-Generator: Poedit 2.4.1\n"
+"X-Project-Style: gnome\n"
+"X-Crowdin-Project: 98e6872775a91bf27122ff608b6db605\n"
+"X-Crowdin-Project-ID: 2\n"
+"X-Crowdin-Language: be\n"
+"X-Crowdin-File: /master/sources/libsoup/en_GB.po\n"
+"X-Crowdin-File-ID: 144\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:238
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
 msgid "Connection terminated unexpectedly"
-msgstr "Злучэнне нечакана перарвана"
+msgstr "Злучэнне нечакана знішчана"
 
 #: libsoup/soup-body-input-stream.c:459
 msgid "Invalid seek request"
-msgstr "Хібны запыт пракручвання змесціва"
+msgstr "Хібны запыт на пошук"
 
 #: libsoup/soup-body-input-stream.c:487
 msgid "Cannot truncate SoupBodyInputStream"
@@ -34,74 +38,86 @@ msgstr "Сеткавы струмень нечакана закрыўся"
 
 #: libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
-msgstr "Не ўдалося цалкам змясціць рэсурс у кэш-памяці"
+msgstr "Не атрымалася цалкам размясціць рэсурс у кэшы"
+
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Назва"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Памер"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Дата змены"
 
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
-msgstr "Выхадны буфер надта малы"
+msgstr "Выходны буфер занадта малы"
 
-#: libsoup/soup-message-client-io.c:41
+#: libsoup/soup-message-client-io.c:39
 msgid "Could not parse HTTP response"
-msgstr "Не ўдалося разабраць HTTP-адказ"
+msgstr "Не атрымалася разабраць адказ HTTP"
 
-#: libsoup/soup-message-client-io.c:66
+#: libsoup/soup-message-client-io.c:62
 msgid "Unrecognized HTTP response encoding"
-msgstr "Невядомае кадаванне HTTP-адказу"
+msgstr "Невядомае кадаванне адказу HTTP"
 
-#: libsoup/soup-message-io.c:263
+#: libsoup/soup-message-io.c:269
 msgid "Header too big"
 msgstr "Загаловак занадта вялікі"
 
-#: libsoup/soup-message-io.c:396 libsoup/soup-message-io.c:1024
+#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
 msgid "Operation would block"
-msgstr "Аперацыя заблакіруе працэс"
+msgstr "Аперацыя заблакаваная"
 
 #: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
-msgstr "Аперацыя была скасавана"
+msgstr "Аперацыя была скасаваная"
 
-#: libsoup/soup-message-server-io.c:64
+#: libsoup/soup-message-server-io.c:63
 msgid "Could not parse HTTP request"
-msgstr "Не ўдалося разабраць HTTP-запыт"
+msgstr "Не атрымалася разабраць запыт HTTP"
 
 #: libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
-msgstr "URI-адрас не пададзены"
+msgstr "URI не пададзены"
 
 #: libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid “%s” URI: %s"
-msgstr "Хібны URI-адрас \"%s\": %s"
+msgstr "Хібны адрас URI \"%s\": %s"
 
-#: libsoup/soup-server.c:1725
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
-msgstr "Нельга стварыць TLS сервер без сертыфіката TLS"
+msgstr "Немагчыма стварыць сервер TLS без сертыфіката TLS"
 
-#: libsoup/soup-server.c:1742
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
-msgstr "Не ўдалося праслухаць адрас %s, порт %d: "
+msgstr "Не атрымалася праслухаць адрас %s, порт %d: "
 
-#: libsoup/soup-session.c:4534
+#: libsoup/soup-session.c:4585
 #, c-format
 msgid "Could not parse URI “%s”"
-msgstr "Не ўдалося разабраць URI-адрас \"%s\""
+msgstr "Не атрымалася разабраць адрас URI \"%s\""
 
-#: libsoup/soup-session.c:4571
+#: libsoup/soup-session.c:4622
 #, c-format
 msgid "Unsupported URI scheme “%s”"
-msgstr "URI-схема \"%s\" не падтрымліваецца"
+msgstr "Схема URI \"%s\" не падтрымліваецца"
 
-#: libsoup/soup-session.c:4593
+#: libsoup/soup-session.c:4644
 #, c-format
 msgid "Not an HTTP URI"
-msgstr "Гэта не HTTP URI-адрас"
+msgstr "Гэта не HTTP адрас URI"
 
-#: libsoup/soup-session.c:4791
+#: libsoup/soup-session.c:4855
 msgid "The server did not accept the WebSocket handshake."
-msgstr "Сервер не прыняў поціск WebSocket."
+msgstr "Сервер не ўхваліў вітанне WebSocket."
 
 #: libsoup/soup-socket.c:148
 msgid "Can’t import non-socket as SoupSocket"
@@ -109,57 +125,68 @@ msgstr "Толькі сокет можна імпартаваць як SoupSocke
 
 #: libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
-msgstr "Не ўдалося імпартаваць існуючы сокет: "
+msgstr "Не атрымалася імпартаваць існы сокет: "
 
 #: libsoup/soup-socket.c:175
 msgid "Can’t import unconnected socket"
-msgstr "Нельга імпартаваць нязвязаны сокет"
+msgstr "Нельга імпартаваць непадлучаны сокет"
 
-#: libsoup/soup-websocket.c:338 libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "Чакаўся поціск WebSocket"
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "Сервер запытаў непадтрымліваемае пашырэнне"
 
-#: libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "Версія WebSocket не падтрымліваецца"
-
-#: libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "Хібны ключ WebSocket"
-
-#: libsoup/soup-websocket.c:374
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
-msgstr "Хібны загаловак WebSocket %s"
+msgstr "Хібны загаловак WebSocket \"%s\""
 
-#: libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "Падпратакол WebSocket не падтрымліваецца"
-
-#: libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "Сервер адхіліў поціск WebSocket"
-
-#: libsoup/soup-websocket.c:518 libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "Сервер ігнараваў поціск WebSocket"
-
-#: libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "Сервер запрасіў непадтрымліваемы пратакол"
-
-#: libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "Сервер запрасіў непадтрымліваемае пашырэнне"
-
-#: libsoup/soup-websocket.c:562
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Сервер вярнуў хібны ключ \"%s\""
 
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Прадубляваны параметр \"%s\"  у загалоўку пашырэння WebSocket"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "Сервер вярнуў прадубляваны параметр \"%s\"  у загалоўку пашырэння WebSocket"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "Чакаецца вітанне WebSocket"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "Версія WebSocket не падтрымліваецца"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "Хібны ключ WebSocket"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Падпратакол WebSocket не падтрымліваецца"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "Сервер адхіліў вітанне WebSocket"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "Сервер праігнараваў вітанне WebSocket"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "Сервер запытаў непадтрымліваемы пратакол"
+
 #: libsoup/soup-tld.c:150
 msgid "No public-suffix list available."
-msgstr "Не даступна ні воднага спіса адкрытых суфіксаў."
+msgstr "Не даступна ніводнага спіса публічных суфіксаў."
 
 #: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
 msgid "Invalid hostname"
@@ -167,7 +194,7 @@ msgstr "Хібная назва хоста"
 
 #: libsoup/soup-tld.c:167
 msgid "Hostname is an IP address"
-msgstr "Назва хоста з'яўляецца IP-адрасам"
+msgstr "Назва хоста - адрас IP"
 
 #: libsoup/soup-tld.c:188
 msgid "Hostname has no base domain"
@@ -175,4 +202,5 @@ msgstr "Назва хоста не мае базавага дамена"
 
 #: libsoup/soup-tld.c:196
 msgid "Not enough domains"
-msgstr "Не хапае даменаў"
+msgstr "Не стае даменаў"
+
