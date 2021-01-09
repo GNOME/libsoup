@@ -55,7 +55,7 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                     <para><type>SoupDate</type> has been replaced by <link linkend="GDateTime"><type>GDateTime</type></link></para>
                 </listitem>
                 <listitem>
-                    <para><literal>SoupSession:ssl-strict</literal> has been removed in favor of using the <link linkend="soup-message--accept-certificate"><literal>SoupMessage:accept-certificate</literal></link> signal.</para>
+                    <para><literal>SoupSession:ssl-strict</literal> has been removed in favor of using the <link linkend="SoupMessage-accept-certificate"><literal>SoupMessage:accept-certificate</literal></link> signal.</para>
                 </listitem>
                 <listitem>
                     <para><literal>soup_session_cancel_message()</literal> has been removed</para>

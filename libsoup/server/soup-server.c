@@ -49,9 +49,9 @@
  * an existing persistent connection), the #SoupServer will emit
  * #SoupServer::request-started and then begin processing the request
  * as described below, but note that once the message is assigned a
- * #SoupMessage:status-code, then callbacks after that point will be
+ * status-code, then callbacks after that point will be
  * skipped. Note also that it is not defined when the callbacks happen
- * relative to various #SoupMessage signals.
+ * relative to various #SoupServerMessage signals.
  *
  * Once the headers have been read, #SoupServer will check if there is
  * a #SoupAuthDomain (qv) covering the Request-URI; if so, and if the
@@ -506,7 +506,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * SoupServer:server-header:
 	 *
 	 * If non-%NULL, the value to use for the "Server" header on
-	 * #SoupMessage<!-- -->s processed by this server.
+	 * #SoupServerMessage<!-- -->s processed by this server.
 	 *
 	 * The Server header is the server equivalent of the
 	 * User-Agent header, and provides information about the
@@ -1615,13 +1615,11 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
  * For requests under @path (that have not already been assigned a
  * status code by a #SoupAuthDomain, an early server handler, or a
  * signal handler), @callback will be invoked after receiving the
- * request body; the message's #SoupMessage:method,
- * #SoupMessage:request-headers, and #SoupMessage:request-body fields
- * will be filled in.
+ * request body; the #SoupServerMessage<!-- -->'s method, request-headers,
+ * and request-body properties will be set.
  *
  * After determining what to do with the request, the callback must at
- * a minimum call soup_message_set_status() (or
- * soup_message_set_status_full()) on the message to set the response
+ * a minimum call soup_server_message_set_status() on the message to set the response
  * status code. Additionally, it may set response headers and/or fill
  * in the response body.
  *
@@ -1634,7 +1632,7 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
  *
  * To send the response body a bit at a time using "chunked" encoding,
  * first call soup_message_headers_set_encoding() to set
- * %SOUP_ENCODING_CHUNKED on the #SoupMessage:response-headers. Then call
+ * %SOUP_ENCODING_CHUNKED on the response-headers. Then call
  * soup_message_body_append() (or soup_message_body_append_bytes))
  * to append each chunk as it becomes ready, and
  * soup_server_unpause_message() to make sure it's running. (The
@@ -1682,22 +1680,22 @@ soup_server_add_handler (SoupServer            *server,
  * For requests under @path (that have not already been assigned a
  * status code by a #SoupAuthDomain or a signal handler), @callback
  * will be invoked after receiving the request headers, but before
- * receiving the request body; the message's #SoupMessage:method and
- * #SoupMessage:request-headers fields will be filled in.
+ * receiving the request body; the message's method and
+ * request-headers properties will be set.
  *
  * Early handlers are generally used for processing requests with
  * request bodies in a streaming fashion. If you determine that the
  * request will contain a message body, normally you would call
  * soup_message_body_set_accumulate() on the message's
- * #SoupMessage:request-body to turn off request-body accumulation,
- * and connect to the message's #SoupMessage::got-chunk signal to
+ * request-body to turn off request-body accumulation,
+ * and connect to the message's #SoupServerMessage::got-chunk signal to
  * process each chunk as it comes in.
  *
  * To complete the message processing after the full message body has
- * been read, you can either also connect to #SoupMessage::got-body,
+ * been read, you can either also connect to #SoupServerMessage::got-body,
  * or else you can register a non-early handler for @path as well. As
- * long as you have not set the #SoupMessage:status-code by the time
- * #SoupMessage::got-body is emitted, the non-early handler will be
+ * long as you have not set the status-code by the time
+ * #SoupServerMessage::got-body is emitted, the non-early handler will be
  * run as well.
  *
  * Since: 2.50

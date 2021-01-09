@@ -3,13 +3,13 @@
                "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 <refentry id="libsoup-server-howto">
 <refmeta>
-<refentrytitle>libsoup Server Basics</refentrytitle>
+<refentrytitle>Server Basics</refentrytitle>
 <manvolnum>3</manvolnum>
 <refmiscinfo>LIBSOUP Library</refmiscinfo>
 </refmeta>
 
 <refnamediv>
-<refname>libsoup Server Basics</refname><refpurpose>Server-side tutorial</refpurpose>
+<refname>libsoup Server Basics</refname>
 </refnamediv>
 
 <refsect2>
@@ -159,10 +159,9 @@ A handler callback looks something like this:
 <informalexample><programlisting>
 static void
 server_callback (SoupServer        *server,
-                 SoupMessage       *msg, 
+                 SoupServerMessage *msg, 
                  const char        *path,
                  GHashTable        *query,
-                 SoupClientContext *client,
                  gpointer           user_data)
 {
 	...
@@ -176,10 +175,7 @@ linkend="soup-server-add-handler"><function>soup_server_add_handler</function></
 <literal>path</literal> is the path (from <literal>msg</literal>'s
 URI), and <literal>query</literal> contains the result of parsing the
 URI query field. (It is <literal>NULL</literal> if there was no
-query.) <literal>client</literal> is a <link
-linkend="SoupClientContext"><type>SoupClientContext</type></link>,
-which contains additional information about the client (including its
-IP address, and whether or not it used HTTP authentication).
+query.)
 </para>
 
 <para>
@@ -193,16 +189,14 @@ on the message before returning from the callback. This will delay
 sending a response until you call <link
 linkend="soup-server-unpause-message"><function>soup_server_unpause_message</function></link>.
 (You must also connect to the <link
-linkend="SoupMessage-finished">finished</link> signal on the message
+linkend="SoupServerMessage-finished">finished</link> signal on the message
 in this case, so that you can break off processing if the client
 unexpectedly disconnects before you start sending the data.)
 </para>
 
 <para>
 To set the response status, call <link
-linkend="soup-message-set-status"><function>soup_message_set_status</function></link>
-or <link
-linkend="soup-message-set-status-full"><function>soup_message_set_status_full</function></link>.
+linkend="soup-server-message-set-status"><function>soup_server_message_set_status</function></link>.
 If the response requires a body, you must decide whether to use
 <literal>Content-Length</literal> encoding (the default), or
 <literal>chunked</literal> encoding.
@@ -220,18 +214,17 @@ data available at once.
 <informalexample><programlisting>
 static void
 server_callback (SoupServer        *server,
-                 SoupMessage       *msg, 
+                 SoupServerMessage *msg, 
                  const char        *path,
                  GHashTable        *query,
-                 SoupClientContext *client,
                  gpointer           user_data)
 {
 	MyServerData *server_data = user_data;
 	const char *mime_type;
 	GByteArray *body;
 
-	if (soup_message_get_method (msg) != SOUP_METHOD_GET) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+	if (soup_server_message_get_method (msg) != SOUP_METHOD_GET) {
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
 
@@ -241,13 +234,13 @@ server_callback (SoupServer        *server,
 	body = g_hash_table_lookup (server_data->bodies, path);
 	mime_type = g_hash_table_lookup (server_data->mime_types, path);
 	if (!body || !mime_type) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_FOUND, NULL);
 		return;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_response (msg, mime_type, SOUP_MEMORY_COPY,
-	                           body->data, body->len);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_server_message_set_response (msg, mime_type, SOUP_MEMORY_COPY,
+	                                  body->data, body->len);
 }
 </programlisting></informalexample>
 
@@ -281,12 +274,12 @@ because I/O is automatically paused when doing a
 
 <para>
 When using chunked encoding, you must also connect to the <link
-linkend="SoupMessage-finished">finished</link> signal on the message,
+linkend="SoupServerMessage-finished">finished</link> signal on the message,
 so that you will be notified if the client disconnects between two
 chunks; <type>SoupServer</type> will unref the message if that
 happens, so you must stop adding new chunks to the response at that
 point. (An alternate possibility is to write each new chunk only when
-the <link linkend="SoupMessage-wrote-chunk">wrote_chunk</link> signal
+the <link linkend="SoupServerMessage-wrote-chunk">wrote_chunk</link> signal
 is emitted indicating that the previous one was written successfully.)
 </para>
 
@@ -335,7 +328,7 @@ passed to the <literal>server_callback</literal>:
 
 <informalexample><programlisting>
 static gboolean
-auth_callback (SoupAuthDomain *domain, SoupMessage *msg,
+auth_callback (SoupAuthDomain *domain, SoupServerMessage *msg,
                const char *username, const char *password,
                gpointer user_data)
 {
