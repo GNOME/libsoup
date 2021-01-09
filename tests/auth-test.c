@@ -1188,7 +1188,7 @@ disappear_request_read (SoupServer        *server,
 
 	/* Remove the WWW-Authenticate header if this was a failed attempt */
 	if (soup_message_headers_get_one (request_headers, "Authorization") &&
-	    soup_server_message_get_status (msg, NULL) == SOUP_STATUS_UNAUTHORIZED)
+	    soup_server_message_get_status (msg) == SOUP_STATUS_UNAUTHORIZED)
 		soup_message_headers_remove (response_headers, "WWW-Authenticate");
 }
 

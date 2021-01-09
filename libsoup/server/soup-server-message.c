@@ -630,22 +630,33 @@ soup_server_message_set_http_version (SoupServerMessage *msg,
 }
 
 /**
+ * soup_server_message_get_reason_phrase:
+ * @msg: a #SoupServerMessage:
+ *
+ * Get the HTTP reason phrase of @msg or %NULL.
+ *
+ * Returns: the reason phrase.
+ */
+const char *
+soup_server_message_get_reason_phrase (SoupServerMessage *msg)
+{
+        g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), NULL);
+
+        return msg->reason_phrase;
+}
+
+/**
  * soup_server_message_get_status:
  * @msg: a #SoupServerMessage
- * @reason_phrase: (out) (nullable) (transfer none): a location to store the reason phrase or %NULL
  *
- * Get the HTTP status code of @msg and optionally the reason phrase if @reason_phrase is not %NULL.
+ * Get the HTTP status code of @msg.
  *
  * Returns: the HTTP status code.
  */
 guint
-soup_server_message_get_status (SoupServerMessage *msg,
-                                const char       **reason_phrase)
+soup_server_message_get_status (SoupServerMessage *msg)
 {
         g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), 0);
-
-        if (reason_phrase)
-                *reason_phrase = msg->reason_phrase;
 
         return msg->status_code;
 }

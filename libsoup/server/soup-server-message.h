@@ -39,8 +39,11 @@ void                soup_server_message_set_http_version     (SoupServerMessage 
                                                               SoupHTTPVersion    version);
 
 SOUP_AVAILABLE_IN_ALL
-guint               soup_server_message_get_status           (SoupServerMessage *msg,
-                                                              const char       **reason_phrase);
+const char         *soup_server_message_get_reason_phrase    (SoupServerMessage  *msg);
+
+SOUP_AVAILABLE_IN_ALL
+guint               soup_server_message_get_status           (SoupServerMessage  *msg);
+
 SOUP_AVAILABLE_IN_ALL
 void                soup_server_message_set_status           (SoupServerMessage *msg,
                                                               guint              status_code,

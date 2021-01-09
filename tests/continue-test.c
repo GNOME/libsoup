@@ -33,8 +33,8 @@ server_event (SoupServerMessage *msg,
 	gboolean record_status =
 		(!strcmp (data, "server-wrote_headers") ||
 		 !strcmp (data, "server-wrote_informational"));
-	const char *reason_phrase;
-	guint status_code = soup_server_message_get_status (msg, &reason_phrase);
+	const char *reason_phrase = soup_server_message_get_reason_phrase (msg);
+	guint status_code = soup_server_message_get_status (msg);
 
 	debug_printf (2, "  %s", data);
 	if (record_status)
@@ -433,7 +433,7 @@ _server_got_headers (SoupServerMessage *msg,
 	guint status_code;
 	SoupMessageHeaders *request_headers;
 
-	status_code = soup_server_message_get_status (msg, NULL);
+	status_code = soup_server_message_get_status (msg);
 	/* FIXME */
 	if (status_code != SOUP_STATUS_CONTINUE && status_code != 0)
 		return;

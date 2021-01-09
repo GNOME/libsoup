@@ -679,7 +679,7 @@ test_protocol_negotiate_direct (Test *test,
 						      NULL, NULL);
 	g_assert_true (ok);
 
-        soup_message_set_status (msg, soup_server_message_get_status (server_msg, NULL), NULL);
+        soup_message_set_status (msg, soup_server_message_get_status (server_msg), NULL);
 	response_headers = soup_server_message_get_response_headers (server_msg);
 	soup_message_headers_iter_init (&iter, response_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value))
@@ -749,7 +749,7 @@ test_protocol_mismatch_direct (Test *test,
 						      (char **) mismatch_server_protocols,
 						      NULL, NULL);
 	g_assert_false (ok);
-	soup_message_set_status (msg, soup_server_message_get_status (server_msg, NULL), NULL);
+	soup_message_set_status (msg, soup_server_message_get_status (server_msg), NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 
 	response_headers = soup_server_message_get_response_headers (server_msg);
@@ -812,7 +812,7 @@ test_protocol_server_any_direct (Test *test,
 	ok = soup_websocket_server_process_handshake (server_msg, NULL, NULL, NULL, NULL);
 	g_assert_true (ok);
 
-        soup_message_set_status (msg, soup_server_message_get_status (server_msg, NULL), NULL);
+        soup_message_set_status (msg, soup_server_message_get_status (server_msg), NULL);
 	response_headers = soup_server_message_get_response_headers (server_msg);
 	soup_message_headers_iter_init (&iter, response_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value))
@@ -874,7 +874,7 @@ test_protocol_client_any_direct (Test *test,
 	ok = soup_websocket_server_process_handshake (server_msg, NULL, (char **) all_protocols, NULL, NULL);
 	g_assert_true (ok);
 
-	soup_message_set_status (msg, soup_server_message_get_status (server_msg, NULL), NULL);
+	soup_message_set_status (msg, soup_server_message_get_status (server_msg), NULL);
 	response_headers = soup_server_message_get_response_headers (server_msg);
 	soup_message_headers_iter_init (&iter, response_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value))
@@ -1733,7 +1733,7 @@ test_deflate_negotiate_direct (Test *test,
 								  &accepted_extensions);
 		g_assert (result == deflate_negotiate_tests[i].expected_check_result);
 
-		soup_message_set_status (msg, soup_server_message_get_status (server_msg, NULL), NULL);
+		soup_message_set_status (msg, soup_server_message_get_status (server_msg), NULL);
 		response_headers = soup_server_message_get_response_headers (server_msg);
 		soup_message_headers_iter_init (&iter, response_headers);
                 while (soup_message_headers_iter_next (&iter, &name, &value))
@@ -1812,7 +1812,7 @@ test_deflate_disabled_in_message_direct (Test *test,
 
 	g_assert_true (soup_websocket_server_process_handshake (server_msg, NULL, NULL, supported_extensions, &accepted_extensions));
 	g_assert_null (accepted_extensions);
-	soup_message_set_status (msg, soup_server_message_get_status (server_msg, NULL), NULL);
+	soup_message_set_status (msg, soup_server_message_get_status (server_msg), NULL);
 	response_headers = soup_server_message_get_response_headers (server_msg);
 	soup_message_headers_iter_init (&iter, response_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value))

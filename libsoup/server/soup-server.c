@@ -755,7 +755,7 @@ call_handler (SoupServer        *server,
 	else if (!early && !handler->callback)
 		return;
 
-	if (soup_server_message_get_status (msg, NULL) != 0)
+	if (soup_server_message_get_status (msg) != 0)
 		return;
 
 	uri = soup_server_message_get_uri (msg);
@@ -803,7 +803,7 @@ got_headers (SoupServer        *server,
 	g_free (date_string);
 	g_date_time_unref (date);
 
-	if (soup_server_message_get_status (msg, NULL) != 0)
+	if (soup_server_message_get_status (msg) != 0)
 		return;
 
 	sock = soup_server_message_get_soup_socket (msg);
@@ -915,7 +915,7 @@ got_body (SoupServer        *server,
 
 	g_signal_emit (server, signals[REQUEST_READ], 0, msg);
 
-	if (soup_server_message_get_status (msg, NULL) != 0)
+	if (soup_server_message_get_status (msg) != 0)
 		return;
 
 	handler = get_handler (server, msg);
@@ -925,7 +925,7 @@ got_body (SoupServer        *server,
 	}
 
 	call_handler (server, handler, msg, FALSE);
-	if (soup_server_message_get_status (msg, NULL) != 0)
+	if (soup_server_message_get_status (msg) != 0)
 		return;
 
 	if (handler->websocket_callback) {
@@ -952,7 +952,7 @@ client_disconnected (SoupServer        *server,
 
 	priv->clients = g_slist_remove (priv->clients, msg);
 
-	if (soup_server_message_get_status (msg, NULL) != 0)
+	if (soup_server_message_get_status (msg) != 0)
 		soup_server_message_io_finished (msg);
 }
 
@@ -990,7 +990,7 @@ request_finished (SoupServerMessage      *msg,
 		soup_server_message_finished (msg);
 
 		failed = (completion == SOUP_MESSAGE_IO_INTERRUPTED ||
-			  soup_server_message_get_status (msg, NULL) == SOUP_STATUS_INTERNAL_SERVER_ERROR);
+			  soup_server_message_get_status (msg) == SOUP_STATUS_INTERNAL_SERVER_ERROR);
 		g_signal_emit (server,
 			       failed ? signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
 			       0, msg);

@@ -178,7 +178,7 @@ handle_partial_get (SoupServerMessage *msg)
          * the response body
          */
         if (soup_server_message_get_method (msg) != SOUP_METHOD_GET ||
-            soup_server_message_get_status (msg, NULL) != SOUP_STATUS_OK ||
+            soup_server_message_get_status (msg) != SOUP_STATUS_OK ||
             soup_message_headers_get_encoding (response_headers) !=
             SOUP_ENCODING_CONTENT_LENGTH ||
             response_body->length == 0 ||
@@ -281,12 +281,13 @@ write_headers (SoupServerMessage  *msg,
 	SoupMessageHeaders *response_headers;
 	SoupMessageBody *response_body;
 
-        if (soup_server_message_get_status (msg, NULL) == 0)
+        if (soup_server_message_get_status (msg) == 0)
                 soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
 
         handle_partial_get (msg);
 
-	status_code = soup_server_message_get_status (msg, &reason_phrase);
+	status_code = soup_server_message_get_status (msg);
+        reason_phrase = soup_server_message_get_reason_phrase (msg);
 
         g_string_append_printf (headers, "HTTP/1.%c %d %s\r\n",
 				soup_server_message_get_http_version (msg) == SOUP_HTTP_1_0 ? '0' : '1',
@@ -347,7 +348,7 @@ io_write (SoupServerMessage *msg,
 
         switch (io->write_state) {
         case SOUP_MESSAGE_IO_STATE_HEADERS:
-		status_code = soup_server_message_get_status (msg, NULL);
+		status_code = soup_server_message_get_status (msg);
                 if (io->read_state == SOUP_MESSAGE_IO_STATE_BLOCKING && status_code == 0) {
                         /* Client requested "Expect: 100-continue", and
                          * server did not set an error.
@@ -372,7 +373,7 @@ io_write (SoupServerMessage *msg,
                 io->written = 0;
                 g_string_truncate (io->write_buf, 0);
 
-		status_code = soup_server_message_get_status (msg, NULL);
+		status_code = soup_server_message_get_status (msg);
                 if (SOUP_STATUS_IS_INFORMATIONAL (status_code)) {
                         if (status_code == SOUP_STATUS_CONTINUE) {
                                 /* Stop and wait for the body now */
