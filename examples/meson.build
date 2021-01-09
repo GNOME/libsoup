@@ -5,7 +5,7 @@ deps = [
 
 examples = [
   'get',
-  # 'simple-httpd',
+  'simple-httpd',
   # FIXME: 'simple-proxy'
 ]
 

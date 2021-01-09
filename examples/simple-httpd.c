@@ -65,20 +65,20 @@ get_directory_listing (const char *path)
 }
 
 static void
-do_get (SoupServer *server, SoupMessage *msg, const char *path)
+do_get (SoupServer *server, SoupServerMessage *msg, const char *path)
 {
 	char *slash;
 	GStatBuf st;
 
 	if (g_stat (path, &st) == -1) {
 		if (errno == EPERM)
-			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
+			soup_server_message_set_status (msg, SOUP_STATUS_FORBIDDEN, NULL);
 		else if (errno == ENOENT)
-			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+			soup_server_message_set_status (msg, SOUP_STATUS_NOT_FOUND, NULL);
 		else
-			soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+			soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
 		/* In a real program you should also provide some text explaining the
-		 * error to the user (via soup_message_set_response), and include in it
+		 * error to the user (via soup_server_message_set_response), and include in it
 		 * the request path, as otherwise some browsers (Firefox, WebKit) only
 		 * show a blank page, confusing the user.
 		 */
@@ -93,8 +93,8 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		if (!slash || slash[1]) {
 			char *redir_uri;
 
-			redir_uri = g_strdup_printf ("%s/", g_uri_get_path (soup_message_get_uri (msg)));
-			soup_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY,
+			redir_uri = g_strdup_printf ("%s/", g_uri_get_path (soup_server_message_get_uri (msg)));
+			soup_server_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY,
 						   redir_uri);
 			g_free (redir_uri);
 			return;
@@ -109,30 +109,30 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		g_free (index_path);
 
 		listing = get_directory_listing (path);
-		soup_message_set_response (msg, "text/html",
+		soup_server_message_set_response (msg, "text/html",
 					   SOUP_MEMORY_TAKE,
 					   listing->str, listing->len);
-		soup_message_set_status (msg, SOUP_STATUS_OK);
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 		g_string_free (listing, FALSE);
 		return;
 	}
 
-	if (soup_message_get_method (msg) == SOUP_METHOD_GET) {
+	if (soup_server_message_get_method (msg) == SOUP_METHOD_GET) {
 		GMappedFile *mapping;
 		GBytes *buffer;
 
 		mapping = g_mapped_file_new (path, FALSE, NULL);
 		if (!mapping) {
-			soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+			soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
 			return;
 		}
 
 		buffer = g_bytes_new_with_free_func (g_mapped_file_get_contents (mapping),
 				                     g_mapped_file_get_length (mapping),
-						     (GDestroyNotify)g_mapped_file_unref, g_steal_pointer (&mapping));
-		soup_message_body_append_bytes (msg->response_body, buffer);
+						     (GDestroyNotify)g_mapped_file_unref, mapping);
+		soup_message_body_append_bytes (soup_server_message_get_response_body (msg), buffer);
 		g_bytes_unref (buffer);
-	} else /* soup_message_get_method (msg) == SOUP_METHOD_HEAD */ {
+	} else /* soup_server_message_get_method (msg) == SOUP_METHOD_HEAD */ {
 		char *length;
 
 		/* We could just use the same code for both GET and
@@ -140,30 +140,31 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		 * But we'll optimize and avoid the extra I/O.
 		 */
 		length = g_strdup_printf ("%lu", (gulong)st.st_size);
-		soup_message_headers_append (soup_message_get_response_headers (msg),
+		soup_message_headers_append (soup_server_message_get_response_headers (msg),
 					     "Content-Length", length);
 		g_free (length);
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
 static void
-do_put (SoupServer *server, SoupMessage *msg, const char *path)
+do_put (SoupServer *server, SoupServerMessage *msg, const char *path)
 {
 	GStatBuf st;
 	FILE *f;
 	gboolean created = TRUE;
+        SoupMessageBody *request_body;
 
 	if (g_stat (path, &st) != -1) {
-		const char *match = soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-None-Match");
+		const char *match = soup_message_headers_get_one (soup_server_message_get_request_headers (msg), "If-None-Match");
 		if (match && !strcmp (match, "*")) {
-			soup_message_set_status (msg, SOUP_STATUS_CONFLICT);
+			soup_server_message_set_status (msg, SOUP_STATUS_CONFLICT, NULL);
 			return;
 		}
 
 		if (!g_file_test (path, G_FILE_TEST_IS_REGULAR)) {
-			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
+			soup_server_message_set_status (msg, SOUP_STATUS_FORBIDDEN, NULL);
 			return;
 		}
 
@@ -172,44 +173,50 @@ do_put (SoupServer *server, SoupMessage *msg, const char *path)
 
 	f = fopen (path, "w");
 	if (!f) {
-		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
 		return;
 	}
 
-	fwrite (msg->request_body->data, 1, msg->request_body->length, f);
+        request_body = soup_server_message_get_request_body (msg);
+	fwrite (request_body->data, 1, request_body->length, f);
 	fclose (f);
 
-	soup_message_set_status (msg, created ? SOUP_STATUS_CREATED : SOUP_STATUS_OK);
+	soup_server_message_set_status (msg, created ? SOUP_STATUS_CREATED : SOUP_STATUS_OK, NULL);
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+server_callback (SoupServer        *server,
+                 SoupServerMessage *msg,
+		 const char        *path,
+                 GHashTable        *query,
+		 gpointer           user_data)
 {
 	char *file_path;
 	SoupMessageHeadersIter iter;
+        SoupMessageBody *request_body;
 	const char *name, *value;
 
-	g_print ("%s %s HTTP/1.%d\n", soup_message_get_method (msg), path,
-		 soup_message_get_http_version (msg));
-	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
+	g_print ("%s %s HTTP/1.%d\n", soup_server_message_get_method (msg), path,
+		 soup_server_message_get_http_version (msg));
+	soup_message_headers_iter_init (&iter, soup_server_message_get_request_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value))
 		g_print ("%s: %s\n", name, value);
-	if (msg->request_body->length)
-		g_print ("%s\n", msg->request_body->data);
+
+        request_body = soup_server_message_get_request_body (msg);
+	if (request_body->length)
+		g_print ("%s\n", request_body->data);
 
 	file_path = g_strdup_printf (".%s", path);
 
-	if (soup_message_get_method (msg) == SOUP_METHOD_GET || soup_message_get_method (msg) == SOUP_METHOD_HEAD)
+	if (soup_server_message_get_method (msg) == SOUP_METHOD_GET || soup_server_message_get_method (msg) == SOUP_METHOD_HEAD)
 		do_get (server, msg, file_path);
-	else if (soup_message_get_method (msg) == SOUP_METHOD_PUT)
+	else if (soup_server_message_get_method (msg) == SOUP_METHOD_PUT)
 		do_put (server, msg, file_path);
 	else
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 
 	g_free (file_path);
-	g_print ("  -> %d %s\n\n", soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
+	g_print ("  -> %d %s\n\n", soup_server_message_get_status (msg), soup_server_message_get_reason_phrase (msg));
 }
 
 static void
