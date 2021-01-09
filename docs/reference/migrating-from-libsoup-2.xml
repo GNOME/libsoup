@@ -4,9 +4,9 @@
 <chapter xmlns="http://docbook.org/ns/docbook"
     xmlns:xlink="http://www.w3.org/1999/xlink" version="5.1">
    <title>Migrating from libsoup 2</title>
-    <section>
-        <title>Removed features</title>
-        <para>This is a list of features that have been removed:<itemizedlist>
+    <sect2>
+        <title>Removed APIs</title>
+        <para>This is a list of APIs that have been removed:<itemizedlist>
                 <listitem>
                     <para>XML-RPC support</para>
                 </listitem>
@@ -54,14 +54,22 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                 <listitem>
                     <para><type>SoupDate</type> has been replaced by <link linkend="GDateTime"><type>GDateTime</type></link></para>
                 </listitem>
+                <listitem>
+                    <para><literal>SoupSession:ssl-strict</literal> has been removed in favor of using the <link linkend="soup-message--accept-certificate"><literal>SoupMessage:accept-certificate</literal></link> signal.</para>
+                </listitem>
+                <listitem>
+                    <para><literal>soup_session_cancel_message()</literal> has been removed</para>
+                    <para>Instead you pass a <link linkend="GCancellable"><type>GCancellable</type></link> to APIs and call <link linkend="g_cancellable_cancel"><function>g_cancellable_cancel()</function></link>.</para>
+                </listitem>
             </itemizedlist></para>
-    </section>
-  <section>
+    </sect2>
+  <sect2>
     <title>Moved authenticate signal</title>
-        <para>The <literal>SoupSession::authenticate</literal> signal has simply been moved to
-            <link linkend="SoupMessage-authenticate"><literal>SoupMessage::authenticate</literal></link>, its behavior is the same.</para>
-  </section>
-  <section>
+        <para>The <literal>SoupSession::authenticate</literal> signal has been replaced by
+            <link linkend="SoupMessage-authenticate"><literal>SoupMessage::authenticate</literal></link>. It now allows returning <literal>TRUE</literal> to signifiy
+            if you will handle authentication which allows for asynchronus handling.</para>
+  </sect2>
+  <sect2>
         <title>Structs are private</title>
         <para>You can no longer directly access various structs such as SoupMessage. These are now
             accessed by getters and setters. See below for direct conversions:<informaltable>
@@ -113,8 +121,8 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
             </informaltable></para>
         <para>Similar struct changes exist for <link linkend="SoupCookie"><type>SoupCookie</type></link> but have very straightforward
             replacements.</para>
-    </section>
-    <section>
+    </sect2>
+    <sect2>
         <title>URI type changed</title>
         <para>The <type>SoupURI</type> type has been replaced with the <link linkend="GUri"><type>GUri</type></link> type which has some
             implications.</para>
@@ -123,15 +131,15 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                 <literal>G_URI_FLAGS_PARSE_RELAXED</literal> to accept input that used to be
             considered valid.</para>
         <para>Note that unlike <type>SoupURI</type> <link linkend="GUri"><type>GUri</type></link> is an immutable type so you cannot change the contents
-            of one after it has been constructed.</para>
+            of one after it has been constructed. We provide <link linkend="soup_copy_uri"><function>soup_copy_uri()</function></link> to aid in modifying them.</para>
         <para>The equivilent behavior to <code>soup_uri_to_string (uri, FALSE)</code> is
                 <code>g_uri_to_string (uri, G_URI_HIDE_PASSWORD)</code>.</para>
         <para>Since GUri does not provide any function to check for equality
                 <link linkend="soup_uri_equal"><function>soup_uri_equal()</function></link> still exists.</para>
         <para>Sending a <literal>OPTIONS</literal> message with a path of <literal>*</literal> is no
             longer a valid URI and has been replaced with SoupMessage:options-ping.</para>
-    </section>
-    <section>
+    </sect2>
+    <sect2>
         <title>Status codes no longer used for internal errors</title>
         <para>Previously <link linkend="SoupStatus"><type>SoupStatus</type></link> was used to hold libsoup errors
                 (<code>SOUP_STATUS_IS_TRANSPORT_ERROR()</code>). Now all of these errors are
@@ -149,46 +157,21 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                     <tbody>
                         <row>
                             <entry><code>SOUP_STATUS_CANCELLED</code></entry>
-                            <entry>G_IO_ERROR_CANCELLED</entry>
+                            <entry><link linkend="G-IO-ERROR-CANCELLED:CAPS"><code>G_IO_ERROR_CANCELLED</code></link></entry>
                         </row>
                         <row>
                             <entry><code>SOUP_STATUS_MALFORMED</code></entry>
-                            <entry>SOUP_SESSION_ERROR_PARSING, SOUP_SESSION_ERROR_ENCODING</entry>
+                            <entry><link linkend="SOUP-SESSION-ERROR-PARSING:CAPS"><code>SOUP_SESSION_ERROR_PARSING</code></link>, <link linkend="SOUP-SESSION-ERROR-ENCODING:CAPS"><code>SOUP_SESSION_ERROR_ENCODING</code></link></entry>
                         </row>
                         <row>
-                            <entry>SOUP_STATUS_TOO_MANY_REDIRECTS</entry>
-                            <entry>SOUP_SESSION_ERROR_TOO_MANY_REDIRECTS</entry>
-                        </row>
-                        <row>
-                            <entry/>
-                            <entry>SOUP_SESSION_ERROR_BAD_URI</entry>
-                        </row>
-                        <row>
-                            <entry/>
-                            <entry>SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME</entry>
-                        </row>
-                        <row>
-                            <entry/>
-                            <entry>SOUP_SESSION_ERROR_TOO_MANY_RESTARTS</entry>
-                        </row>
-                        <row>
-                            <entry/>
-                            <entry>SOUP_SESSION_ERROR_REDIRECT_NO_LOCATION</entry>
-                        </row>
-                        <row>
-                            <entry/>
-                            <entry>SOUP_SESSION_ERROR_REDIRECT_BAD_URI</entry>
+                            <entry><code>SOUP_STATUS_TOO_MANY_REDIRECTS</code></entry>
+                            <entry><link linkend="SOUP-SESSION-ERROR-TOO-MANY-REDIRECTS:CAPS"><code>SOUP_SESSION_ERROR_TOO_MANY_REDIRECTS</code></link></entry>
                         </row>
                     </tbody>
                 </tgroup>
             </informaltable></para>
-    </section>
-    <section>
-        <title>Cancellation uses GCancellable</title>
-        <para>Pass a <link linkend="GCancellable"><type>GCancellable</type></link> to APIs and call <link linkend="g_cancellable_cancel"><function>g_cancellable_cancel()</function></link> on them rather than
-            <function>soup_session_cancel_message()</function></para>
-    </section>
-    <section id="io-stream-based">
+    </sect2>
+    <sect2 id="io-stream-based">
         <title>All IO is now GIOStream based</title>
         <para>Previously there were ways to allow libsoup to read data into buffers and for you to
             read from those buffers such as <literal>SoupMessage:response-body</literal>,
@@ -202,13 +185,13 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                 <link linkend="soup_message_set_request_body"><function>soup_message_set_request_body()</function></link> or use the convenience API
                 <link linkend="soup_message_set_request_body_from_bytes"><function>soup_message_set_request_body_from_bytes()</function></link> to use a GBytes
             buffer.</para>
-    </section>
-    <section>
-        <title>Redirection is always handled internally</title>
+    </sect2>
+    <sect2>
+        <title>Redirection handling changes</title>
         <para>Previously a common pattern was using <code>SOUP_MESSAGE_NO_REDIRECT</code> and
             manually handling re-queuing the message. This is now handled for you with the
-            <link linkend="SoupMessage-redirection"><literal>SoupMessage::redirection</literal></link> signal where you can block or allow redirects and libsoup
+            <link linkend="SoupMessage-redirect"><literal>SoupMessage::redirect</literal></link> signal where you can block or allow redirects and libsoup
             handles the queueing.</para>
-    </section>
+    </sect2>
 </chapter>
 

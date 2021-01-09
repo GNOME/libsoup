@@ -136,11 +136,11 @@ linkend="g-proxy-resolver-get-default"><function>g_proxy_resolver_get_default()<
   <sect2>
     <title>Controlling Redirections</title>
     <para>By default libsoup automatically handles redirections in a sane way without you needing to worry about it.
-    However you may want explicitly block all redirections or perhaps allow some unsafe redirections. <literal>SoupMessage::redirection</literal>
+    However you may want explicitly block all redirections or perhaps allow some unsafe redirections. <literal>SoupMessage::redirect</literal>
     provides a way to do both of these:</para>
 <informalexample><programlisting><![CDATA[
 static SoupMessageRedirectionFlags
-redirection_callback (SoupMessage *msg, GUri *location, guint redirect_count, gpointer user_data)
+redirect_callback (SoupMessage *msg, GUri *location, guint redirect_count, gpointer user_data)
 {
     // Here we could compare URIs, check redirect_count, etc. This just always prevents it.
     return SOUP_MESSAGE_REDIRECTION_BLOCK;
@@ -151,7 +151,7 @@ int main (int argc, char **argv)
     SoupSession *session = soup_session_new ();
     // Google redirects to https://www.google.com/
     SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://google.com");
-    g_signal_connect (msg, "redirection", G_CALLBACK (redirection_callback), NULL);
+    g_signal_connect (msg, "redirect", G_CALLBACK (redirect_callback), NULL);
     GInputStream *in_stream = soup_session_send (session, msg, NULL, NULL);
 
     if (in_stream) {
