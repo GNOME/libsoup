@@ -26,8 +26,7 @@ typedef struct {
 
 typedef struct {
 	SoupServer *self;
-	SoupMessage *msg;
-	SoupClientContext *context;
+	SoupServerMessage *msg;
 	GCancellable *cancellable;
 
 	TunnelEnd client, server;
@@ -155,7 +154,7 @@ start_tunnel (SoupMessage *msg, gpointer user_data)
 {
 	Tunnel *tunnel = user_data;
 
-	tunnel->client.iostream = soup_client_context_steal_connection (tunnel->context);
+	tunnel->client.iostream = soup_server_message_steal_connection (tunnel->msg);
 	tunnel->client.istream = g_io_stream_get_input_stream (tunnel->client.iostream);
 	tunnel->client.ostream = g_io_stream_get_output_stream (tunnel->client.iostream);
 
@@ -186,10 +185,10 @@ tunnel_connected_cb (GObject      *object,
 	tunnel->server.iostream = (GIOStream *)
 		g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (object), result, &error);
 	if (!tunnel->server.iostream) {
-		soup_message_set_status (tunnel->msg, SOUP_STATUS_BAD_GATEWAY);
-		soup_message_set_response (tunnel->msg, "text/plain",
-					   SOUP_MEMORY_COPY,
-					   error->message, strlen (error->message));
+                soup_server_message_set_status (tunnel->msg, SOUP_STATUS_BAD_GATEWAY, NULL);
+		soup_server_message_set_response (tunnel->msg, "text/plain",
+					          SOUP_MEMORY_COPY,
+					          error->message, strlen (error->message));
 		g_error_free (error);
 		soup_server_unpause_message (tunnel->self, tunnel->msg);
 		tunnel_close (tunnel);
@@ -199,14 +198,14 @@ tunnel_connected_cb (GObject      *object,
 	tunnel->server.istream = g_io_stream_get_input_stream (tunnel->server.iostream);
 	tunnel->server.ostream = g_io_stream_get_output_stream (tunnel->server.iostream);
 
-	soup_message_set_status (tunnel->msg, SOUP_STATUS_OK);
+	soup_server_message_set_status (tunnel->msg, SOUP_STATUS_OK, NULL);
 	soup_server_unpause_message (tunnel->self, tunnel->msg);
 	g_signal_connect (tunnel->msg, "finished",
 			  G_CALLBACK (start_tunnel), tunnel);
 }
 
 static void
-try_tunnel (SoupServer *server, SoupMessage *msg, SoupClientContext *context)
+try_tunnel (SoupServer *server, SoupServerMessage *msg)
 {
 	Tunnel *tunnel;
 	GUri *dest_uri;
@@ -217,9 +216,8 @@ try_tunnel (SoupServer *server, SoupMessage *msg, SoupClientContext *context)
 	tunnel = g_new0 (Tunnel, 1);
 	tunnel->self = g_object_ref (server);
 	tunnel->msg = g_object_ref (msg);
-	tunnel->context = context;
 
-	dest_uri = soup_message_get_uri (msg);
+	dest_uri = soup_server_message_get_uri (msg);
 	sclient = g_socket_client_new ();
 	g_socket_client_connect_to_host_async (sclient, g_uri_get_host (dest_uri), g_uri_get_port (dest_uri),
 					       NULL, tunnel_connected_cb, tunnel);
@@ -233,89 +231,139 @@ copy_header (const char *name, const char *value, gpointer dest_headers)
 }
 
 static void
-send_headers (SoupMessage *from, SoupMessage *to)
+send_headers (SoupMessage *from, SoupServerMessage *to)
 {
 	g_print ("[%p] HTTP/1.%d %d %s\n", to,
 		 soup_message_get_http_version (from),
-		 from->status_code, from->reason_phrase);
+		 soup_message_get_status (from), soup_message_get_reason_phrase (from));
 
-	soup_message_set_status_full (to, from->status_code,
-				      from->reason_phrase);
-	soup_message_headers_foreach (from->response_headers, copy_header,
-				      to->response_headers);
-	soup_message_headers_remove (to->response_headers, "Content-Length");
+        soup_server_message_set_status (to, soup_message_get_status (from), soup_message_get_reason_phrase (from));
+	soup_message_headers_foreach (soup_message_get_response_headers (from), copy_header,
+				      soup_server_message_get_response_headers (to));
+	soup_message_headers_remove (soup_server_message_get_response_headers (to), "Content-Length");
 	soup_server_unpause_message (server, to);
 }
 
 static void
-send_chunk (SoupMessage *from, GBytes *chunk, SoupMessage *to)
+client_msg_failed (SoupServerMessage *msg, gpointer user_data)
 {
-	g_print ("[%p]   writing chunk of %lu bytes\n", to,
-		 (unsigned long)g_bytes_get_size (chunk));
-
-	soup_message_body_append_bytes (to->response_body, chunk);
-	soup_server_unpause_message (server, to);
+        g_print ("[%p]   cancelled\n\n", msg);
+        g_cancellable_cancel (G_CANCELLABLE (user_data));
 }
 
 static void
-client_msg_failed (SoupMessage *msg, gpointer msg2)
+stream_read (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	soup_session_cancel_message (session, msg2, SOUP_STATUS_IO_ERROR);
+        GInputStream *stream = G_INPUT_STREAM (source);
+        SoupServerMessage *server_msg = SOUP_SERVER_MESSAGE (user_data);
+        GError *error = NULL;
+        GBytes *bytes = g_input_stream_read_bytes_finish (stream, result, &error);
+
+        if (error) {
+                g_print ("[%p]  failed to read body: %s\n\n", server_msg, error->message);
+                soup_server_message_set_status (server_msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
+                soup_server_unpause_message (server, server_msg);
+                g_error_free (error);
+                return;
+        }
+
+        if (g_bytes_get_size (bytes) == 0) {
+                g_print ("[%p]   done\n\n", server_msg);
+                GCancellable *client_cancellable = g_object_get_data (G_OBJECT (server_msg), "cancellable");
+                g_assert (client_cancellable);
+                g_signal_handlers_disconnect_by_func (server_msg, client_msg_failed, client_cancellable);
+
+                soup_message_body_complete (soup_server_message_get_response_body (server_msg));
+                soup_server_unpause_message (server, server_msg);
+                g_object_unref (server_msg);
+                return;
+        }
+
+	g_print ("[%p]   writing chunk of %lu bytes\n", server_msg,
+		 (unsigned long)g_bytes_get_size (bytes));
+
+        SoupMessageBody *body = soup_server_message_get_response_body (server_msg);
+        soup_message_body_append_bytes (body, bytes);
+        soup_server_unpause_message (server, server_msg);
+
+        g_bytes_unref (bytes);
+
+        g_input_stream_read_bytes_async (stream, BUFSIZE, G_PRIORITY_DEFAULT, NULL,
+                                         stream_read, server_msg);
 }
 
 static void
-finish_msg (SoupSession *session, SoupMessage *msg2, gpointer data)
+client_message_sent (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	SoupMessage *msg = data;
+        SoupSession *session = SOUP_SESSION (source);
+        SoupServerMessage *server_msg = SOUP_SERVER_MESSAGE (user_data);
+        GError *error = NULL;
+        GInputStream *in_stream = soup_session_send_finish (session, result, &error);
 
-	g_print ("[%p]   done\n\n", msg);
-	g_signal_handlers_disconnect_by_func (msg, client_msg_failed, msg2);
+        if (error) {
+                g_print ("[%p]  failed to read body: %s\n\n", server_msg, error->message);
+                soup_server_message_set_status (server_msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
+                soup_server_unpause_message (server, server_msg);
+                g_error_free (error);
+                return;
+        }
 
-	soup_message_body_complete (msg->response_body);
-	soup_server_unpause_message (server, msg);
-	g_object_unref (msg);
+        g_input_stream_read_bytes_async (in_stream, BUFSIZE, G_PRIORITY_DEFAULT, NULL,
+                                         stream_read, server_msg);
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg,
+server_callback (SoupServer *server, SoupServerMessage *msg,
 		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+		 gpointer data)
 {
-	SoupMessage *msg2;
+	SoupMessage *client_msg;
 	char *uristr;
 
-	uristr = g_uri_to_string (soup_message_get_uri (msg));
-	g_print ("[%p] %s %s HTTP/1.%d\n", msg, soup_message_get_method (msg), uristr,
-		 soup_message_get_http_version (msg));
+	uristr = g_uri_to_string (soup_server_message_get_uri (msg));
+	g_print ("[%p] %s %s HTTP/1.%d\n", msg,
+                 soup_server_message_get_method (msg), uristr,
+		 soup_server_message_get_http_version (msg));
 
-	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
-		try_tunnel (server, msg, context);
+	if (soup_server_message_get_method (msg) == SOUP_METHOD_CONNECT) {
+		try_tunnel (server, msg);
+                g_free (uristr);
 		return;
 	}
 
-        msg2 = soup_message_new (soup_message_get_method (msg), uristr);
-	soup_message_headers_foreach (soup_message_get_request_headers (msg), copy_header,
-				      msg2->request_headers);
-	soup_message_headers_remove (msg2->request_headers, "Host");
-	soup_message_headers_remove (msg2->request_headers, "Connection");
+        // Copy the servers message to a new client message
+        client_msg = soup_message_new (soup_server_message_get_method (msg), uristr);
+        g_assert (client_msg && SOUP_IS_MESSAGE (client_msg));
+        SoupMessageHeaders *client_msg_headers = soup_message_get_request_headers (client_msg);
+        SoupMessageHeaders *server_msg_headers = soup_server_message_get_request_headers (msg);
+	soup_message_headers_foreach (server_msg_headers, copy_header, client_msg_headers);
+	soup_message_headers_remove (client_msg_headers, "Host");
+	soup_message_headers_remove (client_msg_headers, "Connection");
 
-	if (msg->request_body->length) {
-		GBytes *request = soup_message_body_flatten (msg->request_body);
-		soup_message_body_append_bytes (msg2->request_body, request);
+        g_free (uristr);
+
+	if (soup_server_message_get_request_body (msg)->length) {
+		GBytes *request = soup_message_body_flatten (soup_server_message_get_request_body (msg));
+                const char *content_type = soup_message_headers_get_content_type (server_msg_headers, NULL);
+                g_print ("[%p] Directly copying data of type %s\n", msg, content_type);
+		soup_message_set_request_body_from_bytes (client_msg, content_type, request);
 		g_bytes_unref (request);
 	}
-	soup_message_headers_set_encoding (soup_message_get_response_headers (msg),
+	soup_message_headers_set_encoding (soup_server_message_get_response_headers (msg),
 					   SOUP_ENCODING_CHUNKED);
 
-	g_signal_connect (msg2, "got_headers",
-			  G_CALLBACK (send_headers), msg);
-	g_signal_connect (msg2, "got_chunk",
-			  G_CALLBACK (send_chunk), msg);
+	g_signal_connect (client_msg, "got_headers", G_CALLBACK (send_headers), msg);
 
-	g_signal_connect (msg, "finished", G_CALLBACK (client_msg_failed), msg2);
+        GCancellable *client_cancellable = g_cancellable_new ();
+	g_signal_connect (msg, "finished", G_CALLBACK (client_msg_failed), client_cancellable);
+        g_object_set_data_full (G_OBJECT (msg), "cancellable", client_cancellable, g_object_unref);
 
-	soup_session_queue_message (session, msg2, finish_msg, msg);
+        soup_session_send_async (session, client_msg, G_PRIORITY_DEFAULT, client_cancellable,
+                                 client_message_sent, msg);
 
+        g_object_unref (client_msg);
+
+        // Keep the server message alive until the client one is finished
 	g_object_ref (msg);
 	soup_server_pause_message (server, msg);
 }
