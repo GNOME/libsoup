@@ -411,3 +411,7 @@ summary({
   },
   section : 'Testing'
 )
+
+if get_option('autobahn')
+  subdir('tests/autobahn')
+endif

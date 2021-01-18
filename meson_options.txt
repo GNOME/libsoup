@@ -59,6 +59,12 @@ option('tests',
   description: 'Enable unit tests compilation'
 )
 
+option('autobahn',
+  type: 'boolean',
+  value: 'true',
+  description: 'Enable autobahn client compilation'
+)
+
 option('installed_tests',
   type: 'boolean',
   value: false,
