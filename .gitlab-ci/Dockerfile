@@ -13,6 +13,7 @@ RUN dnf update -y \
                       make \
                       meson \
                       mod_ssl \
+                      python2.7.x86_64 \
                       redhat-rpm-config \
                       samba-winbind-clients \
                       which \
@@ -42,6 +43,10 @@ RUN dnf update -y \
 ARG HOST_USER_ID=5555
 ENV HOST_USER_ID ${HOST_USER_ID}
 RUN useradd -u $HOST_USER_ID -ms /bin/bash user
+
+RUN python2.7 -m ensurepip
+RUN pip2.7 install virtualenv
+RUN pip2.7 install autobahntestsuite
 
 USER user
 WORKDIR /home/user
