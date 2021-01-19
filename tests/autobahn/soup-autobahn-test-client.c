@@ -103,7 +103,7 @@ connect_and_run (SoupSession *session, char *path, ConnectionFunc method, gpoint
 
     if (option_debug)
         fprintf (stderr, "About to connect to %s\n", uri);
-    soup_session_websocket_connect_async (session, message, NULL, NULL, NULL, on_connect, ctx);
+    soup_session_websocket_connect_async (session, message, NULL, NULL, G_PRIORITY_DEFAULT, NULL, on_connect, ctx);
 
     g_object_unref (message);
     g_free (uri);
