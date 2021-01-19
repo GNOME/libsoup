@@ -3,12 +3,15 @@ FROM fedora:33
 RUN dnf update -y \
     && dnf install -y 'dnf-command(builddep)' \
     && dnf builddep -y libsoup glib2 gobject-introspection vala \
-    && dnf install -y brotli-devel \
+    && dnf install -y autoconf-archive \
+                      brotli-devel \
+                      clang-analyzer \
                       git \
-                      gtk-doc \
                       glib2-doc \
+                      gtk-doc \
                       httpd \
                       lcov \
+                      libasan \
                       libpsl-devel \
                       make \
                       meson \
@@ -16,12 +19,9 @@ RUN dnf update -y \
                       python2.7.x86_64 \
                       redhat-rpm-config \
                       samba-winbind-clients \
-                      which \
-                      clang-analyzer \
-                      valgrind \
-                      libasan \
                       sysprof-devel \
-                      autoconf-archive \
+                      valgrind \
+                      which \
     && dnf clean all \
     && git clone https://gitlab.gnome.org/GNOME/glib.git \
     && pushd glib \
