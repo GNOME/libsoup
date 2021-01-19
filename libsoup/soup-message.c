@@ -2132,7 +2132,7 @@ soup_message_get_reason_phrase (SoupMessage *msg)
  *
  * Returns the headers sent with the request.
  *
- * Returns: The #SoupMessageHeaders
+ * Returns: (transfer none): The #SoupMessageHeaders
  */
 SoupMessageHeaders *
 soup_message_get_request_headers (SoupMessage  *msg)
@@ -2150,7 +2150,7 @@ soup_message_get_request_headers (SoupMessage  *msg)
  *
  * Returns the headers recieved with the response.
  * 
- * Returns: The #SoupMessageHeaders
+ * Returns: (transfer none): The #SoupMessageHeaders
  */
 SoupMessageHeaders *
 soup_message_get_response_headers (SoupMessage  *msg)
