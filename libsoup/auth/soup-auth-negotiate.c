@@ -103,7 +103,7 @@ static int soup_gss_client_step (SoupNegotiateConnectionState *conn,
 				 const char *host, char **error_message);
 
 static GSList *trusted_uris;
-static GSList *blacklisted_uris;
+static GSList *blocklisted_uris;
 
 static void parse_uris_from_env_variable (const gchar *env_variable, GSList **list);
 
@@ -333,7 +333,7 @@ soup_auth_negotiate_class_init (SoupAuthNegotiateClass *auth_negotiate_class)
 	auth_class->can_authenticate = soup_auth_negotiate_can_authenticate;
 
 	parse_uris_from_env_variable ("SOUP_GSSAPI_TRUSTED_URIS", &trusted_uris);
-	parse_uris_from_env_variable ("SOUP_GSSAPI_BLACKLISTED_URIS", &blacklisted_uris);
+	parse_uris_from_env_variable ("SOUP_GSSAPI_BLOCKLISTED_URIS", &blocklisted_uris);
 #endif /* LIBSOUP_HAVE_GSSAPI */
 }
 
@@ -455,9 +455,9 @@ check_auth_trusted_uri (SoupConnectionAuth *auth, SoupMessage *msg)
 
 	msg_uri = soup_message_get_uri (msg);
 
-	/* First check if the URI is not on blacklist */
-	if (blacklisted_uris &&
-	    g_slist_find_custom (blacklisted_uris, msg_uri, (GCompareFunc) match_base_uri))
+	/* First check if the URI is not on blocklist */
+	if (blocklisted_uris &&
+	    g_slist_find_custom (blocklisted_uris, msg_uri, (GCompareFunc) match_base_uri))
 		return FALSE;
 
 	/* If no trusted URIs are set, we allow all HTTPS URIs */
