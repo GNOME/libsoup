@@ -3,4 +3,6 @@ deps = [
   libsoup_dep
 ]
 
-executable('soup-autobahn-test-client', 'soup-autobahn-test-client.c', dependencies: deps)
+client = executable('soup-autobahn-test-client', 'soup-autobahn-test-client.c', dependencies: deps)
+
+test('soup-autobahn-test-client', client, suite: 'autobahn', timeout: 3600)
