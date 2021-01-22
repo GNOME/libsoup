@@ -38,15 +38,13 @@ RUN dnf update -y \
     && ./autogen.sh --prefix=/usr \
     && make install \
     && popd \
-    && rm -rf glib gobject-introspection vala
+    && rm -rf glib gobject-introspection vala \
+    && python2.7 -m ensurepip \
+    && pip2.7 install virtualenv autobahntestsuite
 
 ARG HOST_USER_ID=5555
 ENV HOST_USER_ID ${HOST_USER_ID}
 RUN useradd -u $HOST_USER_ID -ms /bin/bash user
-
-RUN python2.7 -m ensurepip
-RUN pip2.7 install virtualenv
-RUN pip2.7 install autobahntestsuite
 
 USER user
 WORKDIR /home/user

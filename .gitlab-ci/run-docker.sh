@@ -2,7 +2,7 @@
 
 set -e
 
-TAG="registry.gitlab.gnome.org/gnome/libsoup/master:v8"
+TAG="registry.gitlab.gnome.org/gnome/libsoup/master:v9"
 
 cd "$(dirname "$0")"
 podman build --build-arg HOST_USER_ID="$UID" --tag "${TAG}" --file "Dockerfile" --format=docker .
