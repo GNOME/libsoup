@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
+#include "soup-uri-utils-private.h"
 
 static struct {
 	const char *one, *two;
@@ -155,6 +156,30 @@ do_data_uri_tests (void)
 	}
 }
 
+static struct {
+        const char *input;
+        const char *output;
+} path_and_query_tests[] = {
+        { "https://simple/one?two", "/one?two" },
+        { "https://double_path//one?two", "//one?two" },
+        { "https://empty", "/" },
+};
+
+static void
+do_path_and_query_tests (void)
+{
+        for (int i = 0; i < G_N_ELEMENTS (path_and_query_tests); i++) {
+                GUri *uri = g_uri_parse (path_and_query_tests[i].input, SOUP_HTTP_URI_FLAGS, NULL);
+                g_assert_nonnull (uri);
+
+                char *path_and_query = soup_uri_get_path_and_query (uri);
+                g_assert_cmpstr (path_and_query, ==, path_and_query_tests[i].output);
+
+                g_free (path_and_query);
+                g_uri_unref (uri);
+        }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -165,6 +190,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/uri/equality", do_equality_tests);
 	g_test_add_func ("/uri/copy", do_copy_tests);
         g_test_add_func ("/data", do_data_uri_tests);
+        g_test_add_func ("/path_and_query", do_path_and_query_tests);
 
 	ret = g_test_run ();
 

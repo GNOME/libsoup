@@ -124,16 +124,36 @@ soup_uri_equal (GUri *uri1, GUri *uri2)
         return TRUE;
 }
 
+/**
+ * soup_uri_get_path_and_query:
+ * @uri: a #GUri
+ *
+ * Extracts the `path` and `query` parts from @uri.
+ *
+ * Returns: string of combined path and query
+ **/
 char *
 soup_uri_get_path_and_query (GUri *uri)
 {
+        char *path_and_query;
+        gsize len;
+
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	return g_uri_join_with_user (SOUP_HTTP_URI_FLAGS,
-				     NULL, NULL, NULL, NULL, NULL, -1,
-				     g_uri_get_path (uri),
-				     g_uri_get_query (uri),
-				     NULL);
+        /* An empty string is passed instead of NULL for host to prevent critical assertion if path begins with "//"
+           as per https://tools.ietf.org/html/rfc3986#section-3 */
+	path_and_query = g_uri_join_with_user (SOUP_HTTP_URI_FLAGS,
+				               NULL, NULL, NULL, NULL, "", -1,
+				               g_uri_get_path (uri),
+				               g_uri_get_query (uri),
+				               NULL);
+
+        /* The empty host results in starting with `//` which we strip off */
+        len = strlen (path_and_query);
+        memmove (path_and_query, path_and_query + 2, len - 2);
+        path_and_query[len - 2] = '\0';
+
+        return path_and_query;
 }
 
 /**
