@@ -163,6 +163,9 @@ static struct {
         { "https://simple/one?two", "/one?two" },
         { "https://double_path//one?two", "//one?two" },
         { "https://empty", "/" },
+        { "https://only_query/?two", "/?two" },
+        { "https://trailing_query/one?", "/one?" },
+        { "https://path_only/one", "/one" },
 };
 
 static void
