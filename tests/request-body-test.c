@@ -14,6 +14,7 @@ typedef struct {
         SoupSession *session;
         GInputStream *stream;
         GBytes *bytes;
+        const char *content_type;
         int nwrote;
 } PutTestData;
 
@@ -22,12 +23,13 @@ typedef enum {
         RESTART = 1 << 1,
         ASYNC = 1 << 2,
         LARGE = 1 << 3,
-        EMPTY = 1 << 4
+        EMPTY = 1 << 4,
+        NO_CONTENT_TYPE = 1 << 5,
 } RequestTestFlags;
 
 static void
 wrote_body_data (SoupMessage *msg,
-		 guint        count,
+                 guint        count,
                  PutTestData *ptd)
 {
         debug_printf (2, "  wrote_body_data, %u bytes\n", count);
@@ -61,6 +63,7 @@ setup_request_body (PutTestData     *ptd,
                 g_checksum_update (check, (guchar *)data, strlen (data));
         }
         ptd->stream = flags & BYTES ? NULL : g_memory_input_stream_new_from_bytes (ptd->bytes);
+        ptd->content_type = flags & NO_CONTENT_TYPE ? NULL : "text/plain";
 
         return check;
 }
@@ -79,9 +82,9 @@ restarted (SoupMessage *msg,
         if (ptd->stream) {
                 g_object_unref (ptd->stream);
                 ptd->stream = g_memory_input_stream_new_from_bytes (ptd->bytes);
-                soup_message_set_request_body (msg, "text/plain", ptd->stream, -1);
+                soup_message_set_request_body (msg, ptd->content_type, ptd->stream, -1);
         } else {
-                soup_message_set_request_body_from_bytes (msg, "text/plain", ptd->bytes);
+                soup_message_set_request_body_from_bytes (msg, ptd->content_type, ptd->bytes);
         }
 }
 
@@ -92,6 +95,7 @@ do_request_test (gconstpointer data)
         GUri *uri;
         PutTestData ptd;
         SoupMessage *msg;
+        SoupMessageHeaders *request_headers;
         const char *client_md5, *server_md5;
         GChecksum *check;
 
@@ -105,10 +109,17 @@ do_request_test (gconstpointer data)
         client_md5 = g_checksum_get_string (check);
 
         msg = soup_message_new_from_uri ("PUT", uri);
-        if (flags & BYTES)
-                soup_message_set_request_body_from_bytes (msg, flags & EMPTY ? NULL : "text/plain", ptd.bytes);
-        else
-                soup_message_set_request_body (msg, "text/plain", ptd.stream, -1);
+        request_headers = soup_message_get_request_headers (msg);
+        if (flags & BYTES) {
+                soup_message_set_request_body_from_bytes (msg, ptd.content_type, ptd.bytes);
+                g_assert_cmpuint (soup_message_headers_get_content_length (request_headers), ==, g_bytes_get_size (ptd.bytes));
+                g_assert_true (soup_message_headers_get_encoding (request_headers) == SOUP_ENCODING_CONTENT_LENGTH);
+        } else {
+                soup_message_set_request_body (msg, ptd.content_type, ptd.stream, -1);
+                g_assert_cmpuint (soup_message_headers_get_content_length (request_headers), ==, 0);
+                g_assert_true (soup_message_headers_get_encoding (request_headers) == SOUP_ENCODING_CHUNKED);
+        }
+        g_assert_cmpstr (soup_message_headers_get_one (request_headers, "Content-Type"), ==, ptd.content_type);
 
         if (flags & RESTART) {
                 g_signal_connect (msg, "restarted",
@@ -191,12 +202,16 @@ main (int argc, char **argv)
         g_test_add_data_func ("/request-body/sync/restart-bytes", GINT_TO_POINTER (RESTART | BYTES), do_request_test);
         g_test_add_data_func ("/request-body/sync/large", GINT_TO_POINTER (BYTES | LARGE), do_request_test);
         g_test_add_data_func ("/request-body/sync/empty", GINT_TO_POINTER (BYTES | EMPTY), do_request_test);
+        g_test_add_data_func ("/request-body/sync/no-content-type-stream", GINT_TO_POINTER (NO_CONTENT_TYPE), do_request_test);
+        g_test_add_data_func ("/request-body/sync/no-content-type-bytes", GINT_TO_POINTER (BYTES | NO_CONTENT_TYPE), do_request_test);
         g_test_add_data_func ("/request-body/async/stream", GINT_TO_POINTER (ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/bytes", GINT_TO_POINTER (BYTES | ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/restart-stream", GINT_TO_POINTER (RESTART | ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/restart-bytes", GINT_TO_POINTER (RESTART | ASYNC | BYTES), do_request_test);
         g_test_add_data_func ("/request-body/async/large", GINT_TO_POINTER (BYTES | LARGE | ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/empty", GINT_TO_POINTER (BYTES | EMPTY | ASYNC), do_request_test);
+        g_test_add_data_func ("/request-body/async/no-content-type-stream", GINT_TO_POINTER (NO_CONTENT_TYPE | ASYNC), do_request_test);
+        g_test_add_data_func ("/request-body/async/no-content-type-bytes", GINT_TO_POINTER (BYTES | NO_CONTENT_TYPE | ASYNC), do_request_test);
 
         ret = g_test_run ();
 

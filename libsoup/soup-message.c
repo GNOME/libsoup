@@ -911,12 +911,13 @@ soup_message_new_from_multipart (const char    *uri_string,
 /**
  * soup_message_set_request_body:
  * @msg: the message
- * @content_type: (allow-none): MIME Content-Type of the body
+ * @content_type: (allow-none): MIME Content-Type of the body, or %NULL if unknown
  * @stream: (allow-none): a #GInputStream to read the request body from
- * @content_length: the byte length of @tream or -1 if unknown
+ * @content_length: the byte length of @stream or -1 if unknown
  *
- * Set the request body of a #SoupMessage. If
- * @content_type is %NULL, the request body must be empty (or @stream %NULL) as well.
+ * Set the request body of a #SoupMessage.
+ * If @content_type is %NULL and @stream is not %NULL the Content-Type header will
+ * not be changed if present.
  * The request body needs to be set again in case @msg is restarted
  * (in case of redirection or authentication).
  */
@@ -927,22 +928,26 @@ soup_message_set_request_body (SoupMessage  *msg,
                                gssize        content_length)
 {
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (content_type != NULL || content_length == 0);
-        g_return_if_fail (content_type == NULL || G_IS_INPUT_STREAM (stream));
+        g_return_if_fail (stream == NULL || G_IS_INPUT_STREAM (stream));
+        g_return_if_fail (content_length == -1 || content_length >= 0);
 
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
         g_clear_object (&priv->request_body_stream);
 
-        if (content_type) {
-                g_warn_if_fail (strchr (content_type, '/') != NULL);
+        if (stream) {
+                if (content_type) {
+                        g_warn_if_fail (strchr (content_type, '/') != NULL);
 
-                if (soup_message_headers_get_content_type (priv->request_headers, NULL) != content_type)
-                        soup_message_headers_replace (priv->request_headers, "Content-Type", content_type);
+                        if (soup_message_headers_get_content_type (priv->request_headers, NULL) != content_type)
+                                soup_message_headers_replace (priv->request_headers, "Content-Type", content_type);
+                }
+
                 if (content_length == -1)
                         soup_message_headers_set_encoding (priv->request_headers, SOUP_ENCODING_CHUNKED);
                 else
                         soup_message_headers_set_content_length (priv->request_headers, content_length);
+
                 priv->request_body_stream = g_object_ref (stream);
         } else {
                 soup_message_headers_remove (priv->request_headers, "Content-Type");
@@ -953,11 +958,12 @@ soup_message_set_request_body (SoupMessage  *msg,
 /**
  * soup_message_set_request_body_from_bytes:
  * @msg: the message
- * @content_type: (allow-none): MIME Content-Type of the body
+ * @content_type: (allow-none): MIME Content-Type of the body, or %NULL if unknown
  * @bytes: (allow-none): a #GBytes with the request body data
  *
- * Set the request body of a #SoupMessage from #GBytes. If
- * @content_type is %NULL, the request body must be empty (or @bytes %NULL) as well.
+ * Set the request body of a #SoupMessage from #GBytes.
+ * If @content_type is %NULL and @bytes is not %NULL the Content-Type header will
+ * not be changed if present.
  * The request body needs to be set again in case @msg is restarted
  * (in case of redirection or authentication).
  */
@@ -967,17 +973,15 @@ soup_message_set_request_body_from_bytes (SoupMessage  *msg,
                                           GBytes       *bytes)
 {
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (content_type == NULL || bytes != NULL);
-        g_return_if_fail (content_type != NULL || g_bytes_get_size (bytes) == 0);
 
-	if (bytes) {
-		GInputStream *stream;
+        if (bytes) {
+                GInputStream *stream;
 
-		stream = g_memory_input_stream_new_from_bytes (bytes);
-		soup_message_set_request_body (msg, content_type, stream, g_bytes_get_size (bytes));
-		g_object_unref (stream);
-	} else
-		soup_message_set_request_body (msg, NULL, NULL, 0);
+                stream = g_memory_input_stream_new_from_bytes (bytes);
+                soup_message_set_request_body (msg, content_type, stream, g_bytes_get_size (bytes));
+                g_object_unref (stream);
+        } else
+                soup_message_set_request_body (msg, NULL, NULL, 0);
 }
 
 void
