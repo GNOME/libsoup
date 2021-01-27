@@ -20,6 +20,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include "../test-utils.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <libsoup/soup.h>
@@ -28,7 +30,6 @@ GMainLoop *loop;
 static char *address = "ws://localhost:9001";
 static char *agent = "libsoup";
 static unsigned int total_num_cases = 0;
-gboolean running_tests = FALSE;
 
 typedef void (*ConnectionFunc) (SoupWebsocketConnection *socket_connection,
                                 gint type,
@@ -41,6 +42,12 @@ typedef struct {
 } ConnectionContext;
 
 static void run_case (SoupSession *session, const unsigned int test_case);
+
+typedef struct {
+    SoupSession *session;
+    unsigned int num_test_case;
+    char *path;
+} TestBundle;
 
 static gboolean option_run_all = FALSE;
 static int option_run_test = -1;
@@ -80,9 +87,6 @@ on_connection_closed (SoupWebsocketConnection *socket_connection,
 
     if (option_debug)
         fprintf (stderr, "\nConnection closed\n");
-
-    if (running_tests)
-        fprintf (stderr, " DONE\n");
 
     g_free (ctx);
 
@@ -146,22 +150,41 @@ test_case_message_received (SoupWebsocketConnection *socket_connection,
 }
 
 static void
-run_case (SoupSession *session, const unsigned int test_case)
+test_case (gconstpointer data)
 {
-    char *path = g_strdup_printf ("/runCase?case=%u&agent=%s", test_case, agent);
+    TestBundle *bundle = (TestBundle *) data;
 
-    running_tests = TRUE;
-    fprintf (stderr, "Running test case %u:", test_case);
-    connect_and_run (session, path, test_case_message_received, GUINT_TO_POINTER (test_case));
+    SoupSession *session = bundle->session;
+    char *path = bundle->path;
+    connect_and_run (session, path, test_case_message_received, bundle);
+
+    g_free(path);
+}
+
+static void
+run_case (SoupSession *session, unsigned int num_test_case)
+{
+    char *path = g_strdup_printf ("/runCase?case=%u&agent=%s", num_test_case, agent);
+    TestBundle *bundle = g_new0 (TestBundle, 1);
+    bundle->session = session;
+    bundle->num_test_case = num_test_case;
+    bundle->path = g_strdup(path);
+    g_test_add_data_func (path, bundle, test_case);
     g_free (path);
 }
 
 static void
-run_all_cases (SoupSession *session)
+run_test_cases (SoupSession *session, unsigned int num_cases)
 {
     int i;
-    for (i = 0; i < total_num_cases; i++)
+    for (i = 0; i < num_cases; i++)
         run_case (session, i + 1);
+}
+
+static void
+run_all_test_cases (SoupSession *session)
+{
+    run_test_cases (session, total_num_cases);
 }
 
 static void
@@ -231,6 +254,8 @@ stop_autobahn (void)
 
 int main (int argc, char* argv[])
 {
+    int ret = 0;
+
     GOptionContext *context;
     GError *error = NULL;
     SoupSession *session;
@@ -263,17 +288,23 @@ int main (int argc, char* argv[])
     if (option_run_all || option_number_of_tests)
         get_case_count (session);
 
-    if (option_run_test >= 0)
-        run_case (session, option_run_test);
-    else if (option_run_all)
-        run_all_cases (session);
+    if (option_run_test >= 0 || option_run_all) {
+        test_init(argc, argv, NULL);
+        if (option_run_test >= 0) {
+            run_case (session, option_run_test);
+        } else {
+            run_all_test_cases (session);
+        }
+        ret = g_test_run();
+        test_cleanup();
+    }
 
     if (option_update_report)
         update_reports (session);
 
     g_object_unref (session);
 
-    stop_autobahn();
+    stop_autobahn ();
 
-    return 0;
+    return ret;
 }
