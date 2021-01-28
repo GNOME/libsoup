@@ -21,6 +21,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <libsoup/soup.h>
 
 GMainLoop *loop;
@@ -189,11 +190,54 @@ update_reports (SoupSession *session)
     g_free (path);
 }
 
+static gboolean
+autobahn_server (const char *action)
+{
+    GPtrArray *argv;
+    char *cwd;
+
+    cwd = g_get_current_dir();
+
+    char *dirname = g_path_get_dirname (__FILE__);
+    char *path = g_build_filename(dirname, "autobahn-server.sh", NULL);
+
+    argv = g_ptr_array_new ();
+    g_ptr_array_add (argv, path);
+    g_ptr_array_add (argv, (char *) action);
+    g_ptr_array_add (argv, NULL);
+
+    gboolean ret = g_spawn_async (cwd, (char **) argv->pdata, NULL, 0, NULL, NULL,
+                          NULL, NULL);
+    g_free (path);
+
+    return ret;
+}
+
+static void
+start_autobahn (void)
+{
+    gboolean code = autobahn_server ("--start");
+    if (code == FALSE) {
+        fprintf(stderr, "Could not start Autobahn server\n");
+        exit(1);
+    }
+}
+
+static void
+stop_autobahn (void)
+{
+    autobahn_server ("--stop");
+}
+
 int main (int argc, char* argv[])
 {
     GOptionContext *context;
     GError *error = NULL;
     SoupSession *session;
+
+    fprintf (stderr, "Starting Autobahn server\n");
+    start_autobahn ();
+    sleep (2);
 
     context = g_option_context_new ("- libsoup test runner for Autobahn WebSocket client tests.");
     g_option_context_add_main_entries (context, entries, NULL);
@@ -228,6 +272,8 @@ int main (int argc, char* argv[])
         update_reports (session);
 
     g_object_unref (session);
+
+    stop_autobahn();
 
     return 0;
 }
