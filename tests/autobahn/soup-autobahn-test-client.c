@@ -73,7 +73,7 @@ on_message_received (SoupWebsocketConnection *socket_connection,
     ConnectionContext *ctx = (ConnectionContext*) data;
 
     if (option_debug)
-        fprintf (stderr, "<- ");
+        debug_printf (1, "<- ");
 
     if (ctx && ctx->method)
         ctx->method (socket_connection, type, message, ctx->data);
@@ -86,7 +86,7 @@ on_connection_closed (SoupWebsocketConnection *socket_connection,
     ConnectionContext *ctx = (ConnectionContext*) data;
 
     if (option_debug)
-        fprintf (stderr, "\nConnection closed\n");
+        debug_printf (1, "\nConnection closed\n");
 
     g_free (ctx);
 
@@ -124,7 +124,7 @@ connect_and_run (SoupSession *session, char *path, ConnectionFunc method, gpoint
     ctx->data = data;
 
     if (option_debug)
-        fprintf (stderr, "About to connect to %s\n", uri);
+        debug_printf (1, "About to connect to %s\n", uri);
     soup_session_websocket_connect_async (session, message, NULL, NULL, G_PRIORITY_DEFAULT, NULL, on_connect, ctx);
 
     g_object_unref (message);
@@ -144,7 +144,7 @@ test_case_message_received (SoupWebsocketConnection *socket_connection,
         return;
 
     if (option_debug)
-        fprintf (stderr, "-> ");
+        debug_printf (1, "-> ");
 
     soup_websocket_connection_send_message (socket_connection, type, message);
 }
@@ -195,7 +195,7 @@ got_case_count (SoupWebsocketConnection *socket_connection,
 {
     total_num_cases = g_ascii_strtoull (g_bytes_get_data (message, NULL), NULL, 10);
 
-    fprintf (stderr, "Total number of cases: %u\n", total_num_cases);
+    debug_printf (1, "Total number of cases: %u\n", total_num_cases);
 }
 
 static void
@@ -208,7 +208,7 @@ static void
 update_reports (SoupSession *session)
 {
     char *path = g_strdup_printf ("/updateReports?agent=%s", agent);
-    fprintf (stderr, "Updating reports..\n");
+    debug_printf (1, "Updating reports..\n");
     connect_and_run (session, path, NULL, NULL);
     g_free (path);
 }
@@ -241,7 +241,7 @@ start_autobahn (void)
 {
     gboolean code = autobahn_server ("--start");
     if (code == FALSE) {
-        fprintf(stderr, "Could not start Autobahn server\n");
+        debug_printf(1, "Could not start Autobahn server\n");
         exit(1);
     }
 }
@@ -260,7 +260,7 @@ int main (int argc, char* argv[])
     GError *error = NULL;
     SoupSession *session;
 
-    fprintf (stderr, "Starting Autobahn server\n");
+    debug_printf (1, "Starting Autobahn server\n");
     start_autobahn ();
     sleep (2);
 
@@ -289,7 +289,7 @@ int main (int argc, char* argv[])
         get_case_count (session);
 
     if (option_run_test >= 0 || option_run_all) {
-        test_init(argc, argv, NULL);
+        test_init (argc, argv, NULL);
         if (option_run_test >= 0) {
             run_case (session, option_run_test);
         } else {
