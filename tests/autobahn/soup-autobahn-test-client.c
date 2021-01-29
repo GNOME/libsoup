@@ -53,7 +53,6 @@ static gboolean option_run_all = FALSE;
 static int option_run_test = -1;
 static gboolean option_number_of_tests = FALSE;
 static gboolean option_update_report = FALSE;
-static gboolean option_debug = FALSE;
 
 static GOptionEntry entries[] =
 {
@@ -61,7 +60,6 @@ static GOptionEntry entries[] =
     { "test",            't', 0, G_OPTION_ARG_INT,  &option_run_test,        "Run TEST only", "TEST" },
     { "number-of-tests", 'n', 0, G_OPTION_ARG_NONE, &option_number_of_tests, "Queries the Autobahn server for the number of test cases", NULL },
     { "update-report",   'r', 0, G_OPTION_ARG_NONE, &option_update_report,   "Requests the Autobahn server to update the report for tests", NULL },
-    { "debug",           'd', 0, G_OPTION_ARG_NONE, &option_debug,           "Enables extra debug output", NULL },
     { NULL }
 };
 
@@ -72,8 +70,7 @@ on_message_received (SoupWebsocketConnection *socket_connection,
 {
     ConnectionContext *ctx = (ConnectionContext*) data;
 
-    if (option_debug)
-        debug_printf (1, "<- ");
+    debug_printf (1, "<- ");
 
     if (ctx && ctx->method)
         ctx->method (socket_connection, type, message, ctx->data);
@@ -85,8 +82,7 @@ on_connection_closed (SoupWebsocketConnection *socket_connection,
 {
     ConnectionContext *ctx = (ConnectionContext*) data;
 
-    if (option_debug)
-        debug_printf (1, "\nConnection closed\n");
+    debug_printf (1, "\nConnection closed\n");
 
     g_free (ctx);
 
@@ -123,8 +119,7 @@ connect_and_run (SoupSession *session, char *path, ConnectionFunc method, gpoint
     ctx->method = method;
     ctx->data = data;
 
-    if (option_debug)
-        debug_printf (1, "About to connect to %s\n", uri);
+    debug_printf (1, "About to connect to %s\n", uri);
     soup_session_websocket_connect_async (session, message, NULL, NULL, G_PRIORITY_DEFAULT, NULL, on_connect, ctx);
 
     g_object_unref (message);
@@ -143,8 +138,7 @@ test_case_message_received (SoupWebsocketConnection *socket_connection,
     if (soup_websocket_connection_get_state (socket_connection) != SOUP_WEBSOCKET_STATE_OPEN)
         return;
 
-    if (option_debug)
-        debug_printf (1, "-> ");
+    debug_printf (1, "-> ");
 
     soup_websocket_connection_send_message (socket_connection, type, message);
 }
