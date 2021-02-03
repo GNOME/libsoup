@@ -1188,6 +1188,66 @@ do_stealing_test (gconstpointer data)
 	soup_test_server_quit_unref (server);
 }
 
+static void
+wrote_informational_check_content_length (SoupMessage *msg, gpointer user_data)
+{
+	g_assert_null (soup_message_headers_get_one (msg->response_headers, "Content-Length"));
+}
+
+static void
+upgrade_server_check_content_length_callback (SoupServer *server, SoupMessage *msg,
+                                              const char *path, GHashTable *query,
+                                              SoupClientContext *context, gpointer data)
+{
+	if (msg->method != SOUP_METHOD_GET) {
+		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+		return;
+	}
+
+	soup_message_set_status (msg, SOUP_STATUS_SWITCHING_PROTOCOLS);
+	soup_message_headers_append (msg->request_headers, "Upgrade", "ECHO");
+	soup_message_headers_append (msg->request_headers, "Connection", "upgrade");
+
+	g_signal_connect (msg, "wrote-informational",
+			  G_CALLBACK (wrote_informational_check_content_length), context);
+}
+
+static void
+switching_protocols_check_length (SoupMessage *msg, gpointer user_data)
+{
+	g_assert_null (soup_message_headers_get_one (msg->response_headers, "Content-Length"));
+}
+
+static void
+do_response_informational_content_length_test (void)
+{
+	SoupServer *server;
+	SoupURI *uri;
+	SoupSession *session;
+	SoupMessage *msg;
+
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	uri = soup_test_server_get_uri (server, SOUP_URI_SCHEME_HTTP, NULL);
+	soup_server_add_handler (server, NULL, upgrade_server_check_content_length_callback, NULL, NULL);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msg->request_headers, "Upgrade", "echo");
+	soup_message_headers_append (msg->request_headers, "Connection", "upgrade");
+
+	soup_message_add_status_code_handler (msg, "got-informational",
+					      SOUP_STATUS_SWITCHING_PROTOCOLS,
+					      G_CALLBACK (switching_protocols_check_length), NULL);
+
+	soup_session_send_message (session, msg);
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+	soup_uri_free (uri);
+
+	soup_test_server_quit_unref (server);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1232,6 +1292,8 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/pause-cancel", do_pause_cancel_test);
 	g_test_add_data_func ("/misc/stealing/async", GINT_TO_POINTER (FALSE), do_stealing_test);
 	g_test_add_data_func ("/misc/stealing/sync", GINT_TO_POINTER (TRUE), do_stealing_test);
+	g_test_add_func ("/misc/response/informational/content-length", do_response_informational_content_length_test);
+
 
 	ret = g_test_run ();
 

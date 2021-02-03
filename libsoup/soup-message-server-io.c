@@ -267,7 +267,16 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	else
 		*encoding = claimed_encoding;
 
-	if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
+
+	/* Per rfc 7230:
+	 * A server MUST NOT send a Content-Length header field in any response
+	 * with a status code of 1xx (Informational) or 204 (No Content).
+	 */
+
+	if (msg->status_code  == SOUP_STATUS_NO_CONTENT ||
+	    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
+		soup_message_headers_remove (msg->response_headers, "Content-Length");
+	} else if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
 	    !soup_message_headers_get_content_length (msg->response_headers)) {
 		soup_message_headers_set_content_length (msg->response_headers,
 							 msg->response_body->length);
