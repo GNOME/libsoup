@@ -1006,6 +1006,7 @@ soup_session_send_queue_item (SoupSession *session,
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageHeaders *request_headers;
+	const char *method;
 
 	request_headers = soup_message_get_request_headers (item->msg);
 	if (priv->user_agent)
@@ -1041,6 +1042,18 @@ soup_session_send_queue_item (SoupSession *session,
                 }
                 g_free (host);
         }
+
+	/* A user agent SHOULD send a Content-Length in a request message when
+	 * no Transfer-Encoding is sent and the request method defines a meaning
+	 * for an enclosed payload body. For example, a Content-Length header
+	 * field is normally sent in a POST request even when the value is 0
+	 * (indicating an empty payload body).
+	 */
+	method = soup_message_get_method (item->msg);
+	if ((method == SOUP_METHOD_POST || method == SOUP_METHOD_PUT) &&
+	    soup_message_get_request_body_stream (item->msg) == NULL) {
+		soup_message_headers_set_content_length (request_headers, 0);
+	}
 
 	soup_message_starting (item->msg);
 	if (item->state == SOUP_MESSAGE_RUNNING)
