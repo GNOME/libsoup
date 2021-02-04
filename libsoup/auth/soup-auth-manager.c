@@ -566,7 +566,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		original_msg = soup_session_get_original_message_for_authentication (priv->session,
 										     msg);
 		handled = soup_message_authenticate (original_msg, auth, prior_auth_failed);
-		if (handled && !soup_auth_is_authenticated (auth)) {
+		if (handled && !soup_auth_is_authenticated (auth) && !soup_auth_is_cancelled (auth)) {
 			soup_session_pause_message (priv->session, msg);
 			g_object_set_data_full (G_OBJECT (msg), "auth-msg-session",
 						g_object_ref (priv->session),
