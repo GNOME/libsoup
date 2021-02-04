@@ -1681,6 +1681,43 @@ do_cancel_on_authenticate (void)
         g_main_loop_unref (loop);
 }
 
+static const struct {
+	const char *url;
+	guint status;
+} uri_tests[] = {
+	{ "http://user1:realm1@127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_OK },
+	{ "http://user1:wrong@127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_UNAUTHORIZED },
+	{ "http://user1@127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_UNAUTHORIZED },
+	{ "http://user5:realm1@127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_UNAUTHORIZED },
+	{ "http://127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_UNAUTHORIZED },
+	{ "http://user4@127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_OK },
+	{ "http://user4:@127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_OK },
+	{ "http://user4:wrong@127.0.0.1:47524/Digest/realm1/", SOUP_STATUS_UNAUTHORIZED },
+};
+
+static void
+do_auth_uri_test (void)
+{
+	SoupSession *session;
+	int i;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	session = soup_test_session_new (NULL);
+
+	for (i = 0; i < G_N_ELEMENTS (uri_tests); i++) {
+		SoupMessage *msg;
+
+		msg = soup_message_new (SOUP_METHOD_GET, uri_tests[i].url);
+		soup_message_add_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE);
+		soup_test_session_send_message (session, msg);
+		soup_test_assert_message_status (msg, uri_tests[i].status);
+		g_object_unref (msg);
+	}
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1710,6 +1747,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/authorization-header-request", do_message_has_authorization_header_test);
 	g_test_add_func ("/auth/cancel-after-retry", do_cancel_after_retry_test);
 	g_test_add_func ("/auth/cancel-on-authenticate", do_cancel_on_authenticate);
+	g_test_add_func ("/auth/auth-uri", do_auth_uri_test);
 
 	ret = g_test_run ();
 
