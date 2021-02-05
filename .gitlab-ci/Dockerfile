@@ -13,6 +13,7 @@ RUN dnf update -y \
                       lcov \
                       libasan \
                       libpsl-devel \
+                      lsof \
                       make \
                       meson \
                       mod_ssl \
