@@ -2,12 +2,6 @@
 
 # set -x
 
-REPORTS_DIR="${PWD}/reports"
-
-cd "$(dirname "$0")"
-
-[ ! -d "${REPORTS_DIR}" ] && mkdir "${REPORTS_DIR}"
-
 ACTION=${1:---start}
 PORT=${2:-9001}
 
@@ -38,8 +32,7 @@ autobahn_start() {
              --name fuzzingserver \
              crossbario/autobahn-testsuite
    else
-      virtualenv ~/wstest
-      wstest -m fuzzingserver &> autobahn-server.log
+      wstest -m fuzzingserver -s 'autobahn-server.json'
    fi
 }
 
