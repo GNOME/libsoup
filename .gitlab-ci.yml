@@ -36,10 +36,6 @@ fedora-autobahn:
   extends: .build
   script:
     - meson test -C _build --suite autobahn --verbose
-  only:
-    changes:
-      - "libsoup/"
-      - "tests/autobahn"
   artifacts:
     paths:
       - "_build/meson-logs/autobahn-report"
