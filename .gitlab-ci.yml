@@ -35,6 +35,7 @@ fedora-test:
 fedora-autobahn:
   extends: .build
   script:
+    - meson _build -Dauto-features=enabled -Dautobahn=enabled
     - meson test -C _build --suite autobahn --verbose
   artifacts:
     paths:
