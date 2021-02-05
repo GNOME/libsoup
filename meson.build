@@ -281,7 +281,9 @@ if have_apache
   endif
 endif
 
-if not have_apache
+have_autobahn = find_program('wstest', required: get_option('autobahn')).found()
+
+if not have_apache or not have_autobahn
   warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
 endif
 
@@ -411,7 +413,3 @@ summary({
   },
   section : 'Testing'
 )
-
-if get_option('autobahn')
-  subdir('tests/autobahn')
-endif

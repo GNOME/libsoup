@@ -60,9 +60,9 @@ option('tests',
 )
 
 option('autobahn',
-  type: 'boolean',
-  value: 'true',
-  description: 'Enable autobahn client compilation'
+  type: 'feature',
+  value: 'auto',
+  description: 'Enable autobahn test suite'
 )
 
 option('installed_tests',

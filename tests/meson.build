@@ -137,6 +137,10 @@ env.set('MALLOC_CHECK_', '2')
 # This is set by Meson if empty
 env.set('MALLOC_PERTURB_', '')
 
+if have_autobahn
+   subdir('autobahn')
+endif
+
 foreach test: tests
   test_name = '@0@-test'.format(test[0])
 

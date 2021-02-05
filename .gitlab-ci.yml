@@ -42,7 +42,7 @@ fedora-autobahn:
       - "tests/autobahn"
   artifacts:
     paths:
-      - "_build/tests/autobahn/autobahn-report"
+      - "_build/meson-logs/autobahn-report"
 
 fedora-scan:
   extends: .build
