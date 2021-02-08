@@ -354,8 +354,9 @@ cdata.set_quoted('GETTEXT_PACKAGE', libsoup_api_name)
 configure_file(output : 'config.h', configuration : cdata)
 
 subdir('libsoup')
+xgettext = find_program('xgettext', required : false)
 # xgettext is optional (on Windows for instance)
-if find_program('xgettext', required : false).found()
+if xgettext.found()
   subdir('po')
 endif
 
@@ -369,3 +370,32 @@ if get_option('gtk_doc')
   srcdir = include_directories('libsoup')
   subdir('docs/reference')
 endif
+
+summary({
+    'prefix' : get_option('prefix'),
+    'libdir' : get_option('libdir'),
+    'datadir' : get_option('datadir'),
+  },
+  section : 'Directories'
+)
+
+summary({
+    'GSSAPI' : enable_gssapi,
+    'NTLM' : ntlm_auth.found(),
+    'Brotli' : brotlidec_dep.found(),
+    'Translations' : xgettext.found(),
+    'GIR' : enable_introspection,
+    'VAPI' : enable_vapi,
+    'Documentation' : get_option('gtk_doc'),
+  },
+  section : 'Features'
+)
+
+summary({
+    'All tests' : get_option('tests'),
+    'Tests requiring Apache' : have_apache,
+    'Fuzzing tests' : get_option('fuzzing').enabled(),
+    'Install tests': get_option('installed_tests'),
+  },
+  section : 'Testing'
+)
