@@ -3729,14 +3729,20 @@ static void
 websocket_connect_async_complete (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	GTask *task = user_data;
+	SoupMessageQueueItem *item = g_task_get_task_data (task);
 
 	/* Disconnect websocket_connect_async_stop() handler. */
 	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, task);
 
-	g_task_return_new_error (task,
-				 SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
-				 "%s", _("The server did not accept the WebSocket handshake."));
+	if (item->error) {
+		g_task_return_error (task, g_error_copy (item->error));
+	} else {
+		g_task_return_new_error (task,
+					 SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
+					 "%s", _("The server did not accept the WebSocket handshake."));
+	}
+
 	g_object_unref (task);
 }
 

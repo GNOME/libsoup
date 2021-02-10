@@ -1986,6 +1986,36 @@ test_cookies_in_response (Test *test,
         soup_cookie_free (cookie);
 }
 
+static void
+test_connection_error_cb (GObject      *object,
+			  GAsyncResult *result,
+			  gpointer      user_data)
+{
+	GError **error = user_data;
+
+	g_assert_null (soup_session_websocket_connect_finish (SOUP_SESSION (object), result, error));
+}
+
+static void
+test_connection_error (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	GError *error = NULL;
+
+	session = soup_test_session_new (NULL);
+
+	msg = soup_message_new ("GET", "ws://127.0.0.1:1234/unix");
+	soup_session_websocket_connect_async (session, msg, NULL, NULL, G_PRIORITY_DEFAULT,
+					      NULL, test_connection_error_cb, &error);
+	WAIT_UNTIL (error != NULL);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED);
+
+	g_error_free (error);
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -2218,6 +2248,8 @@ main (int argc,
         g_test_add ("/websocket/soup/cookies-in-response", Test, NULL, NULL,
                     test_cookies_in_response,
                     teardown_soup_connection);
+
+	g_test_add_func ("/websocket/soup/connection-error", test_connection_error);
 
 	ret = g_test_run ();
 
