@@ -304,7 +304,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * message.
 	 **/
 	signals[WROTE_HEADERS] =
-		g_signal_new ("wrote_headers",
+		g_signal_new ("wrote-headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0,
@@ -339,7 +339,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * message.
 	 **/
 	signals[WROTE_BODY] =
-		g_signal_new ("wrote_body",
+		g_signal_new ("wrote-body",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0,
@@ -362,7 +362,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * emission finished, and @msg's connection will be closed.
 	 **/
 	signals[GOT_INFORMATIONAL] =
-		g_signal_new ("got_informational",
+		g_signal_new ("got-informational",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0,
@@ -390,7 +390,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * existing HTTP connection can be reused.)
 	 **/
 	signals[GOT_HEADERS] =
-		g_signal_new ("got_headers",
+		g_signal_new ("got-headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0,
@@ -409,7 +409,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * to connect to a subset of emissions of this signal.
 	 **/
 	signals[GOT_BODY] =
-		g_signal_new ("got_body",
+		g_signal_new ("got-body",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0,
@@ -432,7 +432,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 **/
 	signals[CONTENT_SNIFFED] =
-		g_signal_new ("content_sniffed",
+		g_signal_new ("content-sniffed",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0,
@@ -547,7 +547,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 **/
 	signals[NETWORK_EVENT] =
-		g_signal_new ("network_event",
+		g_signal_new ("network-event",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0,
