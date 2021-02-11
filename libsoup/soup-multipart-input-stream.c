@@ -34,7 +34,6 @@
  * you should not read directly from it, and the results are undefined
  * if you do.
  *
- * Since: 2.40
  **/
 
 /**
@@ -435,7 +434,6 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
  *
  * Returns: a new #SoupMultipartInputStream
  *
- * Since: 2.40
  **/
 SoupMultipartInputStream *
 soup_multipart_input_stream_new (SoupMessage  *msg,
@@ -468,7 +466,6 @@ soup_multipart_input_stream_new (SoupMessage  *msg,
  * Return value: (nullable) (transfer full): a new #GInputStream, or
  * %NULL if there are no more parts
  *
- * Since: 2.40
  */
 GInputStream *
 soup_multipart_input_stream_next_part (SoupMultipartInputStream  *multipart,
@@ -524,7 +521,6 @@ soup_multipart_input_stream_next_part_thread (GTask        *task,
  * soup_multipart_input_stream_next_part() for details on the
  * workflow.
  *
- * Since: 2.40
  */
 void
 soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart,
@@ -564,7 +560,6 @@ soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart
  * #GInputStream for reading the next part or %NULL if there are no
  * more parts.
  *
- * Since: 2.40
  */
 GInputStream *
 soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream	*multipart,
@@ -594,7 +589,6 @@ soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream	*multipar
  * containing the headers for the part currently being processed or
  * %NULL if the headers failed to parse.
  *
- * Since: 2.40
  */
 SoupMessageHeaders *
 soup_multipart_input_stream_get_headers (SoupMultipartInputStream *multipart)

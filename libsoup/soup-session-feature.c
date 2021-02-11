@@ -32,7 +32,6 @@
  * An object that implement some sort of optional feature for
  * #SoupSession.
  *
- * Since: 2.24
  **/
 
 /**
@@ -48,7 +47,6 @@
  *
  * The interface implemented by #SoupSessionFeature<!-- -->s.
  *
- * Since: 2.24
  **/
 
 G_DEFINE_INTERFACE (SoupSessionFeature, soup_session_feature, G_TYPE_OBJECT)
@@ -132,7 +130,6 @@ soup_session_feature_request_unqueued (SoupSessionFeature *feature,
  *
  * Return value: %TRUE if @feature accepted @type as a subfeature.
  *
- * Since: 2.34
  */
 gboolean
 soup_session_feature_add_feature (SoupSessionFeature *feature,
@@ -157,7 +154,6 @@ soup_session_feature_add_feature (SoupSessionFeature *feature,
  *
  * Return value: %TRUE if @type was removed from @feature
  *
- * Since: 2.34
  */
 gboolean
 soup_session_feature_remove_feature (SoupSessionFeature *feature,
@@ -182,7 +178,6 @@ soup_session_feature_remove_feature (SoupSessionFeature *feature,
  *
  * Return value: %TRUE if @feature has a subfeature of type @type
  *
- * Since: 2.34
  */
 gboolean
 soup_session_feature_has_feature (SoupSessionFeature *feature,

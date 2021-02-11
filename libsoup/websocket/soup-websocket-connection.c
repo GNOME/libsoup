@@ -59,7 +59,6 @@
  *
  * A class representing a WebSocket connection.
  *
- * Since: 2.50
  */
 
 /**
@@ -72,7 +71,6 @@
  *
  * The abstract base class for #SoupWebsocketConnection
  *
- * Since: 2.50
  */
 
 enum {
@@ -1490,7 +1488,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * The input and output streams must be pollable streams.
 	 *
-	 * Since: 2.50
 	 */
 	g_object_class_install_property (gobject_class, PROP_IO_STREAM,
 					 g_param_spec_object ("io-stream",
@@ -1506,7 +1503,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * The type of connection (client/server).
 	 *
-	 * Since: 2.50
 	 */
 	g_object_class_install_property (gobject_class, PROP_CONNECTION_TYPE,
 					 g_param_spec_enum ("connection-type",
@@ -1526,7 +1522,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * For servers this represents the address of the WebSocket,
 	 * and for clients it is the address connected to.
 	 *
-	 * Since: 2.50
 	 */
 	g_object_class_install_property (gobject_class, PROP_URI,
 					 g_param_spec_boxed ("uri",
@@ -1542,7 +1537,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * The client's Origin.
 	 *
-	 * Since: 2.50
 	 */
 	g_object_class_install_property (gobject_class, PROP_ORIGIN,
 					 g_param_spec_string ("origin",
@@ -1559,7 +1553,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * The chosen protocol, or %NULL if a protocol was not agreed
 	 * upon.
 	 *
-	 * Since: 2.50
 	 */
 	g_object_class_install_property (gobject_class, PROP_PROTOCOL,
 					 g_param_spec_string ("protocol",
@@ -1575,7 +1568,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * The current state of the WebSocket.
 	 *
-	 * Since: 2.50
 	 */
 	g_object_class_install_property (gobject_class, PROP_STATE,
 					 g_param_spec_enum ("state",
@@ -1592,7 +1584,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * The maximum payload size for incoming packets the protocol expects
 	 * or 0 to not limit it.
 	 *
-	 * Since: 2.56
 	 */
 	g_object_class_install_property (gobject_class, PROP_MAX_INCOMING_PAYLOAD_SIZE,
 					 g_param_spec_uint64 ("max-incoming-payload-size",
@@ -1612,7 +1603,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * serve as a keepalive message. If set to 0 the keepalive message is
 	 * disabled.
 	 *
-	 * Since: 2.58
 	 */
 	g_object_class_install_property (gobject_class, PROP_KEEPALIVE_INTERVAL,
 					 g_param_spec_uint ("keepalive-interval",
@@ -1630,7 +1620,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
          *
          * List of #SoupWebsocketExtension objects that are active in the connection.
          *
-         * Since: 2.68
          */
         g_object_class_install_property (gobject_class, PROP_EXTENSIONS,
                                          g_param_spec_pointer ("extensions",
@@ -1652,7 +1641,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * NUL-terminated, but the NUL byte will not be included in
 	 * the length count.
 	 *
-	 * Since: 2.50
 	 */
 	signals[MESSAGE] = g_signal_new ("message",
 					 SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1670,7 +1658,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * be fired multiple times. Fatal errors will be followed by
 	 * the #SoupWebsocketConnection::closed signal being emitted.
 	 *
-	 * Since: 2.50
 	 */
 	signals[ERROR] = g_signal_new ("error",
 				       SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1685,7 +1672,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * This signal will be emitted during an orderly close.
 	 *
-	 * Since: 2.50
 	 */
 	signals[CLOSING] = g_signal_new ("closing",
 					 SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1705,7 +1691,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * This signal will be emitted once.
 	 *
-	 * Since: 2.50
 	 */
 	signals[CLOSED] = g_signal_new ("closed",
 					SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1726,7 +1711,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * NUL-terminated, but the NUL byte will not be included in
 	 * the length count.
 	 *
-	 * Since: 2.60
 	 */
 	signals[PONG] = g_signal_new ("pong",
 				      SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1781,7 +1765,6 @@ soup_websocket_connection_new (GIOStream                    *stream,
  *
  * Returns: (transfer none): the WebSocket's I/O stream.
  *
- * Since: 2.50
  */
 GIOStream *
 soup_websocket_connection_get_io_stream (SoupWebsocketConnection *self)
@@ -1801,7 +1784,6 @@ soup_websocket_connection_get_io_stream (SoupWebsocketConnection *self)
  *
  * Returns: the connection type
  *
- * Since: 2.50
  */
 SoupWebsocketConnectionType
 soup_websocket_connection_get_connection_type (SoupWebsocketConnection *self)
@@ -1824,7 +1806,6 @@ soup_websocket_connection_get_connection_type (SoupWebsocketConnection *self)
  *
  * Returns: (transfer none): the URI
  *
- * Since: 2.50
  */
 GUri *
 soup_websocket_connection_get_uri (SoupWebsocketConnection *self)
@@ -1844,7 +1825,6 @@ soup_websocket_connection_get_uri (SoupWebsocketConnection *self)
  *
  * Returns: (nullable): the origin, or %NULL
  *
- * Since: 2.50
  */
 const char *
 soup_websocket_connection_get_origin (SoupWebsocketConnection *self)
@@ -1864,7 +1844,6 @@ soup_websocket_connection_get_origin (SoupWebsocketConnection *self)
  *
  * Returns: (nullable): the chosen protocol, or %NULL
  *
- * Since: 2.50
  */
 const char *
 soup_websocket_connection_get_protocol (SoupWebsocketConnection *self)
@@ -1884,7 +1863,6 @@ soup_websocket_connection_get_protocol (SoupWebsocketConnection *self)
  *
  * Returns: (element-type SoupWebsocketExtension) (transfer none): a #GList of #SoupWebsocketExtension objects
  *
- * Since: 2.68
  */
 GList *
 soup_websocket_connection_get_extensions (SoupWebsocketConnection *self)
@@ -1904,7 +1882,6 @@ soup_websocket_connection_get_extensions (SoupWebsocketConnection *self)
  *
  * Returns: the state
  *
- * Since: 2.50
  */
 SoupWebsocketState
 soup_websocket_connection_get_state (SoupWebsocketConnection *self)
@@ -1934,7 +1911,6 @@ soup_websocket_connection_get_state (SoupWebsocketConnection *self)
  *
  * Returns: the close code or zero.
  *
- * Since: 2.50
  */
 gushort
 soup_websocket_connection_get_close_code (SoupWebsocketConnection *self)
@@ -1958,7 +1934,6 @@ soup_websocket_connection_get_close_code (SoupWebsocketConnection *self)
  *
  * Returns: the close data or %NULL
  *
- * Since: 2.50
  */
 const char *
 soup_websocket_connection_get_close_data (SoupWebsocketConnection *self)
@@ -1982,7 +1957,6 @@ soup_websocket_connection_get_close_data (SoupWebsocketConnection *self)
  * The message is queued to be sent and will be sent when the main loop
  * is run.
  *
- * Since: 2.50
  */
 void
 soup_websocket_connection_send_text (SoupWebsocketConnection *self,
@@ -2011,7 +1985,6 @@ soup_websocket_connection_send_text (SoupWebsocketConnection *self,
  * The message is queued to be sent and will be sent when the main loop
  * is run.
  *
- * Since: 2.50
  */
 void
 soup_websocket_connection_send_binary (SoupWebsocketConnection *self,
@@ -2037,7 +2010,6 @@ soup_websocket_connection_send_binary (SoupWebsocketConnection *self,
  * The message is queued to be sent and will be sent when the main loop
  * is run.
  *
- * Since: 2.68
  */
 void
 soup_websocket_connection_send_message (SoupWebsocketConnection *self,
@@ -2074,7 +2046,6 @@ soup_websocket_connection_send_message (SoupWebsocketConnection *self,
  * (without code and data) is sent.
  * Note that the @data must be UTF-8 valid.
  *
- * Since: 2.50
  */
 void
 soup_websocket_connection_close (SoupWebsocketConnection *self,
@@ -2105,7 +2076,6 @@ soup_websocket_connection_close (SoupWebsocketConnection *self,
  *
  * Returns: the maximum payload size.
  *
- * Since: 2.56
  */
 guint64
 soup_websocket_connection_get_max_incoming_payload_size (SoupWebsocketConnection *self)
@@ -2125,7 +2095,6 @@ soup_websocket_connection_get_max_incoming_payload_size (SoupWebsocketConnection
  * Sets the maximum payload size allowed for incoming packets. It
  * does not limit the outgoing packet size.
  *
- * Since: 2.56
  */
 void
 soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection *self,
@@ -2149,7 +2118,6 @@ soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection
  *
  * Returns: the keepalive interval.
  *
- * Since: 2.58
  */
 guint
 soup_websocket_connection_get_keepalive_interval (SoupWebsocketConnection *self)
@@ -2183,7 +2151,6 @@ on_queue_ping (gpointer user_data)
  * Sets the interval in seconds on when to send a ping message which will serve
  * as a keepalive message. If set to 0 the keepalive message is disabled.
  *
- * Since: 2.58
  */
 void
 soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,

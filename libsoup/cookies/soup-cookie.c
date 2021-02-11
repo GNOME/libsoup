@@ -54,7 +54,6 @@
  * code (eg, javascript), so as to minimize the danger posed by
  * cross-site scripting attacks.
  *
- * Since: 2.24
  **/
 
 struct _SoupCookie {
@@ -77,7 +76,6 @@ G_DEFINE_BOXED_TYPE (SoupCookie, soup_cookie, soup_cookie_copy, soup_cookie_free
  *
  * Return value: a copy of @cookie
  *
- * Since: 2.24
  **/
 SoupCookie *
 soup_cookie_copy (SoupCookie *cookie)
@@ -108,7 +106,6 @@ soup_cookie_copy (SoupCookie *cookie)
  * 
  * Return value: %TRUE if the domains match, %FALSE otherwise
  *
- * Since: 2.30
  **/
 gboolean
 soup_cookie_domain_matches (SoupCookie *cookie, const char *host)
@@ -373,7 +370,6 @@ cookie_new_internal (const char *name, const char *value,
  *
  * Return value: a new #SoupCookie.
  *
- * Since: 2.24
  **/
 SoupCookie *
 soup_cookie_new (const char *name, const char *value,
@@ -414,7 +410,6 @@ soup_cookie_new (const char *name, const char *value,
  * not be parsed, or contained an illegal "domain" attribute for a
  * cookie originating from @origin.
  *
- * Since: 2.24
  **/
 SoupCookie *
 soup_cookie_parse (const char *cookie, GUri *origin)
@@ -430,7 +425,6 @@ soup_cookie_parse (const char *cookie, GUri *origin)
  *
  * Return value: @cookie's name
  *
- * Since: 2.32
  **/
 const char *
 soup_cookie_get_name (SoupCookie *cookie)
@@ -445,7 +439,6 @@ soup_cookie_get_name (SoupCookie *cookie)
  *
  * Sets @cookie's name to @name
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_name (SoupCookie *cookie, const char *name)
@@ -462,7 +455,6 @@ soup_cookie_set_name (SoupCookie *cookie, const char *name)
  *
  * Return value: @cookie's value
  *
- * Since: 2.32
  **/
 const char *
 soup_cookie_get_value (SoupCookie *cookie)
@@ -477,7 +469,6 @@ soup_cookie_get_value (SoupCookie *cookie)
  *
  * Sets @cookie's value to @value
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_value (SoupCookie *cookie, const char *value)
@@ -494,7 +485,6 @@ soup_cookie_set_value (SoupCookie *cookie, const char *value)
  *
  * Return value: @cookie's domain
  *
- * Since: 2.32
  **/
 const char *
 soup_cookie_get_domain (SoupCookie *cookie)
@@ -509,7 +499,6 @@ soup_cookie_get_domain (SoupCookie *cookie)
  *
  * Sets @cookie's domain to @domain
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_domain (SoupCookie *cookie, const char *domain)
@@ -526,7 +515,6 @@ soup_cookie_set_domain (SoupCookie *cookie, const char *domain)
  *
  * Return value: @cookie's path
  *
- * Since: 2.32
  **/
 const char *
 soup_cookie_get_path (SoupCookie *cookie)
@@ -541,7 +529,6 @@ soup_cookie_get_path (SoupCookie *cookie)
  *
  * Sets @cookie's path to @path
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_path (SoupCookie *cookie, const char *path)
@@ -566,7 +553,6 @@ soup_cookie_set_path (SoupCookie *cookie, const char *path)
  *
  * (This sets the same property as soup_cookie_set_expires().)
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
@@ -594,7 +580,6 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  * A constant corresponding to 1 hour, for use with soup_cookie_new()
  * and soup_cookie_set_max_age().
  *
- * Since: 2.24
  **/
 /**
  * SOUP_COOKIE_MAX_AGE_ONE_DAY:
@@ -602,7 +587,6 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  * A constant corresponding to 1 day, for use with soup_cookie_new()
  * and soup_cookie_set_max_age().
  *
- * Since: 2.24
  **/
 /**
  * SOUP_COOKIE_MAX_AGE_ONE_WEEK:
@@ -610,7 +594,6 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  * A constant corresponding to 1 week, for use with soup_cookie_new()
  * and soup_cookie_set_max_age().
  *
- * Since: 2.24
  **/
 /**
  * SOUP_COOKIE_MAX_AGE_ONE_YEAR:
@@ -618,7 +601,6 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  * A constant corresponding to 1 year, for use with soup_cookie_new()
  * and soup_cookie_set_max_age().
  *
- * Since: 2.24
  **/
 
 /**
@@ -631,7 +613,6 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  * time, which is owned by @cookie and should not be modified or
  * freed.
  *
- * Since: 2.32
  **/
 GDateTime *
 soup_cookie_get_expires (SoupCookie *cookie)
@@ -650,7 +631,6 @@ soup_cookie_get_expires (SoupCookie *cookie)
  *
  * (This sets the same property as soup_cookie_set_max_age().)
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_expires (SoupCookie *cookie, GDateTime *expires)
@@ -672,7 +652,6 @@ soup_cookie_set_expires (SoupCookie *cookie, GDateTime *expires)
  *
  * Return value: @cookie's secure attribute
  *
- * Since: 2.32
  **/
 gboolean
 soup_cookie_get_secure (SoupCookie *cookie)
@@ -689,7 +668,6 @@ soup_cookie_get_secure (SoupCookie *cookie)
  * only be transmitted from the client to the server over secure
  * (https) connections.
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_secure (SoupCookie *cookie, gboolean secure)
@@ -705,7 +683,6 @@ soup_cookie_set_secure (SoupCookie *cookie, gboolean secure)
  *
  * Return value: @cookie's HttpOnly attribute
  *
- * Since: 2.32
  **/
 gboolean
 soup_cookie_get_http_only (SoupCookie *cookie)
@@ -722,7 +699,6 @@ soup_cookie_get_http_only (SoupCookie *cookie)
  * will be marked as "http only", meaning it should not be exposed to
  * web page scripts or other untrusted code.
  *
- * Since: 2.24
  **/
 void
 soup_cookie_set_http_only (SoupCookie *cookie, gboolean http_only)
@@ -797,7 +773,6 @@ G_DEFINE_QUARK (soup-same-site-policy, soup_same_site_policy)
  * When used in conjunction with soup_cookie_jar_get_cookie_list_with_same_site_info() this
  * sets the policy of when this cookie should be exposed.
  *
- * Since: 2.70
  **/
 void
 soup_cookie_set_same_site_policy (SoupCookie         *cookie,
@@ -822,7 +797,6 @@ soup_cookie_set_same_site_policy (SoupCookie         *cookie,
  *
  * Returns: a #SoupSameSitePolicy
  *
- * Since: 2.70
  **/
 SoupSameSitePolicy
 soup_cookie_get_same_site_policy (SoupCookie *cookie)
@@ -839,7 +813,6 @@ soup_cookie_get_same_site_policy (SoupCookie *cookie)
  *
  * Return value: the header
  *
- * Since: 2.24
  **/
 char *
 soup_cookie_to_set_cookie_header (SoupCookie *cookie)
@@ -859,7 +832,6 @@ soup_cookie_to_set_cookie_header (SoupCookie *cookie)
  *
  * Return value: the header
  *
- * Since: 2.24
  **/
 char *
 soup_cookie_to_cookie_header (SoupCookie *cookie)
@@ -876,7 +848,6 @@ soup_cookie_to_cookie_header (SoupCookie *cookie)
  *
  * Frees @cookie
  *
- * Since: 2.24
  **/
 void
 soup_cookie_free (SoupCookie *cookie)
@@ -905,7 +876,6 @@ soup_cookie_free (SoupCookie *cookie)
  * of #SoupCookie<!-- -->s, which can be freed with
  * soup_cookies_free().
  *
- * Since: 2.24
  **/
 GSList *
 soup_cookies_from_response (SoupMessage *msg)
@@ -949,7 +919,6 @@ soup_cookies_from_response (SoupMessage *msg)
  * of #SoupCookie<!-- -->s, which can be freed with
  * soup_cookies_free().
  *
- * Since: 2.24
  **/
 GSList *
 soup_cookies_from_request (SoupMessage *msg)
@@ -988,7 +957,6 @@ soup_cookies_from_request (SoupMessage *msg)
  * @cookies. (This is in addition to any other "Set-Cookie" headers
  * @msg may already have.)
  *
- * Since: 2.24
  **/
 void
 soup_cookies_to_response (GSList *cookies, SoupMessage *msg)
@@ -1017,7 +985,6 @@ soup_cookies_to_response (GSList *cookies, SoupMessage *msg)
  * careful that you do not append the same cookies twice, eg, when
  * requeuing a message.)
  *
- * Since: 2.24
  **/
 void
 soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
@@ -1041,7 +1008,6 @@ soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
  *
  * Frees @cookies.
  *
- * Since: 2.24
  **/
 void
 soup_cookies_free (GSList *cookies)
@@ -1058,7 +1024,6 @@ soup_cookies_free (GSList *cookies)
  *
  * Return value: the serialization of @cookies
  *
- * Since: 2.24
  **/
 char *
 soup_cookies_to_cookie_header (GSList *cookies)
@@ -1090,7 +1055,6 @@ soup_cookies_to_cookie_header (GSList *cookies)
  * Return value: %TRUE if @cookie should be sent to @uri, %FALSE if
  * not
  *
- * Since: 2.24
  **/
 gboolean
 soup_cookie_applies_to_uri (SoupCookie *cookie, GUri *uri)
@@ -1134,7 +1098,6 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, GUri *uri)
  *
  * Return value: whether the cookies are equal.
  *
- * Since: 2.24
  */
 gboolean
 soup_cookie_equal (SoupCookie *cookie1, SoupCookie *cookie2)

@@ -30,7 +30,6 @@ typedef struct {
  * support for it, call soup_session_remove_feature_by_type(),
  * passing %SOUP_TYPE_AUTH_BASIC.
  *
- * Since: 2.34
  */
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthBasic, soup_auth_basic, SOUP_TYPE_AUTH)

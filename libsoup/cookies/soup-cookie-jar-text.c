@@ -120,7 +120,6 @@ soup_cookie_jar_text_get_property (GObject *object, guint prop_id,
  *
  * Return value: the new #SoupCookieJar
  *
- * Since: 2.26
  **/
 SoupCookieJar *
 soup_cookie_jar_text_new (const char *filename, gboolean read_only)

@@ -75,7 +75,6 @@ typedef struct {
  * This extension is used by default in a #SoupSession when #SoupWebsocketExtensionManager
  * feature is present, and always used by #SoupServer.
  *
- * Since: 2.68
  */
 
 /**
@@ -83,7 +82,6 @@ typedef struct {
  *
  * A #GType corresponding to permessage-deflate WebSocket extension.
  *
- * Since: 2.68
  */
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupWebsocketExtensionDeflate, soup_websocket_extension_deflate, SOUP_TYPE_WEBSOCKET_EXTENSION)

@@ -105,7 +105,6 @@ static void sso_ntlm_close (SoupAuthNTLMPrivate *priv);
  * enable support for it, call soup_session_add_feature_by_type(),
  * passing %SOUP_TYPE_AUTH_NTLM.
  *
- * Since: 2.34
  */
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthNTLM, soup_auth_ntlm, SOUP_TYPE_CONNECTION_AUTH)

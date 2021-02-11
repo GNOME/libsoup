@@ -192,7 +192,6 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
  *
  * Returns: a new #SoupHSTSEnforcer
  *
- * Since: 2.68
  **/
 SoupHSTSEnforcer *
 soup_hsts_enforcer_new (void)
@@ -326,7 +325,6 @@ soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
  * will not expire and will be enforced during the lifetime of
  * @hsts_enforcer's #SoupSession.
  *
- * Since: 2.68
  **/
 void
 soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -371,7 +369,6 @@ soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
  * that is permanent to the lifetime of @hsts_enforcer's #SoupSession
  * and doesn't expire.
  *
- * Since: 2.68
  **/
 void
 soup_hsts_enforcer_set_session_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -585,7 +582,6 @@ soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_in
  *
  * Returns: %TRUE if @hsts_enforcer storage is persistent or %FALSE otherwise.
  *
- * Since: 2.68
  **/
 gboolean
 soup_hsts_enforcer_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
@@ -605,7 +601,6 @@ soup_hsts_enforcer_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
  * Returns: %TRUE if access to @domain should happen over HTTPS, false
  * otherwise.
  *
- * Since: 2.68
  **/
 gboolean
 soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -646,7 +641,6 @@ add_domain_to_list (gpointer key,
  *
  * Gets a list of domains for which there are policies in @enforcer.
  *
- * Since: 2.68
  *
  * Returns: (element-type utf8) (transfer full): a newly allocated
  * list of domains. Use g_list_free_full() and g_free() to free the
@@ -688,7 +682,6 @@ add_policy_to_list (gpointer key,
  * allocated list of policies. Use g_list_free_full() and
  * soup_hsts_policy_free() to free the list.
  *
- * Since: 2.68
  *
  **/
 GList*

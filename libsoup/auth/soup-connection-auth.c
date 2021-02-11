@@ -86,7 +86,6 @@ soup_connection_auth_finalize (GObject *object)
  *
  * Return value: (transfer none): the connection state
  *
- * Since: 2.58
  **/
 gpointer
 soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,

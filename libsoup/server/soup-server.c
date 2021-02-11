@@ -438,7 +438,6 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * Alternatively, you can call soup_server_set_ssl_cert_file()
 	 * to have #SoupServer read in a a certificate from a file.
 	 *
-	 * Since: 2.38
 	 */
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE,
@@ -536,7 +535,6 @@ soup_server_new (const char *optname1, ...)
  *
  * Return value: success or failure.
  *
- * Since: 2.48
  */
 gboolean
 soup_server_set_ssl_cert_file  (SoupServer  *server,
@@ -961,7 +959,6 @@ start_request (SoupServer        *server,
  * accepted or any other error occurred (in which case @error will be
  * set).
  *
- * Since: 2.50
  **/
 gboolean
 soup_server_accept_iostream (SoupServer     *server,
@@ -1053,7 +1050,6 @@ soup_server_disconnect (SoupServer *server)
  * simply listens on whatever kind of socket you give it). And you
  * cannot specify both of them in a single call.
  *
- * Since: 2.48
  */
 
 static gboolean
@@ -1136,7 +1132,6 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
  * bound or any other error occurred (in which case @error will be
  * set).
  *
- * Since: 2.48
  **/
 gboolean
 soup_server_listen (SoupServer *server, GSocketAddress *address,
@@ -1260,7 +1255,6 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
  * Return value: %TRUE on success, %FALSE if @port could not be bound
  * or any other error occurred (in which case @error will be set).
  *
- * Since: 2.48
  **/
 gboolean 
 soup_server_listen_all (SoupServer *server, guint port,
@@ -1314,7 +1308,6 @@ soup_server_listen_all (SoupServer *server, guint port,
  * Return value: %TRUE on success, %FALSE if @port could not be bound
  * or any other error occurred (in which case @error will be set).
  *
- * Since: 2.48
  **/
 gboolean
 soup_server_listen_local (SoupServer *server, guint port,
@@ -1362,7 +1355,6 @@ soup_server_listen_local (SoupServer *server, guint port,
  * Return value: %TRUE on success, %FALSE if an error occurred (in
  * which case @error will be set).
  *
- * Since: 2.48
  **/
 gboolean
 soup_server_listen_socket (SoupServer *server, GSocket *socket,
@@ -1410,7 +1402,6 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
  * Return value: (transfer full) (element-type GUri): a list of
  * #GUris, which you must free when you are done with it.
  *
- * Since: 2.48
  */
 GSList *
 soup_server_get_uris (SoupServer *server)
@@ -1604,7 +1595,6 @@ soup_server_add_handler (SoupServer            *server,
  * #SoupServerMessage::got-body is emitted, the non-early handler will be
  * run as well.
  *
- * Since: 2.50
  **/
 void
 soup_server_add_early_handler (SoupServer            *server,
@@ -1831,7 +1821,6 @@ soup_server_unpause_message (SoupServer        *server,
  * Note that #SoupWebsocketExtensionDeflate is supported by default, use
  * soup_server_remove_websocket_extension() if you want to disable it.
  *
- * Since: 2.68
  */
 void
 soup_server_add_websocket_extension (SoupServer *server, GType extension_type)
@@ -1857,7 +1846,6 @@ soup_server_add_websocket_extension (SoupServer *server, GType extension_type)
  * Removes support for WebSocket extension of type @extension_type (or any subclass of
  * @extension_type) from @server.
  *
- * Since: 2.68
  */
 void
 soup_server_remove_websocket_extension (SoupServer *server, GType extension_type)

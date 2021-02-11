@@ -26,7 +26,6 @@
  * application compile time, rather than from the library linked
  * against at application run time.
  *
- * Since: 2.42
  */
 
 /**
@@ -36,7 +35,6 @@
  * application compile time, rather than from the library linked
  * against at application run time.
  *
- * Since: 2.42
  */
 
 /**
@@ -46,7 +44,6 @@
  * application compile time, rather than from the library linked
  * against at application run time.
  *
- * Since: 2.42
  */
 
 /**
@@ -60,7 +57,6 @@
  * Returns: %TRUE if the version of the libsoup header files
  * is the same as or newer than the passed-in version.
  *
- * Since: 2.42
  */
 
 /**
@@ -76,7 +72,6 @@
  *
  * Returns: the major version number of the libsoup library
  *
- * Since: 2.42
  */
 guint
 soup_get_major_version (void)
@@ -97,7 +92,6 @@ soup_get_major_version (void)
  *
  * Returns: the minor version number of the libsoup library
  *
- * Since: 2.42
  */
 guint
 soup_get_minor_version (void)
@@ -118,7 +112,6 @@ soup_get_minor_version (void)
  *
  * Returns: the micro version number of the libsoup library
  *
- * Since: 2.42
  */
 guint
 soup_get_micro_version (void)
@@ -140,7 +133,6 @@ soup_get_micro_version (void)
  * Returns: %TRUE if the version of the libsoup currently loaded
  * is the same as or newer than the passed-in version.
  *
- * Since: 2.42
  */
 gboolean
 soup_check_version (guint major,
@@ -165,7 +157,6 @@ soup_check_version (guint major,
  * %SOUP_VERSION_MIN_REQUIRED or earlier will cause warnings (but
  * using functions deprecated in later releases will not).
  *
- * Since: 2.42
  */
 
 /**
@@ -186,5 +177,4 @@ soup_check_version (guint major,
  * different code depending on the libsoup version, then this should be
  * set to the same value as %SOUP_VERSION_MIN_REQUIRED.
  *
- * Since: 2.42
  */

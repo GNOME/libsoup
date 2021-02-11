@@ -582,7 +582,6 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
  *
  * Return value: %TRUE if @auth is ready to make a request with.
  *
- * Since: 2.42
  **/
 gboolean
 soup_auth_is_ready (SoupAuth    *auth,
@@ -612,7 +611,6 @@ soup_auth_is_ready (SoupAuth    *auth,
  *
  * Return value: %TRUE if @auth is able to accept credentials.
  *
- * Since: 2.54
  **/
 gboolean
 soup_auth_can_authenticate (SoupAuth *auth)

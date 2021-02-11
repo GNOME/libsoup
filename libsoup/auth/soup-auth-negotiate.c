@@ -31,7 +31,6 @@
  * still be added to a #SoupSession, but libsoup will never attempt to
  * actually use this auth type.
  *
- * Since: 2.54
  */
 gboolean
 soup_auth_negotiate_supported (void)
@@ -87,7 +86,6 @@ typedef struct {
  * support; you can check soup_auth_negotiate_supported() to see if it
  * was.
  *
- * Since: 2.54
  */
 G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CONNECTION_AUTH)
 

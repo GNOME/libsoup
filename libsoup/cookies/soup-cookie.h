@@ -16,8 +16,6 @@ G_BEGIN_DECLS
  * @SOUP_SAME_SITE_POLICY_STRICT: The cookie is only exposed for same-site requests
  *
  * Represents the same-site policies of a cookie.
- *
- * Since: 2.70
  */
 typedef enum {
 	SOUP_SAME_SITE_POLICY_NONE,

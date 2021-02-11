@@ -44,7 +44,6 @@
  * session with soup_session_remove_feature_by_type(), or disable it on
  * individual requests with soup_message_disable_feature().
  *
- * Since: 2.68
  **/
 
 /**
@@ -54,7 +53,6 @@
  * soup_session_remove_feature_by_type() or
  * soup_message_disable_feature().
  *
- * Since: 2.68
  */
 
 static void soup_websocket_extension_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);

@@ -31,7 +31,6 @@
  * <literal>"application/x-www-form-urlencoded"</literal>; the default
  * MIME type for POSTing HTML form data.
  *
- * Since: 2.26
  **/
 
 /**
@@ -41,7 +40,6 @@
  * <literal>"multipart/form-data"</literal>; the MIME type used for
  * posting form data that contains files to be uploaded.
  *
- * Since: 2.26
  **/
 
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)

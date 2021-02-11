@@ -320,7 +320,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * Emitted immediately after writing a portion of the message
 	 * body to the network.
 	 *
-	 * Since: 2.24
 	 **/
 	signals[WROTE_BODY_DATA] =
 		g_signal_new ("wrote-body-data",
@@ -431,7 +430,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * immediately after #SoupMessage::got-headers, and @type is
 	 * %NULL.
 	 *
-	 * Since: 2.28
 	 **/
 	signals[CONTENT_SNIFFED] =
 		g_signal_new ("content_sniffed",
@@ -450,7 +448,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Emitted just before a message is sent.
 	 *
-	 * Since: 2.50
 	 */
 	signals[STARTING] =
 		g_signal_new ("starting",
@@ -548,7 +545,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * the different values of @event correspond to, and what
 	 * @connection will be in each case.
 	 *
-	 * Since: 2.38
 	 **/
 	signals[NETWORK_EVENT] =
 		g_signal_new ("network_event",
@@ -661,7 +657,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * The #GUri loaded in the application when the message was
 	 * queued.
 	 *
-	 * Since: 2.30
 	 */
 	g_object_class_install_property (
 		object_class, PROP_FIRST_PARTY,
@@ -676,7 +671,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Site used to compare cookies against. Used for SameSite cookie support.
 	 *
-	 * Since: 2.70
 	 */
 	g_object_class_install_property (
 		object_class, PROP_SITE_FOR_COOKIES,
@@ -690,7 +684,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Set when the message is navigating between top level domains.
 	 *
-	 * Since: 2.70
 	 */
 	g_object_class_install_property (
 		object_class, PROP_IS_TOP_LEVEL_NAVIGATION,
@@ -720,7 +713,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * The #GTlsCertificate associated with the message
 	 *
-	 * Since: 2.34
 	 */
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE,
@@ -735,7 +727,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * The verification errors on #SoupMessage:tls-certificate
 	 *
-	 * Since: 2.34
 	 */
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE_ERRORS,
@@ -751,7 +742,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * Sets the priority of the #SoupMessage. See
 	 * soup_message_set_priority() for further details.
 	 *
-	 * Since: 2.44
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_PRIORITY,
@@ -1400,7 +1390,7 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   after the message is successfully authenticated. This applies to both server
  *   and proxy authentication. Note that #SoupMessage::authenticate signal will
  *   be emitted, if you want to disable authentication for a message use
- *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead. Since 2.58
+ *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
@@ -1681,7 +1671,6 @@ soup_message_set_status (SoupMessage *msg,
  * you cannot call this on a message that is being requeued after a
  * redirect or authentication.
  *
- * Since: 2.28
  **/
 void
 soup_message_disable_feature (SoupMessage *msg, GType feature_type)
@@ -1731,7 +1720,6 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
  *
  * Returns: %TRUE if feature is disabled, or %FALSE otherwise.
  *
- * Since: 2.72
  */
 gboolean
 soup_message_is_feature_disabled (SoupMessage *msg, GType feature_type)
@@ -1771,7 +1759,6 @@ soup_message_get_disabled_features (SoupMessage *msg)
  * 
  * Returns: (transfer none): the @msg's first party #GUri
  * 
- * Since: 2.30
  **/
 GUri *
 soup_message_get_first_party (SoupMessage *msg)
@@ -1793,7 +1780,6 @@ soup_message_get_first_party (SoupMessage *msg)
  * details of when and how this is used refer to the documentation for
  * #SoupCookieJarAcceptPolicy.
  *
- * Since: 2.30
  **/
 void
 soup_message_set_first_party (SoupMessage *msg,
@@ -1829,7 +1815,6 @@ soup_message_set_first_party (SoupMessage *msg,
  *
  * Returns: (transfer none): the @msg's site for cookies #GUri
  *
- * Since: 2.70
  **/
 GUri *
 soup_message_get_site_for_cookies (SoupMessage *msg)
@@ -1856,7 +1841,6 @@ soup_message_get_site_for_cookies (SoupMessage *msg)
  * See the [same-site spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
  * for more information.
  *
- * Since: 2.70
  **/
 void
 soup_message_set_site_for_cookies (SoupMessage *msg,
@@ -1892,7 +1876,6 @@ soup_message_set_site_for_cookies (SoupMessage *msg,
  * See the [same-site spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
  * for more information.
  *
- * Since: 2.70
  **/
 void
 soup_message_set_is_top_level_navigation (SoupMessage *msg,
@@ -1918,7 +1901,6 @@ soup_message_set_is_top_level_navigation (SoupMessage *msg,
  * Returns if this message is set as a top level navigation.
  * Used for same-site policy checks.
  *
- * Since: 2.70
  **/
 gboolean
 soup_message_get_is_top_level_navigation (SoupMessage *msg)
@@ -2013,7 +1995,6 @@ soup_message_get_tls_certificate_errors (SoupMessage *msg)
  * because in the synchronous/blocking case, priority ends up being determined
  * semi-randomly by thread scheduling.
  *
- * Since: 2.44
  */
 void
 soup_message_set_priority (SoupMessage        *msg,
@@ -2033,7 +2014,6 @@ soup_message_set_priority (SoupMessage        *msg,
  *
  * Return value: the priority of the message.
  *
- * Since: 2.44
  */
 SoupMessagePriority
 soup_message_get_priority (SoupMessage *msg)

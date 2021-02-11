@@ -52,7 +52,6 @@ static void recompute_hex_a1 (SoupAuthDigestPrivate *priv);
  * support for it, call soup_session_remove_feature_by_type(),
  * passing %SOUP_TYPE_AUTH_DIGEST.
  *
- * Since: 2.34
  */
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthDigest, soup_auth_digest, SOUP_TYPE_AUTH)

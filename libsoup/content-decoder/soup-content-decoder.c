@@ -45,7 +45,6 @@
  * Content-Encoding when sending a request body, or to pick specific
  * encoding types to support.)
  *
- * Since: 2.30
  **/
 
 /**

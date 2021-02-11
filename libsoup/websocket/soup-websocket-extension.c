@@ -33,7 +33,6 @@
  *
  * SoupWebsocketExtension is the base class for WebSocket extension objects.
  *
- * Since: 2.68
  */
 
 /**
@@ -58,7 +57,6 @@
  *
  * The class structure for the SoupWebsocketExtension.
  *
- * Since: 2.68
  */
 
 G_DEFINE_ABSTRACT_TYPE (SoupWebsocketExtension, soup_websocket_extension, G_TYPE_OBJECT)
@@ -112,7 +110,6 @@ soup_websocket_extension_configure (SoupWebsocketExtension     *extension,
  *
  * Returns: (nullable) (transfer full): a new allocated string with the parameters
  *
- * Since: 2.68
  */
 char *
 soup_websocket_extension_get_request_params (SoupWebsocketExtension *extension)
@@ -137,7 +134,6 @@ soup_websocket_extension_get_request_params (SoupWebsocketExtension *extension)
  *
  * Returns: (nullable) (transfer full): a new allocated string with the parameters
  *
- * Since: 2.68
  */
 char *
 soup_websocket_extension_get_response_params (SoupWebsocketExtension *extension)
@@ -168,7 +164,6 @@ soup_websocket_extension_get_response_params (SoupWebsocketExtension *extension)
  *
  * Returns: (transfer full): the message payload data, or %NULL in case of error
  *
- * Since: 2.68
  */
 GBytes *
 soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension *extension,
@@ -205,7 +200,6 @@ soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension *exten
  *
  * Returns: (transfer full): the message payload data, or %NULL in case of error
  *
- * Since: 2.68
  */
 GBytes *
 soup_websocket_extension_process_incoming_message (SoupWebsocketExtension *extension,

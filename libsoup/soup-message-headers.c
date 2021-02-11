@@ -123,7 +123,6 @@ G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_head
  *
  * Return value: the header's type.
  *
- * Since: 2.50
  **/
 SoupMessageHeadersType
 soup_message_headers_get_headers_type (SoupMessageHeaders *hdrs)
@@ -159,7 +158,6 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
  *
  * Removes all the headers listed in the Connection header.
  *
- * Since: 2.36
  */
 void
 soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs)
@@ -325,7 +323,6 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
  *
  * Return value: (nullable) (transfer none): the header's value or %NULL if not found.
  *
- * Since: 2.28
  **/
 const char *
 soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
@@ -358,7 +355,6 @@ soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
  * Return value: %TRUE if the header is present and contains @token,
  *   %FALSE otherwise.
  *
- * Since: 2.50
  **/
 gboolean
 soup_message_headers_header_contains (SoupMessageHeaders *hdrs, const char *name, const char *token)
@@ -383,7 +379,6 @@ soup_message_headers_header_contains (SoupMessageHeaders *hdrs, const char *name
  * Return value: %TRUE if the header is present and its value is
  *   @value, %FALSE otherwise.
  *
- * Since: 2.50
  **/
 gboolean
 soup_message_headers_header_equals (SoupMessageHeaders *hdrs, const char *name, const char *value)
@@ -416,7 +411,6 @@ soup_message_headers_header_equals (SoupMessageHeaders *hdrs, const char *name, 
  * 
  * Return value: (nullable) (transfer none): the header's value or %NULL if not found.
  *
- * Since: 2.28
  **/
 const char *
 soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
@@ -904,7 +898,6 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
  * range", referring to the last -@start bytes of the resource body.
  * (Eg, the last 500 bytes would be @start = -500 and @end = -1.)
  *
- * Since: 2.26
  **/
 
 static int
@@ -1054,7 +1047,6 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  * "Range" header, %FALSE otherwise (in which case @range and @length
  * will not be set).
  *
- * Since: 2.26
  **/
 gboolean
 soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
@@ -1075,7 +1067,6 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
  *
  * Frees the array of ranges returned from soup_message_headers_get_ranges().
  *
- * Since: 2.26
  **/
 void
 soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
@@ -1094,7 +1085,6 @@ soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
  * only want to request a single range, you can use
  * soup_message_headers_set_range().)
  *
- * Since: 2.26
  **/
 void
 soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
@@ -1136,7 +1126,6 @@ soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
  * If you need to request multiple ranges, use
  * soup_message_headers_set_ranges().
  *
- * Since: 2.26
  **/
 void
 soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
@@ -1165,7 +1154,6 @@ soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
  * Return value: %TRUE if @hdrs contained a "Content-Range" header
  * containing a byte range which could be parsed, %FALSE otherwise.
  *
- * Since: 2.26
  **/
 gboolean
 soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
@@ -1221,7 +1209,6 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
  * soup_message_headers_get_ranges() for more details.
  * </para></note>
  *
- * Since: 2.26
  **/
 void
 soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
@@ -1339,7 +1326,6 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
  * header or it cannot be parsed (in which case *@params will be
  * unchanged).
  *
- * Since: 2.26
  **/
 const char *
 soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
@@ -1363,7 +1349,6 @@ soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
  * Sets the "Content-Type" header in @hdrs to @content_type,
  * optionally with additional parameters specified in @params.
  *
- * Since: 2.26
  **/
 void
 soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
@@ -1402,7 +1387,6 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
  * header, %FALSE if not (in which case *@disposition and *@params
  * will be unchanged).
  *
- * Since: 2.26
  **/
 gboolean
 soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
@@ -1441,7 +1425,6 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
  * See soup_message_headers_get_content_disposition() for a discussion
  * of how Content-Disposition is used in HTTP.
  *
- * Since: 2.26
  **/
 void
 soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,

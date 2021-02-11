@@ -61,7 +61,6 @@
  * (#SoupWebsocketConnection currently only supports asynchronous
  * I/O.)
  *
- * Since: 2.50
  */
 
 /**
@@ -70,7 +69,6 @@
  * A #GError domain for WebSocket-related errors. Used with
  * #SoupWebsocketError.
  *
- * Since: 2.50
  */
 
 /**
@@ -85,7 +83,6 @@
  *
  * WebSocket-related errors.
  *
- * Since: 2.50
  */
 
 /**
@@ -96,7 +93,6 @@
  *
  * The type of a #SoupWebsocketConnection.
  *
- * Since: 2.50
  */
 
 /**
@@ -107,7 +103,6 @@
  * The type of data contained in a #SoupWebsocketConnection::message
  * signal.
  *
- * Since: 2.50
  */
 
 /**
@@ -140,7 +135,6 @@
  * soup_websocket_connection_get_close_code(). (However, other codes
  * are also allowed.)
  *
- * Since: 2.50
  */
 
 /**
@@ -152,7 +146,6 @@
  *
  * The state of the WebSocket connection.
  *
- * Since: 2.50
  */
 
 G_DEFINE_QUARK (soup-websocket-error-quark, soup_websocket_error)

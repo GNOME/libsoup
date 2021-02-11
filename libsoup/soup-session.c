@@ -564,7 +564,6 @@ soup_session_get_property (GObject *object, guint prop_id,
  *
  * Return value: the new session.
  *
- * Since: 2.42
  */
 SoupSession *
 soup_session_new (void)
@@ -581,7 +580,6 @@ soup_session_new (void)
  *
  * Return value: the new session.
  *
- * Since: 2.42
  */
 SoupSession *
 soup_session_new_with_options (const char *optname1,
@@ -817,7 +815,6 @@ soup_session_requeue_item (SoupSession          *session,
  * (eg, because there was no Location header, or it could not be
  * parsed).
  *
- * Since: 2.38
  */
 static gboolean
 soup_session_redirect_message (SoupSession *session,
@@ -1864,7 +1861,6 @@ soup_session_abort (SoupSession *session)
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
  *
- * Since: 2.24
  **/
 void
 soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
@@ -1897,7 +1893,6 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
  *
- * Since: 2.24
  **/
 void
 soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
@@ -1932,7 +1927,6 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
  *
  * Removes @feature's functionality from @session.
  *
- * Since: 2.24
  **/
 void
 soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
@@ -1960,7 +1954,6 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
  * from the session at construct time by using the
  * SoupSession:remove-feature-by-type property.
  *
- * Since: 2.24
  **/
 void
 soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
@@ -2000,7 +1993,6 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
  *
  * Return value: %TRUE or %FALSE
  *
- * Since: 2.42
  **/
 gboolean
 soup_session_has_feature (SoupSession *session,
@@ -2040,7 +2032,6 @@ soup_session_has_feature (SoupSession *session,
  * Return value: (transfer container) (element-type Soup.SessionFeature):
  * a list of features. You must free the list, but not its contents
  *
- * Since: 2.26
  **/
 GSList *
 soup_session_get_features (SoupSession *session, GType feature_type)
@@ -2070,7 +2061,6 @@ soup_session_get_features (SoupSession *session, GType feature_type)
  * Return value: (nullable) (transfer none): a #SoupSessionFeature, or
  * %NULL. The feature is owned by @session.
  *
- * Since: 2.26
  **/
 SoupSessionFeature *
 soup_session_get_feature (SoupSession *session, GType feature_type)
@@ -2117,7 +2107,6 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
  * Return value: (nullable) (transfer none): a #SoupSessionFeature, or %NULL. The
  * feature is owned by @session.
  *
- * Since: 2.28
  **/
 SoupSessionFeature *
 soup_session_get_feature_for_message (SoupSession *session, GType feature_type,
@@ -2178,7 +2167,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * other #SoupMessage signals) may be invoked multiple times
 	 * for a given message.
 	 *
-	 * Since: 2.24
 	 **/
 	signals[REQUEST_QUEUED] =
 		g_signal_new ("request-queued",
@@ -2200,7 +2188,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupSession::request_queued for a detailed description of the
 	 * message lifecycle within a session.
 	 *
-	 * Since: 2.24
 	 **/
 	signals[REQUEST_UNQUEUED] =
 		g_signal_new ("request-unqueued",
@@ -2224,7 +2211,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #GProxyResolver if you want to control what proxies get
 	 * used.
 	 *
-	 * Since: 2.42
 	 */
 	g_object_class_install_property (
 		object_class, PROP_PROXY_RESOLVER,
@@ -2266,7 +2252,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * if you want to ensure that all future connections will have
 	 * this timeout value.
 	 *
-	 * Since: 2.24
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_IDLE_TIMEOUT,
@@ -2289,7 +2274,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Setting this to %FALSE (when it was previously %TRUE) will
 	 * clear the #SoupSession:tls-database field.
 	 *
-	 * Since: 2.38
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_USE_SYSTEM_CA_FILE,
@@ -2310,7 +2294,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * this property to be set to a #GTlsDatabase corresponding to
 	 * the indicated file or system default.
 	 *
-	 * Since: 2.38
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TLS_DATABASE,
@@ -2392,7 +2375,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Setting this will disable
 	 * #SoupSession:accept-language-auto.
 	 *
-	 * Since: 2.30
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_LANGUAGE,
@@ -2413,7 +2395,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Setting this will override any previous value of
 	 * #SoupSession:accept-language.
 	 *
-	 * Since: 2.30
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_LANGUAGE_AUTO,
@@ -2433,7 +2414,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Use this property if you want for instance to bind the
 	 * local socket to a specific IP address.
 	 *
-	 * Since: 2.42
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_LOCAL_ADDRESS,
@@ -2451,7 +2431,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #GTlsConnections created by the session. (This can be used to
 	 * provide client-side certificates, for example.)
 	 *
-	 * Since: 2.48
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TLS_INTERACTION,
@@ -2862,7 +2841,6 @@ async_respond_from_cache (SoupSession          *session,
  *
  * See soup_session_send() for more details on the general semantics.
  *
- * Since: 2.42
  */
 void
 soup_session_send_async (SoupSession         *session,
@@ -2906,7 +2884,6 @@ soup_session_send_async (SoupSession         *session,
  * Return value: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.
  *
- * Since: 2.42
  */
 GInputStream *
 soup_session_send_finish (SoupSession   *session,
@@ -2963,7 +2940,6 @@ soup_session_send_finish (SoupSession   *session,
  * Return value: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.
  *
- * Since: 2.42
  */
 GInputStream *
 soup_session_send (SoupSession   *session,
@@ -3719,7 +3695,6 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
  * soup_session_websocket_connect_finish() will return
  * %SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET.
  *
- * Since: 2.50
  */
 void
 soup_session_websocket_connect_async (SoupSession          *session,
@@ -3775,7 +3750,6 @@ soup_session_websocket_connect_async (SoupSession          *session,
  * Return value: (transfer full): a new #SoupWebsocketConnection, or
  *   %NULL on error.
  *
- * Since: 2.50
  */
 SoupWebsocketConnection *
 soup_session_websocket_connect_finish (SoupSession      *session,

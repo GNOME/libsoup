@@ -34,7 +34,6 @@
  * session with soup_session_remove_feature_by_type(), or disable it on
  * individual requests with soup_message_disable_feature().
  *
- * Since: 2.42
  **/
 
 /**
@@ -55,7 +54,6 @@
  * <literal><code>g_type_from_name ("SoupAuthManager")</code></literal>
  * to get its #GType in earlier releases.)
  *
- * Since: 2.42
  */
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
@@ -834,7 +832,6 @@ soup_auth_manager_request_unqueued (SoupSessionFeature *manager,
  * Authorization header does not depend on any additional information
  * from the server. (Eg, Basic or NTLM, but not Digest.)
  *
- * Since: 2.42
  */
 void
 soup_auth_manager_use_auth (SoupAuthManager *manager,
@@ -854,7 +851,6 @@ soup_auth_manager_use_auth (SoupAuthManager *manager,
  *
  * Clear all credentials cached by @manager
  *
- * Since: 2.58
  */
 void
 soup_auth_manager_clear_cached_credentials (SoupAuthManager *manager)

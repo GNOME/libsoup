@@ -1039,7 +1039,6 @@ soup_cache_class_init (SoupCacheClass *cache_class)
  * The type of cache; this affects what kinds of responses will be
  * saved.
  *
- * Since: 2.34
  */
 
 /**
@@ -1054,7 +1053,6 @@ soup_cache_class_init (SoupCacheClass *cache_class)
  *
  * Returns: a new #SoupCache
  *
- * Since: 2.34
  */
 SoupCache *
 soup_cache_new (const char *cache_dir, SoupCacheType cache_type)
@@ -1076,7 +1074,6 @@ soup_cache_new (const char *cache_dir, SoupCacheType cache_type)
  *
  * Returns: whether or not the @cache has a valid response for @msg
  *
- * Since: 2.34
  */
 SoupCacheResponse
 soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
@@ -1235,7 +1232,6 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
  *
  * Returns: a #SoupCacheability value indicating whether the @msg can be cached or not.
  *
- * Since: 2.34
  */
 SoupCacheability
 soup_cache_get_cacheability (SoupCache *cache, SoupMessage *msg)
@@ -1266,7 +1262,6 @@ force_flush_timeout (gpointer data)
  * Contrast with soup_cache_dump(), which writes out the cache index
  * file.
  *
- * Since: 2.34
  */
 void
 soup_cache_flush (SoupCache *cache)
@@ -1346,7 +1341,6 @@ clear_cache_files (SoupCache *cache)
  *
  * Will remove all entries in the @cache plus all the cache files.
  *
- * Since: 2.34
  */
 void
 soup_cache_clear (SoupCache *cache)
@@ -1497,7 +1491,6 @@ pack_entry (gpointer data,
  * You must call this before exiting if you want your cache data to
  * persist between sessions.
  *
- * Since: 2.34
  */
 void
 soup_cache_dump (SoupCache *cache)
@@ -1560,7 +1553,6 @@ insert_cache_file (SoupCache *cache, const char *name, GHashTable *leaked_entrie
  *
  * Loads the contents of @cache's index into memory.
  *
- * Since: 2.34
  */
 void
 soup_cache_load (SoupCache *cache)
@@ -1660,7 +1652,6 @@ soup_cache_load (SoupCache *cache)
  *
  * Sets the maximum size of the cache.
  *
- * Since: 2.34
  */
 void
 soup_cache_set_max_size (SoupCache *cache,
@@ -1679,7 +1670,6 @@ soup_cache_set_max_size (SoupCache *cache,
  *
  * Return value: the maximum size of the cache, in bytes.
  *
- * Since: 2.34
  */
 guint
 soup_cache_get_max_size (SoupCache *cache)

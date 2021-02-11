@@ -218,7 +218,6 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	 *
 	 * The level of logging output
 	 *
-	 * Since: 2.56
 	 */
 	g_object_class_install_property (
 		object_class, PROP_LEVEL,

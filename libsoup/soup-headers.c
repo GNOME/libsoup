@@ -41,7 +41,6 @@
  *
  * Return value: success or failure
  *
- * Since: 2.26
  **/
 gboolean
 soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
@@ -822,7 +821,6 @@ soup_header_parse_param_list (const char *header)
  * #GHashTable of list elements, which can be freed with
  * soup_header_free_param_list().
  *
- * Since: 2.24
  **/
 GHashTable *
 soup_header_parse_semi_param_list (const char *header)
@@ -849,7 +847,6 @@ soup_header_parse_semi_param_list (const char *header)
  * soup_header_free_param_list() or %NULL if there are duplicate
  * elements.
  *
- * Since: 2.66
  **/
 GHashTable *
 soup_header_parse_param_list_strict (const char *header)
@@ -876,7 +873,6 @@ soup_header_parse_param_list_strict (const char *header)
  * soup_header_free_param_list() or %NULL if there are duplicate
  * elements.
  *
- * Since: 2.66
  **/
 GHashTable *
 soup_header_parse_semi_param_list_strict (const char *header)
@@ -978,7 +974,6 @@ append_param_internal (GString    *string,
  * If @value is (non-ASCII) UTF-8, this will instead use RFC 5987
  * encoding, just like soup_header_g_string_append_param().
  *
- * Since: 2.30
  **/
 void
 soup_header_g_string_append_param_quoted (GString    *string,
@@ -1010,7 +1005,6 @@ soup_header_g_string_append_param_quoted (GString    *string,
  *
  * If @value is %NULL, this will just append @name to @string.
  *
- * Since: 2.26
  **/
 void
 soup_header_g_string_append_param (GString    *string,

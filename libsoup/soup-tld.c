@@ -53,7 +53,6 @@ static const char *soup_tld_get_base_domain_internal (const char *hostname,
  * Returns: a pointer to the start of the base domain in @hostname. If
  * an error occurs, %NULL will be returned and @error set.
  *
- * Since: 2.40
  **/
 const char *
 soup_tld_get_base_domain (const char *hostname, GError **error)
@@ -87,7 +86,6 @@ soup_psl_context (void)
  *
  * Returns: %TRUE if it is a public domain, %FALSE otherwise.
  *
- * Since: 2.40
  **/
 gboolean
 soup_tld_domain_is_public_suffix (const char *domain)
@@ -109,7 +107,6 @@ soup_tld_domain_is_public_suffix (const char *domain)
  *
  * The #GError domain for soup-tld-related errors.
  *
- * Since: 2.40
  */
 /**
  * SoupTLDError:
@@ -128,7 +125,6 @@ soup_tld_domain_is_public_suffix (const char *domain)
  *
  * Error codes for %SOUP_TLD_ERROR.
  *
- * Since: 2.40
  */
 
 G_DEFINE_QUARK (soup-tld-error-quark, soup_tld_error)

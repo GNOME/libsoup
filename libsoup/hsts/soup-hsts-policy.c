@@ -25,7 +25,6 @@
  *
  * Policies to be used with #SoupHSTSEnforcer.
  *
- * Since: 2.68
  */
 
 /**
@@ -49,7 +48,6 @@
  * If @include_subdomains is %TRUE, the Strict Transport Security policy
  * must also be enforced on subdomains of @domain.
  *
- * Since: 2.68
  **/
 
 struct _SoupHSTSPolicy {
@@ -69,7 +67,6 @@ G_DEFINE_BOXED_TYPE (SoupHSTSPolicy, soup_hsts_policy, soup_hsts_policy_copy, so
  *
  * Returns: (transfer full): a copy of @policy
  *
- * Since: 2.68
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_copy (SoupHSTSPolicy *policy)
@@ -94,7 +91,6 @@ soup_hsts_policy_copy (SoupHSTSPolicy *policy)
  *
  * Returns: whether the policies are equal.
  *
- * Since: 2.68
  */
 gboolean
 soup_hsts_policy_equal (SoupHSTSPolicy *policy1, SoupHSTSPolicy *policy2)
@@ -153,7 +149,6 @@ is_hostname_valid (const char *hostname)
  *
  * Returns: a new #SoupHSTSPolicy.
  *
- * Since: 2.68
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new (const char *domain,
@@ -188,7 +183,6 @@ soup_hsts_policy_new (const char *domain,
  *
  * Returns: a new #SoupHSTSPolicy.
  *
- * Since: 2.68
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_full (const char *domain,
@@ -239,7 +233,6 @@ soup_hsts_policy_new_full (const char *domain,
  *
  * Returns: a new #SoupHSTSPolicy.
  *
- * Since: 2.68
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_session_policy (const char *domain,
@@ -262,7 +255,6 @@ soup_hsts_policy_new_session_policy (const char *domain,
  * Returns: (nullable): a new #SoupHSTSPolicy, or %NULL if no valid
  * "Strict-Transport-Security" response header was found.
  *
- * Since: 2.68
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_from_response (SoupMessage *msg)
@@ -324,7 +316,6 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
  *
  * Returns: (transfer none): @policy's domain.
  *
- * Since: 2.68
  **/
 const char *
 soup_hsts_policy_get_domain (SoupHSTSPolicy *policy)
@@ -343,7 +334,6 @@ soup_hsts_policy_get_domain (SoupHSTSPolicy *policy)
  *
  * Returns: %TRUE if @policy is expired, %FALSE otherwise.
  *
- * Since: 2.68
  **/
 gboolean
 soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
@@ -361,7 +351,6 @@ soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
  *
  * Returns: %TRUE if @policy includes subdomains, %FALSE otherwise.
  *
- * Since: 2.68
  **/
 gboolean
 soup_hsts_policy_includes_subdomains (SoupHSTSPolicy *policy)
@@ -380,7 +369,6 @@ soup_hsts_policy_includes_subdomains (SoupHSTSPolicy *policy)
  *
  * Returns: %TRUE if @policy is permanent, %FALSE otherwise
  *
- * Since: 2.68
  **/
 gboolean
 soup_hsts_policy_is_session_policy (SoupHSTSPolicy *policy)
@@ -428,7 +416,6 @@ soup_hsts_policy_get_max_age (SoupHSTSPolicy *policy)
  *
  * Frees @policy.
  *
- * Since: 2.68
  **/
 void
 soup_hsts_policy_free (SoupHSTSPolicy *policy)

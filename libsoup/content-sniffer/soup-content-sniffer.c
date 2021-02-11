@@ -33,7 +33,6 @@
  * content sniffing to a session with soup_session_add_feature() or
  * soup_session_add_feature_by_type().
  *
- * Since: 2.28
  **/
 
 /**
@@ -794,7 +793,6 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
  * Return value: the sniffed Content-Type of @buffer; this will never be %NULL,
  *   but may be "application/octet-stream".
  *
- * Since: 2.28
  */
 char *
 soup_content_sniffer_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
@@ -878,7 +876,6 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
  *
  * Return value: the number of bytes to sniff
  *
- * Since: 2.28
  */
 gsize
 soup_content_sniffer_get_buffer_size (SoupContentSniffer *sniffer)
@@ -931,7 +928,6 @@ soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_
  *
  * Returns: a new #SoupContentSniffer
  *
- * Since: 2.28
  **/
 SoupContentSniffer *
 soup_content_sniffer_new (void)
