@@ -140,9 +140,12 @@ static void
 soup_logger_init (SoupLogger *logger)
 {
 	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
+	char *id;
 
 	g_mutex_init (&priv->lock);
-	priv->tag = g_quark_from_static_string (g_strdup_printf ("SoupLogger-%p", logger));
+	id = g_strdup_printf ("SoupLogger-%p", logger);
+	priv->tag = g_quark_from_string (id);
+	g_free (id);
 	priv->ids = g_hash_table_new (NULL, NULL);
 }
 
