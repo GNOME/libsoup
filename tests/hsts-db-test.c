@@ -60,13 +60,25 @@ server_callback  (SoupServer        *server,
 }
 
 static void
-session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_status)
+hsts_enforced_cb (SoupMessage *msg,
+		  gboolean    *enforced)
+{
+	*enforced = TRUE;
+}
+
+static void
+session_get_uri (SoupSession *session,
+                 const char  *uri,
+                 SoupStatus   expected_status,
+                 gboolean     expected_enforced)
 {
 	SoupMessage *msg;
         GBytes *body;
         GError *error = NULL;
+        gboolean enforced = FALSE;
 
 	msg = soup_message_new ("GET", uri);
+        g_signal_connect (msg, "hsts-enforced", G_CALLBACK (hsts_enforced_cb), &enforced);
 	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 	body = soup_test_session_send (session, msg, NULL, &error);
 	if (expected_status == SOUP_STATUS_NONE)
@@ -74,6 +86,7 @@ session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_stat
 	else
 		g_assert_no_error (error);
 	soup_test_assert_message_status (msg, expected_status);
+        g_assert (enforced == expected_enforced);
         g_clear_error (&error);
         g_bytes_unref (body);
 	g_object_unref (msg);
@@ -133,12 +146,12 @@ static void
 do_hsts_db_persistency_test (void)
 {
 	SoupSession *session = hsts_db_session_new ();
-	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 
 	session = hsts_db_session_new ();
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 
 	g_remove (DB_FILE);
@@ -148,11 +161,11 @@ static void
 do_hsts_db_subdomains_test (void)
 {
 	SoupSession *session = hsts_db_session_new ();
-	session_get_uri (session, "https://localhost/subdomains", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/subdomains", SOUP_STATUS_OK, FALSE);
 	soup_test_session_abort_unref (session);
 
 	session = hsts_db_session_new ();
-	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_NONE);
+	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_NONE, TRUE);
 	soup_test_session_abort_unref (session);
 
 	g_remove (DB_FILE);
@@ -162,12 +175,12 @@ static void
 do_hsts_db_large_max_age_test (void)
 {
 	SoupSession *session = hsts_db_session_new ();
-	session_get_uri (session, "https://localhost/very-long-lasting", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/very-long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 
 	session = hsts_db_session_new ();
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 
 	g_remove (DB_FILE);

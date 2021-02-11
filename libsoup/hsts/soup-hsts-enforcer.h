@@ -25,7 +25,6 @@ G_DECLARE_DERIVABLE_TYPE (SoupHSTSEnforcer, soup_hsts_enforcer, SOUP, HSTS_ENFOR
  * chain up to the @has_valid_policy in the parent class to check, for instance, for runtime
  * policies.
  * @changed: The class closure for the #SoupHSTSEnforcer::changed signal.
- * @hsts_enforced: The class closure for the #SoupHSTSEnforcer::hsts-enforced signal.
  *
  * Class structure for #SoupHSTSEnforcer.
  **/
@@ -39,9 +38,6 @@ struct _SoupHSTSEnforcerClass {
 	void (*changed) (SoupHSTSEnforcer *enforcer,
 			 SoupHSTSPolicy	  *old_policy,
 			 SoupHSTSPolicy	  *new_policy);
-
-	void (*hsts_enforced) (SoupHSTSEnforcer *enforcer,
-			       SoupMessage      *message);
 
         /* <private> */
 	gpointer padding[4];

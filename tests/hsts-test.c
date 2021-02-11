@@ -106,13 +106,25 @@ server_callback  (SoupServer        *server,
 }
 
 static void
-session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_status)
+hsts_enforced_cb (SoupMessage *msg,
+		  gboolean    *enforced)
+{
+	*enforced = TRUE;
+}
+
+static void
+session_get_uri (SoupSession *session,
+		 const char  *uri,
+		 SoupStatus   expected_status,
+		 gboolean     expected_enforced)
 {
 	SoupMessage *msg;
 	GBytes *body;
 	GError *error = NULL;
+	gboolean enforced = FALSE;
 
 	msg = soup_message_new ("GET", uri);
+	g_signal_connect (msg, "hsts-enforced", G_CALLBACK (hsts_enforced_cb), &enforced);
 	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 	body = soup_test_session_send (session, msg, NULL, &error);
 	if (expected_status == SOUP_STATUS_NONE)
@@ -120,6 +132,7 @@ session_get_uri (SoupSession *session, const char *uri, SoupStatus expected_stat
 	else
 		g_assert_no_error (error);
 	soup_test_assert_message_status (msg, expected_status);
+	g_assert (enforced == expected_enforced);
 	g_clear_error (&error);
 	g_bytes_unref (body);
 	g_object_unref (msg);
@@ -182,15 +195,15 @@ do_hsts_basic_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
-	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 
 	/* The HSTS headers in the url above doesn't include
 	   subdomains, so the request should ask for the unchanged
 	   HTTP address below, to which the server will respond with a
 	   moved permanently status. */
-	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 
 	soup_test_session_abort_unref (session);
 }
@@ -200,11 +213,11 @@ do_hsts_expire_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 
-	session_get_uri (session, "https://localhost/two-seconds", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/two-seconds", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	/* Wait for the policy to expire. */
 	g_usleep (3 * G_USEC_PER_SEC);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 
 	soup_test_session_abort_unref (session);
 }
@@ -214,9 +227,9 @@ do_hsts_delete_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
-	session_get_uri (session, "https://localhost/delete", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
+	session_get_uri (session, "https://localhost/delete", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 
 	soup_test_session_abort_unref (session);
 }
@@ -225,12 +238,12 @@ static void
 do_hsts_replace_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
-	session_get_uri (session, "https://localhost/two-seconds", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+	session_get_uri (session, "https://localhost/two-seconds", SOUP_STATUS_OK, FALSE);
 	/* Wait for the policy to expire. */
 	g_usleep (3 * G_USEC_PER_SEC);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 
 	soup_test_session_abort_unref (session);
 }
@@ -239,15 +252,15 @@ static void
 do_hsts_update_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/three-seconds", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/three-seconds", SOUP_STATUS_OK, FALSE);
 	g_usleep (2 * G_USEC_PER_SEC);
-	session_get_uri (session, "https://localhost/three-seconds", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/three-seconds", SOUP_STATUS_OK, FALSE);
 	g_usleep (2 * G_USEC_PER_SEC);
 
 	/* At this point, 4 seconds have elapsed since setting the 3 seconds HSTS
 	   rule for the first time, and it should have expired by now, but since it
 	   was updated, it should still be valid. */
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -255,10 +268,10 @@ static void
 do_hsts_set_and_delete_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
-	session_get_uri (session, "https://localhost/delete", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+	session_get_uri (session, "https://localhost/delete", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 
 	soup_test_session_abort_unref (session);
 }
@@ -267,10 +280,10 @@ static void
 do_hsts_no_hsts_header_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
-	session_get_uri (session, "https://localhost/no-sts-header", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+	session_get_uri (session, "https://localhost/no-sts-header", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 
 	soup_test_session_abort_unref (session);
 }
@@ -279,12 +292,12 @@ static void
 do_hsts_persistency_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 
 	session = hsts_session_new (NULL);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -292,11 +305,11 @@ static void
 do_hsts_subdomains_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/subdomains", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/subdomains", SOUP_STATUS_OK, FALSE);
 	/* The enforcer should cause the request to ask for an HTTPS
 	   uri, which will fail with an SSL error as there's no server
 	   in subdomain.localhost. */
-	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_NONE);
+	session_get_uri (session, "http://subdomain.localhost", SOUP_STATUS_NONE, TRUE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -308,7 +321,7 @@ do_hsts_superdomain_test (void)
 
 	SoupSession *session = hsts_session_new (enforcer);
 	/* This adds a long-lasting policy for localhost. */
-	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
 
 	/* We want to set a policy with age = 0 for a subdomain, to test that the
 	   superdomain's policy is not removed. We cannot test this with a
@@ -319,7 +332,7 @@ do_hsts_superdomain_test (void)
 
 	/* This should work, as we have a long-lasting policy in place. If it fails,
 	   the subdomain policy has modified the superdomain's policy, which is wrong. */
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	g_object_unref (enforcer);
 }
 
@@ -327,9 +340,9 @@ static void
 do_hsts_multiple_headers_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/multiple-headers", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/multiple-headers", SOUP_STATUS_OK, FALSE);
 	g_usleep(2 * G_USEC_PER_SEC);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -337,8 +350,8 @@ static void
 do_hsts_insecure_sts_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "http://localhost/insecure", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "http://localhost/insecure", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -346,8 +359,8 @@ static void
 do_hsts_missing_values_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/missing-values", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "https://localhost/missing-values", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -355,8 +368,8 @@ static void
 do_hsts_invalid_values_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/invalid-values", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "https://localhost/invalid-values", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -367,8 +380,8 @@ do_hsts_extra_values_test (void)
 	for (i = 0; i < 2; i++) {
 		SoupSession *session = hsts_session_new (NULL);
 		char *uri = g_strdup_printf ("https://localhost/extra-values-%i", i);
-		session_get_uri (session, uri, SOUP_STATUS_OK);
-		session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+		session_get_uri (session, uri, SOUP_STATUS_OK, FALSE);
+		session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 		soup_test_session_abort_unref (session);
 		g_free (uri);
 	}
@@ -378,8 +391,8 @@ static void
 do_hsts_duplicated_directives_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/duplicated-directives", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "https://localhost/duplicated-directives", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -387,8 +400,8 @@ static void
 do_hsts_case_insensitive_header_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/case-insensitive-header", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/case-insensitive-header", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -396,8 +409,8 @@ static void
 do_hsts_case_insensitive_directives_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/case-insensitive-directives", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/case-insensitive-directives", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -406,8 +419,8 @@ do_hsts_optional_quotations_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
 
-	session_get_uri (session, "https://localhost/optional-quotations", SOUP_STATUS_OK);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/optional-quotations", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 
 	soup_test_session_abort_unref (session);
 }
@@ -416,8 +429,8 @@ static void
 do_hsts_ip_address_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://127.0.0.1/basic", SOUP_STATUS_OK);
-	session_get_uri (session, "http://127.0.0.1/", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "https://127.0.0.1/basic", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://127.0.0.1/", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -425,11 +438,11 @@ static void
 do_hsts_utf8_address_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
-	session_get_uri (session, "https://localhost/subdomains", SOUP_STATUS_OK);
+	session_get_uri (session, "https://localhost/subdomains", SOUP_STATUS_OK, FALSE);
 	/* The enforcer should cause the request to ask for an HTTPS
 	   uri, which will fail with an SSL error as there's no server
 	   in 食狮.中国.localhost. */
-	session_get_uri (session, "http://食狮.中国.localhost", SOUP_STATUS_NONE);
+	session_get_uri (session, "http://食狮.中国.localhost", SOUP_STATUS_NONE, TRUE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -439,9 +452,9 @@ do_hsts_session_policy_test (void)
 	SoupHSTSEnforcer *enforcer = soup_hsts_enforcer_new ();
 	SoupSession *session = hsts_session_new (enforcer);
 
-	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
 	soup_hsts_enforcer_set_session_policy (enforcer, "localhost", FALSE);
-	session_get_uri (session, "http://localhost", SOUP_STATUS_OK);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (enforcer);

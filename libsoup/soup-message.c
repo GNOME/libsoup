@@ -113,6 +113,7 @@ enum {
 	AUTHENTICATE,
 	NETWORK_EVENT,
 	ACCEPT_CERTIFICATE,
+	HSTS_ENFORCED,
 
 	LAST_SIGNAL
 };
@@ -586,6 +587,23 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_TLS_CERTIFICATE,
 			      G_TYPE_TLS_CERTIFICATE_FLAGS);
 
+	/**
+	 * SoupMessage::hsts-enforced:
+	 * @msg: the message
+	 *
+	 * Emitted when #SoupHSTSEnforcer has upgraded the protocol
+	 * for @msg to HTTPS as a result of matching its domain with
+	 * a HSTS policy.
+	 **/
+	signals[HSTS_ENFORCED] =
+		g_signal_new ("hsts-enforced",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      NULL,
+			      G_TYPE_NONE, 0);
+
 	/* properties */
 	g_object_class_install_property (
 		object_class, PROP_METHOD,
@@ -1058,6 +1076,12 @@ soup_message_authenticate (SoupMessage *msg,
 	g_signal_emit (msg, signals[AUTHENTICATE], 0,
 		       auth, retrying, &handled);
 	return handled;
+}
+
+void
+soup_message_hsts_enforced (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[HSTS_ENFORCED], 0);
 }
 
 static void

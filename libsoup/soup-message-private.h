@@ -106,6 +106,7 @@ void soup_message_finished          (SoupMessage *msg);
 gboolean soup_message_authenticate  (SoupMessage *msg,
 				     SoupAuth    *auth,
 				     gboolean     retrying);
+void soup_message_hsts_enforced     (SoupMessage *msg);
 
 gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);
