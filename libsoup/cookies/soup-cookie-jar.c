@@ -389,7 +389,7 @@ get_cookies (SoupCookieJar *jar,
  * almost certainly be setting @for_http to %FALSE if you are calling
  * this.
  *
- * Return value: (nullable): the cookies, in string form, or %NULL if
+ * Returns: (nullable): the cookies, in string form, or %NULL if
  * there are no cookies for @uri.
  *
  **/
@@ -435,7 +435,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, GUri *uri,
  * almost certainly be setting @for_http to %FALSE if you are calling
  * this.
  *
- * Return value: (transfer full) (element-type Soup.Cookie): a #GSList
+ * Returns: (transfer full) (element-type Soup.Cookie): a #GSList
  * with the cookies in the @jar that would be sent with a request to @uri.
  *
  **/
@@ -465,7 +465,7 @@ soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, GUri *uri, gboolean for_htt
  * [SameSite cookies spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
  * for more detailed information.
  *
- * Return value: (transfer full) (element-type Soup.Cookie): a #GSList
+ * Returns: (transfer full) (element-type Soup.Cookie): a #GSList
  * with the cookies in the @jar that would be sent with a request to @uri.
  *
  */
@@ -855,7 +855,7 @@ soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_inter
  * The cookies in the list are a copy of the original, so
  * you have to free them when you are done with them.
  *
- * Return value: (transfer full) (element-type Soup.Cookie): a #GSList
+ * Returns: (transfer full) (element-type Soup.Cookie): a #GSList
  * with all the cookies in the @jar.
  *
  **/

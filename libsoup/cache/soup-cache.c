@@ -1668,7 +1668,7 @@ soup_cache_set_max_size (SoupCache *cache,
  *
  * Gets the maximum size of the cache.
  *
- * Return value: the maximum size of the cache, in bytes.
+ * Returns: the maximum size of the cache, in bytes.
  *
  */
 guint

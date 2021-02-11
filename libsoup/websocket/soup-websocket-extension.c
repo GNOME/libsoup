@@ -80,7 +80,7 @@ soup_websocket_extension_class_init (SoupWebsocketExtensionClass *auth_class)
  *
  * Configures @extension with the given @params
  *
- * Return value: %TRUE if extension could be configured with the given parameters, or %FALSE otherwise
+ * Returns: %TRUE if extension could be configured with the given parameters, or %FALSE otherwise
  */
 gboolean
 soup_websocket_extension_configure (SoupWebsocketExtension     *extension,

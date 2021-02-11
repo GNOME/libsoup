@@ -562,7 +562,7 @@ soup_session_get_property (GObject *object, guint prop_id,
  *
  * Creates a #SoupSession with the default options.
  *
- * Return value: the new session.
+ * Returns: the new session.
  *
  */
 SoupSession *
@@ -578,7 +578,7 @@ soup_session_new (void)
  *
  * Creates a #SoupSession with the specified options.
  *
- * Return value: the new session.
+ * Returns: the new session.
  *
  */
 SoupSession *
@@ -811,7 +811,7 @@ soup_session_requeue_item (SoupSession          *session,
  * If @msg has already been redirected too many times, this will
  * cause it to fail with %SOUP_STATUS_TOO_MANY_REDIRECTS.
  *
- * Return value: %TRUE if a redirection was applied, %FALSE if not
+ * Returns: %TRUE if a redirection was applied, %FALSE if not
  * (eg, because there was no Location header, or it could not be
  * parsed).
  *
@@ -1991,7 +1991,7 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
  * be the type of either a #SoupSessionFeature, or else a subtype of
  * some class managed by another feature, such as #SoupAuth).
  *
- * Return value: %TRUE or %FALSE
+ * Returns: %TRUE or %FALSE
  *
  **/
 gboolean
@@ -2029,7 +2029,7 @@ soup_session_has_feature (SoupSession *session,
  * you want to see all features, you can pass %SOUP_TYPE_SESSION_FEATURE
  * for @feature_type.)
  *
- * Return value: (transfer container) (element-type Soup.SessionFeature):
+ * Returns: (transfer container) (element-type Soup.SessionFeature):
  * a list of features. You must free the list, but not its contents
  *
  **/
@@ -2058,7 +2058,7 @@ soup_session_get_features (SoupSession *session, GType feature_type)
  * features where there may be more than one feature of a given type,
  * use soup_session_get_features().
  *
- * Return value: (nullable) (transfer none): a #SoupSessionFeature, or
+ * Returns: (nullable) (transfer none): a #SoupSessionFeature, or
  * %NULL. The feature is owned by @session.
  *
  **/
@@ -2104,7 +2104,7 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
  * disabled on @msg, and the second is not, then this will return
  * %NULL, not the second feature.
  *
- * Return value: (nullable) (transfer none): a #SoupSessionFeature, or %NULL. The
+ * Returns: (nullable) (transfer none): a #SoupSessionFeature, or %NULL. The
  * feature is owned by @session.
  *
  **/
@@ -2881,7 +2881,7 @@ soup_session_send_async (SoupSession         *session,
  * successful), returns a #GInputStream that can be used to read the
  * response body.
  *
- * Return value: (transfer full): a #GInputStream for reading the
+ * Returns: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.
  *
  */
@@ -2937,7 +2937,7 @@ soup_session_send_finish (SoupSession   *session,
  * soup_session_send() will only return once a final response has been
  * received.
  *
- * Return value: (transfer full): a #GInputStream for reading the
+ * Returns: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.
  *
  */
@@ -3563,7 +3563,7 @@ steal_connection (SoupSession          *session,
  * Calling this function may cause @msg to be freed if you are not
  * holding any other reference to it.
  *
- * Return value: (transfer full): the #GIOStream formerly associated
+ * Returns: (transfer full): the #GIOStream formerly associated
  *   with @msg (or %NULL if @msg was no longer associated with a
  *   connection). No guarantees are made about what kind of #GIOStream
  *   is returned.
@@ -3747,7 +3747,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
  * returns a #SoupWebsocketConnection that can be used to communicate
  * with the server.
  *
- * Return value: (transfer full): a new #SoupWebsocketConnection, or
+ * Returns: (transfer full): a new #SoupWebsocketConnection, or
  *   %NULL on error.
  *
  */

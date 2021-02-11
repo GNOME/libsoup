@@ -790,7 +790,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
  * be influenced by the Content-Type declared in @msg's response
  * headers.
  *
- * Return value: the sniffed Content-Type of @buffer; this will never be %NULL,
+ * Returns: the sniffed Content-Type of @buffer; this will never be %NULL,
  *   but may be "application/octet-stream".
  *
  */
@@ -874,7 +874,7 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
  * Gets the number of bytes @sniffer needs in order to properly sniff
  * a buffer.
  *
- * Return value: the number of bytes to sniff
+ * Returns: the number of bytes to sniff
  *
  */
 gsize

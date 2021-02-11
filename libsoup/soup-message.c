@@ -778,7 +778,7 @@ soup_message_class_init (SoupMessageClass *message_class)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
- * Return value: (nullable): the new #SoupMessage (or %NULL if @uri
+ * Returns: (nullable): the new #SoupMessage (or %NULL if @uri
  * could not be parsed).
  */
 SoupMessage *
@@ -810,7 +810,7 @@ soup_message_new (const char *method, const char *uri_string)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
- * Return value: the new #SoupMessage
+ * Returns: the new #SoupMessage
  */
 SoupMessage *
 soup_message_new_from_uri (const char *method, GUri *uri)
@@ -1109,7 +1109,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
  * incoming messages headers (that is, the <literal>request_headers</literal>)
  * contain a header named @header.
  *
- * Return value: the handler ID from g_signal_connect()
+ * Returns: the handler ID from g_signal_connect()
  **/
 guint
 soup_message_add_header_handler (SoupMessage *msg,
@@ -1168,7 +1168,7 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
  * @signal must be a signal that will be emitted after @msg's status
  * is set (this means it can't be a "wrote" signal).
  *
- * Return value: the handler ID from g_signal_connect()
+ * Returns: the handler ID from g_signal_connect()
  **/
 guint
 soup_message_add_status_code_handler (SoupMessage *msg,
@@ -1424,7 +1424,7 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
  *
  * Gets the flags on @msg
  *
- * Return value: the flags
+ * Returns: the flags
  **/
 SoupMessageFlags
 soup_message_get_flags (SoupMessage *msg)
@@ -1527,7 +1527,7 @@ soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
  * Gets the HTTP version of @msg. This is the minimum of the
  * version from the request and the version from the response.
  *
- * Return value: the HTTP version
+ * Returns: the HTTP version
  **/
 SoupHTTPVersion
 soup_message_get_http_version (SoupMessage *msg)
@@ -1549,7 +1549,7 @@ soup_message_get_http_version (SoupMessage *msg)
  * further requests after processing @msg, based on the HTTP version,
  * Connection header, etc.
  *
- * Return value: %TRUE or %FALSE.
+ * Returns: %TRUE or %FALSE.
  **/
 gboolean
 soup_message_is_keepalive (SoupMessage *msg)
@@ -1618,7 +1618,7 @@ soup_message_set_uri (SoupMessage *msg, GUri *uri)
  *
  * Gets @msg's URI
  *
- * Return value: (transfer none): the URI @msg is targeted for.
+ * Returns: (transfer none): the URI @msg is targeted for.
  **/
 GUri *
 soup_message_get_uri (SoupMessage *msg)
@@ -2012,7 +2012,7 @@ soup_message_set_priority (SoupMessage        *msg,
  * Retrieves the #SoupMessagePriority. If not set this value defaults
  * to #SOUP_MESSAGE_PRIORITY_NORMAL.
  *
- * Return value: the priority of the message.
+ * Returns: the priority of the message.
  *
  */
 SoupMessagePriority

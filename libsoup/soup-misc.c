@@ -19,7 +19,7 @@
  *
  * Hashes @key in a case-insensitive manner.
  *
- * Return value: the hash code.
+ * Returns: the hash code.
  **/
 guint
 soup_str_case_hash (gconstpointer key)
@@ -41,7 +41,7 @@ soup_str_case_hash (gconstpointer key)
  *
  * Compares @v1 and @v2 in a case-insensitive manner
  *
- * Return value: %TRUE if they are equal (modulo case)
+ * Returns: %TRUE if they are equal (modulo case)
  **/
 gboolean
 soup_str_case_equal (gconstpointer v1,
@@ -180,7 +180,7 @@ const char soup_char_attributes[] = {
  *
  * Checks if the @host and @compare_with exactly match or prefixed with a dot.
  *
- * Return value: %TRUE if the hosts match, %FALSE otherwise
+ * Returns: %TRUE if the hosts match, %FALSE otherwise
  *
  **/
 gboolean

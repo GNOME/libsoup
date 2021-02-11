@@ -270,7 +270,7 @@ soup_logger_new (SoupLoggerLogLevel level)
  * return a #SoupLoggerLogLevel value indicating how much of the
  * message to log.
  *
- * Return value: a #SoupLoggerLogLevel value indicating how much of
+ * Returns: a #SoupLoggerLogLevel value indicating how much of
  * the message to log
  **/
 

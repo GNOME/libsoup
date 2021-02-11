@@ -39,7 +39,7 @@
  * This is a low-level method; normally you would use
  * soup_headers_parse_request() or soup_headers_parse_response().
  *
- * Return value: success or failure
+ * Returns: success or failure
  *
  **/
 gboolean
@@ -180,7 +180,7 @@ done:
  *
  * Beware that @req_headers may be modified even on failure.
  *
- * Return value: %SOUP_STATUS_OK if the headers could be parsed, or an
+ * Returns: %SOUP_STATUS_OK if the headers could be parsed, or an
  * HTTP error to be returned to the client if they could not be.
  **/
 guint
@@ -289,7 +289,7 @@ soup_headers_parse_request (const char          *str,
  * @status_code, and @reason_phrase. @status_line must be terminated by
  * either "\0" or "\r\n".
  *
- * Return value: %TRUE if @status_line was parsed successfully.
+ * Returns: %TRUE if @status_line was parsed successfully.
  **/
 gboolean
 soup_headers_parse_status_line (const char       *status_line,
@@ -367,7 +367,7 @@ soup_headers_parse_status_line (const char       *status_line,
  *
  * Beware that @headers may be modified even on failure.
  *
- * Return value: success or failure.
+ * Returns: success or failure.
  **/
 gboolean
 soup_headers_parse_response (const char          *str, 
@@ -491,7 +491,7 @@ parse_list (const char *header, char delim)
  * "#something", where "something" does not itself contain commas,
  * except as part of quoted-strings.
  *
- * Return value: (transfer full) (element-type utf8): a #GSList of
+ * Returns: (transfer full) (element-type utf8): a #GSList of
  * list elements, as allocated strings
  **/
 GSList *
@@ -535,7 +535,7 @@ sort_by_qval (const void *a, const void *b)
  * items with qvalue 0. Either way, those items will be removed from
  * the main list.
  *
- * Return value: (transfer full) (element-type utf8): a #GSList of
+ * Returns: (transfer full) (element-type utf8): a #GSList of
  * acceptable values (as allocated strings), highest-qvalue first.
  **/
 GSList *
@@ -633,7 +633,7 @@ soup_header_free_list (GSList *list)
  * case-insensitively). Note that this can't be used with lists
  * that have qvalues.
  *
- * Return value: whether or not @header contains @token
+ * Returns: whether or not @header contains @token
  **/
 gboolean
 soup_header_contains (const char *header, const char *token)
@@ -791,7 +791,7 @@ parse_param_list (const char *header, char delim, gboolean strict)
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
- * Return value: (element-type utf8 utf8) (transfer full): a
+ * Returns: (element-type utf8 utf8) (transfer full): a
  * #GHashTable of list elements, which can be freed with
  * soup_header_free_param_list().
  **/
@@ -817,7 +817,7 @@ soup_header_parse_param_list (const char *header)
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
- * Return value: (element-type utf8 utf8) (transfer full): a
+ * Returns: (element-type utf8 utf8) (transfer full): a
  * #GHashTable of list elements, which can be freed with
  * soup_header_free_param_list().
  *
@@ -842,7 +842,7 @@ soup_header_parse_semi_param_list (const char *header)
  * RFC5987-encoded parameters, use
  * soup_header_parse_param_list() instead.
  *
- * Return value: (element-type utf8 utf8) (transfer full) (nullable):
+ * Returns: (element-type utf8 utf8) (transfer full) (nullable):
  * a #GHashTable of list elements, which can be freed with
  * soup_header_free_param_list() or %NULL if there are duplicate
  * elements.
@@ -868,7 +868,7 @@ soup_header_parse_param_list_strict (const char *header)
  * RFC5987-encoded parameters, use
  * soup_header_parse_semi_param_list() instead.
  *
- * Return value: (element-type utf8 utf8) (transfer full) (nullable):
+ * Returns: (element-type utf8 utf8) (transfer full) (nullable):
  * a #GHashTable of list elements, which can be freed with
  * soup_header_free_param_list() or %NULL if there are duplicate
  * elements.

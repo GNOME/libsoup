@@ -120,7 +120,7 @@ soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
  * returned with the authentication challenge to the client. Other
  * parameters are optional.
  *
- * Return value: the new #SoupAuthDomain
+ * Returns: the new #SoupAuthDomain
  **/
 SoupAuthDomain *
 soup_auth_domain_basic_new (const char *optname1, ...)
@@ -161,7 +161,7 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  * database may give attackers access to other more-interesting sites
  * as well.
  *
- * Return value: %TRUE if @username and @password are valid
+ * Returns: %TRUE if @username and @password are valid
  **/
 
 /**

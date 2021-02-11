@@ -255,7 +255,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
  * This is called by #SoupSession; you will normally not create auths
  * yourself.
  *
- * Return value: (nullable): the new #SoupAuth, or %NULL if it could
+ * Returns: (nullable): the new #SoupAuth, or %NULL if it could
  * not be created
  **/
 SoupAuth *
@@ -314,7 +314,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
  * possibly un-authenticating it. As with soup_auth_new(), this is
  * normally only used by #SoupSession.
  *
- * Return value: %TRUE if @auth is still a valid (but potentially
+ * Returns: %TRUE if @auth is still a valid (but potentially
  * unauthenticated) #SoupAuth. %FALSE if something about @auth_params
  * could not be parsed or incorporated into @auth at all.
  **/
@@ -415,7 +415,7 @@ soup_auth_cancel (SoupAuth *auth)
  * Tests whether or not @auth is associated with a proxy server rather
  * than an "origin" server.
  *
- * Return value: %TRUE or %FALSE
+ * Returns: %TRUE or %FALSE
  **/
 gboolean
 soup_auth_is_for_proxy (SoupAuth *auth)
@@ -433,7 +433,7 @@ soup_auth_is_for_proxy (SoupAuth *auth)
  *
  * Returns @auth's scheme name. (Eg, "Basic", "Digest", or "NTLM")
  *
- * Return value: the scheme name
+ * Returns: the scheme name
  **/
 const char *
 soup_auth_get_scheme_name (SoupAuth *auth)
@@ -470,7 +470,7 @@ soup_auth_get_authority (SoupAuth *auth)
  * string that is meaningful to the user. (Although it is probably not
  * localized.)
  *
- * Return value: the realm name
+ * Returns: the realm name
  **/
 const char *
 soup_auth_get_realm (SoupAuth *auth)
@@ -491,7 +491,7 @@ soup_auth_get_realm (SoupAuth *auth)
  * identifier refer to the same authentication domain (eg, the URLs
  * associated with them take the same usernames and passwords).
  *
- * Return value: the identifier
+ * Returns: the identifier
  **/
 char *
 soup_auth_get_info (SoupAuth *auth)
@@ -515,7 +515,7 @@ soup_auth_get_info (SoupAuth *auth)
  *
  * Tests if @auth has been given a username and password
  *
- * Return value: %TRUE if @auth has been given a username and password
+ * Returns: %TRUE if @auth has been given a username and password
  **/
 gboolean
 soup_auth_is_authenticated (SoupAuth *auth)
@@ -559,7 +559,7 @@ soup_auth_is_cancelled (SoupAuth *auth)
  * session will only call this if soup_auth_is_authenticated()
  * returned %TRUE.)
  *
- * Return value: the "Authorization" header, which must be freed.
+ * Returns: the "Authorization" header, which must be freed.
  **/
 char *
 soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
@@ -580,7 +580,7 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
  * some auth types (eg, NTLM), the auth may be sendable (eg, as an
  * authentication request) even before it is authenticated.
  *
- * Return value: %TRUE if @auth is ready to make a request with.
+ * Returns: %TRUE if @auth is ready to make a request with.
  *
  **/
 gboolean
@@ -609,7 +609,7 @@ soup_auth_is_ready (SoupAuth    *auth,
  * Tests if @auth is able to authenticate by providing credentials to the
  * soup_auth_authenticate().
  *
- * Return value: %TRUE if @auth is able to accept credentials.
+ * Returns: %TRUE if @auth is able to accept credentials.
  *
  **/
 gboolean
@@ -637,7 +637,7 @@ soup_auth_can_authenticate (SoupAuth *auth)
  * of @auth's protection space, unless otherwise discovered not to
  * be.)
  *
- * Return value: (element-type utf8) (transfer full): the list of
+ * Returns: (element-type utf8) (transfer full): the list of
  * paths, which can be freed with soup_auth_free_protection_space().
  **/
 GSList *

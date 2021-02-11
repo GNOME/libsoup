@@ -83,7 +83,7 @@ generate_boundary (void)
  * boundary string. Note that @mime_type must be the full MIME type,
  * including "multipart/".
  * 
- * Return value: a new empty #SoupMultipart of the given @mime_type
+ * Returns: a new empty #SoupMultipart of the given @mime_type
  *
  * See also: soup_message_new_from_multipart()
  **/
@@ -127,7 +127,7 @@ find_boundary (const char *start, const char *end,
  *
  * Parses @headers and @body to form a new #SoupMultipart
  *
- * Return value: (nullable): a new #SoupMultipart (or %NULL if the
+ * Returns: (nullable): a new #SoupMultipart (or %NULL if the
  * message couldn't be parsed or wasn't multipart).
  *
  **/
@@ -225,7 +225,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
  *
  * Gets the number of body parts in @multipart
  *
- * Return value: the number of body parts in @multipart
+ * Returns: the number of body parts in @multipart
  *
  **/
 int
@@ -245,7 +245,7 @@ soup_multipart_get_length (SoupMultipart *multipart)
  *
  * Gets the indicated body part from @multipart.
  *
- * Return value: %TRUE on success, %FALSE if @part is out of range (in
+ * Returns: %TRUE on success, %FALSE if @part is out of range (in
  * which case @headers and @body won't be set)
  *
  **/

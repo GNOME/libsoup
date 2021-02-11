@@ -128,7 +128,7 @@ soup_session_feature_request_unqueued (SoupSessionFeature *feature,
  * different types. Eg, the authentication manager can be extended
  * with subtypes of #SoupAuth.
  *
- * Return value: %TRUE if @feature accepted @type as a subfeature.
+ * Returns: %TRUE if @feature accepted @type as a subfeature.
  *
  */
 gboolean
@@ -152,7 +152,7 @@ soup_session_feature_add_feature (SoupSessionFeature *feature,
  * Removes the "sub-feature" of type @type from the base feature
  * @feature. See soup_session_feature_add_feature().
  *
- * Return value: %TRUE if @type was removed from @feature
+ * Returns: %TRUE if @type was removed from @feature
  *
  */
 gboolean
@@ -176,7 +176,7 @@ soup_session_feature_remove_feature (SoupSessionFeature *feature,
  * Tests if @feature has a "sub-feature" of type @type. See
  * soup_session_feature_add_feature().
  *
- * Return value: %TRUE if @feature has a subfeature of type @type
+ * Returns: %TRUE if @feature has a subfeature of type @type
  *
  */
 gboolean

@@ -39,7 +39,7 @@
  *
  * Determines if @date is in the past.
  *
- * Return value: %TRUE if @date is in the past
+ * Returns: %TRUE if @date is in the past
  */
 gboolean
 soup_date_time_is_past (GDateTime *date)
@@ -310,7 +310,7 @@ parse_textual_date (const char *date_string)
  * dates, and reasonable approximations thereof. (Eg, it is lenient about
  * whitespace, leading "0"s, etc.)
  *
- * Return value: (nullable): a new #GDateTime, or %NULL if @date_string
+ * Returns: (nullable): a new #GDateTime, or %NULL if @date_string
  * could not be parsed.
  **/
 GDateTime *

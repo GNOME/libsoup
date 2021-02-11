@@ -74,7 +74,7 @@ form_decode (char *part)
  * Decodes @form, which is an urlencoded dataset as defined in the
  * HTML 4.01 spec.
  *
- * Return value: (element-type utf8 utf8) (transfer container): a hash
+ * Returns: (element-type utf8 utf8) (transfer container): a hash
  * table containing the name/value pairs from @encoded_form, which you
  * can free with g_hash_table_destroy().
  **/
@@ -136,7 +136,7 @@ soup_form_decode (const char *encoded_form)
  * need to decode it manually, using soup_multipart_new_from_message()
  * and soup_multipart_get_part().
  *
- * Return value: (nullable) (element-type utf8 utf8) (transfer container):
+ * Returns: (nullable) (element-type utf8 utf8) (transfer container):
  * a hash table containing the name/value pairs (other than
  * @file_control_name) from @msg, which you can free with
  * g_hash_table_destroy(). On error, it will return %NULL.
@@ -245,7 +245,7 @@ encode_pair (GString *str, const char *name, const char *value)
  * working with dynamic forms, use soup_form_encode_hash() or
  * soup_form_encode_datalist().
  *
- * Return value: the encoded form
+ * Returns: the encoded form
  *
  * See also: soup_message_new_from_encoded_form()
  **/
@@ -276,7 +276,7 @@ soup_form_encode (const char *first_field, ...)
  * takes a hash table, it cannot enforce that; if you care about the
  * ordering of the form fields, use soup_form_encode_datalist().
  *
- * Return value: the encoded form
+ * Returns: the encoded form
  *
  * See also: soup_message_new_from_encoded_form()
  **/
@@ -308,7 +308,7 @@ datalist_encode_foreach (GQuark key_id, gpointer value, gpointer str)
  * spec. Unlike soup_form_encode_hash(), this preserves the ordering
  * of the form elements, which may be required in some situations.
  *
- * Return value: the encoded form
+ * Returns: the encoded form
  *
  * See also: soup_message_new_from_encoded_form()
  **/
@@ -329,7 +329,7 @@ soup_form_encode_datalist (GData **form_data_set)
  * See soup_form_encode(). This is mostly an internal method, used by
  * various other methods such as soup_form_encode().
  *
- * Return value: the encoded form
+ * Returns: the encoded form
  *
  * See also: soup_message_new_from_encoded_form()
  **/

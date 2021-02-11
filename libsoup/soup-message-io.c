@@ -1022,7 +1022,7 @@ soup_message_io_unpause (SoupMessage *msg)
  *
  * Tests whether or not I/O is currently in progress on @msg.
  *
- * Return value: whether or not I/O is currently in progress.
+ * Returns: whether or not I/O is currently in progress.
  **/
 gboolean
 soup_message_io_in_progress (SoupMessage *msg)

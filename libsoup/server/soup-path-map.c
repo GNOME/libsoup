@@ -38,7 +38,7 @@ struct SoupPathMap {
  *
  * Creates a new %SoupPathMap.
  *
- * Return value: the new %SoupPathMap
+ * Returns: the new %SoupPathMap
  **/
 SoupPathMap *
 soup_path_map_new (GDestroyNotify data_free_func)
@@ -175,7 +175,7 @@ soup_path_map_remove (SoupPathMap *map, const char *path)
  * specifically associated with @path, it will return the data for the
  * closest parent directory of @path that has data associated with it.
  *
- * Return value: (nullable): the data set with soup_path_map_add(), or
+ * Returns: (nullable): the data set with soup_path_map_add(), or
  * %NULL if no data could be found for @path or any of its ancestors.
  **/
 gpointer

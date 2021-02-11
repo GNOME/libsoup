@@ -26,7 +26,7 @@
  *
  * Tests if @status is an Informational (1xx) response.
  *
- * Return value: %TRUE or %FALSE
+ * Returns: %TRUE or %FALSE
  **/
 /**
  * SOUP_STATUS_IS_SUCCESSFUL:
@@ -34,7 +34,7 @@
  *
  * Tests if @status is a Successful (2xx) response.
  *
- * Return value: %TRUE or %FALSE
+ * Returns: %TRUE or %FALSE
  **/
 /**
  * SOUP_STATUS_IS_REDIRECTION:
@@ -42,7 +42,7 @@
  *
  * Tests if @status is a Redirection (3xx) response.
  *
- * Return value: %TRUE or %FALSE
+ * Returns: %TRUE or %FALSE
  **/
 /**
  * SOUP_STATUS_IS_CLIENT_ERROR:
@@ -50,7 +50,7 @@
  *
  * Tests if @status is a Client Error (4xx) response.
  *
- * Return value: %TRUE or %FALSE
+ * Returns: %TRUE or %FALSE
  **/
 /**
  * SOUP_STATUS_IS_SERVER_ERROR:
@@ -58,7 +58,7 @@
  *
  * Tests if @status is a Server Error (5xx) response.
  *
- * Return value: %TRUE or %FALSE
+ * Returns: %TRUE or %FALSE
  **/
 
 /**
@@ -232,7 +232,7 @@ static const struct {
  * Instead, you should create you own error messages based on the
  * status code, and on what you were trying to do.
  *
- * Return value: the (terse, English) description of @status_code
+ * Returns: the (terse, English) description of @status_code
  **/
 const char *
 soup_status_get_phrase (guint status_code)

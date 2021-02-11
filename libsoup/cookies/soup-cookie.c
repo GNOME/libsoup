@@ -74,7 +74,7 @@ G_DEFINE_BOXED_TYPE (SoupCookie, soup_cookie, soup_cookie_copy, soup_cookie_free
  *
  * Copies @cookie.
  *
- * Return value: a copy of @cookie
+ * Returns: a copy of @cookie
  *
  **/
 SoupCookie *
@@ -104,7 +104,7 @@ soup_cookie_copy (SoupCookie *cookie)
  * @cookie should be sent when making a request to @host, or that
  * @cookie should be accepted when receiving a response from @host.
  * 
- * Return value: %TRUE if the domains match, %FALSE otherwise
+ * Returns: %TRUE if the domains match, %FALSE otherwise
  *
  **/
 gboolean
@@ -368,7 +368,7 @@ cookie_new_internal (const char *name, const char *value,
  * about setting the exact time that the cookie will expire, use
  * soup_cookie_set_expires().)
  *
- * Return value: a new #SoupCookie.
+ * Returns: a new #SoupCookie.
  *
  **/
 SoupCookie *
@@ -406,7 +406,7 @@ soup_cookie_new (const char *name, const char *value,
  * appropriate string for the domain if you want to actually make use
  * of the cookie.
  *
- * Return value: (nullable): a new #SoupCookie, or %NULL if it could
+ * Returns: (nullable): a new #SoupCookie, or %NULL if it could
  * not be parsed, or contained an illegal "domain" attribute for a
  * cookie originating from @origin.
  *
@@ -423,7 +423,7 @@ soup_cookie_parse (const char *cookie, GUri *origin)
  *
  * Gets @cookie's name
  *
- * Return value: @cookie's name
+ * Returns: @cookie's name
  *
  **/
 const char *
@@ -453,7 +453,7 @@ soup_cookie_set_name (SoupCookie *cookie, const char *name)
  *
  * Gets @cookie's value
  *
- * Return value: @cookie's value
+ * Returns: @cookie's value
  *
  **/
 const char *
@@ -483,7 +483,7 @@ soup_cookie_set_value (SoupCookie *cookie, const char *value)
  *
  * Gets @cookie's domain
  *
- * Return value: @cookie's domain
+ * Returns: @cookie's domain
  *
  **/
 const char *
@@ -513,7 +513,7 @@ soup_cookie_set_domain (SoupCookie *cookie, const char *domain)
  *
  * Gets @cookie's path
  *
- * Return value: @cookie's path
+ * Returns: @cookie's path
  *
  **/
 const char *
@@ -609,7 +609,7 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  *
  * Gets @cookie's expiration time.
  *
- * Return value: (nullable) (transfer none): @cookie's expiration
+ * Returns: (nullable) (transfer none): @cookie's expiration
  * time, which is owned by @cookie and should not be modified or
  * freed.
  *
@@ -650,7 +650,7 @@ soup_cookie_set_expires (SoupCookie *cookie, GDateTime *expires)
  *
  * Gets @cookie's secure attribute
  *
- * Return value: @cookie's secure attribute
+ * Returns: @cookie's secure attribute
  *
  **/
 gboolean
@@ -681,7 +681,7 @@ soup_cookie_set_secure (SoupCookie *cookie, gboolean secure)
  *
  * Gets @cookie's HttpOnly attribute
  *
- * Return value: @cookie's HttpOnly attribute
+ * Returns: @cookie's HttpOnly attribute
  *
  **/
 gboolean
@@ -811,7 +811,7 @@ soup_cookie_get_same_site_policy (SoupCookie *cookie)
  * Serializes @cookie in the format used by the Set-Cookie header
  * (ie, for sending a cookie from a #SoupServer to a client).
  *
- * Return value: the header
+ * Returns: the header
  *
  **/
 char *
@@ -830,7 +830,7 @@ soup_cookie_to_set_cookie_header (SoupCookie *cookie)
  * Serializes @cookie in the format used by the Cookie header (ie, for
  * returning a cookie from a #SoupSession to a server).
  *
- * Return value: the header
+ * Returns: the header
  *
  **/
 char *
@@ -872,7 +872,7 @@ soup_cookie_free (SoupCookie *cookie)
  * #SoupCookie<!-- -->s. Cookies that do not specify "path" or
  * "domain" attributes will have their values defaulted from @msg.
  *
- * Return value: (element-type SoupCookie) (transfer full): a #GSList
+ * Returns: (element-type SoupCookie) (transfer full): a #GSList
  * of #SoupCookie<!-- -->s, which can be freed with
  * soup_cookies_free().
  *
@@ -915,7 +915,7 @@ soup_cookies_from_response (SoupMessage *msg)
  * pass a cookie returned from this method directly to
  * soup_cookies_to_response().)
  *
- * Return value: (element-type SoupCookie) (transfer full): a #GSList
+ * Returns: (element-type SoupCookie) (transfer full): a #GSList
  * of #SoupCookie<!-- -->s, which can be freed with
  * soup_cookies_free().
  *
@@ -1022,7 +1022,7 @@ soup_cookies_free (GSList *cookies)
  * Serializes a #GSList of #SoupCookie into a string suitable for
  * setting as the value of the "Cookie" header.
  *
- * Return value: the serialization of @cookies
+ * Returns: the serialization of @cookies
  *
  **/
 char *
@@ -1052,7 +1052,7 @@ soup_cookies_to_cookie_header (GSList *cookies)
  * @uri, because it assumes that the caller has already done that.
  * But don't rely on that; it may change in the future.)
  *
- * Return value: %TRUE if @cookie should be sent to @uri, %FALSE if
+ * Returns: %TRUE if @cookie should be sent to @uri, %FALSE if
  * not
  *
  **/
@@ -1096,7 +1096,7 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, GUri *uri)
  * Note that currently, this does not check that the cookie domains
  * match. This may change in the future.
  *
- * Return value: whether the cookies are equal.
+ * Returns: whether the cookies are equal.
  *
  */
 gboolean

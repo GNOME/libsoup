@@ -70,7 +70,7 @@ struct _SoupMessageHeaders {
  * automatically for its own headers. You would only need to use this
  * method if you are manually parsing or generating message headers.)
  *
- * Return value: a new #SoupMessageHeaders
+ * Returns: a new #SoupMessageHeaders
  **/
 SoupMessageHeaders *
 soup_message_headers_new (SoupMessageHeadersType type)
@@ -121,7 +121,7 @@ G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_head
  *
  * Gets the type of headers.
  *
- * Return value: the header's type.
+ * Returns: the header's type.
  *
  **/
 SoupMessageHeadersType
@@ -321,7 +321,7 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
  * whichever one makes libsoup most compatible with other HTTP
  * implementations.)
  *
- * Return value: (nullable) (transfer none): the header's value or %NULL if not found.
+ * Returns: (nullable) (transfer none): the header's value or %NULL if not found.
  *
  **/
 const char *
@@ -352,7 +352,7 @@ soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
  * (If @name is present in @hdrs, then this is equivalent to calling
  * soup_header_contains() on its value.)
  *
- * Return value: %TRUE if the header is present and contains @token,
+ * Returns: %TRUE if the header is present and contains @token,
  *   %FALSE otherwise.
  *
  **/
@@ -376,7 +376,7 @@ soup_message_headers_header_contains (SoupMessageHeaders *hdrs, const char *name
  * Checks whether the header @name is present in @hdrs and is
  * (case-insensitively) equal to @value.
  *
- * Return value: %TRUE if the header is present and its value is
+ * Returns: %TRUE if the header is present and its value is
  *   @value, %FALSE otherwise.
  *
  **/
@@ -409,7 +409,7 @@ soup_message_headers_header_equals (SoupMessageHeaders *hdrs, const char *name, 
  * transformation is allowed, and so an upstream proxy could do the
  * same thing.
  * 
- * Return value: (nullable) (transfer none): the header's value or %NULL if not found.
+ * Returns: (nullable) (transfer none): the header's value or %NULL if not found.
  *
  **/
 const char *
@@ -498,7 +498,7 @@ soup_message_headers_iter_init (SoupMessageHeadersIter *iter,
  * then soup_message_headers_iter_next() will return %FALSE and @name
  * and @value will be unchanged.
  *
- * Return value: %TRUE if another name and value were returned, %FALSE
+ * Returns: %TRUE if another name and value were returned, %FALSE
  * if the end of the headers has been reached.
  **/
 gboolean
@@ -692,7 +692,7 @@ content_length_setter (SoupMessageHeaders *hdrs, const char *value)
  * response may declare a Content-Length or Transfer-Encoding, but
  * it will never actually include a body.
  *
- * Return value: the encoding declared by @hdrs.
+ * Returns: the encoding declared by @hdrs.
  **/
 SoupEncoding
 soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
@@ -771,7 +771,7 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
  * be non-0 if soup_message_headers_get_encoding() returns
  * %SOUP_ENCODING_CONTENT_LENGTH.
  *
- * Return value: the message body length declared by @hdrs.
+ * Returns: the message body length declared by @hdrs.
  **/
 goffset
 soup_message_headers_get_content_length (SoupMessageHeaders *hdrs)
@@ -842,7 +842,7 @@ expectation_setter (SoupMessageHeaders *hdrs, const char *value)
  * Currently this will either be %SOUP_EXPECTATION_CONTINUE or
  * %SOUP_EXPECTATION_UNRECOGNIZED.
  *
- * Return value: the contents of @hdrs's "Expect" header
+ * Returns: the contents of @hdrs's "Expect" header
  **/
 SoupExpectation
 soup_message_headers_get_expectations (SoupMessageHeaders *hdrs)
@@ -1043,7 +1043,7 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  * actually requested by the client.
  * </para></note>
  *
- * Return value: %TRUE if @hdrs contained a syntactically-valid
+ * Returns: %TRUE if @hdrs contained a syntactically-valid
  * "Range" header, %FALSE otherwise (in which case @range and @length
  * will not be set).
  *
@@ -1151,7 +1151,7 @@ soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
  * @end, and @total_length. If the total length field in the header
  * was specified as "*", then @total_length will be set to -1.
  *
- * Return value: %TRUE if @hdrs contained a "Content-Range" header
+ * Returns: %TRUE if @hdrs contained a "Content-Range" header
  * containing a byte range which could be parsed, %FALSE otherwise.
  *
  **/
@@ -1321,7 +1321,7 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
  * its value in *@content_type and *@params. @params can be %NULL if you
  * are only interested in the content type itself.
  *
- * Return value: (nullable): a string with the value of the
+ * Returns: (nullable): a string with the value of the
  * "Content-Type" header or %NULL if @hdrs does not contain that
  * header or it cannot be parsed (in which case *@params will be
  * unchanged).
@@ -1383,7 +1383,7 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
  * this is handled automatically by #SoupMultipart and the associated
  * form methods.
  *
- * Return value: %TRUE if @hdrs contains a "Content-Disposition"
+ * Returns: %TRUE if @hdrs contains a "Content-Disposition"
  * header, %FALSE if not (in which case *@disposition and *@params
  * will be unchanged).
  *

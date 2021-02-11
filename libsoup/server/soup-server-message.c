@@ -786,7 +786,7 @@ soup_server_message_set_redirect (SoupServerMessage *msg,
  * not get fooled when the allocator reuses the memory address of a
  * previously-destroyed socket to represent a new socket.
  *
- * Return value: (nullable) (transfer none): the #GSocket that @msg is
+ * Returns: (nullable) (transfer none): the #GSocket that @msg is
  * associated with, %NULL if you used soup_server_accept_iostream().
  */
 GSocket *
@@ -804,7 +804,7 @@ soup_server_message_get_socket (SoupServerMessage *msg)
  * Retrieves the #GSocketAddress associated with the remote end
  * of a connection.
  *
- * Return value: (nullable) (transfer none): the #GSocketAddress
+ * Returns: (nullable) (transfer none): the #GSocketAddress
  *     associated with the remote end of a connection, it may be
  *     %NULL if you used soup_server_accept_iostream().
  */
@@ -830,7 +830,7 @@ soup_server_message_get_remote_address (SoupServerMessage *msg)
  * Retrieves the #GSocketAddress associated with the local end
  * of a connection.
  *
- * Return value: (nullable) (transfer none): the #GSocketAddress
+ * Returns: (nullable) (transfer none): the #GSocketAddress
  *     associated with the local end of a connection, it may be
  *     %NULL if you used soup_server_accept_iostream().
  */
@@ -856,7 +856,7 @@ soup_server_message_get_local_address (SoupServerMessage *msg)
  * Retrieves the IP address associated with the remote end of a
  * connection.
  *
- * Return value: (nullable): the IP address associated with the remote
+ * Returns: (nullable): the IP address associated with the remote
  *     end of a connection, it may be %NULL if you used
  *     soup_server_accept_iostream().
  */
@@ -899,7 +899,7 @@ soup_server_message_get_remote_host (SoupServerMessage *msg)
  * Note that when calling this function from C, @msg will most
  * likely be freed as a side effect.
  *
- * Return value: (transfer full): the #GIOStream formerly associated
+ * Returns: (transfer full): the #GIOStream formerly associated
  *   with @msg (or %NULL if @msg was no longer associated with a
  *   connection). No guarantees are made about what kind of #GIOStream
  *   is returned.

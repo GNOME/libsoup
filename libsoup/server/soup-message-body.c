@@ -71,7 +71,7 @@ typedef struct {
  * Creates a new #SoupMessageBody. #SoupMessage uses this internally; you
  * will not normally need to call it yourself.
  *
- * Return value: a new #SoupMessageBody.
+ * Returns: a new #SoupMessageBody.
  **/
 SoupMessageBody *
 soup_message_body_new (void)
@@ -120,7 +120,7 @@ soup_message_body_set_accumulate (SoupMessageBody *body,
  * Gets the accumulate flag on @body; see
  * soup_message_body_set_accumulate() for details.
  *
- * Return value: the accumulate flag for @body.
+ * Returns: the accumulate flag for @body.
  *
  **/
 gboolean
@@ -302,7 +302,7 @@ soup_message_body_flatten (SoupMessageBody *body)
  * @body may still potentially have more data, but that data is not
  * currently available).
  *
- * Return value: (nullable): a #GBytes, or %NULL.
+ * Returns: (nullable): a #GBytes, or %NULL.
  **/
 GBytes *
 soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)

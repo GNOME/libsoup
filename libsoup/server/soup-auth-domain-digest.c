@@ -124,7 +124,7 @@ soup_auth_domain_digest_get_property (GObject *object, guint prop_id,
  * returned with the authentication challenge to the client. Other
  * parameters are optional.
  *
- * Return value: the new #SoupAuthDomain
+ * Returns: the new #SoupAuthDomain
  **/
 SoupAuthDomain *
 soup_auth_domain_digest_new (const char *optname1, ...)
@@ -154,7 +154,7 @@ soup_auth_domain_digest_new (const char *optname1, ...)
  * and return the corresponding encoded password (see
  * soup_auth_domain_digest_encode_password()).
  *
- * Return value: (nullable): the encoded password, or %NULL if
+ * Returns: (nullable): the encoded password, or %NULL if
  * @username is not a valid user. @domain will free the password when
  * it is done with it.
  **/
@@ -364,7 +364,7 @@ soup_auth_domain_digest_challenge (SoupAuthDomain    *domain,
  * that the encoded password returned by this method is identical to
  * the encoded password stored in an Apache .htdigest file.)
  *
- * Return value: the encoded password
+ * Returns: the encoded password
  **/
 char *
 soup_auth_domain_digest_encode_password (const char *username,

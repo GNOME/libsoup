@@ -124,7 +124,7 @@ soup_cookie_jar_db_get_property (GObject *object, guint prop_id,
  * used for this session, and changes made to it will be lost when the
  * jar is destroyed.)
  *
- * Return value: the new #SoupCookieJar
+ * Returns: the new #SoupCookieJar
  *
  **/
 SoupCookieJar *

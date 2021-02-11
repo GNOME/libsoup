@@ -84,7 +84,7 @@ soup_connection_auth_finalize (GObject *object)
  * This function is only useful from within implementations of SoupConnectionAuth
  * subclasses.
  *
- * Return value: (transfer none): the connection state
+ * Returns: (transfer none): the connection state
  *
  **/
 gpointer

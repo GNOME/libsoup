@@ -500,7 +500,7 @@ soup_server_class_init (SoupServerClass *server_class)
  * Creates a new #SoupServer. This is exactly equivalent to calling
  * g_object_new() and specifying %SOUP_TYPE_SERVER as the type.
  *
- * Return value: (nullable): a new #SoupServer. If you are using
+ * Returns: (nullable): a new #SoupServer. If you are using
  * certain legacy properties, this may also return %NULL if an error
  * occurs.
  **/
@@ -533,7 +533,7 @@ soup_server_new (const char *optname1, ...)
  * Alternatively, you can set the #SoupServer:tls-certificate property
  * at construction time, if you already have a #GTlsCertificate.
  *
- * Return value: success or failure.
+ * Returns: success or failure.
  *
  */
 gboolean
@@ -575,7 +575,7 @@ soup_server_set_ssl_cert_file  (SoupServer  *server,
  * actually currently is or not. Use soup_server_get_uris() to see if
  * it currently has any https listeners.
  *
- * Return value: %TRUE if @server is configured to serve https.
+ * Returns: %TRUE if @server is configured to serve https.
  **/
 gboolean
 soup_server_is_https (SoupServer *server)
@@ -597,7 +597,7 @@ soup_server_is_https (SoupServer *server)
  * You should treat these sockets as read-only; writing to or
  * modifiying any of these sockets may cause @server to malfunction.
  *
- * Return value: (transfer container) (element-type Gio.Socket): a
+ * Returns: (transfer container) (element-type Gio.Socket): a
  * list of listening sockets.
  **/
 GSList *
@@ -955,7 +955,7 @@ start_request (SoupServer        *server,
  *
  * Add a new client stream to the @server.
  *
- * Return value: %TRUE on success, %FALSE if the stream could not be
+ * Returns: %TRUE on success, %FALSE if the stream could not be
  * accepted or any other error occurred (in which case @error will be
  * set).
  *
@@ -1128,7 +1128,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
  * @address is an IPv6 address, it will only accept IPv6 connections.
  * You must configure IPv4 listening separately.
  *
- * Return value: %TRUE on success, %FALSE if @address could not be
+ * Returns: %TRUE on success, %FALSE if @address could not be
  * bound or any other error occurred (in which case @error will be
  * set).
  *
@@ -1252,7 +1252,7 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
  *
  * See soup_server_listen() for more details.
  *
- * Return value: %TRUE on success, %FALSE if @port could not be bound
+ * Returns: %TRUE on success, %FALSE if @port could not be bound
  * or any other error occurred (in which case @error will be set).
  *
  **/
@@ -1305,7 +1305,7 @@ soup_server_listen_all (SoupServer *server, guint port,
  *
  * See soup_server_listen() for more details.
  *
- * Return value: %TRUE on success, %FALSE if @port could not be bound
+ * Returns: %TRUE on success, %FALSE if @port could not be bound
  * or any other error occurred (in which case @error will be set).
  *
  **/
@@ -1352,7 +1352,7 @@ soup_server_listen_local (SoupServer *server, guint port,
  *
  * See soup_server_listen() for more details.
  *
- * Return value: %TRUE on success, %FALSE if an error occurred (in
+ * Returns: %TRUE on success, %FALSE if an error occurred (in
  * which case @error will be set).
  *
  **/
@@ -1399,7 +1399,7 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
  * <literal>::</literal>, rather than actually returning separate URIs
  * for each interface on the system.
  *
- * Return value: (transfer full) (element-type GUri): a list of
+ * Returns: (transfer full) (element-type GUri): a list of
  * #GUris, which you must free when you are done with it.
  *
  */

@@ -116,7 +116,7 @@ soup_hsts_enforcer_db_get_property (GObject *object, guint prop_id,
  * #SoupHSTSEnforcerDB will be written to @filename when
  * #SoupHSTSEnforcer::changed is emitted.
  *
- * Return value: the new #SoupHSTSEnforcer
+ * Returns: the new #SoupHSTSEnforcer
  *
  **/
 SoupHSTSEnforcer *

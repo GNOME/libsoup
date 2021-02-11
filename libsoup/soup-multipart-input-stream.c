@@ -463,7 +463,7 @@ soup_multipart_input_stream_new (SoupMessage  *msg,
  * the part; a new call to this function should be done at that point,
  * to obtain the next part.
  *
- * Return value: (nullable) (transfer full): a new #GInputStream, or
+ * Returns: (nullable) (transfer full): a new #GInputStream, or
  * %NULL if there are no more parts
  *
  */
@@ -556,7 +556,7 @@ soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart
  *
  * Finishes an asynchronous request for the next part.
  *
- * Return value: (nullable) (transfer full): a newly created
+ * Returns: (nullable) (transfer full): a newly created
  * #GInputStream for reading the next part or %NULL if there are no
  * more parts.
  *
@@ -585,7 +585,7 @@ soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream	*multipar
  * Note that if a part had no headers at all an empty #SoupMessageHeaders
  * will be returned.
  *
- * Return value: (nullable) (transfer none): a #SoupMessageHeaders
+ * Returns: (nullable) (transfer none): a #SoupMessageHeaders
  * containing the headers for the part currently being processed or
  * %NULL if the headers failed to parse.
  *

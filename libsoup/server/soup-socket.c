@@ -412,7 +412,7 @@ soup_socket_initable_interface_init (GInitableIface *initable_interface)
  *
  * Creates a new (disconnected) socket
  *
- * Return value: the new socket
+ * Returns: the new socket
  **/
 SoupSocket *
 soup_socket_new (const char *optname1, ...)
@@ -556,7 +556,7 @@ finish_listener_setup (SoupSocket *sock)
  * Makes @sock start listening on its local address. When connections
  * come in, @sock will emit #SoupSocket::new_connection.
  *
- * Return value: whether or not @sock is now listening.
+ * Returns: whether or not @sock is now listening.
  **/
 gboolean
 soup_socket_listen (SoupSocket *sock,
@@ -620,7 +620,7 @@ soup_socket_listen (SoupSocket *sock,
  *
  * Tests if @sock is doing (or has attempted to do) SSL.
  *
- * Return value: %TRUE if @sock has SSL credentials set
+ * Returns: %TRUE if @sock has SSL credentials set
  **/
 gboolean
 soup_socket_is_ssl (SoupSocket *sock)
@@ -669,7 +669,7 @@ soup_socket_disconnect (SoupSocket *sock)
  *
  * Tests if @sock is connected to another host
  *
- * Return value: %TRUE or %FALSE.
+ * Returns: %TRUE or %FALSE.
  **/
 gboolean
 soup_socket_is_connected (SoupSocket *sock)
@@ -691,7 +691,7 @@ soup_socket_is_connected (SoupSocket *sock)
  * Calling this method on an unconnected socket is considered to be
  * an error, and produces undefined results.
  *
- * Return value: (transfer none): the #GInetSocketAddress
+ * Returns: (transfer none): the #GInetSocketAddress
  **/
 GInetSocketAddress *
 soup_socket_get_local_address (SoupSocket *sock)
@@ -729,7 +729,7 @@ soup_socket_get_local_address (SoupSocket *sock)
  * Calling this method on an unconnected socket is considered to be
  * an error, and produces undefined results.
  *
- * Return value: (transfer none): the #GInetSocketAddress
+ * Returns: (transfer none): the #GInetSocketAddress
  **/
 GInetSocketAddress *
 soup_socket_get_remote_address (SoupSocket *sock)

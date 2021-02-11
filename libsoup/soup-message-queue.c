@@ -70,7 +70,7 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
  *
  * Creates a new #SoupMessageQueueItem and appends it to @queue.
  *
- * Return value: the new item, which you must unref with
+ * Returns: the new item, which you must unref with
  * soup_message_queue_unref_item() when you are done with.
  **/
 SoupMessageQueueItem *
@@ -203,7 +203,7 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
  * the item with soup_message_queue_unref_item() when you are done
  * with it.
  *
- * Return value: (nullable): the queue item for @msg, or %NULL
+ * Returns: (nullable): the queue item for @msg, or %NULL
  **/ 
 SoupMessageQueueItem *
 soup_message_queue_lookup (SoupMessageQueue *queue, SoupMessage *msg)
@@ -233,7 +233,7 @@ soup_message_queue_lookup (SoupMessageQueue *queue, SoupMessage *msg)
  * only need to unref the item yourself if you are not going to
  * finishing walking the queue.)
  *
- * Return value: the first item in @queue.
+ * Returns: the first item in @queue.
  **/ 
 SoupMessageQueueItem *
 soup_message_queue_first (SoupMessageQueue *queue)
@@ -263,7 +263,7 @@ soup_message_queue_first (SoupMessageQueue *queue)
  * yourself with soup_message_queue_unref_item() if you do not finish
  * walking the queue.
  *
- * Return value: the next item in @queue.
+ * Returns: the next item in @queue.
  **/ 
 SoupMessageQueueItem *
 soup_message_queue_next (SoupMessageQueue *queue, SoupMessageQueueItem *item)

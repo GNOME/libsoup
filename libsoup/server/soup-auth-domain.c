@@ -314,7 +314,7 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
  * The prototype for a #SoupAuthDomain filter; see
  * soup_auth_domain_set_filter() for details.
  *
- * Return value: %TRUE if @msg requires authentication, %FALSE if not.
+ * Returns: %TRUE if @msg requires authentication, %FALSE if not.
  **/
 
 /**
@@ -375,7 +375,7 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
  *
  * Gets the realm name associated with @domain
  *
- * Return value: @domain's realm
+ * Returns: @domain's realm
  **/
 const char *
 soup_auth_domain_get_realm (SoupAuthDomain *domain)
@@ -410,7 +410,7 @@ soup_auth_domain_get_realm (SoupAuthDomain *domain)
  * #SoupServer is used, this is not really relevant, but it may still
  * be worth considering.
  *
- * Return value: %TRUE if @msg is authenticated, %FALSE if not.
+ * Returns: %TRUE if @msg is authenticated, %FALSE if not.
  **/
 
 /**
@@ -471,7 +471,7 @@ soup_auth_domain_try_generic_auth_callback (SoupAuthDomain    *domain,
  * @password. This would normally be called from a
  * #SoupAuthDomainGenericAuthCallback.
  *
- * Return value: whether or not the message is authenticated
+ * Returns: whether or not the message is authenticated
  **/
 gboolean
 soup_auth_domain_check_password (SoupAuthDomain    *domain,
@@ -497,7 +497,7 @@ soup_auth_domain_check_password (SoupAuthDomain    *domain,
  * This is used by #SoupServer internally and is probably of no use to
  * anyone else.
  *
- * Return value: %TRUE if @domain requires @msg to be authenticated
+ * Returns: %TRUE if @domain requires @msg to be authenticated
  **/
 gboolean
 soup_auth_domain_covers (SoupAuthDomain    *domain,
@@ -531,7 +531,7 @@ soup_auth_domain_covers (SoupAuthDomain    *domain,
  * This is used by #SoupServer internally and is probably of no use to
  * anyone else.
  *
- * Return value: (nullable): the username that @msg has authenticated
+ * Returns: (nullable): the username that @msg has authenticated
  * as, if in fact it has authenticated. %NULL otherwise.
  **/
 char *
