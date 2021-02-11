@@ -121,7 +121,7 @@ do_async_timeout_tests (gconstpointer data)
 
 
 
-	if (soup_uri_is_https (fast_uri, NULL)) {
+	if (soup_uri_is_https (fast_uri)) {
 		SOUP_TEST_SKIP_IF_NO_TLS;
 		extra_slow = slow_https;
 	} else
@@ -161,7 +161,7 @@ do_sync_timeout_tests (gconstpointer data)
 
 
 
-	if (soup_uri_is_https (fast_uri, NULL)) {
+	if (soup_uri_is_https (fast_uri)) {
 		SOUP_TEST_SKIP_IF_NO_TLS;
 
 		extra_slow = slow_https;

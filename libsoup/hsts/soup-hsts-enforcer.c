@@ -517,7 +517,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 	if (g_hostname_is_ip_address (host))
 		return;
 
-	if (soup_uri_is_http (uri, NULL)) {
+	if (soup_uri_is_http (uri)) {
 		if (g_hostname_is_ascii_encoded (host)) {
 			canonicalized = g_hostname_to_unicode (host);
 			if (!canonicalized)
@@ -531,7 +531,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 			soup_message_hsts_enforced (msg);
 		}
 		g_free (canonicalized);
-	} else if (soup_uri_is_https (uri, NULL)) {
+	} else if (soup_uri_is_https (uri)) {
 		soup_message_add_header_handler (msg, "got-headers",
 						 "Strict-Transport-Security",
 						 G_CALLBACK (got_sts_header_cb),

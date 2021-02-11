@@ -1099,7 +1099,7 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, GUri *uri)
 
         g_return_val_if_fail (SOUP_URI_IS_VALID (uri), FALSE);
 
-	if (cookie->secure && !soup_uri_is_https (uri, NULL))
+	if (cookie->secure && !soup_uri_is_https (uri))
 		return FALSE;
 
 	if (cookie->expires && soup_date_time_is_past (cookie->expires))

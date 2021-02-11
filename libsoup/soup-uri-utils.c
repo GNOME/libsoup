@@ -245,51 +245,31 @@ soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 }
 
 gboolean
-soup_uri_is_https (GUri *uri, char **aliases)
+soup_uri_is_https (GUri *uri)
 {
-	g_return_val_if_fail (uri != NULL, FALSE);
+        const char *scheme;
 
-        const char *scheme = g_uri_get_scheme (uri);
+        g_assert (uri != NULL);
 
+        scheme = g_uri_get_scheme (uri);
         if (G_UNLIKELY (scheme == NULL))
                 return FALSE;
 
-        if (strcmp (scheme, "https") == 0 ||
-            strcmp (scheme, "wss") == 0)
-            return TRUE;
-	else if (!aliases)
-		return FALSE;
-
-	for (int i = 0; aliases[i]; i++) {
-		if (strcmp (scheme, aliases[i]) == 0)
-			return TRUE;
-	}
-
-	return FALSE;
+        return strcmp (scheme, "https") == 0 || strcmp (scheme, "wss") == 0;
 }
 
 gboolean
-soup_uri_is_http (GUri *uri, char **aliases)
+soup_uri_is_http (GUri *uri)
 {
-	g_return_val_if_fail (uri != NULL, FALSE);
+        const char *scheme;
 
-        const char *scheme = g_uri_get_scheme (uri);
+        g_assert (uri != NULL);
 
+        scheme = g_uri_get_scheme (uri);
         if (G_UNLIKELY (scheme == NULL))
                 return FALSE;
 
-        if (strcmp (scheme, "http") == 0 ||
-            strcmp (scheme, "ws") == 0)
-            return TRUE;
-	else if (!aliases)
-		return FALSE;
-
-	for (int i = 0; aliases[i]; i++) {
-		if (strcmp (scheme, aliases[i]) == 0)
-			return TRUE;
-	}
-
-	return FALSE;
+        return strcmp (scheme, "http") == 0 || strcmp (scheme, "ws") == 0;
 }
 
 #define BASE64_INDICATOR     ";base64"

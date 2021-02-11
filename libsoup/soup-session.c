@@ -132,8 +132,6 @@ typedef struct {
 	GCond conn_cond;
 
 	GMainContext *async_context;
-
-	char **http_aliases, **https_aliases;
 } SoupSessionPrivate;
 
 static void free_host (SoupSessionHost *host);
@@ -186,8 +184,6 @@ enum {
 	PROP_ACCEPT_LANGUAGE,
 	PROP_ACCEPT_LANGUAGE_AUTO,
 	PROP_IDLE_TIMEOUT,
-	PROP_HTTP_ALIASES,
-	PROP_HTTPS_ALIASES,
 	PROP_LOCAL_ADDRESS,
 	PROP_TLS_INTERACTION,
 
@@ -309,9 +305,6 @@ soup_session_finalize (GObject *object)
 	g_clear_object (&priv->proxy_resolver);
 	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 
-	g_strfreev (priv->http_aliases);
-	g_strfreev (priv->https_aliases);
-
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
@@ -389,26 +382,6 @@ set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
 		set_tlsdb (session, NULL);
 
 	g_clear_object (&system_default);
-}
-
-/* priv->http_aliases and priv->https_aliases are normalized to be lower-case
- * so we can't just use g_strdupv() to set them.
- */
-static void
-set_aliases (char ***variable, char **value)
-{
-	int len, i;
-
-        g_clear_pointer (variable, g_strfreev);
-
-	if (!value)
-		return;
-
-	len = g_strv_length (value);
-	*variable = g_new (char *, len + 1);
-	for (i = 0; i < len; i++)
-		(*variable)[i] = g_ascii_strdown (value[i], -1);
-	(*variable)[i] = NULL;
 }
 
 static void
@@ -508,12 +481,6 @@ soup_session_set_property (GObject *object, guint prop_id,
 		priv->idle_timeout = g_value_get_uint (value);
 		socket_props_changed = TRUE;
 		break;
-	case PROP_HTTP_ALIASES:
-		set_aliases (&priv->http_aliases, g_value_get_boxed (value));
-		break;
-	case PROP_HTTPS_ALIASES:
-		set_aliases (&priv->https_aliases, g_value_get_boxed (value));
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -583,12 +550,6 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_IDLE_TIMEOUT:
 		g_value_set_uint (value, priv->idle_timeout);
-		break;
-	case PROP_HTTP_ALIASES:
-		g_value_set_boxed (value, priv->http_aliases);
-		break;
-	case PROP_HTTPS_ALIASES:
-		g_value_set_boxed (value, priv->https_aliases);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -680,10 +641,8 @@ soup_session_host_new (SoupSession *session, GUri *uri)
 	host = g_slice_new0 (SoupSessionHost);
 	if (g_strcmp0 (scheme, "http") &&
 	    g_strcmp0 (scheme, "https")) {
-		SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
 		host->uri = soup_uri_copy (uri,
-					   SOUP_URI_SCHEME, soup_uri_is_https (uri, priv->https_aliases) ?
+					   SOUP_URI_SCHEME, soup_uri_is_https (uri) ?
 					   "https" : "http",
 					   SOUP_URI_NONE);
 	} else
@@ -709,7 +668,7 @@ get_host_for_uri (SoupSession *session, GUri *uri)
 	gboolean https;
 	GUri *uri_tmp = NULL;
 
-	https = soup_uri_is_https (uri, priv->https_aliases);
+	https = soup_uri_is_https (uri);
 	if (https)
 		host = g_hash_table_lookup (priv->https_hosts, uri);
 	else
@@ -717,7 +676,7 @@ get_host_for_uri (SoupSession *session, GUri *uri)
 	if (host)
 		return host;
 
-	if (!soup_uri_is_http (uri, NULL) && !soup_uri_is_https (uri, NULL)) {
+	if (!soup_uri_is_http (uri) && !soup_uri_is_https (uri)) {
 		uri = uri_tmp = soup_uri_copy (uri,
 					       SOUP_URI_SCHEME, https ? "https" : "http",
 					       SOUP_URI_NONE);
@@ -775,7 +734,6 @@ redirection_uri (SoupSession *session,
 		 SoupMessage *msg,
 		 GError     **error)
 {
-	SoupSessionPrivate *priv;
 	const char *new_loc;
 	GUri *new_uri;
 
@@ -793,10 +751,8 @@ redirection_uri (SoupSession *session,
 	if (!new_uri)
                 return NULL;
 
-	priv = soup_session_get_instance_private (session);
 	if (!g_uri_get_host (new_uri) || !*g_uri_get_host (new_uri) ||
-	    (!soup_uri_is_http (new_uri, priv->http_aliases) &&
-	     !soup_uri_is_https (new_uri, priv->https_aliases))) {
+	    (!soup_uri_is_http (new_uri) && !soup_uri_is_https (new_uri))) {
 		g_uri_unref (new_uri);
 		g_set_error (error,
 			     SOUP_SESSION_ERROR,
@@ -1116,7 +1072,7 @@ free_unused_host (gpointer user_data)
 	/* This will free the host in addition to removing it from the
 	 * hash table
 	 */
-	if (soup_uri_is_https (uri, NULL))
+	if (soup_uri_is_https (uri))
 		g_hash_table_remove (priv->https_hosts, uri);
 	else
 		g_hash_table_remove (priv->http_hosts, uri);
@@ -1458,7 +1414,7 @@ get_connection_for_host (SoupSession *session,
 	ensure_socket_props (session);
 	conn = g_object_new (SOUP_TYPE_CONNECTION,
 			     "remote-uri", host->uri,
-			     "ssl", soup_uri_is_https (host->uri, priv->https_aliases),
+			     "ssl", soup_uri_is_https (host->uri),
 			     "socket-properties", priv->socket_props,
 			     NULL);
 
@@ -2469,51 +2425,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      G_PARAM_STATIC_STRINGS));
 
 	/**
-	 * SoupSession:http-aliases:
-	 *
-	 * A %NULL-terminated array of URI schemes that should be
-	 * considered to be aliases for "http". Eg, if this included
-	 * <literal>"dav"</literal>, than a URI of
-	 * <literal>dav://example.com/path</literal> would be treated
-	 * identically to <literal>http://example.com/path</literal>.
-	 *
-	 * In a plain #SoupSession, the default value is %NULL,
-	 * meaning that only "http" is recognized as meaning "http".
-	 *
-	 * See also #SoupSession:https-aliases.
-	 *
-	 * Since: 2.38
-	 */
-	g_object_class_install_property (
-		object_class, PROP_HTTP_ALIASES,
-		g_param_spec_boxed ("http-aliases",
-				    "http aliases",
-				    "URI schemes that are considered aliases for 'http'",
-				    G_TYPE_STRV,
-				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupSession:https-aliases:
-	 *
-	 * A comma-delimited list of URI schemes that should be
-	 * considered to be aliases for "https". See
-	 * #SoupSession:http-aliases for more information.
-	 *
-	 * The default value is %NULL, meaning that no URI schemes
-	 * are considered aliases for "https".
-	 *
-	 * Since: 2.38
-	 */
-	g_object_class_install_property (
-		object_class, PROP_HTTPS_ALIASES,
-		g_param_spec_boxed ("https-aliases",
-				    "https aliases",
-				    "URI schemes that are considered aliases for 'https'",
-				    G_TYPE_STRV,
-				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
-
-	/**
 	 * SoupSession:local-address:
 	 *
 	 * Sets the #GInetSocketAddress to use for the client side of
@@ -3250,7 +3161,6 @@ soup_session_read_uri_async (SoupSession        *session,
                              GAsyncReadyCallback callback,
                              gpointer            user_data)
 {
-        SoupSessionPrivate *priv;
         GTask *task;
         GUri *soup_uri;
         SoupMessage *msg;
@@ -3276,10 +3186,7 @@ soup_session_read_uri_async (SoupSession        *session,
                 return;
         }
 
-        priv = soup_session_get_instance_private (session);
-
-        if (!soup_uri_is_http (soup_uri, priv->http_aliases) &&
-            !soup_uri_is_https (soup_uri, priv->https_aliases)) {
+        if (!soup_uri_is_http (soup_uri) && !soup_uri_is_https (soup_uri)) {
                 g_task_return_new_error (task,
                                          SOUP_SESSION_ERROR,
                                          SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,
@@ -3386,7 +3293,6 @@ soup_session_read_uri (SoupSession  *session,
                        char        **content_type,
                        GError      **error)
 {
-        SoupSessionPrivate *priv;
         GUri *soup_uri;
         SoupMessage *msg;
         GInputStream *stream;
@@ -3409,10 +3315,7 @@ soup_session_read_uri (SoupSession  *session,
                 return NULL;
         }
 
-        priv = soup_session_get_instance_private (session);
-
-        if (!soup_uri_is_http (soup_uri, priv->http_aliases) &&
-            !soup_uri_is_https (soup_uri, priv->https_aliases)) {
+        if (!soup_uri_is_http (soup_uri) && !soup_uri_is_https (soup_uri)) {
                 g_set_error (error,
                              SOUP_SESSION_ERROR,
                              SOUP_SESSION_ERROR_UNSUPPORTED_URI_SCHEME,

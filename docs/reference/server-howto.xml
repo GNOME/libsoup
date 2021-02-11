@@ -55,17 +55,6 @@ a few additional options:
 	    on all responses.
 	</para></listitem>
     </varlistentry>
-    <varlistentry>
-	<term><link linkend="SoupServer:http-aliases"><literal>"http-aliases"</literal></link>
-	and <link linkend="SoupServer:https-aliases"><literal>"https-aliases"</literal></link></term>
-	<listitem><para>
-	    Allow you to tell the server to recognize additional URI
-	    schemes as aliases for "<literal>http</literal>" or
-	    <literal>https</literal>. You can set this if you are
-	    serving URIs with schemes like "<literal>dav</literal>" or
-	    "<literal>webcal</literal>".
-	</para></listitem>
-    </varlistentry>
 </variablelist>
 
 </refsect2>

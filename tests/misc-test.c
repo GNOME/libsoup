@@ -7,8 +7,8 @@
 #include "soup-connection.h"
 #include "soup-session-private.h"
 
-SoupServer *server, *ssl_server;
-GUri *base_uri, *ssl_base_uri;
+SoupServer *server;
+GUri *base_uri;
 
 static gboolean
 auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
@@ -33,11 +33,8 @@ server_callback (SoupServer        *server,
 		 GHashTable        *query,
 		 gpointer           data)
 {
-	SoupMessageHeaders *request_headers;
-	SoupMessageHeaders *response_headers;
 	const char *method = soup_server_message_get_method (msg);
 	GUri *uri = soup_server_message_get_uri (msg);
-	const char *server_protocol = data;
 
 	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST) {
 		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
@@ -46,37 +43,6 @@ server_callback (SoupServer        *server,
 
 	if (!strcmp (path, "/redirect")) {
 		soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
-		return;
-	}
-
-	request_headers = soup_server_message_get_request_headers (msg);
-	response_headers = soup_server_message_get_response_headers (msg);
-
-	if (!strcmp (path, "/alias-redirect")) {
-		GUri *redirect_uri;
-		char *redirect_string;
-		const char *redirect_protocol;
-                int redirect_port;
-
-		redirect_protocol = soup_message_headers_get_one (request_headers, "X-Redirect-Protocol");
-		if (!g_strcmp0 (redirect_protocol, "https"))
-                        redirect_port = g_uri_get_port (ssl_base_uri);
-		else
-                        redirect_port = g_uri_get_port (base_uri);
-
-                redirect_uri = g_uri_build (SOUP_HTTP_URI_FLAGS, "foo", NULL, g_uri_get_host (uri), redirect_port,
-                                            "/alias-redirected", NULL, NULL);
-		redirect_string = g_uri_to_string (redirect_uri);
-
-		soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, redirect_string);
-		g_free (redirect_string);
-		g_uri_unref (redirect_uri);
-		return;
-	} else if (!strcmp (path, "/alias-redirected")) {
-		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
-		soup_message_headers_append (response_headers,
-					     "X-Redirected-Protocol",
-					     server_protocol);
 		return;
 	}
 
@@ -599,53 +565,6 @@ do_cancel_while_reading_preemptive_req_test (void)
 }
 
 static void
-do_aliases_test_for_session (SoupSession *session,
-			     const char *redirect_protocol)
-{
-	SoupMessage *msg;
-	GUri *uri;
-	const char *redirected_protocol;
-
-	uri = g_uri_parse_relative (base_uri, "/alias-redirect", SOUP_HTTP_URI_FLAGS, NULL);
-	msg = soup_message_new_from_uri ("GET", uri);
-	if (redirect_protocol)
-		soup_message_headers_append (soup_message_get_request_headers (msg), "X-Redirect-Protocol", redirect_protocol);
-	g_uri_unref (uri);
-	soup_test_session_send_message (session, msg);
-
-	redirected_protocol = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Redirected-Protocol");
-
-	g_assert_cmpstr (redirect_protocol, ==, redirected_protocol);
-	if (redirect_protocol)
-		soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	else
-		soup_test_assert_message_status (msg, SOUP_STATUS_FOUND);
-
-	g_object_unref (msg);
-}
-
-static void
-do_aliases_test (void)
-{
-	SoupSession *session;
-	char *aliases[] = { "foo", NULL };
-
-	if (tls_available) {
-		debug_printf (1, "  foo-means-https\n");
-		session = soup_test_session_new ("https-aliases", aliases,
-						 NULL);
-		do_aliases_test_for_session (session, "https");
-		soup_test_session_abort_unref (session);
-	} else
-		debug_printf (1, "  foo-means-https -- SKIPPING\n");
-
-	debug_printf (1, "  foo-means-nothing\n");
-	session = soup_test_session_new (NULL);
-	do_aliases_test_for_session (session, NULL);
-	soup_test_session_abort_unref (session);
-}
-
-static void
 do_msg_flags_test (void)
 {
 	SoupMessage *msg;
@@ -711,7 +630,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
-	soup_server_add_handler (server, NULL, server_callback, "http", NULL);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	auth_domain = soup_auth_domain_basic_new (
@@ -721,12 +640,6 @@ main (int argc, char **argv)
         soup_auth_domain_add_path (auth_domain, "/auth");
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);
-
-	if (tls_available) {
-		ssl_server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
-		soup_server_add_handler (ssl_server, NULL, server_callback, "https", NULL);
-		ssl_base_uri = soup_test_server_get_uri (ssl_server, "https", "127.0.0.1");
-	}
 
 	g_test_add_func ("/misc/bigheader", do_host_big_header);
 	g_test_add_func ("/misc/host", do_host_test);
@@ -738,18 +651,12 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/cancel-while-reading/req/immediate", do_cancel_while_reading_immediate_req_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/delayed", do_cancel_while_reading_delayed_req_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/preemptive", do_cancel_while_reading_preemptive_req_test);
-	g_test_add_func ("/misc/aliases", do_aliases_test);
 	g_test_add_func ("/misc/msg-flags", do_msg_flags_test);
 
 	ret = g_test_run ();
 
 	g_uri_unref (base_uri);
 	soup_test_server_quit_unref (server);
-
-	if (tls_available) {
-		g_uri_unref (ssl_base_uri);
-		soup_test_server_quit_unref (ssl_server);
-	}
 
 	test_cleanup ();
 	return ret;

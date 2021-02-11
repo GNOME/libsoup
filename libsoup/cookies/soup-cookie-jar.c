@@ -597,7 +597,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
         }
 
 	/* Cannot set a secure cookie over http */
-	if (uri != NULL && !soup_uri_is_https (uri, NULL) && soup_cookie_get_secure (cookie)) {
+	if (uri != NULL && !soup_uri_is_https (uri) && soup_cookie_get_secure (cookie)) {
 		soup_cookie_free (cookie);
 		return;
 	}
@@ -607,7 +607,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 		old_cookie = oc->data;
 		if (!strcmp (soup_cookie_get_name (cookie), soup_cookie_get_name (old_cookie)) &&
 		    !g_strcmp0 (soup_cookie_get_path (cookie), soup_cookie_get_path (old_cookie))) {
-			if (soup_cookie_get_secure (oc->data) && uri != NULL && !soup_uri_is_https (uri, NULL)) {
+			if (soup_cookie_get_secure (oc->data) && uri != NULL && !soup_uri_is_https (uri)) {
 				/* We do not allow overwriting secure cookies from an insecure origin
 				 * https://tools.ietf.org/html/draft-ietf-httpbis-cookie-alone-01
 				 */

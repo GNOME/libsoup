@@ -10,11 +10,9 @@
 
 G_BEGIN_DECLS
 
-gboolean     soup_uri_is_http               (GUri       *uri,
-                                             char      **aliases);
+gboolean     soup_uri_is_http               (GUri       *uri);
 
-gboolean     soup_uri_is_https              (GUri       *uri,
-                                             char      **aliases);
+gboolean     soup_uri_is_https              (GUri       *uri);
 
 gboolean     soup_uri_uses_default_port     (GUri       *uri);
 

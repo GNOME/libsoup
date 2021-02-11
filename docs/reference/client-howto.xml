@@ -78,19 +78,6 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SoupSession:http-aliases"><literal>"http-aliases"</literal></link>
-	and <link linkend="SoupSession:https-aliases"><literal>"https-aliases"</literal></link></term>
-	<listitem><para>
-	    Allow you to tell the session to recognize additional URI
-	    schemes as aliases for "<literal>http</literal>" or
-	    <literal>https</literal>. You can set this if you are
-	    using URIs with schemes like "<literal>dav</literal>" or
-	    "<literal>webcal</literal>" (and in particular, you need
-	    to set this if the server you are talking to might return
-	    redirects with such a scheme).
-	</para></listitem>
-    </varlistentry>
-    <varlistentry>
 	<term><link linkend="SoupSession:proxy-resolver"><literal>"proxy-resolver"</literal></link></term>
 	<listitem>
 	    <para>

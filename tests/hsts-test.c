@@ -147,9 +147,9 @@ static void
 rewrite_message_uri (SoupMessage *msg)
 {
 	GUri *new_uri;
-	if (soup_uri_is_http (soup_message_get_uri (msg), NULL))
+	if (soup_uri_is_http (soup_message_get_uri (msg)))
 		new_uri = soup_uri_copy (soup_message_get_uri (msg), SOUP_URI_PORT, g_uri_get_port (http_uri), SOUP_URI_NONE);
-	else if (soup_uri_is_https (soup_message_get_uri (msg), NULL))
+	else if (soup_uri_is_https (soup_message_get_uri (msg)))
 		new_uri = soup_uri_copy (soup_message_get_uri (msg), SOUP_URI_PORT, g_uri_get_port (https_uri), SOUP_URI_NONE);
 	else
 		g_assert_not_reached();

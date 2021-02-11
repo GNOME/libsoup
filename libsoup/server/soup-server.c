@@ -172,8 +172,6 @@ typedef struct {
 
 	GSList            *auth_domains;
 
-	char             **http_aliases, **https_aliases;
-
 	GPtrArray         *websocket_extension_types;
 
 	gboolean           disposed;
@@ -190,8 +188,6 @@ enum {
 	PROP_TLS_CERTIFICATE,
 	PROP_RAW_PATHS,
 	PROP_SERVER_HEADER,
-	PROP_HTTP_ALIASES,
-	PROP_HTTPS_ALIASES,
 
 	LAST_PROP
 };
@@ -222,10 +218,6 @@ soup_server_init (SoupServer *server)
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	priv->handlers = soup_path_map_new ((GDestroyNotify)free_handler);
-
-	priv->http_aliases = g_new (char *, 2);
-	priv->http_aliases[0] = g_strdup ("*");
-	priv->http_aliases[1] = NULL;
 
 	priv->websocket_extension_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
 
@@ -261,35 +253,9 @@ soup_server_finalize (GObject *object)
 
 	g_clear_pointer (&priv->loop, g_main_loop_unref);
 
-	g_strfreev (priv->http_aliases);
-	g_strfreev (priv->https_aliases);
-
 	g_ptr_array_free (priv->websocket_extension_types, TRUE);
 
 	G_OBJECT_CLASS (soup_server_parent_class)->finalize (object);
-}
-
-/* priv->http_aliases and priv->https_aliases are stored as lower-case strings,
- * so we can't just use g_strdupv() to set them.
- */
-static void
-set_aliases (char ***variable, char **value)
-{
-	int len, i;
-
-	if (*variable)
-		g_strfreev (*variable);
-
-	if (!value) {
-		*variable = NULL;
-		return;
-	}
-
-	len = g_strv_length (value);
-	*variable = g_new (char *, len + 1);
-	for (i = 0; i < len; i++)
-		(*variable)[i] = g_ascii_strdown (value[i], -1);
-	(*variable)[i] = NULL;
 }
 
 static void
@@ -324,12 +290,6 @@ soup_server_set_property (GObject *object, guint prop_id,
 		} else
 			priv->server_header = g_strdup (header);
 		break;
-	case PROP_HTTP_ALIASES:
-		set_aliases (&priv->http_aliases, g_value_get_boxed (value));
-		break;
-	case PROP_HTTPS_ALIASES:
-		set_aliases (&priv->https_aliases, g_value_get_boxed (value));
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -352,12 +312,6 @@ soup_server_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SERVER_HEADER:
 		g_value_set_string (value, priv->server_header);
-		break;
-	case PROP_HTTP_ALIASES:
-		g_value_set_boxed (value, priv->http_aliases);
-		break;
-	case PROP_HTTPS_ALIASES:
-		g_value_set_boxed (value, priv->https_aliases);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -537,54 +491,6 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "Server header",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
-
-	/**
-	 * SoupServer:http-aliases:
-	 *
-	 * A %NULL-terminated array of URI schemes that should be
-	 * considered to be aliases for "http". Eg, if this included
-	 * <literal>"dav"</literal>, than a URI of
-	 * <literal>dav://example.com/path</literal> would be treated
-	 * identically to <literal>http://example.com/path</literal>.
-	 * In particular, this is needed in cases where a client
-	 * sends requests with absolute URIs, where those URIs do
-	 * not use "http:".
-	 *
-	 * The default value is an array containing the single element
-	 * <literal>"*"</literal>, a special value which means that
-	 * any scheme except "https" is considered to be an alias for
-	 * SoupServer:http.
-	 *
-	 * See also #SoupServer:https-aliases.
-	 *
-	 * Since: 2.44
-	 */
-	g_object_class_install_property (
-		object_class, PROP_HTTP_ALIASES,
-		g_param_spec_boxed ("http-aliases",
-				    "http aliases",
-				    "URI schemes that are considered aliases for 'http'",
-				    G_TYPE_STRV,
-				    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-	/**
-	 * SoupServer:https-aliases:
-	 *
-	 * A comma-delimited list of URI schemes that should be
-	 * considered to be aliases for "https". See
-	 * #SoupServer:http-aliases for more information.
-	 *
-	 * The default value is %NULL, meaning that no URI schemes
-	 * are considered aliases for "https".
-	 *
-	 * Since: 2.44
-	 */
-	g_object_class_install_property (
-		object_class, PROP_HTTPS_ALIASES,
-		g_param_spec_boxed ("https-aliases",
-				    "https aliases",
-				    "URI schemes that are considered aliases for 'https'",
-				    G_TYPE_STRV,
-				    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 /**
@@ -808,8 +714,8 @@ got_headers (SoupServer        *server,
 
 	sock = soup_server_message_get_soup_socket (msg);
 	uri = soup_server_message_get_uri (msg);
-	if ((soup_socket_is_ssl (sock) && !soup_uri_is_https (uri, priv->https_aliases)) ||
-	    (!soup_socket_is_ssl (sock) && !soup_uri_is_http (uri, priv->http_aliases))) {
+	if ((soup_socket_is_ssl (sock) && !soup_uri_is_https (uri)) ||
+	    (!soup_socket_is_ssl (sock) && !soup_uri_is_http (uri))) {
 		soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
 		return;
 	}
