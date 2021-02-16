@@ -93,7 +93,7 @@ on_connect (GObject *session,
         }
 
         /* The performance tests increase the size of the payload up to 16 MB, let's disable
-       the limit to see what happens. */
+        the limit to see what happens. */
         soup_websocket_connection_set_max_incoming_payload_size (socket_connection, 0);
 
         g_test_message ("Connected");
@@ -117,7 +117,7 @@ connect_and_run (SoupSession *session, char *path, ConnectionFunc method, gpoint
         soup_session_websocket_connect_async (session, message, NULL, NULL, G_PRIORITY_DEFAULT, NULL, on_connect, ctx);
 
         while (!ctx->done)
-		g_main_context_iteration (async_context, TRUE);
+               g_main_context_iteration (async_context, TRUE);
 
         g_object_unref (message);
         g_free (uri);
@@ -169,6 +169,14 @@ autobahn_server (const char *action, guint64 *num_cases_out)
         autobahn_script = g_test_build_filename (G_TEST_DIST, "autobahn", "autobahn-server.sh", NULL);
         build_dir = g_test_build_filename (G_TEST_BUILT, "autobahn", NULL);
 
+        if (!g_file_test (autobahn_script, G_FILE_TEST_EXISTS))
+            autobahn_script = g_build_filename("tests", "autobahn", "autobahn-server.sh", NULL);
+
+        if (!g_file_test (build_dir, G_FILE_TEST_IS_DIR))
+            build_dir = g_path_get_dirname (g_test_build_filename (G_TEST_BUILT, "autobahn", NULL));
+
+        autobahn_script = g_canonicalize_filename (autobahn_script, NULL);
+
         g_subprocess_launcher_set_cwd (launcher, build_dir);
         proc = g_subprocess_launcher_spawn (launcher, &error, autobahn_script, action, NULL);
 
@@ -177,7 +185,7 @@ autobahn_server (const char *action, guint64 *num_cases_out)
         g_object_unref (launcher);
 
         if (error) {
-                debug_printf (1, "Error running autobahn script: %s", error->message);
+                debug_printf (1, "Error running autobahn script: %s\n", error->message);
                 g_error_free (error);
                 return FALSE;
         }
