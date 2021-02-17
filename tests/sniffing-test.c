@@ -79,11 +79,13 @@ server_callback (SoupServer        *server,
 	}
 
 	if (g_str_has_prefix (path, "/unknown/")) {
-		char *base_name = g_path_get_basename (path);
+		if (!empty_response) {
+			char *base_name = g_path_get_basename (path);
 
-		response = soup_test_load_resource (base_name, &error);
-		g_assert_no_error (error);
-		g_free (base_name);
+			response = soup_test_load_resource (base_name, &error);
+			g_assert_no_error (error);
+			g_free (base_name);
+		}
 
 		soup_message_headers_append (response_headers,
 					     "Content-Type", "UNKNOWN/unknown");
@@ -438,6 +440,9 @@ main (int argc, char **argv)
 			      do_sniffing_test);
 	g_test_add_data_func ("/sniffing/type/unknown-mbox",
 			      "unknown/mbox => text/plain",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/unknown-empty",
+			      "unknown/mbox?empty_response=yes => text/plain",
 			      do_sniffing_test);
 	g_test_add_data_func ("/sniffing/type/unknown-binary",
 			      "unknown/text_binary.txt => application/octet-stream",
