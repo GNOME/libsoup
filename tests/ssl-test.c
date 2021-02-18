@@ -44,9 +44,13 @@ do_strictness_test (gconstpointer data)
 
 	session = soup_test_session_new (NULL);
 	if (!test->with_ca_list) {
+		GTlsDatabase *tlsdb;
+
+		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
 		g_object_set (G_OBJECT (session),
-			      "ssl-use-system-ca-file", TRUE,
+			      "tls-database", tlsdb,
 			      NULL);
+		g_object_unref (tlsdb);
 	}
 
 	msg = soup_message_new_from_uri ("GET", uri);

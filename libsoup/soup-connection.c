@@ -399,11 +399,13 @@ new_socket_client (SoupConnection *conn)
                                  G_CALLBACK (re_emit_socket_event),
                                  conn, 0);
 
-        if (props->proxy_resolver) {
-                g_socket_client_set_proxy_resolver (client, props->proxy_resolver);
-                g_socket_client_add_application_proxy (client, "http");
-        } else
-                g_socket_client_set_enable_proxy (client, FALSE);
+	if (!props->proxy_use_default) {
+		if (props->proxy_resolver) {
+			g_socket_client_set_proxy_resolver (client, props->proxy_resolver);
+			g_socket_client_add_application_proxy (client, "http");
+		} else
+			g_socket_client_set_enable_proxy (client, FALSE);
+	}
         if (props->io_timeout)
                 g_socket_client_set_timeout (client, props->io_timeout);
         if (props->local_addr)
@@ -442,12 +444,14 @@ new_tls_connection (SoupConnection    *conn,
                                          priv->cancellable, error,
                                          "base-io-stream", connection,
                                          "server-identity", priv->remote_connectable,
-                                         "database", priv->socket_props->tlsdb,
                                          "require-close-notify", FALSE,
                                          "interaction", priv->socket_props->tls_interaction,
                                          NULL);
         if (!tls_connection)
                 return NULL;
+
+	if (!priv->socket_props->tlsdb_use_default)
+		g_tls_connection_set_database (G_TLS_CONNECTION (tls_connection), priv->socket_props->tlsdb);
 
 	g_signal_connect_object (tls_connection, "accept-certificate",
 				 G_CALLBACK (tls_connection_accept_certificate),

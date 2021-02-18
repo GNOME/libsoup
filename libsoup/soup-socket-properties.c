@@ -11,23 +11,21 @@
 #include "soup.h"
 
 SoupSocketProperties *
-soup_socket_properties_new (GProxyResolver     *proxy_resolver,
-			    GInetSocketAddress *local_addr,
-			    GTlsDatabase       *tlsdb,
+soup_socket_properties_new (GInetSocketAddress *local_addr,
 			    GTlsInteraction    *tls_interaction,
 			    guint               io_timeout,
 			    guint               idle_timeout)
 {
 	SoupSocketProperties *props;
 
-	props = g_slice_new (SoupSocketProperties);
+	props = g_slice_new0 (SoupSocketProperties);
 
         g_atomic_ref_count_init (&props->ref_count);
 
-	props->proxy_resolver = proxy_resolver ? g_object_ref (proxy_resolver) : NULL;
-	props->local_addr = local_addr ? g_object_ref (local_addr) : NULL;
+	props->proxy_use_default = TRUE;
+	props->tlsdb_use_default = TRUE;
 
-	props->tlsdb = tlsdb ? g_object_ref (tlsdb) : NULL;
+	props->local_addr = local_addr ? g_object_ref (local_addr) : NULL;
 	props->tls_interaction = tls_interaction ? g_object_ref (tls_interaction) : NULL;
 
 	props->io_timeout = io_timeout;
@@ -57,5 +55,30 @@ soup_socket_properties_unref (SoupSocketProperties *props)
 	g_slice_free (SoupSocketProperties, props);
 }
 
+void
+soup_socket_properties_set_proxy_resolver (SoupSocketProperties *props,
+					   GProxyResolver       *proxy_resolver)
+{
+	props->proxy_use_default = FALSE;
+
+	if (props->proxy_resolver == proxy_resolver)
+		return;
+
+	g_clear_object (&props->proxy_resolver);
+	props->proxy_resolver = proxy_resolver ? g_object_ref (proxy_resolver) : NULL;
+}
+
+void
+soup_socket_properties_set_tls_database (SoupSocketProperties *props,
+					 GTlsDatabase         *tlsdb)
+{
+	props->tlsdb_use_default = FALSE;
+
+	if (props->tlsdb == tlsdb)
+		return;
+
+	g_clear_object (&props->tlsdb);
+	props->tlsdb = tlsdb ? g_object_ref (tlsdb) : NULL;
+}
 
 G_DEFINE_BOXED_TYPE (SoupSocketProperties, soup_socket_properties, soup_socket_properties_ref, soup_socket_properties_unref)

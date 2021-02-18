@@ -102,7 +102,6 @@ typedef struct {
 
 	GProxyResolver *proxy_resolver;
 	gboolean proxy_use_default;
-	GUri *proxy_uri;
 
 	SoupSocketProperties *socket_props;
 
@@ -176,7 +175,6 @@ enum {
 	PROP_PROXY_RESOLVER,
 	PROP_MAX_CONNS,
 	PROP_MAX_CONNS_PER_HOST,
-	PROP_SSL_USE_SYSTEM_CA_FILE,
 	PROP_TLS_DATABASE,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
@@ -303,7 +301,6 @@ soup_session_finalize (GObject *object)
 	g_hash_table_destroy (priv->features_cache);
 
 	g_clear_object (&priv->proxy_resolver);
-	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 
@@ -319,89 +316,66 @@ ensure_socket_props (SoupSession *session)
 	if (priv->socket_props)
 		return;
 
-	if (priv->proxy_use_default) {
-		priv->proxy_resolver = g_object_ref (g_proxy_resolver_get_default ());
-		priv->proxy_use_default = FALSE;
-	}
-	if (priv->tlsdb_use_default) {
-		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-		priv->tlsdb_use_default = FALSE;
-	}
-
-	priv->socket_props = soup_socket_properties_new (priv->proxy_resolver,
-							 priv->local_addr,
-							 priv->tlsdb,
+	priv->socket_props = soup_socket_properties_new (priv->local_addr,
 							 priv->tls_interaction,
 							 priv->io_timeout,
 							 priv->idle_timeout);
+	if (!priv->proxy_use_default)
+		soup_socket_properties_set_proxy_resolver (priv->socket_props, priv->proxy_resolver);
+	if (!priv->tlsdb_use_default)
+		soup_socket_properties_set_tls_database (priv->socket_props, priv->tlsdb);
 }
 
 static void
-set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
+set_tlsdb (SoupSession  *session,
+	   GTlsDatabase *tlsdb)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GTlsDatabase *system_default;
 
 	priv->tlsdb_use_default = FALSE;
 	if (tlsdb == priv->tlsdb)
 		return;
 
-	g_object_freeze_notify (G_OBJECT (session));
-
-	system_default = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-	if (system_default) {
-		if (priv->tlsdb == system_default || tlsdb == system_default) {
-			g_object_notify (G_OBJECT (session), "ssl-use-system-ca-file");
-		}
-		g_object_unref (system_default);
-	}
-
-	if (priv->tlsdb)
-		g_object_unref (priv->tlsdb);
-	priv->tlsdb = tlsdb;
-	if (priv->tlsdb)
-		g_object_ref (priv->tlsdb);
-
+	g_clear_object (&priv->tlsdb);
+	priv->tlsdb = tlsdb ? g_object_ref (tlsdb) : NULL;
 	g_object_notify (G_OBJECT (session), "tls-database");
-	g_object_thaw_notify (G_OBJECT (session));
 }
 
-static void
-set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
+static GTlsDatabase *
+get_tlsdb (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GTlsDatabase *system_default;
 
-	priv->tlsdb_use_default = FALSE;
+	if (priv->tlsdb_use_default && !priv->tlsdb)
+		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
 
-	system_default = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-
-	if (use_system_ca_file)
-		set_tlsdb (session, system_default);
-	else if (priv->tlsdb == system_default)
-		set_tlsdb (session, NULL);
-
-	g_clear_object (&system_default);
+	return priv->tlsdb;
 }
 
 static void
-set_proxy_resolver (SoupSession *session, GUri *uri,
+set_proxy_resolver (SoupSession    *session,
 		    GProxyResolver *g_resolver)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	g_clear_object (&priv->proxy_resolver);
-	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
+
 	priv->proxy_use_default = FALSE;
+	if (priv->proxy_resolver == g_resolver)
+		return;
 
-	if (uri) {
-		char *uri_string;
+	g_clear_object (&priv->proxy_resolver);
+	priv->proxy_resolver = g_resolver ? g_object_ref (g_resolver) : NULL;
+	g_object_notify (G_OBJECT (session), "proxy-resolver");
+}
 
-		priv->proxy_uri = soup_uri_copy_with_normalized_flags (uri);
-		uri_string = g_uri_to_string (uri);
-		priv->proxy_resolver = g_simple_proxy_resolver_new (uri_string, NULL);
-		g_free (uri_string);
-	} else if (g_resolver)
-		priv->proxy_resolver = g_object_ref (g_resolver);
+static GProxyResolver *
+get_proxy_resolver (SoupSession *session)
+{
+	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+
+	if (!priv->proxy_use_default)
+		return priv->proxy_resolver;
+
+	return g_proxy_resolver_get_default ();
 }
 
 static void
@@ -419,8 +393,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 		socket_props_changed = TRUE;
 		break;
 	case PROP_PROXY_RESOLVER:
-		set_proxy_resolver (session, NULL,
-				    g_value_get_object (value));
+		set_proxy_resolver (session, g_value_get_object (value));
 		socket_props_changed = TRUE;
 		break;
 	case PROP_MAX_CONNS:
@@ -428,10 +401,6 @@ soup_session_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_MAX_CONNS_PER_HOST:
 		priv->max_conns_per_host = g_value_get_int (value);
-		break;
-	case PROP_SSL_USE_SYSTEM_CA_FILE:
-		set_use_system_ca_file (session, g_value_get_boolean (value));
-		socket_props_changed = TRUE;
 		break;
 	case PROP_TLS_DATABASE:
 		set_tlsdb (session, g_value_get_object (value));
@@ -501,17 +470,13 @@ soup_session_get_property (GObject *object, guint prop_id,
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GTlsDatabase *tlsdb;
 
 	switch (prop_id) {
 	case PROP_LOCAL_ADDRESS:
 		g_value_set_object (value, priv->local_addr);
 		break;
 	case PROP_PROXY_RESOLVER:
-		g_mutex_lock (&priv->conn_lock);
-		ensure_socket_props (session);
-		g_mutex_unlock (&priv->conn_lock);
-		g_value_set_object (value, priv->proxy_resolver);
+		g_value_set_object (value, get_proxy_resolver (session));
 		break;
 	case PROP_MAX_CONNS:
 		g_value_set_int (value, priv->max_conns);
@@ -519,19 +484,8 @@ soup_session_get_property (GObject *object, guint prop_id,
 	case PROP_MAX_CONNS_PER_HOST:
 		g_value_set_int (value, priv->max_conns_per_host);
 		break;
-	case PROP_SSL_USE_SYSTEM_CA_FILE:
-		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-		g_mutex_lock (&priv->conn_lock);
-		ensure_socket_props (session);
-		g_mutex_unlock (&priv->conn_lock);
-		g_value_set_boolean (value, priv->tlsdb == tlsdb);
-		g_clear_object (&tlsdb);
-		break;
 	case PROP_TLS_DATABASE:
-		g_mutex_lock (&priv->conn_lock);
-		ensure_socket_props (session);
-		g_mutex_unlock (&priv->conn_lock);
-		g_value_set_object (value, priv->tlsdb);
+		g_value_set_object (value, get_tlsdb (session));
 		break;
 	case PROP_TLS_INTERACTION:
 		g_value_set_object (value, priv->tls_interaction);
@@ -2205,11 +2159,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * A #GProxyResolver to use with this session.
 	 *
-	 * By default, in a plain #SoupSession, this is set to the
-	 * default #GProxyResolver, but you can set it to %NULL if you
-	 * don't want to use proxies, or set it to your own
-	 * #GProxyResolver if you want to control what proxies get
-	 * used.
+	 * If no proxy resolver is set, then the default proxy resolver
+	 * will be used. See g_proxy_resolver_get_default().
+	 * You can set it to %NULL if you don't want to use proxies, or
+	 * set it to your own #GProxyResolver if you want to control
+	 * what proxies get used.
 	 *
 	 */
 	g_object_class_install_property (
@@ -2263,36 +2217,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   G_PARAM_STATIC_STRINGS));
 
 	/**
-	 * SoupSession:ssl-use-system-ca-file:
-	 *
-	 * Setting this to %TRUE is equivalent to setting
-	 * #SoupSession:tls-database to the default system CA database.
-	 * (and likewise, setting #SoupSession:tls-database to the
-	 * default database by hand will cause this property to
-	 * become %TRUE).
-	 *
-	 * Setting this to %FALSE (when it was previously %TRUE) will
-	 * clear the #SoupSession:tls-database field.
-	 *
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_SSL_USE_SYSTEM_CA_FILE,
-		g_param_spec_boolean ("ssl-use-system-ca-file",
-				      "Use system CA file",
-				      "Use the system certificate database",
-				      TRUE,
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
-	/**
 	 * SoupSession:tls-database:
 	 *
 	 * Sets the #GTlsDatabase to use for validating SSL/TLS
 	 * certificates.
 	 *
-	 * Note that setting the
-	 * #SoupSession:ssl-use-system-ca-file property will cause
-	 * this property to be set to a #GTlsDatabase corresponding to
-	 * the indicated file or system default.
+	 * If no certificate database is set, then the default database will be
+	 * used. See g_tls_backend_get_default_database().
 	 *
 	 **/
 	g_object_class_install_property (

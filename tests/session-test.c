@@ -317,20 +317,6 @@ do_property_tests (void)
 		g_object_unref (tlsdb);
 		g_object_unref (session);
 	}
-
-	session = g_object_new (SOUP_TYPE_SESSION,
-				"ssl-use-system-ca-file", FALSE,
-				NULL);
-	test_session_properties ("Session with :ssl-use-system-ca-file FALSE", session,
-				 default_proxy_resolver, NULL);
-	g_object_unref (session);
-
-	session = g_object_new (SOUP_TYPE_SESSION,
-				"ssl-use-system-ca-file", TRUE,
-				NULL);
-	test_session_properties ("Session with :ssl-use-system-ca-file TRUE", session,
-				 default_proxy_resolver, default_tlsdb);
-	g_object_unref (session);
 }
 
 static gint
