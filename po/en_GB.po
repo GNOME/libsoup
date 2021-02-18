@@ -3,205 +3,222 @@
 # This file is distributed under the same license as the libsoup package.
 # Bruce Cowan <bruce@bcowan.me.uk>, 2012.
 # Chris Leonard <cjl@laptop.org>, 2012.
-# Zander Brown <zbrown@gnome.org>, 2019.
+# Zander Brown <zbrown@gnome.org>, 2019-2021.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-09-17 06:36+0000\n"
-"PO-Revision-Date: 2020-09-22 08:19+0200\n"
-"Last-Translator: Stephan Woidowski <swoidowski@t-online.de>\n"
+"POT-Creation-Date: 2020-12-13 19:31+0000\n"
+"PO-Revision-Date: 2021-02-06 21:01+0000\n"
+"Last-Translator: Zander Brown <zbrown@gnome.org>\n"
 "Language-Team: English - United Kingdom <en_GB@li.org>\n"
 "Language: en_GB\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.4.1\n"
+"X-Generator: Gtranslator 3.38.0\n"
 "X-Project-Style: gnome\n"
 
-#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
-msgid "Connection terminated unexpectedly"
-msgstr "Connection terminated unexpectedly"
-
-#: libsoup/soup-body-input-stream.c:459
-msgid "Invalid seek request"
-msgstr "Invalid seek request"
-
-#: libsoup/soup-body-input-stream.c:487
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Cannot truncate SoupBodyInputStream"
-
-#: libsoup/soup-cache-input-stream.c:76
+#: libsoup/cache/soup-cache-input-stream.c:79
 msgid "Network stream unexpectedly closed"
 msgstr "Network stream unexpectedly closed"
 
-#: libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:295
 msgid "Failed to completely cache the resource"
 msgstr "Failed to completely cache the resource"
 
-#: libsoup/soup-directory-input-stream.c:231
-msgid "Name"
-msgstr "Name"
-
-#: libsoup/soup-directory-input-stream.c:232
-msgid "Size"
-msgstr "Size"
-
-#: libsoup/soup-directory-input-stream.c:233
-msgid "Date Modified"
-msgstr "Date Modified"
-
-#: libsoup/soup-converter-wrapper.c:189
+#: libsoup/content-decoder/soup-converter-wrapper.c:193
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Output buffer is too small"
 
-#: libsoup/soup-message-client-io.c:39
-msgid "Could not parse HTTP response"
-msgstr "Could not parse HTTP response"
-
-#: libsoup/soup-message-client-io.c:62
-msgid "Unrecognized HTTP response encoding"
-msgstr "Unrecognised HTTP response encoding"
-
-#: libsoup/soup-message-io.c:269
-msgid "Header too big"
-msgstr "Header too big"
-
-#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
-msgid "Operation would block"
-msgstr "Operation would block"
-
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
-msgid "Operation was cancelled"
-msgstr "Operation was cancelled"
-
-#: libsoup/soup-message-server-io.c:63
-msgid "Could not parse HTTP request"
-msgstr "Could not parse HTTP request"
-
-#: libsoup/soup-request.c:141
-#, c-format
-msgid "No URI provided"
-msgstr "No URI provided"
-
-#: libsoup/soup-request.c:151
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "Invalid “%s” URI: %s"
-
-#: libsoup/soup-server.c:1810
+#: libsoup/server/soup-server.c:1166
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Can’t create a TLS server without a TLS certificate"
 
-#: libsoup/soup-server.c:1827
+#: libsoup/server/soup-server.c:1185
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Could not listen on address %s, port %d: "
 
-#: libsoup/soup-session.c:4585
-#, c-format
-msgid "Could not parse URI “%s”"
-msgstr "Could not parse URI “%s”"
+#: libsoup/server/soup-server-io.c:344 libsoup/server/soup-server-io.c:809
+#: libsoup/soup-message-io.c:327 libsoup/soup-message-io.c:726
+msgid "Operation would block"
+msgstr "Operation would block"
 
-#: libsoup/soup-session.c:4622
+#: libsoup/server/soup-socket.c:116
+msgid "Could not import existing socket: "
+msgstr "Could not import existing socket: "
+
+#: libsoup/server/soup-socket.c:125
+msgid "Can’t import unconnected socket"
+msgstr "Can’t import unconnected socket"
+
+#: libsoup/soup-body-input-stream.c:148 libsoup/soup-body-input-stream.c:180
+#: libsoup/soup-body-input-stream.c:213 libsoup/soup-message-io-data.c:76
+msgid "Connection terminated unexpectedly"
+msgstr "Connection terminated unexpectedly"
+
+#: libsoup/soup-body-input-stream.c:474
+msgid "Invalid seek request"
+msgstr "Invalid seek request"
+
+#: libsoup/soup-body-input-stream.c:502
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Cannot truncate SoupBodyInputStream"
+
+#: libsoup/soup-message-io.c:467
+msgid "Could not parse HTTP response"
+msgstr "Could not parse HTTP response"
+
+#: libsoup/soup-message-io.c:490
+msgid "Unrecognized HTTP response encoding"
+msgstr "Unrecognised HTTP response encoding"
+
+#: libsoup/soup-message-io.c:687 libsoup/soup-message-io.c:711
+msgid "Operation was cancelled"
+msgstr "Operation was cancelled"
+
+#: libsoup/soup-message-io-data.c:100
+msgid "Header too big"
+msgstr "Header too big"
+
+#: libsoup/soup-session.c:788
+msgid "Location header is missing or empty in response headers"
+msgstr "Location header is missing or empty in response headers"
+
+#: libsoup/soup-session.c:804
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Invalid URI “%s” in Location response header"
+
+#: libsoup/soup-session.c:824
+msgid "Too many redirects"
+msgstr "Too many redirects"
+
+#: libsoup/soup-session.c:829
+msgid "Message was restarted too many times"
+msgstr "Message was restarted too many times"
+
+#: libsoup/soup-session.c:3258 libsoup/soup-session.c:3391
+#, c-format
+#| msgid "Could not parse URI “%s”"
+msgid "Could not parse URI “%s”: %s"
+msgstr "Could not parse URI “%s”: %s"
+
+#: libsoup/soup-session.c:3273 libsoup/soup-session.c:3406
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Unsupported URI scheme “%s”"
 
-#: libsoup/soup-session.c:4644
+#: libsoup/soup-session.c:3284 libsoup/soup-session.c:3417
 #, c-format
-msgid "Not an HTTP URI"
-msgstr "Not an HTTP URI"
+msgid "Invalid “%s” URI: %s"
+msgstr "Invalid “%s” URI: %s"
 
-#: libsoup/soup-session.c:4855
+#: libsoup/soup-session.c:3726
 msgid "The server did not accept the WebSocket handshake."
 msgstr "The server did not accept the WebSocket handshake."
 
-#: libsoup/soup-socket.c:148
-msgid "Can’t import non-socket as SoupSocket"
-msgstr "Can’t import non-socket as SoupSocket"
+#: libsoup/soup-tld.c:146
+msgid "No public-suffix list available."
+msgstr "No public-suffix list available."
 
-#: libsoup/soup-socket.c:166
-msgid "Could not import existing socket: "
-msgstr "Could not import existing socket: "
+#: libsoup/soup-tld.c:156 libsoup/soup-tld.c:172
+msgid "Invalid hostname"
+msgstr "Invalid hostname"
 
-#: libsoup/soup-socket.c:175
-msgid "Can’t import unconnected socket"
-msgstr "Can’t import unconnected socket"
+#: libsoup/soup-tld.c:163
+msgid "Hostname is an IP address"
+msgstr "Hostname is an IP address"
 
-#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
-#: libsoup/soup-websocket.c:539
+#: libsoup/soup-tld.c:184
+msgid "Hostname has no base domain"
+msgstr "Hostname has no base domain"
+
+#: libsoup/soup-tld.c:192
+msgid "Not enough domains"
+msgstr "Not enough domains"
+
+#: libsoup/websocket/soup-websocket.c:405
+#: libsoup/websocket/soup-websocket.c:449
+#: libsoup/websocket/soup-websocket.c:465
 msgid "Server requested unsupported extension"
 msgstr "Server requested unsupported extension"
 
-#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#: libsoup/websocket/soup-websocket.c:428
+#: libsoup/websocket/soup-websocket.c:620
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Incorrect WebSocket “%s” header"
 
-#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#: libsoup/websocket/soup-websocket.c:429
+#: libsoup/websocket/soup-websocket.c:884
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Server returned incorrect “%s” key"
 
-#: libsoup/soup-websocket.c:566
+#: libsoup/websocket/soup-websocket.c:492
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Duplicated parameter in “%s” WebSocket extension header"
 
-#: libsoup/soup-websocket.c:567
+#: libsoup/websocket/soup-websocket.c:493
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
 
-#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+#: libsoup/websocket/soup-websocket.c:583
+#: libsoup/websocket/soup-websocket.c:593
 msgid "WebSocket handshake expected"
 msgstr "WebSocket handshake expected"
 
-#: libsoup/soup-websocket.c:675
+#: libsoup/websocket/soup-websocket.c:601
 msgid "Unsupported WebSocket version"
 msgstr "Unsupported WebSocket version"
 
-#: libsoup/soup-websocket.c:684
+#: libsoup/websocket/soup-websocket.c:610
 msgid "Invalid WebSocket key"
 msgstr "Invalid WebSocket key"
 
-#: libsoup/soup-websocket.c:703
+#: libsoup/websocket/soup-websocket.c:629
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Unsupported WebSocket subprotocol"
 
-#: libsoup/soup-websocket.c:975
+#: libsoup/websocket/soup-websocket.c:835
 msgid "Server rejected WebSocket handshake"
 msgstr "Server rejected WebSocket handshake"
 
-#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+#: libsoup/websocket/soup-websocket.c:843
+#: libsoup/websocket/soup-websocket.c:852
 msgid "Server ignored WebSocket handshake"
 msgstr "Server ignored WebSocket handshake"
 
-#: libsoup/soup-websocket.c:1004
+#: libsoup/websocket/soup-websocket.c:864
 msgid "Server requested unsupported protocol"
 msgstr "Server requested unsupported protocol"
 
-#: libsoup/soup-tld.c:150
-msgid "No public-suffix list available."
-msgstr "No public-suffix list available."
+#~ msgid "Name"
+#~ msgstr "Name"
 
-#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
-msgid "Invalid hostname"
-msgstr "Invalid hostname"
+#~ msgid "Size"
+#~ msgstr "Size"
 
-#: libsoup/soup-tld.c:167
-msgid "Hostname is an IP address"
-msgstr "Hostname is an IP address"
+#~ msgid "Date Modified"
+#~ msgstr "Date Modified"
 
-#: libsoup/soup-tld.c:188
-msgid "Hostname has no base domain"
-msgstr "Hostname has no base domain"
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "Could not parse HTTP request"
 
-#: libsoup/soup-tld.c:196
-msgid "Not enough domains"
-msgstr "Not enough domains"
+#~ msgid "No URI provided"
+#~ msgstr "No URI provided"
+
+#~ msgid "Not an HTTP URI"
+#~ msgstr "Not an HTTP URI"
+
+#~ msgid "Can’t import non-socket as SoupSocket"
+#~ msgstr "Can’t import non-socket as SoupSocket"
