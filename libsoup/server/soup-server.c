@@ -1067,7 +1067,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 		}
 
 		g_object_set (G_OBJECT (listener),
-			      "ssl-creds", priv->tls_cert,
+			      "tls-certificate", priv->tls_cert,
 			      NULL);
 	}
 
@@ -1408,7 +1408,6 @@ soup_server_get_uris (SoupServer *server)
 	char *ip;
         int port;
 	GUri *uri;
-	gpointer creds;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
 	priv = soup_server_get_instance_private (server);
@@ -1419,13 +1418,12 @@ soup_server_get_uris (SoupServer *server)
 		inet_addr = g_inet_socket_address_get_address (addr);
 		ip = g_inet_address_to_string (inet_addr);
                 port = g_inet_socket_address_get_port (addr);
-		g_object_get (G_OBJECT (listener), "ssl-creds", &creds, NULL);
 
                 if (port == 0)
                         port = -1;
 
                 uri = g_uri_build (SOUP_HTTP_URI_FLAGS,
-                                   creds ? "https" : "http",
+                                   soup_socket_is_ssl (listener) ? "https" : "http",
                                    NULL, ip, port, "/", NULL, NULL);
 
 		uris = g_slist_prepend (uris, uri);

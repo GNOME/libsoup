@@ -45,7 +45,7 @@ enum {
         PROP_REMOTE_ADDRESS,
 	PROP_REMOTE_CONNECTABLE,
 	PROP_IPV6_ONLY,
-	PROP_SSL_CREDENTIALS,
+	PROP_TLS_CERTIFICATE,
 
 	LAST_PROP
 };
@@ -64,7 +64,7 @@ typedef struct {
 
 	guint ipv6_only:1;
 	guint ssl:1;
-	gpointer ssl_creds;
+	GTlsCertificate *tls_certificate;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
@@ -159,7 +159,7 @@ soup_socket_finalize (GObject *object)
 	g_clear_object (&priv->remote_addr);
         g_clear_object (&priv->remote_connectable);
 
-	g_clear_object (&priv->ssl_creds);
+	g_clear_object (&priv->tls_certificate);
 
 	if (priv->watch_src) {
 		g_source_destroy (priv->watch_src);
@@ -219,10 +219,8 @@ soup_socket_set_property (GObject *object, guint prop_id,
 	case PROP_IPV6_ONLY:
 		priv->ipv6_only = g_value_get_boolean (value);
 		break;
-	case PROP_SSL_CREDENTIALS:
-		priv->ssl_creds = g_value_get_pointer (value);
-		if (priv->ssl_creds)
-			g_object_ref (priv->ssl_creds);
+	case PROP_TLS_CERTIFICATE:
+		priv->tls_certificate = g_value_dup_object (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -250,8 +248,8 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	case PROP_IPV6_ONLY:
 		g_value_set_boolean (value, priv->ipv6_only);
 		break;
-	case PROP_SSL_CREDENTIALS:
-		g_value_set_pointer (value, priv->ssl_creds);
+	case PROP_TLS_CERTIFICATE:
+		g_value_set_object (value, priv->tls_certificate);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -362,17 +360,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
 
-	/* For historical reasons, there's only a single property
-	 * here, which is a GTlsDatabase for client sockets, and
-	 * a GTlsCertificate for server sockets. Whee!
-	 */
 	g_object_class_install_property (
-		object_class, PROP_SSL_CREDENTIALS,
-		g_param_spec_pointer ("ssl-creds",
-				      "SSL credentials",
-				      "SSL credential information, passed from the session to the SSL implementation",
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+		object_class, PROP_TLS_CERTIFICATE,
+		g_param_spec_object ("tls-certificate",
+				     "TLS Certificate",
+				     "The server TLS certificate",
+				     G_TYPE_TLS_CERTIFICATE,
+				     G_PARAM_READWRITE |
+				     G_PARAM_STATIC_STRINGS));
 }
 
 static void
@@ -460,7 +455,7 @@ soup_socket_setup_ssl (SoupSocket *sock)
 	conn = g_initable_new (g_tls_backend_get_server_connection_type (backend),
 			       NULL, NULL,
 			       "base-io-stream", priv->conn,
-			       "certificate", priv->ssl_creds,
+			       "certificate", priv->tls_certificate,
 			       "use-system-certdb", FALSE,
 			       "require-close-notify", FALSE,
 			       NULL);
@@ -496,11 +491,11 @@ listen_watch (GObject *pollable, gpointer data)
 	new_priv->gsock = new_gsock;
 	new_priv->async_context = g_main_context_ref (priv->async_context);
 	new_priv->ssl = priv->ssl;
-	if (priv->ssl_creds)
-		new_priv->ssl_creds = g_object_ref (priv->ssl_creds);
+	if (priv->tls_certificate)
+		new_priv->tls_certificate = g_object_ref (priv->tls_certificate);
 	finish_socket_setup (new);
 
-	if (new_priv->ssl_creds) {
+	if (new_priv->tls_certificate) {
 		if (!soup_socket_setup_ssl (new)) {
 			g_object_unref (new);
 			return TRUE;
@@ -602,7 +597,7 @@ soup_socket_is_ssl (SoupSocket *sock)
 {
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
 
-	return priv->ssl;
+	return priv->ssl || priv->tls_certificate;
 }
 
 /**
