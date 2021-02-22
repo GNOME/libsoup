@@ -186,12 +186,5 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                 <link linkend="soup_message_set_request_body_from_bytes"><function>soup_message_set_request_body_from_bytes()</function></link> to use a GBytes
             buffer.</para>
     </sect2>
-    <sect2>
-        <title>Redirection handling changes</title>
-        <para>Previously a common pattern was using <code>SOUP_MESSAGE_NO_REDIRECT</code> and
-            manually handling re-queuing the message. This is now handled for you with the
-            <link linkend="SoupMessage-redirect"><literal>SoupMessage::redirect</literal></link> signal where you can block or allow redirects and libsoup
-            handles the queueing.</para>
-    </sect2>
 </chapter>
 
