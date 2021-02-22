@@ -1056,7 +1056,6 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 			     GError **error)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
-	gboolean is_listening;
 
 	if (options & SOUP_SERVER_LISTEN_HTTPS) {
 		if (!priv->tls_cert) {
@@ -1072,10 +1071,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 			      NULL);
 	}
 
-	g_object_get (G_OBJECT (listener),
-		      "is-server", &is_listening,
-		      NULL);
-	if (!is_listening) {
+	if (soup_socket_get_gsocket (listener) == NULL) {
 		if (!soup_socket_listen (listener, error)) {
 			GInetSocketAddress *addr =  soup_socket_get_local_address (listener);
 			GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);

@@ -45,7 +45,6 @@ enum {
         PROP_REMOTE_ADDRESS,
 	PROP_REMOTE_CONNECTABLE,
 	PROP_IPV6_ONLY,
-	PROP_IS_SERVER,
 	PROP_SSL_CREDENTIALS,
 
 	LAST_PROP
@@ -64,7 +63,6 @@ typedef struct {
 	GOutputStream *ostream;
 
 	guint ipv6_only:1;
-	guint is_server:1;
 	guint ssl:1;
 	gpointer ssl_creds;
 
@@ -252,9 +250,6 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	case PROP_IPV6_ONLY:
 		g_value_set_boolean (value, priv->ipv6_only);
 		break;
-	case PROP_IS_SERVER:
-		g_value_set_boolean (value, priv->is_server);
-		break;
 	case PROP_SSL_CREDENTIALS:
 		g_value_set_pointer (value, priv->ssl_creds);
 		break;
@@ -365,24 +360,6 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "IPv6 only",
 				      FALSE,
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
-
-	/**
-	 * SoupSocket:is-server:
-	 *
-	 * Whether or not the socket is a server socket.
-	 *
-	 * Note that for "ordinary" #SoupSockets this will be set for
-	 * both listening sockets and the sockets emitted by
-	 * #SoupSocket::new-connection.
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_IS_SERVER,
-		g_param_spec_boolean ("is-server",
-				      "Server",
-				      "Whether or not the socket is a server socket",
-				      FALSE,
-				      G_PARAM_READABLE |
 				      G_PARAM_STATIC_STRINGS));
 
 	/* For historical reasons, there's only a single property
@@ -518,7 +495,6 @@ listen_watch (GObject *pollable, gpointer data)
 	new_priv = soup_socket_get_instance_private (new);
 	new_priv->gsock = new_gsock;
 	new_priv->async_context = g_main_context_ref (priv->async_context);
-	new_priv->is_server = TRUE;
 	new_priv->ssl = priv->ssl;
 	if (priv->ssl_creds)
 		new_priv->ssl_creds = g_object_ref (priv->ssl_creds);
@@ -542,7 +518,6 @@ finish_listener_setup (SoupSocket *sock)
 {
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
 
-	priv->is_server = TRUE;
 	priv->watch_src = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->istream), NULL);
 	g_source_set_callback (priv->watch_src, (GSourceFunc)listen_watch, sock, NULL);
 	g_source_attach (priv->watch_src, priv->async_context);

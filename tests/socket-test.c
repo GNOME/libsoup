@@ -117,74 +117,12 @@ socket_get_fd (SoupSocket *socket)
 }
 
 static void
-do_socket_from_fd_client_test (void)
-{
-	SoupServer *server;
-	GUri *uri;
-	GSocket *gsock;
-	SoupSocket *sock;
-	GInetSocketAddress *local, *remote;
-	GSocketAddress *gaddr;
-	gboolean is_server;
-	GError *error = NULL;
-
-	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
-	uri = soup_test_server_get_uri (server, "http", "127.0.0.1");
-
-	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
-			      G_SOCKET_TYPE_STREAM,
-			      G_SOCKET_PROTOCOL_DEFAULT,
-			      &error);
-	g_assert_no_error (error);
-
-	gaddr = g_inet_socket_address_new_from_string ("127.0.0.1", g_uri_get_port (uri));
-	g_socket_connect (gsock, gaddr, NULL, &error);
-	g_object_unref (gaddr);
-	g_assert_no_error (error);
-	g_assert_true (g_socket_is_connected (gsock));
-
-	gaddr = g_socket_get_local_address (gsock, &error);
-	g_assert_no_error (error);
-
-	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
-                               "gsocket", gsock,
-			       NULL);
-	g_assert_no_error (error);
-	g_assert_nonnull (sock);
-
-	g_object_get (G_OBJECT (sock),
-		      "local-address", &local,
-		      "remote-address", &remote,
-		      "is-server", &is_server,
-		      NULL);
-	g_assert_cmpint (socket_get_fd (sock), ==, g_socket_get_fd (gsock));
-	g_assert_false (is_server);
-	g_assert_true (soup_socket_is_connected (sock));
-
-	assert_host_equals (local, "127.0.0.1");
-	g_assert_cmpint (g_inet_socket_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
-        assert_host_equals (remote, "127.0.0.1");
-	g_assert_cmpint (g_inet_socket_address_get_port (remote), ==, g_uri_get_port (uri));
-
-	g_object_unref (local);
-	g_object_unref (remote);
-	g_object_unref (gaddr);
-
-	g_object_unref (sock);
-	g_object_unref (gsock);
-
-	soup_test_server_quit_unref (server);
-	g_uri_unref (uri);
-}
-
-static void
 do_socket_from_fd_server_test (void)
 {
 	GSocket *gsock;
 	SoupSocket *sock;
 	GInetSocketAddress *local;
 	GSocketAddress *gaddr;
-	gboolean is_server;
 	GError *error = NULL;
 
 	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
@@ -212,10 +150,8 @@ do_socket_from_fd_server_test (void)
 
 	g_object_get (G_OBJECT (sock),
 		      "local-address", &local,
-		      "is-server", &is_server,
 		      NULL);
 	g_assert_cmpint (socket_get_fd (sock), ==, g_socket_get_fd (gsock));
-	g_assert_true (is_server);
 	g_assert_true (soup_socket_is_connected (sock));
 
 	assert_host_equals (local, "127.0.0.1");
@@ -238,7 +174,6 @@ do_socket_from_fd_bad_test (void)
 	SoupSocket *sock, *sock2;
 	GInetSocketAddress *local, *remote;
 	GSocketAddress *gaddr;
-	gboolean is_server;
 	GError *error = NULL;
 
 	/* Importing an unconnected socket gives an error */
@@ -257,9 +192,6 @@ do_socket_from_fd_bad_test (void)
 	g_assert_null (sock);
 	g_object_unref (gsock);
 
-	/* Importing a non-listening server-side socket works, but
-	 * gives the wrong answer for soup_socket_is_server().
-	 */
 	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
 			      G_SOCKET_TYPE_STREAM,
 			      G_SOCKET_PROTOCOL_DEFAULT,
@@ -300,12 +232,9 @@ do_socket_from_fd_bad_test (void)
 	g_object_get (G_OBJECT (sock2),
 		      "local-address", &local,
 		      "remote-address", &remote,
-		      "is-server", &is_server,
 		      NULL);
 	g_assert_cmpint (socket_get_fd (sock2), ==, g_socket_get_fd (gsock2));
 	g_assert_true (soup_socket_is_connected (sock2));
-	/* This is wrong, but can't be helped. */
-	g_assert_false (is_server);
 
 	assert_host_equals (local, "127.0.0.1");
 	g_assert_cmpint (g_inet_socket_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
@@ -335,7 +264,6 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 
 	g_test_add_func ("/sockets/unconnected", do_unconnected_socket_test);
-	g_test_add_func ("/sockets/from-fd/client", do_socket_from_fd_client_test);
 	g_test_add_func ("/sockets/from-fd/server", do_socket_from_fd_server_test);
 	g_test_add_func ("/sockets/from-fd/bad", do_socket_from_fd_bad_test);
 
