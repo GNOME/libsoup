@@ -597,10 +597,8 @@ do_refcounting_test (gconstpointer data)
 	g_object_unref (cache);
 	g_free (cache_dir);
 
-        g_test_skip ("FIXME: Session has 1 ref at the end, SessionAsync had a different clear_message function with different semantics.");
-
-        return;
-
+	while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
