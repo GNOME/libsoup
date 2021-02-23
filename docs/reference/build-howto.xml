@@ -37,19 +37,19 @@ LIBSOUP_CFLAGS="$LIBSOUP_CFLAGS -DSOUP_VERSION_MAX_ALLOWED=SOUP_VERSION_3_2"</pr
   <para>Or with Meson:</para>
 
   <informalexample><programlisting>add_project_arguments(
-  '-DSOUP_VERSION_MIN_REQUIRED=SOUP_VERSION_3_0',
-  '-DSOUP_VERSION_MAX_ALLOWED=SOUP_VERSION_3_2',
+  '-DSOUP_VERSION_MIN_REQUIRED=SOUP_VERSION_2_99',
+  '-DSOUP_VERSION_MAX_ALLOWED=SOUP_VERSION_3_0',
   language: 'c'
 )</programlisting></informalexample>
   
 <para>The <literal>SOUP_VERSION_MIN_REQUIRED</literal> declaration states that the code is not
         expected to compile on versions of <application>libsoup</application> older than the
-        indicated version (here, 3.0), and so the compiler should print warnings if the code uses
+        indicated version, and so the compiler should print warnings if the code uses
         functions that were deprecated as of that release.</para>
 
 <para>The <literal>SOUP_VERSION_MAX_ALLOWED</literal> declaration states that the code
             <emphasis>is</emphasis> expected to compile on versions of
-            <application>libsoup</application> up to the indicated version (here, 3.2), and so, when
+            <application>libsoup</application> up to the indicated version, and so, when
         compiling the program against a newer version than that, the compiler should print warnings
         if the code uses functions that did not yet exist in the max-allowed release.</para>
 

@@ -1,3 +1,8 @@
+Changes in libsoup from 2.72.0 to 2.99.1:
+
+    * This is a major ABI breaking release that can be installed in parallel with 2.7x.
+      Numerous API have been changed which is documented on https://libsoup.org
+
 Changes in libsoup from 2.71.1 to 2.72.0:
 
 	* Fix critical after cancelling a message that failed auth [Carlos Garcia Campos]
