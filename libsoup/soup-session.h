@@ -101,6 +101,9 @@ SOUP_AVAILABLE_IN_ALL
 gboolean            soup_session_get_accept_language_auto (SoupSession     *session);
 
 SOUP_AVAILABLE_IN_ALL
+GSocketConnectable *soup_session_get_remote_connectable   (SoupSession     *session);
+
+SOUP_AVAILABLE_IN_ALL
 void            soup_session_abort               (SoupSession           *session);
 
 SOUP_AVAILABLE_IN_ALL

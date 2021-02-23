@@ -128,6 +128,11 @@ if brotlidec_dep.found()
   cdata.set('WITH_BROTLI', true)
 endif
 
+unix_socket_dep = dependency('gio-unix-2.0',
+                             version : glib_required_version,
+                             fallback: ['glib', 'libgiounix_dep'],
+                             required : false)
+
 platform_deps = []
 is_static_library = get_option('default_library') == 'static'
 if not is_static_library
@@ -396,6 +401,7 @@ summary({
     'Tests requiring Apache' : have_apache,
     'Fuzzing tests' : get_option('fuzzing').enabled(),
     'Install tests': get_option('installed_tests'),
+    'Unix sockets' : unix_socket_dep.found(),
   },
   section : 'Testing'
 )

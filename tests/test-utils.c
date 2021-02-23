@@ -4,6 +4,9 @@
 #include "soup-misc.h"
 
 #include <glib/gprintf.h>
+#ifdef G_OS_UNIX
+#include <gio/gunixsocketaddress.h>
+#endif
 
 #include <locale.h>
 #include <signal.h>
@@ -370,16 +373,27 @@ soup_test_session_send_message (SoupSession *session,
 	return soup_message_get_status (msg);
 }
 
+const char *
+soup_test_server_get_unix_path (SoupServer *server)
+{
+	return g_object_get_data (G_OBJECT (server), "unix-socket-path");
+}
+
 static void
 server_listen (SoupServer *server)
 {
 	GError *error = NULL;
         SoupServerListenOptions options = 0;
+	GSocket *socket;
 
         if (g_getenv ("SOUP_TEST_NO_IPV6"))
                 options = SOUP_SERVER_LISTEN_IPV4_ONLY;
 
-	soup_server_listen_local (server, 0, options, &error);
+	socket = g_object_get_data (G_OBJECT (server), "listen-socket");
+	if (socket != NULL)
+		soup_server_listen_socket (server, socket, 0, &error);
+	else
+		soup_server_listen_local (server, 0, options, &error);
 	if (error) {
 		g_printerr ("Unable to create server: %s\n", error->message);
 		exit (1);
@@ -463,6 +477,44 @@ soup_test_server_new (SoupTestServerOptions options)
 	g_clear_object (&cert);
 
 	g_object_set_data (G_OBJECT (server), "options", GUINT_TO_POINTER (options));
+
+	if (options & SOUP_TEST_SERVER_UNIX_SOCKET) {
+#ifdef G_OS_UNIX
+		char *socket_dir, *socket_path;
+		GSocket *listen_socket;
+		GSocketAddress *listen_address;
+
+		socket_dir = g_dir_make_tmp ("unix-socket-test-XXXXXX", NULL);
+		socket_path = g_build_filename (socket_dir, "socket", NULL);
+		g_object_set_data_full (G_OBJECT (server), "unix-socket-path", socket_path, g_free);
+		g_free (socket_dir);
+
+		listen_socket = g_socket_new (G_SOCKET_FAMILY_UNIX,
+					      G_SOCKET_TYPE_STREAM,
+					      G_SOCKET_PROTOCOL_DEFAULT,
+					      &error);
+		if (listen_socket == NULL) {
+			g_printerr ("Unable to create unix socket: %s\n", error->message);
+			exit (1);
+		}
+
+		listen_address = g_unix_socket_address_new (socket_path);
+		if (!g_socket_bind (listen_socket, listen_address, TRUE, &error)) {
+			g_printerr ("Unable to bind unix socket to %s: %s\n", socket_path, error->message);
+			exit (1);
+		}
+		g_object_unref (listen_address);
+		if (!g_socket_listen (listen_socket, &error)) {
+			g_printerr ("Unable to listen on unix socket: %s\n", error->message);
+			exit (1);
+		}
+
+		g_object_set_data_full (G_OBJECT (server), "listen-socket", listen_socket, g_object_unref);
+#else
+		g_printerr ("Unix socket support not available\n");
+		exit (1);
+#endif
+	}
 
 	if (options & SOUP_TEST_SERVER_IN_THREAD)
 		soup_test_server_run_in_thread (server);

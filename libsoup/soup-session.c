@@ -112,6 +112,8 @@ typedef struct {
 	char *accept_language;
 	gboolean accept_language_auto;
 
+	GSocketConnectable *remote_connectable;
+
 	GSList *features;
 	GHashTable *features_cache;
 
@@ -168,6 +170,7 @@ enum {
 	PROP_USER_AGENT,
 	PROP_ACCEPT_LANGUAGE,
 	PROP_ACCEPT_LANGUAGE_AUTO,
+	PROP_REMOTE_CONNECTABLE,
 	PROP_IDLE_TIMEOUT,
 	PROP_LOCAL_ADDRESS,
 	PROP_TLS_INTERACTION,
@@ -299,6 +302,8 @@ soup_session_finalize (GObject *object)
 	g_queue_free (priv->queue);
 	g_source_unref (priv->queue_source);
 
+	g_clear_object (&priv->remote_connectable);
+
 	g_hash_table_destroy (priv->http_hosts);
 	g_hash_table_destroy (priv->https_hosts);
 	g_hash_table_destroy (priv->conns);
@@ -390,6 +395,9 @@ soup_session_set_property (GObject *object, guint prop_id,
 	case PROP_ACCEPT_LANGUAGE_AUTO:
 		soup_session_set_accept_language_auto (session, g_value_get_boolean (value));
 		break;
+	case PROP_REMOTE_CONNECTABLE:
+		priv->remote_connectable = g_value_dup_object (value);
+		break;
 	case PROP_IDLE_TIMEOUT:
 		soup_session_set_idle_timeout (session, g_value_get_uint (value));
 		break;
@@ -435,6 +443,9 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ACCEPT_LANGUAGE_AUTO:
 		g_value_set_boolean (value, soup_session_get_accept_language_auto (session));
+		break;
+	case PROP_REMOTE_CONNECTABLE:
+		g_value_set_object (value, soup_session_get_remote_connectable (session));
 		break;
 	case PROP_IDLE_TIMEOUT:
 		g_value_set_uint (value, soup_session_get_idle_timeout (session));
@@ -944,6 +955,25 @@ soup_session_get_accept_language_auto (SoupSession *session)
 
 	priv = soup_session_get_instance_private (session);
 	return priv->accept_language_auto;
+}
+
+/**
+ * soup_session_get_remote_connectable:
+ * @session: a #SoupSession
+ *
+ * Get the remote connectable if one set.
+ *
+ * Returns: (transfer none) (nullable): the #GSocketConnectable or %NULL
+ */
+GSocketConnectable *
+soup_session_get_remote_connectable (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->remote_connectable;
 }
 
 /* Hosts */
@@ -1819,12 +1849,16 @@ get_connection_for_host (SoupSession *session,
 		return NULL;
 	}
 
-	remote_connectable =
-		g_object_new (G_TYPE_NETWORK_ADDRESS,
-			      "hostname", g_uri_get_host (host->uri),
-			      "port", g_uri_get_port (host->uri),
-			      "scheme", g_uri_get_scheme (host->uri),
-			      NULL);
+	if (priv->remote_connectable == NULL) {
+		remote_connectable =
+			g_object_new (G_TYPE_NETWORK_ADDRESS,
+				      "hostname", g_uri_get_host (host->uri),
+				      "port", g_uri_get_port (host->uri),
+				      "scheme", g_uri_get_scheme (host->uri),
+				      NULL);
+	} else {
+		remote_connectable = g_object_ref (priv->remote_connectable);
+	}
 
 	ensure_socket_props (session);
 	conn = g_object_new (SOUP_TYPE_CONNECTION,
@@ -2733,6 +2767,27 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      FALSE,
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
+
+	/**
+	 * SoupSession:remote-connectable:
+	 *
+	 * Sets a socket to make outgoing connections on. This will override the default
+	 * behaviour of opening TCP/IP sockets to the hosts specified in the URIs.
+	 *
+	 * This function is not required for common HTTP usage, but only when connecting
+	 * to a HTTP service that is not using standard TCP/IP sockets. An example of
+	 * this is a local service that uses HTTP over UNIX-domain sockets, in that case
+	 * a #GUnixSocketAddress can be passed to this function.
+	 *
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_REMOTE_CONNECTABLE,
+		g_param_spec_object ("remote-connectable",
+				     "Remote Connectable",
+				     "Socket to connect to make outgoing connections on",
+				     G_TYPE_SOCKET_CONNECTABLE,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_STRINGS));
 
 	/**
 	 * SoupSession:local-address:

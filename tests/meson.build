@@ -7,10 +7,10 @@ abs_installed_tests_execdir = join_paths(prefix, installed_tests_execdir)
 
 if cc.get_id() == 'msvc'
   test_utils = static_library(test_utils_name, test_utils_name + '.c',
-    dependencies : libsoup_static_dep)
+    dependencies : [ libsoup_static_dep, unix_socket_dep ])
 else
   test_utils = library(test_utils_name, test_utils_name + '.c',
-    dependencies : libsoup_static_dep,
+    dependencies : [ libsoup_static_dep, unix_socket_dep ],
     install : installed_tests_enabled,
     install_dir : installed_tests_execdir,
   )
@@ -79,6 +79,12 @@ if brotlidec_dep.found()
       install_dir : join_paths(installed_tests_execdir, 'brotli-data'),
     )
   endif
+endif
+
+if unix_socket_dep.found()
+  tests += [
+    ['unix-socket', true, [ unix_socket_dep ]],
+  ]
 endif
 
 if have_apache

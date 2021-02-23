@@ -69,10 +69,12 @@ guint        soup_test_session_send_message       (SoupSession  *session,
 typedef enum {
 	SOUP_TEST_SERVER_DEFAULT             = 0,
 	SOUP_TEST_SERVER_IN_THREAD           = (1 << 0),
-	SOUP_TEST_SERVER_NO_DEFAULT_LISTENER = (1 << 1)
+	SOUP_TEST_SERVER_NO_DEFAULT_LISTENER = (1 << 1),
+	SOUP_TEST_SERVER_UNIX_SOCKET         = (1 << 2)
 } SoupTestServerOptions;
 
 SoupServer  *soup_test_server_new            (SoupTestServerOptions  options);
+const char  *soup_test_server_get_unix_path  (SoupServer            *server);
 void         soup_test_server_run_in_thread  (SoupServer            *server);
 GUri        *soup_test_server_get_uri        (SoupServer            *server,
 					      const char            *scheme,
