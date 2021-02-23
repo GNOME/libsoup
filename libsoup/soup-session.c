@@ -327,136 +327,12 @@ ensure_socket_props (SoupSession *session)
 }
 
 static void
-set_tlsdb (SoupSession  *session,
-	   GTlsDatabase *tlsdb)
+socket_props_changed (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
-	priv->tlsdb_use_default = FALSE;
-	if (tlsdb == priv->tlsdb)
-		return;
-
-	g_clear_object (&priv->tlsdb);
-	priv->tlsdb = tlsdb ? g_object_ref (tlsdb) : NULL;
-	g_object_notify (G_OBJECT (session), "tls-database");
-}
-
-static GTlsDatabase *
-get_tlsdb (SoupSession *session)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
-	if (priv->tlsdb_use_default && !priv->tlsdb)
-		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-
-	return priv->tlsdb;
-}
-
-static void
-set_proxy_resolver (SoupSession    *session,
-		    GProxyResolver *g_resolver)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
-	priv->proxy_use_default = FALSE;
-	if (priv->proxy_resolver == g_resolver)
-		return;
-
-	g_clear_object (&priv->proxy_resolver);
-	priv->proxy_resolver = g_resolver ? g_object_ref (g_resolver) : NULL;
-	g_object_notify (G_OBJECT (session), "proxy-resolver");
-}
-
-static GProxyResolver *
-get_proxy_resolver (SoupSession *session)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
-	if (!priv->proxy_use_default)
-		return priv->proxy_resolver;
-
-	return g_proxy_resolver_get_default ();
-}
-
-static void
-soup_session_set_property (GObject *object, guint prop_id,
-			   const GValue *value, GParamSpec *pspec)
-{
-	SoupSession *session = SOUP_SESSION (object);
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	const char *user_agent;
-	gboolean socket_props_changed = FALSE;
-
-	switch (prop_id) {
-	case PROP_LOCAL_ADDRESS:
-		priv->local_addr = g_value_dup_object (value);
-		socket_props_changed = TRUE;
-		break;
-	case PROP_PROXY_RESOLVER:
-		set_proxy_resolver (session, g_value_get_object (value));
-		socket_props_changed = TRUE;
-		break;
-	case PROP_MAX_CONNS:
-		priv->max_conns = g_value_get_int (value);
-		break;
-	case PROP_MAX_CONNS_PER_HOST:
-		priv->max_conns_per_host = g_value_get_int (value);
-		break;
-	case PROP_TLS_DATABASE:
-		set_tlsdb (session, g_value_get_object (value));
-		socket_props_changed = TRUE;
-		break;
-	case PROP_TLS_INTERACTION:
-		g_clear_object(&priv->tls_interaction);
-		priv->tls_interaction = g_value_dup_object (value);
-		socket_props_changed = TRUE;
-		break;
-	case PROP_TIMEOUT:
-		priv->io_timeout = g_value_get_uint (value);
-		socket_props_changed = TRUE;
-		break;
-	case PROP_USER_AGENT:
-		g_free (priv->user_agent);
-		user_agent = g_value_get_string (value);
-		if (!user_agent)
-			priv->user_agent = NULL;
-		else if (!*user_agent) {
-			priv->user_agent =
-				g_strdup (SOUP_SESSION_USER_AGENT_BASE);
-		} else if (g_str_has_suffix (user_agent, " ")) {
-			priv->user_agent =
-				g_strdup_printf ("%s%s", user_agent,
-						 SOUP_SESSION_USER_AGENT_BASE);
-		} else
-			priv->user_agent = g_strdup (user_agent);
-		break;
-	case PROP_ACCEPT_LANGUAGE:
-		g_free (priv->accept_language);
-		priv->accept_language = g_strdup (g_value_get_string (value));
-		priv->accept_language_auto = FALSE;
-		break;
-	case PROP_ACCEPT_LANGUAGE_AUTO:
-		priv->accept_language_auto = g_value_get_boolean (value);
-		if (priv->accept_language) {
-			g_free (priv->accept_language);
-			priv->accept_language = NULL;
-		}
-
-		/* Get languages from system if needed */
-		if (priv->accept_language_auto)
-			priv->accept_language = soup_get_accept_languages_from_system ();
-		break;
-	case PROP_IDLE_TIMEOUT:
-		priv->idle_timeout = g_value_get_uint (value);
-		socket_props_changed = TRUE;
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
 
 	g_mutex_lock (&priv->conn_lock);
-	if (priv->socket_props && socket_props_changed) {
+	if (priv->socket_props) {
 		soup_socket_properties_unref (priv->socket_props);
 		priv->socket_props = NULL;
 		ensure_socket_props (session);
@@ -465,45 +341,92 @@ soup_session_set_property (GObject *object, guint prop_id,
 }
 
 static void
-soup_session_get_property (GObject *object, guint prop_id,
-			   GValue *value, GParamSpec *pspec)
+soup_session_set_property (GObject *object, guint prop_id,
+			   const GValue *value, GParamSpec *pspec)
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	switch (prop_id) {
 	case PROP_LOCAL_ADDRESS:
-		g_value_set_object (value, priv->local_addr);
+		priv->local_addr = g_value_dup_object (value);
+		socket_props_changed (session);
 		break;
 	case PROP_PROXY_RESOLVER:
-		g_value_set_object (value, get_proxy_resolver (session));
+		soup_session_set_proxy_resolver (session, g_value_get_object (value));
 		break;
 	case PROP_MAX_CONNS:
-		g_value_set_int (value, priv->max_conns);
+		priv->max_conns = g_value_get_int (value);
 		break;
 	case PROP_MAX_CONNS_PER_HOST:
-		g_value_set_int (value, priv->max_conns_per_host);
+		priv->max_conns_per_host = g_value_get_int (value);
 		break;
 	case PROP_TLS_DATABASE:
-		g_value_set_object (value, get_tlsdb (session));
+		soup_session_set_tls_database (session, g_value_get_object (value));
 		break;
 	case PROP_TLS_INTERACTION:
-		g_value_set_object (value, priv->tls_interaction);
+		soup_session_set_tls_interaction (session, g_value_get_object (value));
 		break;
 	case PROP_TIMEOUT:
-		g_value_set_uint (value, priv->io_timeout);
+		soup_session_set_timeout (session, g_value_get_uint (value));
 		break;
 	case PROP_USER_AGENT:
-		g_value_set_string (value, priv->user_agent);
+		soup_session_set_user_agent (session, g_value_get_string (value));
 		break;
 	case PROP_ACCEPT_LANGUAGE:
-		g_value_set_string (value, priv->accept_language);
+		soup_session_set_accept_language (session, g_value_get_string (value));
 		break;
 	case PROP_ACCEPT_LANGUAGE_AUTO:
-		g_value_set_boolean (value, priv->accept_language_auto);
+		soup_session_set_accept_language_auto (session, g_value_get_boolean (value));
 		break;
 	case PROP_IDLE_TIMEOUT:
-		g_value_set_uint (value, priv->idle_timeout);
+		soup_session_set_idle_timeout (session, g_value_get_uint (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_session_get_property (GObject *object, guint prop_id,
+			   GValue *value, GParamSpec *pspec)
+{
+	SoupSession *session = SOUP_SESSION (object);
+
+	switch (prop_id) {
+	case PROP_LOCAL_ADDRESS:
+		g_value_set_object (value, soup_session_get_local_address (session));
+		break;
+	case PROP_PROXY_RESOLVER:
+		g_value_set_object (value, soup_session_get_proxy_resolver (session));
+		break;
+	case PROP_MAX_CONNS:
+		g_value_set_int (value, soup_session_get_max_conns (session));
+		break;
+	case PROP_MAX_CONNS_PER_HOST:
+		g_value_set_int (value, soup_session_get_max_conns_per_host (session));
+		break;
+	case PROP_TLS_DATABASE:
+		g_value_set_object (value, soup_session_get_tls_database (session));
+		break;
+	case PROP_TLS_INTERACTION:
+		g_value_set_object (value, soup_session_get_tls_interaction (session));
+		break;
+	case PROP_TIMEOUT:
+		g_value_set_uint (value, soup_session_get_timeout (session));
+		break;
+	case PROP_USER_AGENT:
+		g_value_set_string (value, soup_session_get_user_agent (session));
+		break;
+	case PROP_ACCEPT_LANGUAGE:
+		g_value_set_string (value, soup_session_get_accept_language (session));
+		break;
+	case PROP_ACCEPT_LANGUAGE_AUTO:
+		g_value_set_boolean (value, soup_session_get_accept_language_auto (session));
+		break;
+	case PROP_IDLE_TIMEOUT:
+		g_value_set_uint (value, soup_session_get_idle_timeout (session));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -548,6 +471,468 @@ soup_session_new_with_options (const char *optname1,
 	va_end (ap);
 
 	return session;
+}
+
+/**
+ * soup_session_get_local_address:
+ * @session: a #SoupSession
+ *
+ * Get the #GInetSocketAddress to use for the client side of connections in @session.
+ *
+ * Returns: (transfer none) (nullable): a #GInetSocketAddress or %NULL
+ */
+GInetSocketAddress *
+soup_session_get_local_address (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->local_addr;
+}
+
+/**
+ * soup_session_get_max_conns:
+ * @session: a #SoupSession
+ *
+ * Get the maximum number of connections that @session can open at once.
+ *
+ * Returns: the maximum number of connections
+ */
+guint
+soup_session_get_max_conns (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), 0);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->max_conns;
+}
+
+/**
+ * soup_session_get_max_conns_per_host:
+ * @session: a #SoupSession
+ *
+ * Get the maximum number of connections that @session can open at once to a given host.
+ *
+ * Returns: the maximum number of connections per host
+ */
+guint
+soup_session_get_max_conns_per_host (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), 0);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->max_conns_per_host;
+}
+
+/**
+ * soup_session_set_proxy_resolver:
+ * @session: a #SoupSession
+ * @proxy_resolver: (nullable): a #GProxyResolver or %NULL
+ *
+ * Set a #GProxyResolver to be used by @session on new connections. If @proxy_resolver
+ * is %NULL then no proxies will be used. See #SoupSession:proxy-resolver for more information.
+ */
+void
+soup_session_set_proxy_resolver (SoupSession    *session,
+				 GProxyResolver *proxy_resolver)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (proxy_resolver == NULL || G_IS_PROXY_RESOLVER (proxy_resolver));
+
+	priv = soup_session_get_instance_private (session);
+	priv->proxy_use_default = FALSE;
+	if (priv->proxy_resolver == proxy_resolver)
+		return;
+
+	g_clear_object (&priv->proxy_resolver);
+	priv->proxy_resolver = proxy_resolver ? g_object_ref (proxy_resolver) : NULL;
+	socket_props_changed (session);
+	g_object_notify (G_OBJECT (session), "proxy-resolver");
+}
+
+/**
+ * soup_session_get_proxy_resolver:
+ * @session: a #SoupSession
+ *
+ * Get the #GProxyResolver currently used by @session.
+ *
+ * Returns: (transfer none) (nullable): a #GProxyResolver or %NULL if proxies
+ *    are disabled in @session
+ */
+GProxyResolver *
+soup_session_get_proxy_resolver (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = soup_session_get_instance_private (session);
+	return !priv->proxy_use_default ? priv->proxy_resolver : g_proxy_resolver_get_default ();
+}
+
+/**
+ * soup_session_set_tls_database:
+ * @session: a #SoupSession
+ * @tls_database: (nullable): a #GTlsDatabase or %NULL
+ *
+ * Set a #GTlsDatabase to be used by @session on new connections. If @tls_database
+ * is %NULL then certificate validation will always fail. See #SoupSession:tls-database
+ * for more information.
+ */
+void
+soup_session_set_tls_database (SoupSession  *session,
+			       GTlsDatabase *tls_database)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (tls_database == NULL || G_IS_TLS_DATABASE (tls_database));
+
+	priv = soup_session_get_instance_private (session);
+	priv->tlsdb_use_default = FALSE;
+	if (priv->tlsdb == tls_database)
+		return;
+
+	g_clear_object (&priv->tlsdb);
+	priv->tlsdb = tls_database ? g_object_ref (tls_database) : NULL;
+	socket_props_changed (session);
+	g_object_notify (G_OBJECT (session), "tls-database");
+}
+
+/**
+ * soup_session_get_tls_database:
+ * @session: a #SoupSession
+ *
+ * Get the #GTlsDatabase currently used by @session.
+ *
+ * Returns: (transfer none) (nullable): a #GTlsDatabase or %NULL
+ */
+GTlsDatabase *
+soup_session_get_tls_database (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = soup_session_get_instance_private (session);
+	if (priv->tlsdb_use_default && !priv->tlsdb)
+		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+
+	return priv->tlsdb;
+}
+
+/**
+ * soup_session_set_tls_interaction:
+ * @session: a #SoupSession
+ * @tls_interaction: (nullable): a #GTlsInteraction or %NULL
+ *
+ * Set a #GTlsInteraction to be used by @session on new connections. If @tls_interaction
+ * is %NULL then client certificate validation will always fail. See #SoupSession:tls-interaction
+ * for more information.
+ */
+void
+soup_session_set_tls_interaction (SoupSession     *session,
+				  GTlsInteraction *tls_interaction)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (tls_interaction == NULL || G_IS_TLS_INTERACTION (tls_interaction));
+
+	priv = soup_session_get_instance_private (session);
+	if (priv->tls_interaction == tls_interaction)
+		return;
+
+	g_clear_object (&priv->tls_interaction);
+	priv->tls_interaction = tls_interaction ? g_object_ref (tls_interaction) : NULL;
+	socket_props_changed (session);
+	g_object_notify (G_OBJECT (session), "tls-interaction");
+}
+
+/**
+ * soup_session_get_tls_interaction:
+ * @session: a #SoupSession
+ *
+ * Get the #GTlsInteraction currently used by @session.
+ *
+ * Returns: (transfer none) (nullable): a #GTlsInteraction or %NULL
+ */
+GTlsInteraction *
+soup_session_get_tls_interaction (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->tls_interaction;
+}
+
+/**
+ * soup_session_set_timeout:
+ * @session: a #SoupSession
+ * @timeout: a timeout in seconds
+ *
+ * Set a timeout in seconds for socket I/O operations to be used by @session
+ * on new connections. See #SoupSession:timeout for more information.
+ */
+void
+soup_session_set_timeout (SoupSession *session,
+			  guint        timeout)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = soup_session_get_instance_private (session);
+	if (priv->io_timeout == timeout)
+		return;
+
+	priv->io_timeout = timeout;
+	socket_props_changed (session);
+	g_object_notify (G_OBJECT (session), "timeout");
+}
+
+/**
+ * soup_session_get_timeout:
+ * @session: a #SoupSession
+ *
+ * Get the timeout in seconds for socket I/O operations currently used by @session.
+ *
+ * Returns: the timeout in seconds
+ */
+guint
+soup_session_get_timeout (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), 0);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->io_timeout;
+}
+
+/**
+ * soup_session_set_idle_timeout:
+ * @session: a #SoupSession
+ * @timeout: a timeout in seconds
+ *
+ * Set a timeout in seconds for idle connection lifetime to be used by @session
+ * on new connections. See #SoupSession:idle-timeout for more information.
+ */
+void
+soup_session_set_idle_timeout (SoupSession *session,
+			       guint        timeout)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = soup_session_get_instance_private (session);
+	if (priv->idle_timeout == timeout)
+		return;
+
+	priv->idle_timeout = timeout;
+	socket_props_changed (session);
+	g_object_notify (G_OBJECT (session), "idle-timeout");
+}
+
+/**
+ * soup_session_get_idle_timeout:
+ * @session: a #SoupSession
+ *
+ * Get the timeout in seconds for idle connection lifetime currently used by @session.
+ *
+ * Returns: the timeout in seconds
+ */
+guint
+soup_session_get_idle_timeout (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), 0);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->idle_timeout;
+}
+
+/**
+ * soup_session_set_user_agent:
+ * @session: a #SoupSession
+ * @user_agent: the user agent string
+ *
+ * Set the value to use for the "User-Agent" header on #SoupMessage<!-- -->s sent from @session.
+ * If @user_agent has trailing whitespace, @session will append its own product token
+ * (eg, "<literal>libsoup/3.0.0</literal>") to the end of the header for you.
+ * If @user_agent is %NULL then no "User-Agent" will be included in requests. See #SoupSession:user-agent
+ * for more information.
+ */
+void
+soup_session_set_user_agent (SoupSession *session,
+			     const char  *user_agent)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = soup_session_get_instance_private (session);
+	if (priv->user_agent == NULL && user_agent == NULL)
+		return;
+
+	if (user_agent == NULL) {
+		g_free (priv->user_agent);
+		priv->user_agent = NULL;
+	} else if (!*user_agent) {
+		if (g_strcmp0 (priv->user_agent, SOUP_SESSION_USER_AGENT_BASE) == 0)
+			return;
+		g_free (priv->user_agent);
+		priv->user_agent = g_strdup (SOUP_SESSION_USER_AGENT_BASE);
+	} else if (g_str_has_suffix (user_agent, " ")) {
+		char *user_agent_to_set;
+
+		user_agent_to_set = g_strdup_printf ("%s%s", user_agent, SOUP_SESSION_USER_AGENT_BASE);
+		if (g_strcmp0 (priv->user_agent, user_agent_to_set) == 0) {
+			g_free (user_agent_to_set);
+			return;
+		}
+		priv->user_agent = user_agent_to_set;
+	} else {
+		if (g_strcmp0 (priv->user_agent, user_agent) == 0)
+			return;
+		g_free (priv->user_agent);
+		priv->user_agent = g_strdup (user_agent);
+	}
+
+	g_object_notify (G_OBJECT (session), "user-agent");
+}
+
+/**
+ * soup_session_get_user_agent:
+ * @session: a #SoupSession
+ *
+ * Get the value used by @session for the "User-Agent" header on new requests.
+ *
+ * Returns: (transfer none) (nullable): the user agent string or %NULL
+ */
+const char *
+soup_session_get_user_agent (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->user_agent;
+}
+
+/**
+ * soup_session_set_accept_language:
+ * @session: a #SoupSession
+ * @accept_language: the languages string
+ *
+ * Set the value to use for the "Accept-Language" header on #SoupMessage<!-- -->s sent from @session.
+ * If @accept_language is %NULL then no "Accept-Language" will be included in requests. See #SoupSession:accept-language
+ * for more information.
+ */
+void
+soup_session_set_accept_language (SoupSession *session,
+				  const char  *accept_language)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = soup_session_get_instance_private (session);
+	if (g_strcmp0 (priv->accept_language, accept_language) == 0)
+		return;
+
+	g_clear_pointer (&priv->accept_language, g_free);
+	priv->accept_language = accept_language ? g_strdup (accept_language) : NULL;
+	priv->accept_language_auto = FALSE;
+
+	g_object_freeze_notify (G_OBJECT (session));
+	g_object_notify (G_OBJECT (session), "accept-language");
+	g_object_notify (G_OBJECT (session), "accept-language-auto");
+	g_object_thaw_notify (G_OBJECT (session));
+}
+
+/**
+ * soup_session_get_accept_language:
+ * @session: a #SoupSession
+ *
+ * Get the value used by @session for the "Accept-Language" header on new requests.
+ *
+ * Returns: (transfer none) (nullable): the accept language string or %NULL
+ */
+const char *
+soup_session_get_accept_language (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->accept_language;
+}
+
+/**
+ * soup_session_set_accept_language_auto:
+ * @session: a #SoupSession
+ * @accept_language_auto: the value to set
+ *
+ * Set whether @session will automatically set the "Accept-Language" header on requests using
+ * a value generated from system languages based on g_get_language_names(). See #SoupSession:accept-language-auto
+ * for more information.
+ */
+void
+soup_session_set_accept_language_auto (SoupSession *session,
+				       gboolean     accept_language_auto)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = soup_session_get_instance_private (session);
+	if (priv->accept_language_auto == accept_language_auto)
+		return;
+
+	priv->accept_language_auto = accept_language_auto;
+
+	g_clear_pointer (&priv->accept_language, g_free);
+	if (priv->accept_language_auto)
+		priv->accept_language = soup_get_accept_languages_from_system ();
+
+	g_object_freeze_notify (G_OBJECT (session));
+	g_object_notify (G_OBJECT (session), "accept-language");
+	g_object_notify (G_OBJECT (session), "accept-language-auto");
+	g_object_thaw_notify (G_OBJECT (session));
+}
+
+/**
+ * soup_session_get_accept_language_auto:
+ * @session: a #SoupSession
+ *
+ * Get whether @session automatically sets the "Accept-Language" header on new requests.
+ *
+ * Returns: %TRUE if @session sets "Accept-Language" header automatically, or %FALSE otherwise.
+ */
+gboolean
+soup_session_get_accept_language_auto (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
+
+	priv = soup_session_get_instance_private (session);
+	return priv->accept_language_auto;
 }
 
 /* Hosts */
@@ -2174,6 +2559,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_TYPE_PROXY_RESOLVER,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS));
+	/**
+	 * SoupSession:max-conns:
+	 *
+	 * The maximum number of connections that the session can open at once.
+	 */
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS,
 		g_param_spec_int ("max-conns",
@@ -2183,7 +2573,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  G_MAXINT,
 				  SOUP_SESSION_MAX_CONNS_DEFAULT,
 				  G_PARAM_READWRITE |
+				  G_PARAM_CONSTRUCT_ONLY |
 				  G_PARAM_STATIC_STRINGS));
+
+	/**
+	 * SoupSession:max-conns-per-host:
+	 *
+	 * The maximum number of connections that the session can open at once to a given host.
+	 */
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS_PER_HOST,
 		g_param_spec_int ("max-conns-per-host",
@@ -2193,6 +2590,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  G_MAXINT,
 				  SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT,
 				  G_PARAM_READWRITE |
+				  G_PARAM_CONSTRUCT_ONLY |
 				  G_PARAM_STATIC_STRINGS));
 	/**
 	 * SoupSession:idle-timeout:
@@ -2303,8 +2701,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * If non-%NULL, the value to use for the "Accept-Language" header
 	 * on #SoupMessage<!-- -->s sent from this session.
 	 *
-	 * Setting this will disable
-	 * #SoupSession:accept-language-auto.
+	 * Setting this will disable #SoupSession:accept-language-auto.
 	 *
 	 **/
 	g_object_class_install_property (

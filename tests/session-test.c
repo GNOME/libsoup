@@ -199,8 +199,7 @@ do_priority_tests (void)
 
 	g_test_bug ("696277");
 
-	session = soup_test_session_new (NULL);
-	g_object_set (session, "max-conns", 1, NULL);
+	session = soup_test_session_new ("max-conns", 1, NULL);
 
 	expected_priorities[0] = SOUP_MESSAGE_PRIORITY_HIGH;
 	expected_priorities[1] = SOUP_MESSAGE_PRIORITY_NORMAL;
@@ -236,13 +235,8 @@ test_session_properties (const char *name,
 			 GProxyResolver *expected_proxy_resolver,
 			 GTlsDatabase *expected_tls_database)
 {
-	GProxyResolver *proxy_resolver = NULL;
-	GTlsDatabase *tlsdb = NULL;
-
-	g_object_get (G_OBJECT (session),
-		      "proxy-resolver", &proxy_resolver,
-		      "tls-database", &tlsdb,
-		      NULL);
+	GProxyResolver *proxy_resolver = soup_session_get_proxy_resolver (session);
+	GTlsDatabase *tlsdb = soup_session_get_tls_database (session);
 
 	soup_test_assert (proxy_resolver == expected_proxy_resolver,
 			  "%s has %s proxy resolver",
@@ -250,9 +244,6 @@ test_session_properties (const char *name,
 	soup_test_assert (tlsdb == expected_tls_database,
 			  "%s has %s TLS database",
 			  name, tlsdb ? (expected_tls_database ? "wrong" : "a") : "no");
-
-	g_clear_object (&proxy_resolver);
-	g_clear_object (&tlsdb);
 }
 
 static void

@@ -281,9 +281,7 @@ soup_test_session_new (const char *propname, ...)
 				g_assert_no_error (error);
 		}
 
-		g_object_set (G_OBJECT (session),
-			      "tls-database", tlsdb,
-			      NULL);
+		soup_session_set_tls_database (session, tlsdb);
 		g_clear_object (&tlsdb);
 	}
 

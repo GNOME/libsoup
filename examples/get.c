@@ -265,7 +265,7 @@ main (int argc, char **argv)
                         exit (1);
                 }
 
-                g_object_set (session, "tls-database", tls_db, NULL);
+		soup_session_set_tls_database (session, tls_db);
                 g_object_unref (tls_db);
         }
 
@@ -285,7 +285,8 @@ main (int argc, char **argv)
 			exit (1);
 		}
 		interaction = _get_tls_cert_interaction_new (client_cert);
-		g_object_set (session, "tls-interaction", interaction, NULL);
+		soup_session_set_tls_interaction (session, G_TLS_INTERACTION (interaction));
+		g_object_unref (interaction);
 	}
 
 	if (debug) {
@@ -306,9 +307,7 @@ main (int argc, char **argv)
 		}
 
 		resolver = g_simple_proxy_resolver_new (proxy, NULL);
-		g_object_set (G_OBJECT (session),
-			      "proxy-resolver", resolver,
-			      NULL);
+		soup_session_set_proxy_resolver (session, resolver);
 		g_uri_unref (proxy_uri);
 		g_object_unref (resolver);
 	}

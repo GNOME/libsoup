@@ -48,9 +48,7 @@ do_strictness_test (gconstpointer data)
 		GTlsDatabase *tlsdb;
 
 		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-		g_object_set (G_OBJECT (session),
-			      "tls-database", tlsdb,
-			      NULL);
+		soup_session_set_tls_database (session, tlsdb);
 		g_object_unref (tlsdb);
 	}
 
@@ -163,7 +161,7 @@ do_tls_interaction_test (gconstpointer data)
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
 	session = soup_test_session_new (NULL);
-	g_object_get (session, "tls-database", &tls_db, NULL);
+	tls_db = soup_session_get_tls_database (session);
 
 	g_signal_connect (server, "request-started",
 			  G_CALLBACK (server_request_started),
@@ -184,7 +182,7 @@ do_tls_interaction_test (gconstpointer data)
 				"certificate",
 				g_object_ref (certificate),
 				g_object_unref);
-	g_object_set (session, "tls-interaction", interaction, NULL);
+	soup_session_set_tls_interaction (session, interaction);
 	g_object_unref (interaction);
 
 	/* With a GTlsInteraction */
@@ -199,7 +197,6 @@ do_tls_interaction_test (gconstpointer data)
 	g_signal_handlers_disconnect_by_data (server, tls_db);
 
 	soup_test_session_abort_unref (session);
-	g_object_unref (tls_db);
 	g_object_unref (certificate);
 }
 

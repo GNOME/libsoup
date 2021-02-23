@@ -753,9 +753,7 @@ do_connection_state_test_for_session (SoupSession *session)
 		debug_printf (1, "    https -- SKIPPING\n");
 
 	resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
-	g_object_set (G_OBJECT (session),
-		      "proxy-resolver", resolver,
-		      NULL);
+	soup_session_set_proxy_resolver (session, resolver);
 	g_object_unref (resolver);
 
 	debug_printf (1, "    http with proxy\n");
@@ -892,9 +890,7 @@ do_connection_event_test_for_session (SoupSession *session)
 		debug_printf (1, "    https -- SKIPPING\n");
 
 	resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
-	g_object_set (G_OBJECT (session),
-		      "proxy-resolver", resolver,
-		      NULL);
+	soup_session_set_proxy_resolver (session, resolver);
 	g_object_unref (resolver);
 
 	debug_printf (1, "    http with proxy\n");
