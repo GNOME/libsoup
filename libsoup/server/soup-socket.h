@@ -22,6 +22,7 @@ gboolean       soup_socket_is_ssl             (SoupSocket         *sock);
 
 void           soup_socket_disconnect         (SoupSocket         *sock);
 gboolean       soup_socket_is_connected       (SoupSocket         *sock);
+GIOStream     *soup_socket_get_connection     (SoupSocket         *sock);
 GSocket       *soup_socket_get_gsocket        (SoupSocket         *sock);
 GSocket       *soup_socket_steal_gsocket      (SoupSocket         *sock);
 GIOStream     *soup_socket_get_iostream       (SoupSocket         *sock);

@@ -733,3 +733,11 @@ soup_socket_get_remote_address (SoupSocket *sock)
 
         return priv->remote_addr;
 }
+
+GIOStream *
+soup_socket_get_connection (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
+
+	return priv->conn;
+}
