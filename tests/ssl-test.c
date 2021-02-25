@@ -170,7 +170,11 @@ do_tls_interaction_test (gconstpointer data)
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", uri);
 	body = soup_test_session_async_send (session, msg, NULL, &error);
-	g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+	/* Sometimes glib-networking fails to report the error as certificate required
+	 * and we end up with connection reset by peer because the server closes the connection
+	 */
+	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
 	g_clear_error (&error);
 	g_bytes_unref (body);
 	g_object_unref (msg);
