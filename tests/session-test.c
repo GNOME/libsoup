@@ -515,7 +515,7 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 	index_bytes = soup_test_get_index ();

@@ -1222,7 +1222,7 @@ do_disappearing_auth_test (void)
 	g_test_bug_base ("https://bugzilla.redhat.com/");
 	g_test_bug ("916224");
 
-	server = soup_test_server_new (FALSE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 	uri = soup_test_server_get_uri (server, "http", NULL);

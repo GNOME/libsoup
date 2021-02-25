@@ -18,7 +18,7 @@ force_io_streams_init (void)
 	 * via g_type_from_name() later.
 	 */
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	session = soup_test_session_new (NULL);

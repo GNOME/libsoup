@@ -62,7 +62,7 @@ main (int argc, char **argv)
 	 * since we won't ever actually talk to it anyway. We don't
 	 * currently test that failing to construct an SSL server works.
 	 */
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 	uri = soup_test_server_get_uri (server, "http", NULL);
         ssl_uri = soup_uri_copy (uri, SOUP_URI_SCHEME, "https", SOUP_URI_NONE);
