@@ -32,7 +32,14 @@ autobahn_start() {
              --name fuzzingserver \
              crossbario/autobahn-testsuite
    else
-      wstest -m fuzzingserver -s 'autobahn-server.json'
+      if [[ -f 'autobahn-server.json' ]]; then
+         wstest -m fuzzingserver -s 'autobahn-server.json'
+      else
+         filename=$(find . -name "autobahn-server.json" -print -quit)
+         if [[ -f "$filename" ]]; then
+            wstest -m fuzzingserver -s "$filename"
+         fi
+      fi
    fi
 }
 
