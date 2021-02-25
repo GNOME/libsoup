@@ -128,7 +128,19 @@ idle_start_test1_thread (gpointer user_data)
 }
 
 static void
-test1_finished (SoupMessage *msg,
+message_send_cb (SoupSession  *session,
+		 GAsyncResult *result,
+		 GMainContext *async_context)
+{
+	GInputStream *stream;
+
+	g_assert_true (async_context == g_main_context_get_thread_default ());
+	stream = soup_session_send_finish (session, result, NULL);
+	g_clear_object (&stream);
+}
+
+static void
+message_finished (SoupMessage *msg,
 		GMainLoop   *loop)
 {
 	g_main_loop_quit (loop);
@@ -165,8 +177,10 @@ test1_thread (gpointer user_data)
 	debug_printf (1, "  queue_message\n");
 	msg = soup_message_new ("GET", uri);
 	loop = g_main_loop_new (async_context, FALSE);
-	g_signal_connect (msg, "finished", G_CALLBACK (test1_finished), loop);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+	g_signal_connect (msg, "finished", G_CALLBACK (message_finished), loop);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+				 (GAsyncReadyCallback)message_send_cb,
+				 async_context);
 	g_main_loop_run (loop);
 	/* We need one more iteration, because SoupMessage::finished is emitted
          * right before the message is unqueued.
@@ -203,9 +217,8 @@ do_test2 (void)
 	SoupSession *session;
 	char *uri;
 	SoupMessage *msg;
-
-	g_test_skip ("FIXME");
-	return;
+	GInputStream *stream;
+	GMainLoop *loop;
 
 	idle = g_idle_add_full (G_PRIORITY_HIGH, idle_test2_fail, NULL, NULL);
 
@@ -218,7 +231,24 @@ do_test2 (void)
 
 	debug_printf (1, "  send_message\n");
 	msg = soup_message_new ("GET", uri);
-//	soup_session_send_message (session, msg);
+	stream = soup_session_send (session, msg, NULL, NULL);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_object_unref (stream);
+	g_object_unref (msg);
+
+	debug_printf (1, "  queue_message\n");
+	msg = soup_message_new ("GET", uri);
+	loop = g_main_loop_new (async_context, FALSE);
+	g_signal_connect (msg, "finished", G_CALLBACK (message_finished), loop);
+	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+				 (GAsyncReadyCallback)message_send_cb,
+				 async_context);
+	g_main_loop_run (loop);
+	/* We need one more iteration, because SoupMessage::finished is emitted
+         * right before the message is unqueued.
+         */
+        g_main_context_iteration (async_context, TRUE);
+	g_main_loop_unref (loop);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
@@ -230,98 +260,6 @@ do_test2 (void)
 	g_main_context_pop_thread_default (async_context);
 }
 
-#if 0
-static void
-request_started (SoupMessage *msg, gpointer user_data)
-{
-	g_object_set_data (G_OBJECT (msg), "started", GUINT_TO_POINTER (TRUE));
-}
-
-static void
-msg1_got_headers (SoupMessage *msg, gpointer user_data)
-{
-	GMainLoop *loop = user_data;
-
-	g_main_loop_quit (loop);
-}
-
-static void
-multi_msg_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
-{
-	GMainLoop *loop = user_data;
-
-	g_object_set_data (G_OBJECT (msg), "finished", GUINT_TO_POINTER (TRUE));
-	g_main_loop_quit (loop);
-}
-
-static void
-do_multicontext_test (void)
-{
-	SoupSession *session;
-	SoupMessage *msg1, *msg2;
-	GMainContext *context1, *context2;
-	GMainLoop *loop1, *loop2;
-
-	session = soup_test_session_new (NULL);
-
-	context1 = g_main_context_new ();
-	loop1 = g_main_loop_new (context1, FALSE);
-	context2 = g_main_context_new ();
-	loop2 = g_main_loop_new (context2, FALSE);
-
-	g_main_context_push_thread_default (context1);
-	msg1 = soup_message_new ("GET", base_uri);
-	g_object_ref (msg1);
-	g_signal_connect (msg1, "starting", G_CALLBACK (request_started), NULL);
-	soup_session_queue_message (session, msg1, multi_msg_finished, loop1);
-	g_signal_connect (msg1, "got-headers",
-			  G_CALLBACK (msg1_got_headers), loop1);
-	g_object_set_data (G_OBJECT (msg1), "session", session);
-	g_main_context_pop_thread_default (context1);
-
-	g_main_context_push_thread_default (context2);
-	msg2 = soup_message_new ("GET", base_uri);
-	g_object_ref (msg2);
-	g_signal_connect (msg2, "starting", G_CALLBACK (request_started), NULL);
-	soup_session_queue_message (session, msg2, multi_msg_finished, loop2);
-	g_main_context_pop_thread_default (context2);
-
-	g_main_context_push_thread_default (context1);
-	g_main_loop_run (loop1);
-	g_main_context_pop_thread_default (context1);
-
-	if (!g_object_get_data (G_OBJECT (msg1), "started"))
-		soup_test_assert (FALSE, "msg1 not started");
-	if (g_object_get_data (G_OBJECT (msg2), "started"))
-		soup_test_assert (FALSE, "msg2 started while loop1 was running");
-
-	g_main_context_push_thread_default (context2);
-	g_main_loop_run (loop2);
-	g_main_context_pop_thread_default (context2);
-
-	if (g_object_get_data (G_OBJECT (msg1), "finished"))
-		soup_test_assert (FALSE, "msg1 finished while loop2 was running");
-	if (!g_object_get_data (G_OBJECT (msg2), "finished"))
-		soup_test_assert (FALSE, "msg2 not finished");
-
-	g_main_context_push_thread_default (context1);
-	g_main_loop_run (loop1);
-	g_main_context_pop_thread_default (context1);
-
-	if (!g_object_get_data (G_OBJECT (msg1), "finished"))
-		soup_test_assert (FALSE, "msg1 not finished");
-
-	g_object_unref (msg1);
-	g_object_unref (msg2);
-
-	soup_test_session_abort_unref (session);
-
-	g_main_loop_unref (loop1);
-	g_main_loop_unref (loop2);
-	g_main_context_unref (context1);
-	g_main_context_unref (context2);
-}
-#endif
 int
 main (int argc, char **argv)
 {
@@ -339,9 +277,6 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/context/blocking/thread-default", do_test1);
 	g_test_add_func ("/context/nested/thread-default", do_test2);
-#if 0
-	g_test_add_func ("/context/multiple", do_multicontext_test);
-#endif
 
 	ret = g_test_run ();
 

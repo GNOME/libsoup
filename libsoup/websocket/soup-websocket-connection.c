@@ -131,8 +131,6 @@ typedef struct {
 	gboolean dirty_close;
 	GSource *close_timeout;
 
-	GMainContext *main_context;
-
 	gboolean io_closing;
 	gboolean io_closed;
 
@@ -266,7 +264,6 @@ soup_websocket_connection_init (SoupWebsocketConnection *self)
 
 	priv->incoming = g_byte_array_sized_new (1024);
 	g_queue_init (&priv->outgoing);
-	priv->main_context = g_main_context_ref_thread_default ();
 }
 
 static void
@@ -307,7 +304,7 @@ soup_websocket_connection_start_input_source (SoupWebsocketConnection *self)
 
 	priv->input_source = g_pollable_input_stream_create_source (priv->input, NULL);
 	g_source_set_callback (priv->input_source, (GSourceFunc)on_web_socket_input, self, NULL);
-	g_source_attach (priv->input_source, priv->main_context);
+	g_source_attach (priv->input_source, g_main_context_get_thread_default ());
 }
 
 static void
@@ -333,7 +330,7 @@ soup_websocket_connection_start_output_source (SoupWebsocketConnection *self)
 
 	priv->output_source = g_pollable_output_stream_create_source (priv->output, NULL);
 	g_source_set_callback (priv->output_source, (GSourceFunc)on_web_socket_output, self, NULL);
-	g_source_attach (priv->output_source, priv->main_context);
+	g_source_attach (priv->output_source, g_main_context_get_thread_default ());
 }
 
 static void
@@ -445,7 +442,7 @@ close_io_after_timeout (SoupWebsocketConnection *self)
 	g_debug ("waiting %d seconds for peer to close io", timeout);
 	priv->close_timeout = g_timeout_source_new_seconds (timeout);
 	g_source_set_callback (priv->close_timeout, on_timeout_close_io, self, NULL);
-	g_source_attach (priv->close_timeout, priv->main_context);
+	g_source_attach (priv->close_timeout, g_main_context_get_thread_default ());
 }
 
 static void
@@ -1441,8 +1438,6 @@ soup_websocket_connection_finalize (GObject *object)
 
 	g_free (priv->peer_close_data);
 
-	g_main_context_unref (priv->main_context);
-
 	if (priv->incoming)
 		g_byte_array_free (priv->incoming, TRUE);
 	while (!g_queue_is_empty (&priv->outgoing))
@@ -2169,7 +2164,7 @@ soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,
 		if (interval > 0) {
 			priv->keepalive_timeout = g_timeout_source_new_seconds (interval);
 			g_source_set_callback (priv->keepalive_timeout, on_queue_ping, self, NULL);
-			g_source_attach (priv->keepalive_timeout, priv->main_context);
+			g_source_attach (priv->keepalive_timeout, g_main_context_get_thread_default ());
 		}
 	}
 }

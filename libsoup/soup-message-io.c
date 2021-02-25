@@ -392,7 +392,6 @@ io_write (SoupMessage *msg, gboolean blocking,
 				break;
 			} else {
 				io->async_wait = g_cancellable_new ();
-				g_main_context_push_thread_default (io->async_context);
 				g_output_stream_splice_async (io->body_ostream,
 							      soup_message_get_request_body_stream (msg),
 							      G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
@@ -400,7 +399,6 @@ io_write (SoupMessage *msg, gboolean blocking,
 							      cancellable,
 							      (GAsyncReadyCallback)request_body_stream_wrote_cb,
 							      g_object_ref (msg));
-				g_main_context_pop_thread_default (io->async_context);
 				return FALSE;
 			}
 		} else
@@ -415,12 +413,10 @@ io_write (SoupMessage *msg, gboolean blocking,
 				g_clear_object (&io->body_ostream);
 			} else {
 				io->async_wait = g_cancellable_new ();
-				g_main_context_push_thread_default (io->async_context);
 				g_output_stream_close_async (io->body_ostream,
 							     soup_client_message_io_data_get_priority (client_io),
 							     cancellable,
 							     closed_async, g_object_ref (msg));
-				g_main_context_pop_thread_default (io->async_context);
 			}
 		}
 
@@ -809,7 +805,7 @@ soup_message_io_run (SoupMessage *msg,
 								 NULL);
 		g_source_set_priority (io->io_source,
 				       soup_client_message_io_data_get_priority (client_io));
-		g_source_attach (io->io_source, io->async_context);
+		g_source_attach (io->io_source, g_main_context_get_thread_default ());
 	} else {
 		if (soup_message_get_io_data (msg) == client_io)
 			soup_message_io_finish (msg, error);
@@ -882,7 +878,7 @@ io_run_until_read_async (SoupMessage *msg,
 								 (SoupMessageIOSourceFunc)io_run_until_read_ready,
 								 task);
 		g_source_set_priority (io->io_source, g_task_get_priority (task));
-                g_source_attach (io->io_source, io->async_context);
+                g_source_attach (io->io_source, g_main_context_get_thread_default ());
                 return;
         }
 
@@ -980,7 +976,6 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 	io->base.iostream = g_object_ref (soup_connection_get_iostream (io->item->conn));
 	io->base.istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (io->base.iostream));
 	io->base.ostream = g_io_stream_get_output_stream (io->base.iostream);
-	io->base.async_context = g_main_context_ref_thread_default ();
 
 	io->base.read_header_buf = g_byte_array_new ();
 	io->base.write_buf = g_string_new (NULL);

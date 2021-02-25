@@ -97,11 +97,6 @@ struct _SoupLogger {
 };
 
 typedef struct {
-	/* We use a mutex so that if requests are being run in
-	 * multiple threads, we don't mix up the output.
-	 */
-	GMutex             lock;
-
 	GQuark              tag;
 	GHashTable         *ids;
 
@@ -142,7 +137,6 @@ soup_logger_init (SoupLogger *logger)
 	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
 	char *id;
 
-	g_mutex_init (&priv->lock);
 	id = g_strdup_printf ("SoupLogger-%p", logger);
 	priv->tag = g_quark_from_string (id);
 	g_free (id);
@@ -163,8 +157,6 @@ soup_logger_finalize (GObject *object)
 		priv->response_filter_dnotify (priv->response_filter_data);
 	if (priv->printer_dnotify)
 		priv->printer_dnotify (priv->printer_data);
-
-	g_mutex_clear (&priv->lock);
 
 	G_OBJECT_CLASS (soup_logger_parent_class)->finalize (object);
 }
@@ -572,23 +564,15 @@ static void
 finished (SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
-	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
-
-	g_mutex_lock (&priv->lock);
 
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
-
-	g_mutex_unlock (&priv->lock);
 }
 
 static void
 got_informational (SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
-	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
-
-	g_mutex_lock (&priv->lock);
 
 	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 	print_response (logger, msg);
@@ -599,23 +583,16 @@ got_informational (SoupMessage *msg, gpointer user_data)
 				   "[Now sending request body...]");
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 	}
-
-	g_mutex_unlock (&priv->lock);
 }
 
 static void
 got_body (SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
-	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
-
-	g_mutex_lock (&priv->lock);
 
 	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
-
-	g_mutex_unlock (&priv->lock);
 }
 
 static void

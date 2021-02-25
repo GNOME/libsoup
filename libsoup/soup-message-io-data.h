@@ -47,7 +47,6 @@ typedef struct {
 	GInputStream           *body_istream;
 	GOutputStream          *ostream;
 	GOutputStream          *body_ostream;
-	GMainContext           *async_context;
 
 	SoupMessageIOState    read_state;
 	SoupEncoding          read_encoding;

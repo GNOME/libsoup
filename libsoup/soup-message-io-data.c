@@ -34,8 +34,6 @@ soup_message_io_data_cleanup (SoupMessageIOData *io)
 		g_object_unref (io->body_istream);
 	if (io->body_ostream)
 		g_object_unref (io->body_ostream);
-	if (io->async_context)
-		g_main_context_unref (io->async_context);
 
 	g_byte_array_free (io->read_header_buf, TRUE);
 

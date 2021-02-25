@@ -39,7 +39,6 @@ struct _SoupMessageQueueItem {
 	SoupMessage *msg;
 	SoupSessionCallback callback;
 	gpointer callback_data;
-	GMainContext *async_context;
 
 	GCancellable *cancellable;
 	GError *error;
@@ -50,7 +49,6 @@ struct _SoupMessageQueueItem {
 	guint paused            : 1;
 	guint io_started        : 1;
 	guint async             : 1;
-	guint async_pending     : 1;
 	guint connect_only      : 1;
 	guint priority          : 3;
 	guint resend_count      : 5;
