@@ -242,7 +242,7 @@ int main (int argc, char *argv[])
         session = soup_session_new ();
         soup_session_add_feature_by_type (session, SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER);
 
-        for (int i = 0; i < num_cases; i++) {
+        for (int i = 1; i <= num_cases; i++) {
                 char *test_path = g_strdup_printf ("/autobahn/%u", i);
 
                 TestBundle *bundle = g_new0 (TestBundle, 1);
