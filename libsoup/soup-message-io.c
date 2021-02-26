@@ -24,7 +24,7 @@
 #include "content-sniffer/soup-content-sniffer-stream.h"
 #include "soup-filter-input-stream.h"
 #include "soup-message-private.h"
-#include "soup-message-queue.h"
+#include "soup-message-queue-item.h"
 #include "soup-misc.h"
 #include "soup-uri-utils-private.h"
 
@@ -971,8 +971,7 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 	io->base.completion_cb = completion_cb;
 	io->base.completion_data = user_data;
 
-	io->item = item;
-	soup_message_queue_item_ref (item);
+	io->item = soup_message_queue_item_ref (item);
 	io->base.iostream = g_object_ref (soup_connection_get_iostream (io->item->conn));
 	io->base.istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (io->base.iostream));
 	io->base.ostream = g_io_stream_get_output_stream (io->base.iostream);

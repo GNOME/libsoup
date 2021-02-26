@@ -10,6 +10,10 @@
 
 G_BEGIN_DECLS
 
+typedef void (*SoupSessionCallback) (SoupSession *session,
+                                     SoupMessage *msg,
+                                     gpointer     user_data);
+
 void     soup_session_requeue_message       (SoupSession *session,
 					     SoupMessage *msg);
 void     soup_session_pause_message         (SoupSession *session,

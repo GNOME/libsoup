@@ -63,7 +63,7 @@ soup_sources = [
   'soup-message-headers.c',
   'soup-message-io.c',
   'soup-message-io-data.c',
-  'soup-message-queue.c',
+  'soup-message-queue-item.c',
   'soup-method.c',
   'soup-misc.c',
   'soup-multipart.c',

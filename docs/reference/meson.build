@@ -8,7 +8,7 @@ ignore_headers = [
   'soup-brotli-decompressor.h',
   'soup-connection.h',
   'soup-connection-auth.h',
-  'soup-message-queue.h',
+  'soup-message-queue-item.h',
   'soup-path-map.h',
   'soup-http-input-stream.h',
   'soup-converter-wrapper.h',
