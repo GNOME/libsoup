@@ -341,6 +341,84 @@ do_features_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+queue_order_test_message_finished (SoupMessage *msg,
+				   guint       *finished_count)
+{
+	(*finished_count)++;
+}
+
+static void
+queue_order_test_message_network_event (SoupMessage       *msg,
+					GSocketClientEvent event,
+					GIOStream         *connection,
+					SoupMessage      **queue)
+{
+	int i;
+
+	if (event != G_SOCKET_CLIENT_RESOLVING)
+                return;
+
+	for (i = 0; i < 3; i++) {
+		if (queue[i] == NULL) {
+			queue[i] = msg;
+			return;
+		}
+	}
+	g_assert_not_reached ();
+}
+
+static void
+do_queue_order_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg1, *msg2, *msg3;
+	guint finished_count = 0;
+	SoupMessage *queue[3] = { NULL, NULL, NULL };
+
+	session = soup_test_session_new (NULL);
+
+	msg1 = soup_message_new_from_uri ("GET", base_uri);
+	g_signal_connect (msg1, "network-event",
+			  G_CALLBACK (queue_order_test_message_network_event),
+			  queue);
+	g_signal_connect (msg1, "finished",
+			  G_CALLBACK (queue_order_test_message_finished),
+			  &finished_count);
+	msg2 = soup_message_new_from_uri ("GET", base_uri);
+	g_signal_connect (msg2, "network-event",
+			  G_CALLBACK (queue_order_test_message_network_event),
+			  queue);
+	g_signal_connect (msg2, "finished",
+			  G_CALLBACK (queue_order_test_message_finished),
+			  &finished_count);
+	msg3 = soup_message_new_from_uri ("GET", base_uri);
+	g_signal_connect (msg3, "network-event",
+			  G_CALLBACK (queue_order_test_message_network_event),
+			  queue);
+	g_signal_connect (msg3, "finished",
+			  G_CALLBACK (queue_order_test_message_finished),
+			  &finished_count);
+
+	soup_session_send_async (session, msg1, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+	soup_session_send_async (session, msg2, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+	soup_session_send_async (session, msg3, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+	while (queue[2] == NULL)
+		g_main_context_iteration (NULL, TRUE);
+
+	g_assert_true (queue[0] == msg1);
+	g_assert_true (queue[1] == msg2);
+	g_assert_true (queue[2] == msg3);
+	g_object_unref (msg1);
+	g_object_unref (msg2);
+	g_object_unref (msg3);
+
+	while (finished_count != 3)
+		g_main_context_iteration (NULL, TRUE);
+
+	soup_test_session_abort_unref (session);
+}
+
 typedef enum {
         SYNC = 1 << 0,
         STREAM = 1 << 1
@@ -525,6 +603,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/session/priority", do_priority_tests);
 	g_test_add_func ("/session/property", do_property_tests);
 	g_test_add_func ("/session/features", do_features_test);
+	g_test_add_func ("/session/queue-order", do_queue_order_test);
 	g_test_add_data_func ("/session/read-uri/async",
 			      GINT_TO_POINTER (STREAM),
 			      do_read_uri_test);

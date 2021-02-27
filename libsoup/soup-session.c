@@ -1276,7 +1276,8 @@ static int
 compare_queue_item (SoupMessageQueueItem *a,
 		    SoupMessageQueueItem *b)
 {
-	return b->priority - a->priority;
+	/* For the same priority we want to append items in the queue */
+	return b->priority > a->priority ? 1 : -1;
 }
 
 static SoupMessageQueueItem *
