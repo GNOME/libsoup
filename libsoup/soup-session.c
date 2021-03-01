@@ -1664,13 +1664,11 @@ tunnel_connect (SoupMessageQueueItem *item)
 {
 	SoupSession *session = item->session;
 	SoupMessageQueueItem *tunnel_item;
-	GUri *uri;
 	SoupMessage *msg;
 
 	item->state = SOUP_MESSAGE_TUNNELING;
 
-	uri = soup_connection_get_remote_uri (item->conn);
-	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, uri);
+	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, soup_message_get_uri (item->msg));
 	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
@@ -1770,6 +1768,7 @@ get_connection_for_host (SoupSession *session,
 			 gboolean *try_cleanup)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+	GSocketConnectable *remote_connectable;
 	SoupConnection *conn;
 	GSList *conns;
 	guint num_pending = 0;
@@ -1820,12 +1819,20 @@ get_connection_for_host (SoupSession *session,
 		return NULL;
 	}
 
+	remote_connectable =
+		g_object_new (G_TYPE_NETWORK_ADDRESS,
+			      "hostname", g_uri_get_host (host->uri),
+			      "port", g_uri_get_port (host->uri),
+			      "scheme", g_uri_get_scheme (host->uri),
+			      NULL);
+
 	ensure_socket_props (session);
 	conn = g_object_new (SOUP_TYPE_CONNECTION,
-			     "remote-uri", host->uri,
+			     "remote-connectable", remote_connectable,
 			     "ssl", soup_uri_is_https (host->uri),
 			     "socket-properties", priv->socket_props,
 			     NULL);
+	g_object_unref (remote_connectable);
 
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),

@@ -27,7 +27,7 @@ typedef struct {
 	GIOStream *iostream;
 	SoupSocketProperties *socket_props;
 
-	GUri *remote_uri, *proxy_uri;
+	GUri *proxy_uri;
 	gboolean ssl;
 
 	SoupMessage *current_msg;
@@ -53,7 +53,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
-	PROP_REMOTE_URI,
+	PROP_REMOTE_CONNECTABLE,
 	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
 	PROP_SSL,
@@ -80,7 +80,6 @@ soup_connection_finalize (GObject *object)
 {
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
-	g_clear_pointer (&priv->remote_uri, g_uri_unref);
 	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 	g_clear_object (&priv->remote_connectable);
@@ -120,8 +119,8 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
 	switch (prop_id) {
-	case PROP_REMOTE_URI:
-		priv->remote_uri = g_value_dup_boxed (value);
+	case PROP_REMOTE_CONNECTABLE:
+		priv->remote_connectable = g_value_dup_object (value);
 		break;
 	case PROP_SOCKET_PROPERTIES:
 		priv->socket_props = g_value_dup_boxed (value);
@@ -145,8 +144,8 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
 	switch (prop_id) {
-	case PROP_REMOTE_URI:
-		g_value_set_boxed (value, priv->remote_uri);
+	case PROP_REMOTE_CONNECTABLE:
+		g_value_set_object (value, priv->remote_connectable);
 		break;
 	case PROP_SOCKET_PROPERTIES:
 		g_value_set_boxed (value, priv->socket_props);
@@ -212,13 +211,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 
 	/* properties */
 	g_object_class_install_property (
-		object_class, PROP_REMOTE_URI,
-		g_param_spec_boxed ("remote-uri",
-				    "Remote URI",
-				    "The URI of the HTTP server",
-				    G_TYPE_URI,
-				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				    G_PARAM_STATIC_STRINGS));
+                object_class, PROP_REMOTE_CONNECTABLE,
+                g_param_spec_object ("remote-connectable",
+                                     "Remote Connectable",
+                                     "Socket to connect to make outgoing connections on",
+                                     G_TYPE_SOCKET_CONNECTABLE,
+                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_SOCKET_PROPERTIES,
 		g_param_spec_boxed ("socket-properties",
@@ -604,14 +603,6 @@ soup_connection_connect_async (SoupConnection      *conn,
 
         soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
-        /* Set the protocol to ensure correct proxy resolution. */
-        priv->remote_connectable =
-                g_object_new (G_TYPE_NETWORK_ADDRESS,
-			      "hostname", g_uri_get_host (priv->remote_uri),
-			      "port", g_uri_get_port (priv->remote_uri),
-			      "scheme", g_uri_get_scheme (priv->remote_uri),
-                              NULL);
-
         priv->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
         task = g_task_new (conn, priv->cancellable, callback, user_data);
         g_task_set_priority (task, io_priority);
@@ -647,14 +638,6 @@ soup_connection_connect (SoupConnection  *conn,
         priv = soup_connection_get_instance_private (conn);
 
         soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
-
-        /* Set the protocol to ensure correct proxy resolution. */
-        priv->remote_connectable =
-		g_object_new (G_TYPE_NETWORK_ADDRESS,
-			      "hostname", g_uri_get_host (priv->remote_uri),
-			      "port", g_uri_get_port (priv->remote_uri),
-			      "scheme", g_uri_get_scheme (priv->remote_uri),
-			      NULL);
 
         priv->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 
@@ -895,16 +878,6 @@ soup_connection_steal_iostream (SoupConnection *conn)
         g_clear_object (&priv->connection);
 
         return iostream;
-}
-
-GUri *
-soup_connection_get_remote_uri (SoupConnection *conn)
-{
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
-
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
-
-	return priv->remote_uri;
 }
 
 GUri *
