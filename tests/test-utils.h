@@ -90,10 +90,6 @@ gboolean      soup_test_request_read_all     (GInputStream  *stream,
 gboolean      soup_test_request_close_stream (GInputStream  *stream,
 					      GCancellable  *cancellable,
 					      GError       **error);
-GBytes       *soup_test_session_send         (SoupSession   *session,
-					      SoupMessage   *msg,
-					      GCancellable  *cancellable,
-                                              GError       **error);
 
 void        soup_test_register_resources (void);
 GBytes     *soup_test_load_resource      (const char  *name,

@@ -103,24 +103,42 @@ SOUP_AVAILABLE_IN_ALL
 gboolean            soup_session_get_accept_language_auto (SoupSession     *session);
 
 SOUP_AVAILABLE_IN_ALL
-void            soup_session_abort            (SoupSession           *session);
+void            soup_session_abort               (SoupSession           *session);
 
 SOUP_AVAILABLE_IN_ALL
-void            soup_session_send_async       (SoupSession           *session,
-					       SoupMessage           *msg,
-					       int                    io_priority,
-					       GCancellable          *cancellable,
-					       GAsyncReadyCallback    callback,
-					       gpointer               user_data);
+void            soup_session_send_async          (SoupSession           *session,
+						  SoupMessage           *msg,
+						  int                    io_priority,
+						  GCancellable          *cancellable,
+						  GAsyncReadyCallback    callback,
+						  gpointer               user_data);
 SOUP_AVAILABLE_IN_ALL
-GInputStream   *soup_session_send_finish      (SoupSession           *session,
-					       GAsyncResult          *result,
-					       GError               **error);
+GInputStream   *soup_session_send_finish         (SoupSession           *session,
+						  GAsyncResult          *result,
+						  GError               **error);
 SOUP_AVAILABLE_IN_ALL
-GInputStream   *soup_session_send             (SoupSession           *session,
-					       SoupMessage           *msg,
-					       GCancellable          *cancellable,
-					       GError               **error) G_GNUC_WARN_UNUSED_RESULT;
+GInputStream   *soup_session_send                (SoupSession           *session,
+						  SoupMessage           *msg,
+						  GCancellable          *cancellable,
+						  GError               **error) G_GNUC_WARN_UNUSED_RESULT;
+SOUP_AVAILABLE_IN_ALL
+void            soup_session_send_and_read_async (SoupSession           *session,
+						  SoupMessage           *msg,
+						  int                    io_priority,
+						  GCancellable          *cancellable,
+						  GAsyncReadyCallback    callback,
+						  gpointer               user_data);
+
+SOUP_AVAILABLE_IN_ALL
+GBytes         *soup_session_send_and_read_finish (SoupSession          *session,
+						   GAsyncResult         *result,
+						   GError              **error);
+
+SOUP_AVAILABLE_IN_ALL
+GBytes         *soup_session_send_and_read        (SoupSession          *session,
+						   SoupMessage          *msg,
+						   GCancellable         *cancellable,
+						   GError              **error);
 
 SOUP_AVAILABLE_IN_ALL
 void                soup_session_add_feature            (SoupSession        *session,

@@ -350,7 +350,7 @@ do_message (SoupSession *session,
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (response_check), &state);
 
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	debug_printf (1, "  %-10s -> ", path);
 
 	if (state.got_ntlm_prompt) {
@@ -681,7 +681,7 @@ do_retrying_test (TestServer *ts,
 			  G_CALLBACK (retry_test_authenticate), &retried);
 	g_uri_unref (uri);
 
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 
 	g_assert_true (retried);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -703,7 +703,7 @@ do_retrying_test (TestServer *ts,
 			  G_CALLBACK (retry_test_authenticate), &retried);
 	g_uri_unref (uri);
 
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 
 	g_assert_true (retried);
 	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);

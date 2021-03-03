@@ -132,7 +132,7 @@ do_hello_test_libsoup (int n, gboolean extra, const char *uri)
         g_free (encoded);
 	g_datalist_clear (&data);
 
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpmem (tests[n].result, strlen (tests[n].result), g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 
@@ -259,7 +259,7 @@ do_md5_test_libsoup (gconstpointer data)
 	soup_multipart_free (multipart);
 
 	session = soup_test_session_new (NULL);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpmem (md5, strlen (md5), g_bytes_get_data (body, NULL), g_bytes_get_size (body));

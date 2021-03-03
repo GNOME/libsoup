@@ -85,8 +85,8 @@ do_host_test (void)
 	two = soup_message_new_from_uri ("GET", base_uri);
 	soup_message_headers_replace (soup_message_get_request_headers (two), "Host", "foo");
 
-	body_one = soup_test_session_send (session, one, NULL, NULL);
-	body_two = soup_test_session_send (session, two, NULL, NULL);
+	body_one = soup_session_send_and_read (session, one, NULL, NULL);
+	body_two = soup_session_send_and_read (session, two, NULL, NULL);
 
 	soup_test_session_abort_unref (session);
 

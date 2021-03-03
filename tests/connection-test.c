@@ -194,7 +194,7 @@ do_content_length_framing_test (void)
 	debug_printf (1, "  Content-Length larger than message body length\n");
 	request_uri = g_uri_parse_relative (base_uri, "/content-length/long", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", request_uri);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -210,7 +210,7 @@ do_content_length_framing_test (void)
 	debug_printf (1, "  Server claims 'Connection: close' but doesn't\n");
 	request_uri = g_uri_parse_relative (base_uri, "/content-length/noclose", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", request_uri);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -276,7 +276,7 @@ do_timeout_test_for_session (SoupSession *session)
 	timeout_uri = g_uri_parse_relative (base_uri, "/timeout-persistent", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", timeout_uri);
 	g_uri_unref (timeout_uri);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	if (sockets[1]) {
@@ -294,7 +294,7 @@ do_timeout_test_for_session (SoupSession *session)
 
 	debug_printf (1, "    Second message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	soup_test_assert (sockets[1] == sockets[0],
@@ -626,7 +626,7 @@ do_non_idempotent_test_for_session (SoupSession *session)
 
 	debug_printf (2, "    GET\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	if (sockets[1]) {
 		soup_test_assert (sockets[1] == NULL, "Message was retried");
@@ -637,7 +637,7 @@ do_non_idempotent_test_for_session (SoupSession *session)
 
 	debug_printf (2, "    POST\n");
 	msg = soup_message_new_from_uri ("POST", base_uri);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	soup_test_assert (sockets[1] != sockets[0],
 			  "Message was sent on existing connection");
@@ -861,7 +861,7 @@ do_one_connection_event_test (SoupSession *session, const char *uri,
 	g_signal_connect (msg, "network-event",
 			  G_CALLBACK (network_event),
 			  &events);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	while (*events) {
 		soup_test_assert (!*events,

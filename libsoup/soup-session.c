@@ -3282,6 +3282,160 @@ soup_session_send (SoupSession   *session,
 	return stream;
 }
 
+static void
+send_and_read_splice_ready_cb (GOutputStream *ostream,
+			       GAsyncResult  *result,
+			       GTask         *task)
+{
+	GError *error = NULL;
+
+	if (g_output_stream_splice_finish (ostream, result, &error) != -1) {
+		g_task_return_pointer (task,
+				       g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream)),
+				       (GDestroyNotify)g_bytes_unref);
+	} else {
+		g_task_return_error (task, error);
+	}
+	g_object_unref (task);
+}
+
+static void
+send_and_read_stream_ready_cb (SoupSession  *session,
+			       GAsyncResult *result,
+			       GTask        *task)
+{
+	GInputStream *stream;
+	GOutputStream *ostream;
+	GError *error = NULL;
+
+	stream = soup_session_send_finish (session, result, &error);
+	if (!stream) {
+		g_task_return_error (task, error);
+		g_object_unref (task);
+		return;
+	}
+
+	ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+	g_output_stream_splice_async (ostream,
+				      stream,
+				      G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+				      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+				      g_task_get_priority (task),
+				      g_task_get_cancellable (task),
+				      (GAsyncReadyCallback)send_and_read_splice_ready_cb,
+				      task);
+	g_object_unref (ostream);
+	g_object_unref (stream);
+}
+
+/**
+ * soup_session_send_and_read_async:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage
+ * @io_priority: the I/O priority of the request
+ * @cancellable: a #GCancellable
+ * @callback: the callback to invoke
+ * @user_data: data for @callback
+ *
+ * Asynchronously sends @msg and reads the response body.
+ * When @callback is called, then either @msg has been sent, and its response
+ * body read, or else an error has occurred.
+ * This function should only be used when the resource to be retrieved
+ * is not too long and can be stored in memory.
+ * Call soup_session_send_and_read_finish() to get a #GBytes with the
+ * response body.
+ *
+ * See soup_session_send() for more details on the general semantics.
+ */
+void
+soup_session_send_and_read_async (SoupSession        *session,
+				  SoupMessage        *msg,
+				  int                 io_priority,
+				  GCancellable       *cancellable,
+				  GAsyncReadyCallback callback,
+				  gpointer            user_data)
+{
+	GTask *task;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	task = g_task_new (session, cancellable, callback, user_data);
+	g_task_set_priority (task, io_priority);
+
+	soup_session_send_async (session, msg,
+				 g_task_get_priority (task),
+				 g_task_get_cancellable (task),
+				 (GAsyncReadyCallback)send_and_read_stream_ready_cb,
+				 task);
+}
+
+/**
+ * soup_session_send_and_read_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ * @error: return location for a #GError, or %NULL
+ *
+ * Gets the response to a soup_session_send_and_read_async() call and (if
+ * successful), returns a #GBytes with the response body.
+ *
+ * Returns: (transfer full): a #GBytes, or %NULL on error.
+ */
+GBytes *
+soup_session_send_and_read_finish (SoupSession  *session,
+				   GAsyncResult *result,
+				   GError      **error)
+{
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+	g_return_val_if_fail (g_task_is_valid (result, session), NULL);
+
+	return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+/**
+ * soup_session_send_and_read:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage
+ * @cancellable: a #GCancellable
+ * @error: return location for a #GError, or %NULL
+ *
+ * Synchronously sends @msg and reads the response body.
+ * On success, a #GBytes will be returned with the response body.
+ * This function should only be used when the resource to be retrieved
+ * is not too long and can be stored in memory.
+ *
+ * See soup_session_send() for more details on the general semantics.
+ *
+ * Returns: (transfer full): a #GBytes, or %NULL on error.
+ */
+GBytes *
+soup_session_send_and_read (SoupSession  *session,
+			    SoupMessage  *msg,
+			    GCancellable *cancellable,
+			    GError      **error)
+{
+	GInputStream *stream;
+	GOutputStream *ostream;
+	GBytes *bytes = NULL;
+
+	stream = soup_session_send (session, msg, cancellable, error);
+	if (!stream)
+		return NULL;
+
+	ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+	if (g_output_stream_splice (ostream,
+				    stream,
+				    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+				    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+				    cancellable, error) != -1) {
+		bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
+	}
+	g_object_unref (ostream);
+	g_object_unref (stream);
+
+	return bytes;
+}
+
 typedef struct {
         goffset content_length;
         char *content_type;

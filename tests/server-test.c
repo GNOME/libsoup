@@ -903,7 +903,7 @@ do_early_stream_test (ServerData *sd, gconstpointer test_data)
 
 	index = soup_test_get_index ();
 	soup_message_set_request_body_from_bytes (msg, "text/plain", index);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -948,7 +948,7 @@ do_early_respond_test (ServerData *sd, gconstpointer test_data)
 	/* The early handler will ignore this one */
 	uri2 = g_uri_parse_relative (sd->base_uri, "/subdir", SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri2);
-	body = soup_test_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpmem ("index", sizeof ("index") - 1, g_bytes_get_data (body, NULL), g_bytes_get_size (body));
 	g_bytes_unref (body);
@@ -1008,7 +1008,7 @@ do_early_multi_test (ServerData *sd, gconstpointer test_data)
 		msg = soup_message_new_from_uri ("GET", uri);
 		g_uri_unref (uri);
 
-		body = soup_test_session_send (session, msg, NULL, NULL);
+		body = soup_session_send_and_read (session, msg, NULL, NULL);
 
 		/* The normal handler sets status to OK. The early handler doesn't
 		 * touch status, meaning that if it runs and the normal handler doesn't,

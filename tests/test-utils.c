@@ -313,28 +313,12 @@ typedef struct {
 } SendAsyncData;
 
 static void
-send_async_ready_cb (SoupSession   *session,
-		     GAsyncResult  *result,
-		     SendAsyncData *data)
+send_and_read_async_ready_cb (SoupSession   *session,
+			      GAsyncResult  *result,
+			      SendAsyncData *data)
 {
-	GInputStream *istream;
-	GOutputStream *ostream;
-
 	data->done = TRUE;
-	istream = soup_session_send_finish (session, result, &data->error);
-	if (!istream)
-		return;
-
-	ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
-	g_output_stream_splice (ostream,
-				istream,
-				G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
-				G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-				NULL,
-				&data->error);
-	data->body = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
-	g_object_unref (ostream);
-	g_object_unref (istream);
+	data->body = soup_session_send_and_read_finish (session, result, &data->error);
 }
 
 static void
@@ -358,8 +342,8 @@ soup_test_session_async_send (SoupSession  *session,
 	signal_id = g_signal_connect (msg, "finished",
                                      G_CALLBACK (on_message_finished), &message_finished);
 
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
-				 (GAsyncReadyCallback)send_async_ready_cb, &data);
+	soup_session_send_and_read_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
+					  (GAsyncReadyCallback)send_and_read_async_ready_cb, &data);
 
 	while (!data.done || !message_finished)
 		g_main_context_iteration (async_context, TRUE);
@@ -771,33 +755,6 @@ soup_test_request_close_stream (GInputStream  *stream,
 	g_object_unref (data.result);
 
 	return ok;
-}
-
-GBytes *
-soup_test_session_send (SoupSession   *session,
-			SoupMessage   *msg,
-			GCancellable  *cancellable,
-			GError       **error)
-{
-	GInputStream *istream;
-	GOutputStream *ostream;
-	GBytes *body;
-
-	istream = soup_session_send (session, msg, cancellable, error);
-	if (!istream)
-		return NULL;
-
-	ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
-	g_output_stream_splice (ostream,
-				istream,
-				G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
-				G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-				NULL, NULL);
-	body = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
-	g_object_unref (ostream);
-	g_object_unref (istream);
-
-	return body;
 }
 
 void

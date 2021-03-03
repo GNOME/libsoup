@@ -387,6 +387,9 @@ soup_session_get_accept_language_auto
 soup_session_send
 soup_session_send_async
 soup_session_send_finish
+soup_session_send_and_read
+soup_session_send_and_read_async
+soup_session_send_and_read_finish
 <SUBSECTION>
 soup_session_read_uri
 soup_session_read_uri_async

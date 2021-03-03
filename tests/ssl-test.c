@@ -57,7 +57,7 @@ do_strictness_test (gconstpointer data)
 		g_signal_connect (msg, "accept-certificate",
 				  G_CALLBACK (accept_certificate), NULL);
 	}
-	body = soup_test_session_send (session, msg, NULL, &error);
+	body = soup_session_send_and_read (session, msg, NULL, &error);
 	soup_test_assert_message_status (msg, test->expected_status);
 	if (test->expected_status != SOUP_STATUS_OK)
 		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE);

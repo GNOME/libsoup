@@ -126,7 +126,7 @@ session_get_uri (SoupSession *session,
 	msg = soup_message_new ("GET", uri);
 	g_signal_connect (msg, "hsts-enforced", G_CALLBACK (hsts_enforced_cb), &enforced);
 	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
-	body = soup_test_session_send (session, msg, NULL, &error);
+	body = soup_session_send_and_read (session, msg, NULL, &error);
 	if (expected_status == SOUP_STATUS_NONE)
 		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE);
 	else
