@@ -15,7 +15,7 @@
 
 static SoupSession *session;
 static GMainLoop *loop;
-static gboolean debug, quiet;
+static gboolean debug, head, quiet;
 static const gchar *output_file_path = NULL;
 
 #define OUTPUT_BUFFER_SIZE 8192
@@ -70,8 +70,7 @@ static void
 on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
 {
         GError *error = NULL;
-        GInputStream *in = soup_session_read_uri_finish (SOUP_SESSION (source), result,
-                                                         NULL, NULL, &error);
+        GInputStream *in = soup_session_send_finish (SOUP_SESSION (source), result, &error);
 
         if (error) {
                 g_printerr ("Failed to send request: %s\n", error->message);
@@ -182,6 +181,9 @@ static GOptionEntry entries[] = {
 	{ "debug", 'd', 0,
 	  G_OPTION_ARG_NONE, &debug,
 	  "Show HTTP headers", NULL },
+	{ "head", 'h', 0,
+          G_OPTION_ARG_NONE, &head,
+          "Do HEAD rather than GET", NULL },
 	{ "ntlm", 'n', 0,
 	  G_OPTION_ARG_NONE, &ntlm,
 	  "Use NTLM authentication", NULL },
@@ -209,6 +211,7 @@ main (int argc, char **argv)
 {
 	GOptionContext *opts;
 	const char *url;
+	SoupMessage *msg;
 	GUri *parsed;
 	GError *error = NULL;
 
@@ -313,8 +316,10 @@ main (int argc, char **argv)
 	}
 
         /* Send the request */
-        soup_session_read_uri_async (session, url, G_PRIORITY_DEFAULT, NULL,
-                                     on_request_sent, NULL);
+	msg = soup_message_new (head ? "HEAD" : "GET", url);
+        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+				 on_request_sent, NULL);
+	g_object_unref (msg);
 
         /* Run the loop */
         loop = g_main_loop_new (NULL, FALSE);
