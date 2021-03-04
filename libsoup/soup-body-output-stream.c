@@ -115,9 +115,10 @@ soup_body_output_stream_get_property (GObject *object, guint prop_id,
 
 static void
 soup_body_output_stream_wrote_data (SoupBodyOutputStream *bostream,
-				    gsize                 count)
+                                    const void           *buffer,
+                                    gsize                 count)
 {
-	g_signal_emit (bostream, signals[WROTE_DATA], 0, count);
+	g_signal_emit (bostream, signals[WROTE_DATA], 0, buffer, count);
 }
 
 static gssize
@@ -150,7 +151,7 @@ soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 
 	if (nwrote > 0 && priv->write_length) {
 		priv->written += nwrote;
-		soup_body_output_stream_wrote_data (bostream, nwrote);
+		soup_body_output_stream_wrote_data (bostream, buffer, nwrote);
 	}
 
 	if (nwrote == my_count && my_count != count)
@@ -199,7 +200,7 @@ again:
 						  buffer, count, blocking,
 						  cancellable, error);
 		if (nwrote > 0)
-			soup_body_output_stream_wrote_data (bostream, nwrote);
+			soup_body_output_stream_wrote_data (bostream, buffer, nwrote);
 
 		if (nwrote < (gssize)count)
 			return nwrote;
@@ -340,7 +341,8 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
                               0,
                               NULL, NULL,
                               NULL,
-                              G_TYPE_NONE, 1,
+                              G_TYPE_NONE, 2,
+                              G_TYPE_POINTER,
                               G_TYPE_UINT);
 
 	g_object_class_install_property (

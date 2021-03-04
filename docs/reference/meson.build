@@ -23,6 +23,8 @@ ignore_headers = [
   'soup-cookie-jar-sqlite.h',
   'soup-cache-private.h',
   'soup-cache-client-input-stream.h',
+  'soup-logger-input-stream.h',
+  'soup-logger-private.h',
   'soup-socket.h',
   'soup-socket-properties.h',
   'soup-websocket-extension-manager-private.h',

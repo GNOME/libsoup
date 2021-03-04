@@ -23,6 +23,7 @@
 #include "soup-content-processor.h"
 #include "content-sniffer/soup-content-sniffer-stream.h"
 #include "soup-filter-input-stream.h"
+#include "soup-logger-private.h"
 #include "soup-message-private.h"
 #include "soup-message-queue-item.h"
 #include "soup-misc.h"
@@ -162,9 +163,10 @@ soup_message_setup_body_istream (GInputStream *body_stream,
 
 static void
 request_body_stream_wrote_data_cb (SoupMessage *msg,
-				   guint        count)
+                                   const void  *buffer,
+                                   guint        count)
 {
-	soup_message_wrote_body_data (msg, count);
+        soup_message_wrote_body_data (msg, count);
 }
 
 static void
@@ -315,6 +317,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 {
 	SoupClientMessageIOData *client_io = soup_message_get_io_data (msg);
 	SoupMessageIOData *io = &client_io->base;
+	SoupSessionFeature *logger;
 	gssize nwrote;
 
 	if (io->async_error) {
@@ -365,6 +368,10 @@ io_write (SoupMessage *msg, gboolean blocking,
 								io->write_encoding,
 								io->write_length);
 		io->write_state = SOUP_MESSAGE_IO_STATE_BODY;
+		logger = soup_session_get_feature_for_message (client_io->item->session,
+		                                               SOUP_TYPE_LOGGER, msg);
+		if (logger)
+		        soup_logger_request_body_setup (SOUP_LOGGER (logger), msg);
 		break;
 
 	case SOUP_MESSAGE_IO_STATE_BODY:

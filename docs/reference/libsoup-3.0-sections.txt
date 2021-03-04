@@ -553,6 +553,8 @@ soup_form_encode_valist
 SoupLogger
 SoupLoggerLogLevel
 soup_logger_new
+soup_logger_set_max_body_size
+soup_logger_get_max_body_size
 <SUBSECTION>
 SoupLoggerFilter
 soup_logger_set_request_filter

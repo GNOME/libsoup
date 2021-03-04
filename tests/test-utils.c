@@ -289,7 +289,7 @@ soup_test_session_new (const char *propname, ...)
 	}
 
 	if (http_debug_level && !logger) {
-		SoupLoggerLogLevel level = MIN ((SoupLoggerLogLevel)http_debug_level, SOUP_LOGGER_LOG_HEADERS);
+		SoupLoggerLogLevel level = MIN ((SoupLoggerLogLevel)http_debug_level, SOUP_LOGGER_LOG_BODY);
 
 		logger = soup_logger_new (level);
 	}

@@ -59,6 +59,7 @@ soup_sources = [
   'soup-init.c',
   'soup-io-stream.c',
   'soup-logger.c',
+  'soup-logger-input-stream.c',
   'soup-message.c',
   'soup-message-headers.c',
   'soup-message-io.c',

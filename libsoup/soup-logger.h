@@ -16,7 +16,8 @@ G_DECLARE_FINAL_TYPE (SoupLogger, soup_logger, SOUP, LOGGER, GObject)
 typedef enum {
 	SOUP_LOGGER_LOG_NONE,
 	SOUP_LOGGER_LOG_MINIMAL,
-	SOUP_LOGGER_LOG_HEADERS
+	SOUP_LOGGER_LOG_HEADERS,
+	SOUP_LOGGER_LOG_BODY
 } SoupLoggerLogLevel;
 
 typedef SoupLoggerLogLevel (*SoupLoggerFilter)  (SoupLogger         *logger,
@@ -49,5 +50,12 @@ void        soup_logger_set_printer         (SoupLogger        *logger,
 					     SoupLoggerPrinter  printer,
 					     gpointer           printer_data,
 					     GDestroyNotify     destroy);
+
+SOUP_AVAILABLE_IN_ALL
+void        soup_logger_set_max_body_size  (SoupLogger        *logger,
+					     int                max_body_size);
+
+SOUP_AVAILABLE_IN_ALL
+int         soup_logger_get_max_body_size  (SoupLogger        *logger);
 
 G_END_DECLS
