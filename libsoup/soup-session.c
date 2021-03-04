@@ -3436,6 +3436,31 @@ soup_session_send_and_read (SoupSession  *session,
 	return bytes;
 }
 
+/**
+ * soup_session_get_async_result_message:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ *
+ * Gets the #SoupMessage of the @result asynchronous operation
+ * This is useful to get the #SoupMessage of an asynchronous
+ * operation started by @session from its #GAsyncReadyCallback.
+ *
+ * Returns: (transfer none) (nullable): a #SoupMessage or
+ *    %NULL if @result is not a valid @session async operation result.
+ */
+SoupMessage *
+soup_session_get_async_result_message (SoupSession  *session,
+                                       GAsyncResult *result)
+{
+        SoupMessageQueueItem *item;
+
+        g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+        g_return_val_if_fail (g_task_is_valid (result, session), NULL);
+
+        item = g_task_get_task_data (G_TASK (result));
+        return item ? item->msg : NULL;
+}
+
 typedef struct {
         goffset content_length;
         char *content_type;

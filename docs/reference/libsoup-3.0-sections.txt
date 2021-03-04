@@ -383,6 +383,7 @@ soup_session_set_accept_language
 soup_session_get_accept_language
 soup_session_set_accept_language_auto
 soup_session_get_accept_language_auto
+soup_session_get_async_result_message
 <SUBSECTION>
 soup_session_send
 soup_session_send_async

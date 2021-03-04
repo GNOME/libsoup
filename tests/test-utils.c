@@ -692,6 +692,8 @@ soup_test_request_send (SoupSession   *session,
 				 async_as_sync_callback, &data);
 	g_main_loop_run (data.loop);
 
+	g_assert_true (soup_session_get_async_result_message (session, data.result) == msg);
+
 	stream = soup_session_send_finish (session, data.result, error);
 
 	if (flags & SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH) {

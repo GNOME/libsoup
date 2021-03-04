@@ -335,7 +335,7 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 static void
 multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
-	SoupMessage *message = (SoupMessage*)data;
+	SoupMessage *message;
 	SoupSession *session = SOUP_SESSION (source);
 	GError *error = NULL;
 	GInputStream *in;
@@ -347,6 +347,7 @@ multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 		return;
 	}
 
+	message = soup_session_get_async_result_message (session, res);
 	multipart = soup_multipart_input_stream_new (message, in);
 	g_object_unref (in);
 
@@ -360,7 +361,7 @@ multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 static void
 sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
-	SoupMessage *message = (SoupMessage*)data;
+	SoupMessage *message;
 	SoupSession *session = SOUP_SESSION (source);
 	GError *error = NULL;
 	GInputStream *in;
@@ -374,6 +375,7 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 		return;
 	}
 
+	message = soup_session_get_async_result_message (session, res);
 	multipart = soup_multipart_input_stream_new (message, in);
 	g_object_unref (in);
 
@@ -440,12 +442,12 @@ test_multipart (gconstpointer data)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (multipart_mode == ASYNC_MULTIPART)
-		soup_session_send_async (session, msg, 0, NULL, multipart_handling_cb, msg);
+		soup_session_send_async (session, msg, 0, NULL, multipart_handling_cb, NULL);
 	else if (multipart_mode == ASYNC_MULTIPART_SMALL_READS) {
 		g_object_set_data (G_OBJECT (msg), "multipart-small-reads", GINT_TO_POINTER(1));
-		soup_session_send_async (session, msg, 0, NULL, multipart_handling_cb, msg);
+		soup_session_send_async (session, msg, 0, NULL, multipart_handling_cb, NULL);
 	} else if (multipart_mode == SYNC_MULTIPART)
-		soup_session_send_async (session, msg, 0, NULL, sync_multipart_handling_cb, msg);
+		soup_session_send_async (session, msg, 0, NULL, sync_multipart_handling_cb, NULL);
 	else
 		soup_session_send_async (session, msg, 0, NULL, no_multipart_handling_cb, NULL);
 

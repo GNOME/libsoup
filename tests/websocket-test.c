@@ -310,10 +310,12 @@ got_client_connection (GObject *object,
 		       GAsyncResult *result,
 		       gpointer user_data)
 {
+	SoupSession *session = SOUP_SESSION (object);
 	Test *test = user_data;
 
-	test->client = soup_session_websocket_connect_finish (SOUP_SESSION (object),
-							      result, &test->client_error);
+	g_assert_true (soup_session_get_async_result_message (session, result) == test->msg);
+
+	test->client = soup_session_websocket_connect_finish (session, result, &test->client_error);
 }
 
 static void

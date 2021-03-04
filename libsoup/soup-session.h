@@ -141,6 +141,10 @@ GBytes         *soup_session_send_and_read        (SoupSession          *session
 						   GError              **error);
 
 SOUP_AVAILABLE_IN_ALL
+SoupMessage    *soup_session_get_async_result_message (SoupSession  *session,
+						       GAsyncResult *result);
+
+SOUP_AVAILABLE_IN_ALL
 void                soup_session_add_feature            (SoupSession        *session,
 							 SoupSessionFeature *feature);
 SOUP_AVAILABLE_IN_ALL
