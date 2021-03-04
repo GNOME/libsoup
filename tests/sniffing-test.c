@@ -285,8 +285,6 @@ test_sniffing (const char *path, const char *expected_type)
 	SoupMessage *msg;
 	GBytes *body;
 	char *sniffed_type = NULL;
-	char *uri_string;
-	GError *error = NULL;
 
 	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -299,16 +297,6 @@ test_sniffing (const char *path, const char *expected_type)
 	g_free (sniffed_type);
 	g_bytes_unref (body);
 	g_object_unref (msg);
-
-	sniffed_type = NULL;
-	uri_string = g_uri_to_string (uri);
-	body = soup_session_load_uri_bytes (session, uri_string, NULL, &sniffed_type, &error);
-	g_assert_no_error (error);
-	g_assert_cmpstr (sniffed_type, ==, expected_type);
-	g_free (sniffed_type);
-	g_free (uri_string);
-	g_bytes_unref (body);
-
 	g_uri_unref (uri);
 }
 

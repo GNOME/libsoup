@@ -34,8 +34,8 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                 </listitem>
                 <listitem>
                     <para><type>SoupRequest</type></para>
-                    <para>You should use the new <link linkend="soup-session-read-uri"><function>soup_session_read_uri()</function></link> or
-                        <link linkend="soup-session-read-uri-async"><function>soup_session_read_uri_async()</function></link> methods.</para>
+                    <para>You should use <link linkend="soup-session-send"><function>soup_session_send()</function></link> or
+                        <link linkend="soup-session-send-async"><function>soup_session_send_async()</function></link> methods.</para>
                 </listitem>
                 <listitem>
                     <para><type>SoupAddress</type> has been replaced with <link linkend="GInetAddress"><type>GInetAddress</type></link>
@@ -179,8 +179,8 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
         <para>libsoup no longer stores a buffer of data for you to read from and instead it returns
             a <link linkend="GInputStream"><type>GInputStream</type></link> which you read from using normal GIO APIs.</para>
         <para>If you want to simply request a buffer and nothing more you can use the
-                <link linkend="soup_session_load_uri_bytes"><function>soup_session_load_uri_bytes()</function></link> or
-                <link linkend="soup_session_load_uri_bytes_async"><function>soup_session_load_uri_bytes_async()</function></link> APIs.</para>
+                <link linkend="soup_session_send_and_read"><function>soup_session_send_and_read()</function></link> or
+                <link linkend="soup_session_send_and_read_async"><function>soup_session_send_and_read_async()</function></link> APIs.</para>
         <para>This also applies to writing data where you can set a <link linkend="GOutputStream"><type>GOutputStream</type></link> using
                 <link linkend="soup_message_set_request_body"><function>soup_message_set_request_body()</function></link> or use the convenience API
                 <link linkend="soup_message_set_request_body_from_bytes"><function>soup_message_set_request_body_from_bytes()</function></link> to use a GBytes

@@ -24,29 +24,34 @@
 int main (int argc, char **argv)
 {
     SoupSession *session = soup_session_new ();
-    char *content_type;
+    SoupMessageHeaders *response_headers;
+    const char *content_type;
+    SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://upload.wikimedia.org/wikipedia/commons/5/5f/BBB-Bunny.png");
     GError *error = NULL;
-    GBytes *bytes = soup_session_load_uri_bytes (
+    GBytes *bytes = soup_session_send_and_read (
         session,
-        "https://upload.wikimedia.org/wikipedia/commons/5/5f/BBB-Bunny.png",
+        msg,
         NULL, // Pass a GCancellable here if you want to cancel a download
-        &content_type,
         &error);
 
     if (error) {
         g_printerr ("Failed to download: %s\n", error->message);
         g_error_free (error);
+        g_object_unref (msg);
         g_object_unref (session);
         return 1;
     }
+
+    response_headers = soup_message_get_response_headers (msg);
+    content_type = soup_message_headers_get_content_type (response_headers);
 
     // content_type = "image/png"
     // bytes contains the raw data that can be used elsewhere
     g_print ("Downloaded %zu bytes of type %s\n",
              g_bytes_get_size (bytes), content_type);
 
-    g_free (content_type);
     g_bytes_unref (bytes);
+    g_object_unref (msg);
     g_object_unref (session);
     return 0;
 }]]>
@@ -63,20 +68,21 @@ int main (int argc, char **argv)
 int main (int argc, char **argv)
 {
     SoupSession *session = soup_session_new ();
-    char *content_type;
+    SoupMessageHeaders *response_headers;
+    const char *content_type;
     goffset content_length;
+    SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://upload.wikimedia.org/wikipedia/commons/5/5f/BBB-Bunny.png");
     GError *error = NULL;
-    GInputStream *in_stream = soup_session_read_uri (
+    GInputStream *in_stream = soup_session_send (
         session,
-        "https://upload.wikimedia.org/wikipedia/commons/5/5f/BBB-Bunny.png",
+        msg,
         NULL,
-        &content_length,
-        &content_type,
         &error);
 
     if (error) {
         g_printerr ("Failed to download: %s\n", error->message);
         g_error_free (error);
+        g_object_unref (msg);
         g_object_unref (session);
         return 1;
     }
@@ -91,9 +97,14 @@ int main (int argc, char **argv)
         g_error_free (error);
         g_object_unref (output_file);
         g_object_unref (in_stream);
+        g_object_unref (msg);
         g_object_unref (session);
         return 1;
     }
+
+    response_headers = soup_message_get_response_headers (msg);
+    content_type = soup_message_headers_get_content_type (response_headers);
+    content_length = soup_message_headers_get_content_length (response_headers);
 
     // content_type = "image/png"
     g_print ("Downloading %zu bytes of type %s to %s\n",
@@ -111,10 +122,10 @@ int main (int argc, char **argv)
         g_print ("Download completed\n");
     }
 
-    g_free (content_type);
     g_object_unref (output_file);
     g_object_unref (in_stream);
     g_object_unref (out_stream);
+    g_object_unref (msg);
     g_object_unref (session);
     return error ? 1 : 0;
 }]]>
@@ -125,8 +136,8 @@ int main (int argc, char **argv)
             <title>Using Asynchronously</title>
             <para>If you are using libsoup in an application with a <link linkend="GMainLoop"><type>GMainLoop</type></link> such as a GTK application
             you do not want to block the mainloop by doing IO. To accomplish this libsoup provides an
-            asynchronous version of each of the APIs: <link linkend="soup-session-load-uri-bytes-async"><function>soup_session_load_uri_bytes_async()</function></link>
-            and <link linkend="soup-session-read-uri-async"><function>soup_session_read_uri_async()</function></link>. These behave the same as all async GLib
+            asynchronous version of each of the APIs: <link linkend="soup-session-send-and-read-async"><function>soup_session_send_and_read_async()</function></link>
+            and <link linkend="soup-session-send-async"><function>soup_session_send_async()</function></link>. These behave the same as all async GLib
             APIs, for example:</para>
 <informalexample><programlisting><![CDATA[#include <libsoup/soup.h>
 
@@ -134,8 +145,7 @@ static void on_load_callback (GObject *source, GAsyncResult *result, gpointer us
 {
     GMainLoop *loop = user_data;
     GError *error = NULL;
-    GBytes *bytes = soup_session_load_uri_bytes_finish (SOUP_SESSION (source), result,
-                                                        NULL, &error);
+    GBytes *bytes = soup_session_send_and_read_finish (SOUP_SESSION (source), result, &error);
 
     // Usage here is the same as before
     if (error) {
@@ -143,7 +153,7 @@ static void on_load_callback (GObject *source, GAsyncResult *result, gpointer us
     } else {
         g_bytes_unref (bytes);
     }
-    
+
     g_main_loop_quit (loop);
 }
 
@@ -151,18 +161,20 @@ int main (int argc, char **argv)
 {
     SoupSession *session = soup_session_new ();
     GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+    SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://upload.wikimedia.org/wikipedia/commons/5/5f/BBB-Bunny.png");
 
-    soup_session_load_uri_bytes_async (
+    soup_session_send_and_read_async (
         session,
-        "https://upload.wikimedia.org/wikipedia/commons/5/5f/BBB-Bunny.png",
+        msg,
         G_PRIORITY_DEFAULT,
         NULL,
         on_load_callback,
-        loop); 
+        loop);
 
     g_main_loop_run (loop);
 
     g_main_loop_unref (loop);
+    g_object_unref (msg);
     g_object_unref (session);
     return 0;
 }]]>

@@ -392,13 +392,6 @@ soup_session_send_and_read
 soup_session_send_and_read_async
 soup_session_send_and_read_finish
 <SUBSECTION>
-soup_session_read_uri
-soup_session_read_uri_async
-soup_session_read_uri_finish
-soup_session_load_uri_bytes
-soup_session_load_uri_bytes_async
-soup_session_load_uri_bytes_finish
-<SUBSECTION>
 soup_session_websocket_connect_async
 soup_session_websocket_connect_finish
 <SUBSECTION>
