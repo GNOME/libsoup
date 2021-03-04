@@ -1100,6 +1100,7 @@ do_connection_connect_test (void)
         SoupURI *file_uri;
         SoupURI *wrong_http_uri;
         SoupURI *proxy_uri;
+        const char *wrong_http_uri_events;
 
         SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -1143,9 +1144,17 @@ do_connection_connect_test (void)
         debug_printf (1, "    wrong http (invalid port)\n");
         wrong_http_uri = soup_uri_new (HTTP_SERVER);
         wrong_http_uri->port = 1234;
+        if (glib_check_version (2, 67, 0) == NULL) {
+                wrong_http_uri_events = "rRc";
+        } else {
+                /* The extra "r" here is for a GLib bug in versions before
+                 * 2.67.0. See f0a7b147806e852e2090eeda6e4e38f7d3f52b52 in GLib
+                 * for more details. */
+                wrong_http_uri_events = "rRcr";
+        }
         do_one_connection_connect_fail_test (session, wrong_http_uri,
                                              G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED,
-                                             "rRcr"); /* FIXME: why r again? GLib bug? */
+                                             wrong_http_uri_events);
 
         proxy_uri = soup_uri_new (HTTP_PROXY);
         g_object_set (G_OBJECT (session),
