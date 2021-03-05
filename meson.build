@@ -2,7 +2,10 @@ project('libsoup', 'c',
         version: '2.99.1',
         meson_version : '>= 0.53',
         license : 'LGPL2',
-        default_options : 'c_std=c99')
+        default_options : [
+          'c_std=c99',
+          'warning_level=2',
+        ])
 
 gnome = import('gnome')
 
@@ -53,7 +56,6 @@ if cc.get_id() == 'msvc'
   add_project_arguments(cc.get_supported_arguments(['/utf-8']), language: 'c')
 else
   test_cflags = [
-      '-Wall',
       '-Wmissing-include-dirs',
       '-Wpointer-arith',
       '-Winit-self',
@@ -65,6 +67,10 @@ else
       '-Wno-format-zero-length',
       '-Wno-missing-include-dirs',
       '-Wno-typedef-redefinition',
+      '-Wno-unused-parameter',
+      '-Wno-sign-compare',
+      '-Wno-cast-function-type',
+      '-Wno-missing-field-initializers',
   ]
 
   if get_option('b_sanitize') == 'address' or get_option('b_sanitize') == 'address,undefined' or \
