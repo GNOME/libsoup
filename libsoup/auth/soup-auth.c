@@ -137,6 +137,7 @@ soup_auth_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_IS_CANCELLED:
 		g_value_set_boolean (value, priv->cancelled);
+                break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;

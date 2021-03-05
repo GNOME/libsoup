@@ -211,7 +211,7 @@ do_request (SoupSession        *session,
 	/* Cache writes are G_PRIORITY_LOW, so they won't have happened yet... */
 	soup_cache_flush ((SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE));
 
-	return nread ? g_memdup (buf, nread) : g_strdup ("");
+	return nread ? g_memdup2 (buf, nread) : g_strdup ("");
 }
 
 static void

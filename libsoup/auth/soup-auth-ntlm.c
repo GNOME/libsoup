@@ -763,7 +763,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 	}
 
 	if (nonce) {
-		*nonce = g_memdup (chall + NTLM_CHALLENGE_NONCE_OFFSET,
+		*nonce = g_memdup2 (chall + NTLM_CHALLENGE_NONCE_OFFSET,
 				   NTLM_CHALLENGE_NONCE_LENGTH);
 	}
 	/* For NTLMv2 response */
@@ -776,7 +776,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 			g_free (chall);
 			return FALSE;
 		}
-		*target_info = g_memdup (chall + target.offset, target.length);
+		*target_info = g_memdup2 (chall + target.offset, target.length);
 		*target_info_sz = target.length;
 	}
 
