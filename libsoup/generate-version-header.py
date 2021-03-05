@@ -17,7 +17,6 @@ versions = []
 
 if major == 2:
     # Specific to 3.x dev releases
-    versions.append((2, 99))
     versions.append((3, 0))
 else:
     minor_max = minor if minor != 0 and is_stable(minor) else minor + 1
