@@ -2964,7 +2964,7 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 		GOutputStream *ostream;
 
 		/* Gather the current message body... */
-		ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+		ostream = g_memory_output_stream_new_resizable ();
 		g_object_set_data_full (G_OBJECT (item->task), "SoupSession:ostream",
 					ostream, g_object_unref);
 
@@ -3365,7 +3365,7 @@ soup_session_send (SoupSession   *session,
 			break;
 
 		/* Gather the current message body... */
-		ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+		ostream = g_memory_output_stream_new_resizable ();
 		if (g_output_stream_splice (ostream, stream,
 					    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
 					    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
@@ -3452,7 +3452,7 @@ send_and_read_stream_ready_cb (SoupSession  *session,
 		return;
 	}
 
-	ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+	ostream = g_memory_output_stream_new_resizable ();
 	g_output_stream_splice_async (ostream,
 				      stream,
 				      G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
@@ -3559,7 +3559,7 @@ soup_session_send_and_read (SoupSession  *session,
 	if (!stream)
 		return NULL;
 
-	ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+	ostream = g_memory_output_stream_new_resizable ();
 	if (g_output_stream_splice (ostream,
 				    stream,
 				    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |

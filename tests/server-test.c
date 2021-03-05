@@ -728,7 +728,7 @@ do_iostream_accept_test (void)
 	soup_server_add_handler (server, NULL, mem_server_callback, NULL, NULL);
 
 	input = g_memory_input_stream_new_from_data (req, sizeof(req), NULL);
-	output = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+	output = g_memory_output_stream_new_resizable ();
 	stream = g_test_io_stream_new (input, output);
 
 	addr = g_inet_socket_address_new_from_string ("127.0.0.1", 0);
