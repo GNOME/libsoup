@@ -525,7 +525,10 @@ static const DataURITest data_tests[] = {
 	  "" },
 	{ "data:text/plain,",
 	  "text/plain",
-	  "" }
+	  "" },
+	{ "data:,a/../b",
+	  "text/plain;charset=US-ASCII",
+	  "a/../b" }
 };
 
 static void

@@ -309,6 +309,11 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		return uri;
         }
 
+	if (g_strcmp0 (uri->scheme, SOUP_URI_SCHEME_DATA) == 0) {
+		/* Data URIs are never relative */
+		remove_dot_segments = FALSE;
+	}
+
 	/* Check for authority */
 	if (strncmp (uri_string, "//", 2) == 0) {
 		uri_string += 2;
