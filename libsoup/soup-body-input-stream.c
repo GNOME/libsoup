@@ -136,10 +136,13 @@ soup_body_input_stream_read_raw (SoupBodyInputStream  *bistream,
         SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 	gssize nread;
 
-	nread = g_pollable_stream_read (priv->base_stream,
-					buffer, count,
-					blocking,
-					cancellable, error);
+	if (!buffer && blocking)
+	        nread = g_input_stream_skip (priv->base_stream, count, cancellable, error);
+	else
+	        nread = g_pollable_stream_read (priv->base_stream,
+	                                        buffer, count,
+	                                        blocking,
+	                                        cancellable, error);
 	if (nread == 0) {
 		priv->eof = TRUE;
 		if (priv->encoding != SOUP_ENCODING_EOF) {
@@ -288,19 +291,8 @@ soup_body_input_stream_skip (GInputStream *stream,
 			     GCancellable *cancellable,
 			     GError      **error)
 {
-        SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (SOUP_BODY_INPUT_STREAM(stream));
-	gssize skipped;
-
-	skipped = g_input_stream_skip (G_FILTER_INPUT_STREAM (stream)->base_stream,
-				       MIN (count, priv->read_length),
-				       cancellable, error);
-
-	if (skipped == 0)
-		priv->eof = TRUE;
-	else if (skipped > 0)
-		priv->pos += skipped;
-
-	return skipped;
+        return read_internal (stream, NULL, count, TRUE,
+                              cancellable, error);
 }
 
 static gssize

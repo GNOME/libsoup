@@ -57,7 +57,8 @@ read_from_buf (SoupFilterInputStream *fstream, gpointer buffer, gsize count)
 
 	if (buf->len < count)
 		count = buf->len;
-	memcpy (buffer, buf->data, count);
+	if (buffer)
+	        memcpy (buffer, buf->data, count);
 
 	if (count == buf->len) {
 		g_byte_array_free (buf, TRUE);
@@ -91,6 +92,26 @@ soup_filter_input_stream_read_fn (GInputStream  *stream,
 					       buffer, count,
 					       TRUE, cancellable, error);
 	}
+}
+
+static gssize
+soup_filter_input_stream_skip (GInputStream  *stream,
+                               gsize          count,
+                               GCancellable  *cancellable,
+                               GError       **error)
+{
+        SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
+        SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
+
+        if (!priv->in_read_until)
+                priv->need_more = FALSE;
+
+        if (priv->buf && !priv->in_read_until) {
+                return read_from_buf (fstream, NULL, count);
+        } else {
+                return g_input_stream_skip (G_FILTER_INPUT_STREAM (fstream)->base_stream,
+                                            count, cancellable, error);
+        }
 }
 
 static gboolean
@@ -156,6 +177,7 @@ soup_filter_input_stream_class_init (SoupFilterInputStreamClass *stream_class)
 	object_class->finalize = soup_filter_input_stream_finalize;
 
 	input_stream_class->read_fn = soup_filter_input_stream_read_fn;
+	input_stream_class->skip = soup_filter_input_stream_skip;
 }
 
 static void
