@@ -1,3 +1,19 @@
+Changes in libsoup from 2.99.1 to 2.99.2:
+
+    * Add new soup_session_send_and_read() API [Carlos Garcia Campos]
+
+    * Add soup_session_get_async_result_message() API [Carlos Garcia Campos]
+
+    * Remove soup_session_load_uri_bytes() and soup_session_read_uri() APIs [Carlos Garcia Campos]
+
+    * Add soup_session_preconnect_async() API [Carlos Garcia Campos]
+
+    * Add SoupSession:remote-connectable property to support proxying over unix sockets [Robert Ancell]
+
+    * Restore support to SoupLogger for logging message bodies [Daniel Kolesa]
+
+    * Update GLib dependency to 2.67.4
+
 Changes in libsoup from 2.72.0 to 2.99.1:
 
     * This is a major ABI breaking release that can be installed in parallel with 2.7x.
