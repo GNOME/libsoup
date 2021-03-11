@@ -116,8 +116,17 @@ connect_and_run (SoupSession *session, char *path, ConnectionFunc method, gpoint
         g_test_message ("Connecting to %s", uri);
         soup_session_websocket_connect_async (session, message, NULL, NULL, G_PRIORITY_DEFAULT, NULL, on_connect, ctx);
 
-        while (!ctx->done)
-               g_main_context_iteration (async_context, TRUE);
+        time_t now = time(NULL);
+        const int timeout = 30;
+        const time_t threshold = now + timeout;
+        while (!ctx->done) {
+                g_main_context_iteration (async_context, TRUE);
+                now = time(NULL);
+                if (now > threshold) {
+                        debug_printf (1, "Test timeout: %s\n", uri);
+                        ctx->done = TRUE;
+                }
+        }
 
         g_object_unref (message);
         g_free (uri);
