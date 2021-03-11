@@ -19,10 +19,6 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                         latter.</para>
                 </listitem>
                 <listitem>
-                    <para><code>SOUP_LOGGER_LOG_BODY</code></para>
-                    <para>You must log data as you read it.</para>
-                </listitem>
-                <listitem>
                     <para>Define aliases for property names</para>
                     <para>You must use the string name of properties directly which works in libsoup
                         2 already.</para>
