@@ -13,9 +13,18 @@ client = executable('autobahn-test', 'autobahn-test.c',
     include_directories : include_directories('..'),
 )
 
+test('autobahn-test-quick', client,
+  suite : 'autobahn-quick',
+  env : env,
+  args: ['-m', 'quick'],
+  timeout : 180,
+  protocol : 'tap',
+)
+
 test('autobahn-test', client,
   suite : 'autobahn',
   env : env,
-  timeout : 3600,
+  args: ['-m', 'slow'],
+  timeout : 4500,
   protocol : 'tap',
 )

@@ -19,7 +19,7 @@ fedora-test:
     - cp .gitlab-ci/lcovrc ~/.lcovrc
     - meson _build -Db_coverage=true -Dauto_features=enabled
     - meson compile -C _build
-    - meson test --no-suite autobahn -C _build --verbose
+    - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose
     - ninja -C _build coverage-html
   artifacts:
     reports:
@@ -32,11 +32,11 @@ fedora-test:
       - "_build/meson-logs/coveragereport"
   coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
 
-fedora-autobahn:
+fedora-autobahn-quick:
   extends: .build
   script:
     - meson _build -Dauto-features=enabled -Dautobahn=enabled
-    - meson test -C _build --suite autobahn --verbose
+    - meson test -C _build --suite autobahn-quick --verbose
   artifacts:
     paths:
       - "_build/meson-logs/autobahn-report"
@@ -61,7 +61,7 @@ fedora-asan:
     SOUP_TEST_NO_IPV6: 1
   script:
     - meson _build -Dauto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled
-    - meson test --no-suite autobahn -C _build --verbose --timeout-multiplier=10
+    - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose --timeout-multiplier=10
   artifacts:
     when: on_failure
     paths:

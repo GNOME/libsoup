@@ -24,8 +24,12 @@
 
 #include <libsoup/soup.h>
 
+#define TEST_QUICK_THRESHOLD 310
+
 static char *address = "ws://localhost:9001";
 static char *agent = "libsoup";
+
+static unsigned long int AUTOBAHN_TEST_TIMEOUT = 60;
 
 typedef void (*ConnectionFunc) (SoupWebsocketConnection *socket_connection,
                                 gint type,
@@ -58,7 +62,7 @@ on_message_received (SoupWebsocketConnection *socket_connection,
 {
         ConnectionContext *ctx = (ConnectionContext *)data;
 
-        g_test_message ("Message recieved");
+        g_test_message ("Message received");
 
         if (ctx && ctx->method)
                 ctx->method (socket_connection, type, message, ctx->data);
@@ -116,12 +120,22 @@ connect_and_run (SoupSession *session, char *path, ConnectionFunc method, gpoint
         g_test_message ("Connecting to %s", uri);
         soup_session_websocket_connect_async (session, message, NULL, NULL, G_PRIORITY_DEFAULT, NULL, on_connect, ctx);
 
-        while (!ctx->done)
-               g_main_context_iteration (async_context, TRUE);
+        time_t now = time(NULL);
+        const time_t threshold = now + AUTOBAHN_TEST_TIMEOUT;
+
+        while (!ctx->done) {
+                g_main_context_iteration (async_context, TRUE);
+                now = time(NULL);
+                if (now > threshold) {
+                        debug_printf (1, "Test timeout: %s\n", uri);
+                        break;
+                }
+        }
 
         g_object_unref (message);
         g_free (uri);
-        g_free (ctx);
+        if (ctx->done)
+                g_free (ctx);
         g_main_context_unref (async_context);
 }
 
@@ -228,6 +242,27 @@ done:
         return ret;
 }
 
+static gboolean
+should_run_test (int i)
+{
+        return g_test_slow () || i < TEST_QUICK_THRESHOLD;
+}
+
+static
+void prepare_test (SoupSession *session, int i)
+{
+        char *test_path = g_strdup_printf ("/autobahn/%u", i);
+
+        TestBundle *bundle = g_new0 (TestBundle, 1);
+        bundle->session = session;
+        bundle->num_test_case = i;
+        bundle->path = g_strdup_printf ("/runCase?case=%u&agent=%s", i, agent);
+
+        g_test_add_data_func_full (test_path, bundle, test_case, (GDestroyNotify) test_bundle_free);
+
+        g_free (test_path);
+}
+
 int main (int argc, char *argv[])
 {
         int ret = 0;
@@ -247,20 +282,17 @@ int main (int argc, char *argv[])
                 num_cases = num_case;
         }
 
+        if (getenv ("AUTOBAHN_TEST_TIMEOUT"))
+                AUTOBAHN_TEST_TIMEOUT = atol (getenv ("AUTOBAHN_TEST_TIMEOUT"));
+
         session = soup_session_new ();
         soup_session_add_feature_by_type (session, SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER);
 
         for (int i = num_case; i <= num_cases; i++) {
-                char *test_path = g_strdup_printf ("/autobahn/%u", i);
-
-                TestBundle *bundle = g_new0 (TestBundle, 1);
-                bundle->session = session;
-                bundle->num_test_case = i;
-                bundle->path = g_strdup_printf ("/runCase?case=%u&agent=%s", i, agent);
-
-                g_test_add_data_func_full (test_path, bundle, test_case, (GDestroyNotify)test_bundle_free);
-
-                g_free (test_path);
+                if (should_run_test (i))
+                        prepare_test (session, i);
+                else
+                        g_test_skip ("Ran in quick mode");
         }
 
         ret = g_test_run ();
