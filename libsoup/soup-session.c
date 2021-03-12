@@ -3445,6 +3445,11 @@ send_and_read_stream_ready_cb (SoupSession  *session,
 	GOutputStream *ostream;
 	GError *error = NULL;
 
+        // In order for soup_session_get_async_result_message() to work it must
+        // have the task data for the task it wrapped
+        SoupMessageQueueItem *item = g_task_get_task_data (G_TASK (result));
+        g_task_set_task_data (task, soup_message_queue_item_ref (item), (GDestroyNotify)soup_message_queue_item_unref);
+
 	stream = soup_session_send_finish (session, result, &error);
 	if (!stream) {
 		g_task_return_error (task, error);
