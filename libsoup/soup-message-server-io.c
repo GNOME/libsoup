@@ -74,6 +74,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	/* Handle request body encoding */
 	*encoding = soup_message_headers_get_encoding (msg->request_headers);
 	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
+		g_free (req_path);
 		if (soup_message_headers_get_list (msg->request_headers, "Transfer-Encoding"))
 			return SOUP_STATUS_NOT_IMPLEMENTED;
 		else

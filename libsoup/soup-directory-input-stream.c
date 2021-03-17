@@ -96,6 +96,7 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 	g_free (date);
 	g_free (escaped);
 	g_free (size);
+	g_free (name);
 	g_free (path);
 	g_free (xml_string);
 	g_string_free (string, FALSE);
