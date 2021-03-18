@@ -310,6 +310,7 @@ soup_test_session_abort_unref (SoupSession *session)
 }
 
 typedef struct {
+	SoupMessage *msg;
 	GBytes *body;
 	GError *error;
 	gboolean done;
@@ -321,6 +322,7 @@ send_and_read_async_ready_cb (SoupSession   *session,
 			      SendAsyncData *data)
 {
 	data->done = TRUE;
+	g_assert_true (soup_session_get_async_result_message (session, result) == data->msg);
 	data->body = soup_session_send_and_read_finish (session, result, &data->error);
 }
 
@@ -340,7 +342,7 @@ soup_test_session_async_send (SoupSession  *session,
 	gboolean message_finished = FALSE;
 	GMainContext *async_context = g_main_context_ref_thread_default ();
 	gulong signal_id;
-	SendAsyncData data = { NULL, NULL, FALSE };
+	SendAsyncData data = { msg, NULL, NULL, FALSE };
 
 	signal_id = g_signal_connect (msg, "finished",
                                      G_CALLBACK (on_message_finished), &message_finished);
