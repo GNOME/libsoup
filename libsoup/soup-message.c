@@ -920,7 +920,7 @@ soup_message_new_from_multipart (const char    *uri_string,
  * soup_message_set_request_body:
  * @msg: the message
  * @content_type: (allow-none): MIME Content-Type of the body, or %NULL if unknown
- * @stream: (allow-none): a #GPollableInputStream to read the request body from
+ * @stream: (allow-none): a #GInputStream to read the request body from
  * @content_length: the byte length of @stream or -1 if unknown
  *
  * Set the request body of a #SoupMessage.
@@ -928,7 +928,6 @@ soup_message_new_from_multipart (const char    *uri_string,
  * not be changed if present.
  * The request body needs to be set again in case @msg is restarted
  * (in case of redirection or authentication).
- * @stream must implement #GPollableInputStream.
  */
 void
 soup_message_set_request_body (SoupMessage  *msg,
@@ -937,7 +936,7 @@ soup_message_set_request_body (SoupMessage  *msg,
                                gssize        content_length)
 {
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (stream == NULL || G_IS_POLLABLE_INPUT_STREAM (stream));
+        g_return_if_fail (stream == NULL || G_IS_INPUT_STREAM (stream));
         g_return_if_fail (content_length == -1 || content_length >= 0);
 
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
