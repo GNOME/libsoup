@@ -62,7 +62,6 @@ typedef struct {
 	GBytes *flattened;
 	gboolean accumulate;
 	goffset base_offset;
-	gatomicrefcount ref_count;
 } SoupMessageBodyPrivate;
 
 /**
@@ -78,9 +77,8 @@ soup_message_body_new (void)
 {
 	SoupMessageBodyPrivate *priv;
 
-	priv = g_slice_new0 (SoupMessageBodyPrivate);
+	priv = g_atomic_rc_box_new0 (SoupMessageBodyPrivate);
 	priv->accumulate = TRUE;
-	g_atomic_ref_count_init (&priv->ref_count);
 
 	return (SoupMessageBody *)priv;
 }
@@ -392,9 +390,8 @@ soup_message_body_wrote_chunk (SoupMessageBody *body, GBytes *chunk)
 static SoupMessageBody *
 soup_message_body_copy (SoupMessageBody *body)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        g_atomic_rc_box_acquire (body);
 
-	g_atomic_ref_count_inc (&priv->ref_count);
 	return body;
 }
 
@@ -408,13 +405,7 @@ soup_message_body_copy (SoupMessageBody *body)
 void
 soup_message_body_free (SoupMessageBody *body)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
-
-	if (!g_atomic_ref_count_dec (&priv->ref_count))
-		return;
-
-	soup_message_body_truncate (body);
-	g_slice_free (SoupMessageBodyPrivate, priv);
+        g_atomic_rc_box_release_full (body, (GDestroyNotify)soup_message_body_truncate);
 }
 
 G_DEFINE_BOXED_TYPE (SoupMessageBody, soup_message_body, soup_message_body_copy, soup_message_body_free)

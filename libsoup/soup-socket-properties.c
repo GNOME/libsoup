@@ -18,9 +18,7 @@ soup_socket_properties_new (GInetSocketAddress *local_addr,
 {
 	SoupSocketProperties *props;
 
-	props = g_slice_new0 (SoupSocketProperties);
-
-        g_atomic_ref_count_init (&props->ref_count);
+	props = g_atomic_rc_box_new0 (SoupSocketProperties);
 
 	props->proxy_use_default = TRUE;
 	props->tlsdb_use_default = TRUE;
@@ -37,22 +35,24 @@ soup_socket_properties_new (GInetSocketAddress *local_addr,
 SoupSocketProperties *
 soup_socket_properties_ref (SoupSocketProperties *props)
 {
-	g_atomic_ref_count_inc (&props->ref_count);
+        g_atomic_rc_box_acquire (props);
+
 	return props;
+}
+
+static void
+soup_socket_properties_destroy (SoupSocketProperties *props)
+{
+        g_clear_object (&props->proxy_resolver);
+        g_clear_object (&props->local_addr);
+	g_clear_object (&props->tlsdb);
+	g_clear_object (&props->tls_interaction);
 }
 
 void
 soup_socket_properties_unref (SoupSocketProperties *props)
 {
-	if (!g_atomic_ref_count_dec (&props->ref_count))
-		return;
-
-	g_clear_object (&props->proxy_resolver);
-	g_clear_object (&props->local_addr);
-	g_clear_object (&props->tlsdb);
-	g_clear_object (&props->tls_interaction);
-
-	g_slice_free (SoupSocketProperties, props);
+        g_atomic_rc_box_release_full (props, (GDestroyNotify)soup_socket_properties_destroy);
 }
 
 void

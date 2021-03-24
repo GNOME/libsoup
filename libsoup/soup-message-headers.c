@@ -58,8 +58,6 @@ struct _SoupMessageHeaders {
 	goffset content_length;
 	SoupExpectation expectations;
 	char *content_type;
-
-	gatomicrefcount ref_count;
 };
 
 /**
@@ -77,13 +75,11 @@ soup_message_headers_new (SoupMessageHeadersType type)
 {
 	SoupMessageHeaders *hdrs;
 
-	hdrs = g_slice_new0 (SoupMessageHeaders);
+	hdrs = g_atomic_rc_box_new0 (SoupMessageHeaders);
 	/* FIXME: is "5" a good default? */
 	hdrs->array = g_array_sized_new (TRUE, FALSE, sizeof (SoupHeader), 5);
 	hdrs->type = type;
 	hdrs->encoding = -1;
-
-        g_atomic_ref_count_init (&hdrs->ref_count);
 
 	return hdrs;
 }
@@ -91,8 +87,17 @@ soup_message_headers_new (SoupMessageHeadersType type)
 static SoupMessageHeaders *
 soup_message_headers_copy (SoupMessageHeaders *hdrs)
 {
-	g_atomic_ref_count_inc (&hdrs->ref_count);
+	g_atomic_rc_box_acquire (hdrs);
+
 	return hdrs;
+}
+
+static void
+soup_message_headers_destroy (SoupMessageHeaders *hdrs)
+{
+        soup_message_headers_clear (hdrs);
+        g_array_free (hdrs->array, TRUE);
+        g_clear_pointer (&hdrs->concat, g_hash_table_destroy);
 }
 
 /**
@@ -104,13 +109,7 @@ soup_message_headers_copy (SoupMessageHeaders *hdrs)
 void
 soup_message_headers_free (SoupMessageHeaders *hdrs)
 {
-	if (!g_atomic_ref_count_dec (&hdrs->ref_count))
-		return;
-
-	soup_message_headers_clear (hdrs);
-	g_array_free (hdrs->array, TRUE);
-	g_clear_pointer (&hdrs->concat, g_hash_table_destroy);
-	g_slice_free (SoupMessageHeaders, hdrs);
+        g_atomic_rc_box_release_full (hdrs, (GDestroyNotify)soup_message_headers_destroy);
 }
 
 G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_headers_copy, soup_message_headers_free)
