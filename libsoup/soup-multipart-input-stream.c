@@ -345,7 +345,7 @@ soup_multipart_input_stream_parse_headers (SoupMultipartInputStream *multipart)
 	if (success)
 		priv->remaining_bytes = soup_message_headers_get_content_length (priv->current_headers);
 	else
-		g_clear_pointer (&priv->current_headers, soup_message_headers_free);
+		g_clear_pointer (&priv->current_headers, soup_message_headers_unref);
 
 	g_byte_array_remove_range (priv->meta_buf, 0, priv->meta_buf->len);
 }
@@ -364,7 +364,7 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
 
 	g_return_val_if_fail (priv->boundary != NULL, TRUE);
 
-	g_clear_pointer (&priv->current_headers, soup_message_headers_free);
+	g_clear_pointer (&priv->current_headers, soup_message_headers_unref);
 
 	while (1) {
 		nread = soup_filter_input_stream_read_line (priv->base_stream, read_buf, sizeof (read_buf),

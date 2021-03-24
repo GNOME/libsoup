@@ -53,7 +53,7 @@ soup_multipart_new_internal (char *mime_type, char *boundary)
 	multipart = g_slice_new (SoupMultipart);
 	multipart->mime_type = mime_type;
 	multipart->boundary = boundary;
-	multipart->headers = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_message_headers_free);
+	multipart->headers = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_message_headers_unref);
 	multipart->bodies = g_ptr_array_new_with_free_func ((GDestroyNotify)g_bytes_unref);
 
 	return multipart;

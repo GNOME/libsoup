@@ -24,7 +24,10 @@ SOUP_AVAILABLE_IN_ALL
 SoupMessageHeaders *soup_message_headers_new      (SoupMessageHeadersType type);
 
 SOUP_AVAILABLE_IN_ALL
-void                soup_message_headers_free     (SoupMessageHeaders *hdrs);
+SoupMessageHeaders *soup_message_headers_ref      (SoupMessageHeaders *hdrs);
+
+SOUP_AVAILABLE_IN_ALL
+void                soup_message_headers_unref    (SoupMessageHeaders *hdrs);
 
 SOUP_AVAILABLE_IN_ALL
 void                soup_message_headers_append   (SoupMessageHeaders *hdrs,
@@ -169,6 +172,6 @@ void     soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs
 						       const char          *disposition,
 						       GHashTable          *params);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageHeaders, soup_message_headers_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageHeaders, soup_message_headers_unref)
 
 G_END_DECLS

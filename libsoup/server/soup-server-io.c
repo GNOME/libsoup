@@ -256,7 +256,7 @@ handle_partial_get (SoupServerMessage *msg)
                                                             ranges[i].end - ranges[i].start + 1);
                         soup_multipart_append_part (multipart, part_headers,
                                                     part_body);
-                        soup_message_headers_free (part_headers);
+                        soup_message_headers_unref (part_headers);
                         g_bytes_unref (part_body);
                 }
 

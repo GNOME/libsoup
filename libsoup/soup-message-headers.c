@@ -84,8 +84,16 @@ soup_message_headers_new (SoupMessageHeadersType type)
 	return hdrs;
 }
 
-static SoupMessageHeaders *
-soup_message_headers_copy (SoupMessageHeaders *hdrs)
+/**
+ * soup_message_headers_ref:
+ * @hdrs: a #SoupMessageHeaders
+ *
+ * Atomically increments the reference count of @hdrs by one.
+ *
+ * Returns: the passed in #SoupMessageHeaders
+ */
+SoupMessageHeaders *
+soup_message_headers_ref (SoupMessageHeaders *hdrs)
 {
 	g_atomic_rc_box_acquire (hdrs);
 
@@ -101,18 +109,20 @@ soup_message_headers_destroy (SoupMessageHeaders *hdrs)
 }
 
 /**
- * soup_message_headers_free:
+ * soup_message_headers_unref:
  * @hdrs: a #SoupMessageHeaders
  *
- * Frees @hdrs.
- **/
+ * Atomically decrements the reference count of @hdrs by one.
+ * When the reference count reaches zero, the resources allocated by
+ * @hdrs are freed
+ */
 void
-soup_message_headers_free (SoupMessageHeaders *hdrs)
+soup_message_headers_unref (SoupMessageHeaders *hdrs)
 {
         g_atomic_rc_box_release_full (hdrs, (GDestroyNotify)soup_message_headers_destroy);
 }
 
-G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_headers_copy, soup_message_headers_free)
+G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_headers_ref, soup_message_headers_unref)
 
 /**
  * soup_message_headers_get_headers_type:

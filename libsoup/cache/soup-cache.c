@@ -285,7 +285,7 @@ static void
 soup_cache_entry_free (SoupCacheEntry *entry)
 {
 	g_free (entry->uri);
-	g_clear_pointer (&entry->headers, soup_message_headers_free);
+	g_clear_pointer (&entry->headers, soup_message_headers_unref);
 	g_clear_object (&entry->cancellable);
 
 	g_slice_free (SoupCacheEntry, entry);
@@ -1610,7 +1610,7 @@ soup_cache_load (SoupCache *cache)
 		/* Check that we have headers */
 		soup_message_headers_iter_init (&soup_headers_iter, headers);
 		if (!soup_message_headers_iter_next (&soup_headers_iter, &header_key, &header_value)) {
-			soup_message_headers_free (headers);
+			soup_message_headers_unref (headers);
 			continue;
 		}
 

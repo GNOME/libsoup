@@ -901,7 +901,7 @@ do_request_tests (void)
 
 		g_free (method);
 		g_free (path);
-		soup_message_headers_free (headers);
+		soup_message_headers_unref (headers);
 	}
 }
 
@@ -937,7 +937,7 @@ do_response_tests (void)
 			g_assert_null (resptests[i].reason_phrase);
 
 		g_free (reason_phrase);
-		soup_message_headers_free (headers);
+		soup_message_headers_unref (headers);
 	}
 }
 
@@ -1100,7 +1100,7 @@ do_content_disposition_tests (void)
 	g_assert_cmpstr (filename, ==, RFC5987_TEST_FALLBACK_FILENAME);
 	g_hash_table_destroy (params);
 
-	soup_message_headers_free (hdrs);
+	soup_message_headers_unref (hdrs);
 
 	/* Ensure that soup-multipart always quotes filename */
 	g_test_bug ("641280");
@@ -1112,7 +1112,7 @@ do_content_disposition_tests (void)
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	soup_multipart_to_message (multipart, hdrs, &buffer);
-	soup_message_headers_free (hdrs);
+	soup_message_headers_unref (hdrs);
 	soup_multipart_free (multipart);
 
 	g_assert_nonnull (strstr (g_bytes_get_data (buffer, NULL), "filename=\"token\""));
@@ -1167,7 +1167,7 @@ do_content_type_tests (void)
 	mime_type = soup_message_headers_get_content_type (hdrs, &params);
 	g_assert_null (mime_type);
 
-	soup_message_headers_free (hdrs);
+	soup_message_headers_unref (hdrs);
 }
 
 struct {
@@ -1232,7 +1232,7 @@ do_bad_header_tests (void)
 					     bad_headers[i].value);
 		g_test_assert_expected_messages ();
 	}
-	soup_message_headers_free (hdrs);
+	soup_message_headers_unref (hdrs);
 }
 
 int

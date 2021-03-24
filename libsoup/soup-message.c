@@ -175,8 +175,8 @@ soup_message_finalize (GObject *object)
 
 	g_clear_object (&priv->tls_certificate);
 
-	soup_message_headers_free (priv->request_headers);
-	soup_message_headers_free (priv->response_headers);
+	soup_message_headers_unref (priv->request_headers);
+	soup_message_headers_unref (priv->response_headers);
 	g_clear_object (&priv->request_body_stream);
 
 	g_free (priv->reason_phrase);

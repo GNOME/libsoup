@@ -99,7 +99,8 @@ SOUP_METHOD_UNLOCK
 SoupMessageHeaders
 SoupMessageHeadersType
 soup_message_headers_new
-soup_message_headers_free
+soup_message_headers_ref
+soup_message_headers_unref
 <SUBSECTION>
 soup_message_headers_append
 soup_message_headers_replace

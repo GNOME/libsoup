@@ -652,7 +652,7 @@ do_headers_test (gconstpointer data)
 
 	header_value = soup_message_headers_get_list (headers, "My-Header");
 	g_assert_cmpstr (header_value, ==, "My header NEW value");
-	soup_message_headers_free (headers);
+	soup_message_headers_unref (headers);
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (cache);
