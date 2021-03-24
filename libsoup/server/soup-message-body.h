@@ -28,6 +28,12 @@ SOUP_AVAILABLE_IN_ALL
 SoupMessageBody *soup_message_body_new           (void);
 
 SOUP_AVAILABLE_IN_ALL
+SoupMessageBody *soup_message_body_ref           (SoupMessageBody *body);
+
+SOUP_AVAILABLE_IN_ALL
+void             soup_message_body_unref         (SoupMessageBody *body);
+
+SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_set_accumulate(SoupMessageBody *body,
 						  gboolean         accumulate);
 SOUP_AVAILABLE_IN_ALL
@@ -63,10 +69,5 @@ void             soup_message_body_got_chunk     (SoupMessageBody *body,
 SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_wrote_chunk   (SoupMessageBody *body,
 						  GBytes          *chunk);
-
-SOUP_AVAILABLE_IN_ALL
-void             soup_message_body_free          (SoupMessageBody *body);
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageBody, soup_message_body_free)
 
 G_END_DECLS

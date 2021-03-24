@@ -130,9 +130,9 @@ soup_server_message_finalize (GObject *object)
         g_clear_pointer (&msg->uri, g_uri_unref);
         g_free (msg->reason_phrase);
 
-        soup_message_body_free (msg->request_body);
+        soup_message_body_unref (msg->request_body);
         soup_message_headers_free (msg->request_headers);
-        soup_message_body_free (msg->response_body);
+        soup_message_body_unref (msg->response_body);
         soup_message_headers_free (msg->response_headers);
 
         G_OBJECT_CLASS (soup_server_message_parent_class)->finalize (object);

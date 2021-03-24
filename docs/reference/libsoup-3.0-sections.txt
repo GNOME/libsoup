@@ -175,7 +175,8 @@ SoupMemoryUse
 <SUBSECTION>
 SoupMessageBody
 soup_message_body_new
-soup_message_body_free
+soup_message_body_ref
+soup_message_body_unref
 <SUBSECTION>
 soup_message_body_set_accumulate
 soup_message_body_get_accumulate

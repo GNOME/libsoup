@@ -387,8 +387,16 @@ soup_message_body_wrote_chunk (SoupMessageBody *body, GBytes *chunk)
 	g_bytes_unref (chunk2);
 }
 
-static SoupMessageBody *
-soup_message_body_copy (SoupMessageBody *body)
+/**
+ * soup_message_body_ref:
+ * @body: a #SoupMessageBody
+ *
+ * Atomically increments the reference count of @body by one.
+ *
+ * Returns: the passed in #SoupMessageBody
+ */
+SoupMessageBody *
+soup_message_body_ref (SoupMessageBody *body)
 {
         g_atomic_rc_box_acquire (body);
 
@@ -396,16 +404,17 @@ soup_message_body_copy (SoupMessageBody *body)
 }
 
 /**
- * soup_message_body_free:
+ * soup_message_body_unref:
  * @body: a #SoupMessageBody
  *
- * Frees @body. You will not normally need to use this, as
- * #SoupMessage frees its associated message bodies automatically.
- **/
+ * Atomically decrements the reference count of @body by one.
+ * When the reference count reaches zero, the resources allocated by
+ * @body are freed
+ */
 void
-soup_message_body_free (SoupMessageBody *body)
+soup_message_body_unref (SoupMessageBody *body)
 {
         g_atomic_rc_box_release_full (body, (GDestroyNotify)soup_message_body_truncate);
 }
 
-G_DEFINE_BOXED_TYPE (SoupMessageBody, soup_message_body, soup_message_body_copy, soup_message_body_free)
+G_DEFINE_BOXED_TYPE (SoupMessageBody, soup_message_body, soup_message_body_ref, soup_message_body_unref)
