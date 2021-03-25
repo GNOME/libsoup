@@ -44,9 +44,6 @@ void           soup_message_set_request_body_from_bytes (SoupMessage  *msg,
 							 GBytes       *bytes);
 
 SOUP_AVAILABLE_IN_ALL
-void             soup_message_set_http_version    (SoupMessage       *msg,
-						   SoupHTTPVersion    version);
-SOUP_AVAILABLE_IN_ALL
 SoupHTTPVersion  soup_message_get_http_version    (SoupMessage       *msg);
 
 SOUP_AVAILABLE_IN_ALL

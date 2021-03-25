@@ -142,4 +142,7 @@ void                soup_message_set_method              (SoupMessage        *ms
 
 gboolean            soup_message_is_options_ping         (SoupMessage        *msg);
 
+void                soup_message_set_http_version        (SoupMessage       *msg,
+						          SoupHTTPVersion    version);
+
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */
