@@ -80,7 +80,8 @@ typedef enum {
 
 typedef enum {
         SOUP_HTTP_1_0 = 0, /*< nick=http-1-0 >*/
-        SOUP_HTTP_1_1 = 1  /*< nick=http-1-1 >*/
+        SOUP_HTTP_1_1 = 1, /*< nick=http-1-1 >*/
+        SOUP_HTTP_2_0 = 2  /*< nick=http-2-0 >*/
 } SoupHTTPVersion;
 
 SOUP_AVAILABLE_IN_ALL
