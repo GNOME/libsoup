@@ -143,4 +143,19 @@ void                soup_message_set_method              (SoupMessage        *ms
 void                soup_message_set_http_version        (SoupMessage       *msg,
 						          SoupHTTPVersion    version);
 
+typedef enum {
+        SOUP_MESSAGE_METRICS_FETCH_START,
+        SOUP_MESSAGE_METRICS_DNS_START,
+        SOUP_MESSAGE_METRICS_DNS_END,
+        SOUP_MESSAGE_METRICS_CONNECT_START,
+        SOUP_MESSAGE_METRICS_CONNECT_END,
+        SOUP_MESSAGE_METRICS_TLS_START,
+        SOUP_MESSAGE_METRICS_REQUEST_START,
+        SOUP_MESSAGE_METRICS_RESPONSE_START,
+        SOUP_MESSAGE_METRICS_RESPONSE_END
+} SoupMessageMetricsType;
+
+void soup_message_set_metrics_timestamp (SoupMessage           *msg,
+                                         SoupMessageMetricsType type);
+
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

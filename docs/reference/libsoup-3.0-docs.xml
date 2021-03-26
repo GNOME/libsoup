@@ -76,6 +76,10 @@
         <xi:include href="xml/soup-hsts-enforcer-db.xml"/>
         <xi:include href="xml/soup-hsts-policy.xml"/>
         </section>
+        <section>
+        <title>Metrics</title>
+        <xi:include href="xml/soup-message-metrics.xml"/>
+        </section>
     </chapter>
 
     <chapter>

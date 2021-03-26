@@ -55,6 +55,8 @@ soup_message_get_site_for_cookies
 soup_message_set_site_for_cookies
 soup_message_get_is_top_level_navigation
 soup_message_set_is_top_level_navigation
+<SUBSECTION>
+soup_message_get_metrics
 <SUBSECTION Standard>
 SOUP_MESSAGE
 SOUP_IS_MESSAGE
@@ -990,4 +992,25 @@ SOUP_TYPE_HSTS_ENFORCER_DB
 SOUP_IS_HSTS_ENFORCER_DB
 SOUP_IS_HSTS_ENFORCER_DB_CLASS
 soup_hsts_enforcer_db_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-message-metrics</FILE>
+<TITLE>SoupMessageMetrics</TITLE>
+SoupMessageMetrics
+soup_message_metrics_copy
+soup_message_metrics_free
+<SUBSECTION>
+soup_message_metrics_get_fetch_start
+soup_message_metrics_get_dns_start
+soup_message_metrics_get_dns_end
+soup_message_metrics_get_connect_start
+soup_message_metrics_get_connect_end
+soup_message_metrics_get_tls_start
+soup_message_metrics_get_request_start
+soup_message_metrics_get_response_start
+soup_message_metrics_get_response_end
+<SUBSECTION Standard>
+SOUP_TYPE_MESSAGE_METRICS
+soup_message_metrics_get_type
 </SECTION>

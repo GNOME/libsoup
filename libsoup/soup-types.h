@@ -22,6 +22,7 @@ typedef struct _SoupCookieJar           SoupCookieJar;
 typedef struct _SoupHSTSEnforcer        SoupHSTSEnforcer;
 typedef struct _SoupHSTSPolicy          SoupHSTSPolicy;
 typedef struct _SoupMessage             SoupMessage;
+typedef struct _SoupMessageMetrics      SoupMessageMetrics;
 typedef struct _SoupServer              SoupServer;
 typedef struct _SoupServerMessage       SoupServerMessage;
 typedef struct _SoupSession             SoupSession;

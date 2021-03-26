@@ -1343,6 +1343,7 @@ soup_session_append_queue_item (SoupSession        *session,
 	SoupSessionHost *host;
 	GSList *f;
 
+        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_FETCH_START);
 	soup_message_cleanup_response (msg);
 
 	item = soup_message_queue_item_new (session, msg, async, cancellable, callback, user_data);
@@ -1701,6 +1702,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 
 	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, soup_message_get_uri (item->msg));
 	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+        soup_message_remove_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
 						      item->async,
@@ -1726,6 +1728,8 @@ connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *erro
 		item->state = SOUP_MESSAGE_CONNECTED;
 		return;
 	}
+
+        soup_message_set_metrics_timestamp (item->msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
 
 	item->error = error;
 	soup_connection_disconnect (conn);
@@ -2003,6 +2007,8 @@ soup_session_process_queue_item (SoupSession          *session,
 
 			item->state = SOUP_MESSAGE_RUNNING;
 
+                        soup_message_set_metrics_timestamp (item->msg, SOUP_MESSAGE_METRICS_REQUEST_START);
+
 			soup_session_send_queue_item (session, item,
 						      (SoupMessageIOCompletionFn)message_completed);
 
@@ -2025,6 +2031,8 @@ soup_session_process_queue_item (SoupSession          *session,
 		case SOUP_MESSAGE_RESTARTING:
 			item->state = SOUP_MESSAGE_STARTING;
 			soup_message_restarted (item->msg);
+                        soup_message_set_metrics_timestamp (item->msg, SOUP_MESSAGE_METRICS_FETCH_START);
+
 			break;
 
 		case SOUP_MESSAGE_FINISHING:
@@ -3040,6 +3048,8 @@ static void
 cache_stream_finished (GInputStream         *stream,
 		       SoupMessageQueueItem *item)
 {
+        soup_message_set_metrics_timestamp (item->msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
+
 	g_signal_handlers_disconnect_matched (stream, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, item);
 	item->state = SOUP_MESSAGE_FINISHING;
@@ -3175,6 +3185,7 @@ async_respond_from_cache (SoupSession          *session,
 			/* Cached file was deleted? */
 			return FALSE;
 		}
+
 		g_object_set_data_full (G_OBJECT (item->task), "SoupSession:istream",
 					stream, g_object_unref);
 

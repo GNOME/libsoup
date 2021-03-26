@@ -738,6 +738,115 @@ do_leaks_test (gconstpointer data)
 	g_free (cache_dir);
 }
 
+static void
+do_metrics_test (gconstpointer data)
+{
+        GUri *base_uri = (GUri *)data;
+        SoupSession *session;
+        SoupCache *cache;
+        char *cache_dir;
+        char *body;
+        GUri *uri;
+        SoupMessage *msg;
+        SoupMessageHeaders *request_headers;
+        GInputStream *stream;
+        char buffer[256];
+        gsize nread;
+        SoupMessageMetrics *metrics;
+
+        cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
+        debug_printf (2, "  Caching to %s\n", cache_dir);
+        cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+        session = soup_test_session_new (NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
+
+        g_signal_connect (session, "request-queued",
+                          G_CALLBACK (request_queued), NULL);
+        g_signal_connect (session, "request-unqueued",
+                          G_CALLBACK (request_unqueued), NULL);
+
+        body = do_request (session, base_uri, "GET", "/1", NULL,
+                           "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
+                           NULL);
+        g_free (body);
+
+        last_request_validated = last_request_hit_network = last_request_unqueued = FALSE;
+        uri = g_uri_parse_relative (base_uri, "/1", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
+        metrics = soup_message_get_metrics (msg);
+        g_assert_nonnull (metrics);
+        g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), ==, 0);
+
+        stream = soup_test_request_send (session, msg, NULL, 0, NULL);
+        g_assert_true (G_IS_INPUT_STREAM (stream));
+        g_assert_false (is_network_stream (stream));
+
+        g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >=, soup_message_metrics_get_fetch_start (metrics));
+        g_input_stream_read_all (stream, buffer, sizeof (buffer), &nread, NULL, NULL);
+        g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >=, soup_message_metrics_get_request_start (metrics));
+        soup_test_request_close_stream (stream, NULL, NULL);
+        g_object_unref (stream);
+        g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >=, soup_message_metrics_get_response_start (metrics));
+        g_object_unref (msg);
+
+        body = do_request (session, base_uri, "GET", "/2", NULL,
+                           "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+                           "Test-Set-Expires", "Sat, 02 Jan 2011 00:00:00 GMT",
+                           "Test-Set-Cache-Control", "must-revalidate",
+                           NULL);
+        g_free (body);
+
+        last_request_validated = last_request_hit_network = last_request_unqueued = FALSE;
+        uri = g_uri_parse_relative (base_uri, "/2", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        request_headers = soup_message_get_request_headers (msg);
+        soup_message_headers_append (request_headers,
+                                     "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT");
+        soup_message_headers_append (request_headers,
+                                     "Test-Set-Expires", "Sat, 02 Jan 2011 00:00:00 GMT");
+        soup_message_headers_append (request_headers,
+                                     "Test-Set-Cache-Control", "must-revalidate");
+
+        soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
+        metrics = soup_message_get_metrics (msg);
+        g_assert_nonnull (metrics);
+        g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), ==, 0);
+
+        stream = soup_test_request_send (session, msg, NULL, 0, NULL);
+        g_assert_true (G_IS_INPUT_STREAM (stream));
+        g_assert_false (is_network_stream (stream));
+        g_assert_true (last_request_validated);
+
+        g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >=, soup_message_metrics_get_fetch_start (metrics));
+        g_input_stream_read_all (stream, buffer, sizeof (buffer), &nread, NULL, NULL);
+        g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >=, soup_message_metrics_get_request_start (metrics));
+        soup_test_request_close_stream (stream, NULL, NULL);
+        g_object_unref (stream);
+        g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >=, soup_message_metrics_get_response_start (metrics));
+        g_object_unref (msg);
+
+        soup_test_session_abort_unref (session);
+        g_object_unref (cache);
+        g_free (cache_dir);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -756,6 +865,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/cache/refcounting", base_uri, do_refcounting_test);
 	g_test_add_data_func ("/cache/headers", base_uri, do_headers_test);
 	g_test_add_data_func ("/cache/leaks", base_uri, do_leaks_test);
+        g_test_add_data_func ("/cache/metrics", base_uri, do_metrics_test);
 
 	ret = g_test_run ();
 

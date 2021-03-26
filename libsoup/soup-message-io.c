@@ -510,11 +510,18 @@ io_read (SoupMessage *msg, gboolean blocking,
 	SoupClientMessageIOData *client_io = soup_message_get_io_data (msg);
 	SoupMessageIOData *io = &client_io->base;
 	gboolean succeeded;
+        gboolean is_first_read;
 
 	switch (io->read_state) {
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
+                is_first_read = io->read_header_buf->len == 0 &&
+                        soup_message_get_status (msg) == SOUP_STATUS_NONE;
+
 		if (!soup_message_io_data_read_headers (io, blocking, cancellable, error))
 			return FALSE;
+
+                if (is_first_read)
+                        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_START);
 
 		succeeded = parse_headers (msg,
 					   (char *)io->read_header_buf->data,
@@ -533,6 +540,7 @@ io_read (SoupMessage *msg, gboolean blocking,
 			 */
 			soup_message_headers_append (soup_message_get_request_headers (msg),
 						     "Connection", "close");
+                        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
 			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 			break;
 		}
@@ -639,6 +647,7 @@ io_read (SoupMessage *msg, gboolean blocking,
 
 	case SOUP_MESSAGE_IO_STATE_BODY_DONE:
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
+                soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
 		soup_message_got_body (msg);
 		break;
 
@@ -771,7 +780,9 @@ soup_message_io_finish (SoupMessage  *msg,
 
 		/* Connection got closed, but we can safely try again. */
 		io->item->state = SOUP_MESSAGE_RESTARTING;
-	}
+	} else if (error) {
+                soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
+        }
 
 	soup_message_io_finished (msg);
 }

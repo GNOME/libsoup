@@ -863,17 +863,92 @@ network_event (SoupMessage *msg, GSocketClientEvent event,
 		}
 	}
 
+        if (soup_message_query_flags (msg, SOUP_MESSAGE_COLLECT_METRICS)) {
+                SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+                g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
+
+                switch (event) {
+                case G_SOCKET_CLIENT_RESOLVING:
+                        g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), >, 0);
+                        break;
+                case G_SOCKET_CLIENT_RESOLVED:
+                        g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), >, 0);
+                        g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), >=, soup_message_metrics_get_dns_start (metrics));
+                        break;
+                case G_SOCKET_CLIENT_CONNECTING:
+                        g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), >, 0);
+                        g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), >=, soup_message_metrics_get_dns_end (metrics));
+                        break;
+                case G_SOCKET_CLIENT_TLS_HANDSHAKING:
+                        g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), >, 0);
+                        g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), >=, soup_message_metrics_get_connect_start (metrics));
+                        break;
+                case G_SOCKET_CLIENT_COMPLETE:
+                        g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >, 0);
+                        g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >=, soup_message_metrics_get_connect_start (metrics));
+                        if (soup_message_metrics_get_tls_start (metrics))
+                                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >=, soup_message_metrics_get_tls_start (metrics));
+                        break;
+                default:
+                        break;
+                }
+        }
+
 	*events = *events + 1;
 }
 
 static void
-do_one_connection_event_test (SoupSession *session, const char *uri,
-			      const char *events)
+metrics_test_message_starting_cb (SoupMessage *msg)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+        g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >=, soup_message_metrics_get_fetch_start (metrics));
+}
+
+static void
+metrics_test_status_changed_cb (SoupMessage *msg)
+{
+        SoupMessageMetrics *metrics;
+
+        metrics = soup_message_get_metrics (msg);
+        g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >=, soup_message_metrics_get_request_start (metrics));
+}
+
+static void
+metrics_test_got_body_cb (SoupMessage *msg)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+        g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >=, soup_message_metrics_get_response_start (metrics));
+}
+
+static void
+do_one_connection_event_test (SoupSession *session,
+                              const char  *uri,
+                              gboolean     collect_metrics,
+			      const char  *events)
 {
 	SoupMessage *msg;
 	GBytes *body;
+        SoupMessageMetrics *metrics;
 
 	msg = soup_message_new ("GET", uri);
+        if (collect_metrics) {
+                soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
+                g_signal_connect (msg, "starting",
+                                  G_CALLBACK (metrics_test_message_starting_cb),
+                                  NULL);
+                g_signal_connect (msg, "notify::status-code",
+                                  G_CALLBACK (metrics_test_status_changed_cb),
+                                  NULL);
+                g_signal_connect (msg, "got-body",
+                                  G_CALLBACK (metrics_test_got_body_cb),
+                                  NULL);
+        }
 	g_signal_connect (msg, "network-event",
 			  G_CALLBACK (network_event),
 			  &events);
@@ -886,22 +961,128 @@ do_one_connection_event_test (SoupSession *session, const char *uri,
 		events++;
 	}
 
+        metrics = soup_message_get_metrics (msg);
+        if (collect_metrics) {
+                g_assert_nonnull (metrics);
+
+                g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), >, 0);
+                if (g_str_equal (uri, HTTPS_SERVER))
+                        g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >, 0);
+        } else {
+                g_assert_null (metrics);
+        }
+
 	g_bytes_unref (body);
 	g_object_unref (msg);
 	soup_session_abort (session);
 }
 
 static void
-do_connection_event_test_for_session (SoupSession *session)
+do_one_connection_event_fail_test (SoupSession *session,
+                                   const char  *uri,
+                                   gboolean     collect_metrics,
+                                   GQuark       domain,
+                                   gint         code,
+                                   const char  *events)
+{
+        SoupMessage *msg;
+        GBytes *body;
+        SoupMessageMetrics *metrics;
+        GError *error = NULL;
+        GTlsDatabase *previous_tlsdb = NULL;
+
+        if (tls_available) {
+                GTlsDatabase *tlsdb;
+
+                previous_tlsdb = g_object_ref (soup_session_get_tls_database (session));
+                tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+                soup_session_set_tls_database (session, tlsdb);
+                g_object_unref (tlsdb);
+        }
+
+        msg = soup_message_new ("GET", uri);
+        if (collect_metrics) {
+                soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
+                g_signal_connect (msg, "starting",
+                                  G_CALLBACK (metrics_test_message_starting_cb),
+                                  NULL);
+                g_signal_connect (msg, "notify::status-code",
+                                  G_CALLBACK (metrics_test_status_changed_cb),
+                                  NULL);
+                g_signal_connect (msg, "got-body",
+                                  G_CALLBACK (metrics_test_got_body_cb),
+                                  NULL);
+        }
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (network_event),
+                          &events);
+        body = soup_session_send_and_read (session, msg, NULL, &error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_NONE);
+        g_assert_error (error, domain, code);
+        g_error_free (error);
+
+        while (*events) {
+                soup_test_assert (!*events,
+                                  "Expected %s",
+                                  event_name_from_abbrev (*events));
+                events++;
+        }
+
+        metrics = soup_message_get_metrics (msg);
+        if (collect_metrics) {
+                g_assert_nonnull (metrics);
+
+                g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), >, 0);
+                if (g_str_equal (uri, HTTPS_SERVER))
+                        g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >, 0);
+        } else {
+                g_assert_null (metrics);
+        }
+
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        soup_session_abort (session);
+
+        if (tls_available) {
+                soup_session_set_tls_database (session, previous_tlsdb);
+                g_object_unref (previous_tlsdb);
+        }
+}
+
+static void
+do_connection_event_test_for_session (SoupSession *session,
+                                      gboolean     collect_metrics)
 {
 	GProxyResolver *resolver;
 
 	debug_printf (1, "    http\n");
-	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
+	do_one_connection_event_test (session, HTTP_SERVER, collect_metrics, "rRcCx");
+
+        debug_printf (1, "    wrong http (invalid port)\n");
+        do_one_connection_event_fail_test (session, HTTP_SERVER_BAD_PORT, collect_metrics,
+                                           G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED,
+                                           "rRc");
 
 	if (tls_available) {
 		debug_printf (1, "    https\n");
-		do_one_connection_event_test (session, HTTPS_SERVER, "rRcCtTx");
+		do_one_connection_event_test (session, HTTPS_SERVER, collect_metrics, "rRcCtTx");
+                debug_printf (1, "    wrong https (invalid certificate)\n");
+                do_one_connection_event_fail_test (session, HTTPS_SERVER, collect_metrics,
+                                                   G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE,
+                                                   "rRcCt");
 	} else
 		debug_printf (1, "    https -- SKIPPING\n");
 
@@ -910,11 +1091,11 @@ do_connection_event_test_for_session (SoupSession *session)
 	g_object_unref (resolver);
 
 	debug_printf (1, "    http with proxy\n");
-	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
+	do_one_connection_event_test (session, HTTP_SERVER, collect_metrics, "rRcCx");
 
 	if (tls_available) {
 		debug_printf (1, "    https with proxy\n");
-		do_one_connection_event_test (session, HTTPS_SERVER, "rRcCpPtTx");
+		do_one_connection_event_test (session, HTTPS_SERVER, collect_metrics, "rRcCpPtTx");
 	} else
 		debug_printf (1, "    https with proxy -- SKIPPING\n");
 }
@@ -927,7 +1108,7 @@ do_connection_event_test (void)
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (NULL);
-	do_connection_event_test_for_session (session);
+	do_connection_event_test_for_session (session, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -1261,6 +1442,18 @@ do_connection_preconnect_test (void)
                 debug_printf (1, "    https -- SKIPPING\n");
 }
 
+static void
+do_connection_metrics_test (void)
+{
+        SoupSession *session;
+
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+
+        session = soup_test_session_new (NULL);
+        do_connection_event_test_for_session (session, TRUE);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1283,6 +1476,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/connection/state", do_connection_state_test);
 	g_test_add_func ("/connection/event", do_connection_event_test);
 	g_test_add_func ("/connection/preconnect", do_connection_preconnect_test);
+        g_test_add_func ("/connection/metrics", do_connection_metrics_test);
 
 	ret = g_test_run ();
 

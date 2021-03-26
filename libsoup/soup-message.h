@@ -77,7 +77,8 @@ typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT              = (1 << 1),
 	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 2),
 	SOUP_MESSAGE_IDEMPOTENT               = (1 << 3),
-	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 4)
+	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 4),
+        SOUP_MESSAGE_COLLECT_METRICS          = (1 << 5)
 } SoupMessageFlags;
 
 SOUP_AVAILABLE_IN_ALL
@@ -170,5 +171,9 @@ void                soup_message_set_is_options_ping  (SoupMessage  *msg,
                                                        gboolean      is_options_ping);
 SOUP_AVAILABLE_IN_ALL
 guint64             soup_message_get_connection_id    (SoupMessage *msg);
+
+SOUP_AVAILABLE_IN_ALL
+SoupMessageMetrics *soup_message_get_metrics          (SoupMessage  *msg);
+
 
 G_END_DECLS

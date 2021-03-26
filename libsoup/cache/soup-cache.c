@@ -692,6 +692,8 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
+        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_REQUEST_START);
+
 	entry = soup_cache_entry_lookup (cache, msg);
 	g_return_val_if_fail (entry, NULL);
 
@@ -715,6 +717,8 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 
 	/* Message starting */
 	soup_message_starting (msg);
+
+        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_START);
 
 	/* Status */
 	soup_message_set_status (msg, entry->status_code, NULL);

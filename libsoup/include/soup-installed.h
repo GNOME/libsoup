@@ -30,6 +30,7 @@ extern "C" {
 #include <libsoup/soup-hsts-policy.h>
 #include <libsoup/soup-logger.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-message-metrics.h>
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-multipart.h>
 #include <libsoup/soup-multipart-input-stream.h>

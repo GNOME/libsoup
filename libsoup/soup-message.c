@@ -15,6 +15,7 @@
 #include "soup.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
+#include "soup-message-metrics-private.h"
 #include "soup-uri-utils-private.h"
 
 /**
@@ -93,6 +94,8 @@ typedef struct {
 	gboolean is_top_level_navigation;
         gboolean is_options_ping;
         guint    last_connection_id;
+
+        SoupMessageMetrics *metrics;
 } SoupMessagePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
@@ -168,6 +171,7 @@ soup_message_finalize (GObject *object)
 	g_clear_pointer (&priv->uri, g_uri_unref);
 	g_clear_pointer (&priv->first_party, g_uri_unref);
 	g_clear_pointer (&priv->site_for_cookies, g_uri_unref);
+        g_clear_pointer (&priv->metrics, soup_message_metrics_free);
 
 	g_clear_object (&priv->auth);
 	g_clear_object (&priv->proxy_auth);
@@ -1314,10 +1318,42 @@ soup_message_get_connection (SoupMessage *msg)
 }
 
 static void
+soup_message_set_metrics_timestamp_for_network_event (SoupMessage       *msg,
+                                                      GSocketClientEvent event)
+{
+        switch (event) {
+        case G_SOCKET_CLIENT_RESOLVING:
+                soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_DNS_START);
+                break;
+        case G_SOCKET_CLIENT_RESOLVED:
+                soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_DNS_END);
+                break;
+        case G_SOCKET_CLIENT_CONNECTING:
+                soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_CONNECT_START);
+                break;
+        case G_SOCKET_CLIENT_CONNECTED:
+                /* connect_end happens after proxy and tls */
+        case G_SOCKET_CLIENT_PROXY_NEGOTIATING:
+        case G_SOCKET_CLIENT_PROXY_NEGOTIATED:
+                break;
+        case G_SOCKET_CLIENT_TLS_HANDSHAKING:
+                soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_TLS_START);
+                break;
+        case G_SOCKET_CLIENT_TLS_HANDSHAKED:
+                break;
+        case G_SOCKET_CLIENT_COMPLETE:
+                soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_CONNECT_END);
+                break;
+        }
+}
+
+static void
 re_emit_connection_event (SoupMessage       *msg,
                           GSocketClientEvent event,
                           GIOStream         *connection)
 {
+        soup_message_set_metrics_timestamp_for_network_event (msg, event);
+
 	g_signal_emit (msg, signals[NETWORK_EVENT], 0,
 		       event, connection);
 }
@@ -1428,6 +1464,7 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   and proxy authentication. Note that #SoupMessage::authenticate signal will
  *   be emitted, if you want to disable authentication for a message use
  *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead.
+ * @SOUP_MESSAGE_COLLECT_METRICS: Metrics will be collected for this message.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
@@ -2334,4 +2371,77 @@ soup_message_get_connection_id (SoupMessage *msg)
         g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
 
         return priv->last_connection_id;
+}
+
+/**
+ * soup_message_get_metrics:
+ * @msg: The #SoupMessage
+ *
+ * Get the #SoupMessageMetrics of @msg. If the flag %SOUP_MESSAGE_COLLECT_METRICS is not
+ * enabled for @msg this will return %NULL.
+ *
+ * Returns: (transfer none) (nullable): a #SoupMessageMetrics, or %NULL
+ */
+SoupMessageMetrics *
+soup_message_get_metrics (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+        priv = soup_message_get_instance_private (msg);
+        if (priv->metrics)
+                return priv->metrics;
+
+        if (priv->msg_flags & SOUP_MESSAGE_COLLECT_METRICS)
+                priv->metrics = soup_message_metrics_new ();
+
+        return priv->metrics;
+}
+
+void
+soup_message_set_metrics_timestamp (SoupMessage           *msg,
+                                    SoupMessageMetricsType type)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+        guint64 timestamp;
+
+        if (!metrics)
+                return;
+
+        timestamp = g_get_monotonic_time ();
+        switch (type) {
+        case SOUP_MESSAGE_METRICS_FETCH_START:
+                memset (metrics, 0, sizeof (SoupMessageMetrics));
+                metrics->fetch_start = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_DNS_START:
+                metrics->dns_start = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_DNS_END:
+                metrics->dns_end = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_CONNECT_START:
+                metrics->connect_start = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_CONNECT_END:
+                metrics->connect_end = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_TLS_START:
+                metrics->tls_start = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_REQUEST_START:
+                metrics->request_start = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_RESPONSE_START:
+                /* In case of multiple requests due to a informational response
+                 * the response start is the first one.
+                 */
+                if (metrics->response_start == 0)
+                        metrics->response_start = timestamp;
+                break;
+        case SOUP_MESSAGE_METRICS_RESPONSE_END:
+                metrics->response_end = timestamp;
+                break;
+        }
 }
