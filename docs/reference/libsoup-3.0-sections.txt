@@ -12,7 +12,6 @@ soup_message_set_request_body
 soup_message_set_request_body_from_bytes
 <SUBSECTION>
 SoupHTTPVersion
-soup_message_set_http_version
 soup_message_get_http_version
 soup_message_get_uri
 soup_message_set_uri
