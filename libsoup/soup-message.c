@@ -193,7 +193,7 @@ soup_message_set_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_METHOD:
-		priv->method = g_intern_string (g_value_get_string (value));
+                soup_message_set_method (msg, g_value_get_string (value));
 		break;
 	case PROP_URI:
 		soup_message_set_uri (msg, g_value_get_boxed (value));
@@ -214,7 +214,7 @@ soup_message_set_property (GObject *object, guint prop_id,
 		soup_message_set_first_party (msg, g_value_get_boxed (value));
 		break;
 	case PROP_PRIORITY:
-		priv->priority = g_value_get_enum (value);
+                soup_message_set_priority (msg, g_value_get_enum (value));
 		break;
 	case PROP_OPTIONS_PING:
 		priv->options_ping = g_value_get_boolean (value);
@@ -1263,6 +1263,23 @@ soup_message_get_uri_for_auth (SoupMessage *msg)
 	return priv->uri;
 }
 
+static void
+soup_message_set_tls_certificate (SoupMessage         *msg,
+                                  GTlsCertificate     *tls_certificate,
+                                  GTlsCertificateFlags tls_errors)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        if (priv->tls_certificate == tls_certificate && priv->tls_certificate_errors == tls_errors)
+                return;
+
+        g_clear_object (&priv->tls_certificate);
+        priv->tls_certificate = tls_certificate ? g_object_ref (tls_certificate) : NULL;
+        priv->tls_certificate_errors = tls_errors;
+        g_object_notify (G_OBJECT (msg), "tls-certificate");
+        g_object_notify (G_OBJECT (msg), "tls-certificate-errors");
+}
+
 SoupConnection *
 soup_message_get_connection (SoupMessage *msg)
 {
@@ -1297,20 +1314,9 @@ re_emit_tls_certificate_changed (SoupMessage    *msg,
 				 GParamSpec     *pspec,
 				 SoupConnection *conn)
 {
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-	GTlsCertificate *tls_certificate;
-	GTlsCertificateFlags tls_errors;
-
-	tls_certificate = soup_connection_get_tls_certificate (conn);
-	tls_errors = soup_connection_get_tls_certificate_errors (conn);
-	if (priv->tls_certificate == tls_certificate && priv->tls_certificate_errors == tls_errors)
-		return;
-
-	g_clear_object (&priv->tls_certificate);
-	priv->tls_certificate = tls_certificate ? g_object_ref (tls_certificate) : NULL;
-	priv->tls_certificate_errors = tls_errors;
-	g_object_notify (G_OBJECT (msg), "tls-certificate");
-	g_object_notify (G_OBJECT (msg), "tls-certificate-errors");
+        soup_message_set_tls_certificate (msg,
+                                          soup_connection_get_tls_certificate (conn),
+                                          soup_connection_get_tls_certificate_errors (conn));
 }
 
 void
@@ -1318,6 +1324,9 @@ soup_message_set_connection (SoupMessage    *msg,
 			     SoupConnection *conn)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        if (priv->connection == conn)
+                return;
 
 	if (priv->connection) {
 		g_signal_handlers_disconnect_by_data (priv->connection, msg);
@@ -1329,7 +1338,9 @@ soup_message_set_connection (SoupMessage    *msg,
 		return;
 
 	g_object_add_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
-	re_emit_tls_certificate_changed (msg, NULL, conn);
+        soup_message_set_tls_certificate (msg,
+                                          soup_connection_get_tls_certificate (priv->connection),
+                                          soup_connection_get_tls_certificate_errors (priv->connection));
 
 	g_signal_connect_object (priv->connection, "event",
 				 G_CALLBACK (re_emit_connection_event),
@@ -1355,20 +1366,17 @@ soup_message_cleanup_response (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+        g_object_freeze_notify (G_OBJECT (msg));
+
 	soup_message_headers_clear (priv->response_headers);
 
-	priv->status_code = SOUP_STATUS_NONE;
-	if (priv->reason_phrase) {
-		g_free (priv->reason_phrase);
-		priv->reason_phrase = NULL;
-	}
-	priv->http_version = priv->orig_http_version;
+        soup_message_set_status (msg, SOUP_STATUS_NONE, NULL);
+        soup_message_set_http_version (msg, priv->orig_http_version);
 
-	g_object_notify (G_OBJECT (msg), "status-code");
-	g_object_notify (G_OBJECT (msg), "reason-phrase");
-	g_object_notify (G_OBJECT (msg), "http-version");
-	g_object_notify (G_OBJECT (msg), "tls-certificate");
-	g_object_notify (G_OBJECT (msg), "tls-certificate-errors");
+        if (!priv->connection)
+                soup_message_set_tls_certificate (msg, NULL, 0);
+
+        g_object_thaw_notify (G_OBJECT (msg));
 }
 
 /**
@@ -1409,6 +1417,7 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 	SoupMessagePrivate *priv;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
 	priv = soup_message_get_instance_private (msg);
 
 	if (priv->msg_flags == flags)
@@ -1509,10 +1518,10 @@ soup_message_remove_flags (SoupMessage     *msg,
 void
 soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 {
-	SoupMessagePrivate *priv;
+	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	priv = soup_message_get_instance_private (msg);
+        if (priv->http_version == version)
+                return;
 
 	priv->http_version = version;
 	if (priv->status_code == SOUP_STATUS_NONE)
@@ -1600,15 +1609,27 @@ void
 soup_message_set_uri (SoupMessage *msg, GUri *uri)
 {
 	SoupMessagePrivate *priv;
+        GUri *normalized_uri;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
         g_return_if_fail (SOUP_URI_IS_VALID (uri));
+
 	priv = soup_message_get_instance_private (msg);
 
-	if (priv->uri)
-		g_uri_unref (priv->uri);
-	priv->uri = soup_uri_copy_with_normalized_flags (uri);
+        normalized_uri = soup_uri_copy_with_normalized_flags (uri);
+        if (!normalized_uri)
+                return;
 
+        if (priv->uri) {
+                if (soup_uri_equal (priv->uri, normalized_uri)) {
+                        g_uri_unref (normalized_uri);
+                        return;
+                }
+
+                g_uri_unref (priv->uri);
+        }
+
+	priv->uri = normalized_uri;
 	g_object_notify (G_OBJECT (msg), "uri");
 }
 
@@ -1647,12 +1668,22 @@ soup_message_set_status (SoupMessage *msg,
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	g_free (priv->reason_phrase);
+        g_object_freeze_notify (G_OBJECT (msg));
 
-	priv->status_code = status_code;
-	priv->reason_phrase = g_strdup (reason_phrase ? reason_phrase : soup_status_get_phrase (status_code));
-	g_object_notify (G_OBJECT (msg), "status-code");
-	g_object_notify (G_OBJECT (msg), "reason-phrase");
+        if (priv->status_code != status_code) {
+                priv->status_code = status_code;
+                g_object_notify (G_OBJECT (msg), "status-code");
+        }
+
+        if (reason_phrase) {
+                soup_message_set_reason_phrase (msg, reason_phrase);
+        } else {
+                soup_message_set_reason_phrase (msg, priv->status_code != SOUP_STATUS_NONE ?
+                                                soup_status_get_phrase (priv->status_code) :
+                                                NULL);
+        }
+
+        g_object_thaw_notify (G_OBJECT (msg));
 }
 
 /**
@@ -1793,6 +1824,8 @@ soup_message_set_first_party (SoupMessage *msg,
 
 	priv = soup_message_get_instance_private (msg);
         first_party_normalized = soup_uri_copy_with_normalized_flags (first_party);
+        if (!first_party_normalized)
+                return;
 
 	if (priv->first_party) {
 		if (soup_uri_equal (priv->first_party, first_party_normalized)) {
@@ -1854,6 +1887,8 @@ soup_message_set_site_for_cookies (SoupMessage *msg,
 
 	priv = soup_message_get_instance_private (msg);
         site_for_cookies_normalized = soup_uri_copy_with_normalized_flags (site_for_cookies);
+        if (!site_for_cookies_normalized)
+                return;
 
 	if (priv->site_for_cookies) {
 		if (soup_uri_equal (priv->site_for_cookies, site_for_cookies_normalized)) {
@@ -2000,9 +2035,16 @@ void
 soup_message_set_priority (SoupMessage        *msg,
 			   SoupMessagePriority priority)
 {
+        SoupMessagePrivate *priv;
+
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	g_object_set (msg, "priority", priority, NULL);
+        priv = soup_message_get_instance_private (msg);
+        if (priv->priority == priority)
+                return;
+
+        priv->priority = priority;
+	g_object_notify (G_OBJECT (msg), "priority");
 }
 
 /**
@@ -2175,8 +2217,12 @@ soup_message_set_reason_phrase (SoupMessage *msg, const char *reason_phrase)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+        if (g_strcmp0 (priv->reason_phrase, reason_phrase) == 0)
+                return;
+
         g_free (priv->reason_phrase);
         priv->reason_phrase = g_strdup (reason_phrase);
+        g_object_notify (G_OBJECT (msg), "reason-phrase");
 }
 
 void
@@ -2184,10 +2230,13 @@ soup_message_set_method (SoupMessage *msg,
                          const char  *method)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        const char *new_method = g_intern_string (method);
 
-        g_return_if_fail (method != NULL);
+        if (priv->method == new_method)
+                return;
 
-        priv->method = g_intern_string (method);
+        priv->method = new_method;
+        g_object_notify (G_OBJECT (msg), "method");
 }
 
 gboolean
