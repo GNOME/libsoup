@@ -92,6 +92,7 @@ typedef struct {
 
 	gboolean is_top_level_navigation;
         gboolean is_options_ping;
+        guint    last_connection_id;
 } SoupMessagePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
@@ -1361,6 +1362,8 @@ soup_message_set_connection (SoupMessage    *msg,
 	if (!priv->connection)
 		return;
 
+        priv->last_connection_id = soup_connection_get_id (priv->connection);
+
 	g_object_add_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
         soup_message_set_tls_certificate (msg,
                                           soup_connection_get_tls_certificate (priv->connection),
@@ -1397,8 +1400,10 @@ soup_message_cleanup_response (SoupMessage *msg)
         soup_message_set_status (msg, SOUP_STATUS_NONE, NULL);
         soup_message_set_http_version (msg, priv->orig_http_version);
 
-        if (!priv->connection)
+        if (!priv->connection) {
                 soup_message_set_tls_certificate (msg, NULL, 0);
+                priv->last_connection_id = 0;
+        }
 
         g_object_thaw_notify (G_OBJECT (msg));
 }
@@ -2308,4 +2313,24 @@ soup_message_set_is_options_ping (SoupMessage *msg,
         g_object_notify (G_OBJECT (msg), "is-options-ping");
         if (priv->is_options_ping)
                 soup_message_set_method (msg, SOUP_METHOD_OPTIONS);
+}
+
+/**
+ * soup_message_get_connection_id:
+ * @msg: The #SoupMessage
+ *
+ * Returns the unique idenfier for the last connection used.
+ * This may be 0 if it was a cached resource or it has not gotten
+ * a connection yet.
+ *
+ * Returns: An id or 0 if no connection.
+ */
+guint64
+soup_message_get_connection_id (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
+
+        return priv->last_connection_id;
 }

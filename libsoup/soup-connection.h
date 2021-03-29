@@ -75,6 +75,9 @@ void            soup_connection_send_request   (SoupConnection           *conn,
 
 GTlsCertificate     *soup_connection_get_tls_certificate        (SoupConnection *conn);
 GTlsCertificateFlags soup_connection_get_tls_certificate_errors (SoupConnection *conn);
+
+guint64              soup_connection_get_id                     (SoupConnection *conn);
+
 G_END_DECLS
 
 #endif /* __SOUP_CONNECTION_H__ */

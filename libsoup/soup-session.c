@@ -121,6 +121,7 @@ typedef struct {
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
 	guint max_conns, max_conns_per_host;
+        guint64 last_connection_id;
 } SoupSessionPrivate;
 
 static void free_host (SoupSessionHost *host);
@@ -1862,6 +1863,7 @@ get_connection_for_host (SoupSession *session,
 
 	ensure_socket_props (session);
 	conn = g_object_new (SOUP_TYPE_CONNECTION,
+                             "id", ++priv->last_connection_id,
 			     "remote-connectable", remote_connectable,
 			     "ssl", soup_uri_is_https (host->uri),
 			     "socket-properties", priv->socket_props,

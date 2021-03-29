@@ -168,5 +168,7 @@ gboolean            soup_message_get_is_options_ping  (SoupMessage  *msg);
 SOUP_AVAILABLE_IN_ALL
 void                soup_message_set_is_options_ping  (SoupMessage  *msg,
                                                        gboolean      is_options_ping);
+SOUP_AVAILABLE_IN_ALL
+guint64             soup_message_get_connection_id    (SoupMessage *msg);
 
 G_END_DECLS

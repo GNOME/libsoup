@@ -26,6 +26,7 @@ typedef struct {
 	GSocketConnectable *remote_connectable;
 	GIOStream *iostream;
 	SoupSocketProperties *socket_props;
+        guint64 id;
 
 	GUri *proxy_uri;
 	gboolean ssl;
@@ -53,6 +54,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
+        PROP_ID,
 	PROP_REMOTE_CONNECTABLE,
 	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
@@ -131,6 +133,9 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	case PROP_SSL:
 		priv->ssl = g_value_get_boolean (value);
 		break;
+	case PROP_ID:
+		priv->id = g_value_get_uint64 (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -155,6 +160,9 @@ soup_connection_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL:
 		g_value_set_boolean (value, priv->ssl);
+		break;
+	case PROP_ID:
+		g_value_set_uint64 (value, priv->id);
 		break;
 	case PROP_TLS_CERTIFICATE:
 		g_value_set_object (value, soup_connection_get_tls_certificate (SOUP_CONNECTION (object)));
@@ -241,6 +249,14 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "Whether the connection should use TLS",
 				      FALSE,G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS));
+	g_object_class_install_property (
+		object_class, PROP_ID,
+		g_param_spec_uint64 ("id",
+                                     "Connection Identifier",
+                                     "Unique identifier for the connection",
+                                     0, G_MAXUINT64,
+                                     0, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
                 object_class, PROP_TLS_CERTIFICATE,
 		g_param_spec_object ("tls-certificate",
@@ -1082,4 +1098,12 @@ soup_connection_get_tls_certificate_errors (SoupConnection *conn)
 		return 0;
 
 	return g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->connection));
+}
+
+guint64
+soup_connection_get_id (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->id;
 }

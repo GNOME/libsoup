@@ -621,6 +621,40 @@ do_msg_flags_test (void)
 	g_object_unref (msg);
 }
 
+static void
+do_connection_id_test (void)
+{
+        SoupSession *session = soup_test_session_new (NULL);
+        SoupMessage *msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+
+        /* Test that the ID is set for each new connection and that it is
+         * cached after the message is completed */
+
+        g_assert_cmpuint (soup_message_get_connection_id (msg), ==, 0);
+
+        guint status = soup_test_session_send_message (session, msg);
+
+        g_assert_cmpuint (status, ==, SOUP_STATUS_OK);
+        g_assert_cmpuint (soup_message_get_connection_id (msg), ==, 1);
+
+        status = soup_test_session_send_message (session, msg);
+
+        g_assert_cmpuint (status, ==, SOUP_STATUS_OK);
+        g_assert_cmpuint (soup_message_get_connection_id (msg), ==, 2);
+
+	GUri *uri = g_uri_parse_relative (base_uri, "/redirect", SOUP_HTTP_URI_FLAGS, NULL);
+	soup_message_set_uri (msg, uri);
+        g_uri_unref (uri);
+
+        status = soup_test_session_send_message (session, msg);
+
+        g_assert_cmpuint (status, ==, SOUP_STATUS_OK);
+        g_assert_cmpuint (soup_message_get_connection_id (msg), ==, 3);
+
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -652,6 +686,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/cancel-while-reading/req/delayed", do_cancel_while_reading_delayed_req_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/preemptive", do_cancel_while_reading_preemptive_req_test);
 	g_test_add_func ("/misc/msg-flags", do_msg_flags_test);
+        g_test_add_func ("/misc/connection-id", do_connection_id_test);
 
 	ret = g_test_run ();
 
