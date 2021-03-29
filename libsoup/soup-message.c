@@ -91,7 +91,7 @@ typedef struct {
 	SoupMessagePriority priority;
 
 	gboolean is_top_level_navigation;
-        gboolean options_ping;
+        gboolean is_options_ping;
 } SoupMessagePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
@@ -137,7 +137,7 @@ enum {
 	PROP_PRIORITY,
 	PROP_SITE_FOR_COOKIES,
 	PROP_IS_TOP_LEVEL_NAVIGATION,
-        PROP_OPTIONS_PING,
+        PROP_IS_OPTIONS_PING,
 
 	LAST_PROP
 };
@@ -189,7 +189,6 @@ soup_message_set_property (GObject *object, guint prop_id,
 			   const GValue *value, GParamSpec *pspec)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	switch (prop_id) {
 	case PROP_METHOD:
@@ -216,8 +215,8 @@ soup_message_set_property (GObject *object, guint prop_id,
 	case PROP_PRIORITY:
                 soup_message_set_priority (msg, g_value_get_enum (value));
 		break;
-	case PROP_OPTIONS_PING:
-		priv->options_ping = g_value_get_boolean (value);
+	case PROP_IS_OPTIONS_PING:
+                soup_message_set_is_options_ping (msg, g_value_get_boolean (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -275,8 +274,8 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_PRIORITY:
 		g_value_set_enum (value, priv->priority);
 		break;
-	case PROP_OPTIONS_PING:
-                g_value_set_boolean (value, priv->options_ping);
+	case PROP_IS_OPTIONS_PING:
+                g_value_set_boolean (value, priv->is_options_ping);
                 break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -754,16 +753,17 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   G_PARAM_STATIC_STRINGS));
 
 	/**
-	 * SoupMessage:options-ping:
+	 * SoupMessage:is-options-ping:
 	 *
 	 * The #SoupMessage is intended to be used to send
-         * `OPTIONS *` to a server and the path of
-         * #SoupMessage:uri will be ignored.
+         * `OPTIONS *` to a server. When set to %TRUE, the
+         * path of #SoupMessage:uri will be ignored and
+         * #SoupMessage:method set to %SOUP_METHOD_OPTIONS.
 	 */
 	g_object_class_install_property (
-		object_class, PROP_OPTIONS_PING,
-		g_param_spec_boolean ("options-ping",
-				      "Options Ping",
+		object_class, PROP_IS_OPTIONS_PING,
+		g_param_spec_boolean ("is-options-ping",
+				      "Is Options Ping",
 				      "The message is an OPTIONS ping",
                                       FALSE,
 				      G_PARAM_READWRITE |
@@ -778,7 +778,7 @@ soup_message_class_init (SoupMessageClass *message_class)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
- * Returns: (nullable): the new #SoupMessage (or %NULL if @uri
+ * Returns: (transfer full) (nullable): the new #SoupMessage (or %NULL if @uri
  * could not be parsed).
  */
 SoupMessage *
@@ -810,15 +810,39 @@ soup_message_new (const char *method, const char *uri_string)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
- * Returns: the new #SoupMessage
+ * Returns: (transfer full): the new #SoupMessage
  */
 SoupMessage *
 soup_message_new_from_uri (const char *method, GUri *uri)
 {
+        g_return_val_if_fail (method != NULL, NULL);
+        g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+
 	return g_object_new (SOUP_TYPE_MESSAGE,
 			     "method", method,
 			     "uri", uri,
 			     NULL);
+}
+
+/**
+ * soup_message_new_options_ping:
+ * @base_uri: the destination endpoint (as a #GUri)
+ *
+ * Creates a new #SoupMessage to send `OPTIONS *` to a server. The path of @base_uri
+ * will be ignored.
+ *
+ * Returns: (transfer full): the new #SoupMessage
+ */
+SoupMessage *
+soup_message_new_options_ping (GUri *base_uri)
+{
+        g_return_val_if_fail (SOUP_URI_IS_VALID (base_uri), NULL);
+
+        return g_object_new (SOUP_TYPE_MESSAGE,
+                             "method", SOUP_METHOD_OPTIONS,
+                             "uri", base_uri,
+                             "is-options-ping", TRUE,
+                             NULL);
 }
 
 /**
@@ -2239,10 +2263,49 @@ soup_message_set_method (SoupMessage *msg,
         g_object_notify (G_OBJECT (msg), "method");
 }
 
+/**
+ * soup_message_get_is_options_ping:
+ * @msg: a #SoupMessage
+ *
+ * Gets whether @msg is intended to be used to send `OPTIONS *` to a server.
+ *
+ * Returns: %TRUE if the message is options ping, or %FALSE otherwise
+ */
 gboolean
-soup_message_is_options_ping (SoupMessage *msg)
+soup_message_get_is_options_ping (SoupMessage *msg)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupMessagePrivate *priv;
 
-        return priv->options_ping;
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+
+        priv = soup_message_get_instance_private (msg);
+
+        return priv->is_options_ping;
+}
+
+/**
+ * soup_message_set_is_options_ping:
+ * @msg: a #SoupMessage
+ * @is_options_ping: the value to set
+ *
+ * Set whether @msg is intended to be used to send `OPTIONS *` to a server.
+ * When set to %TRUE, the path of #SoupMessage:uri will be ignored and
+ * #SoupMessage:method set to %SOUP_METHOD_OPTIONS.
+ */
+void
+soup_message_set_is_options_ping (SoupMessage *msg,
+                                  gboolean     is_options_ping)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+        priv = soup_message_get_instance_private (msg);
+        if (priv->is_options_ping == is_options_ping)
+                return;
+
+        priv->is_options_ping = is_options_ping;
+        g_object_notify (G_OBJECT (msg), "is-options-ping");
+        if (priv->is_options_ping)
+                soup_message_set_method (msg, SOUP_METHOD_OPTIONS);
 }

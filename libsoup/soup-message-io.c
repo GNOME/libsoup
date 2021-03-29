@@ -279,7 +279,7 @@ write_headers (SoupMessage          *msg,
 		 */
                 if (proxy)
                         uri_string = g_uri_to_string (uri);
-                else if (soup_message_is_options_ping (msg))
+                else if (soup_message_get_is_options_ping (msg))
                         uri_string = g_strdup ("*");
                 else
                         uri_string = soup_uri_get_path_and_query (uri);

@@ -11,6 +11,10 @@ soup_message_new_from_multipart
 soup_message_set_request_body
 soup_message_set_request_body_from_bytes
 <SUBSECTION>
+soup_message_new_options_ping
+soup_message_get_is_options_ping
+soup_message_set_is_options_ping
+<SUBSECTION>
 SoupHTTPVersion
 soup_message_get_http_version
 soup_message_get_uri

@@ -25,6 +25,9 @@ SoupMessage   *soup_message_new_from_uri          (const char        *method,
 						   GUri              *uri);
 
 SOUP_AVAILABLE_IN_ALL
+SoupMessage   *soup_message_new_options_ping      (GUri              *base_uri);
+
+SOUP_AVAILABLE_IN_ALL
 SoupMessage   *soup_message_new_from_encoded_form (const char        *method,
 						   const char        *uri_string,
 						   char              *encoded_form);
@@ -158,5 +161,12 @@ SoupMessageHeaders *soup_message_get_request_headers  (SoupMessage  *msg);
 
 SOUP_AVAILABLE_IN_ALL
 SoupMessageHeaders *soup_message_get_response_headers (SoupMessage  *msg);
+
+SOUP_AVAILABLE_IN_ALL
+gboolean            soup_message_get_is_options_ping  (SoupMessage  *msg);
+
+SOUP_AVAILABLE_IN_ALL
+void                soup_message_set_is_options_ping  (SoupMessage  *msg,
+                                                       gboolean      is_options_ping);
 
 G_END_DECLS

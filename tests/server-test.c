@@ -134,11 +134,8 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	session = soup_test_session_new (NULL);
 
 	debug_printf (1, "  Testing with no handler\n");
-	msg = g_object_new (SOUP_TYPE_MESSAGE,
-                            "method", SOUP_METHOD_OPTIONS,
-                            "uri", sd->base_uri,
-                            "options-ping", TRUE,
-                            NULL);
+	msg = soup_message_new_options_ping (sd->base_uri);
+        g_assert_true (soup_message_get_is_options_ping (msg));
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
@@ -148,11 +145,10 @@ do_star_test (ServerData *sd, gconstpointer test_data)
 	server_add_handler (sd, "*", server_star_callback, NULL, NULL);
 
 	debug_printf (1, "  Testing with handler\n");
-	msg = g_object_new (SOUP_TYPE_MESSAGE,
-                            "method", SOUP_METHOD_OPTIONS,
-                            "uri", sd->base_uri,
-                            "options-ping", TRUE,
-                            NULL);
+        msg = soup_message_new_from_uri ("GET", sd->base_uri);
+        g_assert_false (soup_message_get_is_options_ping (msg));
+        soup_message_set_is_options_ping (msg, TRUE);
+        g_assert_true (soup_message_get_is_options_ping (msg));
 	soup_test_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);

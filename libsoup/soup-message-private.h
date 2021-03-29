@@ -140,8 +140,6 @@ void                soup_message_set_reason_phrase       (SoupMessage        *ms
 void                soup_message_set_method              (SoupMessage        *msg,
                                                           const char         *method);
 
-gboolean            soup_message_is_options_ping         (SoupMessage        *msg);
-
 void                soup_message_set_http_version        (SoupMessage       *msg,
 						          SoupHTTPVersion    version);
 
