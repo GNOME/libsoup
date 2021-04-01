@@ -3,25 +3,25 @@
 # This file is distributed under the same license as the libsoup package.
 # Reinout van Schouwen <reinout@gmail.com>, 2013.
 # Reinout van Schouwen <reinouts@gnome.org>, 2013.
-# Nathan Follens <nthn@unseen.is>, 2015-2019.
+# Nathan Follens <nthn@unseen.is>, 2015-2019, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2019-09-21 11:44+0000\n"
-"PO-Revision-Date: 2019-09-25 12:49+0200\n"
+"POT-Creation-Date: 2021-03-05 08:36+0000\n"
+"PO-Revision-Date: 2021-04-01 21:05+0200\n"
 "Last-Translator: Nathan Follens <nthn@unseen.is>\n"
-"Language-Team: Dutch <vertaling@vrijschrift.org>\n"
+"Language-Team: Dutch <gnome-nl-list@gnome.org>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.2.3\n"
+"X-Generator: Poedit 2.4.2\n"
 "X-Project-Style: gnome\n"
 
 #: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
 msgid "Connection terminated unexpectedly"
 msgstr "Verbinding werd onverwacht verbroken"
 
@@ -41,6 +41,18 @@ msgstr "Netwerkstroom onverwacht gesloten"
 msgid "Failed to completely cache the resource"
 msgstr "Volledig bufferen van de bron is mislukt"
 
+#: libsoup/soup-directory-input-stream.c:231
+msgid "Name"
+msgstr "Naam"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Size"
+msgstr "Grootte"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Date Modified"
+msgstr "Datum gewijzigd"
+
 #: libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
@@ -54,15 +66,15 @@ msgstr "Kan HTTP-antwoord niet verwerken"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Niet-herkende HTTP-antwoordcodering"
 
-#: libsoup/soup-message-io.c:261
+#: libsoup/soup-message-io.c:269
 msgid "Header too big"
 msgstr "Hoofding te groot"
 
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
 msgid "Operation would block"
 msgstr "Bewerking zou blokkeren"
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
 msgid "Operation was cancelled"
 msgstr "Bewerking is geannuleerd"
 
@@ -80,31 +92,31 @@ msgstr "Geen URI aangeleverd"
 msgid "Invalid “%s” URI: %s"
 msgstr "Ongeldige ‘%s’-URI: %s"
 
-#: libsoup/soup-server.c:1805
+#: libsoup/soup-server.c:1810
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Kan geen TLS-server aanmaken zonder een TLS-certificaat"
 
-#: libsoup/soup-server.c:1822
+#: libsoup/soup-server.c:1827
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Kan niet luisteren op adres %s, poort %d: "
 
-#: libsoup/soup-session.c:4543
+#: libsoup/soup-session.c:4585
 #, c-format
 msgid "Could not parse URI “%s”"
 msgstr "Kon URI ‘%s’ niet verwerken"
 
-#: libsoup/soup-session.c:4580
+#: libsoup/soup-session.c:4622
 #, c-format
 msgid "Unsupported URI scheme “%s”"
 msgstr "Niet-ondersteund URI-schema ‘%s’"
 
-#: libsoup/soup-session.c:4602
+#: libsoup/soup-session.c:4644
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Geen HTTP-URI"
 
-#: libsoup/soup-session.c:4813
+#: libsoup/soup-session.c:4855
 msgid "The server did not accept the WebSocket handshake."
 msgstr "De server aanvaardde de WebSocket-handdruk niet."
 
@@ -142,8 +154,11 @@ msgstr "Gedupliceerde parameter in ‘%s’-WebSocket-extensiehoofding"
 
 #: libsoup/soup-websocket.c:567
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "Server gaf een gedupliceerde parameter in de ‘%s’-WebSocket-extensiehoofding weer"
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Server gaf een gedupliceerde parameter in de ‘%s’-WebSocket-extensiehoofding "
+"weer"
 
 #: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
 msgid "WebSocket handshake expected"
