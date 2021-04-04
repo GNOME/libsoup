@@ -1508,7 +1508,7 @@ soup_message_query_flags (SoupMessage     *msg,
         g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
         priv = soup_message_get_instance_private (msg);
-	return priv->msg_flags & flags;
+	return !!(priv->msg_flags & flags);
 }
 
 /**
