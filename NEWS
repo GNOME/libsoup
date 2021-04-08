@@ -1,3 +1,22 @@
+Changes in libsoup from 2.99.2 to 2.99.3:
+
+    * Fix soup_session_get_async_result_message() [Patrick Griffis]
+
+    * Fix SoupMessage not always emitting notify single on property change [Carlos Garcia Campos]
+
+    * Fix soup_message_query_flags() not returning a boolean [Patrick Griffis]
+
+    * Revert requiring a GPollableInputStream for request bodies [Carlos Garcia Campos]
+
+    * Rename soup_message_body_free() and soup_message_headers_free() to
+      soup_message_body_unref() and soup_message_headers_unref() [Carlos Garcia Campos]
+
+    * Rename SoupMessage:options-ping property to SoupMessage:is-options-ping and add
+      soup_message_new_options_ping(), soup_message_get_is_options_ping(), and
+      soup_message_set_is_options_ping() [Carlos Garcia Campos]
+
+    * Add SOUP_HTTP_2_0 SoupHTTPVersion to be used later [Patrick Griffis]
+
 Changes in libsoup from 2.99.1 to 2.99.2:
 
     * Add new soup_session_send_and_read() API [Carlos Garcia Campos]
