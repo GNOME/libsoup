@@ -118,7 +118,15 @@ soup_body_output_stream_wrote_data (SoupBodyOutputStream *bostream,
                                     const void           *buffer,
                                     gsize                 count)
 {
-	g_signal_emit (bostream, signals[WROTE_DATA], 0, buffer, count);
+	g_signal_emit (bostream, signals[WROTE_DATA], 0, buffer, count, FALSE);
+}
+
+static void
+soup_body_output_stream_wrote_metadata (SoupBodyOutputStream *bostream,
+                                        const void           *buffer,
+                                        gsize                 count)
+{
+	g_signal_emit (bostream, signals[WROTE_DATA], 0, buffer, count, TRUE);
 }
 
 static gssize
@@ -178,6 +186,9 @@ again:
 		nwrote = g_pollable_stream_write (priv->base_stream,
 						  buf, len, blocking,
 						  cancellable, error);
+                if (nwrote > 0)
+                        soup_body_output_stream_wrote_metadata (bostream, buf, nwrote);
+
 		if (nwrote < 0)
 			return nwrote;
 		memmove (buf, buf + nwrote, len + 1 - nwrote);
@@ -334,6 +345,15 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
 	output_stream_class->write_fn = soup_body_output_stream_write_fn;
 	output_stream_class->close_fn = soup_body_output_stream_close_fn;
 
+        /**
+         * SoupBodyOutputStream::wrote-data:
+         * @stream: the stream
+         * @buffer: the write buffer
+         * @count: the bytes written
+         * @is_metadata: whether the data being written is control data
+         *
+         * Emitted every time data is written in a #SoupBodyOutputStream
+         */
         signals[WROTE_DATA] =
                 g_signal_new ("wrote-data",
                               G_OBJECT_CLASS_TYPE (object_class),
@@ -341,9 +361,10 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
                               0,
                               NULL, NULL,
                               NULL,
-                              G_TYPE_NONE, 2,
+                              G_TYPE_NONE, 3,
                               G_TYPE_POINTER,
-                              G_TYPE_UINT);
+                              G_TYPE_UINT,
+                              G_TYPE_BOOLEAN);
 
 	g_object_class_install_property (
 		object_class, PROP_ENCODING,

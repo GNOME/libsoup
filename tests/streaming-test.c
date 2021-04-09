@@ -82,21 +82,76 @@ server_callback (SoupServer        *server,
 }
 
 static void
+msg_wrote_headers_cb (SoupMessage        *msg,
+                      SoupMessageMetrics *metrics)
+{
+        g_assert_cmpuint (soup_message_metrics_get_request_header_bytes_sent (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, 0);
+}
+
+static void
+msg_got_headers_cb (SoupMessage        *msg,
+                    SoupMessageMetrics *metrics)
+{
+        g_assert_cmpuint (soup_message_metrics_get_response_header_bytes_received (metrics), >, 0);
+}
+
+static void
+msg_got_body_cb (SoupMessage        *msg,
+                 SoupMessageMetrics *metrics)
+{
+        g_assert_cmpuint (soup_message_metrics_get_response_body_bytes_received (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_size (metrics), >, 0);
+}
+
+static void
 do_request (SoupSession *session, GUri *base_uri, char *path)
 {
 	GUri *uri;
 	SoupMessage *msg;
 	GBytes *body;
 	char *md5;
+        SoupMessageMetrics *metrics;
 
 	uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
 	msg = soup_message_new_from_uri ("GET", uri);
 	g_uri_unref (uri);
 
+        soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
+        metrics = soup_message_get_metrics (msg);
+        g_assert_nonnull (metrics);
+        g_assert_cmpuint (soup_message_metrics_get_request_header_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_header_bytes_received (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_bytes_received (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_size (metrics), ==, 0);
+
+        g_signal_connect (msg, "wrote-headers",
+                          G_CALLBACK (msg_wrote_headers_cb),
+                          metrics);
+        g_signal_connect (msg, "got-headers",
+                          G_CALLBACK (msg_got_headers_cb),
+                          metrics);
+        g_signal_connect (msg, "got-body",
+                          G_CALLBACK (msg_got_body_cb),
+                          metrics);
+
 	body = soup_test_session_async_send (session, msg, NULL, NULL);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_assert_cmpint (g_bytes_get_size (body), ==, g_bytes_get_size (full_response));
+        g_assert_cmpint (soup_message_metrics_get_response_body_size (metrics), ==, g_bytes_get_size (body));
+        g_assert_cmpuint (soup_message_metrics_get_request_header_bytes_sent (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_header_bytes_received (metrics), >, 0);
+        if (g_str_equal (path, "chunked")) {
+                g_assert_cmpuint (soup_message_metrics_get_response_body_bytes_received (metrics), >, soup_message_metrics_get_response_body_size (metrics));
+        } else {
+                g_assert_cmpuint (soup_message_metrics_get_response_body_bytes_received (metrics), ==, soup_message_metrics_get_response_body_size (metrics));
+        }
 
 	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
 					   (guchar *)g_bytes_get_data (body, NULL),

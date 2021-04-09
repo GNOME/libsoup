@@ -796,6 +796,12 @@ do_metrics_test (gconstpointer data)
         soup_test_request_close_stream (stream, NULL, NULL);
         g_object_unref (stream);
         g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >=, soup_message_metrics_get_response_start (metrics));
+        g_assert_cmpuint (soup_message_metrics_get_request_header_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_header_bytes_received (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_bytes_received (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_size (metrics), >, 0);
         g_object_unref (msg);
 
         body = do_request (session, base_uri, "GET", "/2", NULL,
@@ -840,6 +846,12 @@ do_metrics_test (gconstpointer data)
         soup_test_request_close_stream (stream, NULL, NULL);
         g_object_unref (stream);
         g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >=, soup_message_metrics_get_response_start (metrics));
+        g_assert_cmpuint (soup_message_metrics_get_request_header_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_header_bytes_received (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_bytes_received (metrics), ==, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_size (metrics), >, 0);
         g_object_unref (msg);
 
         soup_test_session_abort_unref (session);

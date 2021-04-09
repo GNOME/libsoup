@@ -32,6 +32,10 @@
  * fetch start event and finish with response end. All other events are optional.
  * An event can be 0 because it hasn't happened yet, because it's optional or
  * because the load failed before the event reached.
+ *
+ * Size metrics are expressed in bytes and aree updated while the #SoupMessage is
+ * being loaded. You can connect to different #SoupMessage signals to get the
+ * final result of every value.
  */
 
 G_DEFINE_BOXED_TYPE (SoupMessageMetrics, soup_message_metrics, soup_message_metrics_copy, soup_message_metrics_free)
@@ -242,4 +246,119 @@ soup_message_metrics_get_response_end (SoupMessageMetrics *metrics)
         g_return_val_if_fail (metrics != NULL, 0);
 
         return metrics->response_end;
+}
+
+/**
+ * soup_message_metrics_get_request_header_bytes_sent:
+ * @metrics: a #SoupMessageMetrics
+ *
+ * Get the number of bytes sent to the network for the request headers.
+ * This value is available right before #SoupMessage::wrote-headers signal
+ * is emitted, but you might get an intermediate value if called before.
+ *
+ * Returns: the request headers bytes sent
+ */
+guint64
+soup_message_metrics_get_request_header_bytes_sent (SoupMessageMetrics *metrics)
+{
+        g_return_val_if_fail (metrics != NULL, 0);
+
+        return metrics->request_header_bytes_sent;
+}
+
+/**
+ * soup_message_metrics_get_request_body_size:
+ * @metrics: a #SoupMessageMetrics
+ *
+ * Get the request body size in bytes. This is the size of the original body
+ * given to the request before any encoding is applied. This value is available
+ * right before #SoupMessage::wrote-body signal is emitted, but you might get
+ * an intermediate value if called before.
+ *
+ * Returns: the request body size
+ */
+guint64
+soup_message_metrics_get_request_body_size (SoupMessageMetrics *metrics)
+{
+        g_return_val_if_fail (metrics != NULL, 0);
+
+        return metrics->request_body_size;
+}
+
+/**
+ * soup_message_metrics_get_request_body_bytes_sent:
+ * @metrics: a #SoupMessageMetrics
+ *
+ * Get the number of bytes sent to the network for the request body. This is
+ * the size of the body sent, after encodings are applied, so it might be
+ * greater than the value returned by soup_message_metrics_get_request_body_size().
+ * This value is available right before #SoupMessage::wrote-body signal is
+ * emitted, but you might get an intermediate value if called before.
+ *
+ * Returns: the request body bytes sent
+ */
+guint64
+soup_message_metrics_get_request_body_bytes_sent (SoupMessageMetrics *metrics)
+{
+        g_return_val_if_fail (metrics != NULL, 0);
+
+        return metrics->request_body_bytes_sent;
+}
+
+/**
+ * soup_message_metrics_get_response_header_bytes_received:
+ * @metrics: a #SoupMessageMetrics
+ *
+ * Get the number of bytes received from the network for the response headers.
+ * This value is available right before #SoupMessage::got-headers signal
+ * is emitted, but you might get an intermediate value if called before.
+ * For resources loaded from the disk cache this value is always 0.
+ *
+ * Returns: the response headers bytes received
+ */
+guint64
+soup_message_metrics_get_response_header_bytes_received (SoupMessageMetrics *metrics)
+{
+        g_return_val_if_fail (metrics != NULL, 0);
+
+        return metrics->response_header_bytes_received;
+}
+
+/**
+ * soup_message_metrics_get_response_body_size:
+ * @metrics: a #SoupMessageMetrics
+ *
+ * Get the response body size in bytes. This is the size of the body as given to the
+ * user after all encodings are applied, so it might be greater than the value
+ * returned by soup_message_metrics_get_response_body_bytes_received(). This value is
+ * available right before #SoupMessage::got-body signal is emitted, but you might get
+ * an intermediate value if called before.
+ *
+ * Returns: the response body size
+ */
+guint64
+soup_message_metrics_get_response_body_size (SoupMessageMetrics *metrics)
+{
+        g_return_val_if_fail (metrics != NULL, 0);
+
+        return metrics->response_body_size;
+}
+
+/**
+ * soup_message_metrics_get_response_body_bytes_received:
+ * @metrics: a #SoupMessageMetrics
+ *
+ * Get the number of bytes received from the network for the response body. This value is
+ * available right before #SoupMessage::got-body signal is emitted, but you might get
+ * an intermediate value if called before.
+ * For resources loaded from the disk cache this value is always 0.
+ *
+ * Returns: the response body bytes received
+ */
+guint64
+soup_message_metrics_get_response_body_bytes_received (SoupMessageMetrics *metrics)
+{
+        g_return_val_if_fail (metrics != NULL, 0);
+
+        return metrics->response_body_bytes_received;
 }

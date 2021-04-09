@@ -661,7 +661,7 @@ io_read (SoupServerMessage *msg,
 
         switch (io->read_state) {
         case SOUP_MESSAGE_IO_STATE_HEADERS:
-                if (!soup_message_io_data_read_headers (io, FALSE, NULL, error)) {
+                if (!soup_message_io_data_read_headers (io, FALSE, NULL, NULL, error)) {
 			if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT))
 				soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
                         return FALSE;

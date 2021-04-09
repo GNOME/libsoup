@@ -12,6 +12,7 @@
 #include "soup-client-input-stream.h"
 #include "soup.h"
 #include "soup-message-private.h"
+#include "soup-message-metrics-private.h"
 #include "soup-misc.h"
 
 struct _SoupClientInputStream {
@@ -20,6 +21,7 @@ struct _SoupClientInputStream {
 
 typedef struct {
 	SoupMessage  *msg;
+        SoupMessageMetrics *metrics;
 } SoupClientInputStreamPrivate;
 
 enum {
@@ -69,6 +71,7 @@ soup_client_input_stream_set_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_MESSAGE:
 		priv->msg = g_value_dup_object (value);
+                priv->metrics = soup_message_get_metrics (priv->msg);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -100,10 +103,14 @@ soup_client_input_stream_read_fn (GInputStream  *stream,
 				  GCancellable  *cancellable,
 				  GError       **error)
 {
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (SOUP_CLIENT_INPUT_STREAM (stream));
 	gssize nread;
 
 	nread = G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->
 		read_fn (stream, buffer, count, cancellable, error);
+
+        if (priv->metrics && nread > 0)
+                priv->metrics->response_body_size += nread;
 
 	if (nread == 0)
 		g_signal_emit (stream, signals[SIGNAL_EOF], 0);
@@ -117,10 +124,14 @@ soup_client_input_stream_skip (GInputStream  *stream,
                                GCancellable  *cancellable,
                                GError       **error)
 {
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (SOUP_CLIENT_INPUT_STREAM (stream));
         gssize nread;
 
         nread = G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->
                 skip (stream, count, cancellable, error);
+
+        if (priv->metrics && nread > 0)
+	        priv->metrics->response_body_size += nread;
 
         if (nread == 0)
                 g_signal_emit (stream, signals[SIGNAL_EOF], 0);
@@ -134,10 +145,14 @@ soup_client_input_stream_read_nonblocking (GPollableInputStream  *stream,
 					   gsize                  count,
 					   GError               **error)
 {
+        SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (SOUP_CLIENT_INPUT_STREAM (stream));
 	gssize nread;
 
 	nread = soup_client_input_stream_parent_pollable_interface->
 		read_nonblocking (stream, buffer, count, error);
+
+        if (priv->metrics && nread > 0)
+	        priv->metrics->response_body_size += nread;
 
 	if (nread == 0)
 		g_signal_emit (stream, signals[SIGNAL_EOF], 0);

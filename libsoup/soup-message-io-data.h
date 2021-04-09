@@ -80,6 +80,7 @@ void     soup_message_io_data_cleanup      (SoupMessageIOData *io);
 gboolean soup_message_io_data_read_headers (SoupMessageIOData *io,
 					    gboolean           blocking,
 					    GCancellable      *cancellable,
+                                            gushort           *extra_bytes,
 					    GError           **error);
 
 typedef gboolean (*SoupMessageIOSourceFunc) (GObject *msg,

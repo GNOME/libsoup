@@ -40,7 +40,7 @@
 #include "soup-content-processor.h"
 #include "soup-message-private.h"
 #include "soup.h"
-#include "soup-message-private.h"
+#include "soup-message-metrics-private.h"
 #include "soup-misc.h"
 #include "soup-session-private.h"
 #include "soup-session-feature-private.h"
@@ -688,6 +688,7 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	SoupCacheEntry *entry;
 	GInputStream *file_stream, *body_stream, *cache_stream, *client_stream;
 	GFile *file;
+        SoupMessageMetrics *metrics;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
@@ -710,6 +711,10 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 
 	if (!body_stream)
 		return NULL;
+
+        metrics = soup_message_get_metrics (msg);
+        if (metrics)
+                metrics->response_body_size = entry->length;
 
 	/* If we are told to send a response from cache any validation
 	   in course is over by now */

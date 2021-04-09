@@ -33,8 +33,23 @@ wrote_body_data (SoupMessage *msg,
                  guint        count,
                  PutTestData *ptd)
 {
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
         debug_printf (2, "  wrote_body_data, %u bytes\n", count);
         ptd->nwrote += count;
+
+        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), >=, ptd->nwrote);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, ptd->nwrote);
+}
+
+static void
+wrote_body (SoupMessage *msg,
+            PutTestData *ptd)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), >=, ptd->nwrote);
+        g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, ptd->nwrote);
 }
 
 static GChecksum *
@@ -107,6 +122,7 @@ do_request_test (gconstpointer data)
         SoupMessageHeaders *request_headers;
         const char *client_md5, *server_md5;
         GChecksum *check;
+        SoupMessageMetrics *metrics;
 
         if (flags & RESTART)
                 uri = g_uri_parse_relative (base_uri, "/redirect", SOUP_HTTP_URI_FLAGS, NULL);
@@ -118,6 +134,7 @@ do_request_test (gconstpointer data)
         client_md5 = g_checksum_get_string (check);
 
         msg = soup_message_new_from_uri ("PUT", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
         request_headers = soup_message_get_request_headers (msg);
         if (flags & BYTES) {
                 soup_message_set_request_body_from_bytes (msg, ptd.content_type, ptd.bytes);
@@ -137,17 +154,29 @@ do_request_test (gconstpointer data)
 
         g_signal_connect (msg, "wrote-body-data",
                           G_CALLBACK (wrote_body_data), &ptd);
+        g_signal_connect (msg, "wrote-body",
+                          G_CALLBACK (wrote_body), &ptd);
 
         if (flags & ASYNC)
                 soup_test_session_async_send (session, msg, NULL, NULL);
         else
                 soup_test_session_send_message (session, msg);
         soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
+
+        metrics = soup_message_get_metrics (msg);
 	if (flags & NULL_STREAM) {
 		g_assert_cmpint (ptd.nwrote, ==, 0);
 		g_assert_cmpstr (soup_message_headers_get_one (request_headers, "Content-Length"), ==, "0");
+                g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, 0);
 	} else {
 		g_assert_cmpint (g_bytes_get_size (ptd.bytes), ==, ptd.nwrote);
+                if (flags & BYTES) {
+                        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, ptd.nwrote);
+                } else {
+                        g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), >, ptd.nwrote);
+                }
+                g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, ptd.nwrote);
 	}
 
         server_md5 = soup_message_headers_get_one (soup_message_get_response_headers (msg),

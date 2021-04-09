@@ -50,6 +50,7 @@ gboolean
 soup_message_io_data_read_headers (SoupMessageIOData *io,
 				   gboolean           blocking,
 				   GCancellable      *cancellable,
+                                   gushort           *extra_bytes,
 				   GError           **error)
 {
 	gssize nread, old_len;
@@ -66,8 +67,11 @@ soup_message_io_data_read_headers (SoupMessageIOData *io,
 							    cancellable, error);
 		io->read_header_buf->len = old_len + MAX (nread, 0);
 		if (nread == 0) {
-			if (io->read_header_buf->len > 0)
+			if (io->read_header_buf->len > 0) {
+                                if (extra_bytes)
+					*extra_bytes = 0;
 				break;
+                        }
 
 			g_set_error_literal (error, G_IO_ERROR,
 					     G_IO_ERROR_PARTIAL_INPUT,
@@ -82,12 +86,16 @@ soup_message_io_data_read_headers (SoupMessageIOData *io,
 				      io->read_header_buf->len - 2,
 				      "\n\n", 2)) {
 				io->read_header_buf->len--;
+                                if (extra_bytes)
+                                        *extra_bytes = 1;
 				break;
 			} else if (nread == 2 && old_len >= 3 &&
 				 !strncmp ((char *)io->read_header_buf->data +
 					   io->read_header_buf->len - 3,
 					   "\n\r\n", 3)) {
 				io->read_header_buf->len -= 2;
+                                if (extra_bytes)
+                                        *extra_bytes = 2;
 				break;
 			}
 		}

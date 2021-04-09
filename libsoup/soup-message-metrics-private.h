@@ -19,8 +19,15 @@ struct _SoupMessageMetrics {
         guint64 request_start;
         guint64 response_start;
         guint64 response_end;
+
+        guint64 request_header_bytes_sent;
+        guint64 request_body_size;
+        guint64 request_body_bytes_sent;
+        guint64 response_header_bytes_received;
+        guint64 response_body_size;
+        guint64 response_body_bytes_received;
 };
 
-SoupMessageMetrics *soup_message_metrics_new (void);
+SoupMessageMetrics *soup_message_metrics_new   (void);
 
 G_END_DECLS

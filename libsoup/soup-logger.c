@@ -815,13 +815,20 @@ got_body (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-body_stream_wrote_data_cb (GOutputStream *stream, const void *buffer,
-                           guint count, SoupLogger *logger)
+body_stream_wrote_data_cb (GOutputStream *stream,
+                           const void    *buffer,
+                           guint          count,
+                           gboolean       is_metadata,
+                           SoupLogger    *logger)
 {
-        SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
-        SoupMessage *msg = g_hash_table_lookup (priv->request_messages,
-                                                stream);
+        SoupLoggerPrivate *priv;
+        SoupMessage *msg;
 
+        if (is_metadata)
+                return;
+
+        priv = soup_logger_get_instance_private (logger);
+        msg = g_hash_table_lookup (priv->request_messages, stream);
         write_body (logger, buffer, count, msg, priv->request_bodies);
 }
 

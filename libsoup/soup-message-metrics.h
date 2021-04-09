@@ -48,6 +48,24 @@ guint64             soup_message_metrics_get_response_start (SoupMessageMetrics 
 SOUP_AVAILABLE_IN_ALL
 guint64             soup_message_metrics_get_response_end   (SoupMessageMetrics *metrics);
 
+SOUP_AVAILABLE_IN_ALL
+guint64             soup_message_metrics_get_request_header_bytes_sent      (SoupMessageMetrics *metrics);
+
+SOUP_AVAILABLE_IN_ALL
+guint64             soup_message_metrics_get_request_body_size              (SoupMessageMetrics *metrics);
+
+SOUP_AVAILABLE_IN_ALL
+guint64             soup_message_metrics_get_request_body_bytes_sent        (SoupMessageMetrics *metrics);
+
+SOUP_AVAILABLE_IN_ALL
+guint64             soup_message_metrics_get_response_header_bytes_received (SoupMessageMetrics *metrics);
+
+SOUP_AVAILABLE_IN_ALL
+guint64             soup_message_metrics_get_response_body_size             (SoupMessageMetrics *metrics);
+
+SOUP_AVAILABLE_IN_ALL
+guint64             soup_message_metrics_get_response_body_bytes_received   (SoupMessageMetrics *metrics);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(SoupMessageMetrics, soup_message_metrics_free)
 
 G_END_DECLS

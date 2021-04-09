@@ -212,6 +212,21 @@ do_coding_test_gzip (CodingTestData *data, gconstpointer test_data)
 }
 
 static void
+do_coding_test_gzip_metrics (CodingTestData *data, gconstpointer test_data)
+{
+        GBytes *body;
+        SoupMessageMetrics *metrics;
+
+        soup_message_add_flags (data->msg, SOUP_MESSAGE_COLLECT_METRICS);
+        body = soup_session_send_and_read (data->session, data->msg, NULL, NULL);
+        metrics = soup_message_get_metrics (data->msg);
+        g_assert_nonnull (metrics);
+        g_assert_cmpuint (soup_message_metrics_get_response_body_size (metrics), ==, g_bytes_get_size (body));
+        g_assert_cmpuint (soup_message_metrics_get_response_body_bytes_received (metrics), <, soup_message_metrics_get_response_body_size (metrics));
+        g_bytes_unref (body);
+}
+
+static void
 do_coding_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 {
 	GBytes *body;
@@ -345,6 +360,9 @@ main (int argc, char **argv)
 	g_test_add ("/coding/message/gzip", CodingTestData,
 		    GINT_TO_POINTER (CODING_TEST_DEFAULT),
 		    setup_coding_test, do_coding_test_gzip, teardown_coding_test);
+        g_test_add ("/coding/message/gzip/metrics", CodingTestData,
+                    GINT_TO_POINTER (CODING_TEST_DEFAULT),
+                    setup_coding_test, do_coding_test_gzip_metrics, teardown_coding_test);
 	g_test_add ("/coding/message/gzip/with-junk", CodingTestData,
 		    GINT_TO_POINTER (CODING_TEST_DEFAULT),
 		    setup_coding_test, do_coding_test_gzip_with_junk, teardown_coding_test);

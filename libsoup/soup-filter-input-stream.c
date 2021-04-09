@@ -26,6 +26,14 @@ typedef struct {
 	gboolean in_read_until;
 } SoupFilterInputStreamPrivate;
 
+enum {
+        READ_DATA,
+
+        LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
 static void soup_filter_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SoupFilterInputStream, soup_filter_input_stream, G_TYPE_FILTER_INPUT_STREAM,
@@ -81,17 +89,21 @@ soup_filter_input_stream_read_fn (GInputStream  *stream,
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
         SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
+        gssize bytes_read;
 
 	if (!priv->in_read_until)
 		priv->need_more = FALSE;
 
-	if (priv->buf && !priv->in_read_until) {
+	if (priv->buf && !priv->in_read_until)
 		return read_from_buf (fstream, buffer, count);
-	} else {
-		return g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
-					       buffer, count,
-					       TRUE, cancellable, error);
-	}
+
+        bytes_read = g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
+                                             buffer, count,
+                                             TRUE, cancellable, error);
+        if (bytes_read > 0)
+                g_signal_emit (fstream, signals[READ_DATA], 0, bytes_read);
+
+        return bytes_read;
 }
 
 static gssize
@@ -102,16 +114,20 @@ soup_filter_input_stream_skip (GInputStream  *stream,
 {
         SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
         SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
+        gssize bytes_skipped;
 
         if (!priv->in_read_until)
                 priv->need_more = FALSE;
 
-        if (priv->buf && !priv->in_read_until) {
+        if (priv->buf && !priv->in_read_until)
                 return read_from_buf (fstream, NULL, count);
-        } else {
-                return g_input_stream_skip (G_FILTER_INPUT_STREAM (fstream)->base_stream,
-                                            count, cancellable, error);
-        }
+
+        bytes_skipped = g_input_stream_skip (G_FILTER_INPUT_STREAM (fstream)->base_stream,
+                                             count, cancellable, error);
+        if (bytes_skipped > 0)
+                g_signal_emit (fstream, signals[READ_DATA], 0, bytes_skipped);
+
+        return bytes_skipped;
 }
 
 static gboolean
@@ -134,17 +150,21 @@ soup_filter_input_stream_read_nonblocking (GPollableInputStream  *stream,
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
         SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
+        gssize bytes_read;
 
 	if (!priv->in_read_until)
 		priv->need_more = FALSE;
 
-	if (priv->buf && !priv->in_read_until) {
+	if (priv->buf && !priv->in_read_until)
 		return read_from_buf (fstream, buffer, count);
-	} else {
-		return g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
-					       buffer, count,
-					       FALSE, NULL, error);
-	}
+
+        bytes_read = g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
+                                             buffer, count,
+                                             FALSE, NULL, error);
+        if (bytes_read > 0)
+                g_signal_emit (fstream, signals[READ_DATA], 0, bytes_read);
+
+        return bytes_read;
 }
 
 static GSource *
@@ -178,6 +198,17 @@ soup_filter_input_stream_class_init (SoupFilterInputStreamClass *stream_class)
 
 	input_stream_class->read_fn = soup_filter_input_stream_read_fn;
 	input_stream_class->skip = soup_filter_input_stream_skip;
+
+        signals[READ_DATA] =
+                g_signal_new ("read-data",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 1,
+                              G_TYPE_UINT);
+
 }
 
 static void

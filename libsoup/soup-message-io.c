@@ -25,6 +25,7 @@
 #include "soup-filter-input-stream.h"
 #include "soup-logger-private.h"
 #include "soup-message-private.h"
+#include "soup-message-metrics-private.h"
 #include "soup-message-queue-item.h"
 #include "soup-misc.h"
 #include "soup-uri-utils-private.h"
@@ -33,6 +34,8 @@ struct _SoupClientMessageIOData {
 	SoupMessageIOData base;
 
         SoupMessageQueueItem *item;
+
+        SoupMessageMetrics *metrics;
 
 #ifdef HAVE_SYSPROF
         gint64 begin_time_nsec;
@@ -164,9 +167,19 @@ soup_message_setup_body_istream (GInputStream *body_stream,
 static void
 request_body_stream_wrote_data_cb (SoupMessage *msg,
                                    const void  *buffer,
-                                   guint        count)
+                                   guint        count,
+                                   gboolean     is_metadata)
 {
-        soup_message_wrote_body_data (msg, count);
+        SoupClientMessageIOData *client_io = soup_message_get_io_data (msg);
+
+        if (client_io->metrics) {
+                client_io->metrics->request_body_bytes_sent += count;
+                if (!is_metadata)
+                        client_io->metrics->request_body_size += count;
+        }
+
+        if (!is_metadata)
+                soup_message_wrote_body_data (msg, count);
 }
 
 static void
@@ -345,6 +358,8 @@ io_write (SoupMessage *msg, gboolean blocking,
 			if (nwrote == -1)
 				return FALSE;
 			io->written += nwrote;
+                        if (client_io->metrics)
+                                client_io->metrics->request_header_bytes_sent += nwrote;
 		}
 
 		io->written = 0;
@@ -497,6 +512,18 @@ parse_headers (SoupMessage  *msg,
 	return TRUE;
 }
 
+static void
+response_network_stream_read_data_cb (SoupMessage *msg,
+                                      guint        count)
+{
+        SoupClientMessageIOData *client_io = soup_message_get_io_data (msg);
+
+        if (client_io->base.read_state < SOUP_MESSAGE_IO_STATE_BODY_START)
+                client_io->metrics->response_header_bytes_received += count;
+        else
+                client_io->metrics->response_body_bytes_received += count;
+}
+
 /* Attempts to push forward the reading side of @msg's I/O. Returns
  * %TRUE if it manages to make some progress, and it is likely that
  * further progress can be made. Returns %FALSE if it has reached a
@@ -511,14 +538,26 @@ io_read (SoupMessage *msg, gboolean blocking,
 	SoupMessageIOData *io = &client_io->base;
 	gboolean succeeded;
         gboolean is_first_read;
+        gushort extra_bytes;
 
 	switch (io->read_state) {
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
                 is_first_read = io->read_header_buf->len == 0 &&
                         soup_message_get_status (msg) == SOUP_STATUS_NONE;
 
-		if (!soup_message_io_data_read_headers (io, blocking, cancellable, error))
+		if (!soup_message_io_data_read_headers (io, blocking, cancellable, &extra_bytes, error))
 			return FALSE;
+
+                if (client_io->metrics) {
+                        /* Adjust the header and body bytes received, since we might
+                         * have read part of the body already that is queued by the stream.
+                         */
+                        if (client_io->metrics->response_header_bytes_received > io->read_header_buf->len + extra_bytes) {
+                                client_io->metrics->response_body_bytes_received =
+                                        client_io->metrics->response_header_bytes_received - io->read_header_buf->len - extra_bytes;
+                                client_io->metrics->response_header_bytes_received -= client_io->metrics->response_body_bytes_received;
+                        }
+                }
 
                 if (is_first_read)
                         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_START);
@@ -641,6 +680,9 @@ io_read (SoupMessage *msg, gboolean blocking,
 
 		if (nread == 0)
 			io->read_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
+
+                if (client_io->metrics)
+                        client_io->metrics->response_body_size += nread;
 
 		break;
 	}
@@ -999,6 +1041,13 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 
 	io->base.read_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->base.write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
+
+        io->metrics = soup_message_get_metrics (io->item->msg);
+        if (io->metrics) {
+                g_signal_connect_object (io->base.istream, "read-data",
+                                         G_CALLBACK (response_network_stream_read_data_cb),
+                                         io->item->msg, G_CONNECT_SWAPPED);
+        }
 
 #ifdef HAVE_SYSPROF
 	io->begin_time_nsec = SYSPROF_CAPTURE_CURRENT_TIME;
