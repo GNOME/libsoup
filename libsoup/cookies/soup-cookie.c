@@ -175,9 +175,7 @@ parse_one_cookie (const char *header, GUri *origin)
 {
 	const char *start, *end, *p;
 	gboolean has_value;
-	SoupCookie *cookie;	
-
-        g_return_val_if_fail (origin == NULL || SOUP_URI_IS_VALID (origin), NULL);
+	SoupCookie *cookie;
 
 	cookie = g_slice_new0 (SoupCookie);
 
@@ -394,7 +392,7 @@ soup_cookie_new (const char *name, const char *value,
 /**
  * soup_cookie_parse:
  * @header: a cookie string (eg, the value of a Set-Cookie header)
- * @origin: origin of the cookie, or %NULL
+ * @origin: (nullable): origin of the cookie, or %NULL
  *
  * Parses @header and returns a #SoupCookie. (If @header contains
  * multiple cookies, only the first one will be parsed.)
@@ -414,6 +412,9 @@ soup_cookie_new (const char *name, const char *value,
 SoupCookie *
 soup_cookie_parse (const char *cookie, GUri *origin)
 {
+        g_return_val_if_fail (cookie != NULL, NULL);
+        g_return_val_if_fail (origin == NULL || g_uri_get_host (origin) != NULL, NULL);
+
 	return parse_one_cookie (cookie, origin);
 }
 
@@ -1061,7 +1062,8 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, GUri *uri)
 {
 	int plen;
 
-        g_return_val_if_fail (SOUP_URI_IS_VALID (uri), FALSE);
+        g_return_val_if_fail (cookie != NULL, FALSE);
+        g_return_val_if_fail (uri != NULL, FALSE);
 
 	if (cookie->secure && !soup_uri_is_https (uri))
 		return FALSE;

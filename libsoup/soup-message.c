@@ -1849,7 +1849,7 @@ soup_message_set_first_party (SoupMessage *msg,
         GUri *first_party_normalized;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (SOUP_URI_IS_VALID (first_party));
+        g_return_if_fail (first_party != NULL);
 
 	priv = soup_message_get_instance_private (msg);
         first_party_normalized = soup_uri_copy_with_normalized_flags (first_party);
@@ -1912,7 +1912,6 @@ soup_message_set_site_for_cookies (SoupMessage *msg,
         GUri *site_for_cookies_normalized = NULL;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (site_for_cookies == NULL || SOUP_URI_IS_VALID (site_for_cookies));
 
 	priv = soup_message_get_instance_private (msg);
         if (site_for_cookies) {

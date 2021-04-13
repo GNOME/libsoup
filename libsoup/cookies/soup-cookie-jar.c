@@ -321,7 +321,7 @@ get_cookies (SoupCookieJar *jar,
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
-	if (!host || !host[0])
+	if (!host)
 		return NULL;
 
 	/* The logic here is a little weird, but the plan is that if
@@ -330,8 +330,14 @@ get_cookies (SoupCookieJar *jar,
 	 * ".com", in that order. (Logic stolen from Mozilla.)
 	 */
 	cookies = NULL;
-	domain = cur = g_strdup_printf (".%s", host);
-	next_domain = domain + 1;
+        if (host[0]) {
+                domain = cur = g_strdup_printf (".%s", host);
+                next_domain = domain + 1;
+        } else {
+                domain = cur = g_strdup (host);
+                next_domain = NULL;
+        }
+
 	do {
 		new_head = domain_cookies = g_hash_table_lookup (priv->domains, cur);
 		while (domain_cookies) {
