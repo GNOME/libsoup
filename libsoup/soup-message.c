@@ -1909,18 +1909,20 @@ soup_message_set_site_for_cookies (SoupMessage *msg,
 			           GUri        *site_for_cookies)
 {
 	SoupMessagePrivate *priv;
-        GUri *site_for_cookies_normalized;
+        GUri *site_for_cookies_normalized = NULL;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (SOUP_URI_IS_VALID (site_for_cookies));
+        g_return_if_fail (site_for_cookies == NULL || SOUP_URI_IS_VALID (site_for_cookies));
 
 	priv = soup_message_get_instance_private (msg);
-        site_for_cookies_normalized = soup_uri_copy_with_normalized_flags (site_for_cookies);
-        if (!site_for_cookies_normalized)
-                return;
+        if (site_for_cookies) {
+                site_for_cookies_normalized = soup_uri_copy_with_normalized_flags (site_for_cookies);
+                if (!site_for_cookies_normalized)
+                        return;
+        }
 
 	if (priv->site_for_cookies) {
-		if (soup_uri_equal (priv->site_for_cookies, site_for_cookies_normalized)) {
+		if (site_for_cookies_normalized && soup_uri_equal (priv->site_for_cookies, site_for_cookies_normalized)) {
                         g_uri_unref (site_for_cookies_normalized);
                         return;
                 }
