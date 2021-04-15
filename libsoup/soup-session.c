@@ -2030,8 +2030,8 @@ soup_session_process_queue_item (SoupSession          *session,
 
 		case SOUP_MESSAGE_RESTARTING:
 			item->state = SOUP_MESSAGE_STARTING;
-			soup_message_restarted (item->msg);
                         soup_message_set_metrics_timestamp (item->msg, SOUP_MESSAGE_METRICS_FETCH_START);
+			soup_message_restarted (item->msg);
 
 			break;
 
