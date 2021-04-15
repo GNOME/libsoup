@@ -1702,7 +1702,6 @@ tunnel_connect (SoupMessageQueueItem *item)
 
 	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, soup_message_get_uri (item->msg));
 	soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
-        soup_message_remove_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
 						      item->async,
