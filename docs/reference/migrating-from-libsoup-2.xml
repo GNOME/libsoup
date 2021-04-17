@@ -182,5 +182,11 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
                 <link linkend="soup_message_set_request_body_from_bytes"><function>soup_message_set_request_body_from_bytes()</function></link> to use a GBytes
             buffer.</para>
     </sect2>
+    <sect2 id="threading">
+        <title>Clarification on thread-safety</title>
+        <para>In libsoup 2 there was an attempt at making various APIs of the library thread-safe; However this was never well tested, maintained, or documented.</para>
+        <para>In libsoup 3 it now behaves in-line with other GObject libraries. Once you create a <link linkend="SoupSession"><type>SoupSession</type></link> all usage of that
+            session must happen on the same thread. You may create seperate sessions per thread but in most use-cases you should be using the async APIs which handle non-blocking IO for you.</para>
+    </sect2>
 </chapter>
 
