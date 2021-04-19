@@ -790,6 +790,8 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 		char *uri_str = g_uri_to_string_partial (uri, G_URI_HIDE_PASSWORD);
 		const gchar *last_modified = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Last-Modified");
 		const gchar *etag = soup_message_headers_get_one (soup_message_get_response_headers (msg), "ETag");
+		const gchar *if_modified_since = soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-Modified-Since");
+		const gchar *if_none_match = soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-None-Match");
 
 		/* FIXME: Expand and generalise sysprof support:
 		 * https://gitlab.gnome.org/GNOME/sysprof/-/issues/43 */
@@ -799,10 +801,14 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 					       "%s request/response to %s: "
 					       "read %" G_GOFFSET_FORMAT "B, "
 					       "wrote %" G_GOFFSET_FORMAT "B, "
+					       "If-Modified-Since: %s, "
+					       "If-None-Match: %s, "
 					       "Last-Modified: %s, "
 					       "ETag: %s",
 					       soup_message_get_tls_certificate (msg) ? "HTTPS" : "HTTP",
 					       uri_str, io->read_length, io->write_length,
+					       (if_modified_since != NULL) ? if_modified_since : "(unset)",
+					       (if_none_match != NULL) ? if_none_match : "(unset)",
 					       (last_modified != NULL) ? last_modified : "(unset)",
 					       (etag != NULL) ? etag : "(unset)");
 		g_free (uri_str);
