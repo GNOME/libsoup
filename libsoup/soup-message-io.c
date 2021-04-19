@@ -788,8 +788,8 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 	    io->write_state == SOUP_MESSAGE_IO_STATE_DONE) {
 		GUri *uri = soup_message_get_uri (msg);
 		char *uri_str = g_uri_to_string_partial (uri, G_URI_HIDE_PASSWORD);
-		const gchar *last_modified = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Last-Modified");
-		const gchar *etag = soup_message_headers_get_one (soup_message_get_request_headers (msg), "ETag");
+		const gchar *last_modified = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Last-Modified");
+		const gchar *etag = soup_message_headers_get_one (soup_message_get_response_headers (msg), "ETag");
 
 		/* FIXME: Expand and generalise sysprof support:
 		 * https://gitlab.gnome.org/GNOME/sysprof/-/issues/43 */
