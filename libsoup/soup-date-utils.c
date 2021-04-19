@@ -21,6 +21,8 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
+
 #include "soup-date-utils.h"
 #include "soup-date-utils-private.h"
 
