@@ -89,6 +89,9 @@ typedef struct {
 	GTlsCertificate      *tls_peer_certificate;
 	GTlsCertificateFlags  tls_peer_certificate_errors;
 
+        GTlsCertificate *tls_client_certificate;
+        GTask *pending_tls_cert_request;
+
 	SoupMessagePriority priority;
 
 	gboolean is_top_level_navigation;
@@ -119,6 +122,7 @@ enum {
 	AUTHENTICATE,
 	NETWORK_EVENT,
 	ACCEPT_CERTIFICATE,
+        REQUEST_CERTIFICATE,
 	HSTS_ENFORCED,
 
 	LAST_SIGNAL
@@ -169,6 +173,11 @@ soup_message_finalize (GObject *object)
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+        if (priv->pending_tls_cert_request) {
+                g_task_return_int (priv->pending_tls_cert_request, G_TLS_INTERACTION_FAILED);
+                g_object_unref (priv->pending_tls_cert_request);
+        }
+
 	soup_message_set_connection (msg, NULL);
 
 	g_clear_pointer (&priv->uri, g_uri_unref);
@@ -183,6 +192,7 @@ soup_message_finalize (GObject *object)
 
 	g_clear_object (&priv->tls_peer_certificate);
         g_clear_object (&priv->remote_address);
+        g_clear_object (&priv->tls_client_certificate);
 
 	soup_message_headers_unref (priv->request_headers);
 	soup_message_headers_unref (priv->response_headers);
@@ -593,6 +603,35 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_BOOLEAN, 2,
 			      G_TYPE_TLS_CERTIFICATE,
 			      G_TYPE_TLS_CERTIFICATE_FLAGS);
+
+        /**
+         * SoupMessage::request-certificate:
+         * @msg: the message
+         * @tls_connection: the #GTlsClientConnection
+         *
+         * Emitted during the @msg's connection TLS handshake when
+         * @tls_connection requests a certificate from the client.
+         * You can set the client certificate by calling
+         * soup_message_set_tls_client_certificate() and returning %TRUE.
+         * It's possible to handle the request asynchornously by returning
+         * %TRUE and call soup_message_set_tls_client_certificate() later
+         * once the certificate is available.
+         * Note that this signal is not emitted if #SoupSession::tls-interaction
+         * was set, or if soup_message_set_tls_client_certificate() was called
+         * before the connection TLS handshake started.
+         *
+         * Returns: %TRUE to handle the request, or %FALSE to make the connection
+         *     fail with %G_TLS_ERROR_CERTIFICATE_REQUIRED.
+         */
+        signals[REQUEST_CERTIFICATE] =
+                g_signal_new ("request-certificate",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              g_signal_accumulator_true_handled, NULL,
+                              NULL,
+                              G_TYPE_BOOLEAN, 1,
+                              G_TYPE_TLS_CLIENT_CONNECTION);
 
 	/**
 	 * SoupMessage::hsts-enforced:
@@ -1391,6 +1430,23 @@ re_emit_accept_certificate (SoupMessage          *msg,
 	return accept;
 }
 
+static gboolean
+re_emit_request_certificate (SoupMessage          *msg,
+                             GTlsClientConnection *tls_conn,
+                             GTask                *task)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        gboolean handled = FALSE;
+
+        priv->pending_tls_cert_request = g_object_ref (task);
+
+        g_signal_emit (msg, signals[REQUEST_CERTIFICATE], 0, tls_conn, &handled);
+        if (!handled)
+                g_clear_object (&priv->pending_tls_cert_request);
+
+        return handled;
+}
+
 static void
 re_emit_tls_certificate_changed (SoupMessage    *msg,
 				 GParamSpec     *pspec,
@@ -1421,6 +1477,13 @@ soup_message_set_connection (SoupMessage    *msg,
 	if (priv->connection) {
 		g_signal_handlers_disconnect_by_data (priv->connection, msg);
                 priv->io_data = NULL;
+
+                if (priv->pending_tls_cert_request) {
+                        soup_connection_complete_tls_certificate_request (priv->connection,
+                                                                          priv->tls_client_certificate,
+                                                                          g_steal_pointer (&priv->pending_tls_cert_request));
+                        g_clear_object (&priv->tls_client_certificate);
+                }
 		g_object_remove_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
                 soup_connection_set_in_use (priv->connection, FALSE);
 	}
@@ -1438,12 +1501,21 @@ soup_message_set_connection (SoupMessage    *msg,
                                                soup_connection_get_tls_certificate_errors (priv->connection));
         soup_message_set_remote_address (msg, soup_connection_get_remote_address (priv->connection));
 
+        if (priv->tls_client_certificate) {
+                soup_connection_set_tls_client_certificate (priv->connection,
+                                                            priv->tls_client_certificate);
+                g_clear_object (&priv->tls_client_certificate);
+        }
+
 	g_signal_connect_object (priv->connection, "event",
 				 G_CALLBACK (re_emit_connection_event),
 				 msg, G_CONNECT_SWAPPED);
 	g_signal_connect_object (priv->connection, "accept-certificate",
 				 G_CALLBACK (re_emit_accept_certificate),
 				 msg, G_CONNECT_SWAPPED);
+        g_signal_connect_object (priv->connection, "request-certificate",
+                                 G_CALLBACK (re_emit_request_certificate),
+                                 msg, G_CONNECT_SWAPPED);
 	g_signal_connect_object (priv->connection, "notify::tls-certificate",
 				 G_CALLBACK (re_emit_tls_certificate_changed),
 				 msg, G_CONNECT_SWAPPED);
@@ -2098,6 +2170,49 @@ soup_message_get_tls_peer_certificate_errors (SoupMessage *msg)
 	priv = soup_message_get_instance_private (msg);
 
 	return priv->tls_peer_certificate_errors;
+}
+
+/**
+ * soup_message_set_tls_client_certificate:
+ * @msg: a #SoupMessage
+ * @certificate: the #GTlsCertificate to set
+ *
+ * Sets the @certificate to be used by @msg's connection when a
+ * client certificate is requested during the TLS handshake.
+ * You can call this as a response to #SoupMessage::request-certificate
+ * signal, or before the connection is started.
+ * Note that the #GTlsCertificate set by this function will be ignored if
+ * #SoupSession::tls-interaction is not %NULL.
+ */
+void
+soup_message_set_tls_client_certificate (SoupMessage     *msg,
+                                         GTlsCertificate *certificate)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+        g_return_if_fail (G_IS_TLS_CERTIFICATE (certificate));
+
+        priv = soup_message_get_instance_private (msg);
+        if (priv->pending_tls_cert_request) {
+                g_assert (SOUP_IS_CONNECTION (priv->connection));
+                soup_connection_complete_tls_certificate_request (priv->connection,
+                                                                  certificate,
+                                                                  g_steal_pointer (&priv->pending_tls_cert_request));
+                return;
+        }
+
+        if (priv->connection) {
+                soup_connection_set_tls_client_certificate (priv->connection,
+                                                            certificate);
+                return;
+        }
+
+        if (priv->tls_client_certificate == certificate)
+                return;
+
+        g_clear_object (&priv->tls_client_certificate);
+        priv->tls_client_certificate = g_object_ref (certificate);
 }
 
 /**

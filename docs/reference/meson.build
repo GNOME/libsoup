@@ -43,6 +43,7 @@ ignore_headers = [
   'soup-client-message-io-http1.h',
   'soup-client-message-io-http2.h',
   'soup-body-input-stream-http2.h',
+  'soup-tls-interaction.h',
 ]
 
 mkdb_args = [

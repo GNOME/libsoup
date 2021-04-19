@@ -106,6 +106,10 @@ GTlsCertificate     *soup_message_get_tls_peer_certificate        (SoupMessage *
 SOUP_AVAILABLE_IN_ALL
 GTlsCertificateFlags soup_message_get_tls_peer_certificate_errors (SoupMessage *msg);
 
+SOUP_AVAILABLE_IN_ALL
+void                 soup_message_set_tls_client_certificate (SoupMessage     *msg,
+                                                              GTlsCertificate *certificate);
+
 
 /* Specialized signal handlers */
 SOUP_AVAILABLE_IN_ALL

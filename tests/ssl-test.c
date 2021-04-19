@@ -204,6 +204,138 @@ do_tls_interaction_test (gconstpointer data)
 	g_object_unref (certificate);
 }
 
+static gboolean
+request_certificate_cb (SoupMessage          *msg,
+                        GTlsClientConnection *conn,
+                        GTlsCertificate      *certificate)
+{
+        soup_message_set_tls_client_certificate (msg, certificate);
+
+        return TRUE;
+}
+
+typedef struct {
+        SoupMessage *msg;
+        GTlsCertificate *certificate;
+} SetCertificateAsyncData;
+
+static gboolean
+set_certificate_idle_cb (SetCertificateAsyncData *data)
+{
+        soup_message_set_tls_client_certificate (data->msg, data->certificate);
+
+        return FALSE;
+}
+
+static gboolean
+request_certificate_async_cb (SoupMessage          *msg,
+                              GTlsClientConnection *conn,
+                              GTlsCertificate      *certificate)
+{
+        SetCertificateAsyncData *data;
+
+        data = g_new (SetCertificateAsyncData, 1);
+        data->msg = msg;
+        data->certificate = certificate;
+        g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+                         (GSourceFunc)set_certificate_idle_cb,
+                         data, g_free);
+
+        return TRUE;
+}
+
+static void
+do_tls_interaction_msg_test (gconstpointer data)
+{
+        SoupServer *server = (SoupServer *)data;
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *body;
+        GTlsDatabase *tls_db;
+        GTlsCertificate *certificate;
+        GError *error = NULL;
+
+        SOUP_TEST_SKIP_IF_NO_TLS;
+
+        session = soup_test_session_new (NULL);
+        tls_db = soup_session_get_tls_database (session);
+
+        g_signal_connect (server, "request-started",
+                          G_CALLBACK (server_request_started),
+                          tls_db);
+
+        /* Not handling request-certificate signal */
+        msg = soup_message_new_from_uri ("GET", uri);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+                g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        /* Handling the request-certificate signal synchronously */
+        g_object_get (server, "tls-certificate", &certificate, NULL);
+        g_assert_nonnull (certificate);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_cb),
+                          certificate);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        /* Next load doesn't emit request-certificate because the connection is reused */
+        msg = soup_message_new_from_uri ("GET", uri);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        /* It fails for a new connection */
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+                g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        /* request-certificate is not emitted if the certificate is set before the load */
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        soup_message_set_tls_client_certificate (msg, certificate);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        /* Handling the request-certificate signal asynchronously */
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_async_cb),
+                          certificate);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        g_signal_handlers_disconnect_by_data (server, tls_db);
+
+        soup_test_session_abort_unref (session);
+        g_object_unref (certificate);
+}
+
 static void
 server_handler (SoupServer        *server,
 		SoupServerMessage *msg,
@@ -233,6 +365,7 @@ main (int argc, char **argv)
 		uri = NULL;
 
 	g_test_add_data_func ("/ssl/tls-interaction", server, do_tls_interaction_test);
+        g_test_add_data_func ("/ssl/tls-interaction-msg", server, do_tls_interaction_msg_test);
 
 	for (i = 0; i < G_N_ELEMENTS (strictness_tests); i++) {
 		g_test_add_data_func (strictness_tests[i].name,

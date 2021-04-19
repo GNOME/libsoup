@@ -11,6 +11,7 @@ soup_sources = [
   'auth/soup-auth-negotiate.c',
   'auth/soup-auth-manager.c',
   'auth/soup-connection-auth.c',
+  'auth/soup-tls-interaction.c',
 
   'cache/soup-cache.c',
   'cache/soup-cache-client-input-stream.c',

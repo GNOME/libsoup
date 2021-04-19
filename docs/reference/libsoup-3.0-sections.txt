@@ -31,6 +31,7 @@ soup_message_get_connection_id
 soup_message_get_remote_address
 soup_message_get_tls_peer_certificate
 soup_message_get_tls_peer_certificate_errors
+soup_message_set_tls_client_certificate
 <SUBSECTION>
 soup_message_set_first_party
 soup_message_get_first_party
