@@ -339,6 +339,8 @@ if host_machine.system() != 'windows'
     add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
     add_project_arguments('-DNTLM_AUTH="' + ntlm_auth.path() + '"', language : 'c')
   endif
+else
+  ntlm_auth = dependency('', required: false)
 endif
 
 #########################
