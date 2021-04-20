@@ -55,9 +55,6 @@ GUri           *soup_connection_get_remote_uri (SoupConnection   *conn);
 GUri           *soup_connection_get_proxy_uri  (SoupConnection   *conn);
 gboolean        soup_connection_is_via_proxy   (SoupConnection   *conn);
 gboolean        soup_connection_is_tunnelled   (SoupConnection   *conn);
-gboolean        soup_connection_get_tls_info   (SoupConnection   *conn,
-						GTlsCertificate **certificate,
-						GTlsCertificateFlags *errors);
 
 SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,

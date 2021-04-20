@@ -916,29 +916,6 @@ soup_connection_is_via_proxy (SoupConnection *conn)
 	return priv->proxy_uri != NULL;
 }
 
-gboolean
-soup_connection_get_tls_info (SoupConnection       *conn,
-			      GTlsCertificate     **certificate,
-			      GTlsCertificateFlags *errors)
-{
-	SoupConnectionPrivate *priv;
-	GTlsConnection *tls_connection;
-
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-
-	priv = soup_connection_get_instance_private (conn);
-	if (!G_IS_TLS_CONNECTION (priv->connection))
-		return FALSE;
-
-	tls_connection = G_TLS_CONNECTION (priv->connection);
-	if (certificate)
-		*certificate = g_tls_connection_get_peer_certificate (tls_connection);
-	if (errors)
-		*errors = g_tls_connection_get_peer_certificate_errors (tls_connection);
-
-	return TRUE;
-}
-
 static gboolean
 is_idle_connection_disconnected (SoupConnection *conn)
 {
