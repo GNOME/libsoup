@@ -32,6 +32,7 @@ typedef struct {
 	gboolean ssl;
 
 	SoupMessage *current_msg;
+        SoupClientMessageIOData *io_data;
 	SoupConnectionState state;
 	time_t       unused_timeout;
 	GSource     *idle_timeout_src;
@@ -84,6 +85,7 @@ soup_connection_finalize (GObject *object)
 
 	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
+        g_clear_pointer (&priv->io_data, soup_client_message_io_data_free);
 	g_clear_object (&priv->remote_connectable);
 	g_clear_object (&priv->current_msg);
 
@@ -893,6 +895,9 @@ soup_connection_steal_iostream (SoupConnection *conn)
                                 g_object_ref (socket), g_object_unref);
         g_clear_object (&priv->connection);
 
+        if (priv->io_data)
+                soup_client_message_io_stolen (priv->io_data);
+
         return iostream;
 }
 
@@ -1025,26 +1030,34 @@ soup_connection_get_ever_used (SoupConnection *conn)
 	return priv->unused_timeout == 0;
 }
 
-void
-soup_connection_send_request (SoupConnection           *conn,
-			      SoupMessageQueueItem     *item,
-			      SoupMessageIOCompletionFn completion_cb,
-			      gpointer                  user_data)
+SoupClientMessageIOData *
+soup_connection_setup_message_io (SoupConnection *conn,
+                                  SoupMessage    *msg)
 {
-	SoupConnectionPrivate *priv;
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-	g_return_if_fail (item != NULL);
-	priv = soup_connection_get_instance_private (conn);
-	g_return_if_fail (priv->state != SOUP_CONNECTION_NEW &&
-			  priv->state != SOUP_CONNECTION_DISCONNECTED);
+        g_assert (priv->state != SOUP_CONNECTION_NEW &&
+                  priv->state != SOUP_CONNECTION_DISCONNECTED);
 
-	if (item->msg != priv->current_msg)
-		set_current_msg (conn, item->msg);
-	else
-		priv->reusable = FALSE;
+        if (priv->current_msg != msg)
+                set_current_msg (conn, msg);
+        else
+                priv->reusable = FALSE;
 
-	soup_message_send_request (item, completion_cb, user_data);
+        g_assert (priv->io_data == NULL);
+        priv->io_data = soup_client_message_io_data_new (priv->iostream);
+
+        return priv->io_data;
+}
+
+void
+soup_connection_message_io_finished (SoupConnection *conn,
+                                     SoupMessage    *msg)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        g_assert (priv->current_msg == msg);
+        g_clear_pointer (&priv->io_data, soup_client_message_io_data_free);
 }
 
 GTlsCertificate *

@@ -33,9 +33,10 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      gpointer          user_data,
 					      GError          **error);
 
-void soup_message_send_request (SoupMessageQueueItem      *item,
-				SoupMessageIOCompletionFn  completion_cb,
-				gpointer                   user_data);
+void soup_message_send_item (SoupMessage              *msg,
+                             SoupMessageQueueItem     *item,
+                             SoupMessageIOCompletionFn completion_cb,
+                             gpointer                  user_data);
 
 /* Auth handling */
 void           soup_message_set_auth       (SoupMessage *msg,
@@ -47,6 +48,13 @@ SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 GUri          *soup_message_get_uri_for_auth (SoupMessage *msg);
 
 /* I/O */
+SoupClientMessageIOData *soup_client_message_io_data_new       (GIOStream                 *stream);
+void                     soup_client_message_io_data_send_item (SoupClientMessageIOData   *io,
+                                                                SoupMessageQueueItem      *item,
+                                                                SoupMessageIOCompletionFn  completion_cb,
+                                                                gpointer                   user_data);
+void       soup_client_message_io_finished (SoupClientMessageIOData *io);
+void       soup_client_message_io_stolen   (SoupClientMessageIOData *io);
 void       soup_message_io_run         (SoupMessage *msg,
 					gboolean     blocking);
 void       soup_message_io_finished    (SoupMessage *msg);
@@ -55,7 +63,6 @@ void       soup_message_io_pause       (SoupMessage *msg);
 void       soup_message_io_unpause     (SoupMessage *msg);
 gboolean   soup_message_is_io_paused   (SoupMessage *msg);
 gboolean   soup_message_io_in_progress (SoupMessage *msg);
-void       soup_message_io_stolen      (SoupMessage *msg);
 
 gboolean soup_message_io_read_headers          (SoupMessage           *msg,
                                                 SoupFilterInputStream *stream,
@@ -123,8 +130,6 @@ void            soup_message_set_connection (SoupMessage    *msg,
 					     SoupConnection *conn);
 
 SoupClientMessageIOData *soup_message_get_io_data (SoupMessage             *msg);
-void                     soup_message_set_io_data (SoupMessage             *msg,
-						   SoupClientMessageIOData *io);
 
 SoupContentSniffer *soup_message_get_content_sniffer    (SoupMessage        *msg);
 void                soup_message_set_content_sniffer    (SoupMessage        *msg,

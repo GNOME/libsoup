@@ -166,8 +166,6 @@ soup_message_finalize (GObject *object)
 
 	soup_message_set_connection (msg, NULL);
 
-	soup_client_message_io_data_free (priv->io_data);
-
 	g_clear_pointer (&priv->uri, g_uri_unref);
 	g_clear_pointer (&priv->first_party, g_uri_unref);
 	g_clear_pointer (&priv->site_for_cookies, g_uri_unref);
@@ -1391,6 +1389,7 @@ soup_message_set_connection (SoupMessage    *msg,
 
 	if (priv->connection) {
 		g_signal_handlers_disconnect_by_data (priv->connection, msg);
+                priv->io_data = NULL;
 		g_object_remove_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
 	}
 
@@ -2145,13 +2144,28 @@ soup_message_get_io_data (SoupMessage *msg)
 }
 
 void
-soup_message_set_io_data (SoupMessage             *msg,
-			  SoupClientMessageIOData *io)
+soup_message_io_finished (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	soup_client_message_io_data_free (priv->io_data);
-	priv->io_data = io;
+        if (!priv->io_data)
+                return;
+
+        g_assert (priv->connection != NULL);
+        soup_client_message_io_finished (g_steal_pointer (&priv->io_data));
+}
+
+void
+soup_message_send_item (SoupMessage              *msg,
+                        SoupMessageQueueItem     *item,
+                        SoupMessageIOCompletionFn completion_cb,
+                        gpointer                  user_data)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        priv->io_data = soup_connection_setup_message_io (priv->connection, msg);
+        soup_client_message_io_data_send_item (priv->io_data, item,
+                                               completion_cb, user_data);
 }
 
 SoupContentSniffer *

@@ -67,16 +67,12 @@ soup_client_message_io_data_get_priority (SoupClientMessageIOData *io)
 }
 
 void
-soup_message_io_finished (SoupMessage *msg)
+soup_client_message_io_finished (SoupClientMessageIOData *io)
 {
-	SoupClientMessageIOData *io;
 	SoupMessageIOCompletionFn completion_cb;
 	gpointer completion_data;
 	SoupMessageIOCompletion completion;
-
-	io = soup_message_get_io_data (msg);
-	if (!io)
-		return;
+        SoupMessage *msg;
 
 	completion_cb = io->base.completion_cb;
 	completion_data = io->base.completion_data;
@@ -87,29 +83,25 @@ soup_message_io_finished (SoupMessage *msg)
 	else
 		completion = SOUP_MESSAGE_IO_INTERRUPTED;
 
-	g_object_ref (msg);
-	soup_message_set_io_data (msg, NULL);
+	msg = g_object_ref (io->item->msg);
+        soup_connection_message_io_finished (io->item->conn, msg);
 	if (completion_cb)
 		completion_cb (G_OBJECT (msg), completion, completion_data);
 	g_object_unref (msg);
 }
 
 void
-soup_message_io_stolen (SoupMessage *msg)
+soup_client_message_io_stolen (SoupClientMessageIOData *io)
 {
-	SoupClientMessageIOData *io;
 	SoupMessageIOCompletionFn completion_cb;
 	gpointer completion_data;
-
-	io = soup_message_get_io_data (msg);
-	if (!io)
-		return;
+        SoupMessage *msg;
 
 	completion_cb = io->base.completion_cb;
 	completion_data = io->base.completion_data;
 
-	g_object_ref (msg);
-	soup_message_set_io_data (msg, NULL);
+	msg = g_object_ref (io->item->msg);
+        soup_connection_message_io_finished (io->item->conn, msg);
 	if (completion_cb)
 		completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_STOLEN, completion_data);
 	g_object_unref (msg);
@@ -1027,26 +1019,14 @@ soup_message_io_get_response_istream (SoupMessage  *msg,
 }
 
 void
-soup_message_send_request (SoupMessageQueueItem      *item,
-			   SoupMessageIOCompletionFn  completion_cb,
-			   gpointer                   user_data)
+soup_client_message_io_data_send_item (SoupClientMessageIOData   *io,
+                                       SoupMessageQueueItem      *item,
+                                       SoupMessageIOCompletionFn  completion_cb,
+                                       gpointer                   user_data)
 {
-	SoupClientMessageIOData *io;
-
-	io = g_slice_new0 (SoupClientMessageIOData);
+        io->item = soup_message_queue_item_ref (item);
 	io->base.completion_cb = completion_cb;
 	io->base.completion_data = user_data;
-
-	io->item = soup_message_queue_item_ref (item);
-	io->base.iostream = g_object_ref (soup_connection_get_iostream (io->item->conn));
-	io->base.istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (io->base.iostream));
-	io->base.ostream = g_io_stream_get_output_stream (io->base.iostream);
-
-	io->base.read_header_buf = g_byte_array_new ();
-	io->base.write_buf = g_string_new (NULL);
-
-	io->base.read_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
-	io->base.write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 
         io->metrics = soup_message_get_metrics (io->item->msg);
         if (io->metrics) {
@@ -1058,8 +1038,25 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 #ifdef HAVE_SYSPROF
 	io->begin_time_nsec = SYSPROF_CAPTURE_CURRENT_TIME;
 #endif
+}
 
-	soup_message_set_io_data (io->item->msg, io);
+SoupClientMessageIOData *
+soup_client_message_io_data_new (GIOStream *stream)
+{
+	SoupClientMessageIOData *io;
+
+	io = g_slice_new0 (SoupClientMessageIOData);
+	io->base.iostream = g_object_ref (stream);
+	io->base.istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (io->base.iostream));
+	io->base.ostream = g_io_stream_get_output_stream (io->base.iostream);
+
+	io->base.read_header_buf = g_byte_array_new ();
+	io->base.write_buf = g_string_new (NULL);
+
+	io->base.read_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
+	io->base.write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
+
+        return io;
 }
 
 void

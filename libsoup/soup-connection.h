@@ -65,10 +65,10 @@ void            soup_connection_set_reusable   (SoupConnection   *conn,
 
 gboolean        soup_connection_get_ever_used  (SoupConnection   *conn);
 
-void            soup_connection_send_request   (SoupConnection           *conn,
-						SoupMessageQueueItem     *item,
-						SoupMessageIOCompletionFn completion_cb,
-						gpointer                  user_data);
+SoupClientMessageIOData *soup_connection_setup_message_io    (SoupConnection *conn,
+                                                              SoupMessage    *msg);
+void                     soup_connection_message_io_finished (SoupConnection *conn,
+                                                              SoupMessage    *msg);
 
 GTlsCertificate     *soup_connection_get_tls_certificate        (SoupConnection *conn);
 GTlsCertificateFlags soup_connection_get_tls_certificate_errors (SoupConnection *conn);

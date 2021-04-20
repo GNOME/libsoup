@@ -1429,7 +1429,7 @@ soup_session_send_queue_item (SoupSession *session,
 
 	soup_message_starting (item->msg);
 	if (item->state == SOUP_MESSAGE_RUNNING)
-		soup_connection_send_request (item->conn, item, completion_cb, item);
+                soup_message_send_item (item->msg, item, completion_cb, item);
 }
 
 static gboolean
@@ -3619,15 +3619,12 @@ steal_connection (SoupSession          *session,
         GIOStream *stream;
 
         conn = g_object_ref (item->conn);
-        soup_session_set_item_connection (session, item, NULL);
-
         host = get_host_for_message (session, item->msg);
         g_hash_table_remove (priv->conns, conn);
         drop_connection (session, host, conn);
 
 	stream = soup_connection_steal_iostream (conn);
-	if (!item->connect_only)
-		soup_message_io_stolen (item->msg);
+        soup_session_set_item_connection (session, item, NULL);
 	g_object_unref (conn);
 
 	return stream;
