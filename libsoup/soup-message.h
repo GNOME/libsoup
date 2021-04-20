@@ -101,10 +101,10 @@ gboolean         soup_message_query_flags         (SoupMessage           *msg,
                                                    SoupMessageFlags       flags);
 
 SOUP_AVAILABLE_IN_ALL
-GTlsCertificate     *soup_message_get_tls_certificate        (SoupMessage *msg);
+GTlsCertificate     *soup_message_get_tls_peer_certificate        (SoupMessage *msg);
 
 SOUP_AVAILABLE_IN_ALL
-GTlsCertificateFlags soup_message_get_tls_certificate_errors (SoupMessage *msg);
+GTlsCertificateFlags soup_message_get_tls_peer_certificate_errors (SoupMessage *msg);
 
 
 /* Specialized signal handlers */

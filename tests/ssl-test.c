@@ -63,8 +63,8 @@ do_strictness_test (gconstpointer data)
 		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_BAD_CERTIFICATE);
 
 	g_test_bug ("690176");
-	g_assert_nonnull (soup_message_get_tls_certificate (msg));
-	flags = soup_message_get_tls_certificate_errors (msg);
+	g_assert_nonnull (soup_message_get_tls_peer_certificate (msg));
+	flags = soup_message_get_tls_peer_certificate_errors (msg);
 
 	g_test_bug ("665182");
 	if (test->with_ca_list && !error)
@@ -194,7 +194,7 @@ do_tls_interaction_test (gconstpointer data)
 	body = soup_test_session_async_send (session, msg, NULL, &error);
 	g_assert_no_error (error);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_nonnull (soup_message_get_tls_certificate (msg));
+	g_assert_nonnull (soup_message_get_tls_peer_certificate (msg));
 	g_bytes_unref (body);
 	g_object_unref (msg);
 

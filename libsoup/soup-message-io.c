@@ -805,7 +805,7 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 					       "If-None-Match: %s, "
 					       "Last-Modified: %s, "
 					       "ETag: %s",
-					       soup_message_get_tls_certificate (msg) ? "HTTPS" : "HTTP",
+					       soup_message_get_tls_peer_certificate (msg) ? "HTTPS" : "HTTP",
 					       uri_str, io->read_length, io->write_length,
 					       (if_modified_since != NULL) ? if_modified_since : "(unset)",
 					       (if_none_match != NULL) ? if_none_match : "(unset)",

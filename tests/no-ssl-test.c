@@ -12,8 +12,8 @@ do_ssl_test_for_session (SoupSession *session, GUri *uri)
 	g_assert_null (soup_session_send (session, msg, NULL, &error));
 	g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_UNAVAILABLE);
 	g_assert_cmpuint (soup_message_get_status (msg), ==, SOUP_STATUS_NONE);
-	g_assert_null (soup_message_get_tls_certificate (msg));
-	g_assert_cmpuint (soup_message_get_tls_certificate_errors (msg), ==, 0);
+	g_assert_null (soup_message_get_tls_peer_certificate (msg));
+	g_assert_cmpuint (soup_message_get_tls_peer_certificate_errors (msg), ==, 0);
 
 	g_error_free (error);
 	g_object_unref (msg);
