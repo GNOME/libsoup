@@ -1,3 +1,16 @@
+Changes in libsoup from 2.99.3 to 2.99.4:
+
+    * Rename SoupMessage:tls-certificate and SoupMessage:tls-certificate-errors
+      to tls-peer-certificate and tls-peer-certificate-errors respectively [Carlos Garcia Campos]
+
+    * Add SoupMessageMetrics API for tracking message events [Carlos Garcia Campos]
+
+    * Add soup_message_get_connection_id() API [Patrick Griffis]
+
+    * Add WebSocket fuzzing tests with Autobahn [Diego Pino]
+
+    * Windows build fixes [Chun-wei Fan]
+
 Changes in libsoup from 2.99.2 to 2.99.3:
 
     * Fix soup_session_get_async_result_message() [Patrick Griffis]
