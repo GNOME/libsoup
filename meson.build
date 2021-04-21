@@ -161,6 +161,21 @@ if cc.has_function('gmtime_r', prefix : '#include <time.h>', args : default_sour
     cdata.set('HAVE_GMTIME_R', '1')
 endif
 
+# dlopen
+dl_dep = dependency('dl', required : false)
+dl_link_args = ''
+if cc.has_function('dlopen',
+  prefix : '#include <dlfcn.h>',
+  dependencies : dl_dep,
+  args : '-ldl'
+)
+  cdata.set('HAVE_RTLD_NOLOAD',
+    cc.has_header_symbol('dlfcn.h', 'RTLD_NOLOAD')
+  )
+  platform_deps += dl_dep
+  dl_link_args = '-ldl'
+endif
+
 # sysprof support
 libsysprof_capture_dep = dependency('sysprof-capture-4',
   required: get_option('sysprof'),

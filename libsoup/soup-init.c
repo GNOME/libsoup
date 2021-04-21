@@ -9,6 +9,10 @@
 #include <config.h>
 #endif
 
+#ifdef HAVE_RTLD_NOLOAD
+#include <dlfcn.h>
+#endif
+
 #include <glib/gi18n-lib.h>
 #include "gconstructor.h"
 
@@ -34,6 +38,15 @@ soup_init (void)
 #ifdef HAVE_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 #endif
+
+#ifdef HAVE_RTLD_NOLOAD
+        gpointer handle = dlopen("libsoup-2.4.so.1", RTLD_NOW | RTLD_NOLOAD);
+        if (handle) {
+                g_error ("libsoup 2 was detected while loading libsoup 3. This is not supported.");
+                dlclose (handle);
+        }
+#endif
+
 }
 
 #if defined (G_OS_WIN32)

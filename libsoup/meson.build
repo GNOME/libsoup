@@ -203,6 +203,7 @@ libsoup = library('soup-@0@'.format(apiversion),
   soversion : soversion,
   darwin_versions: darwin_versions,
   c_args : libsoup_c_args,
+  link_args : dl_link_args,
   include_directories : libsoup_includes,
   gnu_symbol_visibility: 'hidden',
   install : true,
@@ -215,6 +216,7 @@ libsoup_static = static_library('soup-@0@-static'.format(apiversion),
     soup_enums,
   ],
   c_args : libsoup_c_args,
+  link_args : dl_link_args,
   include_directories : libsoup_includes,
   dependencies : deps,
 )
@@ -236,6 +238,7 @@ libsoup_dep = declare_dependency(link_with : libsoup,
 libsoup_static_dep = declare_dependency(link_with : libsoup_static,
   include_directories : libsoup_includes,
   sources : soup_enum_h,
+  link_args : dl_link_args,
   dependencies : [ platform_deps, glib_deps ]
 )
 
