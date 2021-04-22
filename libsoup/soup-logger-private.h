@@ -9,6 +9,8 @@
 
 G_BEGIN_DECLS
 
-void soup_logger_request_body_setup (SoupLogger *logger, SoupMessage *msg);
+void soup_logger_request_body_setup (SoupLogger           *logger,
+                                     SoupMessage          *msg,
+                                     SoupBodyOutputStream *stream);
 
 G_END_DECLS

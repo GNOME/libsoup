@@ -841,16 +841,17 @@ body_ostream_done (gpointer data, GObject *bostream)
 }
 
 void
-soup_logger_request_body_setup (SoupLogger *logger, SoupMessage *msg)
+soup_logger_request_body_setup (SoupLogger           *logger,
+                                SoupMessage          *msg,
+                                SoupBodyOutputStream *stream)
 {
         SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
-        SoupMessageIOData *io = (SoupMessageIOData *)soup_message_get_io_data (msg);
 
-        g_hash_table_insert (priv->request_messages, io->body_ostream, msg);
-        g_signal_connect_object (io->body_ostream, "wrote-data",
+        g_hash_table_insert (priv->request_messages, stream, msg);
+        g_signal_connect_object (stream, "wrote-data",
                                  G_CALLBACK (body_stream_wrote_data_cb),
                                  logger, 0);
-        g_object_weak_ref (G_OBJECT (io->body_ostream), body_ostream_done, priv);
+        g_object_weak_ref (G_OBJECT (stream), body_ostream_done, priv);
 }
 
 static void

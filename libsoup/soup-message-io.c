@@ -376,8 +376,10 @@ io_write (SoupMessage *msg, gboolean blocking,
 		io->write_state = SOUP_MESSAGE_IO_STATE_BODY;
 		logger = soup_session_get_feature_for_message (client_io->item->session,
 		                                               SOUP_TYPE_LOGGER, msg);
-		if (logger)
-		        soup_logger_request_body_setup (SOUP_LOGGER (logger), msg);
+		if (logger) {
+		        soup_logger_request_body_setup (SOUP_LOGGER (logger), msg,
+                                                        SOUP_BODY_OUTPUT_STREAM (io->body_ostream));
+                }
 		break;
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
