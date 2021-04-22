@@ -13,6 +13,7 @@
 #include "soup.h"
 #include "soup-io-stream.h"
 #include "soup-message-queue-item.h"
+#include "soup-client-message-io-http1.h"
 #include "soup-socket-properties.h"
 #include "soup-private-enum-types.h"
 #include <gio/gnetworking.h>
@@ -1047,7 +1048,7 @@ soup_connection_setup_message_io (SoupConnection *conn,
                 priv->reusable = FALSE;
 
         g_assert (priv->io_data == NULL);
-        priv->io_data = soup_client_message_io_data_new (priv->iostream);
+        priv->io_data = soup_client_message_io_http1_new (priv->iostream);
 
         return priv->io_data;
 }

@@ -45,7 +45,6 @@ SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 GUri          *soup_message_get_uri_for_auth (SoupMessage *msg);
 
 /* I/O */
-SoupClientMessageIO *soup_client_message_io_data_new       (GIOStream                 *stream);
 void       soup_message_io_run         (SoupMessage *msg,
 					gboolean     blocking);
 void       soup_message_io_finished    (SoupMessage *msg);
