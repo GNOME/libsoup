@@ -437,6 +437,7 @@ soup_connection_state_get_type
 SoupMessageQueue
 SoupMessageQueueItem
 SOUP_SESSION_USE_NTLM
+SoupClientMessageIO
 </SECTION>
 
 <SECTION>

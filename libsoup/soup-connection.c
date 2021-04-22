@@ -32,7 +32,7 @@ typedef struct {
 	gboolean ssl;
 
 	SoupMessage *current_msg;
-        SoupClientMessageIOData *io_data;
+        SoupClientMessageIO *io_data;
 	SoupConnectionState state;
 	time_t       unused_timeout;
 	GSource     *idle_timeout_src;
@@ -85,7 +85,7 @@ soup_connection_finalize (GObject *object)
 
 	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
-        g_clear_pointer (&priv->io_data, soup_client_message_io_data_free);
+        g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
 	g_clear_object (&priv->remote_connectable);
 	g_clear_object (&priv->current_msg);
 
@@ -1032,7 +1032,7 @@ soup_connection_get_ever_used (SoupConnection *conn)
 	return priv->unused_timeout == 0;
 }
 
-SoupClientMessageIOData *
+SoupClientMessageIO *
 soup_connection_setup_message_io (SoupConnection *conn,
                                   SoupMessage    *msg)
 {
@@ -1059,7 +1059,7 @@ soup_connection_message_io_finished (SoupConnection *conn,
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         g_assert (priv->current_msg == msg);
-        g_clear_pointer (&priv->io_data, soup_client_message_io_data_free);
+        g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
 }
 
 GTlsCertificate *

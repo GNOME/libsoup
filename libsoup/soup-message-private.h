@@ -8,14 +8,11 @@
 
 #include "soup-filter-input-stream.h"
 #include "soup-message.h"
-#include "soup-message-io-data.h"
+#include "soup-client-message-io.h"
 #include "auth/soup-auth.h"
 #include "soup-content-processor.h"
 #include "content-sniffer/soup-content-sniffer.h"
 #include "soup-session.h"
-
-typedef struct _SoupClientMessageIOData SoupClientMessageIOData;
-void soup_client_message_io_data_free (SoupClientMessageIOData *io);
 
 void             soup_message_set_status       (SoupMessage      *msg,
 						guint             status_code,
@@ -48,28 +45,14 @@ SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 GUri          *soup_message_get_uri_for_auth (SoupMessage *msg);
 
 /* I/O */
-SoupClientMessageIOData *soup_client_message_io_data_new       (GIOStream                 *stream);
-void                     soup_client_message_io_data_send_item (SoupClientMessageIOData   *io,
-                                                                SoupMessageQueueItem      *item,
-                                                                SoupMessageIOCompletionFn  completion_cb,
-                                                                gpointer                   user_data);
-void       soup_client_message_io_finished (SoupClientMessageIOData *io);
-void       soup_client_message_io_stolen   (SoupClientMessageIOData *io);
+SoupClientMessageIO *soup_client_message_io_data_new       (GIOStream                 *stream);
 void       soup_message_io_run         (SoupMessage *msg,
 					gboolean     blocking);
 void       soup_message_io_finished    (SoupMessage *msg);
-void       soup_message_io_cleanup     (SoupMessage *msg);
 void       soup_message_io_pause       (SoupMessage *msg);
 void       soup_message_io_unpause     (SoupMessage *msg);
 gboolean   soup_message_is_io_paused   (SoupMessage *msg);
 gboolean   soup_message_io_in_progress (SoupMessage *msg);
-
-gboolean soup_message_io_read_headers          (SoupMessage           *msg,
-                                                SoupFilterInputStream *stream,
-                                                GByteArray            *buffer,
-                                                gboolean               blocking,
-                                                GCancellable          *cancellable,
-                                                GError               **error);
 
 gboolean soup_message_io_run_until_finish      (SoupMessage        *msg,
                                                 gboolean            blocking,
@@ -87,12 +70,6 @@ void     soup_message_io_run_until_read_async  (SoupMessage        *msg,
 gboolean soup_message_io_run_until_read_finish (SoupMessage        *msg,
                                                 GAsyncResult       *result,
                                                 GError            **error);
-
-typedef gboolean (*SoupMessageSourceFunc) (SoupMessage *, gpointer);
-GSource *soup_message_io_get_source       (SoupMessage           *msg,
-					   GCancellable          *cancellable,
-					   SoupMessageSourceFunc  callback,
-					   gpointer               user_data);
 
 GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
 						    GError      **error);
@@ -129,7 +106,7 @@ SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
 					     SoupConnection *conn);
 
-SoupClientMessageIOData *soup_message_get_io_data (SoupMessage             *msg);
+SoupClientMessageIO *soup_message_get_io_data (SoupMessage             *msg);
 
 SoupContentSniffer *soup_message_get_content_sniffer    (SoupMessage        *msg);
 void                soup_message_set_content_sniffer    (SoupMessage        *msg,

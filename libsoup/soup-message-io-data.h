@@ -9,6 +9,7 @@
 #include "soup-filter-input-stream.h"
 #include "soup-message-headers.h"
 #include "soup-message-io-source.h"
+#include "soup-message-io-completion.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_STATE_NOT_STARTED,
@@ -31,16 +32,6 @@ typedef enum {
 #define SOUP_MESSAGE_IO_STATE_POLLABLE(state) \
 	(SOUP_MESSAGE_IO_STATE_ACTIVE (state) && \
 	 state != SOUP_MESSAGE_IO_STATE_BODY_DONE)
-
-typedef enum {
-	SOUP_MESSAGE_IO_COMPLETE,
-        SOUP_MESSAGE_IO_INTERRUPTED,
-        SOUP_MESSAGE_IO_STOLEN
-} SoupMessageIOCompletion;
-
-typedef void (*SoupMessageIOCompletionFn) (GObject                *msg,
-					   SoupMessageIOCompletion completion,
-					   gpointer                user_data);
 
 typedef struct {
 	GIOStream              *iostream;

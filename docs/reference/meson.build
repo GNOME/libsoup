@@ -38,6 +38,8 @@ ignore_headers = [
   'soup-uri-utils-private.h',
   'soup-session-feature-private.h',
   'soup-message-metrics-private.h',
+  'soup-client-message-io.h',
+  'soup-message-io-completion.h',
 ]
 
 mkdb_args = [

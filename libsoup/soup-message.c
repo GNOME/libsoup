@@ -59,7 +59,7 @@ struct _SoupMessage {
 };
 
 typedef struct {
-	SoupClientMessageIOData *io_data;
+	SoupClientMessageIO *io_data;
 
         SoupMessageHeaders *request_headers;
 	SoupMessageHeaders *response_headers;
@@ -2135,7 +2135,7 @@ soup_message_get_priority (SoupMessage *msg)
 	return priv->priority;
 }
 
-SoupClientMessageIOData *
+SoupClientMessageIO *
 soup_message_get_io_data (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
@@ -2156,6 +2156,100 @@ soup_message_io_finished (SoupMessage *msg)
 }
 
 void
+soup_message_io_pause (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        g_return_if_fail (priv->io_data != NULL);
+
+        soup_client_message_io_pause (priv->io_data);
+}
+
+void
+soup_message_io_unpause (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        g_return_if_fail (priv->io_data != NULL);
+
+        soup_client_message_io_unpause (priv->io_data);
+}
+
+gboolean
+soup_message_is_io_paused (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->io_data && soup_client_message_io_is_paused (priv->io_data);
+}
+
+/**
+ * soup_message_io_in_progress:
+ * @msg: a #SoupMessage
+ *
+ * Tests whether or not I/O is currently in progress on @msg.
+ *
+ * Returns: whether or not I/O is currently in progress.
+ **/
+gboolean
+soup_message_io_in_progress (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->io_data != NULL;
+}
+
+void
+soup_message_io_run (SoupMessage *msg,
+                     gboolean     blocking)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        soup_client_message_io_run (priv->io_data, blocking);
+}
+
+gboolean
+soup_message_io_run_until_read (SoupMessage  *msg,
+                                GCancellable *cancellable,
+                                GError      **error)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return soup_client_message_io_run_until_read (priv->io_data, cancellable, error);
+}
+
+void
+soup_message_io_run_until_read_async (SoupMessage        *msg,
+                                      int                 io_priority,
+                                      GCancellable       *cancellable,
+                                      GAsyncReadyCallback callback,
+                                      gpointer            user_data)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        soup_client_message_io_run_until_read_async (priv->io_data, io_priority, cancellable, callback, user_data);
+}
+
+gboolean
+soup_message_io_run_until_read_finish (SoupMessage  *msg,
+                                       GAsyncResult *result,
+                                       GError      **error)
+{
+        return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+gboolean
+soup_message_io_run_until_finish (SoupMessage  *msg,
+                                  gboolean      blocking,
+                                  GCancellable *cancellable,
+                                  GError      **error)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return soup_client_message_io_run_until_finish (priv->io_data, blocking, cancellable, error);
+}
+
+void
 soup_message_send_item (SoupMessage              *msg,
                         SoupMessageQueueItem     *item,
                         SoupMessageIOCompletionFn completion_cb,
@@ -2164,8 +2258,17 @@ soup_message_send_item (SoupMessage              *msg,
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
         priv->io_data = soup_connection_setup_message_io (priv->connection, msg);
-        soup_client_message_io_data_send_item (priv->io_data, item,
-                                               completion_cb, user_data);
+        soup_client_message_io_send_item (priv->io_data, item,
+                                          completion_cb, user_data);
+}
+
+GInputStream *
+soup_message_io_get_response_istream (SoupMessage  *msg,
+                                      GError      **error)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return soup_client_message_io_get_response_stream (priv->io_data, error);
 }
 
 SoupContentSniffer *

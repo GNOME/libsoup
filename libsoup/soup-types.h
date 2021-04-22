@@ -35,6 +35,7 @@ typedef struct _SoupWebsocketExtension  SoupWebsocketExtension;
 typedef struct _SoupConnection        SoupConnection;
 typedef struct _SoupMessageQueue      SoupMessageQueue;
 typedef struct _SoupMessageQueueItem  SoupMessageQueueItem;
+typedef struct _SoupClientMessageIO   SoupClientMessageIO;
 
 G_END_DECLS
 
