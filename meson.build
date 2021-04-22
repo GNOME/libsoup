@@ -283,7 +283,11 @@ if have_apache
   endif
 endif
 
-have_autobahn = find_program('wstest', required: get_option('autobahn')).found()
+if get_option('autobahn').auto() and not get_option('tests')
+  have_autobahn = false
+else
+  have_autobahn = find_program('wstest', required: get_option('autobahn')).found()
+endif
 
 if not have_apache or not have_autobahn
   warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
@@ -412,6 +416,7 @@ summary({
     'All tests' : get_option('tests'),
     'Tests requiring Apache' : have_apache,
     'Fuzzing tests' : get_option('fuzzing').enabled(),
+    'Autobahn tests' : have_autobahn,
     'Install tests': get_option('installed_tests'),
     'Unix sockets' : unix_socket_dep.found(),
   },
