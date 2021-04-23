@@ -6,10 +6,6 @@
 #ifndef __SOUP_H__
 #define __SOUP_H__ 1
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define __SOUP_H_INSIDE__
 
 #include <libsoup/soup-auth.h>
@@ -52,9 +48,5 @@ extern "C" {
 #include <libsoup/soup-websocket-extension-manager.h>
 
 #undef __SOUP_H_INSIDE__
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __SOUP_H__ */
