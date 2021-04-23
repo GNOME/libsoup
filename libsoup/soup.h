@@ -6,10 +6,6 @@
 #ifndef __SOUP_H__
 #define __SOUP_H__ 1
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define __SOUP_H_INSIDE__
 
 #include <libsoup/soup-address.h>
@@ -67,9 +63,5 @@ extern "C" {
 #include <libsoup/soup-autocleanups.h>
 
 #undef __SOUP_H_INSIDE__
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __SOUP_H__ */
