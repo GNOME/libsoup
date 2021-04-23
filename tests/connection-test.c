@@ -1401,6 +1401,119 @@ do_steal_connection_preconnect_fail_test (const char *uri,
         soup_test_session_abort_unref (session);
 }
 
+typedef struct {
+        GMainLoop *loop;
+        guint count;
+} StealPreconnectTestData;
+
+static void
+steal_preconnect_finished (SoupSession             *session,
+                           GAsyncResult            *result,
+                           StealPreconnectTestData *data)
+{
+        soup_session_preconnect_finish (session, result, NULL);
+        if (++data->count == 2)
+                g_main_loop_quit (data->loop);
+}
+
+static void
+steal_preconnect_send_and_read_finished (SoupSession             *session,
+                                         GAsyncResult            *result,
+                                         StealPreconnectTestData *data)
+{
+        GBytes *bytes;
+
+        bytes = soup_session_send_and_read_finish (session, result, NULL);
+        g_bytes_unref (bytes);
+        if (++data->count == 2)
+                g_main_loop_quit (data->loop);
+}
+
+static void
+do_steal_preconnect_connection_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        StealPreconnectTestData data = { NULL, 0 };
+        PreconnectTestData data1 = { NULL, NULL, "rRcCx", SOUP_CONNECTION_DISCONNECTED, NULL, FALSE };
+        PreconnectTestData data2 = { NULL, NULL, "rRcCx", SOUP_CONNECTION_DISCONNECTED, NULL, FALSE };
+
+        session = soup_test_session_new (NULL);
+
+        /* Preconnect requests should never steal the connection of another preconnect. */
+
+        data.loop = g_main_loop_new (NULL, FALSE);
+        msg = soup_message_new ("HEAD", HTTP_SERVER);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (preconnection_test_message_network_event),
+                          &data1);
+        soup_session_preconnect_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                       (GAsyncReadyCallback)steal_preconnect_finished,
+                                       &data);
+        g_object_unref (msg);
+
+        msg = soup_message_new ("HEAD", HTTP_SERVER);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (preconnection_test_message_network_event),
+                          &data2);
+        soup_session_preconnect_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                       (GAsyncReadyCallback)steal_preconnect_finished,
+                                       &data);
+        g_object_unref (msg);
+
+        g_main_loop_run (data.loop);
+        g_assert_nonnull (data1.conn);
+        g_assert_nonnull (data2.conn);
+        g_assert_false (data1.conn == data2.conn);
+        g_assert_cmpint (data1.state, ==, SOUP_CONNECTION_IDLE);
+        g_assert_cmpint (data2.state, ==, SOUP_CONNECTION_IDLE);
+
+        while (*data1.events) {
+                soup_test_assert (!*data1.events,
+                                  "Expected %s",
+                                  event_name_from_abbrev (*data1.events));
+                soup_test_assert (!*data2.events,
+                                  "Expected %s",
+                                  event_name_from_abbrev (*data2.events));
+                data1.events++;
+                data2.events++;
+        }
+
+        data.count = 0;
+        g_clear_object (&data1.conn);
+        g_clear_object (&data2.conn);
+
+        msg = soup_message_new ("GET", HTTP_SERVER);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (preconnection_test_message_network_event),
+                          &data1);
+        soup_session_send_and_read_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                          (GAsyncReadyCallback)steal_preconnect_send_and_read_finished,
+                                          &data);
+        g_object_unref (msg);
+
+        msg = soup_message_new ("GET", HTTP_SERVER);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (preconnection_test_message_network_event),
+                          &data2);
+        soup_session_send_and_read_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                          (GAsyncReadyCallback)steal_preconnect_send_and_read_finished,
+                                          &data);
+        g_object_unref (msg);
+
+        g_main_loop_run (data.loop);
+
+        /* connection-created hasn't been called. */
+        g_assert_null (data1.conn);
+        g_assert_null (data2.conn);
+        g_assert_cmpint (data1.state, ==, SOUP_CONNECTION_IDLE);
+        g_assert_cmpint (data2.state, ==, SOUP_CONNECTION_IDLE);
+
+        g_main_loop_unref (data.loop);
+
+        soup_test_session_abort_unref (session);
+}
+
 static void
 do_connection_preconnect_test (void)
 {
@@ -1440,6 +1553,9 @@ do_connection_preconnect_test (void)
                                                           "r");
         } else
                 debug_printf (1, "    https -- SKIPPING\n");
+
+        debug_printf (1, "    preconnect should never steal a connection\n");
+        do_steal_preconnect_connection_test ();
 }
 
 static void

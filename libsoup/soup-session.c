@@ -1780,6 +1780,9 @@ steal_preconnection (SoupSession          *session,
         if (!item->async)
                 return FALSE;
 
+        if (item->connect_only)
+                return FALSE;
+
         preconnect_item = soup_session_lookup_queue_item_by_connection (session, conn);
         if (!preconnect_item)
                 return FALSE;
