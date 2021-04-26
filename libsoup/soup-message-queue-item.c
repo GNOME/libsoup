@@ -17,9 +17,7 @@ SoupMessageQueueItem *
 soup_message_queue_item_new (SoupSession        *session,
                              SoupMessage        *msg,
                              gboolean            async,
-                             GCancellable       *cancellable,
-                             SoupSessionCallback callback,
-                             gpointer            user_data)
+                             GCancellable       *cancellable)
 {
         SoupMessageQueueItem *item;
 
@@ -27,8 +25,6 @@ soup_message_queue_item_new (SoupSession        *session,
         item->session = g_object_ref (session);
         item->msg = g_object_ref (msg);
         item->async = async;
-        item->callback = callback;
-        item->callback_data = user_data;
         item->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
         item->priority = soup_message_get_priority (msg);
 

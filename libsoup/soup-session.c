@@ -1334,9 +1334,7 @@ static SoupMessageQueueItem *
 soup_session_append_queue_item (SoupSession        *session,
 				SoupMessage        *msg,
 				gboolean            async,
-				GCancellable       *cancellable,
-				SoupSessionCallback callback,
-				gpointer            user_data)
+				GCancellable       *cancellable)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
@@ -1346,7 +1344,7 @@ soup_session_append_queue_item (SoupSession        *session,
         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_FETCH_START);
 	soup_message_cleanup_response (msg);
 
-	item = soup_message_queue_item_new (session, msg, async, cancellable, callback, user_data);
+	item = soup_message_queue_item_new (session, msg, async, cancellable);
 	g_queue_insert_sorted (priv->queue,
 			       soup_message_queue_item_ref (item),
 			       (GCompareDataFunc)compare_queue_item, NULL);
@@ -1705,8 +1703,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 
 	tunnel_item = soup_session_append_queue_item (session, msg,
 						      item->async,
-						      item->cancellable,
-						      NULL, NULL);
+						      item->cancellable);
 	tunnel_item->io_priority = item->io_priority;
 	tunnel_item->related = soup_message_queue_item_ref (item);
 	soup_session_set_item_connection (session, tunnel_item, item->conn);
@@ -2040,11 +2037,7 @@ soup_session_process_queue_item (SoupSession          *session,
 		case SOUP_MESSAGE_FINISHING:
 			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
-			soup_message_queue_item_ref (item);
 			soup_session_unqueue_item (session, item);
-			if (item->async && item->callback)
-				item->callback (session, item->msg, item->callback_data);
-			soup_message_queue_item_unref (item);
 			return;
 
 		default:
@@ -3251,8 +3244,7 @@ soup_session_send_async (SoupSession         *session,
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
-	item = soup_session_append_queue_item (session, msg, TRUE,
-					       cancellable, NULL, NULL);
+	item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
 	item->io_priority = io_priority;
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (async_send_request_restarted), item);
@@ -3353,8 +3345,7 @@ soup_session_send (SoupSession   *session,
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
-	item = soup_session_append_queue_item (session, msg, FALSE,
-					       cancellable, NULL, NULL);
+	item = soup_session_append_queue_item (session, msg, FALSE, cancellable);
 
 	while (!stream) {
 		/* Get a connection, etc */
@@ -3695,12 +3686,11 @@ soup_session_get_supported_websocket_extensions_for_message (SoupSession *sessio
 static void websocket_connect_async_stop (SoupMessage *msg, gpointer user_data);
 
 static void
-websocket_connect_async_complete (SoupSession *session, SoupMessage *msg, gpointer user_data)
+websocket_connect_async_complete (SoupMessage *msg, gpointer user_data)
 {
 	GTask *task = user_data;
 	SoupMessageQueueItem *item = g_task_get_task_data (task);
 
-	/* Disconnect websocket_connect_async_stop() handler. */
 	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, task);
 
@@ -3727,11 +3717,8 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 	GList *accepted_extensions = NULL;
 	GError *error = NULL;
 
-	/* Disconnect websocket_connect_async_stop() handler. */
 	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, task);
-	/* Ensure websocket_connect_async_complete is not called either. */
-	item->callback = NULL;
 
 	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
 	if (soup_websocket_client_verify_handshake (item->msg, supported_extensions, &accepted_extensions, &error)) {
@@ -3814,15 +3801,18 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	 */
 	soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
 
-	task = g_task_new (session, cancellable, callback, user_data);
-	item = soup_session_append_queue_item (session, msg, TRUE, cancellable,
-					       websocket_connect_async_complete, task);
+	item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
 	item->io_priority = io_priority;
+
+        task = g_task_new (session, cancellable, callback, user_data);
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
 	soup_message_add_status_code_handler (msg, "got-informational",
 					      SOUP_STATUS_SWITCHING_PROTOCOLS,
 					      G_CALLBACK (websocket_connect_async_stop), task);
+        g_signal_connect_object (msg, "finished",
+                                 G_CALLBACK (websocket_connect_async_complete),
+                                 task, 0);
 	soup_session_kick_queue (session);
 }
 
@@ -3869,26 +3859,18 @@ soup_session_get_original_message_for_authentication (SoupSession *session,
 }
 
 static void
-preconnect_async_message_finished (SoupMessage *msg,
-                                   GTask       *task)
-{
-        SoupMessageQueueItem *item = g_task_get_task_data (task);
-
-        if (item->conn && !item->error)
-                soup_connection_set_reusable (item->conn, TRUE);
-}
-
-static void
-preconnect_async_complete (SoupSession *session,
-                           SoupMessage *msg,
+preconnect_async_complete (SoupMessage *msg,
                            GTask       *task)
 {
         SoupMessageQueueItem *item = g_task_get_task_data (task);
 
-        if (item->error)
+        if (item->error) {
                 g_task_return_error (task, g_error_copy (item->error));
-        else
+        } else {
+                if (item->conn)
+                        soup_connection_set_reusable (item->conn, TRUE);
                 g_task_return_boolean (task, TRUE);
+        }
         g_object_unref (task);
 }
 
@@ -3924,17 +3906,16 @@ soup_session_preconnect_async (SoupSession        *session,
         g_return_if_fail (SOUP_IS_SESSION (session));
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-        task = g_task_new (session, cancellable, callback, user_data);
-        item = soup_session_append_queue_item (session, msg, TRUE, cancellable,
-                                               (SoupSessionCallback)preconnect_async_complete,
-                                               task);
+        item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
         item->connect_only = TRUE;
         item->io_priority = io_priority;
+
+        task = g_task_new (session, cancellable, callback, user_data);
         g_task_set_priority (task, io_priority);
         g_task_set_task_data (task, item, (GDestroyNotify)soup_message_queue_item_unref);
 
         g_signal_connect_object (msg, "finished",
-                                 G_CALLBACK (preconnect_async_message_finished),
+                                 G_CALLBACK (preconnect_async_complete),
                                  task, 0);
 
         soup_session_kick_queue (session);

@@ -28,8 +28,6 @@ typedef enum {
 struct _SoupMessageQueueItem {
         SoupSession *session;
         SoupMessage *msg;
-        SoupSessionCallback callback;
-        gpointer callback_data;
 
         GCancellable *cancellable;
         GError *error;
@@ -52,10 +50,7 @@ struct _SoupMessageQueueItem {
 SoupMessageQueueItem *soup_message_queue_item_new    (SoupSession          *session,
                                                       SoupMessage          *msg,
                                                       gboolean              async,
-                                                      GCancellable         *cancellable,
-                                                      SoupSessionCallback   callback,
-                                                      gpointer              user_data);
-
+                                                      GCancellable         *cancellable);
 SoupMessageQueueItem *soup_message_queue_item_ref    (SoupMessageQueueItem *item);
 void                  soup_message_queue_item_unref  (SoupMessageQueueItem *item);
 void                  soup_message_queue_item_cancel (SoupMessageQueueItem *item);
