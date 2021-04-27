@@ -1122,7 +1122,7 @@ static int
 lookup_connection (SoupMessageQueueItem *item,
 		   SoupConnection       *conn)
 {
-	return item->conn == conn ? 0 : 1;
+	return soup_message_get_connection (item->msg) == conn ? 0 : 1;
 }
 
 static SoupMessageQueueItem *
@@ -1297,26 +1297,18 @@ redirect_handler (SoupMessage *msg,
 }
 
 static void
-soup_session_set_item_connection (SoupSession          *session,
-				  SoupMessageQueueItem *item,
-				  SoupConnection       *conn)
-{
-	g_clear_object (&item->conn);
-	item->conn = conn ? g_object_ref (conn) : NULL;
-	soup_message_set_connection (item->msg, conn);
-}
-
-static void
 message_restarted (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
+        SoupConnection *conn;
 
-	if (item->conn &&
+        conn = soup_message_get_connection (item->msg);
+	if (conn &&
 	    (!soup_message_is_keepalive (msg) ||
 	     SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))) {
-		if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE)
-			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
-		soup_session_set_item_connection (item->session, item, NULL);
+		if (soup_connection_get_state (conn) == SOUP_CONNECTION_IN_USE)
+			soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
+                soup_message_set_connection (item->msg, NULL);
 	}
 
 	soup_message_cleanup_response (msg);
@@ -1548,12 +1540,14 @@ soup_session_unqueue_item (SoupSession          *session,
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 	GSList *f;
+        SoupConnection *conn;
 
-	if (item->conn) {
+        conn = soup_message_get_connection (item->msg);
+	if (conn) {
 		if (soup_message_get_method (item->msg) != SOUP_METHOD_CONNECT ||
 		    !SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (item->msg)))
-			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
-		soup_session_set_item_connection (session, item, NULL);
+			soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
+                soup_message_set_connection (item->msg, NULL);
 	}
 
 	if (item->state != SOUP_MESSAGE_FINISHED) {
@@ -1622,8 +1616,8 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 
 	item->error = error;
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status) || item->error) {
-		soup_connection_disconnect (item->conn);
-		soup_session_set_item_connection (session, item, NULL);
+		soup_connection_disconnect (soup_message_get_connection (item->msg));
+                soup_message_set_connection (item->msg, NULL);
 		if (!error && soup_message_get_status (item->msg) == SOUP_STATUS_NONE)
 			soup_message_set_status (item->msg, status, NULL);
 	}
@@ -1655,7 +1649,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 
 	if (tunnel_item->state == SOUP_MESSAGE_RESTARTING) {
 		soup_message_restarted (msg);
-		if (tunnel_item->conn) {
+		if (soup_message_get_connection (tunnel_item->msg)) {
 			tunnel_item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, tunnel_item,
 						      (SoupMessageIOCompletionFn)tunnel_message_completed);
@@ -1676,7 +1670,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 	}
 
 	if (tunnel_item->async) {
-		soup_connection_tunnel_handshake_async (item->conn,
+		soup_connection_tunnel_handshake_async (soup_message_get_connection (item->msg),
 							item->io_priority,
 							item->cancellable,
 							(GAsyncReadyCallback)tunnel_handshake_complete,
@@ -1684,7 +1678,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 	} else {
 		GError *error = NULL;
 
-		soup_connection_tunnel_handshake (item->conn, item->cancellable, &error);
+		soup_connection_tunnel_handshake (soup_message_get_connection (item->msg), item->cancellable, &error);
 		tunnel_complete (tunnel_item, SOUP_STATUS_OK, error);
 	}
 }
@@ -1706,7 +1700,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 						      item->cancellable);
 	tunnel_item->io_priority = item->io_priority;
 	tunnel_item->related = soup_message_queue_item_ref (item);
-	soup_session_set_item_connection (session, tunnel_item, item->conn);
+        soup_message_set_connection (tunnel_item->msg, soup_message_get_connection (item->msg));
 	tunnel_item->state = SOUP_MESSAGE_RUNNING;
 
 	soup_session_send_queue_item (session, tunnel_item,
@@ -1718,8 +1712,6 @@ tunnel_connect (SoupMessageQueueItem *item)
 static void
 connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *error)
 {
-	SoupSession *session = item->session;
-
 	if (!error) {
 		item->state = SOUP_MESSAGE_CONNECTED;
 		return;
@@ -1730,7 +1722,7 @@ connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *erro
 	item->error = error;
 	soup_connection_disconnect (conn);
 	if (item->state == SOUP_MESSAGE_CONNECTING) {
-		soup_session_set_item_connection (session, item, NULL);
+                soup_message_set_connection (item->msg, NULL);
 		item->state = SOUP_MESSAGE_READY;
 	}
 }
@@ -1787,7 +1779,7 @@ steal_preconnection (SoupSession          *session,
         if (!preconnect_item->connect_only || preconnect_item->state != SOUP_MESSAGE_CONNECTING)
                 return FALSE;
 
-        soup_session_set_item_connection (session, preconnect_item, NULL);
+        soup_message_set_connection (preconnect_item->msg, NULL);
         g_assert (preconnect_item->related == NULL);
         preconnect_item->related = soup_message_queue_item_ref (item);
 
@@ -1810,9 +1802,10 @@ get_connection_for_host (SoupSession *session,
 	if (priv->disposed)
 		return NULL;
 
-	if (item->conn) {
-		g_return_val_if_fail (soup_connection_get_state (item->conn) != SOUP_CONNECTION_DISCONNECTED, FALSE);
-		return item->conn;
+        conn = soup_message_get_connection (item->msg);
+	if (conn) {
+		g_return_val_if_fail (soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED, FALSE);
+		return conn;
 	}
 
 	for (conns = host->connections; conns; conns = conns->next) {
@@ -1932,9 +1925,9 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 		return FALSE;
 	}
 
-	soup_session_set_item_connection (session, item, conn);
+        soup_message_set_connection (item->msg, conn);
 
-	switch (soup_connection_get_state (item->conn)) {
+	switch (soup_connection_get_state (conn)) {
 	case SOUP_CONNECTION_IN_USE:
 		item->state = SOUP_MESSAGE_READY;
 		return TRUE;
@@ -1952,7 +1945,7 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	item->state = SOUP_MESSAGE_CONNECTING;
 
 	if (item->async) {
-		soup_connection_connect_async (item->conn,
+		soup_connection_connect_async (conn,
 					       item->io_priority,
 					       item->cancellable,
 					       connect_async_complete,
@@ -1961,7 +1954,7 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	} else {
 		GError *error = NULL;
 
-		soup_connection_connect (item->conn, item->cancellable, &error);
+		soup_connection_connect (conn, item->cancellable, &error);
 		connect_complete (item, conn, error);
 
 		return TRUE;
@@ -1987,7 +1980,7 @@ soup_session_process_queue_item (SoupSession          *session,
 			break;
 
 		case SOUP_MESSAGE_CONNECTED:
-			if (soup_connection_is_tunnelled (item->conn))
+			if (soup_connection_is_tunnelled (soup_message_get_connection (item->msg)))
 				tunnel_connect (item);
 			else
 				item->state = SOUP_MESSAGE_READY;
@@ -3618,13 +3611,13 @@ steal_connection (SoupSession          *session,
         SoupSessionHost *host;
         GIOStream *stream;
 
-        conn = g_object_ref (item->conn);
+        conn = g_object_ref (soup_message_get_connection (item->msg));
         host = get_host_for_message (session, item->msg);
         g_hash_table_remove (priv->conns, conn);
         drop_connection (session, host, conn);
 
 	stream = soup_connection_steal_iostream (conn);
-        soup_session_set_item_connection (session, item, NULL);
+        soup_message_set_connection (item->msg, NULL);
 	g_object_unref (conn);
 
 	return stream;
@@ -3656,12 +3649,14 @@ soup_session_steal_connection (SoupSession *session,
 {
 	SoupMessageQueueItem *item;
 	GIOStream *stream = NULL;
+        SoupConnection *conn;
 
 	item = soup_session_lookup_queue_item (session, msg);
 	if (!item)
 		return NULL;
 
-	if (item->conn && soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE)
+        conn = soup_message_get_connection (item->msg);
+	if (conn && soup_connection_get_state (conn) == SOUP_CONNECTION_IN_USE)
 		stream = steal_connection (session, item);
 
 	return stream;
@@ -3864,8 +3859,11 @@ preconnect_async_complete (SoupMessage *msg,
         if (item->error) {
                 g_task_return_error (task, g_error_copy (item->error));
         } else {
-                if (item->conn)
-                        soup_connection_set_reusable (item->conn, TRUE);
+                SoupConnection *conn;
+
+                conn = soup_message_get_connection (item->msg);
+                if (conn)
+                        soup_connection_set_reusable (conn, TRUE);
                 g_task_return_boolean (task, TRUE);
         }
         g_object_unref (task);

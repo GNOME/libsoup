@@ -32,7 +32,6 @@ struct _SoupMessageQueueItem {
         GCancellable *cancellable;
         GError *error;
 
-        SoupConnection *conn;
         GTask *task;
 
         guint paused       : 1;

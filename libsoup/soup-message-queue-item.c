@@ -45,7 +45,7 @@ soup_message_queue_item_ref (SoupMessageQueueItem *item)
 static void
 soup_message_queue_item_destroy (SoupMessageQueueItem *item)
 {
-        g_warn_if_fail (item->conn == NULL);
+        g_warn_if_fail (soup_message_get_connection (item->msg) == NULL);
 
         g_signal_handlers_disconnect_by_data (item->msg, item->cancellable);
 

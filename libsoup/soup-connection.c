@@ -984,6 +984,7 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	g_return_if_fail (state >= SOUP_CONNECTION_NEW &&
 			  state <= SOUP_CONNECTION_DISCONNECTED);
 
+        g_object_ref (conn);
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	priv = soup_connection_get_instance_private (conn);
@@ -1007,6 +1008,7 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	}
 
 	g_object_thaw_notify (G_OBJECT (conn));
+        g_object_unref (conn);
 }
 
 void

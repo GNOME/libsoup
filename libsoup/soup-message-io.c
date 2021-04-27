@@ -84,7 +84,7 @@ soup_client_message_io_finished (SoupClientMessageIOData *io)
 		completion = SOUP_MESSAGE_IO_INTERRUPTED;
 
 	msg = g_object_ref (io->item->msg);
-        soup_connection_message_io_finished (io->item->conn, msg);
+        soup_connection_message_io_finished (soup_message_get_connection (msg), msg);
 	if (completion_cb)
 		completion_cb (G_OBJECT (msg), completion, completion_data);
 	g_object_unref (msg);
@@ -101,7 +101,7 @@ soup_client_message_io_stolen (SoupClientMessageIOData *io)
 	completion_data = io->base.completion_data;
 
 	msg = g_object_ref (io->item->msg);
-        soup_connection_message_io_finished (io->item->conn, msg);
+        soup_connection_message_io_finished (soup_message_get_connection (msg), msg);
 	if (completion_cb)
 		completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_STOLEN, completion_data);
 	g_object_unref (msg);
@@ -260,10 +260,9 @@ closed_async (GObject      *source,
  */
 
 static void
-write_headers (SoupMessage          *msg,
-	       GString              *header,
-	       SoupConnection       *conn,
-	       SoupEncoding         *encoding)
+write_headers (SoupMessage  *msg,
+	       GString      *header,
+	       SoupEncoding *encoding)
 {
 	GUri *uri = soup_message_get_uri (msg);
 	char *uri_string;
@@ -277,7 +276,7 @@ write_headers (SoupMessage          *msg,
 		uri_string = g_strdup_printf ("%s:%d", uri_host, g_uri_get_port (uri));
 		g_free (uri_host);
 	} else {
-		gboolean proxy = soup_connection_is_via_proxy (conn);
+		gboolean proxy = soup_connection_is_via_proxy (soup_message_get_connection (msg));
 
 		/* Proxy expects full URI to destination. Otherwise
 		 * just the path.
@@ -339,7 +338,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 	switch (io->write_state) {
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
 		if (!io->write_buf->len)
-			write_headers (msg, io->write_buf, client_io->item->conn, &io->write_encoding);
+			write_headers (msg, io->write_buf, &io->write_encoding);
 
 		while (io->written < io->write_buf->len) {
 			nwrote = g_pollable_stream_write (io->ostream,
@@ -707,7 +706,7 @@ request_is_restartable (SoupMessage *msg, GError *error)
 
 	return (io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
 		io->read_header_buf->len == 0 &&
-		soup_connection_get_ever_used (client_io->item->conn) &&
+		soup_connection_get_ever_used (soup_message_get_connection (client_io->item->msg)) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
