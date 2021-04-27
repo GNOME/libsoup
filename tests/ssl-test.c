@@ -252,7 +252,7 @@ do_tls_interaction_msg_test (gconstpointer data)
         SoupMessage *msg;
         GBytes *body;
         GTlsDatabase *tls_db;
-        GTlsCertificate *certificate;
+        GTlsCertificate *certificate, *wrong_certificate;
         GError *error = NULL;
 
         SOUP_TEST_SKIP_IF_NO_TLS;
@@ -330,10 +330,29 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_bytes_unref (body);
         g_object_unref (msg);
 
+        /* Using the wrong certificate fails */
+        wrong_certificate = g_tls_certificate_new_from_files (
+                g_test_get_filename (G_TEST_DIST, "test-cert-2.pem", NULL),
+                g_test_get_filename (G_TEST_DIST, "test-key-2.pem", NULL),
+                NULL
+        );
+        g_assert_nonnull (wrong_certificate);
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_async_cb),
+                          wrong_certificate);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+        g_assert_null (body);
+        g_clear_error (&error);
+        g_object_unref (msg);
+
         g_signal_handlers_disconnect_by_data (server, tls_db);
 
         soup_test_session_abort_unref (session);
         g_object_unref (certificate);
+        g_object_unref (wrong_certificate);
 }
 
 static void
