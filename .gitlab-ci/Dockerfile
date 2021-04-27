@@ -8,6 +8,7 @@ RUN dnf update -y \
                       clang-analyzer \
                       git \
                       glib2-doc \
+                      gnutls-devel \
                       gtk-doc \
                       httpd \
                       lcov \
