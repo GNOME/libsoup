@@ -3,6 +3,11 @@
 #include "test-utils.h"
 #include "soup-server-message-private.h"
 
+#if HAVE_GNUTLS
+#include <gnutls/gnutls.h>
+#include <gnutls/pkcs11.h>
+#endif
+
 GUri *uri;
 
 typedef struct {
@@ -217,7 +222,16 @@ request_certificate_cb (SoupMessage          *msg,
 typedef struct {
         SoupMessage *msg;
         GTlsCertificate *certificate;
+        GTlsPassword *tls_password;
+        const guchar *password;
 } SetCertificateAsyncData;
+
+static void
+set_certificate_async_data_free (SetCertificateAsyncData *data)
+{
+        g_clear_object (&data->tls_password);
+        g_free (data);
+}
 
 static gboolean
 set_certificate_idle_cb (SetCertificateAsyncData *data)
@@ -234,12 +248,41 @@ request_certificate_async_cb (SoupMessage          *msg,
 {
         SetCertificateAsyncData *data;
 
-        data = g_new (SetCertificateAsyncData, 1);
+        data = g_new0 (SetCertificateAsyncData, 1);
         data->msg = msg;
         data->certificate = certificate;
         g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
                          (GSourceFunc)set_certificate_idle_cb,
-                         data, g_free);
+                         data,
+                         (GDestroyNotify)set_certificate_async_data_free);
+
+        return TRUE;
+}
+
+static gboolean
+set_certificate_password_idle_cb (SetCertificateAsyncData *data)
+{
+        g_tls_password_set_value (data->tls_password, data->password, -1);
+        soup_message_tls_client_certificate_password_request_complete (data->msg);
+
+        return FALSE;
+}
+
+static gboolean
+request_certificate_password_async_cb (SoupMessage  *msg,
+                                       GTlsPassword *password,
+                                       const guchar *pin)
+{
+        SetCertificateAsyncData *data;
+
+        data = g_new (SetCertificateAsyncData, 1);
+        data->msg = msg;
+        data->tls_password = g_object_ref (password);
+        data->password = pin;
+        g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+                         (GSourceFunc)set_certificate_password_idle_cb,
+                         data,
+                         (GDestroyNotify)set_certificate_async_data_free);
 
         return TRUE;
 }
@@ -252,7 +295,7 @@ do_tls_interaction_msg_test (gconstpointer data)
         SoupMessage *msg;
         GBytes *body;
         GTlsDatabase *tls_db;
-        GTlsCertificate *certificate, *wrong_certificate;
+        GTlsCertificate *certificate, *wrong_certificate, *pkcs11_certificate;
         GError *error = NULL;
 
         SOUP_TEST_SKIP_IF_NO_TLS;
@@ -348,11 +391,35 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_clear_error (&error);
         g_object_unref (msg);
 
+        /* Using PKCS#11 works, and asks for a PIN */
+        pkcs11_certificate = g_tls_certificate_new_from_pkcs11_uris (
+                "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%43%65%72%74%69%66%69%63%61%74%65;object=Mock%20Certificate;type=cert",
+                "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%50%72%69%76%61%74%65%20%4B%65%79;object=Mock%20Private%20Key;type=private",
+                &error
+        );
+        g_assert_no_error (error);
+        g_assert_nonnull (pkcs11_certificate);
+        g_assert_true (G_IS_TLS_CERTIFICATE (pkcs11_certificate));
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_async_cb),
+                          pkcs11_certificate);
+        g_signal_connect (msg, "request-certificate-password",
+                          G_CALLBACK (request_certificate_password_async_cb),
+                          "ABC123");
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
         g_signal_handlers_disconnect_by_data (server, tls_db);
 
         soup_test_session_abort_unref (session);
         g_object_unref (certificate);
         g_object_unref (wrong_certificate);
+        g_object_unref (pkcs11_certificate);
 }
 
 static void
@@ -375,6 +442,15 @@ main (int argc, char **argv)
 	int i, ret;
 
 	test_init (argc, argv, NULL);
+
+#if HAVE_GNUTLS
+        char *module_path = soup_test_build_filename_abs (G_TEST_BUILT, "mock-pkcs11.so", NULL);
+        g_assert_true (g_file_test (module_path, G_FILE_TEST_EXISTS));
+
+        g_assert (gnutls_pkcs11_init (GNUTLS_PKCS11_FLAG_MANUAL, NULL) == GNUTLS_E_SUCCESS);
+        g_assert (gnutls_pkcs11_add_provider (module_path, NULL) == GNUTLS_E_SUCCESS);
+        g_free (module_path);
+#endif
 
 	if (tls_available) {
 		server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);

@@ -23,6 +23,23 @@ test_resources = gnome.compile_resources('soup-tests',
   install_dir : installed_tests_execdir,
 )
 
+if gnutls_dep.found()
+  mock_pkcs11_module = shared_module('mock-pkcs11',
+      sources: 'mock-pkcs11.c',
+      name_prefix: '',
+      gnu_symbol_visibility: 'hidden',
+      include_directories: include_directories('pkcs11'),
+      dependencies: [
+        gio_dep,
+        gnutls_dep,
+      ],
+      install: installed_tests_enabled,
+      install_dir: installed_tests_execdir
+    )
+else
+  mock_pkcs11_module = []
+endif
+
 configure_file(input : 'index.txt',
   output : 'index.txt',
   copy : true)
@@ -50,37 +67,42 @@ endif
 
 # ['name', is_parallel, extra_deps]
 tests = [
-  ['cache', true, []],
-  ['chunk-io', true, []],
-  ['coding', true, []],
-  ['context', true, []],
-  ['continue', true, []],
-  ['cookies', true, []],
-  ['date', true, []],
-  ['forms', true, []],
-  ['header-parsing', true, []],
-  ['http2-body-stream', true, []],
-  ['hsts', true, []],
-  ['hsts-db', true, []],
-  ['logger', true, []],
-  ['misc', true, []],
-  ['multipart', true, []],
-  ['no-ssl', true, []],
-  ['ntlm', true, []],
-  ['redirect', true, []],
-  ['request-body', true, []],
-  ['samesite', true, []],
-  ['session', true, []],
-  ['server-auth', true, []],
-  ['server', true, []],
-  ['sniffing', true, []],
-  ['socket', true, []],
-  ['ssl', true, []],
-  ['streaming', true, []],
-  ['timeout', true, []],
-  ['tld', true, []],
-  ['uri-parsing', true, []],
-  ['websocket', true, [libz_dep]]
+  {'name': 'cache'},
+  {'name': 'chunk-io'},
+  {'name': 'coding'},
+  {'name': 'context'},
+  {'name': 'continue'},
+  {'name': 'cookies'},
+  {'name': 'date'},
+  {'name': 'forms'},
+  {'name': 'header-parsing'},
+  {'name': 'http2-body-stream'},
+  {'name': 'hsts'},
+  {'name': 'hsts-db'},
+  {'name': 'logger'},
+  {'name': 'misc'},
+  {'name': 'multipart'},
+  {'name': 'no-ssl'},
+  {'name': 'ntlm'},
+  {'name': 'redirect'},
+  {'name': 'request-body'},
+  {'name': 'samesite'},
+  {'name': 'session'},
+  {'name': 'server-auth'},
+  {'name': 'server'},
+  {'name': 'sniffing'},
+  {'name': 'socket'},
+  {'name': 'ssl',
+   'dependencies': [gnutls_dep],
+   'depends': mock_pkcs11_module,
+   'c_args': '-DHAVE_GNUTLS=@0@'.format(gnutls_dep.found() ? 1 : 0),
+  },
+  {'name': 'streaming'},
+  {'name': 'timeout'},
+  {'name': 'tld'},
+  {'name': 'uri-parsing'},
+  {'name': 'websocket',
+   'dependencies': [libz_dep]},
 ]
 
 if quart_found
@@ -88,15 +110,11 @@ if quart_found
     output : 'http2-server.py',
     copy : true)
 
-  tests += [
-    ['http2', true, []],
-  ]
+  tests += [{'name': 'http2'}]
 endif
 
 if brotlidec_dep.found()
-  tests += [
-    ['brotli-decompressor', true, []],
-  ]
+  tests += [{'name': 'brotli-decompressor'}]
 
   if installed_tests_enabled
     install_data(
@@ -109,17 +127,18 @@ if brotlidec_dep.found()
 endif
 
 if unix_socket_dep.found()
-  tests += [
-    ['unix-socket', true, [ unix_socket_dep ]],
-  ]
+  tests += [{
+    'name': 'unix-socket',
+    'dependencies': [unix_socket_dep],
+  }]
 endif
 
 if have_apache
   tests += [
-    ['auth', false, []],
-    ['connection', false, []],
-    ['range', false, []],
-    ['proxy', false, []],
+    {'name': 'auth', 'parallel': false},
+    {'name': 'connection', 'parallel': false},
+    {'name': 'range', 'parallel': false},
+    {'name': 'proxy', 'parallel': false},
   ]
 
   configure_file(output : 'httpd.conf',
@@ -164,14 +183,14 @@ if have_autobahn
 endif
 
 foreach test: tests
-  test_name = '@0@-test'.format(test[0])
+  test_name = '@0@-test'.format(test['name'])
 
   if installed_tests_enabled
     test_conf = configuration_data()
     test_conf.set('installed_tests_dir', abs_installed_tests_execdir)
     test_conf.set('program', test_name)
     test_conf.set('env', '')
-    test_conf.set('type', test[1] ? 'session' : 'session-exclusive')
+    test_conf.set('type', test.get('parallel', true) ? 'session' : 'session-exclusive')
     configure_file(
       input : installed_tests_template_tap,
       output : test_name + '.test',
@@ -180,9 +199,11 @@ foreach test: tests
     )
   endif
 
-  test_deps = [ libsoup_static_dep ] + test[2]
+  test_deps = [ libsoup_static_dep ] + test.get('dependencies', [])
   test_target = executable(test_name,
     sources : [ test_name + '.c', test_resources ],
+    c_args : test.get('c_args', []),
+    include_directories : test.get('includes', []),
     link_with : test_utils,
     dependencies : test_deps,
     install : installed_tests_enabled,
@@ -194,7 +215,8 @@ foreach test: tests
   test(test_name, test_target,
     args : ['--debug'],
     env : env,
-    is_parallel : test[1],
+    is_parallel : test.get('parallel', true),
+    depends : test.get('depends', []),
     timeout : 60,
     protocol : 'tap',
   )
