@@ -52,6 +52,35 @@ soup_tls_interaction_request_certificate_finish (GTlsInteraction *tls_interactio
 }
 
 static void
+soup_tls_interaction_ask_password_async (GTlsInteraction    *tls_interaction,
+                                         GTlsPassword       *password,
+                                         GCancellable       *cancellable,
+                                         GAsyncReadyCallback callback,
+                                         gpointer            user_data)
+{
+        SoupTlsInteractionPrivate *priv = soup_tls_interaction_get_instance_private (SOUP_TLS_INTERACTION (tls_interaction));
+        GTask *task;
+
+        task = g_task_new (tls_interaction, cancellable, callback, user_data);
+        if (priv->conn)
+                soup_connection_request_tls_certificate_password (priv->conn, password, task);
+        else
+                g_task_return_int (task, G_TLS_INTERACTION_FAILED);
+        g_object_unref (task);
+}
+
+static GTlsInteractionResult
+soup_tls_interaction_ask_password_finish (GTlsInteraction *tls_interaction,
+                                          GAsyncResult    *result,
+                                          GError         **error)
+{
+        int task_result;
+
+        task_result = g_task_propagate_int (G_TASK (result), error);
+        return task_result != -1 ? task_result : G_TLS_INTERACTION_FAILED;
+}
+
+static void
 soup_tls_interaction_finalize (GObject *object)
 {
         SoupTlsInteractionPrivate *priv = soup_tls_interaction_get_instance_private (SOUP_TLS_INTERACTION (object));
@@ -79,6 +108,8 @@ soup_tls_interaction_class_init (SoupTlsInteractionClass *klass)
 
         interaction_class->request_certificate_async = soup_tls_interaction_request_certificate_async;
         interaction_class->request_certificate_finish = soup_tls_interaction_request_certificate_finish;
+        interaction_class->ask_password_async = soup_tls_interaction_ask_password_async;
+        interaction_class->ask_password_finish = soup_tls_interaction_ask_password_finish;
 }
 
 GTlsInteraction *

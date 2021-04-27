@@ -55,6 +55,7 @@ enum {
 	EVENT,
 	ACCEPT_CERTIFICATE,
         REQUEST_CERTIFICATE,
+        REQUEST_CERTIFICATE_PASSWORD,
 	DISCONNECTED,
 	LAST_SIGNAL
 };
@@ -243,6 +244,16 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                               NULL,
                               G_TYPE_BOOLEAN, 2,
                               G_TYPE_TLS_CLIENT_CONNECTION,
+                              G_TYPE_TASK);
+        signals[REQUEST_CERTIFICATE_PASSWORD] =
+                g_signal_new ("request-certificate-password",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              g_signal_accumulator_true_handled, NULL,
+                              NULL,
+                              G_TYPE_BOOLEAN, 2,
+                              G_TYPE_TLS_PASSWORD,
                               G_TYPE_TASK);
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
@@ -1197,6 +1208,37 @@ soup_connection_complete_tls_certificate_request (SoupConnection  *conn,
         } else {
                 g_task_return_int (task, G_TLS_INTERACTION_FAILED);
         }
+        g_object_unref (task);
+}
+
+void
+soup_connection_request_tls_certificate_password (SoupConnection *conn,
+                                                  GTlsPassword   *password,
+                                                  GTask          *task)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        gboolean handled = FALSE;
+
+        if (!G_IS_TLS_CONNECTION (priv->connection)) {
+                g_task_return_int (task, G_TLS_INTERACTION_FAILED);
+                return;
+        }
+
+        g_signal_emit (conn, signals[REQUEST_CERTIFICATE_PASSWORD], 0, password, task, &handled);
+        if (!handled)
+                g_task_return_int (task, G_TLS_INTERACTION_FAILED);
+}
+
+void
+soup_connection_complete_tls_certificate_password_request (SoupConnection *conn,
+                                                           GTask          *task)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        if (G_IS_TLS_CONNECTION (priv->connection))
+                g_task_return_int (task, G_TLS_INTERACTION_HANDLED);
+        else
+                g_task_return_int (task, G_TLS_INTERACTION_FAILED);
         g_object_unref (task);
 }
 

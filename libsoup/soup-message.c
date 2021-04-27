@@ -91,6 +91,7 @@ typedef struct {
 
         GTlsCertificate *tls_client_certificate;
         GTask *pending_tls_cert_request;
+        GTask *pending_tls_cert_pass_request;
 
 	SoupMessagePriority priority;
 
@@ -123,6 +124,7 @@ enum {
 	NETWORK_EVENT,
 	ACCEPT_CERTIFICATE,
         REQUEST_CERTIFICATE,
+        REQUEST_CERTIFICATE_PASSWORD,
 	HSTS_ENFORCED,
 
 	LAST_SIGNAL
@@ -176,6 +178,11 @@ soup_message_finalize (GObject *object)
         if (priv->pending_tls_cert_request) {
                 g_task_return_int (priv->pending_tls_cert_request, G_TLS_INTERACTION_FAILED);
                 g_object_unref (priv->pending_tls_cert_request);
+        }
+
+        if (priv->pending_tls_cert_pass_request) {
+                g_task_return_int (priv->pending_tls_cert_pass_request, G_TLS_INTERACTION_FAILED);
+                g_object_unref (priv->pending_tls_cert_pass_request);
         }
 
 	soup_message_set_connection (msg, NULL);
@@ -632,6 +639,36 @@ soup_message_class_init (SoupMessageClass *message_class)
                               NULL,
                               G_TYPE_BOOLEAN, 1,
                               G_TYPE_TLS_CLIENT_CONNECTION);
+
+        /**
+         * SoupMessage::request-certificate-password:
+         * @msg: the message
+         * @tls_password: the #GTlsPassword
+         *
+         * Emitted during the @msg's connection TLS handshake when
+         * @tls_connection requests a certificate password from the client.
+         * You can set the certificate password on @password, then call
+         * soup_message_tls_client_certificate_password_request_complete() and return %TRUE
+         * to handle the signal synchronously.
+         * It's possible to handle the request asynchornously by calling g_object_ref()
+         * on @password, then returning %TRUE and call
+         * soup_message_tls_client_certificate_password_request_complete() later after
+         * setting the password on @password.
+         * Note that this signal is not emitted if #SoupSession::tls-interaction
+         * was set.
+         *
+         * Returns: %TRUE to handle the request, or %FALSE to make the connection
+         *     fail with %G_TLS_ERROR_CERTIFICATE_REQUIRED.
+         */
+        signals[REQUEST_CERTIFICATE_PASSWORD] =
+                g_signal_new ("request-certificate-password",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              g_signal_accumulator_true_handled, NULL,
+                              NULL,
+                              G_TYPE_BOOLEAN, 1,
+                              G_TYPE_TLS_PASSWORD);
 
 	/**
 	 * SoupMessage::hsts-enforced:
@@ -1447,6 +1484,23 @@ re_emit_request_certificate (SoupMessage          *msg,
         return handled;
 }
 
+static gboolean
+re_emit_request_certificate_password (SoupMessage  *msg,
+                                      GTlsPassword *password,
+                                      GTask        *task)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        gboolean handled = FALSE;
+
+        priv->pending_tls_cert_pass_request = g_object_ref (task);
+
+        g_signal_emit (msg, signals[REQUEST_CERTIFICATE_PASSWORD], 0, password, &handled);
+        if (!handled)
+                g_clear_object (&priv->pending_tls_cert_pass_request);
+
+        return handled;
+}
+
 static void
 re_emit_tls_certificate_changed (SoupMessage    *msg,
 				 GParamSpec     *pspec,
@@ -1515,6 +1569,9 @@ soup_message_set_connection (SoupMessage    *msg,
 				 msg, G_CONNECT_SWAPPED);
         g_signal_connect_object (priv->connection, "request-certificate",
                                  G_CALLBACK (re_emit_request_certificate),
+                                 msg, G_CONNECT_SWAPPED);
+        g_signal_connect_object (priv->connection, "request-certificate-password",
+                                 G_CALLBACK (re_emit_request_certificate_password),
                                  msg, G_CONNECT_SWAPPED);
 	g_signal_connect_object (priv->connection, "notify::tls-certificate",
 				 G_CALLBACK (re_emit_tls_certificate_changed),
@@ -2213,6 +2270,33 @@ soup_message_set_tls_client_certificate (SoupMessage     *msg,
 
         g_clear_object (&priv->tls_client_certificate);
         priv->tls_client_certificate = g_object_ref (certificate);
+}
+
+/**
+ * soup_message_tls_client_certificate_password_request_complete:
+ * @msg: a #SoupMessage
+ *
+ * Completes a certificate password request.
+ *
+ * You must call this as a response to #SoupMessage::request-certificate-password
+ * signal, to notify @msg that the #GTlsPassword has already been updated.
+ */
+void
+soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+        priv = soup_message_get_instance_private (msg);
+        if (!priv->pending_tls_cert_pass_request) {
+                g_warning ("soup_message_tls_client_certificate_password_request_complete should only be called as a response to SoupMessage::request-certificate-password signal");
+                return;
+        }
+
+        g_assert (SOUP_IS_CONNECTION (priv->connection));
+        soup_connection_complete_tls_certificate_password_request (priv->connection,
+                                                                   g_steal_pointer (&priv->pending_tls_cert_pass_request));
 }
 
 /**

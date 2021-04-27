@@ -63,16 +63,21 @@ gboolean        soup_connection_is_idle_open   (SoupConnection   *conn);
 SoupClientMessageIO *soup_connection_setup_message_io    (SoupConnection *conn,
                                                           SoupMessage    *msg);
 
-GTlsCertificate     *soup_connection_get_tls_certificate        (SoupConnection *conn);
-GTlsCertificateFlags soup_connection_get_tls_certificate_errors (SoupConnection *conn);
-void                 soup_connection_request_tls_certificate    (SoupConnection *conn,
-                                                                 GTlsConnection *connection,
-                                                                 GTask           *task);
-void                 soup_connection_complete_tls_certificate_request (SoupConnection  *conn,
-                                                                       GTlsCertificate *certificate,
-                                                                       GTask           *task);
-void                 soup_connection_set_tls_client_certificate (SoupConnection  *conn,
-                                                                 GTlsCertificate *certificate);
+GTlsCertificate     *soup_connection_get_tls_certificate                       (SoupConnection  *conn);
+GTlsCertificateFlags soup_connection_get_tls_certificate_errors                (SoupConnection  *conn);
+void                 soup_connection_request_tls_certificate                   (SoupConnection  *conn,
+                                                                                GTlsConnection  *connection,
+                                                                                GTask           *task);
+void                 soup_connection_complete_tls_certificate_request          (SoupConnection  *conn,
+                                                                                GTlsCertificate *certificate,
+                                                                                GTask           *task);
+void                 soup_connection_set_tls_client_certificate                (SoupConnection  *conn,
+                                                                                GTlsCertificate *certificate);
+void                 soup_connection_request_tls_certificate_password          (SoupConnection  *conn,
+                                                                                GTlsPassword    *password,
+                                                                                GTask           *task);
+void                 soup_connection_complete_tls_certificate_password_request (SoupConnection  *conn,
+                                                                                GTask           *task);
 
 guint64              soup_connection_get_id                     (SoupConnection *conn);
 GSocketAddress      *soup_connection_get_remote_address         (SoupConnection *conn);
