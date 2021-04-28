@@ -219,6 +219,17 @@ request_certificate_cb (SoupMessage          *msg,
         return TRUE;
 }
 
+static gboolean
+request_certificate_password_cb (SoupMessage  *msg,
+                                 GTlsPassword *tls_password,
+                                 const guchar *password)
+{
+        g_tls_password_set_value (tls_password, password, -1);
+        soup_message_tls_client_certificate_password_request_complete (msg);
+
+        return TRUE;
+}
+
 typedef struct {
         SoupMessage *msg;
         GTlsCertificate *certificate;
@@ -400,6 +411,21 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_assert_no_error (error);
         g_assert_nonnull (pkcs11_certificate);
         g_assert_true (G_IS_TLS_CERTIFICATE (pkcs11_certificate));
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_cb),
+                          pkcs11_certificate);
+        g_signal_connect (msg, "request-certificate-password",
+                          G_CALLBACK (request_certificate_password_cb),
+                          "ABC123");
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        /* Handling the request-certificate-password signal asynchronously */
         msg = soup_message_new_from_uri ("GET", uri);
         soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
         g_signal_connect (msg, "request-certificate",
