@@ -157,14 +157,7 @@ apache_cmd (const char *cmd)
 	int status;
 	gboolean ok;
 
-	server_root = g_test_build_filename (G_TEST_BUILT, "", NULL);
-	if (!g_path_is_absolute (server_root)) {
-		char *abs_server_root;
-
-		abs_server_root = g_canonicalize_filename (server_root, NULL);
-		g_free (server_root);
-		server_root = abs_server_root;
-	}
+	server_root = soup_test_build_filename_abs (G_TEST_BUILT, "", NULL);
 
 	cwd = g_get_current_dir ();
 #ifdef HAVE_APACHE_2_4
@@ -819,6 +812,42 @@ soup_test_get_index (void)
 	}
 
 	return index_buffer;
+}
+
+char *
+soup_test_build_filename_abs (GTestFileType  file_type,
+                              const gchar   *first_path,
+                              ...)
+{
+        const gchar *pathv[16];
+        gsize num_path_segments;
+        char *path;
+        char *path_abs;
+        va_list ap;
+
+        va_start (ap, first_path);
+
+        pathv[0] = g_test_get_dir (file_type);
+        pathv[1] = first_path;
+
+        for (num_path_segments = 2; num_path_segments < G_N_ELEMENTS (pathv); num_path_segments++) {
+                pathv[num_path_segments] = va_arg (ap, const char *);
+                if (pathv[num_path_segments] == NULL)
+                        break;
+        }
+
+        va_end (ap);
+
+        g_assert_cmpint (num_path_segments, <, G_N_ELEMENTS (pathv));
+
+        path = g_build_filenamev ((gchar **) pathv);
+        if (g_path_is_absolute (path))
+                return path;
+
+        path_abs = g_canonicalize_filename (path, NULL);
+        g_free (path);
+
+        return path_abs;
 }
 
 #ifndef G_HAVE_ISO_VARARGS

@@ -93,6 +93,10 @@ SoupBuffer *soup_test_load_resource      (const char  *name,
 
 SoupBuffer *soup_test_get_index          (void);
 
+char       *soup_test_build_filename_abs (GTestFileType  file_type,
+                                          const gchar   *first_path,
+                                          ...);
+
 #ifdef G_HAVE_ISO_VARARGS
 #define soup_test_assert(expr, ...)				\
 G_STMT_START {								\

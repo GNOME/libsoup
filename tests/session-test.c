@@ -340,11 +340,12 @@ do_property_tests (void)
 	 */
 	if (tls_available) {
 		GError *error = NULL;
+                char *db_path;
 
-		tlsdb = g_tls_file_database_new (g_test_get_filename (G_TEST_DIST,
-								      "test-cert.pem",
-								      NULL), &error);
+                db_path = soup_test_build_filename_abs (G_TEST_DIST, "test-cert.pem", NULL);
+		tlsdb = g_tls_file_database_new (db_path, &error);
 		g_assert_no_error (error);
+                g_free (db_path);
 
 		session = g_object_new (SOUP_TYPE_SESSION,
 					SOUP_SESSION_TLS_DATABASE, tlsdb,
