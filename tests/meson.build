@@ -23,6 +23,22 @@ test_resources = gnome.compile_resources('soup-tests',
   install_dir : installed_tests_execdir,
 )
 
+configure_file(input : 'index.txt',
+  output : 'index.txt',
+  copy : true)
+configure_file(input : 'test-cert.pem',
+  output : 'test-cert.pem',
+  copy : true)
+configure_file(input : 'test-key.pem',
+  output : 'test-key.pem',
+  copy : true)
+configure_file(input : 'test-cert-2.pem',
+  output : 'test-cert-2.pem',
+  copy : true)
+configure_file(input : 'test-key-2.pem',
+  output : 'test-key-2.pem',
+  copy : true)
+
 if installed_tests_enabled
   install_data(
     'index.txt',
@@ -118,15 +134,6 @@ if have_apache
     copy : true)
   configure_file(input : 'htpasswd',
     output : 'htpasswd',
-    copy : true)
-  configure_file(input : 'index.txt',
-    output : 'index.txt',
-    copy : true)
-  configure_file(input : 'test-cert.pem',
-    output : 'test-cert.pem',
-    copy : true)
-  configure_file(input : 'test-key.pem',
-    output : 'test-key.pem',
     copy : true)
 
   if installed_tests_enabled
