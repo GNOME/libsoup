@@ -538,8 +538,11 @@ io_read (SoupMessage *msg, gboolean blocking,
                 is_first_read = io->read_header_buf->len == 0 &&
                         soup_message_get_status (msg) == SOUP_STATUS_NONE;
 
-		if (!soup_message_io_data_read_headers (io, blocking, cancellable, &extra_bytes, error))
-			return FALSE;
+                succeeded = soup_message_io_data_read_headers (io, blocking, cancellable, &extra_bytes, error);
+                if (is_first_read && io->read_header_buf->len > 0)
+                        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_START);
+                if (!succeeded)
+                        return FALSE;
 
                 if (client_io->metrics) {
                         /* Adjust the header and body bytes received, since we might
@@ -551,9 +554,6 @@ io_read (SoupMessage *msg, gboolean blocking,
                                 client_io->metrics->response_header_bytes_received -= client_io->metrics->response_body_bytes_received;
                         }
                 }
-
-                if (is_first_read)
-                        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_START);
 
 		succeeded = parse_headers (msg,
 					   (char *)io->read_header_buf->data,
