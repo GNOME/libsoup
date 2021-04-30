@@ -35,6 +35,7 @@ do_load_uri_test (void)
         GBytes *body;
         const char *content_type;
         char *json;
+        GSocketAddress *remote_address;
         GError *error = NULL;
 
         address = g_unix_socket_address_new (soup_test_server_get_unix_path (server));
@@ -45,6 +46,11 @@ do_load_uri_test (void)
         body = soup_session_send_and_read (session, msg, NULL, &error);
         g_assert_no_error (error);
         g_assert_nonnull (body);
+
+        remote_address = soup_message_get_remote_address (msg);
+        g_assert_nonnull (remote_address);
+        g_assert_true (G_IS_UNIX_SOCKET_ADDRESS (remote_address));
+        g_assert_cmpstr (g_unix_socket_address_get_path (G_UNIX_SOCKET_ADDRESS (remote_address)), ==, soup_test_server_get_unix_path (server));
 
         content_type = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Content-Type");
         g_assert_cmpstr (content_type, ==, "application/json");

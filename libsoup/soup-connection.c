@@ -28,6 +28,7 @@ typedef struct {
 	GIOStream *iostream;
 	SoupSocketProperties *socket_props;
         guint64 id;
+        GSocketAddress *remote_address;
 
 	GUri *proxy_uri;
 	gboolean ssl;
@@ -58,6 +59,7 @@ enum {
 
         PROP_ID,
 	PROP_REMOTE_CONNECTABLE,
+        PROP_REMOTE_ADDRESS,
 	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
 	PROP_SSL,
@@ -88,6 +90,7 @@ soup_connection_finalize (GObject *object)
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
         g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
 	g_clear_object (&priv->remote_connectable);
+        g_clear_object (&priv->remote_address);
 	g_clear_object (&priv->current_msg);
 
 	if (priv->cancellable) {
@@ -155,6 +158,9 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	case PROP_REMOTE_CONNECTABLE:
 		g_value_set_object (value, priv->remote_connectable);
 		break;
+        case PROP_REMOTE_ADDRESS:
+                g_value_set_object (value, priv->remote_address);
+	        break;
 	case PROP_SOCKET_PROPERTIES:
 		g_value_set_boxed (value, priv->socket_props);
 		break;
@@ -228,6 +234,14 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                                      "Socket to connect to make outgoing connections on",
                                      G_TYPE_SOCKET_CONNECTABLE,
                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS));
+        g_object_class_install_property (
+                object_class, PROP_REMOTE_ADDRESS,
+                g_param_spec_object ("remote-address",
+                                     "Remote Address",
+                                     "Remote address of connection",
+                                     G_TYPE_SOCKET_ADDRESS,
+                                     G_PARAM_READABLE |
                                      G_PARAM_STATIC_STRINGS));
 	g_object_class_install_property (
 		object_class, PROP_SOCKET_PROPERTIES,
@@ -488,15 +502,17 @@ soup_connection_connected (SoupConnection    *conn,
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
         GSocket *socket;
-        GSocketAddress *addr;
 
         socket = g_socket_connection_get_socket (connection);
         g_socket_set_timeout (socket, priv->socket_props->io_timeout);
         g_socket_set_option (socket, IPPROTO_TCP, TCP_NODELAY, TRUE, NULL);
 
-        addr = g_socket_get_remote_address (socket, NULL);
-        if (addr && G_IS_PROXY_ADDRESS (addr)) {
-                GProxyAddress *paddr = G_PROXY_ADDRESS (addr);
+        g_clear_object (&priv->remote_address);
+        priv->remote_address = g_socket_get_remote_address (socket, NULL);
+        g_object_notify (G_OBJECT (conn), "remote-address");
+
+        if (priv->remote_address && G_IS_PROXY_ADDRESS (priv->remote_address)) {
+                GProxyAddress *paddr = G_PROXY_ADDRESS (priv->remote_address);
 
                 if (strcmp (g_proxy_address_get_protocol (paddr), "http") == 0) {
                         GError *error = NULL;
@@ -507,7 +523,6 @@ soup_connection_connected (SoupConnection    *conn,
                         }
                 }
         }
-        g_clear_object (&addr);
 
         if (priv->ssl && !priv->proxy_uri) {
                 GTlsClientConnection *tls_connection;
@@ -1099,4 +1114,12 @@ soup_connection_get_id (SoupConnection *conn)
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         return priv->id;
+}
+
+GSocketAddress *
+soup_connection_get_remote_address (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->remote_address;
 }

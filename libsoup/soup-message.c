@@ -94,6 +94,7 @@ typedef struct {
 	gboolean is_top_level_navigation;
         gboolean is_options_ping;
         guint    last_connection_id;
+        GSocketAddress *remote_address;
 
         SoupMessageMetrics *metrics;
 } SoupMessagePrivate;
@@ -138,6 +139,7 @@ enum {
 	PROP_RESPONSE_HEADERS,
 	PROP_TLS_PEER_CERTIFICATE,
 	PROP_TLS_PEER_CERTIFICATE_ERRORS,
+        PROP_REMOTE_ADDRESS,
 	PROP_PRIORITY,
 	PROP_SITE_FOR_COOKIES,
 	PROP_IS_TOP_LEVEL_NAVIGATION,
@@ -177,6 +179,7 @@ soup_message_finalize (GObject *object)
 	g_clear_pointer (&priv->disabled_features, g_hash_table_destroy);
 
 	g_clear_object (&priv->tls_peer_certificate);
+        g_clear_object (&priv->remote_address);
 
 	soup_message_headers_unref (priv->request_headers);
 	soup_message_headers_unref (priv->response_headers);
@@ -274,6 +277,9 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_PEER_CERTIFICATE_ERRORS:
 		g_value_set_flags (value, priv->tls_peer_certificate_errors);
 		break;
+        case PROP_REMOTE_ADDRESS:
+                g_value_set_object (value, priv->remote_address);
+                break;
 	case PROP_PRIORITY:
 		g_value_set_enum (value, priv->priority);
 		break;
@@ -738,6 +744,20 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS));
+        /**
+         * SoupMessage:remote-address:
+         *
+         * The remote #GSocketAddress of the connection associated with the message
+         *
+         */
+        g_object_class_install_property (
+                object_class, PROP_REMOTE_ADDRESS,
+                g_param_spec_object ("remote-address",
+                                     "Remote Address",
+                                     "The remote address of the connection associated with the message",
+                                     G_TYPE_SOCKET_ADDRESS,
+                                     G_PARAM_READABLE |
+                                     G_PARAM_STATIC_STRINGS));
 	/**
 	 SoupMessage:priority:
 	 *
@@ -1307,6 +1327,20 @@ soup_message_set_tls_peer_certificate (SoupMessage         *msg,
         g_object_notify (G_OBJECT (msg), "tls-peer-certificate-errors");
 }
 
+static void
+soup_message_set_remote_address (SoupMessage    *msg,
+                                 GSocketAddress *address)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        if (priv->remote_address == address)
+                return;
+
+        g_clear_object (&priv->remote_address);
+        priv->remote_address = address ? g_object_ref (address) : NULL;
+        g_object_notify (G_OBJECT (msg), "remote-address");
+}
+
 SoupConnection *
 soup_message_get_connection (SoupMessage *msg)
 {
@@ -1378,6 +1412,14 @@ re_emit_tls_certificate_changed (SoupMessage    *msg,
                                                soup_connection_get_tls_certificate_errors (conn));
 }
 
+static void
+connection_remote_address_changed (SoupMessage    *msg,
+                                   GParamSpec     *pspec,
+                                   SoupConnection *conn)
+{
+        soup_message_set_remote_address (msg, soup_connection_get_remote_address (conn));
+}
+
 void
 soup_message_set_connection (SoupMessage    *msg,
 			     SoupConnection *conn)
@@ -1403,6 +1445,7 @@ soup_message_set_connection (SoupMessage    *msg,
         soup_message_set_tls_peer_certificate (msg,
                                                soup_connection_get_tls_certificate (priv->connection),
                                                soup_connection_get_tls_certificate_errors (priv->connection));
+        soup_message_set_remote_address (msg, soup_connection_get_remote_address (priv->connection));
 
 	g_signal_connect_object (priv->connection, "event",
 				 G_CALLBACK (re_emit_connection_event),
@@ -1413,6 +1456,9 @@ soup_message_set_connection (SoupMessage    *msg,
 	g_signal_connect_object (priv->connection, "notify::tls-certificate",
 				 G_CALLBACK (re_emit_tls_certificate_changed),
 				 msg, G_CONNECT_SWAPPED);
+        g_signal_connect_object (priv->connection, "notify::remote-address",
+                                 G_CALLBACK (connection_remote_address_changed),
+                                 msg, G_CONNECT_SWAPPED);
 }
 
 /**
@@ -2488,6 +2534,31 @@ soup_message_get_connection_id (SoupMessage *msg)
         g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
 
         return priv->last_connection_id;
+}
+
+/**
+ * soup_message_get_remote_address:
+ * @msg: The #SoupMessage
+ *
+ * Get the remote #GSocketAddress of the connection associated with the message.
+ * The returned address can be %NULL if the connection hasn't been established yet,
+ * or the resource was loaded from the disk cache.
+ * In case of proxy connections, the remote address returned is a #GProxyAddress.
+ * If #SoupSession::remote-connetable is set the returned address id for the connection
+ * ot the session's remote connectable.
+ *
+ * Returns: (transfer none) (nullable): a #GSocketAddress or %NULL if the connection
+ *     hasn't been established
+ */
+GSocketAddress *
+soup_message_get_remote_address (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+        priv = soup_message_get_instance_private (msg);
+        return priv->remote_address;
 }
 
 /**

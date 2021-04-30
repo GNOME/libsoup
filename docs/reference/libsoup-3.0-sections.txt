@@ -28,6 +28,7 @@ soup_message_get_response_headers
 <SUBSECTION>
 soup_message_is_keepalive
 soup_message_get_connection_id
+soup_message_get_remote_address
 soup_message_get_tls_peer_certificate
 soup_message_get_tls_peer_certificate_errors
 <SUBSECTION>

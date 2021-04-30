@@ -783,6 +783,7 @@ do_metrics_test (gconstpointer data)
         stream = soup_test_request_send (session, msg, NULL, 0, NULL);
         g_assert_true (G_IS_INPUT_STREAM (stream));
         g_assert_false (is_network_stream (stream));
+        g_assert_null (soup_message_get_remote_address (msg));
 
         g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
         g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), ==, 0);
@@ -832,6 +833,7 @@ do_metrics_test (gconstpointer data)
         stream = soup_test_request_send (session, msg, NULL, 0, NULL);
         g_assert_true (G_IS_INPUT_STREAM (stream));
         g_assert_false (is_network_stream (stream));
+        g_assert_null (soup_message_get_remote_address (msg));
         g_assert_true (last_request_validated);
 
         g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);

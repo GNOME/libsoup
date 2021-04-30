@@ -655,6 +655,45 @@ do_connection_id_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static void
+do_remote_address_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg1, *msg2;
+        GBytes *body;
+
+        session = soup_test_session_new (NULL);
+
+        msg1 = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+        g_assert_null (soup_message_get_remote_address (msg1));
+        body = soup_test_session_async_send (session, msg1, NULL, NULL);
+        g_assert_nonnull (soup_message_get_remote_address (msg1));
+        g_bytes_unref (body);
+
+        /* In case of reusing an idle conection, we still get a remote address */
+        msg2 = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+        g_assert_null (soup_message_get_remote_address (msg2));
+        body = soup_test_session_async_send (session, msg2, NULL, NULL);
+        g_assert_cmpuint (soup_message_get_connection_id (msg1), ==, soup_message_get_connection_id (msg2));
+        g_assert_true (soup_message_get_remote_address (msg1) == soup_message_get_remote_address (msg2));
+        g_bytes_unref (body);
+        g_object_unref (msg2);
+
+        /* We get a new one if we force a new connection */
+        msg2 = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+        soup_message_add_flags (msg2, SOUP_MESSAGE_NEW_CONNECTION);
+        g_assert_null (soup_message_get_remote_address (msg2));
+        body = soup_test_session_async_send (session, msg2, NULL, NULL);
+        g_assert_nonnull (soup_message_get_remote_address (msg2));
+        g_assert_cmpuint (soup_message_get_connection_id (msg1), !=, soup_message_get_connection_id (msg2));
+        g_assert_false (soup_message_get_remote_address (msg1) == soup_message_get_remote_address (msg2));
+        g_bytes_unref (body);
+        g_object_unref (msg2);
+
+        g_object_unref (msg1);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -687,6 +726,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/cancel-while-reading/req/preemptive", do_cancel_while_reading_preemptive_req_test);
 	g_test_add_func ("/misc/msg-flags", do_msg_flags_test);
         g_test_add_func ("/misc/connection-id", do_connection_id_test);
+        g_test_add_func ("/misc/remote-address", do_remote_address_test);
 
 	ret = g_test_run ();
 

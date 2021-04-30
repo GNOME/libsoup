@@ -935,6 +935,8 @@ do_one_connection_event_test (SoupSession *session,
 	SoupMessage *msg;
 	GBytes *body;
         SoupMessageMetrics *metrics;
+        GSocketAddress *remote_address;
+        char *ip_address;
 
 	msg = soup_message_new ("GET", uri);
         if (collect_metrics) {
@@ -952,6 +954,7 @@ do_one_connection_event_test (SoupSession *session,
 	g_signal_connect (msg, "network-event",
 			  G_CALLBACK (network_event),
 			  &events);
+        g_assert_null (soup_message_get_remote_address (msg));
 	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	while (*events) {
@@ -977,6 +980,19 @@ do_one_connection_event_test (SoupSession *session,
                 g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >, 0);
         } else {
                 g_assert_null (metrics);
+        }
+
+        remote_address = soup_message_get_remote_address (msg);
+        g_assert_true (G_IS_INET_SOCKET_ADDRESS (remote_address));
+        ip_address = g_inet_address_to_string (g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (remote_address)));
+        g_assert_cmpstr (ip_address, ==, "127.0.0.1");
+        g_free (ip_address);
+        if (G_IS_PROXY_ADDRESS (remote_address)) {
+                g_assert_cmpuint (g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (remote_address)), ==, 47526);
+                g_assert_cmpuint (g_proxy_address_get_destination_port (G_PROXY_ADDRESS (remote_address)), ==, g_uri_get_port (soup_message_get_uri (msg)));
+                g_assert_cmpstr (g_proxy_address_get_destination_hostname (G_PROXY_ADDRESS (remote_address)), ==, "127.0.0.1");
+        } else {
+                g_assert_cmpuint (g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (remote_address)), ==, g_uri_get_port (soup_message_get_uri (msg)));
         }
 
 	g_bytes_unref (body);
@@ -1051,6 +1067,12 @@ do_one_connection_event_fail_test (SoupSession *session,
         } else {
                 g_assert_null (metrics);
         }
+
+        /* When failing the TLS handshake we got a remote address */
+        if (g_str_equal (uri, HTTPS_SERVER))
+                g_assert_nonnull (soup_message_get_remote_address (msg));
+        else
+                g_assert_null (soup_message_get_remote_address (msg));
 
         g_bytes_unref (body);
         g_object_unref (msg);

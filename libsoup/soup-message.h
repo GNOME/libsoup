@@ -173,6 +173,9 @@ SOUP_AVAILABLE_IN_ALL
 guint64             soup_message_get_connection_id    (SoupMessage *msg);
 
 SOUP_AVAILABLE_IN_ALL
+GSocketAddress     *soup_message_get_remote_address   (SoupMessage *msg);
+
+SOUP_AVAILABLE_IN_ALL
 SoupMessageMetrics *soup_message_get_metrics          (SoupMessage  *msg);
 
 
