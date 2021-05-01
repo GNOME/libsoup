@@ -6,7 +6,7 @@ libsoup/server/soup-server.c
 libsoup/server/soup-server-io.c
 libsoup/server/soup-socket.c
 libsoup/soup-body-input-stream.c
-libsoup/soup-message-io.c
+libsoup/soup-client-message-io-http1.c
 libsoup/soup-message-io-data.c
 libsoup/soup-session.c
 libsoup/soup-tld.c
