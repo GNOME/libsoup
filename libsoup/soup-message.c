@@ -1483,6 +1483,7 @@ soup_message_cleanup_response (SoupMessage *msg)
 
         if (!priv->connection) {
                 soup_message_set_tls_peer_certificate (msg, NULL, 0);
+                soup_message_set_remote_address (msg, NULL);
                 priv->last_connection_id = 0;
         }
 
