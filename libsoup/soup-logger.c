@@ -649,17 +649,17 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	uri = soup_message_get_uri (msg);
 	if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
-				   "CONNECT %s:%u HTTP/1.%d",
+				   "CONNECT %s:%u HTTP/%s",
 				   g_uri_get_host (uri), g_uri_get_port (uri),
-				   soup_message_get_http_version (msg));
+				   soup_http_version_to_string (soup_message_get_http_version (msg)));
 	} else {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
-				   "%s %s%s%s HTTP/1.%d",
+				   "%s %s%s%s HTTP/%s",
 				   soup_message_get_method (msg),
                                    g_uri_get_path (uri),
 				   g_uri_get_query (uri) ? "?" : "",
 				   g_uri_get_query (uri) ? g_uri_get_query (uri) : "",
-				   soup_message_get_http_version (msg));
+				   soup_http_version_to_string (soup_message_get_http_version (msg)));
 	}
 
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
@@ -729,8 +729,8 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 		return;
 
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '<',
-			   "HTTP/1.%d %u %s\n",
-			   soup_message_get_http_version (msg),
+			   "HTTP/%s %u %s\n",
+			   soup_http_version_to_string (soup_message_get_http_version (msg)),
 			   soup_message_get_status (msg), soup_message_get_reason_phrase (msg));
 
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '<',

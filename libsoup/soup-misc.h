@@ -74,6 +74,8 @@ gboolean           soup_host_matches_host    (const gchar *host,
 
 gchar *soup_get_accept_languages_from_system (void);
 
+const char *soup_http_version_to_string (SoupHTTPVersion version);
+
 G_END_DECLS
 
 #endif /* __SOUP_MISC_H__ */
