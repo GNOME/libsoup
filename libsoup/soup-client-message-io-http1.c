@@ -68,13 +68,13 @@ soup_client_message_io_http1_get_priority (SoupClientMessageIOHTTP1 *io)
 }
 
 static void
-soup_client_message_io_http1_finished (SoupClientMessageIO *iface)
+soup_client_message_io_http1_finished (SoupClientMessageIO *iface,
+                                       SoupMessage         *msg)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
         SoupMessageIOCompletionFn completion_cb;
         gpointer completion_data;
         SoupMessageIOCompletion completion;
-        SoupMessage *msg;
 
         completion_cb = io->base.completion_cb;
         completion_data = io->base.completion_data;
@@ -85,7 +85,7 @@ soup_client_message_io_http1_finished (SoupClientMessageIO *iface)
         else
                 completion = SOUP_MESSAGE_IO_INTERRUPTED;
 
-        msg = g_object_ref (io->item->msg);
+        msg = g_object_ref (msg);
         soup_connection_message_io_finished (soup_message_get_connection (msg), msg);
         if (completion_cb)
                 completion_cb (G_OBJECT (msg), completion, completion_data);
@@ -734,7 +734,7 @@ io_run_until (SoupClientMessageIOHTTP1 *client_io,
               GError                  **error)
 {
         SoupMessageIOData *io = &client_io->base;
-        SoupMessage *msg = client_io->item->msg;
+        SoupMessage *msg;
         gboolean progress = TRUE, done;
         GError *my_error = NULL;
 
@@ -747,6 +747,8 @@ io_run_until (SoupClientMessageIOHTTP1 *client_io,
                 return FALSE;
         }
 
+        g_assert (client_io); // Silence clang static analysis
+        msg = client_io->item->msg;
         g_object_ref (msg);
 
         while (progress && (SoupClientMessageIOHTTP1 *)soup_message_get_io_data (msg) == client_io &&
@@ -841,22 +843,22 @@ soup_message_io_finish (SoupMessage  *msg,
         soup_message_io_finished (msg);
 }
 
-static void soup_client_message_io_http1_run (SoupClientMessageIO *iface, gboolean blocking);
+static void soup_client_message_io_http1_run (SoupClientMessageIO *iface, SoupMessage *msg, gboolean blocking);
 
 static gboolean
 io_run_ready (SoupMessage *msg, gpointer user_data)
 {
-        soup_client_message_io_http1_run (soup_message_get_io_data (msg), FALSE);
+        soup_client_message_io_http1_run (soup_message_get_io_data (msg), msg, FALSE);
         return FALSE;
 }
 
 static void
 soup_client_message_io_http1_run (SoupClientMessageIO *iface,
+                                  SoupMessage         *msg,
                                   gboolean             blocking)
 {
         SoupClientMessageIOHTTP1 *client_io = (SoupClientMessageIOHTTP1 *)iface;
         SoupMessageIOData *io = &client_io->base;
-        SoupMessage *msg = client_io->item->msg;
         GError *error = NULL;
 
         if (io->io_source) {
@@ -893,11 +895,11 @@ soup_client_message_io_http1_run (SoupClientMessageIO *iface,
 
 static gboolean
 soup_client_message_io_http1_run_until_read (SoupClientMessageIO *iface,
+                                             SoupMessage         *msg,
                                              GCancellable        *cancellable,
                                              GError             **error)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
-        SoupMessage *msg = io->item->msg;
 
         if (io_run_until (io, TRUE,
                           SOUP_MESSAGE_IO_STATE_BODY,
@@ -966,13 +968,13 @@ io_run_until_read_async (SoupClientMessageIOHTTP1 *client_io,
 
 static void
 soup_client_message_io_http1_run_until_read_async (SoupClientMessageIO *iface,
+                                                   SoupMessage         *msg,
                                                    int                  io_priority,
                                                    GCancellable        *cancellable,
                                                    GAsyncReadyCallback  callback,
                                                    gpointer             user_data)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
-        SoupMessage *msg = io->item->msg;
         GTask *task;
 
         task = g_task_new (msg, cancellable, callback, user_data);
@@ -982,12 +984,12 @@ soup_client_message_io_http1_run_until_read_async (SoupClientMessageIO *iface,
 
 static gboolean
 soup_client_message_io_http1_run_until_finish (SoupClientMessageIO *iface,
+                                               SoupMessage         *msg,
                                                gboolean             blocking,
                                                GCancellable        *cancellable,
                                                GError             **error)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
-        SoupMessage *msg = io->item->msg;
         gboolean success;
 
         g_object_ref (msg);
@@ -1016,10 +1018,10 @@ client_stream_eof (SoupClientInputStream    *stream,
 
 static GInputStream *
 soup_client_message_io_http1_get_response_stream (SoupClientMessageIO *iface,
+                                                  SoupMessage         *msg,
                                                   GError             **error)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
-        SoupMessage *msg = io->item->msg;
         GInputStream *client_stream;
 
         client_stream = soup_client_input_stream_new (io->base.body_istream, msg);
@@ -1054,7 +1056,8 @@ soup_client_message_io_http1_send_item (SoupClientMessageIO       *iface,
 }
 
 static void
-soup_client_message_io_http1_pause (SoupClientMessageIO *iface)
+soup_client_message_io_http1_pause (SoupClientMessageIO *iface,
+                                    SoupMessage         *msg)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
 
@@ -1064,7 +1067,8 @@ soup_client_message_io_http1_pause (SoupClientMessageIO *iface)
 }
 
 static void
-soup_client_message_io_http1_unpause (SoupClientMessageIO *iface)
+soup_client_message_io_http1_unpause (SoupClientMessageIO *iface,
+                                      SoupMessage         *msg)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
 
@@ -1073,7 +1077,8 @@ soup_client_message_io_http1_unpause (SoupClientMessageIO *iface)
 }
 
 static gboolean
-soup_client_message_io_http1_is_paused (SoupClientMessageIO *iface)
+soup_client_message_io_http1_is_paused (SoupClientMessageIO *iface,
+                                        SoupMessage         *msg)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
 

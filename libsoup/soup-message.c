@@ -2187,7 +2187,7 @@ soup_message_io_finished (SoupMessage *msg)
                 return;
 
         g_assert (priv->connection != NULL);
-        soup_client_message_io_finished (g_steal_pointer (&priv->io_data));
+        soup_client_message_io_finished (g_steal_pointer (&priv->io_data), msg);
 }
 
 void
@@ -2197,7 +2197,7 @@ soup_message_io_pause (SoupMessage *msg)
 
         g_return_if_fail (priv->io_data != NULL);
 
-        soup_client_message_io_pause (priv->io_data);
+        soup_client_message_io_pause (priv->io_data, msg);
 }
 
 void
@@ -2207,7 +2207,7 @@ soup_message_io_unpause (SoupMessage *msg)
 
         g_return_if_fail (priv->io_data != NULL);
 
-        soup_client_message_io_unpause (priv->io_data);
+        soup_client_message_io_unpause (priv->io_data, msg);
 }
 
 gboolean
@@ -2215,7 +2215,7 @@ soup_message_is_io_paused (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        return priv->io_data && soup_client_message_io_is_paused (priv->io_data);
+        return priv->io_data && soup_client_message_io_is_paused (priv->io_data, msg);
 }
 
 /**
@@ -2240,7 +2240,7 @@ soup_message_io_run (SoupMessage *msg,
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        soup_client_message_io_run (priv->io_data, blocking);
+        soup_client_message_io_run (priv->io_data, msg, blocking);
 }
 
 gboolean
@@ -2250,7 +2250,7 @@ soup_message_io_run_until_read (SoupMessage  *msg,
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        return soup_client_message_io_run_until_read (priv->io_data, cancellable, error);
+        return soup_client_message_io_run_until_read (priv->io_data, msg, cancellable, error);
 }
 
 void
@@ -2262,7 +2262,7 @@ soup_message_io_run_until_read_async (SoupMessage        *msg,
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        soup_client_message_io_run_until_read_async (priv->io_data, io_priority, cancellable, callback, user_data);
+        soup_client_message_io_run_until_read_async (priv->io_data, msg, io_priority, cancellable, callback, user_data);
 }
 
 gboolean
@@ -2281,7 +2281,7 @@ soup_message_io_run_until_finish (SoupMessage  *msg,
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        return soup_client_message_io_run_until_finish (priv->io_data, blocking, cancellable, error);
+        return soup_client_message_io_run_until_finish (priv->io_data, msg, blocking, cancellable, error);
 }
 
 void
@@ -2303,7 +2303,7 @@ soup_message_io_get_response_istream (SoupMessage  *msg,
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        return soup_client_message_io_get_response_stream (priv->io_data, error);
+        return soup_client_message_io_get_response_stream (priv->io_data, msg, error);
 }
 
 SoupContentSniffer *
