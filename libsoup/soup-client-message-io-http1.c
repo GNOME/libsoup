@@ -1098,6 +1098,25 @@ soup_client_message_io_http1_is_open (SoupClientMessageIO *iface)
         return TRUE;
 }
 
+static gboolean
+soup_client_message_io_http1_in_progress (SoupClientMessageIO *iface,
+                                          SoupMessage         *msg)
+{
+        /* In progress as long as object is alive */
+        return TRUE;
+}
+
+static gboolean
+soup_client_message_io_http1_is_reusable (SoupClientMessageIO *iface)
+{
+        SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
+
+        if (!io->msg_io)
+                return TRUE;
+
+        return soup_message_is_keepalive (io->msg_io->item->msg);
+}
+
 static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_destroy,
         soup_client_message_io_http1_finished,
@@ -1111,7 +1130,9 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_run_until_read,
         soup_client_message_io_http1_run_until_read_async,
         soup_client_message_io_http1_run_until_finish,
-        soup_client_message_io_http1_is_open
+        soup_client_message_io_http1_is_open,
+        soup_client_message_io_http1_in_progress,
+        soup_client_message_io_http1_is_reusable,
 };
 
 SoupClientMessageIO *

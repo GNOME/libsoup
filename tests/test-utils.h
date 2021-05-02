@@ -47,6 +47,9 @@ void apache_cleanup (void);
 	} G_STMT_END
 #endif
 
+gboolean quart_init    (void);
+void     quart_cleanup (void);
+
 gboolean have_curl (void);
 
 typedef enum {

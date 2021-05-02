@@ -112,3 +112,16 @@ soup_client_message_io_is_open (SoupClientMessageIO *io)
 {
         return io->funcs->is_open (io);
 }
+
+gboolean
+soup_client_message_io_in_progress (SoupClientMessageIO *io,
+                                    SoupMessage         *msg)
+{
+        return io->funcs->in_progress (io, msg);
+}
+
+gboolean
+soup_client_message_io_is_reusable (SoupClientMessageIO *io)
+{
+        return io->funcs->is_reusable (io);
+}

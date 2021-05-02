@@ -178,6 +178,14 @@ write_body (SoupLogger *logger, const char *buffer, gsize nread,
         }
 }
 
+void
+soup_logger_log_request_data (SoupLogger *logger, SoupMessage *msg, const char *buffer, gsize len)
+{
+        SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
+
+        write_body (logger, buffer, len, msg, priv->request_bodies);
+}
+
 static void
 write_response_body (SoupLoggerInputStream *stream, char *buffer, gsize nread,
                      gpointer user_data)

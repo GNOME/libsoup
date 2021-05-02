@@ -72,6 +72,8 @@ GTlsCertificateFlags soup_connection_get_tls_certificate_errors (SoupConnection 
 
 guint64              soup_connection_get_id                     (SoupConnection *conn);
 GSocketAddress      *soup_connection_get_remote_address         (SoupConnection *conn);
+SoupHTTPVersion      soup_connection_get_negotiated_protocol    (SoupConnection *conn);
+gboolean             soup_connection_is_reusable                (SoupConnection *conn);
 
 G_END_DECLS
 

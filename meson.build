@@ -100,6 +100,8 @@ gio_dep = dependency('gio-2.0', version : glib_required_version,
 
 glib_deps = [glib_dep, gobject_dep, gio_dep]
 
+libnghttp2_dep = dependency('libnghttp2')
+
 sqlite_dep = dependency('sqlite3', required: false)
 
 # Fallback check for sqlite, not all platforms ship pkg-config file
@@ -289,7 +291,20 @@ else
   have_autobahn = find_program('wstest', required: get_option('autobahn')).found()
 endif
 
-if not have_apache or not have_autobahn
+# Quart server used for HTTP/2 tests
+pymod = import('python')
+quart_found = false
+
+python = pymod.find_installation('python3')
+if python.found()
+  ret = run_command(python, '-c', 'import importlib\nassert(importlib.find_loader("quart"))')
+  if ret.returncode() == 0
+    quart_found = true
+  endif
+endif
+message('Python module quart found: @0@'.format(quart_found.to_string('YES', 'NO')))
+
+if not have_apache or not quart_found or not have_autobahn
   warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
 endif
 
@@ -415,6 +430,7 @@ summary({
 summary({
     'All tests' : get_option('tests'),
     'Tests requiring Apache' : have_apache,
+    'Tests requiring Quart' : quart_found,
     'Fuzzing tests' : get_option('fuzzing').enabled(),
     'Autobahn tests' : have_autobahn,
     'Install tests': get_option('installed_tests'),

@@ -1287,6 +1287,23 @@ redirect_handler (SoupMessage *msg,
 }
 
 static void
+misdirected_handler (SoupMessage *msg,
+		     gpointer     user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
+
+        /* HTTP/2 messages may get the misdirected request status and MAY
+         * try a new connection */
+        if (!soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION)) {
+                soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+                soup_session_requeue_item (session,
+					  item,
+					  &item->error);
+        }
+}
+
+static void
 message_restarted (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
@@ -1337,6 +1354,9 @@ soup_session_append_queue_item (SoupSession        *session,
 			msg, "got_body", "Location",
 			G_CALLBACK (redirect_handler), item);
 	}
+        soup_message_add_status_code_handler (msg, "got-body",
+                                              SOUP_STATUS_MISDIRECTED_REQUEST,
+                                              G_CALLBACK (misdirected_handler), item);
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (message_restarted), item);
 
@@ -1367,8 +1387,11 @@ soup_session_send_queue_item (SoupSession *session,
 	if (priv->accept_language && !soup_message_headers_get_list (request_headers, "Accept-Language"))
 		soup_message_headers_append (request_headers, "Accept-Language", priv->accept_language);
 
+        soup_message_set_http_version (item->msg, soup_connection_get_negotiated_protocol (soup_message_get_connection (item->msg)));
+
         soup_message_force_keep_alive_if_needed (item->msg);
         soup_message_update_request_host_if_needed (item->msg);
+
 
 	/* A user agent SHOULD send a Content-Length in a request message when
 	 * no Transfer-Encoding is sent and the request method defines a meaning
@@ -1752,9 +1775,9 @@ get_connection_for_host (SoupSession *session,
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	GSocketConnectable *remote_connectable;
+        gboolean force_http1;
 	SoupConnection *conn;
 	GSList *conns;
-	guint num_pending = 0;
 
 	if (priv->disposed)
 		return NULL;
@@ -1765,10 +1788,22 @@ get_connection_for_host (SoupSession *session,
 		return conn;
 	}
 
+        force_http1 = soup_message_query_flags (item->msg, SOUP_MESSAGE_FORCE_HTTP1);
+        if (g_getenv ("SOUP_FORCE_HTTP1"))
+                force_http1 = TRUE;
+
 	for (conns = host->connections; conns; conns = conns->next) {
 		conn = conns->data;
 
+                if (force_http1 && soup_connection_get_negotiated_protocol (conn) > SOUP_HTTP_1_1)
+                        continue;
+
 		switch (soup_connection_get_state (conn)) {
+                case SOUP_CONNECTION_IN_USE:
+                        if (!need_new_connection && soup_connection_is_reusable (conn)) {
+                                return conn;
+                        }
+                        break;
 		case SOUP_CONNECTION_IDLE:
 			if (!need_new_connection && soup_connection_is_idle_open (conn))
 				return conn;
@@ -1777,18 +1812,14 @@ get_connection_for_host (SoupSession *session,
 			if (steal_preconnection (session, item, conn))
 				return conn;
 
-			num_pending++;
-			break;
+                        /* Always wait if we have a pending connection as it may be
+                         * an h2 connection which will be shared. http/1.x connections
+                         * will only be slightly delayed. */
+			return NULL;
 		default:
 			break;
 		}
 	}
-
-	/* Limit the number of pending connections; num_messages / 2
-	 * is somewhat arbitrary...
-	 */
-	if (num_pending > host->num_messages / 2)
-		return NULL;
 
 	if (host->num_conns >= priv->max_conns_per_host) {
 		if (need_new_connection)
@@ -1818,6 +1849,7 @@ get_connection_for_host (SoupSession *session,
 			     "remote-connectable", remote_connectable,
 			     "ssl", soup_uri_is_https (host->uri),
 			     "socket-properties", priv->socket_props,
+                             "force-http1", force_http1,
 			     NULL);
 	g_object_unref (remote_connectable);
 
@@ -2826,6 +2858,9 @@ expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
 		return !feature || !soup_message_disables_feature (msg, feature);
 	}
 
+        if (soup_message_get_status (msg) == SOUP_STATUS_MISDIRECTED_REQUEST)
+                return TRUE;
+
 	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
 		return SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) ||
 			SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg);
@@ -3783,6 +3818,11 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	 * handshake, and read the server's handshake in response.
 	 */
 	soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+
+        /* WebSocket negotiation over HTTP/2 is not currently supported
+         * and in practice all websocket servers support HTTP1.x with
+         * HTTP/2 not providing a tangible benefit */
+        soup_message_add_flags (msg, SOUP_MESSAGE_FORCE_HTTP1);
 
 	item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
 	item->io_priority = io_priority;

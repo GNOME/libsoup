@@ -1501,6 +1501,7 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   be emitted, if you want to disable authentication for a message use
  *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead.
  * @SOUP_MESSAGE_COLLECT_METRICS: Metrics will be collected for this message.
+ * @SOUP_MESSAGE_FORCE_HTTP1: Require an HTTP/1.x connection.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
@@ -2236,7 +2237,7 @@ soup_message_io_in_progress (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        return priv->io_data != NULL;
+        return priv->io_data && soup_client_message_io_in_progress (priv->io_data, msg);
 }
 
 void

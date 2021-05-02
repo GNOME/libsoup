@@ -14,6 +14,7 @@
 #include "soup-io-stream.h"
 #include "soup-message-queue-item.h"
 #include "soup-client-message-io-http1.h"
+#include "soup-client-message-io-http2.h"
 #include "soup-socket-properties.h"
 #include "soup-private-enum-types.h"
 #include <gio/gnetworking.h>
@@ -29,6 +30,7 @@ typedef struct {
 	SoupSocketProperties *socket_props;
         guint64 id;
         GSocketAddress *remote_address;
+        gboolean force_http1;
 
 	GUri *proxy_uri;
 	gboolean ssl;
@@ -40,6 +42,7 @@ typedef struct {
 	GSource     *idle_timeout_src;
         guint        in_use;
 	gboolean     reusable;
+        SoupHTTPVersion http_version;
 
 	GCancellable *cancellable;
 } SoupConnectionPrivate;
@@ -66,6 +69,7 @@ enum {
 	PROP_SSL,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_CERTIFICATE_ERRORS,
+        PROP_FORCE_HTTP1,
 
 	LAST_PROPERTY
 };
@@ -82,6 +86,9 @@ static void stop_idle_timer (SoupConnectionPrivate *priv);
 static void
 soup_connection_init (SoupConnection *conn)
 {
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        priv->http_version = SOUP_HTTP_1_1;
 }
 
 static void
@@ -142,6 +149,9 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	case PROP_ID:
 		priv->id = g_value_get_uint64 (value);
 		break;
+	case PROP_FORCE_HTTP1:
+		priv->force_http1 = g_value_get_boolean (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -178,6 +188,9 @@ soup_connection_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_TLS_CERTIFICATE_ERRORS:
 		g_value_set_flags (value, soup_connection_get_tls_certificate_errors (SOUP_CONNECTION (object)));
+		break;
+	case PROP_FORCE_HTTP1:
+		g_value_set_boolean (value, priv->force_http1);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -283,6 +296,12 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                                     G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
                                     G_PARAM_READABLE |
                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_FORCE_HTTP1] =
+                g_param_spec_boolean ("force-http1",
+                                      "Force HTTP 1.x",
+                                      "Force connection to use HTTP 1.x",
+                                      FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                      G_PARAM_STATIC_STRINGS);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
@@ -360,7 +379,7 @@ current_msg_got_body (SoupMessage *msg, gpointer user_data)
 		g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 	}
 
-	priv->reusable = soup_message_is_keepalive (msg);
+	priv->reusable = soup_client_message_io_is_reusable (priv->io_data);
 }
 
 static void
@@ -382,6 +401,21 @@ set_current_msg (SoupConnection *conn, SoupMessage *msg)
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	g_return_if_fail (priv->state == SOUP_CONNECTION_IN_USE);
+
+        /* With HTTP/1.x we keep track of the current message both for
+         * proxying and to find out later if the connection is reusable
+         * with keep-alive. With HTTP/2 we don't support proxying and
+         * we assume its reusable by default and detect a closed connection
+         * elsewhere */
+        switch (priv->http_version) {
+        case SOUP_HTTP_1_0:
+        case SOUP_HTTP_1_1:
+                break;
+        case SOUP_HTTP_2_0:
+                // FIXME: stop_idle_timer() needs to be handled
+                priv->reusable = TRUE;
+                return;
+        }
 
 	g_object_freeze_notify (G_OBJECT (conn));
 
@@ -416,6 +450,23 @@ soup_connection_set_connection (SoupConnection *conn,
 	priv->connection = connection;
 	g_clear_object (&priv->iostream);
 	priv->iostream = soup_io_stream_new (G_IO_STREAM (priv->connection), FALSE);
+}
+
+static void
+soup_connection_create_io_data (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        g_assert (!priv->io_data);
+        switch (priv->http_version) {
+        case SOUP_HTTP_1_0:
+        case SOUP_HTTP_1_1:
+                priv->io_data = soup_client_message_io_http1_new (priv->iostream);
+                break;
+        case SOUP_HTTP_2_0:
+                priv->io_data = soup_client_message_io_http2_new (priv->iostream, priv->id);
+                break;
+        }
 }
 
 static void
@@ -484,6 +535,15 @@ new_tls_connection (SoupConnection    *conn,
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
         GTlsClientConnection *tls_connection;
+        GPtrArray *advertised_protocols = g_ptr_array_sized_new (4);
+
+        // https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
+        if (!priv->force_http1)
+                g_ptr_array_add (advertised_protocols, "h2");
+
+        g_ptr_array_add (advertised_protocols, "http/1.1");
+        g_ptr_array_add (advertised_protocols, "http/1.0");
+        g_ptr_array_add (advertised_protocols, NULL);
 
         tls_connection = g_initable_new (g_tls_backend_get_client_connection_type (g_tls_backend_get_default ()),
                                          priv->cancellable, error,
@@ -491,7 +551,11 @@ new_tls_connection (SoupConnection    *conn,
                                          "server-identity", priv->remote_connectable,
                                          "require-close-notify", FALSE,
                                          "interaction", priv->socket_props->tls_interaction,
+                                         "advertised-protocols", advertised_protocols->pdata,
                                          NULL);
+
+        g_ptr_array_unref (advertised_protocols);
+
         if (!tls_connection)
                 return NULL;
 
@@ -560,14 +624,23 @@ soup_connection_complete (SoupConnection *conn)
 
         g_clear_object (&priv->cancellable);
 
+        if (G_IS_TLS_CONNECTION (priv->connection)) {
+                const char *protocol = g_tls_connection_get_negotiated_protocol (G_TLS_CONNECTION (priv->connection));
+                if (g_strcmp0 (protocol, "h2") == 0)
+                        priv->http_version = SOUP_HTTP_2_0;
+                else if (g_strcmp0 (protocol, "http/1.0") == 0)
+                        priv->http_version = SOUP_HTTP_1_0;
+                else if (g_strcmp0 (protocol, "http/1.1") == 0)
+                        priv->http_version = SOUP_HTTP_1_1;
+        }
+
         if (!priv->ssl || !priv->proxy_uri) {
                 soup_connection_event (conn,
                                        G_SOCKET_CLIENT_COMPLETE,
                                        NULL);
         }
 
-        g_assert (!priv->io_data);
-        priv->io_data = soup_client_message_io_http1_new (priv->iostream);
+        soup_connection_create_io_data (conn);
 
         soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
         priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
@@ -1046,6 +1119,11 @@ soup_connection_setup_message_io (SoupConnection *conn,
         else
                 priv->reusable = FALSE;
 
+        if (!soup_client_message_io_is_reusable (priv->io_data)) {
+                g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
+                soup_connection_create_io_data (conn);
+        }
+
         return priv->io_data;
 }
 
@@ -1093,4 +1171,20 @@ soup_connection_get_remote_address (SoupConnection *conn)
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         return priv->remote_address;
+}
+
+SoupHTTPVersion
+soup_connection_get_negotiated_protocol (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->http_version;
+}
+
+gboolean
+soup_connection_is_reusable (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->reusable;
 }

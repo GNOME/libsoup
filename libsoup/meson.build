@@ -32,6 +32,9 @@ soup_sources = [
   'hsts/soup-hsts-enforcer-db.c',
   'hsts/soup-hsts-policy.c',
 
+  'http2/soup-client-message-io-http2.c',
+  'http2/soup-body-input-stream-http2.c',
+
   'server/soup-auth-domain.c',
   'server/soup-auth-domain-basic.c',
   'server/soup-auth-domain-digest.c',
@@ -180,6 +183,7 @@ deps = [
   brotlidec_dep,
   platform_deps,
   libz_dep,
+  libnghttp2_dep,
 ]
 
 libsoup_includes = [
@@ -189,6 +193,7 @@ libsoup_includes = [
     'cookies',
     'content-decoder',
     'hsts',
+    'http2',
     'server',
     'websocket',
     '.'

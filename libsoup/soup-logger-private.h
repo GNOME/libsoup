@@ -13,4 +13,6 @@ void soup_logger_request_body_setup (SoupLogger           *logger,
                                      SoupMessage          *msg,
                                      SoupBodyOutputStream *stream);
 
+void soup_logger_log_request_data (SoupLogger *logger, SoupMessage *msg, const char *buffer, gsize len);
+
 G_END_DECLS
