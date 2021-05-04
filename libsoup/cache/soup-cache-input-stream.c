@@ -11,15 +11,6 @@
 #include "soup-cache-input-stream.h"
 #include "soup-message-body.h"
 
-/* properties */
-enum {
-	PROP_0,
-
-	PROP_OUTPUT_STREAM,
-
-	LAST_PROP
-};
-
 enum {
 	CACHING_FINISHED,
 
@@ -106,40 +97,6 @@ soup_cache_input_stream_init (SoupCacheInputStream *self)
 	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
 
 	priv->buffer_queue = g_queue_new ();
-}
-
-static void
-soup_cache_input_stream_get_property (GObject *object,
-				      guint property_id, GValue *value, GParamSpec *pspec)
-{
-	SoupCacheInputStream *self = SOUP_CACHE_INPUT_STREAM (object);
-	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
-
-	switch (property_id) {
-	case PROP_OUTPUT_STREAM:
-		g_value_set_object (value, priv->output_stream);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-		break;
-	}
-}
-
-static void
-soup_cache_input_stream_set_property (GObject *object,
-				      guint property_id, const GValue *value, GParamSpec *pspec)
-{
-	SoupCacheInputStream *self = SOUP_CACHE_INPUT_STREAM (object);
-	SoupCacheInputStreamPrivate *priv = soup_cache_input_stream_get_instance_private (self);
-
-	switch (property_id) {
-	case PROP_OUTPUT_STREAM:
-		priv->output_stream = g_value_dup_object (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-		break;
-	}
 }
 
 static void
@@ -309,20 +266,10 @@ soup_cache_input_stream_class_init (SoupCacheInputStreamClass *klass)
 	GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 	GInputStreamClass *istream_class = G_INPUT_STREAM_CLASS (klass);
 
-	gobject_class->get_property = soup_cache_input_stream_get_property;
-	gobject_class->set_property = soup_cache_input_stream_set_property;
 	gobject_class->finalize = soup_cache_input_stream_finalize;
 
 	istream_class->read_fn = soup_cache_input_stream_read_fn;
 	istream_class->close_fn = soup_cache_input_stream_close_fn;
-
-	g_object_class_install_property (gobject_class, PROP_OUTPUT_STREAM,
-					 g_param_spec_object ("output-stream", "Output stream",
-							      "the output stream where to write.",
-							      G_TYPE_OUTPUT_STREAM,
-							      G_PARAM_READWRITE |
-							      G_PARAM_CONSTRUCT_ONLY |
-							      G_PARAM_STATIC_STRINGS));
 
 	signals[CACHING_FINISHED] =
 		g_signal_new ("caching-finished",
