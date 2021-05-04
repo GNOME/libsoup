@@ -37,8 +37,10 @@ enum {
 	PROP_AUTH_CALLBACK,
 	PROP_AUTH_DATA,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 struct _SoupAuthDomainDigest {
 	SoupAuthDomain parent;
@@ -193,8 +195,8 @@ soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
 	priv->auth_data = user_data;
 	priv->auth_dnotify = dnotify;
 
-	g_object_notify (G_OBJECT (domain), "auth-callback");
-	g_object_notify (G_OBJECT (domain), "auth-data");
+	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_AUTH_CALLBACK]);
+	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_AUTH_DATA]);
 }
 
 static gboolean
@@ -432,23 +434,23 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	 *
 	 * The #SoupAuthDomainDigestAuthCallback
 	 */
-	g_object_class_install_property (
-		object_class, PROP_AUTH_CALLBACK,
+        properties[PROP_AUTH_CALLBACK] =
 		g_param_spec_pointer ("auth-callback",
 				      "Authentication callback",
 				      "Password-finding callback",
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuthDomainDigest:auth-data:
 	 *
 	 * The data to pass to the #SoupAuthDomainDigestAuthCallback
 	 */
-	g_object_class_install_property (
-		object_class, PROP_AUTH_DATA,
+        properties[PROP_AUTH_DATA] =
 		g_param_spec_pointer ("auth-data",
 				      "Authentication callback data",
 				      "Data to pass to authentication callback",
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }

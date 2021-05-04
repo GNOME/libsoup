@@ -41,8 +41,12 @@ enum {
 	PROP_0,
 
 	PROP_ENCODING,
-	PROP_CONTENT_LENGTH
+	PROP_CONTENT_LENGTH,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 enum {
 	WROTE_DATA,
@@ -366,23 +370,24 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
                               G_TYPE_UINT,
                               G_TYPE_BOOLEAN);
 
-	g_object_class_install_property (
-		object_class, PROP_ENCODING,
+        properties[PROP_ENCODING] =
 		g_param_spec_enum ("encoding",
 				   "Encoding",
 				   "Message body encoding",
 				   SOUP_TYPE_ENCODING,
 				   SOUP_ENCODING_NONE,
 				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				   G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_CONTENT_LENGTH,
+				   G_PARAM_STATIC_STRINGS);
+
+        properties[PROP_CONTENT_LENGTH] =
 		g_param_spec_uint64 ("content-length",
 				     "Content-Length",
 				     "Message body Content-Length",
 				     0, G_MAXUINT64, 0,
 				     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 static void

@@ -35,8 +35,10 @@ enum {
 
 	PROP_FILENAME,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 struct _SoupCookieJarText {
 	SoupCookieJar parent;
@@ -392,12 +394,13 @@ soup_cookie_jar_text_class_init (SoupCookieJarTextClass *text_class)
 	object_class->set_property = soup_cookie_jar_text_set_property;
 	object_class->get_property = soup_cookie_jar_text_get_property;
 
-	g_object_class_install_property (
-		object_class, PROP_FILENAME,
+        properties[PROP_FILENAME] =
 		g_param_spec_string ("filename",
 				     "Filename",
 				     "Cookie-storage filename",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }

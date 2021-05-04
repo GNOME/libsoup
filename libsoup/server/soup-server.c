@@ -187,8 +187,10 @@ enum {
 	PROP_RAW_PATHS,
 	PROP_SERVER_HEADER,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupServer, soup_server, G_TYPE_OBJECT)
 
@@ -437,21 +439,23 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * to have #SoupServer read in a a certificate from a file.
 	 *
 	 */
-	g_object_class_install_property (
-		object_class, PROP_TLS_CERTIFICATE,
+        properties[PROP_TLS_CERTIFICATE] =
 		g_param_spec_object ("tls-certificate",
 				     "TLS certificate",
 				     "GTlsCertificate to use for https",
 				     G_TYPE_TLS_CERTIFICATE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+				     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class, PROP_RAW_PATHS,
+        properties[PROP_RAW_PATHS] =
 		g_param_spec_boolean ("raw-paths",
 				      "Raw paths",
 				      "If %TRUE, percent-encoding in the Request-URI path will not be automatically decoded.",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+				      G_PARAM_READWRITE |
+                                      G_PARAM_CONSTRUCT_ONLY |
+                                      G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupServer:server-header:
@@ -481,13 +485,16 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_SERVER_HEADER,
+        properties[PROP_SERVER_HEADER] =
 		g_param_spec_string ("server-header",
 				     "Server header",
 				     "Server header",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
+				     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT |
+                                     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 /**

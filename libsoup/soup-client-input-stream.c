@@ -34,8 +34,12 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
-	PROP_MESSAGE
+	PROP_MESSAGE,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 static GPollableInputStreamInterface *soup_client_input_stream_parent_pollable_interface;
 static void soup_client_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
@@ -279,14 +283,15 @@ soup_client_input_stream_class_init (SoupClientInputStreamClass *stream_class)
 			      NULL,
 			      G_TYPE_NONE, 0);
 
-	g_object_class_install_property (
-		object_class, PROP_MESSAGE,
+        properties[PROP_MESSAGE] =
 		g_param_spec_object ("message",
 				     "Message",
 				     "Message",
 				     SOUP_TYPE_MESSAGE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 static void

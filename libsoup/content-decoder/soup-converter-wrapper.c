@@ -29,8 +29,12 @@
 enum {
 	PROP_0,
 	PROP_BASE_CONVERTER,
-	PROP_MESSAGE
+	PROP_MESSAGE,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 struct _SoupConverterWrapper {
 	GObject parent;
@@ -136,24 +140,24 @@ soup_converter_wrapper_class_init (SoupConverterWrapperClass *klass)
 	gobject_class->get_property = soup_converter_wrapper_get_property;
 	gobject_class->set_property = soup_converter_wrapper_set_property;
 
-	g_object_class_install_property (gobject_class,
-					 PROP_BASE_CONVERTER,
-					 g_param_spec_object ("base-converter",
-							      "Base GConverter",
-							      "GConverter to wrap",
-							      G_TYPE_CONVERTER,
-							      G_PARAM_READWRITE |
-							      G_PARAM_CONSTRUCT_ONLY |
-							      G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (gobject_class,
-					 PROP_MESSAGE,
-					 g_param_spec_object ("message",
-							      "Message",
-							      "Associated SoupMessage",
-							      SOUP_TYPE_MESSAGE,
-							      G_PARAM_READWRITE |
-							      G_PARAM_CONSTRUCT_ONLY |
-							      G_PARAM_STATIC_STRINGS));
+        properties[PROP_BASE_CONVERTER] =
+                g_param_spec_object ("base-converter",
+                                     "Base GConverter",
+                                     "GConverter to wrap",
+                                     G_TYPE_CONVERTER,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_MESSAGE] =
+                g_param_spec_object ("message",
+                                     "Message",
+                                     "Associated SoupMessage",
+                                     SOUP_TYPE_MESSAGE,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (gobject_class, LAST_PROPERTY, properties);
 }
 
 GConverter *

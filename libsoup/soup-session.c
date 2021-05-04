@@ -176,8 +176,10 @@ enum {
 	PROP_LOCAL_ADDRESS,
 	PROP_TLS_INTERACTION,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 /**
  * SOUP_SESSION_ERROR:
@@ -578,7 +580,7 @@ soup_session_set_proxy_resolver (SoupSession    *session,
 	g_clear_object (&priv->proxy_resolver);
 	priv->proxy_resolver = proxy_resolver ? g_object_ref (proxy_resolver) : NULL;
 	socket_props_changed (session);
-	g_object_notify (G_OBJECT (session), "proxy-resolver");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_PROXY_RESOLVER]);
 }
 
 /**
@@ -627,7 +629,7 @@ soup_session_set_tls_database (SoupSession  *session,
 	g_clear_object (&priv->tlsdb);
 	priv->tlsdb = tls_database ? g_object_ref (tls_database) : NULL;
 	socket_props_changed (session);
-	g_object_notify (G_OBJECT (session), "tls-database");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_TLS_DATABASE]);
 }
 
 /**
@@ -677,7 +679,7 @@ soup_session_set_tls_interaction (SoupSession     *session,
 	g_clear_object (&priv->tls_interaction);
 	priv->tls_interaction = tls_interaction ? g_object_ref (tls_interaction) : NULL;
 	socket_props_changed (session);
-	g_object_notify (G_OBJECT (session), "tls-interaction");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_TLS_INTERACTION]);
 }
 
 /**
@@ -721,7 +723,7 @@ soup_session_set_timeout (SoupSession *session,
 
 	priv->io_timeout = timeout;
 	socket_props_changed (session);
-	g_object_notify (G_OBJECT (session), "timeout");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_TIMEOUT]);
 }
 
 /**
@@ -765,7 +767,7 @@ soup_session_set_idle_timeout (SoupSession *session,
 
 	priv->idle_timeout = timeout;
 	socket_props_changed (session);
-	g_object_notify (G_OBJECT (session), "idle-timeout");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_IDLE_TIMEOUT]);
 }
 
 /**
@@ -834,7 +836,7 @@ soup_session_set_user_agent (SoupSession *session,
 		priv->user_agent = g_strdup (user_agent);
 	}
 
-	g_object_notify (G_OBJECT (session), "user-agent");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_USER_AGENT]);
 }
 
 /**
@@ -882,8 +884,8 @@ soup_session_set_accept_language (SoupSession *session,
 	priv->accept_language_auto = FALSE;
 
 	g_object_freeze_notify (G_OBJECT (session));
-	g_object_notify (G_OBJECT (session), "accept-language");
-	g_object_notify (G_OBJECT (session), "accept-language-auto");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_ACCEPT_LANGUAGE]);
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_ACCEPT_LANGUAGE_AUTO]);
 	g_object_thaw_notify (G_OBJECT (session));
 }
 
@@ -934,8 +936,8 @@ soup_session_set_accept_language_auto (SoupSession *session,
 		priv->accept_language = soup_get_accept_languages_from_system ();
 
 	g_object_freeze_notify (G_OBJECT (session));
-	g_object_notify (G_OBJECT (session), "accept-language");
-	g_object_notify (G_OBJECT (session), "accept-language-auto");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_ACCEPT_LANGUAGE]);
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_ACCEPT_LANGUAGE_AUTO]);
 	g_object_thaw_notify (G_OBJECT (session));
 }
 
@@ -2584,21 +2586,19 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * what proxies get used.
 	 *
 	 */
-	g_object_class_install_property (
-		object_class, PROP_PROXY_RESOLVER,
+        properties[PROP_PROXY_RESOLVER] =
 		g_param_spec_object ("proxy-resolver",
 				     "Proxy Resolver",
 				     "The GProxyResolver to use for this session",
 				     G_TYPE_PROXY_RESOLVER,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupSession:max-conns:
 	 *
 	 * The maximum number of connections that the session can open at once.
 	 */
-	g_object_class_install_property (
-		object_class, PROP_MAX_CONNS,
+        properties[PROP_MAX_CONNS] =
 		g_param_spec_int ("max-conns",
 				  "Max Connection Count",
 				  "The maximum number of connections that the session can open at once",
@@ -2607,15 +2607,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  SOUP_SESSION_MAX_CONNS_DEFAULT,
 				  G_PARAM_READWRITE |
 				  G_PARAM_CONSTRUCT_ONLY |
-				  G_PARAM_STATIC_STRINGS));
+				  G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:max-conns-per-host:
 	 *
 	 * The maximum number of connections that the session can open at once to a given host.
 	 */
-	g_object_class_install_property (
-		object_class, PROP_MAX_CONNS_PER_HOST,
+        properties[PROP_MAX_CONNS_PER_HOST] =
 		g_param_spec_int ("max-conns-per-host",
 				  "Max Per-Host Connection Count",
 				  "The maximum number of connections that the session can open at once to a given host",
@@ -2624,7 +2623,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT,
 				  G_PARAM_READWRITE |
 				  G_PARAM_CONSTRUCT_ONLY |
-				  G_PARAM_STATIC_STRINGS));
+				  G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupSession:idle-timeout:
 	 *
@@ -2638,14 +2637,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * this timeout value.
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_IDLE_TIMEOUT,
+        properties[PROP_IDLE_TIMEOUT] =
 		g_param_spec_uint ("idle-timeout",
 				   "Idle Timeout",
 				   "Connection lifetime when idle",
 				   0, G_MAXUINT, 60,
 				   G_PARAM_READWRITE |
-				   G_PARAM_STATIC_STRINGS));
+				   G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:tls-database:
@@ -2657,14 +2655,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * used. See g_tls_backend_get_default_database().
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_TLS_DATABASE,
+        properties[PROP_TLS_DATABASE] =
 		g_param_spec_object ("tls-database",
 				     "TLS Database",
 				     "TLS database to use",
 				     G_TYPE_TLS_DATABASE,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:timeout:
@@ -2683,14 +2680,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * the length of time that idle persistent connections will be
 	 * kept open).
 	 */
-	g_object_class_install_property (
-		object_class, PROP_TIMEOUT,
+        properties[PROP_TIMEOUT] =
 		g_param_spec_uint ("timeout",
 				   "Timeout value",
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE |
-				   G_PARAM_STATIC_STRINGS));
+				   G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:user-agent:
@@ -2719,14 +2715,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * (eg, "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_USER_AGENT,
+        properties[PROP_USER_AGENT] =
 		g_param_spec_string ("user-agent",
 				     "User-Agent string",
 				     "User-Agent string",
 				     NULL,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:accept-language:
@@ -2737,14 +2732,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Setting this will disable #SoupSession:accept-language-auto.
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_ACCEPT_LANGUAGE,
+        properties[PROP_ACCEPT_LANGUAGE] =
 		g_param_spec_string ("accept-language",
 				     "Accept-Language string",
 				     "Accept-Language string",
 				     NULL,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:accept-language-auto:
@@ -2757,14 +2751,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupSession:accept-language.
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_ACCEPT_LANGUAGE_AUTO,
+        properties[PROP_ACCEPT_LANGUAGE_AUTO] =
 		g_param_spec_boolean ("accept-language-auto",
 				      "Accept-Language automatic mode",
 				      "Accept-Language automatic mode",
 				      FALSE,
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:remote-connectable:
@@ -2778,14 +2771,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * a #GUnixSocketAddress can be passed to this function.
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_REMOTE_CONNECTABLE,
+        properties[PROP_REMOTE_CONNECTABLE] =
 		g_param_spec_object ("remote-connectable",
 				     "Remote Connectable",
 				     "Socket to connect to make outgoing connections on",
 				     G_TYPE_SOCKET_CONNECTABLE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:local-address:
@@ -2797,14 +2789,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * local socket to a specific IP address.
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_LOCAL_ADDRESS,
+        properties[PROP_LOCAL_ADDRESS] =
 		g_param_spec_object ("local-address",
 				     "Local address",
 				     "Address of local end of socket",
 				     G_TYPE_INET_SOCKET_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupSession:tls-interaction:
@@ -2814,14 +2805,15 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * provide client-side certificates, for example.)
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_TLS_INTERACTION,
+        properties[PROP_TLS_INTERACTION] =
 		g_param_spec_object ("tls-interaction",
 				     "TLS Interaction",
 				     "TLS interaction to use",
 				     G_TYPE_TLS_INTERACTION,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 

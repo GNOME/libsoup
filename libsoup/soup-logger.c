@@ -127,8 +127,10 @@ enum {
 	PROP_LEVEL,
 	PROP_MAX_BODY_SIZE,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 static void body_ostream_done (gpointer data, GObject *bostream);
 
@@ -335,15 +337,14 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	 * The level of logging output
 	 *
 	 */
-	g_object_class_install_property (
-		object_class, PROP_LEVEL,
+        properties[PROP_LEVEL] =
 		g_param_spec_enum ("level",
 				    "Level",
 				    "The level of logging output",
 				    SOUP_TYPE_LOGGER_LOG_LEVEL,
 				    SOUP_LOGGER_LOG_MINIMAL,
 				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
+				    G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupLogger:max-body-size:
 	 *
@@ -352,8 +353,7 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	 * (-1 means "no limit".)
 	 *
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_MAX_BODY_SIZE,
+        properties[PROP_MAX_BODY_SIZE] =
 		g_param_spec_int ("max-body-size",
 				    "Max Body Size",
 				    "The maximum body size to output",
@@ -361,7 +361,9 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 				    G_MAXINT,
 				    -1,
 				    G_PARAM_READWRITE |
-				    G_PARAM_STATIC_STRINGS));
+				    G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 /**

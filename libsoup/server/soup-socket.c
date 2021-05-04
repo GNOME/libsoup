@@ -47,8 +47,10 @@ enum {
 	PROP_IPV6_ONLY,
 	PROP_TLS_CERTIFICATE,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 struct _SoupSocket {
 	GObject parent_instance;
@@ -307,67 +309,62 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      SOUP_TYPE_SOCKET);
 
 	/* properties */
-	g_object_class_install_property (
-		 object_class, PROP_GSOCKET,
-		 g_param_spec_object ("gsocket",
-				      "GSocket",
-				      "The socket's underlying GSocket",
-				      G_TYPE_SOCKET,
-				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
-				      G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		 object_class, PROP_IOSTREAM,
-		 g_param_spec_object ("iostream",
-				      "GIOStream",
-				      "The socket's underlying GIOStream",
-				      G_TYPE_IO_STREAM,
-				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
-				      G_PARAM_STATIC_STRINGS));
+        properties[PROP_GSOCKET] =
+                g_param_spec_object ("gsocket",
+                                     "GSocket",
+                                     "The socket's underlying GSocket",
+                                     G_TYPE_SOCKET,
+                                     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_IOSTREAM] =
+                g_param_spec_object ("iostream",
+                                     "GIOStream",
+                                     "The socket's underlying GIOStream",
+                                     G_TYPE_IO_STREAM,
+                                     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class, PROP_LOCAL_ADDRESS,
+        properties[PROP_LOCAL_ADDRESS] =
 		g_param_spec_object ("local-address",
 				     "Local address",
 				     "Address of local end of socket",
 				     G_TYPE_INET_SOCKET_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class, PROP_REMOTE_ADDRESS,
+        properties[PROP_REMOTE_ADDRESS] =
 		g_param_spec_object ("remote-address",
 				     "Remote address",
 				     "Address of remote end of socket",
 				     G_TYPE_SOCKET_ADDRESS,
 				     G_PARAM_READABLE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class, PROP_REMOTE_CONNECTABLE,
+        properties[PROP_REMOTE_CONNECTABLE] =
 		g_param_spec_object ("remote-connectable",
 				     "Remote address",
 				     "Address to connect to",
 				     G_TYPE_SOCKET_CONNECTABLE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class, PROP_IPV6_ONLY,
+        properties[PROP_IPV6_ONLY] =
 		g_param_spec_boolean ("ipv6-only",
 				      "IPv6 only",
 				      "IPv6 only",
 				      FALSE,
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class, PROP_TLS_CERTIFICATE,
+        properties[PROP_TLS_CERTIFICATE] =
 		g_param_spec_object ("tls-certificate",
 				     "TLS Certificate",
 				     "The server TLS certificate",
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 static void

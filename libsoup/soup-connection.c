@@ -66,8 +66,10 @@ enum {
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_CERTIFICATE_ERRORS,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 static void stop_idle_timer (SoupConnectionPrivate *priv);
 
@@ -227,69 +229,63 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_TYPE_NONE, 0);
 
 	/* properties */
-	g_object_class_install_property (
-                object_class, PROP_REMOTE_CONNECTABLE,
+        properties[PROP_REMOTE_CONNECTABLE] =
                 g_param_spec_object ("remote-connectable",
                                      "Remote Connectable",
                                      "Socket to connect to make outgoing connections on",
                                      G_TYPE_SOCKET_CONNECTABLE,
                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-                                     G_PARAM_STATIC_STRINGS));
-        g_object_class_install_property (
-                object_class, PROP_REMOTE_ADDRESS,
+                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_REMOTE_ADDRESS] =
                 g_param_spec_object ("remote-address",
                                      "Remote Address",
                                      "Remote address of connection",
                                      G_TYPE_SOCKET_ADDRESS,
                                      G_PARAM_READABLE |
-                                     G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_SOCKET_PROPERTIES,
+                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_SOCKET_PROPERTIES] =
 		g_param_spec_boxed ("socket-properties",
 				    "Socket properties",
 				    "Socket properties",
 				    SOUP_TYPE_SOCKET_PROPERTIES,
 				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				    G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_STATE,
+				    G_PARAM_STATIC_STRINGS);
+        properties[PROP_STATE] =
 		g_param_spec_enum ("state",
 				   "Connection state",
 				   "Current state of connection",
 				   SOUP_TYPE_CONNECTION_STATE, SOUP_CONNECTION_NEW,
 				   G_PARAM_READWRITE |
-				   G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_SSL,
+				   G_PARAM_STATIC_STRINGS);
+        properties[PROP_SSL] =
 		g_param_spec_boolean ("ssl",
 				      "Connection uses TLS",
 				      "Whether the connection should use TLS",
 				      FALSE,G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_ID,
+				      G_PARAM_STATIC_STRINGS);
+        properties[PROP_ID] =
 		g_param_spec_uint64 ("id",
                                      "Connection Identifier",
                                      "Unique identifier for the connection",
                                      0, G_MAXUINT64,
                                      0, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-                                     G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-                object_class, PROP_TLS_CERTIFICATE,
+                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_TLS_CERTIFICATE] =
 		g_param_spec_object ("tls-certificate",
                                      "TLS Certificate",
                                      "The TLS certificate associated with the connection",
                                      G_TYPE_TLS_CERTIFICATE,
                                      G_PARAM_READABLE |
-	                             G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-                object_class, PROP_TLS_CERTIFICATE_ERRORS,
+	                             G_PARAM_STATIC_STRINGS);
+        properties[PROP_TLS_CERTIFICATE_ERRORS] =
                 g_param_spec_flags ("tls-certificate-errors",
                                     "TLS Certificate Errors",
                                     "The verification errors on the connections's TLS certificate",
                                     G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
                                     G_PARAM_READABLE |
-                                    G_PARAM_STATIC_STRINGS));
+                                    G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 static void
@@ -461,7 +457,7 @@ tls_connection_accept_certificate (SoupConnection      *conn,
 static void
 tls_connection_peer_certificate_changed (SoupConnection *conn)
 {
-	g_object_notify (G_OBJECT (conn), "tls-certificate");
+	g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_TLS_CERTIFICATE]);
 }
 
 static GTlsClientConnection *
@@ -509,7 +505,7 @@ soup_connection_connected (SoupConnection    *conn,
 
         g_clear_object (&priv->remote_address);
         priv->remote_address = g_socket_get_remote_address (socket, NULL);
-        g_object_notify (G_OBJECT (conn), "remote-address");
+        g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_REMOTE_ADDRESS]);
 
         if (priv->remote_address && G_IS_PROXY_ADDRESS (priv->remote_address)) {
                 GProxyAddress *paddr = G_PROXY_ADDRESS (priv->remote_address);
@@ -1020,7 +1016,7 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 		if (priv->state == SOUP_CONNECTION_IDLE)
 			start_idle_timer (conn);
 
-		g_object_notify (G_OBJECT (conn), "state");
+		g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_STATE]);
 	}
 
 	g_object_thaw_notify (G_OBJECT (conn));

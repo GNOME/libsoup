@@ -30,8 +30,12 @@ enum {
 	PROP_0,
 
 	PROP_BASE_IOSTREAM,
-	PROP_CLOSE_ON_DISPOSE
+	PROP_CLOSE_ON_DISPOSE,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupIOStream, soup_io_stream, G_TYPE_IO_STREAM)
 
@@ -204,24 +208,25 @@ soup_io_stream_class_init (SoupIOStreamClass *stream_class)
 	io_stream_class->close_async = soup_io_stream_close_async;
 	io_stream_class->close_finish = soup_io_stream_close_finish;
 
-	g_object_class_install_property (
-		object_class, PROP_BASE_IOSTREAM,
+        properties[PROP_BASE_IOSTREAM] =
 		g_param_spec_object ("base-iostream",
 				     "Base IOStream",
 				     "Base GIOStream",
 				     G_TYPE_IO_STREAM,
 				     G_PARAM_READWRITE |
 				     G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_CLOSE_ON_DISPOSE,
+				     G_PARAM_STATIC_STRINGS);
+
+        properties[PROP_CLOSE_ON_DISPOSE] =
 		g_param_spec_boolean ("close-on-dispose",
 				      "Close base stream",
 				      "Close base GIOStream when closing",
 				      TRUE,
 				      G_PARAM_READWRITE |
 				      G_PARAM_CONSTRUCT_ONLY |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 GIOStream *

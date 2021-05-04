@@ -55,8 +55,10 @@ enum {
 	PROP_IS_AUTHENTICATED,
 	PROP_IS_CANCELLED,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 static void
 soup_auth_init (SoupAuth *auth)
@@ -168,80 +170,76 @@ soup_auth_class_init (SoupAuthClass *auth_class)
          *
          * The authentication scheme name.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_SCHEME_NAME,
+        properties[PROP_SCHEME_NAME] =
 		g_param_spec_string ("scheme-name",
 				     "Scheme name",
 				     "Authentication scheme name",
 				     NULL,
 				     G_PARAM_READABLE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuth:realm:
 	 *
 	 * The authentication realm.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_REALM,
+        properties[PROP_REALM] =
 		g_param_spec_string ("realm",
 				     "Realm",
 				     "Authentication realm",
 				     NULL,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuth:authority:
 	 *
 	 * The authority (host:port) being authenticated to.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_AUTHORITY,
+        properties[PROP_AUTHORITY] =
 		g_param_spec_string ("authority",
 				     "Authority",
 				     "Authentication authority",
 				     NULL,
 				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuth:is-for-proxy:
 	 *
 	 * Whether or not the auth is for a proxy server.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_IS_FOR_PROXY,
+        properties[PROP_IS_FOR_PROXY] =
 		g_param_spec_boolean ("is-for-proxy",
 				      "For Proxy",
 				      "Whether or not the auth is for a proxy server",
 				      FALSE,
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuth:is-authenticated:
 	 *
 	 * Whether or not the auth has been authenticated.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_IS_AUTHENTICATED,
+        properties[PROP_IS_AUTHENTICATED] =
 		g_param_spec_boolean ("is-authenticated",
 				      "Authenticated",
 				      "Whether or not the auth is authenticated",
 				      FALSE,
 				      G_PARAM_READABLE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuth:is-cancelled:
 	 *
 	 * An alias for the #SoupAuth:is-cancelled property.
 	 * (Whether or not the auth has been cancelled.)
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_IS_CANCELLED,
+        properties[PROP_IS_CANCELLED] =
 		g_param_spec_boolean ("is-cancelled",
 				      "Cancelled",
 				      "Whether or not the auth is cancelled",
 				      FALSE,
 				      G_PARAM_READABLE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 /**
@@ -351,7 +349,7 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	was_authenticated = soup_auth_is_authenticated (auth);
 	success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
 	if (was_authenticated != soup_auth_is_authenticated (auth))
-		g_object_notify (G_OBJECT (auth), "is-authenticated");
+		g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
 	soup_header_free_param_list (params);
 	return success;
 }
@@ -382,7 +380,7 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
 	was_authenticated = soup_auth_is_authenticated (auth);
 	SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
 	if (was_authenticated != soup_auth_is_authenticated (auth))
-		g_object_notify (G_OBJECT (auth), "is-authenticated");
+		g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
 }
 
 /**
@@ -406,7 +404,7 @@ soup_auth_cancel (SoupAuth *auth)
 		return;
 
 	priv->cancelled = TRUE;
-	g_object_notify (G_OBJECT (auth), "is-cancelled");
+	g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_CANCELLED]);
 }
 
 /**

@@ -19,7 +19,11 @@ enum {
 
 	PROP_SNIFFER,
 	PROP_MESSAGE,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 struct _SoupContentSnifferStream {
 	GFilterInputStream parent_instance;
@@ -320,20 +324,20 @@ soup_content_sniffer_stream_class_init (SoupContentSnifferStreamClass *sniffer_c
 	input_stream_class->read_fn = soup_content_sniffer_stream_read;
 	input_stream_class->skip = soup_content_sniffer_stream_skip;
 
-	g_object_class_install_property (
-		object_class, PROP_SNIFFER,
+        properties[PROP_SNIFFER] =
 		g_param_spec_object ("sniffer",
 				     "Sniffer",
 				     "The stream's SoupContentSniffer",
 				     SOUP_TYPE_CONTENT_SNIFFER,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_MESSAGE,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+        properties[PROP_MESSAGE] =
 		g_param_spec_object ("message",
 				     "Message",
 				     "The stream's SoupMessage",
 				     SOUP_TYPE_MESSAGE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 static void

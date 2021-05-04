@@ -55,8 +55,10 @@ enum {
 	PROP_GENERIC_AUTH_CALLBACK,
 	PROP_GENERIC_AUTH_DATA,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 typedef struct {
 	char *realm;
@@ -180,72 +182,68 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	object_class->set_property = soup_auth_domain_set_property;
 	object_class->get_property = soup_auth_domain_get_property;
 
-	g_object_class_install_property (
-		object_class, PROP_REALM,
+        properties[PROP_REALM] =
 		g_param_spec_string ("realm",
 				     "Realm",
 				     "The realm of this auth domain",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class, PROP_PROXY,
+        properties[PROP_PROXY] =
 		g_param_spec_boolean ("proxy",
 				      "Proxy",
 				      "Whether or not this is a proxy auth domain",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupAuthDomain:filter: (type SoupAuthDomainFilter)
 	 *
 	 * The #SoupAuthDomainFilter for the domain.
 	 */
-	g_object_class_install_property (
-		object_class, PROP_FILTER,
+        properties[PROP_FILTER] =
 		g_param_spec_pointer ("filter",
 				      "Filter",
 				      "A filter for deciding whether or not to require authentication",
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuthDomain:filter-data:
 	 *
 	 * Data to pass to the #SoupAuthDomainFilter.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_FILTER_DATA,
+        properties[PROP_FILTER_DATA] =
 		g_param_spec_pointer ("filter-data",
 				      "Filter data",
 				      "Data to pass to filter",
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback)
 	 *
 	 * The #SoupAuthDomainGenericAuthCallback.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_GENERIC_AUTH_CALLBACK,
+        properties[PROP_GENERIC_AUTH_CALLBACK] =
 		g_param_spec_pointer ("generic-auth-callback",
 				      "Generic authentication callback",
 				      "An authentication callback that can be used with any SoupAuthDomain subclass",
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupAuthDomain:generic-auth-data:
 	 *
          * The data to pass to the #SoupAuthDomainGenericAuthCallback.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_GENERIC_AUTH_DATA,
+        properties[PROP_GENERIC_AUTH_DATA] =
 		g_param_spec_pointer ("generic-auth-data",
 				      "Authentication callback data",
 				      "Data to pass to auth callback",
 				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS));
+				      G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 /**
@@ -365,8 +363,8 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
 	priv->filter_data = filter_data;
 	priv->filter_dnotify = dnotify;
 
-	g_object_notify (G_OBJECT (domain), "filter");
-	g_object_notify (G_OBJECT (domain), "filter-data");
+	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_FILTER]);
+	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_FILTER_DATA]);
 }
 
 /**
@@ -443,8 +441,8 @@ soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
 	priv->auth_data = auth_data;
 	priv->auth_dnotify = dnotify;
 
-	g_object_notify (G_OBJECT (domain), "generic-auth-callback");
-	g_object_notify (G_OBJECT (domain), "generic-auth-data");
+	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_GENERIC_AUTH_CALLBACK]);
+	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_GENERIC_AUTH_DATA]);
 }
 
 gboolean

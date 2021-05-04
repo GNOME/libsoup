@@ -132,8 +132,12 @@ typedef struct {
 enum {
 	PROP_0,
 	PROP_CACHE_DIR,
-	PROP_CACHE_TYPE
+	PROP_CACHE_TYPE,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 G_DEFINE_TYPE_WITH_CODE (SoupCache, soup_cache, G_TYPE_OBJECT,
                          G_ADD_PRIVATE (SoupCache)
@@ -1022,22 +1026,24 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 
 	cache_class->get_cacheability = get_cacheability;
 
-	g_object_class_install_property (gobject_class, PROP_CACHE_DIR,
-					 g_param_spec_string ("cache-dir",
-							      "Cache directory",
-							      "The directory to store the cache files",
-							      NULL,
-							      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-							      G_PARAM_STATIC_STRINGS));
+        properties[PROP_CACHE_DIR] =
+                g_param_spec_string ("cache-dir",
+                                     "Cache directory",
+                                     "The directory to store the cache files",
+                                     NULL,
+                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (gobject_class, PROP_CACHE_TYPE,
-					 g_param_spec_enum ("cache-type",
-							    "Cache type",
-							    "Whether the cache is private or shared",
-							    SOUP_TYPE_CACHE_TYPE,
-							    SOUP_CACHE_SINGLE_USER,
-							    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-							    G_PARAM_STATIC_STRINGS));
+        properties[PROP_CACHE_TYPE] =
+                g_param_spec_enum ("cache-type",
+                                   "Cache type",
+                                   "Whether the cache is private or shared",
+                                   SOUP_TYPE_CACHE_TYPE,
+                                   SOUP_CACHE_SINGLE_USER,
+                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                   G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (gobject_class, LAST_PROPERTY, properties);
 }
 
 /**

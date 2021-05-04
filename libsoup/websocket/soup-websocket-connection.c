@@ -83,8 +83,12 @@ enum {
 	PROP_STATE,
 	PROP_MAX_INCOMING_PAYLOAD_SIZE,
 	PROP_KEEPALIVE_INTERVAL,
-	PROP_EXTENSIONS
+	PROP_EXTENSIONS,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 enum {
 	MESSAGE,
@@ -387,7 +391,7 @@ close_io_stream (SoupWebsocketConnection *self)
 					 NULL, on_iostream_closed, g_object_ref (self));
 	}
 
-	g_object_notify (G_OBJECT (self), "state");
+	g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_STATE]);
 }
 
 static void
@@ -413,7 +417,7 @@ shutdown_wr_io_stream (SoupWebsocketConnection *self)
 		}
 	}
 
-	g_object_notify (G_OBJECT (self), "state");
+	g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_STATE]);
 }
 
 static gboolean
@@ -1484,14 +1488,14 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * The input and output streams must be pollable streams.
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_IO_STREAM,
-					 g_param_spec_object ("io-stream",
-							      "I/O Stream",
-							      "Underlying I/O stream",
-							      G_TYPE_IO_STREAM,
-							      G_PARAM_READWRITE |
-							      G_PARAM_CONSTRUCT_ONLY |
-							      G_PARAM_STATIC_STRINGS));
+        properties[PROP_IO_STREAM] =
+                g_param_spec_object ("io-stream",
+                                     "I/O Stream",
+                                     "Underlying I/O stream",
+                                     G_TYPE_IO_STREAM,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupWebsocketConnection:connection-type:
@@ -1499,15 +1503,15 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * The type of connection (client/server).
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_CONNECTION_TYPE,
-					 g_param_spec_enum ("connection-type",
-							    "Connection type",
-							    "Connection type (client/server)",
-							    SOUP_TYPE_WEBSOCKET_CONNECTION_TYPE,
-							    SOUP_WEBSOCKET_CONNECTION_UNKNOWN,
-							    G_PARAM_READWRITE |
-							    G_PARAM_CONSTRUCT_ONLY |
-							    G_PARAM_STATIC_STRINGS));
+        properties[PROP_CONNECTION_TYPE] =
+                g_param_spec_enum ("connection-type",
+                                   "Connection type",
+                                   "Connection type (client/server)",
+                                   SOUP_TYPE_WEBSOCKET_CONNECTION_TYPE,
+                                   SOUP_WEBSOCKET_CONNECTION_UNKNOWN,
+                                   G_PARAM_READWRITE |
+                                   G_PARAM_CONSTRUCT_ONLY |
+                                   G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupWebsocketConnection:uri:
@@ -1518,14 +1522,14 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * and for clients it is the address connected to.
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_URI,
-					 g_param_spec_boxed ("uri",
-							     "URI",
-							     "The WebSocket URI",
-							     G_TYPE_URI,
-							     G_PARAM_READWRITE |
-							     G_PARAM_CONSTRUCT_ONLY |
-							     G_PARAM_STATIC_STRINGS));
+        properties[PROP_URI] =
+                g_param_spec_boxed ("uri",
+                                    "URI",
+                                    "The WebSocket URI",
+                                    G_TYPE_URI,
+                                    G_PARAM_READWRITE |
+                                    G_PARAM_CONSTRUCT_ONLY |
+                                    G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupWebsocketConnection:origin:
@@ -1533,14 +1537,14 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * The client's Origin.
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_ORIGIN,
-					 g_param_spec_string ("origin",
-							      "Origin",
-							      "The WebSocket origin",
-							      NULL,
-							      G_PARAM_READWRITE |
-							      G_PARAM_CONSTRUCT_ONLY |
-							      G_PARAM_STATIC_STRINGS));
+        properties[PROP_ORIGIN] =
+                g_param_spec_string ("origin",
+                                     "Origin",
+                                     "The WebSocket origin",
+                                     NULL,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupWebsocketConnection:protocol:
@@ -1549,14 +1553,14 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * upon.
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_PROTOCOL,
-					 g_param_spec_string ("protocol",
-							      "Protocol",
-							      "The chosen WebSocket protocol",
-							      NULL,
-							      G_PARAM_READWRITE |
-							      G_PARAM_CONSTRUCT_ONLY |
-							      G_PARAM_STATIC_STRINGS));
+        properties[PROP_PROTOCOL] =
+                g_param_spec_string ("protocol",
+                                     "Protocol",
+                                     "The chosen WebSocket protocol",
+                                     NULL,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupWebsocketConnection:state:
@@ -1564,14 +1568,14 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * The current state of the WebSocket.
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_STATE,
-					 g_param_spec_enum ("state",
-							    "State",
-							    "State ",
-							    SOUP_TYPE_WEBSOCKET_STATE,
-							    SOUP_WEBSOCKET_STATE_OPEN,
-							    G_PARAM_READABLE |
-							    G_PARAM_STATIC_STRINGS));
+        properties[PROP_STATE] =
+                g_param_spec_enum ("state",
+                                   "State",
+                                   "State ",
+                                   SOUP_TYPE_WEBSOCKET_STATE,
+                                   SOUP_WEBSOCKET_STATE_OPEN,
+                                   G_PARAM_READABLE |
+                                   G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupWebsocketConnection:max-incoming-payload-size:
@@ -1580,16 +1584,16 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * or 0 to not limit it.
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_MAX_INCOMING_PAYLOAD_SIZE,
-					 g_param_spec_uint64 ("max-incoming-payload-size",
-							      "Max incoming payload size",
-							      "Max incoming payload size ",
-							      0,
-							      G_MAXUINT64,
-							      MAX_INCOMING_PAYLOAD_SIZE_DEFAULT,
-							      G_PARAM_READWRITE |
-							      G_PARAM_CONSTRUCT |
-							      G_PARAM_STATIC_STRINGS));
+        properties[PROP_MAX_INCOMING_PAYLOAD_SIZE] =
+                g_param_spec_uint64 ("max-incoming-payload-size",
+                                     "Max incoming payload size",
+                                     "Max incoming payload size ",
+                                     0,
+                                     G_MAXUINT64,
+                                     MAX_INCOMING_PAYLOAD_SIZE_DEFAULT,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT |
+                                     G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * SoupWebsocketConnection:keepalive-interval:
@@ -1599,16 +1603,16 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * disabled.
 	 *
 	 */
-	g_object_class_install_property (gobject_class, PROP_KEEPALIVE_INTERVAL,
-					 g_param_spec_uint ("keepalive-interval",
-					                    "Keepalive interval",
-					                    "Keepalive interval",
-					                    0,
-					                    G_MAXUINT,
-					                    0,
-					                    G_PARAM_READWRITE |
-					                    G_PARAM_CONSTRUCT |
-					                    G_PARAM_STATIC_STRINGS));
+        properties[PROP_KEEPALIVE_INTERVAL] =
+                g_param_spec_uint ("keepalive-interval",
+                                   "Keepalive interval",
+                                   "Keepalive interval",
+                                   0,
+                                   G_MAXUINT,
+                                   0,
+                                   G_PARAM_READWRITE |
+                                   G_PARAM_CONSTRUCT |
+                                   G_PARAM_STATIC_STRINGS);
 
         /**
          * SoupWebsocketConnection:extensions:
@@ -1616,13 +1620,15 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
          * List of #SoupWebsocketExtension objects that are active in the connection.
          *
          */
-        g_object_class_install_property (gobject_class, PROP_EXTENSIONS,
-                                         g_param_spec_pointer ("extensions",
-                                                               "Active extensions",
-                                                               "The list of active extensions",
-                                                               G_PARAM_READWRITE |
-                                                               G_PARAM_CONSTRUCT_ONLY |
-                                                               G_PARAM_STATIC_STRINGS));
+        properties[PROP_EXTENSIONS] =
+                g_param_spec_pointer ("extensions",
+                                      "Active extensions",
+                                      "The list of active extensions",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_CONSTRUCT_ONLY |
+                                      G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (gobject_class, LAST_PROPERTY, properties);
 
 	/**
 	 * SoupWebsocketConnection::message:
@@ -2101,7 +2107,7 @@ soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection
 
 	if (priv->max_incoming_payload_size != max_incoming_payload_size) {
 		priv->max_incoming_payload_size = max_incoming_payload_size;
-		g_object_notify (G_OBJECT (self), "max-incoming-payload-size");
+		g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_MAX_INCOMING_PAYLOAD_SIZE]);
 	}
 }
 
@@ -2157,7 +2163,7 @@ soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,
 
 	if (priv->keepalive_interval != interval) {
 		priv->keepalive_interval = interval;
-		g_object_notify (G_OBJECT (self), "keepalive-interval");
+		g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_KEEPALIVE_INTERVAL]);
 
 		keepalive_stop_timeout (self);
 

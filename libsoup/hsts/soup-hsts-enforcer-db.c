@@ -37,8 +37,10 @@ enum {
 
 	PROP_FILENAME,
 
-	LAST_PROP
+	LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 struct _SoupHSTSEnforcerDB {
 	SoupHSTSEnforcer parent;
@@ -335,12 +337,13 @@ soup_hsts_enforcer_db_class_init (SoupHSTSEnforcerDBClass *db_class)
 	 *
 	 * The filename of the SQLite database where HSTS policies are stored.
 	 **/
-	g_object_class_install_property (
-		object_class, PROP_FILENAME,
+        properties[PROP_FILENAME] =
 		g_param_spec_string ("filename",
 				     "Filename",
 				     "HSTS policy storage filename",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS));
+				     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }

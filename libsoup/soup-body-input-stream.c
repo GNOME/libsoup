@@ -51,8 +51,12 @@ enum {
 	PROP_0,
 
 	PROP_ENCODING,
-	PROP_CONTENT_LENGTH
+	PROP_CONTENT_LENGTH,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 static void soup_body_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 static void soup_body_input_stream_seekable_init (GSeekableIface *seekable_interface);
@@ -390,21 +394,22 @@ soup_body_input_stream_class_init (SoupBodyInputStreamClass *stream_class)
 			      NULL,
 			      G_TYPE_NONE, 0);
 
-	g_object_class_install_property (
-		object_class, PROP_ENCODING,
+        properties[PROP_ENCODING] =
 		g_param_spec_enum ("encoding",
 				   "Encoding",
 				   "Message body encoding",
 				   SOUP_TYPE_ENCODING,
 				   SOUP_ENCODING_NONE,
-				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property (
-		object_class, PROP_CONTENT_LENGTH,
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+        properties[PROP_CONTENT_LENGTH] =
 		g_param_spec_int64 ("content-length",
 				    "Content-Length",
 				    "Message body Content-Length",
 				    -1, G_MAXINT64, -1,
-				    G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+				    G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 static void

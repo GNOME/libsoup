@@ -9,8 +9,14 @@
 #include "soup.h"
 
 enum {
-        PROP_LOGGER = 1
+        PROP_0,
+
+        PROP_LOGGER,
+
+        LAST_PROPERTY
 };
+
+static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 enum {
         READ_DATA,
@@ -200,14 +206,16 @@ soup_logger_input_stream_class_init (SoupLoggerInputStreamClass *klass)
                               2,
                               G_TYPE_POINTER, G_TYPE_INT);
 
-        g_object_class_install_property (
-                object_class, PROP_LOGGER,
+        properties[PROP_LOGGER] =
                 g_param_spec_object ("logger",
                                      "Logger",
                                      "The stream's SoupLogger",
                                      SOUP_TYPE_LOGGER,
-                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-                                                         G_PARAM_STATIC_STRINGS));
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
+
+        g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
 static void
