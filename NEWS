@@ -1,3 +1,13 @@
+Changes in libsoup from 2.99.4 to 2.99.5:
+
+    * Add soup_message_get_remote_address() API [Carlos Garcia Campos]
+
+    * Fix preconnect stealing a connection [Carlos Garcia Campos]
+
+    * Fix potential header issues when included in a C++ project [Patrick Griffis]
+
+    * Disabling tests also disables Autobahn tests by default [Patrick Griffis]
+
 Changes in libsoup from 2.99.3 to 2.99.4:
 
     * Rename SoupMessage:tls-certificate and SoupMessage:tls-certificate-errors
