@@ -14,6 +14,7 @@ RUN dnf update -y \
                       lcov \
                       libasan \
                       libpsl-devel \
+                      libnghttp2-devel \
                       lsof \
                       make \
                       meson \
@@ -42,7 +43,8 @@ RUN dnf update -y \
     && popd \
     && rm -rf glib gobject-introspection vala \
     && python2.7 -m ensurepip \
-    && pip2.7 install virtualenv autobahntestsuite
+    && pip2.7 install virtualenv autobahntestsuite \
+    && pip3 install quart
 
 ARG HOST_USER_ID=5555
 ENV HOST_USER_ID ${HOST_USER_ID}
