@@ -1369,17 +1369,7 @@ soup_session_send_queue_item (SoupSession *session,
 	if (priv->accept_language && !soup_message_headers_get_list (request_headers, "Accept-Language"))
 		soup_message_headers_append (request_headers, "Accept-Language", priv->accept_language);
 
-	/* Force keep alive connections for HTTP 1.0. Performance will
-	 * improve when issuing multiple requests to the same host in
-	 * a short period of time, as we wouldn't need to establish
-	 * new connections. Keep alive is implicit for HTTP 1.1.
-	 */
-	if (!soup_message_headers_header_contains (request_headers, "Connection", "Keep-Alive") &&
-	    !soup_message_headers_header_contains (request_headers, "Connection", "close") &&
-	    !soup_message_headers_header_contains (request_headers, "Connection", "Upgrade")) {
-		soup_message_headers_append (request_headers, "Connection", "Keep-Alive");
-	}
-
+        soup_message_force_keep_alive_if_needed (item->msg);
         soup_message_update_request_host_if_needed (item->msg);
 
 	/* A user agent SHOULD send a Content-Length in a request message when

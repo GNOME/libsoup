@@ -144,4 +144,6 @@ void soup_message_set_request_host_from_uri     (SoupMessage *msg,
 
 void soup_message_update_request_host_if_needed (SoupMessage *msg);
 
+void soup_message_force_keep_alive_if_needed    (SoupMessage *msg);
+
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

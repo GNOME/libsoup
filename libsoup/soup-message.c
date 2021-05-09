@@ -1665,6 +1665,9 @@ soup_message_is_keepalive (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
+        if (priv->http_version == SOUP_HTTP_2_0)
+                return FALSE;
+
 	if (priv->status_code == SOUP_STATUS_OK &&
 	    priv->method == SOUP_METHOD_CONNECT)
 		return TRUE;
@@ -2658,4 +2661,24 @@ soup_message_update_request_host_if_needed (SoupMessage *msg)
                 return;
 
         soup_message_set_request_host_from_uri (msg, priv->uri);
+}
+
+void
+soup_message_force_keep_alive_if_needed (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        if (priv->http_version == SOUP_HTTP_2_0)
+                return;
+
+        /* Force keep alive connections for HTTP 1.0. Performance will
+         * improve when issuing multiple requests to the same host in
+         * a short period of time, as we wouldn't need to establish
+         * new connections. Keep alive is implicit for HTTP 1.1.
+         */
+        if (!soup_message_headers_header_contains (priv->request_headers, "Connection", "Keep-Alive") &&
+            !soup_message_headers_header_contains (priv->request_headers, "Connection", "close") &&
+            !soup_message_headers_header_contains (priv->request_headers, "Connection", "Upgrade")) {
+                soup_message_headers_append (priv->request_headers, "Connection", "Keep-Alive");
+        }
 }
