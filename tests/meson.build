@@ -137,6 +137,10 @@ env.set('MALLOC_CHECK_', '2')
 # This is set by Meson if empty
 env.set('MALLOC_PERTURB_', '')
 
+if meson.version().version_compare('>= 0.58.0')
+  meson.add_devenv(env)
+endif
+
 if have_autobahn
    subdir('autobahn')
 endif
