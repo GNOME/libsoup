@@ -139,4 +139,9 @@ typedef enum {
 void soup_message_set_metrics_timestamp (SoupMessage           *msg,
                                          SoupMessageMetricsType type);
 
+void soup_message_set_request_host_from_uri     (SoupMessage *msg,
+                                                 GUri        *uri);
+
+void soup_message_update_request_host_if_needed (SoupMessage *msg);
+
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

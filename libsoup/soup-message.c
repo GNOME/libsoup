@@ -2622,3 +2622,40 @@ soup_message_set_metrics_timestamp (SoupMessage           *msg,
                 break;
         }
 }
+
+void
+soup_message_set_request_host_from_uri (SoupMessage *msg,
+                                        GUri        *uri)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        char *host;
+
+        if (priv->http_version == SOUP_HTTP_2_0)
+                return;
+
+        host = soup_uri_get_host_for_headers (uri);
+        if (soup_uri_uses_default_port (uri))
+                soup_message_headers_replace (priv->request_headers, "Host", host);
+        else {
+                char *value;
+
+                value = g_strdup_printf ("%s:%d", host, g_uri_get_port (uri));
+                soup_message_headers_replace (priv->request_headers, "Host", value);
+                g_free (value);
+        }
+        g_free (host);
+}
+
+void
+soup_message_update_request_host_if_needed (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        if (priv->http_version == SOUP_HTTP_2_0)
+                return;
+
+        if (soup_message_headers_get_one (priv->request_headers, "Host"))
+                return;
+
+        soup_message_set_request_host_from_uri (msg, priv->uri);
+}

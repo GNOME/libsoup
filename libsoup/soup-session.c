@@ -1243,7 +1243,6 @@ soup_session_redirect_message (SoupSession *session,
 			       GError     **error)
 {
 	GUri *new_uri;
-	char *host;
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
@@ -1264,18 +1263,7 @@ soup_session_redirect_message (SoupSession *session,
 						   SOUP_ENCODING_NONE);
 	}
 
-	host = soup_uri_get_host_for_headers (new_uri);
-	if (soup_uri_uses_default_port (new_uri))
-		soup_message_headers_replace (soup_message_get_request_headers (msg), "Host", host);
-	else {
-		char *value;
-
-		value = g_strdup_printf ("%s:%d", host, g_uri_get_port (new_uri));
-		soup_message_headers_replace (soup_message_get_request_headers (msg), "Host", value);
-		g_free (value);
-	}
-	g_free (host);
-
+        soup_message_set_request_host_from_uri (msg, new_uri);
 	soup_message_set_uri (msg, new_uri);
 	g_uri_unref (new_uri);
 
@@ -1392,22 +1380,7 @@ soup_session_send_queue_item (SoupSession *session,
 		soup_message_headers_append (request_headers, "Connection", "Keep-Alive");
 	}
 
-        if (!soup_message_headers_get_one (request_headers, "Host")) {
-                GUri *uri = soup_message_get_uri (item->msg);
-                char *host;
-
-                host = soup_uri_get_host_for_headers (uri);
-                if (soup_uri_uses_default_port (uri))
-                        soup_message_headers_append (request_headers, "Host", host);
-                else {
-                        char *value;
-
-                        value = g_strdup_printf ("%s:%d", host, g_uri_get_port (uri));
-                        soup_message_headers_append (request_headers, "Host", value);
-                        g_free (value);
-                }
-                g_free (host);
-        }
+        soup_message_update_request_host_if_needed (item->msg);
 
 	/* A user agent SHOULD send a Content-Length in a request message when
 	 * no Transfer-Encoding is sent and the request method defines a meaning
