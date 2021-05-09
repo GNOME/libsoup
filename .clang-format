@@ -5,4 +5,5 @@ BreakBeforeBraces: WebKit
 AlignAfterOpenBracket: Align
 SpaceBeforeParens: Always
 PointerAlignment: Right
+AlwaysBreakAfterReturnType: AllDefinitions
 ---
