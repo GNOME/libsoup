@@ -161,6 +161,9 @@ do_multi_message_async_test (Test *test, gconstpointer data)
         g_assert_cmpstr (g_bytes_get_data (response1, NULL), ==, "body%201");
         g_assert_cmpstr (g_bytes_get_data (response2, NULL), ==, "body%202");
 
+        while (g_main_context_pending (async_context))
+                g_main_context_iteration (async_context, FALSE);
+
         g_bytes_unref (response1);
         g_bytes_unref (response2);
         g_object_unref (msg1);
@@ -249,6 +252,9 @@ do_post_async_test (Test *test, gconstpointer data)
 
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "body 1");
 
+        while (g_main_context_pending (async_context))
+                g_main_context_iteration (async_context, FALSE);
+
         g_bytes_unref (response);
         g_bytes_unref (bytes);
         g_main_context_unref (async_context);
@@ -281,6 +287,9 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
 
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Part 1 - Part 2");
 
+        while (g_main_context_pending (async_context))
+                g_main_context_iteration (async_context, FALSE);
+
         g_bytes_unref (response);
         g_object_unref (in_stream);
         g_main_context_unref (async_context);
@@ -306,6 +315,9 @@ do_post_file_async_test (Test *test, gconstpointer data)
                 g_main_context_iteration (async_context, TRUE);
 
         g_assert_true (g_str_has_prefix (g_bytes_get_data (response, NULL), "-----BEGIN CERTIFICATE-----"));
+
+        while (g_main_context_pending (async_context))
+                g_main_context_iteration (async_context, FALSE);
 
         g_bytes_unref (response);
         g_object_unref (in_stream);
@@ -407,6 +419,9 @@ do_connections_test (Test *test, gconstpointer data)
         SoupMessage *msg = soup_message_new ("GET", "https://127.0.0.1:5000/slow");
         soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_ready, &complete_count);
         g_object_unref (msg);
+
+        while (g_main_context_pending (async_context))
+                g_main_context_iteration (async_context, FALSE);
 
         g_main_context_unref (async_context);
 }
