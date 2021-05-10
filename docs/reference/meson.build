@@ -50,7 +50,7 @@ mkdb_args = [
 scan_args = [
   '--deprecated-guards=SOUP_DISABLE_DEPRECATED',
   '--rebuild-types',
-  '--ignore-decorators="SOUP_DEPRECATED\w*\s*\([^)]*\)|SOUP_DEPRECATED\w*|SOUP_AVAILABLE\w*"'
+  '--ignore-decorators="SOUP_DEPRECATED\w*\s*()|SOUP_DEPRECATED\w*|SOUP_AVAILABLE[\w_]*"'
 ]
 
 glib_prefix = glib_dep.get_pkgconfig_variable('prefix')

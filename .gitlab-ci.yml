@@ -87,7 +87,7 @@ reference:
   needs: []
   script:
     - meson _build -Dgtk_doc=true
-    # FIXME: ninja -C _build libsoup-3.0-doc fails
+    - ninja -C _build libsoup-3.0-doc
     - ninja -C _build install
     - mv _build/docs/reference/html/ _reference/
     - .gitlab-ci/check-docs.py
