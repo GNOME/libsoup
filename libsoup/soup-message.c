@@ -1421,12 +1421,14 @@ soup_message_set_connection (SoupMessage    *msg,
 		g_signal_handlers_disconnect_by_data (priv->connection, msg);
                 priv->io_data = NULL;
 		g_object_remove_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
+                soup_connection_set_in_use (priv->connection, FALSE);
 	}
 
 	priv->connection = conn;
 	if (!priv->connection)
 		return;
 
+        soup_connection_set_in_use (priv->connection, TRUE);
         priv->last_connection_id = soup_connection_get_id (priv->connection);
 
 	g_object_add_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);

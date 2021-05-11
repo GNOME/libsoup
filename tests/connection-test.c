@@ -701,7 +701,6 @@ connection_state_changed (SoupConnection      *conn,
 				  "Unexpected transition: %s -> %s\n",
 				  state_names[*state], state_names[new_state]);
 		break;
-	case SOUP_CONNECTION_REMOTE_DISCONNECTED:
 	case SOUP_CONNECTION_DISCONNECTED:
 		soup_test_assert (FALSE,
 				  "Unexpected transition: %s -> %s\n",

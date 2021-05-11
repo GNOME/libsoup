@@ -1296,8 +1296,6 @@ message_restarted (SoupMessage *msg, gpointer user_data)
 	if (conn &&
 	    (!soup_message_is_keepalive (msg) ||
 	     SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))) {
-		if (soup_connection_get_state (conn) == SOUP_CONNECTION_IN_USE)
-			soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
                 soup_message_set_connection (item->msg, NULL);
 	}
 
@@ -1402,8 +1400,8 @@ soup_session_cleanup_connections (SoupSession *session,
 	g_hash_table_iter_init (&iter, priv->conns);
 	while (g_hash_table_iter_next (&iter, &conn, &host)) {
 		state = soup_connection_get_state (conn);
-		if (state == SOUP_CONNECTION_REMOTE_DISCONNECTED ||
-		    (cleanup_idle && state == SOUP_CONNECTION_IDLE)) {
+                if (state == SOUP_CONNECTION_IDLE &&
+                    (cleanup_idle || !soup_connection_is_idle_open (conn))) {
 			conns = g_slist_prepend (conns, g_object_ref (conn));
 			g_hash_table_iter_remove (&iter);
 			drop_connection (session, host, conn);
@@ -1494,7 +1492,7 @@ connection_state_changed (GObject *object, GParamSpec *param, gpointer user_data
 	SoupSession *session = user_data;
 	SoupConnection *conn = SOUP_CONNECTION (object);
 
-	if (soup_connection_get_state (conn) == SOUP_CONNECTION_IDLE)
+	if (soup_connection_get_state (conn) == SOUP_CONNECTION_IDLE && soup_connection_is_idle_open (conn))
 		soup_session_kick_queue (session);
 }
 
@@ -1505,15 +1503,8 @@ soup_session_unqueue_item (SoupSession          *session,
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupSessionHost *host;
 	GSList *f;
-        SoupConnection *conn;
 
-        conn = soup_message_get_connection (item->msg);
-	if (conn) {
-		if (soup_message_get_method (item->msg) != SOUP_METHOD_CONNECT ||
-		    !SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (item->msg)))
-			soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
-                soup_message_set_connection (item->msg, NULL);
-	}
+        soup_message_set_connection (item->msg, NULL);
 
 	if (item->state != SOUP_MESSAGE_FINISHED) {
 		g_warning ("finished an item with state %d", item->state);
@@ -1744,6 +1735,7 @@ steal_preconnection (SoupSession          *session,
         if (!preconnect_item->connect_only || preconnect_item->state != SOUP_MESSAGE_CONNECTING)
                 return FALSE;
 
+        soup_message_set_connection (item->msg, conn);
         soup_message_set_connection (preconnect_item->msg, NULL);
         g_assert (preconnect_item->related == NULL);
         preconnect_item->related = soup_message_queue_item_ref (item);
@@ -1778,10 +1770,8 @@ get_connection_for_host (SoupSession *session,
 
 		switch (soup_connection_get_state (conn)) {
 		case SOUP_CONNECTION_IDLE:
-			if (!need_new_connection) {
-				soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
+			if (!need_new_connection && soup_connection_is_idle_open (conn))
 				return conn;
-			}
 			break;
 		case SOUP_CONNECTION_CONNECTING:
 			if (steal_preconnection (session, item, conn))
@@ -1902,7 +1892,6 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	case SOUP_CONNECTION_NEW:
 		break;
 	case SOUP_CONNECTION_IDLE:
-	case SOUP_CONNECTION_REMOTE_DISCONNECTED:
 	case SOUP_CONNECTION_DISCONNECTED:
 		g_assert_not_reached ();
 	}
@@ -2172,8 +2161,7 @@ soup_session_abort (SoupSession *session)
 		SoupConnectionState state;
 
 		state = soup_connection_get_state (conn);
-		if (state == SOUP_CONNECTION_IDLE ||
-		    state == SOUP_CONNECTION_REMOTE_DISCONNECTED) {
+		if (state == SOUP_CONNECTION_IDLE) {
 			conns = g_slist_prepend (conns, g_object_ref (conn));
 			g_hash_table_iter_remove (&iter);
 			drop_connection (session, host, conn);

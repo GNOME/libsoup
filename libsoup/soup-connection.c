@@ -38,6 +38,7 @@ typedef struct {
 	SoupConnectionState state;
 	time_t       unused_timeout;
 	GSource     *idle_timeout_src;
+        guint        in_use;
 	gboolean     reusable;
 
 	GCancellable *cancellable;
@@ -134,9 +135,6 @@ soup_connection_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SOCKET_PROPERTIES:
 		priv->socket_props = g_value_dup_boxed (value);
-		break;
-	case PROP_STATE:
-		soup_connection_set_state (SOUP_CONNECTION (object), g_value_get_uint (value));
 		break;
 	case PROP_SSL:
 		priv->ssl = g_value_get_boolean (value);
@@ -254,8 +252,9 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 		g_param_spec_enum ("state",
 				   "Connection state",
 				   "Current state of connection",
-				   SOUP_TYPE_CONNECTION_STATE, SOUP_CONNECTION_NEW,
-				   G_PARAM_READWRITE |
+				   SOUP_TYPE_CONNECTION_STATE,
+                                   SOUP_CONNECTION_NEW,
+				   G_PARAM_READABLE |
 				   G_PARAM_STATIC_STRINGS);
         properties[PROP_SSL] =
 		g_param_spec_boolean ("ssl",
@@ -326,6 +325,22 @@ stop_idle_timer (SoupConnectionPrivate *priv)
 		g_source_destroy (priv->idle_timeout_src);
                 g_clear_pointer (&priv->idle_timeout_src, g_source_unref);
 	}
+}
+
+static void
+soup_connection_set_state (SoupConnection     *conn,
+                           SoupConnectionState state)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        if (priv->state == state)
+                return;
+
+        priv->state = state;
+        if (priv->state == SOUP_CONNECTION_IDLE)
+                start_idle_timer (conn);
+
+        g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_STATE]);
 }
 
 static void
@@ -837,8 +852,7 @@ soup_connection_disconnect (SoupConnection *conn)
         priv = soup_connection_get_instance_private (conn);
 
         old_state = priv->state;
-        if (old_state != SOUP_CONNECTION_DISCONNECTED)
-                soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
+        soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
 
         if (priv->cancellable) {
                 g_cancellable_cancel (priv->cancellable);
@@ -933,19 +947,21 @@ soup_connection_is_via_proxy (SoupConnection *conn)
 	return priv->proxy_uri != NULL;
 }
 
-static gboolean
-is_idle_connection_disconnected (SoupConnection *conn)
+gboolean
+soup_connection_is_idle_open (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 	GInputStream *istream;
 	char buffer[1];
 	GError *error = NULL;
 
+        g_assert (priv->state == SOUP_CONNECTION_IDLE);
+
 	if (!g_socket_is_connected (soup_connection_get_socket (conn)))
-		return TRUE;
+		return FALSE;
 
 	if (priv->unused_timeout && priv->unused_timeout < time (NULL))
-		return TRUE;
+		return FALSE;
 
 	istream = g_io_stream_get_input_stream (priv->iostream);
 
@@ -963,64 +979,48 @@ is_idle_connection_disconnected (SoupConnection *conn)
 						  NULL, &error);
 	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		g_clear_error (&error);
-		return TRUE;
+		return FALSE;
 	}
 
 	g_error_free (error);
 
-	return FALSE;
+	return TRUE;
 }
 
 SoupConnectionState
 soup_connection_get_state (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn),
-			      SOUP_CONNECTION_DISCONNECTED);
-	priv = soup_connection_get_instance_private (conn);
-
-	if (priv->state == SOUP_CONNECTION_IDLE &&
-	    is_idle_connection_disconnected (conn))
-		soup_connection_set_state (conn, SOUP_CONNECTION_REMOTE_DISCONNECTED);
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
 	return priv->state;
 }
 
 void
-soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
+soup_connection_set_in_use (SoupConnection *conn,
+                            gboolean        in_use)
 {
-	SoupConnectionPrivate *priv;
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-	g_return_if_fail (state >= SOUP_CONNECTION_NEW &&
-			  state <= SOUP_CONNECTION_DISCONNECTED);
+        g_assert (in_use || priv->in_use > 0);
 
-        g_object_ref (conn);
-	g_object_freeze_notify (G_OBJECT (conn));
+        if (in_use)
+                priv->in_use++;
+        else
+                priv->in_use--;
 
-	priv = soup_connection_get_instance_private (conn);
+        if (priv->in_use > 0) {
+                if (priv->state == SOUP_CONNECTION_IDLE)
+                        soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
+                return;
+        }
 
-	if (priv->current_msg) {
-		g_warn_if_fail (state == SOUP_CONNECTION_IDLE ||
-				state == SOUP_CONNECTION_DISCONNECTED);
-		clear_current_msg (conn);
-	}
+        if (priv->current_msg)
+                clear_current_msg (conn);
 
-	if (state == SOUP_CONNECTION_IDLE && !priv->reusable) {
-		/* This will recursively call set_state() */
-		soup_connection_disconnect (conn);
-	} else {
-		priv->state = state;
-
-		if (priv->state == SOUP_CONNECTION_IDLE)
-			start_idle_timer (conn);
-
-		g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_STATE]);
-	}
-
-	g_object_thaw_notify (G_OBJECT (conn));
-        g_object_unref (conn);
+        if (priv->reusable)
+                soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
+        else
+                soup_connection_disconnect (conn);
 }
 
 void
