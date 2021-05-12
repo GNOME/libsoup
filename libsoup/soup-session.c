@@ -1998,31 +1998,30 @@ soup_session_process_queue_item (SoupSession          *session,
 }
 
 static void
+process_queue_item (SoupMessageQueueItem *item,
+                    gboolean             *should_cleanup)
+{
+        if (!item->async)
+                return;
+
+        /* CONNECT messages are handled specially */
+        if (soup_message_get_method (item->msg) == SOUP_METHOD_CONNECT)
+                return;
+
+        soup_session_process_queue_item (item->session, item, should_cleanup, TRUE);
+}
+
+static void
 async_run_queue (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupMessageQueueItem *item;
-	SoupMessage *msg;
 	gboolean try_cleanup = TRUE, should_cleanup = FALSE;
-	GList *l;
 
 	g_object_ref (session);
 	soup_session_cleanup_connections (session, FALSE);
 
  try_again:
-	for (l = priv->queue->head; l && l->data; l = g_list_next (l)) {
-		item = (SoupMessageQueueItem *)l->data;
-		msg = item->msg;
-
-		/* CONNECT messages are handled specially */
-		if (soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
-			continue;
-
-		if (!item->async)
-			continue;
-
-		soup_session_process_queue_item (session, item, &should_cleanup, TRUE);
-	}
+        g_queue_foreach (priv->queue, (GFunc)process_queue_item, &should_cleanup);
 
 	if (try_cleanup && should_cleanup) {
 		/* There is at least one message in the queue that
