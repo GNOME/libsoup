@@ -1815,7 +1815,8 @@ get_connection_for_host (SoupSession *session,
                         /* Always wait if we have a pending connection as it may be
                          * an h2 connection which will be shared. http/1.x connections
                          * will only be slightly delayed. */
-			return NULL;
+                        if (!force_http1 && !need_new_connection && !item->connect_only)
+                                return NULL;
 		default:
 			break;
 		}
