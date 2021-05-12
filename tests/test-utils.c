@@ -263,7 +263,7 @@ quart_init (void)
         g_subprocess_launcher_set_cwd (launcher, g_test_get_dir (G_TEST_DIST));
 
         GError *error = NULL;
-        char *script = g_test_build_filename (G_TEST_DIST, "http2-server.py", NULL);
+        char *script = soup_test_build_filename_abs (G_TEST_DIST, "http2-server.py", NULL);
         quart_proc = g_subprocess_launcher_spawn (launcher, &error, script, NULL);
         g_free (script);
         g_object_unref (launcher);

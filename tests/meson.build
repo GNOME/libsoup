@@ -68,6 +68,10 @@ tests = [
 ]
 
 if quart_found
+  configure_file(input : 'http2-server.py',
+    output : 'http2-server.py',
+    copy : true)
+
   tests += [
     ['http2', true, []],
   ]
