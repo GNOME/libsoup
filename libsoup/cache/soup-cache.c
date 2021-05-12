@@ -737,9 +737,9 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 
 	/* Create the cache stream. */
 	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
-	cache_stream = soup_message_setup_body_istream (body_stream, msg,
-							priv->session,
-							SOUP_STAGE_ENTITY_BODY);
+	cache_stream = soup_session_setup_message_body_input_stream (priv->session,
+                                                                     msg, body_stream,
+                                                                     SOUP_STAGE_ENTITY_BODY);
 	g_object_unref (body_stream);
 
 	client_stream = soup_cache_client_input_stream_new (cache_stream);

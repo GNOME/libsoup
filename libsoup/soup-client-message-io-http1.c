@@ -21,7 +21,7 @@
 #include "soup-body-output-stream.h"
 #include "soup-client-input-stream.h"
 #include "soup-connection.h"
-#include "soup-content-processor.h"
+#include "soup-session-private.h"
 #include "content-sniffer/soup-content-sniffer-stream.h"
 #include "soup-filter-input-stream.h"
 #include "soup-logger-private.h"
@@ -108,55 +108,6 @@ soup_client_message_io_http1_stolen (SoupClientMessageIO *iface)
         if (completion_cb)
                 completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_STOLEN, completion_data);
         g_object_unref (msg);
-}
-
-static gint
-processing_stage_cmp (gconstpointer a,
-                      gconstpointer b)
-{
-        SoupProcessingStage stage_a = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR ((gpointer)a));
-        SoupProcessingStage stage_b = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR ((gpointer)b));
-
-        if (stage_a > stage_b)
-                return 1;
-        if (stage_a == stage_b)
-                return 0;
-        return -1;
-}
-
-GInputStream *
-soup_message_setup_body_istream (GInputStream *body_stream,
-                                 SoupMessage *msg,
-                                 SoupSession *session,
-                                 SoupProcessingStage start_at_stage)
-{
-        GInputStream *istream;
-        GSList *p, *processors;
-
-        istream = g_object_ref (body_stream);
-
-        processors = soup_session_get_features (session, SOUP_TYPE_CONTENT_PROCESSOR);
-        processors = g_slist_sort (processors, processing_stage_cmp);
-
-        for (p = processors; p; p = p->next) {
-                GInputStream *wrapper;
-                SoupContentProcessor *processor;
-
-                processor = SOUP_CONTENT_PROCESSOR (p->data);
-                if (soup_message_disables_feature (msg, p->data) ||
-                    soup_content_processor_get_processing_stage (processor) < start_at_stage)
-                        continue;
-
-                wrapper = soup_content_processor_wrap_input (processor, istream, msg, NULL);
-                if (wrapper) {
-                        g_object_unref (istream);
-                        istream = wrapper;
-                }
-        }
-
-        g_slist_free (processors);
-
-        return istream;
 }
 
 static void
@@ -644,9 +595,9 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
                                                                                  io->read_encoding,
                                                                                  io->read_length);
 
-                        io->body_istream = soup_message_setup_body_istream (body_istream, msg,
-                                                                            client_io->item->session,
-                                                                            SOUP_STAGE_MESSAGE_BODY);
+                        io->body_istream = soup_session_setup_message_body_input_stream (client_io->item->session,
+                                                                                         msg, body_istream,
+                                                                                         SOUP_STAGE_MESSAGE_BODY);
                         g_object_unref (body_istream);
                 }
 

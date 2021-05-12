@@ -2444,6 +2444,55 @@ soup_session_get_feature_for_message (SoupSession *session, GType feature_type,
 	return feature;
 }
 
+static gint
+processing_stage_cmp (gconstpointer a,
+                      gconstpointer b)
+{
+        SoupProcessingStage stage_a = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR ((gpointer)a));
+        SoupProcessingStage stage_b = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR ((gpointer)b));
+
+        if (stage_a > stage_b)
+                return 1;
+        if (stage_a == stage_b)
+                return 0;
+        return -1;
+}
+
+GInputStream *
+soup_session_setup_message_body_input_stream (SoupSession        *session,
+                                              SoupMessage        *msg,
+                                              GInputStream       *body_stream,
+                                              SoupProcessingStage start_at_stage)
+{
+        GInputStream *istream;
+        GSList *p, *processors;
+
+        istream = g_object_ref (body_stream);
+
+        processors = soup_session_get_features (session, SOUP_TYPE_CONTENT_PROCESSOR);
+        processors = g_slist_sort (processors, processing_stage_cmp);
+
+        for (p = processors; p; p = g_slist_next (p)) {
+                GInputStream *wrapper;
+                SoupContentProcessor *processor;
+
+                processor = SOUP_CONTENT_PROCESSOR (p->data);
+                if (soup_message_disables_feature (msg, p->data) ||
+                    soup_content_processor_get_processing_stage (processor) < start_at_stage)
+                        continue;
+
+                wrapper = soup_content_processor_wrap_input (processor, istream, msg, NULL);
+                if (wrapper) {
+                        g_object_unref (istream);
+                        istream = wrapper;
+                }
+        }
+
+        g_slist_free (processors);
+
+        return istream;
+}
+
 static void
 soup_session_class_init (SoupSessionClass *session_class)
 {

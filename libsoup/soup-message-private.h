@@ -10,7 +10,6 @@
 #include "soup-message.h"
 #include "soup-client-message-io.h"
 #include "auth/soup-auth.h"
-#include "soup-content-processor.h"
 #include "content-sniffer/soup-content-sniffer.h"
 #include "soup-session.h"
 
@@ -95,11 +94,6 @@ gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);
 
 GList *soup_message_get_disabled_features (SoupMessage *msg);
-
-GInputStream *soup_message_setup_body_istream (GInputStream *body_stream,
-					       SoupMessage *msg,
-					       SoupSession *session,
-					       SoupProcessingStage start_at_stage);
 
 SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
