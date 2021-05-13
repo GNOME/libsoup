@@ -68,16 +68,34 @@ soup_client_message_io_http1_get_priority (SoupClientMessageIOHTTP1 *io)
 }
 
 static void
+soup_client_message_io_complete (SoupClientMessageIOHTTP1 *io,
+                                 SoupMessage *msg,
+                                 SoupMessageIOCompletion completion)
+{
+        SoupConnection* conn;
+        SoupMessageIOCompletionFn completion_cb;
+        gpointer completion_data;
+
+        completion_cb = io->base.completion_cb;
+        completion_data = io->base.completion_data;
+
+        msg = g_object_ref (msg);
+        conn = soup_message_get_connection (msg);
+        g_signal_handlers_disconnect_by_data (conn, msg);
+        if (io->base.body_ostream)
+                g_signal_handlers_disconnect_by_data (io->base.body_ostream, msg);
+        soup_connection_message_io_finished (conn, msg);
+        if (completion_cb)
+                completion_cb (G_OBJECT (msg), completion, completion_data);
+        g_object_unref (msg);
+}
+
+static void
 soup_client_message_io_http1_finished (SoupClientMessageIO *iface,
                                        SoupMessage         *msg)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
-        SoupMessageIOCompletionFn completion_cb;
-        gpointer completion_data;
         SoupMessageIOCompletion completion;
-
-        completion_cb = io->base.completion_cb;
-        completion_data = io->base.completion_data;
 
         if ((io->base.read_state >= SOUP_MESSAGE_IO_STATE_FINISHING &&
              io->base.write_state >= SOUP_MESSAGE_IO_STATE_FINISHING))
@@ -85,29 +103,15 @@ soup_client_message_io_http1_finished (SoupClientMessageIO *iface,
         else
                 completion = SOUP_MESSAGE_IO_INTERRUPTED;
 
-        msg = g_object_ref (msg);
-        soup_connection_message_io_finished (soup_message_get_connection (msg), msg);
-        if (completion_cb)
-                completion_cb (G_OBJECT (msg), completion, completion_data);
-        g_object_unref (msg);
+        soup_client_message_io_complete (io, msg, completion);
 }
 
 static void
 soup_client_message_io_http1_stolen (SoupClientMessageIO *iface)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
-        SoupMessageIOCompletionFn completion_cb;
-        gpointer completion_data;
-        SoupMessage *msg;
 
-        completion_cb = io->base.completion_cb;
-        completion_data = io->base.completion_data;
-
-        msg = g_object_ref (io->item->msg);
-        soup_connection_message_io_finished (soup_message_get_connection (msg), msg);
-        if (completion_cb)
-                completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_STOLEN, completion_data);
-        g_object_unref (msg);
+        soup_client_message_io_complete (io, io->item->msg, SOUP_MESSAGE_IO_STOLEN);
 }
 
 static void
