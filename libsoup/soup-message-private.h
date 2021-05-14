@@ -104,9 +104,6 @@ SoupClientMessageIO *soup_message_get_io_data (SoupMessage             *msg);
 SoupContentSniffer *soup_message_get_content_sniffer    (SoupMessage        *msg);
 void                soup_message_set_content_sniffer    (SoupMessage        *msg,
 							 SoupContentSniffer *sniffer);
-void                soup_message_set_bytes_for_sniffing (SoupMessage        *msg,
-							 gsize               bytes);
-
 GInputStream       *soup_message_get_request_body_stream (SoupMessage        *msg);
 
 void                soup_message_set_reason_phrase       (SoupMessage        *msg,

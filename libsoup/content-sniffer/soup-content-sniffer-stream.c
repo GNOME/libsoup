@@ -34,13 +34,15 @@ typedef struct {
 	SoupMessage *msg;
 
 	guchar *buffer;
-	gsize buffer_size, buffer_nread;
+	gsize buffer_nread;
 	gboolean sniffing;
 	GError *error;
 
 	char *sniffed_type;
 	GHashTable *sniffed_params;
 } SoupContentSnifferStreamPrivate;
+
+#define BUFFER_SIZE 512
 
 static void soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
@@ -75,9 +77,6 @@ soup_content_sniffer_stream_set_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_SNIFFER:
 		priv->sniffer = g_value_dup_object (value);
-		/* FIXME: supposed to wait until after got-headers for this */
-		priv->buffer_size = soup_content_sniffer_get_buffer_size (priv->sniffer);
-		priv->buffer = g_malloc (priv->buffer_size);
 		break;
 	case PROP_MESSAGE:
 		priv->msg = g_value_dup_object (value);
@@ -118,15 +117,18 @@ read_and_sniff (GInputStream *stream, gboolean blocking,
 	GError *my_error = NULL;
 	GBytes *buf;
 
+        if (!priv->buffer)
+                priv->buffer = g_malloc (BUFFER_SIZE);
+
 	do {
 		nread = g_pollable_stream_read (G_FILTER_INPUT_STREAM (stream)->base_stream,
 						priv->buffer + priv->buffer_nread,
-						priv->buffer_size - priv->buffer_nread,
+						BUFFER_SIZE - priv->buffer_nread,
 						blocking, cancellable, &my_error);
 		if (nread <= 0)
 			break;
 		priv->buffer_nread += nread;
-	} while (priv->buffer_nread < priv->buffer_size);
+	} while (priv->buffer_nread < BUFFER_SIZE);
 
 	/* If we got EAGAIN or cancellation before filling the buffer,
 	 * just return that right away. Likewise if we got any other

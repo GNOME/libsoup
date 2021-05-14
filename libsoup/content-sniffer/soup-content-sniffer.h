@@ -15,15 +15,13 @@ SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupContentSniffer, soup_content_sniffer, SOUP, CONTENT_SNIFFER, GObject)
 
 SOUP_AVAILABLE_IN_ALL
-SoupContentSniffer *soup_content_sniffer_new             (void);
+SoupContentSniffer *soup_content_sniffer_new   (void);
 
 SOUP_AVAILABLE_IN_ALL
-char               *soup_content_sniffer_sniff           (SoupContentSniffer  *sniffer,
-							  SoupMessage         *msg,
-							  GBytes              *buffer,
-							  GHashTable         **params);
-SOUP_AVAILABLE_IN_ALL
-gsize               soup_content_sniffer_get_buffer_size (SoupContentSniffer  *sniffer);
+char               *soup_content_sniffer_sniff (SoupContentSniffer  *sniffer,
+                                                SoupMessage         *msg,
+                                                GBytes              *buffer,
+                                                GHashTable         **params);
 
 G_END_DECLS
 

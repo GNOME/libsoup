@@ -746,7 +746,6 @@ soup_cookie_jar_db_get_type
 SoupContentSniffer
 soup_content_sniffer_new
 soup_content_sniffer_sniff
-soup_content_sniffer_get_buffer_size
 <SUBSECTION Standard>
 SOUP_CONTENT_SNIFFER
 SOUP_CONTENT_SNIFFER_CLASS

@@ -72,7 +72,6 @@ typedef struct {
 	guint              msg_flags;
 
 	SoupContentSniffer *sniffer;
-	gsize              bytes_for_sniffing;
 
 	SoupHTTPVersion    http_version, orig_http_version;
 
@@ -2328,14 +2327,6 @@ soup_message_set_content_sniffer (SoupMessage *msg, SoupContentSniffer *sniffer)
 		g_object_unref (priv->sniffer);
 
 	priv->sniffer = sniffer ? g_object_ref (sniffer) : NULL;
-}
-
-void
-soup_message_set_bytes_for_sniffing (SoupMessage *msg, gsize bytes)
-{
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-
-	priv->bytes_for_sniffing = bytes;
 }
 
 GInputStream *

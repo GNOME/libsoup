@@ -867,36 +867,11 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	return g_strdup (content_type);
 }
 
-/**
- * soup_content_sniffer_get_buffer_size:
- * @sniffer: a #SoupContentSniffer
- *
- * Gets the number of bytes @sniffer needs in order to properly sniff
- * a buffer.
- *
- * Returns: the number of bytes to sniff
- *
- */
-gsize
-soup_content_sniffer_get_buffer_size (SoupContentSniffer *sniffer)
-{
-	return 512;
-}
-
-static void
-soup_content_sniffer_got_headers_cb (SoupMessage *msg, SoupContentSniffer *sniffer)
-{
-	soup_message_set_bytes_for_sniffing (msg, soup_content_sniffer_get_buffer_size (sniffer));
-}
-
 static void
 soup_content_sniffer_request_queued (SoupSessionFeature *feature,
 				     SoupMessage        *msg)
 {
 	soup_message_set_content_sniffer (msg, SOUP_CONTENT_SNIFFER (feature));
-	g_signal_connect (msg, "got-headers",
-			  G_CALLBACK (soup_content_sniffer_got_headers_cb),
-			  feature);
 }
 
 static void
@@ -904,8 +879,6 @@ soup_content_sniffer_request_unqueued (SoupSessionFeature *feature,
 				       SoupMessage        *msg)
 {
 	soup_message_set_content_sniffer (msg, NULL);
-
-	g_signal_handlers_disconnect_by_func (msg, soup_content_sniffer_got_headers_cb, feature);
 }
 
 static void
