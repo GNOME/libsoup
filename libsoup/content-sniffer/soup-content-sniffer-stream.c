@@ -144,7 +144,7 @@ read_and_sniff (GInputStream *stream, gboolean blocking,
 	}
 
 	/* Sniff, then return the data */
-	buf = g_bytes_new (priv->buffer, priv->buffer_nread);
+	buf = g_bytes_new_static (priv->buffer, priv->buffer_nread);
 	priv->sniffed_type =
 		soup_content_sniffer_sniff (priv->sniffer, priv->msg, buf,
 					    &priv->sniffed_params);
