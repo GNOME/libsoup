@@ -17,6 +17,7 @@
 #include "soup-message-private.h"
 #include "soup-message-metrics-private.h"
 #include "soup-uri-utils-private.h"
+#include "content-sniffer/soup-content-sniffer-stream.h"
 
 /**
  * SECTION:soup-message
@@ -2310,14 +2311,6 @@ soup_message_io_get_response_istream (SoupMessage  *msg,
         return soup_client_message_io_get_response_stream (priv->io_data, msg, error);
 }
 
-SoupContentSniffer *
-soup_message_get_content_sniffer (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-
-	return priv->sniffer;
-}
-
 void
 soup_message_set_content_sniffer (SoupMessage *msg, SoupContentSniffer *sniffer)
 {
@@ -2327,6 +2320,31 @@ soup_message_set_content_sniffer (SoupMessage *msg, SoupContentSniffer *sniffer)
 		g_object_unref (priv->sniffer);
 
 	priv->sniffer = sniffer ? g_object_ref (sniffer) : NULL;
+}
+
+gboolean
+soup_message_try_sniff_content (SoupMessage  *msg,
+                                GInputStream *stream,
+                                gboolean      blocking,
+                                GCancellable *cancellable,
+                                GError      **error)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupContentSnifferStream *sniffer_stream;
+        const char *content_type;
+        GHashTable *params;
+
+        if (!priv->sniffer)
+                return TRUE;
+
+        sniffer_stream = SOUP_CONTENT_SNIFFER_STREAM (stream);
+        if (!soup_content_sniffer_stream_is_ready (sniffer_stream, blocking, cancellable, error))
+                return FALSE;
+
+        content_type = soup_content_sniffer_stream_sniff (sniffer_stream, &params);
+        soup_message_content_sniffed (msg, content_type, params);
+
+        return TRUE;
 }
 
 GInputStream *

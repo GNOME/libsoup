@@ -22,7 +22,6 @@
 #include "soup-client-input-stream.h"
 #include "soup-connection.h"
 #include "soup-session-private.h"
-#include "content-sniffer/soup-content-sniffer-stream.h"
 #include "soup-filter-input-stream.h"
 #include "soup-logger-private.h"
 #include "soup-message-private.h"
@@ -605,18 +604,8 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
                         g_object_unref (body_istream);
                 }
 
-                if (soup_message_get_content_sniffer (msg)) {
-                        SoupContentSnifferStream *sniffer_stream = SOUP_CONTENT_SNIFFER_STREAM (io->body_istream);
-                        const char *content_type;
-                        GHashTable *params;
-
-                        if (!soup_content_sniffer_stream_is_ready (sniffer_stream, blocking,
-                                                                   cancellable, error))
-                                return FALSE;
-
-                        content_type = soup_content_sniffer_stream_sniff (sniffer_stream, &params);
-                        soup_message_content_sniffed (msg, content_type, params);
-                }
+                if (!soup_message_try_sniff_content (msg, io->body_istream, blocking, cancellable, error))
+                        return FALSE;
 
                 io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
                 break;
