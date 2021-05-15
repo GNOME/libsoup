@@ -1069,6 +1069,35 @@ soup_client_message_io_http1_is_paused (SoupClientMessageIO *iface,
         return io->msg_io->base.paused;
 }
 
+static gboolean
+soup_client_message_io_http1_is_open (SoupClientMessageIO *iface)
+{
+        SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
+        char buffer[1];
+        GError *error = NULL;
+
+        /* This is tricky. The goal is to check if the socket is readable. If
+         * so, that means either the server has disconnected or it's broken (it
+         * should not send any data while the connection is in idle state). But
+         * we can't just check the readability of the SoupSocket because there
+         * could be non-application layer TLS data that is readable, but which
+         * we don't want to consider. So instead, just read and see if the read
+         * succeeds. This is OK to do here because if the read does succeed, we
+         * just disconnect and ignore the data anyway.
+         */
+        g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM (io->istream),
+                                                  &buffer, sizeof (buffer),
+	                                          NULL, &error);
+        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+                g_clear_error (&error);
+		return FALSE;
+        }
+
+        g_error_free (error);
+
+        return TRUE;
+}
+
 static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_destroy,
         soup_client_message_io_http1_finished,
@@ -1081,7 +1110,8 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_run,
         soup_client_message_io_http1_run_until_read,
         soup_client_message_io_http1_run_until_read_async,
-        soup_client_message_io_http1_run_until_finish
+        soup_client_message_io_http1_run_until_finish,
+        soup_client_message_io_http1_is_open
 };
 
 SoupClientMessageIO *

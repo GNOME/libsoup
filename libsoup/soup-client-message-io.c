@@ -106,3 +106,9 @@ soup_client_message_io_get_response_stream (SoupClientMessageIO *io,
 {
         return io->funcs->get_response_stream (io, msg, error);
 }
+
+gboolean
+soup_client_message_io_is_open (SoupClientMessageIO *io)
+{
+        return io->funcs->is_open (io);
+}
