@@ -28,8 +28,6 @@ soup_message_io_data_cleanup (SoupMessageIOData *io)
 		io->io_source = NULL;
 	}
 
-	if (io->iostream)
-		g_object_unref (io->iostream);
 	if (io->body_istream)
 		g_object_unref (io->body_istream);
 	if (io->body_ostream)
@@ -47,11 +45,12 @@ soup_message_io_data_cleanup (SoupMessageIOData *io)
 }
 
 gboolean
-soup_message_io_data_read_headers (SoupMessageIOData *io,
-				   gboolean           blocking,
-				   GCancellable      *cancellable,
-                                   gushort           *extra_bytes,
-				   GError           **error)
+soup_message_io_data_read_headers (SoupMessageIOData     *io,
+                                   SoupFilterInputStream *istream,
+                                   gboolean               blocking,
+                                   GCancellable          *cancellable,
+                                   gushort               *extra_bytes,
+                                   GError               **error)
 {
 	gssize nread, old_len;
 	gboolean got_lf;
@@ -59,7 +58,7 @@ soup_message_io_data_read_headers (SoupMessageIOData *io,
 	while (1) {
 		old_len = io->read_header_buf->len;
 		g_byte_array_set_size (io->read_header_buf, old_len + RESPONSE_BLOCK_SIZE);
-		nread = soup_filter_input_stream_read_line (io->istream,
+		nread = soup_filter_input_stream_read_line (istream,
 							    io->read_header_buf->data + old_len,
 							    RESPONSE_BLOCK_SIZE,
 							    blocking,
@@ -138,8 +137,10 @@ message_io_source_check (GSource *source)
 }
 
 GSource *
-soup_message_io_data_get_source (SoupMessageIOData     *io,
+soup_message_io_data_get_source (SoupMessageIOData      *io,
 				 GObject                *msg,
+                                 GInputStream           *istream,
+                                 GOutputStream          *ostream,
 				 GCancellable           *cancellable,
 				 SoupMessageIOSourceFunc callback,
 				 gpointer                user_data)
@@ -153,21 +154,25 @@ soup_message_io_data_get_source (SoupMessageIOData     *io,
 	} else if (io->async_wait) {
 		base_source = g_cancellable_source_new (io->async_wait);
 	} else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->read_state)) {
-		GPollableInputStream *istream;
+		GPollableInputStream *stream;
 
 		if (io->body_istream)
-			istream = G_POLLABLE_INPUT_STREAM (io->body_istream);
-		else
-			istream = G_POLLABLE_INPUT_STREAM (io->istream);
-		base_source = g_pollable_input_stream_create_source (istream, cancellable);
+			stream = G_POLLABLE_INPUT_STREAM (io->body_istream);
+                else if (istream)
+                        stream = G_POLLABLE_INPUT_STREAM (istream);
+                else
+                        g_assert_not_reached ();
+		base_source = g_pollable_input_stream_create_source (stream, cancellable);
 	} else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->write_state)) {
-		GPollableOutputStream *ostream;
+		GPollableOutputStream *stream;
 
 		if (io->body_ostream)
-			ostream = G_POLLABLE_OUTPUT_STREAM (io->body_ostream);
-		else
-			ostream = G_POLLABLE_OUTPUT_STREAM (io->ostream);
-		base_source = g_pollable_output_stream_create_source (ostream, cancellable);
+			stream = G_POLLABLE_OUTPUT_STREAM (io->body_ostream);
+                else if (ostream)
+                        stream = G_POLLABLE_OUTPUT_STREAM (ostream);
+                else
+                        g_assert_not_reached ();
+		base_source = g_pollable_output_stream_create_source (stream, cancellable);
 	} else
 		base_source = g_timeout_source_new (0);
 

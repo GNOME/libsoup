@@ -34,11 +34,8 @@ typedef enum {
 	 state != SOUP_MESSAGE_IO_STATE_BODY_DONE)
 
 typedef struct {
-	GIOStream              *iostream;
-	SoupFilterInputStream  *istream;
-	GInputStream           *body_istream;
-	GOutputStream          *ostream;
-	GOutputStream          *body_ostream;
+	GInputStream         *body_istream;
+	GOutputStream        *body_ostream;
 
 	SoupMessageIOState    read_state;
 	SoupEncoding          read_encoding;
@@ -67,16 +64,19 @@ typedef struct {
 #endif
 } SoupMessageIOData;
 
-void     soup_message_io_data_cleanup      (SoupMessageIOData *io);
+void     soup_message_io_data_cleanup      (SoupMessageIOData      *io);
 
-gboolean soup_message_io_data_read_headers (SoupMessageIOData *io,
-					    gboolean           blocking,
-					    GCancellable      *cancellable,
-                                            gushort           *extra_bytes,
-					    GError           **error);
+gboolean soup_message_io_data_read_headers (SoupMessageIOData      *io,
+                                            SoupFilterInputStream  *istream,
+                                            gboolean                blocking,
+                                            GCancellable           *cancellable,
+                                            gushort                *extra_bytes,
+                                            GError                **error);
 
 GSource *soup_message_io_data_get_source   (SoupMessageIOData      *io,
 					    GObject                *msg,
+                                            GInputStream           *istream,
+                                            GOutputStream          *ostream,
 					    GCancellable           *cancellable,
 					    SoupMessageIOSourceFunc callback,
 					    gpointer                user_data);

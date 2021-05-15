@@ -22,6 +22,10 @@
 struct _SoupServerMessageIOData {
         SoupMessageIOData base;
 
+        GIOStream *iostream;
+        GInputStream *istream;
+        GOutputStream *ostream;
+
 	GBytes  *write_chunk;
 	goffset  write_body_offset;
 
@@ -38,6 +42,8 @@ soup_server_message_io_data_free (SoupServerMessageIOData *io)
 {
         if (!io)
                 return;
+
+        g_clear_object (&io->iostream);
 
         soup_message_io_data_cleanup (&io->base);
 
@@ -90,10 +96,10 @@ soup_server_message_io_steal (SoupServerMessage *msg)
 	GIOStream *iostream;
 
         io = soup_server_message_get_io_data (msg);
-        if (!io || !io->base.iostream)
+        if (!io || !io->iostream)
                 return NULL;
 
-        iostream = g_object_ref (io->base.iostream);
+        iostream = g_object_ref (io->iostream);
         completion_cb = io->base.completion_cb;
 	completion_data = io->base.completion_data;
 
@@ -363,7 +369,7 @@ io_write (SoupServerMessage *msg,
                         write_headers (msg, io->write_buf, &io->write_encoding);
 
                 while (io->written < io->write_buf->len) {
-                        nwrote = g_pollable_stream_write (io->ostream,
+                        nwrote = g_pollable_stream_write (server_io->ostream,
                                                           io->write_buf->str + io->written,
                                                           io->write_buf->len - io->written,
                                                           FALSE,
@@ -420,7 +426,7 @@ io_write (SoupServerMessage *msg,
                 break;
 
         case SOUP_MESSAGE_IO_STATE_BODY_START:
-                io->body_ostream = soup_body_output_stream_new (io->ostream,
+                io->body_ostream = soup_body_output_stream_new (server_io->ostream,
                                                                 io->write_encoding,
                                                                 io->write_length);
                 io->write_state = SOUP_MESSAGE_IO_STATE_BODY;
@@ -661,7 +667,7 @@ io_read (SoupServerMessage *msg,
 
         switch (io->read_state) {
         case SOUP_MESSAGE_IO_STATE_HEADERS:
-                if (!soup_message_io_data_read_headers (io, FALSE, NULL, NULL, error)) {
+                if (!soup_message_io_data_read_headers (io, SOUP_FILTER_INPUT_STREAM (server_io->istream), FALSE, NULL, NULL, error)) {
 			if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT))
 				soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
                         return FALSE;
@@ -711,7 +717,7 @@ io_read (SoupServerMessage *msg,
 
         case SOUP_MESSAGE_IO_STATE_BODY_START:
                 if (!io->body_istream) {
-                        io->body_istream = soup_body_input_stream_new (G_INPUT_STREAM (io->istream),
+                        io->body_istream = soup_body_input_stream_new (server_io->istream,
                                                                        io->read_encoding,
                                                                        io->read_length);
 
@@ -850,7 +856,10 @@ io_run (SoupServerMessage *msg)
                 soup_server_message_io_finished (msg);
         } else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
-                io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg), NULL,
+                io->io_source = soup_message_io_data_get_source (io, G_OBJECT (msg),
+                                                                 server_io->istream,
+                                                                 server_io->ostream,
+                                                                 NULL,
 								 (SoupMessageIOSourceFunc)io_run_ready,
 								 NULL);
                 g_source_attach (io->io_source, server_io->async_context);
@@ -875,9 +884,9 @@ soup_server_message_read_request (SoupServerMessage        *msg,
         io->base.completion_data = user_data;
 
 	sock = soup_server_message_get_soup_socket (msg);
-        io->base.iostream = g_object_ref (soup_socket_get_iostream (sock));
-        io->base.istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (io->base.iostream));
-        io->base.ostream = g_io_stream_get_output_stream (io->base.iostream);
+        io->iostream = g_object_ref (soup_socket_get_iostream (sock));
+        io->istream = g_io_stream_get_input_stream (io->iostream);
+        io->ostream = g_io_stream_get_output_stream (io->iostream);
 
         io->base.read_header_buf = g_byte_array_new ();
         io->base.write_buf = g_string_new (NULL);

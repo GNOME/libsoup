@@ -241,8 +241,12 @@ soup_client_input_stream_close_async (GInputStream        *stream,
 	g_task_set_priority (task, priority);
 
 	if (close_async_ready (priv->msg, task) == G_SOURCE_CONTINUE) {
+                /* When SoupClientInputStream is created we always have a body input stream,
+                 * and we finished writing, so it's safe to pass NULL for the streams
+                 */
 		source = soup_message_io_data_get_source ((SoupMessageIOData *)soup_message_get_io_data (priv->msg),
 							  G_OBJECT (priv->msg),
+                                                          NULL, NULL,
 							  cancellable, NULL, NULL);
 
 		g_task_attach_source (task, source, (GSourceFunc) close_async_ready);

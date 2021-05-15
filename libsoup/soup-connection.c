@@ -410,6 +410,8 @@ soup_connection_set_connection (SoupConnection *conn,
 {
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
+        g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
+
 	g_clear_object (&priv->connection);
 	priv->connection = connection;
 	g_clear_object (&priv->iostream);
@@ -563,6 +565,9 @@ soup_connection_complete (SoupConnection *conn)
                                        G_SOCKET_CLIENT_COMPLETE,
                                        NULL);
         }
+
+        g_assert (!priv->io_data);
+        priv->io_data = soup_client_message_io_http1_new (priv->iostream);
 
         soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
         priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
@@ -744,6 +749,10 @@ tunnel_handshake_ready_cb (GTlsConnection *tls_connection,
         if (g_tls_connection_handshake_finish (tls_connection, result, &error)) {
                 soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
                 soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
+
+                g_assert (!priv->io_data);
+                priv->io_data = soup_client_message_io_http1_new (priv->iostream);
+
                 g_task_return_boolean (task, TRUE);
         } else {
                 g_task_return_error (task, error);
@@ -831,6 +840,9 @@ soup_connection_tunnel_handshake (SoupConnection *conn,
 
         soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
         soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
+
+        g_assert (!priv->io_data);
+        priv->io_data = soup_client_message_io_http1_new (priv->iostream);
 
         return TRUE;
 }
@@ -1058,20 +1070,7 @@ soup_connection_setup_message_io (SoupConnection *conn,
         else
                 priv->reusable = FALSE;
 
-        g_assert (priv->io_data == NULL);
-        priv->io_data = soup_client_message_io_http1_new (priv->iostream);
-
         return priv->io_data;
-}
-
-void
-soup_connection_message_io_finished (SoupConnection *conn,
-                                     SoupMessage    *msg)
-{
-        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
-
-        g_assert (priv->current_msg == msg);
-        g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
 }
 
 GTlsCertificate *
