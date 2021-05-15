@@ -63,7 +63,7 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
     <title>Moved authenticate signal</title>
         <para>The <literal>SoupSession::authenticate</literal> signal has been replaced by
             <link linkend="SoupMessage-authenticate"><literal>SoupMessage::authenticate</literal></link>. It now allows returning <literal>TRUE</literal> to signifiy
-            if you will handle authentication which allows for asynchronus handling.</para>
+            if you will handle authentication which allows for asynchronous handling.</para>
   </sect2>
   <sect2>
         <title>Structs are private</title>
@@ -128,7 +128,7 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
             considered valid.</para>
         <para>Note that unlike <type>SoupURI</type> <link linkend="GUri"><type>GUri</type></link> is an immutable type so you cannot change the contents
             of one after it has been constructed. We provide <link linkend="soup_copy_uri"><function>soup_copy_uri()</function></link> to aid in modifying them.</para>
-        <para>The equivilent behavior to <code>soup_uri_to_string (uri, FALSE)</code> is
+        <para>The equivalent behavior to <code>soup_uri_to_string (uri, FALSE)</code> is
                 <code>g_uri_to_string (uri, G_URI_HIDE_PASSWORD)</code>.</para>
         <para>Since GUri does not provide any function to check for equality
                 <link linkend="soup_uri_equal"><function>soup_uri_equal()</function></link> still exists.</para>
@@ -168,10 +168,10 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
             </informaltable></para>
     </sect2>
     <sect2 id="io-stream-based">
-        <title>All IO is now GIOStream based</title>
+        <title>All IO is now GIOStream-based</title>
         <para>Previously there were ways to allow libsoup to read data into buffers and for you to
             read from those buffers such as <literal>SoupMessage:response-body</literal>,
-            <literal>SoupMessage:response-body-data</literal>. <literal>SoupMessage::got-chunk</literal>.</para>
+            <literal>SoupMessage:response-body-data</literal>, and <literal>SoupMessage::got-chunk</literal>.</para>
         <para>libsoup no longer stores a buffer of data for you to read from and instead it returns
             a <link linkend="GInputStream"><type>GInputStream</type></link> which you read from using normal GIO APIs.</para>
         <para>If you want to simply request a buffer and nothing more you can use the
@@ -184,8 +184,8 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
     </sect2>
     <sect2 id="threading">
         <title>Clarification on thread-safety</title>
-        <para>In libsoup 2 there was an attempt at making various APIs of the library thread-safe; However this was never well tested, maintained, or documented.</para>
-        <para>In libsoup 3 it now behaves in-line with other GObject libraries. Once you create a <link linkend="SoupSession"><type>SoupSession</type></link> all usage of that
+        <para>In libsoup 2 there was an attempt at making various APIs of the library thread-safe. However this was never well tested, maintained, or documented.</para>
+        <para>In libsoup 3 it now behaves in line with other GObject libraries. Once you create a <link linkend="SoupSession"><type>SoupSession</type></link> all usage of that
             session must happen on the same thread. You may create seperate sessions per thread but in most use-cases you should be using the async APIs which handle non-blocking IO for you.</para>
     </sect2>
 </chapter>
