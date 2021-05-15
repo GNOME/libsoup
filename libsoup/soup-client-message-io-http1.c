@@ -71,7 +71,6 @@ soup_client_message_io_complete (SoupClientMessageIOHTTP1 *io,
                                  SoupMessage *msg,
                                  SoupMessageIOCompletion completion)
 {
-        SoupConnection* conn;
         SoupMessageIOCompletionFn completion_cb;
         gpointer completion_data;
 
@@ -79,11 +78,11 @@ soup_client_message_io_complete (SoupClientMessageIOHTTP1 *io,
         completion_data = io->base.completion_data;
 
         msg = g_object_ref (msg);
-        conn = soup_message_get_connection (msg);
-        g_signal_handlers_disconnect_by_data (conn, msg);
+        if (io->base.istream)
+                g_signal_handlers_disconnect_by_data (io->base.istream, msg);
         if (io->base.body_ostream)
                 g_signal_handlers_disconnect_by_data (io->base.body_ostream, msg);
-        soup_connection_message_io_finished (conn, msg);
+        soup_connection_message_io_finished (soup_message_get_connection (msg), msg);
         if (completion_cb)
                 completion_cb (G_OBJECT (msg), completion, completion_data);
         g_object_unref (msg);
