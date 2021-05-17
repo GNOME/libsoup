@@ -165,7 +165,7 @@ state_to_string (SoupHTTP2IOState state)
         case STATE_READ_HEADERS:
                 return "READ_HEADERS";
         case STATE_READ_DATA:
-                return "REA_DATA";
+                return "READ_DATA";
         case STATE_READ_DONE:
                 return "READ_DONE";
         case STATE_ERROR:
