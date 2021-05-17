@@ -116,6 +116,15 @@ typedef struct {
 static void soup_client_message_io_http2_finished (SoupClientMessageIO *, SoupMessage *);
 static gboolean io_read_or_write (SoupClientMessageIOHTTP2 *, gboolean, GCancellable *, GError **);
 
+static void
+NGCHECK (int return_code)
+{
+        if (return_code == NGHTTP2_ERR_NOMEM)
+                g_abort ();
+        else if (return_code < 0)
+                g_debug ("Unhandled NGHTTP2 Error: %s", nghttp2_strerror (return_code));
+}
+
 static const char *
 frame_type_to_string (nghttp2_frame_type type)
 {
@@ -567,7 +576,7 @@ on_data_readable (GInputStream *stream,
 {
         SoupHTTP2MessageData *data = (SoupHTTP2MessageData*)user_data;
 
-        nghttp2_session_resume_data (data->io->session, data->stream_id);
+        NGCHECK (nghttp2_session_resume_data (data->io->session, data->stream_id));
 
         g_clear_pointer (&data->data_source_poll, g_source_unref);
         return G_SOURCE_REMOVE;
@@ -600,7 +609,7 @@ on_data_read (GInputStream *source,
                 g_byte_array_set_size (data->data_source_buffer, read);
 
         h2_debug (data->io, data, "[SEND_BODY] Resuming send");
-        nghttp2_session_resume_data (data->io->session, data->stream_id);
+        NGCHECK (nghttp2_session_resume_data (data->io->session, data->stream_id));
 }
 
 static void
@@ -1066,6 +1075,7 @@ io_read (SoupClientMessageIOHTTP2  *io,
             return FALSE;
 
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
+        NGCHECK (ret);
         return ret != 0;
 }
 
@@ -1083,6 +1093,7 @@ io_write (SoupClientMessageIOHTTP2 *io,
         if (io->write_buffer == NULL) {
                 io->written_bytes = 0;
                 io->write_buffer_size = nghttp2_session_mem_send (io->session, (const guint8**)&io->write_buffer);
+                NGCHECK (io->write_buffer_size);
                 if (io->write_buffer_size == 0) {
                         /* Done */
                         io->write_buffer = NULL;
@@ -1325,9 +1336,8 @@ static const SoupClientMessageIOFuncs io_funcs = {
 static void
 soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
 {
-        /* FIXME: Abort on out of memory errors */
         nghttp2_session_callbacks *callbacks;
-        nghttp2_session_callbacks_new (&callbacks);
+        NGCHECK (nghttp2_session_callbacks_new (&callbacks));
         nghttp2_session_callbacks_set_on_header_callback (callbacks, on_header_callback);
         nghttp2_session_callbacks_set_on_frame_recv_callback (callbacks, on_frame_recv_callback);
         nghttp2_session_callbacks_set_on_data_chunk_recv_callback (callbacks, on_data_chunk_recv_callback);
@@ -1337,7 +1347,7 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
         nghttp2_session_callbacks_set_on_frame_send_callback (callbacks, on_frame_send_callback);
         nghttp2_session_callbacks_set_on_stream_close_callback (callbacks, on_stream_close_callback);
 
-        nghttp2_session_client_new (&io->session, callbacks, io);
+        NGCHECK (nghttp2_session_client_new (&io->session, callbacks, io));
         nghttp2_session_callbacks_del (callbacks);
 
         io->messages = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)soup_http2_message_data_free);
@@ -1363,14 +1373,14 @@ soup_client_message_io_http2_new (GIOStream *stream, guint64 connection_id)
 
         io->async_context = g_main_context_ref_thread_default ();
 
-        nghttp2_session_set_local_window_size (io->session, NGHTTP2_FLAG_NONE, 0, INITIAL_WINDOW_SIZE);
+        NGCHECK (nghttp2_session_set_local_window_size (io->session, NGHTTP2_FLAG_NONE, 0, INITIAL_WINDOW_SIZE));
 
         const nghttp2_settings_entry settings[] = {
                 { NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, INITIAL_WINDOW_SIZE },
                 { NGHTTP2_SETTINGS_HEADER_TABLE_SIZE, MAX_HEADER_TABLE_SIZE },
                 { NGHTTP2_SETTINGS_ENABLE_PUSH, 0 },
         };
-        nghttp2_submit_settings (io->session, NGHTTP2_FLAG_NONE, settings, G_N_ELEMENTS (settings));
+        NGCHECK (nghttp2_submit_settings (io->session, NGHTTP2_FLAG_NONE, settings, G_N_ELEMENTS (settings)));
 
         return (SoupClientMessageIO *)io;
 }
