@@ -50,13 +50,10 @@ typedef struct {
         gboolean completed;
 } SoupBodyInputStreamHttp2Private;
 
-static void soup_body_input_stream_http2_seekable_iface_init (GSeekableIface *iface);
 static void soup_body_input_stream_http2_pollable_iface_init (GPollableInputStreamInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (SoupBodyInputStreamHttp2, soup_body_input_stream_http2, G_TYPE_INPUT_STREAM,
                          G_ADD_PRIVATE (SoupBodyInputStreamHttp2)
-                             G_IMPLEMENT_INTERFACE (G_TYPE_SEEKABLE,
-                                                    soup_body_input_stream_http2_seekable_iface_init);
                          G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
                                                 soup_body_input_stream_http2_pollable_iface_init);)
 
@@ -351,56 +348,6 @@ soup_body_input_stream_http2_close_finish (GInputStream  *stream,
         return TRUE;
 }
 
-static goffset
-soup_body_input_stream_http2_tell (GSeekable *seekable)
-{
-        SoupBodyInputStreamHttp2 *memory_stream;
-        SoupBodyInputStreamHttp2Private *priv;
-
-        memory_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (seekable);
-        priv = soup_body_input_stream_http2_get_instance_private (memory_stream);
-
-        return priv->pos;
-}
-
-static gboolean soup_body_input_stream_http2_can_seek (GSeekable *seekable)
-{
-        return FALSE;
-}
-
-static gboolean
-soup_body_input_stream_http2_seek (GSeekable     *seekable,
-                                   goffset        offset,
-                                   GSeekType      type,
-                                   GCancellable  *cancellable,
-                                   GError       **error)
-{
-        g_set_error_literal (error,
-                             G_IO_ERROR,
-                             G_IO_ERROR_NOT_SUPPORTED,
-                             _ ("Cannot seek SoupBodyInputStreamHttp2"));
-        return FALSE;
-}
-
-static gboolean
-soup_body_input_stream_http2_can_truncate (GSeekable *seekable)
-{
-        return FALSE;
-}
-
-static gboolean
-soup_body_input_stream_http2_truncate (GSeekable     *seekable,
-                                       goffset        offset,
-                                       GCancellable  *cancellable,
-                                       GError       **error)
-{
-        g_set_error_literal (error,
-                             G_IO_ERROR,
-                             G_IO_ERROR_NOT_SUPPORTED,
-                             _ ("Cannot truncate SoupBodyInputStreamHttp2"));
-        return FALSE;
-}
-
 static gboolean
 soup_body_input_stream_http2_is_readable (GPollableInputStream *stream)
 {
@@ -527,16 +474,6 @@ soup_body_input_stream_http2_finalize (GObject *object)
         g_clear_object (&priv->parent_stream);
 
         G_OBJECT_CLASS (soup_body_input_stream_http2_parent_class)->finalize (object);
-}
-
-static void
-soup_body_input_stream_http2_seekable_iface_init (GSeekableIface *iface)
-{
-        iface->tell = soup_body_input_stream_http2_tell;
-        iface->can_seek = soup_body_input_stream_http2_can_seek;
-        iface->seek = soup_body_input_stream_http2_seek;
-        iface->can_truncate = soup_body_input_stream_http2_can_truncate;
-        iface->truncate_fn = soup_body_input_stream_http2_truncate;
 }
 
 static void
