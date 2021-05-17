@@ -141,4 +141,8 @@ void soup_message_update_request_host_if_needed (SoupMessage *msg);
 
 void soup_message_force_keep_alive_if_needed    (SoupMessage *msg);
 
+void soup_message_set_force_http1               (SoupMessage *msg,
+                                                 gboolean     force_http1);
+
+gboolean soup_message_get_force_http1           (SoupMessage *msg);
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

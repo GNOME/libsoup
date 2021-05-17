@@ -78,8 +78,7 @@ typedef enum {
 	SOUP_MESSAGE_NEW_CONNECTION           = (1 << 2),
 	SOUP_MESSAGE_IDEMPOTENT               = (1 << 3),
 	SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE    = (1 << 4),
-        SOUP_MESSAGE_COLLECT_METRICS          = (1 << 5),
-        SOUP_MESSAGE_FORCE_HTTP1              = (1 << 6)
+        SOUP_MESSAGE_COLLECT_METRICS          = (1 << 5)
 } SoupMessageFlags;
 
 SOUP_AVAILABLE_IN_ALL

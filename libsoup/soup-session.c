@@ -1788,7 +1788,7 @@ get_connection_for_host (SoupSession *session,
 		return conn;
 	}
 
-        force_http1 = soup_message_query_flags (item->msg, SOUP_MESSAGE_FORCE_HTTP1);
+        force_http1 = soup_message_get_force_http1 (item->msg);
         if (g_getenv ("SOUP_FORCE_HTTP1"))
                 force_http1 = TRUE;
 
@@ -3823,7 +3823,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
         /* WebSocket negotiation over HTTP/2 is not currently supported
          * and in practice all websocket servers support HTTP1.x with
          * HTTP/2 not providing a tangible benefit */
-        soup_message_add_flags (msg, SOUP_MESSAGE_FORCE_HTTP1);
+        soup_message_set_force_http1 (msg, TRUE);
 
 	item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
 	item->io_priority = io_priority;

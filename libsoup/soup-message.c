@@ -93,6 +93,7 @@ typedef struct {
 
 	gboolean is_top_level_navigation;
         gboolean is_options_ping;
+        gboolean force_http1;
         guint    last_connection_id;
         GSocketAddress *remote_address;
 
@@ -1501,7 +1502,6 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   be emitted, if you want to disable authentication for a message use
  *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead.
  * @SOUP_MESSAGE_COLLECT_METRICS: Metrics will be collected for this message.
- * @SOUP_MESSAGE_FORCE_HTTP1: Require an HTTP/1.x connection.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
@@ -2693,4 +2693,21 @@ soup_message_force_keep_alive_if_needed (SoupMessage *msg)
             !soup_message_headers_header_contains (priv->request_headers, "Connection", "Upgrade")) {
                 soup_message_headers_append (priv->request_headers, "Connection", "Keep-Alive");
         }
+}
+
+void
+soup_message_set_force_http1 (SoupMessage *msg,
+                              gboolean     force_http1)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        priv->force_http1 = force_http1;
+}
+
+gboolean
+soup_message_get_force_http1 (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->force_http1;
 }
