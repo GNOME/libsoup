@@ -186,6 +186,9 @@ h2_debug (SoupClientMessageIOHTTP2   *io,
         char *message;
         guint32 stream_id = 0;
 
+        if (g_log_writer_default_would_drop (G_LOG_LEVEL_DEBUG, G_LOG_DOMAIN))
+                return;
+
 	va_start (args, format);
 	message = g_strdup_vprintf (format, args);
 	va_end (args);
