@@ -1788,8 +1788,9 @@ get_connection_for_host (SoupSession *session,
 		return conn;
 	}
 
-        force_http1 = soup_message_get_force_http1 (item->msg);
-        if (g_getenv ("SOUP_FORCE_HTTP1"))
+        if (g_getenv ("SOUP_ENABLE_HTTP2"))
+                force_http1 = soup_message_get_force_http1 (item->msg);
+        else
                 force_http1 = TRUE;
 
 	for (conns = host->connections; conns; conns = conns->next) {
