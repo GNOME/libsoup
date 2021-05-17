@@ -216,18 +216,30 @@ soup_body_input_stream_http2_read_nonblocking (GPollableInputStream  *stream,
         gsize read = soup_body_input_stream_http2_read_real (G_INPUT_STREAM (stream), FALSE, buffer, count, NULL, &inner_error);
 
         if (read == 0 && !priv->completed && !inner_error) {
-                g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK, "Operation would block");
-
                 /* Try requesting more reads from the io backend */
                 GError *inner_error = NULL;
+
                 g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0,
                                NULL, FALSE, &inner_error);
 
-                // TODO: Do we care?
-                g_clear_error (&inner_error);
+                if (inner_error) {
+                        g_propagate_error (error, inner_error);
 
                         return -1;
                 }
+
+                if (priv->completed)
+                        return soup_body_input_stream_http2_read_real (G_INPUT_STREAM (stream), FALSE, buffer, count, NULL, error);
+
+                if (priv->pos < priv->len) {
+                        read = soup_body_input_stream_http2_read_real (G_INPUT_STREAM (stream), FALSE, buffer, count, NULL, NULL);
+                        if (read > 0)
+                                return read;
+                }
+
+                g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK, "Operation would block");
+                return -1;
+        }
 
         if (inner_error)
                 g_propagate_error (error, inner_error);
