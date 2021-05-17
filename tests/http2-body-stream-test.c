@@ -85,6 +85,34 @@ do_multiple_chunk_test (void)
         g_object_unref (stream);
 }
 
+static void
+on_skip_ready (GInputStream *stream, GAsyncResult *res, GMainLoop *loop)
+{
+        GError *error = NULL;
+        gssize skipped = g_input_stream_skip_finish (stream, res, &error);
+
+        g_assert_no_error (error);
+        g_assert_cmpint (skipped, ==, 2);
+
+        g_main_loop_quit (loop);
+}
+
+static void
+do_skip_async_test (void)
+{
+        GInputStream *stream = soup_body_input_stream_http2_new (NULL);
+        SoupBodyInputStreamHttp2 *bistream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
+        GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+
+        soup_body_input_stream_http2_add_data (bistream, (guchar*)"test", 5);
+
+        g_input_stream_skip_async (stream, 2, G_PRIORITY_DEFAULT, NULL, (GAsyncReadyCallback)on_skip_ready, loop);
+
+        g_main_loop_run (loop);
+        g_object_unref (stream);
+        g_main_loop_unref (loop);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -94,6 +122,7 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/body_stream/large_data", do_large_data_test);
         g_test_add_func ("/body_stream/multiple_chunks", do_multiple_chunk_test);
+        g_test_add_func ("/body_stream/skip_async", do_skip_async_test);
 
 	ret = g_test_run ();
 
