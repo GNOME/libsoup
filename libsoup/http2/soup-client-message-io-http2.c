@@ -139,14 +139,15 @@ frame_type_to_string (nghttp2_frame_type type)
                 return "RST_STREAM";
         case NGHTTP2_SETTINGS:
                 return "SETTINGS";
-        case NGHTTP2_PUSH_PROMISE:
-                return "PUSH_PROMISE";
         case NGHTTP2_PING:
                 return "PING";
         case NGHTTP2_GOAWAY:
                 return "GOAWAY";
         case NGHTTP2_WINDOW_UPDATE:
                 return "WINDOW_UPDATE";
+        /* LCOV_EXCL_START */
+        case NGHTTP2_PUSH_PROMISE:
+                return "PUSH_PROMISE";
         case NGHTTP2_CONTINUATION:
                 return "CONTINUATION";
         case NGHTTP2_ALTSVC:
@@ -156,6 +157,7 @@ frame_type_to_string (nghttp2_frame_type type)
         default:
                 g_warn_if_reached ();
                 return "UNKNOWN";
+        /* LCOV_EXCL_STOP */
         }
 }
 
