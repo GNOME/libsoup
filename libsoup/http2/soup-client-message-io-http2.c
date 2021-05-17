@@ -401,9 +401,13 @@ on_frame_recv_callback (nghttp2_session     *session,
                                 soup_message_cleanup_response (data->msg);
                                 soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
                                 advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DONE);
-                                break;
-                        } else if (soup_message_get_status (data->msg) == SOUP_STATUS_NO_CONTENT) {
-                                advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DONE);
+                                return 0;
+                        }
+
+                        if (soup_message_get_status (data->msg) == SOUP_STATUS_NO_CONTENT ||
+                            frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+                                h2_debug (io, data, "Stream done");
+                                advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA);
                         }
                         soup_message_got_headers (data->msg);
                 }
@@ -411,6 +415,10 @@ on_frame_recv_callback (nghttp2_session     *session,
         case NGHTTP2_DATA:
                 if (data->metrics)
                         data->metrics->response_body_bytes_received += frame->data.hd.length + FRAME_HEADER_SIZE;
+                if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+                        soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
+                        soup_message_got_body (data->msg);
+                }
                 break;
         case NGHTTP2_RST_STREAM:
                 if (frame->rst_stream.error_code != NGHTTP2_NO_ERROR) {
@@ -419,15 +427,6 @@ on_frame_recv_callback (nghttp2_session     *session,
                 }
                 break;
         };
-
-        if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-                h2_debug (io, data, "Stream done");
-                advance_state_from (data, STATE_ANY, STATE_READ_DONE);
-                if (frame->hd.type == NGHTTP2_DATA) {
-                        soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
-                        soup_message_got_body (data->msg);
-                }
-        }
 
         return 0;
 }
@@ -1023,6 +1022,7 @@ client_stream_eof (SoupClientInputStream *stream,
         }
 
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
+        h2_debug (io, data, "Client stream EOF");
         advance_state_from (data, STATE_ANY, STATE_READ_DONE);
 }
 
