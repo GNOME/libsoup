@@ -315,8 +315,6 @@ memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
         SoupHTTP2MessageData *data = (SoupHTTP2MessageData*)user_data;
         GError *error = NULL;
 
-        g_debug ("memory_stream_want_read_callback write=%d read=%d", nghttp2_session_want_write (data->io->session), nghttp2_session_want_read (data->io->session));
-
         io_read_or_write (data->io, blocking, cancellable, &error);
 
         return error;
@@ -755,6 +753,9 @@ add_message_to_io_data (SoupClientMessageIOHTTP2        *io,
 static void
 soup_http2_message_data_free (SoupHTTP2MessageData *data)
 {
+        if (data->body_istream)
+                g_signal_handlers_disconnect_by_data (data->body_istream, data);
+
         g_clear_pointer (&data->item, soup_message_queue_item_unref);
         g_clear_object (&data->body_istream);
         g_clear_object (&data->decoded_data_istream);
