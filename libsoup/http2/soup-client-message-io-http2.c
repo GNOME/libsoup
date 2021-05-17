@@ -55,7 +55,6 @@ typedef enum {
         STATE_WRITE_DONE,
         STATE_READ_HEADERS,
         STATE_READ_DATA,
-        STATE_READ_DATA_SNIFFED,
         STATE_READ_DONE,
         STATE_ERROR,
 } SoupHTTP2IOState;
@@ -167,8 +166,6 @@ state_to_string (SoupHTTP2IOState state)
                 return "READ_HEADERS";
         case STATE_READ_DATA:
                 return "REA_DATA";
-        case STATE_READ_DATA_SNIFFED:
-                return "READ_DATA_SNIFFED";
         case STATE_READ_DONE:
                 return "READ_DONE";
         case STATE_ERROR:
@@ -454,21 +451,8 @@ on_data_chunk_recv_callback (nghttp2_session *session,
         if (msgdata->paused)
                 return NGHTTP2_ERR_PAUSE;
 
-        SoupMessage *msg = msgdata->msg;
         g_assert (msgdata->body_istream != NULL);
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (msgdata->body_istream), data, len);
-
-        if (msgdata->state < STATE_READ_DATA_SNIFFED) {
-                GError *error = NULL;
-
-                if (soup_message_try_sniff_content (msg, msgdata->decoded_data_istream, FALSE, msgdata->cancellable, &error)) {
-                        h2_debug (io, msgdata, "[DATA] Sniffed content");
-                        advance_state_from (msgdata, STATE_READ_DATA, STATE_READ_DATA_SNIFFED);
-                } else {
-                        h2_debug (io, msgdata, "[DATA] Sniffer stream was not ready %s", error->message);
-                        g_clear_error (&error);
-                }
-        }
 
         return 0;
 }
@@ -1187,7 +1171,7 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
                                              GCancellable         *cancellable,
                                              GError              **error)
 {
-        return io_run_until (msg, TRUE, STATE_READ_DATA_SNIFFED, cancellable, error);
+        return io_run_until (msg, TRUE, STATE_READ_DATA, cancellable, error);
 }
 
 static gboolean
