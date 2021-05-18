@@ -254,12 +254,17 @@ advance_state_from (SoupHTTP2MessageData *data,
                     SoupHTTP2IOState      from,
                     SoupHTTP2IOState      to)
 {
-        if (from != STATE_ANY)
-                g_warn_if_fail (data->state == from);
+        if (from != STATE_ANY && data->state != from) {
+                g_warning ("Unexpected state changed %s -> %s, expected to be from %s",
+                           state_to_string (data->state), state_to_string (to),
+                           state_to_string (from));
+        }
 
         /* State never goes backwards */
         if (to < data->state) {
-                g_warn_if_reached ();
+                g_warning ("Unexpected state changed %s -> %s, expected %s -> %s\n",
+                           state_to_string (data->state), state_to_string (to),
+                           state_to_string (from), state_to_string (to));
                 return;
         }
 
