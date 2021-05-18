@@ -58,10 +58,6 @@ typedef struct {
 
 	SoupMessageIOCompletionFn   completion_cb;
 	gpointer                    completion_data;
-
-#ifdef HAVE_SYSPROF
-	gint64 begin_time_nsec;
-#endif
 } SoupMessageIOData;
 
 void     soup_message_io_data_cleanup      (SoupMessageIOData      *io);
