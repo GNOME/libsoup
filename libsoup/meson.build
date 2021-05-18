@@ -32,6 +32,10 @@ soup_sources = [
   'hsts/soup-hsts-enforcer-db.c',
   'hsts/soup-hsts-policy.c',
 
+  'http1/soup-client-message-io-http1.c',
+  'http1/soup-body-input-stream.c',
+  'http1/soup-body-output-stream.c',
+
   'http2/soup-client-message-io-http2.c',
   'http2/soup-body-input-stream-http2.c',
 
@@ -51,11 +55,8 @@ soup_sources = [
   'websocket/soup-websocket-extension-deflate.c',
   'websocket/soup-websocket-extension-manager.c',
 
-  'soup-body-input-stream.c',
-  'soup-body-output-stream.c',
   'soup-client-input-stream.c',
   'soup-client-message-io.c',
-  'soup-client-message-io-http1.c',
   'soup-connection.c',
   'soup-date-utils.c',
   'soup-filter-input-stream.c',
@@ -193,6 +194,7 @@ libsoup_includes = [
     'cookies',
     'content-decoder',
     'hsts',
+    'http1',
     'http2',
     'server',
     'websocket',
