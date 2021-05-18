@@ -53,6 +53,7 @@ typedef enum {
         STATE_WRITE_DATA,
         STATE_WRITE_DONE,
         STATE_READ_HEADERS,
+        STATE_READ_DATA_START,
         STATE_READ_DATA,
         STATE_READ_DONE,
 } SoupHTTP2IOState;
@@ -172,6 +173,8 @@ state_to_string (SoupHTTP2IOState state)
                 return "WRITE_DONE";
         case STATE_READ_HEADERS:
                 return "READ_HEADERS";
+        case STATE_READ_DATA_START:
+                return "READ_DATA_START";
         case STATE_READ_DATA:
                 return "READ_DATA";
         case STATE_READ_DONE:
@@ -332,22 +335,22 @@ on_begin_frame_callback (nghttp2_session        *session,
                 if (data->state < STATE_READ_HEADERS)
                         advance_state_from (data, STATE_WRITE_DONE, STATE_READ_HEADERS);
                 break;
-        case NGHTTP2_DATA: {
-                if (data->state < STATE_READ_DATA)
-                        advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA);
-
-                if (!data->body_istream) {
+        case NGHTTP2_DATA:
+                if (data->state < STATE_READ_DATA_START) {
+                        g_assert (!data->body_istream);
                         data->body_istream = soup_body_input_stream_http2_new (G_POLLABLE_INPUT_STREAM (data->io->istream));
                         g_signal_connect (data->body_istream, "need-more-data",
                                           G_CALLBACK (memory_stream_need_more_data_callback), data);
-                }
-                if (!data->decoded_data_istream)
+
+                        g_assert (!data->decoded_data_istream);
                         data->decoded_data_istream = soup_session_setup_message_body_input_stream (data->item->session,
                                                                                                    data->msg,
                                                                                                    data->body_istream,
                                                                                                    SOUP_STAGE_MESSAGE_BODY);
+
+                        advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA_START);
+                }
                 break;
-        }
         }
 
         return 0;
@@ -406,7 +409,6 @@ on_frame_recv_callback (nghttp2_session     *session,
                         if (SOUP_STATUS_IS_INFORMATIONAL (soup_message_get_status (data->msg))) {
                                 soup_message_got_informational (data->msg);
                                 soup_message_cleanup_response (data->msg);
-                                soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
                                 advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DONE);
                                 return 0;
                         }
@@ -422,7 +424,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         case NGHTTP2_DATA:
                 if (data->metrics)
                         data->metrics->response_body_bytes_received += frame->data.hd.length + FRAME_HEADER_SIZE;
-                if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM)
+                if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM && data->body_istream)
                         soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
                 break;
         case NGHTTP2_RST_STREAM:
@@ -1021,6 +1023,8 @@ soup_client_message_io_http2_get_source (SoupMessage             *msg,
                 base_source = cancellable ? g_cancellable_source_new (cancellable) : NULL;
         else if (data->state < STATE_WRITE_DONE && nghttp2_session_want_write (io->session))
                 base_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), cancellable);
+        else if (data->state < STATE_READ_DONE && data->decoded_data_istream)
+                base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (data->decoded_data_istream), cancellable);
         else if (data->state < STATE_READ_DONE && nghttp2_session_want_read (io->session))
                 base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), cancellable);
         else {
@@ -1126,17 +1130,43 @@ io_write (SoupClientMessageIOHTTP2 *io,
         return TRUE;
 }
 
+static void
+io_try_sniff_content (SoupHTTP2MessageData *data,
+                      gboolean              blocking,
+                      GCancellable         *cancellable)
+{
+        GError *error = NULL;
+
+        if (soup_message_try_sniff_content (data->msg, data->decoded_data_istream, blocking, cancellable, &error)) {
+                h2_debug (data->io, data, "[DATA] Sniffed content");
+                advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
+        } else {
+                h2_debug (data->io, data, "[DATA] Sniffer stream was not ready %s", error->message);
+
+                g_clear_error (&error);
+        }
+}
+
 static gboolean
-io_read_or_write (SoupHTTP2MessageData *data,
-                  gboolean              blocking,
-                  GCancellable         *cancellable,
-                  GError              **error)
+io_run (SoupHTTP2MessageData *data,
+        gboolean              blocking,
+        GCancellable         *cancellable,
+        GError              **error)
 {
         gboolean progress = FALSE;
+
+        if (data->state == STATE_READ_DATA_START)
+                io_try_sniff_content (data, blocking, cancellable);
+
         if (data->state < STATE_WRITE_DONE && nghttp2_session_want_write (data->io->session))
                 progress = io_write (data->io, blocking, cancellable, error);
-        else if (data->state < STATE_READ_DONE && nghttp2_session_want_read (data->io->session))
+        else if (data->state < STATE_READ_DONE && nghttp2_session_want_read (data->io->session)) {
                 progress = io_read (data->io, blocking, cancellable, error);
+
+                if (progress && data->state == STATE_READ_DATA_START)
+                        io_try_sniff_content (data, blocking, cancellable);
+        }
+
         return progress;
 }
 
@@ -1163,9 +1193,8 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
 
 	g_object_ref (msg);
 
-	while (progress && get_io_data (msg) == io && !data->paused && data->state < state) {
-                progress = io_read_or_write (data, blocking, cancellable, &my_error);
-	}
+	while (progress && get_io_data (msg) == io && !data->paused && data->state < state)
+                progress = io_run (data, blocking, cancellable, &my_error);
 
         if (my_error) {
                 g_propagate_error (error, my_error);

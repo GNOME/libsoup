@@ -116,7 +116,7 @@ read_stream_to_bytes_sync (GInputStream *stream)
                                               NULL, &error);
 
         g_assert_no_error (error);
-        g_assert_cmpint (read, >, 0);
+        g_assert_cmpint (read, >=, 0);
 
         GBytes *bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (out));
         g_object_unref (out);
@@ -605,6 +605,113 @@ do_invalid_header_test (Test *test, gconstpointer data)
         }
 }
 
+static void
+content_sniffed (SoupMessage *msg,
+                 char        *content_type,
+                 GHashTable  *params)
+{
+        soup_test_assert (g_object_get_data (G_OBJECT (msg), "got-chunk") == NULL,
+                          "got-chunk got emitted before content-sniffed");
+
+        g_object_set_data (G_OBJECT (msg), "content-sniffed", GINT_TO_POINTER (TRUE));
+}
+
+static void
+got_headers (SoupMessage *msg)
+{
+        soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") == NULL,
+                          "content-sniffed got emitted before got-headers");
+
+        g_object_set_data (G_OBJECT (msg), "got-headers", GINT_TO_POINTER (TRUE));
+}
+
+static void
+sniffer_test_send_ready_cb (SoupSession   *session,
+                            GAsyncResult  *result,
+                            GInputStream **stream)
+{
+        GError *error = NULL;
+
+        *stream = soup_session_send_finish (session, result, &error);
+        g_assert_no_error (error);
+        g_assert_nonnull (*stream);
+}
+
+static void
+do_one_sniffer_test (SoupSession  *session,
+                     const char   *uri,
+                     gsize         expected_size,
+                     gboolean      should_sniff,
+                     GMainContext *async_context)
+{
+        SoupMessage *msg;
+        GInputStream *stream = NULL;
+        GBytes *bytes;
+
+        msg = soup_message_new (SOUP_METHOD_GET, uri);
+        g_object_connect (msg,
+                          "signal::got-headers", got_headers, NULL,
+                          "signal::content-sniffed", content_sniffed, NULL,
+                          NULL);
+        if (async_context) {
+                soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                         (GAsyncReadyCallback)sniffer_test_send_ready_cb,
+                                         &stream);
+
+                while (!stream)
+                        g_main_context_iteration (async_context, TRUE);
+        } else {
+                GError *error = NULL;
+
+                stream = soup_session_send (session, msg, NULL, &error);
+                g_assert_no_error (error);
+                g_assert_nonnull (stream);
+        }
+
+        if (should_sniff) {
+                soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") != NULL,
+                                  "content-sniffed did not get emitted");
+        } else {
+                soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") == NULL,
+                                  "content-sniffed got emitted without a sniffer");
+        }
+
+        bytes = read_stream_to_bytes_sync (stream);
+        g_assert_cmpuint (g_bytes_get_size (bytes), ==, expected_size);
+
+        g_object_unref (stream);
+        g_bytes_unref (bytes);
+        g_object_unref (msg);
+}
+
+static void
+do_sniffer_async_test (Test *test, gconstpointer data)
+{
+        GMainContext *async_context = g_main_context_ref_thread_default ();
+
+        soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/", 11, TRUE, async_context);
+        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/large", (1024 * 24) + 1, TRUE, async_context);
+        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/no-content", 0, FALSE, async_context);
+
+        while (g_main_context_pending (async_context))
+                g_main_context_iteration (async_context, FALSE);
+
+        g_main_context_unref (async_context);
+}
+
+static void
+do_sniffer_sync_test (Test *test, gconstpointer data)
+{
+        soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/", 11, TRUE, NULL);
+        /* FIXME: large seems to be broken in sync mode */
+        /* do_one_sniffer_test (test->session, "https://127.0.0.1:5000/large", (1024 * 24) + 1, TRUE, NULL); */
+        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/no-content", 0, FALSE, NULL);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -691,8 +798,14 @@ main (int argc, char **argv)
                     setup_session,
                     do_invalid_header_test,
                     teardown_session);
-
-
+        g_test_add ("/http2/sniffer/async", Test, NULL,
+                    setup_session,
+                    do_sniffer_async_test,
+                    teardown_session);
+        g_test_add ("/http2/sniffer/sync", Test, NULL,
+                    setup_session,
+                    do_sniffer_sync_test,
+                    teardown_session);
 
 	ret = g_test_run ();
 
