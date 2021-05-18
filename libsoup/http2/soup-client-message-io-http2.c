@@ -484,9 +484,6 @@ on_before_frame_send_callback (nghttp2_session     *session,
         case NGHTTP2_HEADERS:
                 advance_state_from (data, STATE_NONE, STATE_WRITE_HEADERS);
                 break;
-        case NGHTTP2_DATA:
-                advance_state_from (data, STATE_WRITE_HEADERS, STATE_WRITE_DATA);
-                break;
         }
 
         return 0;
@@ -522,6 +519,8 @@ on_frame_send_callback (nghttp2_session     *session,
         case NGHTTP2_DATA:
                 h2_debug (user_data, data, "[SEND] [DATA] bytes=%zu, finished=%d",
                           frame->data.hd.length, frame->hd.flags & NGHTTP2_FLAG_END_STREAM);
+                if (data->state < STATE_WRITE_DATA)
+                        advance_state_from (data, STATE_WRITE_HEADERS, STATE_WRITE_DATA);
                 if (data->metrics) {
                         data->metrics->request_body_bytes_sent += frame->hd.length + FRAME_HEADER_SIZE;
                         data->metrics->request_body_size += frame->data.hd.length;
@@ -529,7 +528,7 @@ on_frame_send_callback (nghttp2_session     *session,
                 if (frame->data.hd.length)
                         soup_message_wrote_body_data (data->msg, frame->data.hd.length);
                 if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-                        advance_state_from (data, STATE_ANY, STATE_WRITE_DONE);
+                        advance_state_from (data, STATE_WRITE_DATA, STATE_WRITE_DONE);
                         soup_message_wrote_body (data->msg);
                 }
                 break;
