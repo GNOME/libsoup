@@ -113,7 +113,6 @@ typedef struct {
         guint32 stream_id;
 } SoupHTTP2MessageData;
 
-static void soup_client_message_io_http2_finished (SoupClientMessageIO *, SoupMessage *);
 static gboolean io_read_or_write (SoupClientMessageIOHTTP2 *, gboolean, GCancellable *, GError **);
 
 static void
@@ -893,10 +892,13 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
         SoupHTTP2MessageData *data;
 	SoupMessageIOCompletionFn completion_cb;
 	gpointer completion_data;
+        SoupMessageIOCompletion completion;
 
         data = get_data_for_message (io, msg);
 
-        h2_debug (io, data, "Finished");
+        completion = data->state < STATE_READ_DONE ? SOUP_MESSAGE_IO_INTERRUPTED : SOUP_MESSAGE_IO_COMPLETE;
+
+        h2_debug (io, data, "Finished: %s", completion == SOUP_MESSAGE_IO_COMPLETE ? "completed" : "interrupted");
 
         // int ret;
         // ret = nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id, NGHTTP2_STREAM_CLOSED);
