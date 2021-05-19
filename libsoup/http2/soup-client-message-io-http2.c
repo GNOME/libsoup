@@ -1288,25 +1288,8 @@ static gboolean
 soup_client_message_io_http2_is_open (SoupClientMessageIO *iface)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
-        gboolean ret = TRUE;
 
-        /* Check directly if the session is closed */
-        if (!nghttp2_session_want_read (io->session) && !nghttp2_session_want_write (io->session))
-                ret = FALSE;
-        else {
-                /* Otherwise test if reading from the socket fails */
-                GError *error = NULL;
-                if (!io_read (io, FALSE, NULL, &error)) {
-                        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK))
-                                ret = FALSE;
-
-                        g_clear_error (&error);
-                }
-        }
-
-        h2_debug (io, NULL, "[SESSION] Open=%d", ret);
-
-        return ret;
+        return nghttp2_session_want_read (io->session) || nghttp2_session_want_write (io->session);
 }
 
 static void
