@@ -113,7 +113,7 @@ typedef struct {
         guint32 stream_id;
 } SoupHTTP2MessageData;
 
-static gboolean io_read_or_write (SoupClientMessageIOHTTP2 *, gboolean, GCancellable *, GError **);
+static gboolean io_read_or_write (SoupHTTP2MessageData *, gboolean, GCancellable *, GError **);
 
 static void
 NGCHECK (int return_code)
@@ -319,7 +319,7 @@ memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
         SoupHTTP2MessageData *data = (SoupHTTP2MessageData*)user_data;
         GError *error = NULL;
 
-        io_read_or_write (data->io, blocking, cancellable, &error);
+        io_read_or_write (data, blocking, cancellable, &error);
 
         return error;
 }
@@ -1117,16 +1117,17 @@ io_write (SoupClientMessageIOHTTP2 *io,
 }
 
 static gboolean
-io_read_or_write (SoupClientMessageIOHTTP2 *io,
-                  gboolean                  blocking,
-                  GCancellable             *cancellable,
-                  GError                  **error)
+io_read_or_write (SoupHTTP2MessageData *data,
+                  gboolean              blocking,
+                  GCancellable         *cancellable,
+                  GError              **error)
 {
-        /* TODO: This can possibly more inteligent about what actually needs
-           writing so we can prioritize better. */
-        if (nghttp2_session_want_write (io->session))
-                return io_write (io, blocking, cancellable, error);
-        return io_read (io, blocking, cancellable, error);
+        gboolean progress = FALSE;
+        if (data->state < STATE_WRITE_DONE && nghttp2_session_want_write (data->io->session))
+                progress = io_write (data->io, blocking, cancellable, error);
+        else if (data->state < STATE_READ_DONE && nghttp2_session_want_read (data->io->session))
+                progress = io_read (data->io, blocking, cancellable, error);
+        return progress;
 }
 
 static gboolean
@@ -1153,7 +1154,7 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
 	g_object_ref (msg);
 
 	while (progress && get_io_data (msg) == io && !data->paused && data->state < state) {
-                progress = io_read_or_write (io, blocking, cancellable, &my_error);
+                progress = io_read_or_write (data, blocking, cancellable, &my_error);
 	}
 
 	if (my_error || (my_error = get_error_for_data (io, data))) {
