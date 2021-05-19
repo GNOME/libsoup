@@ -1102,8 +1102,9 @@ static gboolean
 soup_client_message_io_http1_in_progress (SoupClientMessageIO *iface,
                                           SoupMessage         *msg)
 {
-        /* In progress as long as object is alive */
-        return TRUE;
+        SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
+
+        return io->msg_io != NULL;
 }
 
 static gboolean

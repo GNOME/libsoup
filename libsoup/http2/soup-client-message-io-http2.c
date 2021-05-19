@@ -882,11 +882,7 @@ static SoupHTTP2MessageData *
 get_data_for_message (SoupClientMessageIOHTTP2 *io,
                       SoupMessage              *msg)
 {
-        SoupHTTP2MessageData *data = g_hash_table_lookup (io->messages, msg);
-
-        g_warn_if_fail (data != NULL);
-
-        return data;
+        return g_hash_table_lookup (io->messages, msg);
 }
 
 static void
@@ -964,9 +960,8 @@ soup_client_message_io_http2_in_progress (SoupClientMessageIO *iface,
                                           SoupMessage         *msg)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
-        SoupHTTP2MessageData *data = get_data_for_message (io, msg);
 
-        return data->state < STATE_WRITE_DONE;
+        return get_data_for_message (io, msg) != NULL;
 }
 
 static gboolean
