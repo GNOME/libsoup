@@ -1128,13 +1128,13 @@ io_read_or_write (SoupClientMessageIOHTTP2 *io,
 }
 
 static gboolean
-io_run_until (SoupMessage      *msg,
-              gboolean          blocking,
-	      SoupHTTP2IOState  state,
-	      GCancellable     *cancellable,
-              GError          **error)
+io_run_until (SoupClientMessageIOHTTP2 *io,
+              SoupMessage              *msg,
+              gboolean                  blocking,
+              SoupHTTP2IOState          state,
+              GCancellable             *cancellable,
+              GError                  **error)
 {
-	SoupClientMessageIOHTTP2 *io = get_io_data (msg);
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
 	gboolean progress = TRUE, done;
 	GError *my_error = NULL;
@@ -1187,7 +1187,9 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
                                              GCancellable         *cancellable,
                                              GError              **error)
 {
-        return io_run_until (msg, TRUE, STATE_READ_DATA, cancellable, error);
+        SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
+
+        return io_run_until (io, msg, TRUE, STATE_READ_DATA, cancellable, error);
 }
 
 static gboolean
@@ -1197,7 +1199,9 @@ soup_client_message_io_http2_run_until_finish (SoupClientMessageIO *iface,
                                                GCancellable        *cancellable,
                                                GError             **error)
 {
-        return io_run_until (msg, blocking, STATE_READ_DONE, cancellable, error);
+        SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
+
+        return io_run_until (io, msg, blocking, STATE_READ_DONE, cancellable, error);
 }
 
 static void
@@ -1235,7 +1239,7 @@ io_run_until_read_async (SoupMessage *msg,
                 g_clear_pointer (&data->io_source, g_source_unref);
         }
 
-        if (io_run_until (msg, FALSE,
+        if (io_run_until (io, msg, FALSE,
                           STATE_READ_DATA,
                           g_task_get_cancellable (task),
                           &error)) {
