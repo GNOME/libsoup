@@ -186,6 +186,7 @@ state_to_string (SoupHTTP2IOState state)
         }
 }
 
+G_GNUC_PRINTF(3, 0)
 static void
 h2_debug (SoupClientMessageIOHTTP2   *io,
           SoupHTTP2MessageData       *data,
@@ -1342,6 +1343,7 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http2_is_reusable
 };
 
+G_GNUC_PRINTF(1, 0)
 static void
 debug_nghttp2 (const char *format,
                va_list     args)
