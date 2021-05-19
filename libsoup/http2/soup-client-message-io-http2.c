@@ -1341,8 +1341,32 @@ static const SoupClientMessageIOFuncs io_funcs = {
 };
 
 static void
+debug_nghttp2 (const char *format,
+               va_list     args)
+{
+        char *message;
+        gsize len;
+
+        if (g_log_writer_default_would_drop (G_LOG_LEVEL_DEBUG, "nghttp2"))
+                return;
+
+        message = g_strdup_vprintf (format, args);
+        len = strlen (message);
+        if (len >= 1 && message[len - 1] == '\n')
+                message[len - 1] = '\0';
+        g_log ("nghttp2", G_LOG_LEVEL_DEBUG, "[NGHTTP2] %s", message);
+        g_free (message);
+}
+
+static void
 soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
 {
+        static gsize nghttp2_debug_init = 0;
+        if (g_once_init_enter (&nghttp2_debug_init)) {
+                nghttp2_set_debug_vprintf_callback(debug_nghttp2);
+                g_once_init_leave (&nghttp2_debug_init, 1);
+        }
+
         nghttp2_session_callbacks *callbacks;
         NGCHECK (nghttp2_session_callbacks_new (&callbacks));
         nghttp2_session_callbacks_set_on_header_callback (callbacks, on_header_callback);
