@@ -355,98 +355,29 @@ soup_body_input_stream_http2_is_readable (GPollableInputStream *stream)
         SoupBodyInputStreamHttp2 *memory_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (memory_stream);
 
-        return priv->pos < priv->len || priv->completed;
+        if (priv->pos < priv->len || priv->completed)
+                return TRUE;
+
+        return g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (priv->parent_stream));
 }
-
-/* Custom GSource */
-
-typedef struct {
-	GSource source;
-	SoupBodyInputStreamHttp2 *stream;
-} SoupMemoryStreamSource;
-
-static gboolean
-memory_stream_source_prepare (GSource *source,
-                              gint    *timeout)
-{
-        SoupMemoryStreamSource *stream_source = (SoupMemoryStreamSource *)source;
-        return soup_body_input_stream_http2_is_readable (G_POLLABLE_INPUT_STREAM (stream_source->stream));
-}
-
-static gboolean
-memory_stream_source_dispatch (GSource     *source,
-                               GSourceFunc  callback,
-                               gpointer     user_data)
-{
-	GPollableSourceFunc func = (GPollableSourceFunc )callback;
-	SoupMemoryStreamSource *memory_source = (SoupMemoryStreamSource *)source;
-
-        if (!func)
-                return FALSE;
-
-	return (*func) (G_OBJECT (memory_source->stream), user_data);
-}
-
-static gboolean
-memory_stream_source_closure_callback (GObject  *pollable_stream,
-				       gpointer  data)
-{
-	GClosure *closure = data;
-	GValue param = G_VALUE_INIT;
-	GValue result_value = G_VALUE_INIT;
-	gboolean result;
-
-	g_value_init (&result_value, G_TYPE_BOOLEAN);
-
-        g_assert (G_IS_POLLABLE_INPUT_STREAM (pollable_stream));
-	g_value_init (&param, G_TYPE_POLLABLE_INPUT_STREAM);
-	g_value_set_object (&param, pollable_stream);
-
-	g_closure_invoke (closure, &result_value, 1, &param, NULL);
-
-	result = g_value_get_boolean (&result_value);
-	g_value_unset (&result_value);
-	g_value_unset (&param);
-
-	return result;
-}
-
-static void
-memory_stream_source_finalize (GSource *source)
-{
-	SoupMemoryStreamSource *memory_source = (SoupMemoryStreamSource *)source;
-
-	g_object_unref (memory_source->stream);
-}
-
-static GSourceFuncs source_funcs =
-{
-	memory_stream_source_prepare,
-	NULL,
-	memory_stream_source_dispatch,
-	memory_stream_source_finalize,
-	(GSourceFunc)memory_stream_source_closure_callback,
-	NULL,
-};
 
 static GSource *
 soup_body_input_stream_http2_create_source (GPollableInputStream *stream,
                                             GCancellable         *cancellable)
 {
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
+        GSource *base_source, *pollable_source;
 
-        GSource *source = g_source_new (&source_funcs, sizeof (SoupMemoryStreamSource));
-	g_source_set_name (source, "SoupMemoryStreamSource");
+        if (g_pollable_input_stream_is_readable (stream))
+                base_source = g_timeout_source_new (0);
+        else
+                base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->parent_stream), NULL);
 
-	SoupMemoryStreamSource *stream_source = (SoupMemoryStreamSource *)source;
-        stream_source->stream = g_object_ref (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
+        pollable_source = g_pollable_source_new_full (stream, base_source, cancellable);
+        g_source_set_name (pollable_source, "SoupMemoryStreamSource");
+        g_source_unref (base_source);
 
-        GSource *child_source = g_pollable_input_stream_create_source (priv->parent_stream, cancellable);
-        g_source_set_dummy_callback (child_source);
-        g_source_add_child_source (source, child_source);
-        g_source_unref (child_source);
-
-        return source;
+        return pollable_source;
 }
 
 static void
