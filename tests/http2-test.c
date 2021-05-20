@@ -549,6 +549,29 @@ do_preconnect_test (Test *test, gconstpointer data)
         g_main_context_unref (async_context);
 }
 
+static void
+do_invalid_header_test (Test *test, gconstpointer data)
+{
+        static const char *invalid_headers[] = { "Connection", "Keep-Alive", "Proxy-Connection", "Transfer-Encoding", "Upgrade" };
+        guint i;
+
+        for (i = 0; i < G_N_ELEMENTS (invalid_headers); i++) {
+                SoupMessage *msg;
+                SoupMessageHeaders *request_headers;
+                GBytes *body;
+                GError *error = NULL;
+
+                msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+                request_headers = soup_message_get_request_headers (msg);
+                soup_message_headers_append (request_headers, invalid_headers[i], "Value");
+                body = soup_test_session_async_send (test->session, msg, NULL, &error);
+                g_assert_no_error (error);
+                g_assert_cmpstr (g_bytes_get_data (body, NULL), ==, "Hello world");
+                g_bytes_unref (body);
+                g_object_unref (msg);
+        }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -626,6 +649,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/cancellation", Test, NULL,
                     setup_session,
                     do_cancellation_test,
+                    teardown_session);
+        g_test_add ("/http2/invalid-header", Test, NULL,
+                    setup_session,
+                    do_invalid_header_test,
                     teardown_session);
 
 

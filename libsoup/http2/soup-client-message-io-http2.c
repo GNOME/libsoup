@@ -783,6 +783,23 @@ soup_http2_message_data_free (SoupHTTP2MessageData *data)
         g_free (data);
 }
 
+static gboolean
+request_header_is_valid (const char *name)
+{
+        static GHashTable *invalid_request_headers = NULL;
+
+        if (!invalid_request_headers) {
+                invalid_request_headers = g_hash_table_new (soup_str_case_hash, soup_str_case_equal);
+                g_hash_table_add (invalid_request_headers, "Connection");
+                g_hash_table_add (invalid_request_headers, "Keep-Alive");
+                g_hash_table_add (invalid_request_headers, "Proxy-Connection");
+                g_hash_table_add (invalid_request_headers, "Transfer-Encoding");
+                g_hash_table_add (invalid_request_headers, "Upgrade");
+        }
+
+        return !g_hash_table_contains (invalid_request_headers, name);
+}
+
 #define MAKE_NV(NAME, VALUE, VALUELEN)                                      \
         {                                                                   \
                 (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), VALUELEN, \
@@ -833,9 +850,9 @@ send_message_request (SoupMessage          *msg,
         const char *name, *value;
         soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
         while (soup_message_headers_iter_next (&iter, &name, &value)) {
-                /* Forbidden headers. TODO: Avoid setting this elsewhere? */
-                if (g_ascii_strcasecmp (name, "Transfer-Encoding") == 0)
+                if (!request_header_is_valid (name))
                         continue;
+
                 const nghttp2_nv nv = MAKE_NV2 (name, value);
                 g_array_append_val (headers, nv);
         }
