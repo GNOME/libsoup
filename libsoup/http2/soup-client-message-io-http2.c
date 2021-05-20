@@ -1220,8 +1220,18 @@ soup_client_message_io_http2_skip (SoupClientMessageIO *iface,
                                    GError             **error)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
+        SoupHTTP2MessageData *data;
 
-        return io_run_until (io, msg, blocking, STATE_READ_DONE, cancellable, error);
+        if (g_cancellable_set_error_if_cancelled (cancellable, error))
+                return FALSE;
+
+        data = get_data_for_message (io, msg);
+        if (!data || data->state == STATE_READ_DONE)
+                return TRUE;
+
+        h2_debug (io, data, "Skip");
+        NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id, NGHTTP2_STREAM_CLOSED));
+        return TRUE;
 }
 
 static void
