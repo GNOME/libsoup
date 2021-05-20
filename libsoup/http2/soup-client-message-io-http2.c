@@ -918,9 +918,6 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
         h2_debug (io, data, "Finished: %s", completion == SOUP_MESSAGE_IO_COMPLETE ? "completed" : "interrupted");
 
-        // int ret;
-        // ret = nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id, NGHTTP2_STREAM_CLOSED);
-        // g_assert (ret == 0);
         // ret = nghttp2_session_terminate_session (io->session, NGHTTP2_NO_ERROR);
         // g_assert (ret == 0);
 
@@ -929,6 +926,8 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
 	g_object_ref (msg);
 
+        NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id,
+                                            completion == SOUP_MESSAGE_IO_COMPLETE ? NGHTTP2_NO_ERROR : NGHTTP2_CANCEL));
         nghttp2_session_set_stream_user_data (io->session, data->stream_id, NULL);
         if (!g_hash_table_remove (io->messages, msg))
                 g_warn_if_reached ();

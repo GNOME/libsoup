@@ -173,28 +173,44 @@ do_multi_message_async_test (Test *test, gconstpointer data)
 
 
 static void
-on_send_and_read_complete (GObject *source, GAsyncResult *res, gpointer user_data)
+on_send_and_read_cancelled_complete (SoupSession  *session,
+                                     GAsyncResult *result,
+                                     gboolean     *done)
 {
-        SoupSession *sess = SOUP_SESSION (source);
-        gboolean *done = user_data;
         GError *error = NULL;
-        GBytes *response = soup_session_send_and_read_finish (sess, res, &error);
+        GBytes *response = soup_session_send_and_read_finish (session, result, &error);
 
         g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
         g_assert_null (response);
+        g_error_free (error);
+        *done = TRUE;
+}
+
+static void
+on_send_and_read_complete (SoupSession  *session,
+                           GAsyncResult *result,
+                           gboolean     *done)
+{
+        GError *error = NULL;
+        GBytes *response = soup_session_send_and_read_finish (session, result, &error);
+
+        g_assert_no_error (error);
+        g_assert_nonnull (response);
+        g_bytes_unref (response);
         *done = TRUE;
 }
 
 static void
 do_cancellation_test (Test *test, gconstpointer data)
 {
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        SoupMessage *msg;
         GMainContext *async_context = g_main_context_ref_thread_default ();
         GCancellable *cancellable = g_cancellable_new ();
         gboolean done = FALSE;
 
-        soup_session_send_and_read_async (test->session, test->msg, G_PRIORITY_DEFAULT, cancellable,
-                                          on_send_and_read_complete, &done);
+        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        soup_session_send_and_read_async (test->session, msg, G_PRIORITY_DEFAULT, cancellable,
+                                          (GAsyncReadyCallback)on_send_and_read_cancelled_complete, &done);
 
         /* Just iterate until a partial read is happening */
         for (guint i = 100000; i; i--)
@@ -206,7 +222,17 @@ do_cancellation_test (Test *test, gconstpointer data)
         while (!done)
                 g_main_context_iteration (async_context, FALSE);
 
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+
+        done = FALSE;
+        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        soup_session_send_and_read_async (test->session, msg, G_PRIORITY_DEFAULT, NULL,
+                                          (GAsyncReadyCallback)on_send_and_read_complete, &done);
+
+        while (!done)
+                g_main_context_iteration (async_context, FALSE);
+
+        g_object_unref (msg);
         g_object_unref (cancellable);
         g_main_context_unref (async_context);
 }
