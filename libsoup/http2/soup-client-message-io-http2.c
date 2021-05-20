@@ -48,7 +48,6 @@
 #define FRAME_HEADER_SIZE 9
 
 typedef enum {
-        STATE_ANY = -1,
         STATE_NONE,
         STATE_WRITE_HEADERS,
         STATE_WRITE_DATA,
@@ -254,7 +253,7 @@ advance_state_from (SoupHTTP2MessageData *data,
                     SoupHTTP2IOState      from,
                     SoupHTTP2IOState      to)
 {
-        if (from != STATE_ANY && data->state != from) {
+        if (data->state != from) {
                 g_warning ("Unexpected state changed %s -> %s, expected to be from %s",
                            state_to_string (data->state), state_to_string (to),
                            state_to_string (from));
@@ -340,11 +339,11 @@ on_begin_frame_callback (nghttp2_session        *session,
         switch (hd->type) {
         case NGHTTP2_HEADERS:
                 if (data->state < STATE_READ_HEADERS)
-                        advance_state_from (data, STATE_ANY, STATE_READ_HEADERS);
+                        advance_state_from (data, STATE_WRITE_DONE, STATE_READ_HEADERS);
                 break;
         case NGHTTP2_DATA: {
                 if (data->state < STATE_READ_DATA)
-                        advance_state_from (data, STATE_ANY, STATE_READ_DATA);
+                        advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA);
 
                 if (!data->body_istream) {
                         data->body_istream = soup_body_input_stream_http2_new (G_POLLABLE_INPUT_STREAM (data->io->istream));
@@ -1056,7 +1055,7 @@ client_stream_eof (SoupClientInputStream *stream,
 
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
         h2_debug (io, data, "Client stream EOF");
-        advance_state_from (data, STATE_ANY, STATE_READ_DONE);
+        advance_state_from (data, STATE_READ_DATA, STATE_READ_DONE);
 }
 
 static GInputStream *
