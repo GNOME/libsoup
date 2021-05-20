@@ -111,6 +111,7 @@ typedef struct {
         guint32 stream_id;
 } SoupHTTP2MessageData;
 
+static gboolean io_read (SoupClientMessageIOHTTP2 *, gboolean, GCancellable *, GError **);
 static gboolean io_read_or_write (SoupHTTP2MessageData *, gboolean, GCancellable *, GError **);
 
 static void
@@ -308,7 +309,9 @@ memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
         SoupHTTP2MessageData *data = (SoupHTTP2MessageData*)user_data;
         GError *error = NULL;
 
-        io_read_or_write (data, blocking, cancellable, &error);
+        if (!nghttp2_session_want_read (data->io->session))
+                return blocking ? NULL : g_error_new_literal (G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK, _("Operation would block"));
+        io_read (data->io, blocking, cancellable, &error);
 
         return error;
 }
