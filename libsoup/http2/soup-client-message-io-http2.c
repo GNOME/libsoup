@@ -1213,11 +1213,11 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
 }
 
 static gboolean
-soup_client_message_io_http2_run_until_finish (SoupClientMessageIO *iface,
-                                               SoupMessage         *msg,
-                                               gboolean             blocking,
-                                               GCancellable        *cancellable,
-                                               GError             **error)
+soup_client_message_io_http2_skip (SoupClientMessageIO *iface,
+                                   SoupMessage         *msg,
+                                   gboolean             blocking,
+                                   GCancellable        *cancellable,
+                                   GError             **error)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
 
@@ -1336,7 +1336,7 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http2_run,
         soup_client_message_io_http2_run_until_read,
         soup_client_message_io_http2_run_until_read_async,
-        soup_client_message_io_http2_run_until_finish,
+        soup_client_message_io_http2_skip,
         soup_client_message_io_http2_is_open,
         soup_client_message_io_http2_in_progress,
         soup_client_message_io_http2_is_reusable

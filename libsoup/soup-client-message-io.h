@@ -41,7 +41,7 @@ typedef struct {
                                                GCancellable              *cancellable,
                                                GAsyncReadyCallback        callback,
                                                gpointer                   user_data);
-        gboolean      (*run_until_finish)     (SoupClientMessageIO       *io,
+        gboolean      (*skip)                 (SoupClientMessageIO       *io,
                                                SoupMessage               *msg,
                                                gboolean                   blocking,
                                                GCancellable              *cancellable,
@@ -83,7 +83,7 @@ void          soup_client_message_io_run_until_read_async (SoupClientMessageIO  
                                                            GCancellable              *cancellable,
                                                            GAsyncReadyCallback        callback,
                                                            gpointer                   user_data);
-gboolean      soup_client_message_io_run_until_finish     (SoupClientMessageIO       *io,
+gboolean      soup_client_message_io_skip                 (SoupClientMessageIO       *io,
                                                            SoupMessage               *msg,
                                                            gboolean                   blocking,
                                                            GCancellable              *cancellable,

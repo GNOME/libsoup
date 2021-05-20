@@ -90,13 +90,13 @@ soup_client_message_io_run_until_read_async (SoupClientMessageIO *io,
 }
 
 gboolean
-soup_client_message_io_run_until_finish (SoupClientMessageIO *io,
-                                         SoupMessage         *msg,
-                                         gboolean             blocking,
-                                         GCancellable        *cancellable,
-                                         GError             **error)
+soup_client_message_io_skip (SoupClientMessageIO *io,
+                             SoupMessage         *msg,
+                             gboolean             blocking,
+                             GCancellable        *cancellable,
+                             GError             **error)
 {
-        return io->funcs->run_until_finish (io, msg, blocking, cancellable, error);
+        return io->funcs->skip (io, msg, blocking, cancellable, error);
 }
 
 GInputStream *

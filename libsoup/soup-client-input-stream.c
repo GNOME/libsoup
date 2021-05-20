@@ -173,20 +173,9 @@ soup_client_input_stream_close_fn (GInputStream  *stream,
         SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 	gboolean success;
 
-	success = soup_message_io_run_until_finish (priv->msg, TRUE,
-						    NULL, error);
+	success = soup_message_io_skip (priv->msg, TRUE, cancellable, error);
 	soup_message_io_finished (priv->msg);
 	return success;
-}
-
-static gboolean
-idle_finish_close (gpointer user_data)
-{
-	GTask *task = user_data;
-
-	g_task_return_boolean (task, TRUE);
-	g_object_unref (task);
-	return FALSE;
 }
 
 static gboolean
@@ -197,9 +186,7 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
         SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (cistream);
 	GError *error = NULL;
 
-	if (!soup_message_io_run_until_finish (priv->msg, FALSE,
-					       g_task_get_cancellable (task),
-					       &error) &&
+	if (!soup_message_io_skip (priv->msg, FALSE, g_task_get_cancellable (task), &error) &&
 	    g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		g_error_free (error);
 		return TRUE;
@@ -207,20 +194,11 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
 
 	soup_message_io_finished (priv->msg);
 
-	if (error) {
+	if (error)
 		g_task_return_error (task, error);
-		g_object_unref (task);
-		return FALSE;
-	}
-
-	/* Due to a historical accident, SoupSessionAsync relies on us
-	 * waiting one extra cycle after run_until_finish() returns.
-	 * Ugh. FIXME later when it's easier to do.
-	 */
-	GSource *source = g_idle_source_new ();
-	g_source_set_callback (source, idle_finish_close, task, NULL);
-	g_source_attach (source, g_main_context_get_thread_default ());
-	g_source_unref (source);
+        else
+                g_task_return_boolean (task, TRUE);
+        g_object_unref (task);
 
 	return FALSE;
 }

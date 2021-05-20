@@ -2280,14 +2280,14 @@ soup_message_io_run_until_read_finish (SoupMessage  *msg,
 }
 
 gboolean
-soup_message_io_run_until_finish (SoupMessage  *msg,
-                                  gboolean      blocking,
-                                  GCancellable *cancellable,
-                                  GError      **error)
+soup_message_io_skip (SoupMessage  *msg,
+                      gboolean      blocking,
+                      GCancellable *cancellable,
+                      GError      **error)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        return soup_client_message_io_run_until_finish (priv->io_data, msg, blocking, cancellable, error);
+        return soup_client_message_io_skip (priv->io_data, msg, blocking, cancellable, error);
 }
 
 void
