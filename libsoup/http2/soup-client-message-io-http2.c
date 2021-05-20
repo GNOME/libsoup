@@ -68,7 +68,6 @@ typedef struct {
         GMainContext *async_context;
 
         GHashTable *messages;
-        GHashTable *message_errors;
 
         nghttp2_session *session;
 
