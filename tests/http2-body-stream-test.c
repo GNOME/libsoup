@@ -26,7 +26,8 @@ do_large_data_test (void)
 #define CHUNK_SIZE (gsize)1024 * 1024 * 512 // 512 MiB
 #define TEST_SIZE CHUNK_SIZE * 20 // 10 GiB
 
-        GInputStream *stream = soup_body_input_stream_http2_new (NULL);
+        GInputStream *parent_stream = g_memory_input_stream_new ();
+        GInputStream *stream = soup_body_input_stream_http2_new (G_POLLABLE_INPUT_STREAM (parent_stream));
         SoupBodyInputStreamHttp2 *mem_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
         gsize data_needed = TEST_SIZE;
         guint8 *memory_chunk = g_new (guint8, CHUNK_SIZE); 
@@ -57,13 +58,15 @@ do_large_data_test (void)
 
         g_free (trash_buffer);
         g_free (memory_chunk);
+        g_object_unref (parent_stream);
         g_object_unref (stream);
 }
 
 static void
 do_multiple_chunk_test (void)
 {
-        GInputStream *stream = soup_body_input_stream_http2_new (NULL);
+        GInputStream *parent_stream = g_memory_input_stream_new ();
+        GInputStream *stream = soup_body_input_stream_http2_new (G_POLLABLE_INPUT_STREAM (parent_stream));
         SoupBodyInputStreamHttp2 *mem_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
         const char * const chunks[] = {
                 "1234", "5678", "9012", "hell", "owor", "ld..",
@@ -82,6 +85,7 @@ do_multiple_chunk_test (void)
                 g_assert_cmpstr (buffer, ==, chunks[i]);
         }
 
+        g_object_unref (parent_stream);
         g_object_unref (stream);
 }
 
@@ -100,7 +104,8 @@ on_skip_ready (GInputStream *stream, GAsyncResult *res, GMainLoop *loop)
 static void
 do_skip_async_test (void)
 {
-        GInputStream *stream = soup_body_input_stream_http2_new (NULL);
+        GInputStream *parent_stream = g_memory_input_stream_new ();
+        GInputStream *stream = soup_body_input_stream_http2_new (G_POLLABLE_INPUT_STREAM (parent_stream));
         SoupBodyInputStreamHttp2 *bistream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
         GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
@@ -109,6 +114,7 @@ do_skip_async_test (void)
         g_input_stream_skip_async (stream, 2, G_PRIORITY_DEFAULT, NULL, (GAsyncReadyCallback)on_skip_ready, loop);
 
         g_main_loop_run (loop);
+        g_object_unref (parent_stream);
         g_object_unref (stream);
         g_main_loop_unref (loop);
 }

@@ -77,10 +77,11 @@ soup_body_input_stream_http2_new (GPollableInputStream *parent_stream)
         GInputStream *stream;
         SoupBodyInputStreamHttp2Private *priv;
 
+        g_assert (G_IS_POLLABLE_INPUT_STREAM (parent_stream));
+
         stream = g_object_new (SOUP_TYPE_BODY_INPUT_STREAM_HTTP2, NULL);
         priv = soup_body_input_stream_http2_get_instance_private (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
-        if (parent_stream)
-                priv->parent_stream = g_object_ref (parent_stream);
+        priv->parent_stream = g_object_ref (parent_stream);
 
         return stream;
 }
@@ -440,12 +441,7 @@ soup_body_input_stream_http2_create_source (GPollableInputStream *stream,
 	SoupMemoryStreamSource *stream_source = (SoupMemoryStreamSource *)source;
         stream_source->stream = g_object_ref (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
 
-        GSource *child_source;
-        if (priv->parent_stream)
-                child_source = g_pollable_input_stream_create_source (priv->parent_stream, cancellable);
-        else
-                child_source = g_cancellable_source_new (cancellable);
-
+        GSource *child_source = g_pollable_input_stream_create_source (priv->parent_stream, cancellable);
         g_source_set_dummy_callback (child_source);
         g_source_add_child_source (source, child_source);
         g_source_unref (child_source);

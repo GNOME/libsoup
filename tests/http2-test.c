@@ -292,7 +292,8 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context = g_main_context_ref_thread_default ();
 
-        GInputStream *in_stream = soup_body_input_stream_http2_new (NULL);
+        GInputStream *parent_stream = g_memory_input_stream_new ();
+        GInputStream *in_stream = soup_body_input_stream_http2_new (G_POLLABLE_INPUT_STREAM (parent_stream));
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream), (guint8*)"Part 1 -", 8);
 
         test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
@@ -317,6 +318,7 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
                 g_main_context_iteration (async_context, FALSE);
 
         g_bytes_unref (response);
+        g_object_unref (parent_stream);
         g_object_unref (in_stream);
         g_main_context_unref (async_context);
         g_object_unref (test->msg);
