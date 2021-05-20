@@ -774,13 +774,17 @@ request_header_is_valid (const char *name)
 {
         static GHashTable *invalid_request_headers = NULL;
 
-        if (!invalid_request_headers) {
-                invalid_request_headers = g_hash_table_new (soup_str_case_hash, soup_str_case_equal);
-                g_hash_table_add (invalid_request_headers, "Connection");
-                g_hash_table_add (invalid_request_headers, "Keep-Alive");
-                g_hash_table_add (invalid_request_headers, "Proxy-Connection");
-                g_hash_table_add (invalid_request_headers, "Transfer-Encoding");
-                g_hash_table_add (invalid_request_headers, "Upgrade");
+        if (g_once_init_enter (&invalid_request_headers)) {
+                GHashTable *headers;
+
+                headers= g_hash_table_new (soup_str_case_hash, soup_str_case_equal);
+                g_hash_table_add (headers, "Connection");
+                g_hash_table_add (headers, "Keep-Alive");
+                g_hash_table_add (headers, "Proxy-Connection");
+                g_hash_table_add (headers, "Transfer-Encoding");
+                g_hash_table_add (headers, "Upgrade");
+
+                g_once_init_leave (&invalid_request_headers, headers);
         }
 
         return !g_hash_table_contains (invalid_request_headers, name);
