@@ -55,7 +55,6 @@ typedef enum {
         STATE_READ_HEADERS,
         STATE_READ_DATA,
         STATE_READ_DONE,
-        STATE_ERROR,
 } SoupHTTP2IOState;
 
 typedef struct {
@@ -108,6 +107,7 @@ typedef struct {
         SoupMessageIOCompletionFn completion_cb;
         gpointer completion_data;
         SoupHTTP2IOState state;
+        GError *error;
         gboolean paused;
         guint32 stream_id;
 } SoupHTTP2MessageData;
@@ -177,8 +177,6 @@ state_to_string (SoupHTTP2IOState state)
                 return "READ_DATA";
         case STATE_READ_DONE:
                 return "READ_DONE";
-        case STATE_ERROR:
-                return "ERROR";
         default:
                 g_assert_not_reached ();
                 return "";
@@ -228,24 +226,16 @@ get_data_io_priority (SoupHTTP2MessageData *data)
 }
 
 static void
-set_error_for_data (SoupClientMessageIOHTTP2   *io,
-                    SoupHTTP2MessageData *data,
+set_error_for_data (SoupHTTP2MessageData *data,
                     GError               *error)
 {
-        h2_debug (io, data, "[SESSION] Error: %s", error->message);
-        data->state = STATE_ERROR;
-        g_hash_table_replace (io->message_errors, data, error);
-}
+        h2_debug (data->io, data, "[SESSION] Error: %s", error->message);
 
-static GError *
-get_error_for_data (SoupClientMessageIOHTTP2   *io,
-                    SoupHTTP2MessageData *data)
-{
-        GError *error = NULL;
-
-        g_hash_table_steal_extended (io->message_errors, data, NULL, (gpointer*)&error);
-
-        return error;
+        /* First error is probably the one we want. */
+        if (!data->error)
+                data->error = error;
+        else
+                g_error_free (error);
 }
 
 static void
@@ -377,7 +367,7 @@ handle_goaway (SoupClientMessageIOHTTP2 *io,
                 if ((error_code == 0 && data->stream_id > last_stream_id) ||
                      data->state < STATE_READ_DONE) {
                         /* TODO: We can restart unfinished messages */
-                        set_error_for_data (io, data, g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED,
+                        set_error_for_data (data, g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED,
                                             "HTTP/2 Error: %s", nghttp2_http2_strerror (error_code)));
                 }
         }
@@ -438,8 +428,8 @@ on_frame_recv_callback (nghttp2_session     *session,
                 break;
         case NGHTTP2_RST_STREAM:
                 if (frame->rst_stream.error_code != NGHTTP2_NO_ERROR) {
-                        set_error_for_data (io, data, g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
-                                                                           nghttp2_http2_strerror (frame->rst_stream.error_code)));
+                        set_error_for_data (data, g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+                                                                       nghttp2_http2_strerror (frame->rst_stream.error_code)));
                 }
                 break;
         };
@@ -554,11 +544,6 @@ on_frame_not_send_callback (nghttp2_session     *session,
 
         h2_debug (user_data, data, "[SEND] [%s] Failed: %s", frame_type_to_string (frame->hd.type),
                   nghttp2_strerror (lib_error_code));
-
-        if (!data)
-                return 0;
-
-        data->state = STATE_ERROR;
 
         return 0;
 }
@@ -680,7 +665,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                                 return NGHTTP2_ERR_DEFERRED;
                         }
 
-                        set_error_for_data (io, data, g_steal_pointer (&error));
+                        set_error_for_data (data, g_steal_pointer (&error));
                         return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
                 }
                 else if (read == 0) {
@@ -714,7 +699,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                         return 0;
                 } else if (data->data_source_error) {
                         g_clear_object (&data->data_source_cancellable);
-                        set_error_for_data (io, data, g_steal_pointer (&data->data_source_error));
+                        set_error_for_data (data, g_steal_pointer (&data->data_source_error));
                         return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
                 } else {
                         h2_debug (io, data, "[SEND_BODY] Reading async");
@@ -779,6 +764,8 @@ soup_http2_message_data_free (SoupHTTP2MessageData *data)
                 g_cancellable_cancel (data->data_source_cancellable);
                 g_clear_object (&data->data_source_cancellable);
         }
+
+        g_clear_error (&data->error);
 
         g_free (data);
 }
@@ -1173,11 +1160,19 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
                 progress = io_read_or_write (data, blocking, cancellable, &my_error);
 	}
 
-	if (my_error || (my_error = get_error_for_data (io, data))) {
-		g_propagate_error (error, my_error);
+        if (my_error) {
+                g_propagate_error (error, my_error);
+                g_object_unref (msg);
+                return FALSE;
+        }
+
+	if (data->error) {
+                g_propagate_error (error, g_steal_pointer (&data->error));
 		g_object_unref (msg);
 		return FALSE;
-        } else if (get_io_data (msg) != io) {
+        }
+
+        if (get_io_data (msg) != io) {
 		g_set_error_literal (error, G_IO_ERROR,
 				     G_IO_ERROR_CANCELLED,
 				     _("Operation was cancelled"));
@@ -1328,7 +1323,6 @@ soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
         g_clear_pointer (&io->async_context, g_main_context_unref);
         g_clear_pointer (&io->session, nghttp2_session_del);
         g_clear_pointer (&io->messages, g_hash_table_unref);
-        g_clear_pointer (&io->message_errors, g_hash_table_unref);
 
         g_free (io);
 }
@@ -1394,8 +1388,6 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
         nghttp2_session_callbacks_del (callbacks);
 
         io->messages = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)soup_http2_message_data_free);
-        /* Errors are stored separate as they have a longer lifetime than MessageData */
-        io->message_errors = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)g_error_free);
 
         io->iface.funcs = &io_funcs;
 }
