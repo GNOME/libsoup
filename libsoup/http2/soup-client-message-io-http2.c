@@ -963,7 +963,7 @@ soup_client_message_io_http2_in_progress (SoupClientMessageIO *iface,
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
 
-        return get_data_for_message (io, msg) != NULL;
+        return io && get_data_for_message (io, msg) != NULL;
 }
 
 static gboolean
