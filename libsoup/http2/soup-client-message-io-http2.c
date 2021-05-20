@@ -1016,12 +1016,14 @@ soup_client_message_io_http2_get_source (SoupMessage             *msg,
         /* TODO: Handle mixing writes in? */
         if (data->paused)
                 base_source = cancellable ? g_cancellable_source_new (cancellable) : NULL;
-        else if (data->state < STATE_WRITE_DONE)
+        else if (data->state < STATE_WRITE_DONE && nghttp2_session_want_write (io->session))
                 base_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), cancellable);
-        else if (data->state < STATE_READ_DONE)
+        else if (data->state < STATE_READ_DONE && nghttp2_session_want_read (io->session))
                 base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), cancellable);
-        else
-                g_assert_not_reached ();
+        else {
+                g_warn_if_reached ();
+                base_source = g_timeout_source_new (0);
+        }
 
         GSource *source = soup_message_io_source_new (base_source, G_OBJECT (msg), data->paused, message_source_check);
         g_source_set_callback (source, (GSourceFunc)callback, user_data, NULL);
