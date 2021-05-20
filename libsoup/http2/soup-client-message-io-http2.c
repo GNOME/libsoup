@@ -208,7 +208,7 @@ h2_debug (SoupClientMessageIOHTTP2   *io,
                 stream_id = data->stream_id;
 
         g_assert (io);
-        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[C%" G_GUINT64_FORMAT "-S%u] %s", io->connection_id, stream_id, message);
+        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[C%" G_GUINT64_FORMAT "-S%u] [%s] %s", io->connection_id, stream_id, data ? state_to_string (data->state) : "-", message);
 
         g_free (message);
 }
