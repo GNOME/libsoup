@@ -112,7 +112,6 @@ typedef struct {
 } SoupHTTP2MessageData;
 
 static gboolean io_read (SoupClientMessageIOHTTP2 *, gboolean, GCancellable *, GError **);
-static gboolean io_read_or_write (SoupHTTP2MessageData *, gboolean, GCancellable *, GError **);
 
 static void
 NGCHECK (int return_code)
