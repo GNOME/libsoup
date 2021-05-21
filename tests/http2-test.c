@@ -448,7 +448,11 @@ do_connections_test (Test *test, gconstpointer data)
                 g_main_context_iteration (async_context, TRUE);
         }
 
-        // After no messages reference the connection we should still be able to re-use the same connection
+        while (g_main_context_pending (async_context))
+	        g_main_context_iteration (async_context, FALSE);
+
+        /* After no messages reference the connection it should be IDLE and reusable */
+        g_assert_cmpuint (soup_connection_get_state (last_connection), ==, SOUP_CONNECTION_IDLE);
         SoupMessage *msg = soup_message_new ("GET", "https://127.0.0.1:5000/slow");
         soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_ready, &complete_count);
         g_object_unref (msg);
