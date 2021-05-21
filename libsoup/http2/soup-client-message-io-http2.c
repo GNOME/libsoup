@@ -1048,6 +1048,7 @@ client_stream_eof (SoupClientInputStream *stream,
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
         h2_debug (io, data, "Client stream EOF");
         advance_state_from (data, STATE_READ_DATA, STATE_READ_DONE);
+        g_signal_handlers_disconnect_by_func (stream, client_stream_eof, msg);
         soup_message_got_body (data->msg);
 }
 
