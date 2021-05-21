@@ -548,41 +548,47 @@ do_metrics_test (Test *test, gconstpointer data)
 }
 
 static void
-on_preconnect_ready (SoupSession *session, GAsyncResult *res, gboolean *has_preconnected)
+on_preconnect_ready (SoupSession     *session,
+                     GAsyncResult    *result,
+                     SoupConnection **conn)
 {
+        SoupMessage *msg = soup_session_get_async_result_message (session, result);
         GError *error = NULL;
 
-        soup_session_preconnect_finish (session, res, &error);
+        *conn = soup_message_get_connection (msg);
+        soup_session_preconnect_finish (session, result, &error);
         g_assert_no_error (error);
-
-        *has_preconnected = TRUE;
 }
 
 static void
 do_preconnect_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context = g_main_context_ref_thread_default ();
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
-        gboolean has_preconnected = FALSE;
+        SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
         GError *error = NULL;
+        SoupConnection *conn = NULL;
         guint32 connection_id;
 
-        soup_session_preconnect_async (test->session, test->msg, G_PRIORITY_DEFAULT, NULL,
-                                       (GAsyncReadyCallback)on_preconnect_ready, &has_preconnected);
+        soup_session_preconnect_async (test->session, msg, G_PRIORITY_DEFAULT, NULL,
+                                       (GAsyncReadyCallback)on_preconnect_ready,
+                                       &conn);
 
-        while (!has_preconnected)
+        while (!conn)
                 g_main_context_iteration (async_context, FALSE);
 
-        connection_id = soup_message_get_connection_id (test->msg);
+        connection_id = soup_message_get_connection_id (msg);
+        g_assert_cmpuint (soup_connection_get_state (conn), ==, SOUP_CONNECTION_IDLE);
+        g_object_unref (msg);
 
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
+        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        GBytes *response = soup_test_session_async_send (test->session, msg, NULL, &error);
 
         g_assert_no_error (error);
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Hello world");
-        g_assert_cmpuint (soup_message_get_connection_id (test->msg), ==, connection_id);
+        g_assert_cmpuint (soup_message_get_connection_id (msg), ==, connection_id);
 
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
         g_main_context_unref (async_context);
 }
 
