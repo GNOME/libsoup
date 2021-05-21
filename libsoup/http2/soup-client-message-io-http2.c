@@ -454,9 +454,6 @@ on_data_chunk_recv_callback (nghttp2_session *session,
 
         h2_debug (io, msgdata, "[DATA] Recieved chunk, len=%zu, flags=%u, paused=%d", len, flags, msgdata->paused);
 
-        if (msgdata->paused)
-                return NGHTTP2_ERR_PAUSE;
-
         g_assert (msgdata->body_istream != NULL);
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (msgdata->body_istream), data, len);
 
@@ -626,11 +623,6 @@ on_data_source_read_callback (nghttp2_session     *session,
 {
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
         SoupClientMessageIOHTTP2 *io = get_io_data (data->msg);
-
-        if (data->paused) {
-                h2_debug (io, data, "[SEND_BODY] Paused");
-                return NGHTTP2_ERR_PAUSE;
-        }
 
         /* This cancellable is only used for async data source operations,
          * only exists while reading is happening, and will be cancelled
@@ -1221,7 +1213,7 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
 
 	done = data->state >= state;
 
-	if (!blocking && !done) {
+	if (data->paused || (!blocking && !done)) {
 		g_set_error_literal (error, G_IO_ERROR,
 				     G_IO_ERROR_WOULD_BLOCK,
 				     _("Operation would block"));
