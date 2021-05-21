@@ -85,20 +85,25 @@ do_no_content_async_test (Test *test, gconstpointer data)
 }
 
 static void
-do_large_async_test (Test *test, gconstpointer data)
+do_large_test (Test *test, gconstpointer data)
 {
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        gboolean async = GPOINTER_TO_INT (data);
+        SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        GBytes *response;
         GError *error = NULL;
 
         /* This is both large and read in chunks */
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
+        if (async)
+                response = soup_test_session_async_send (test->session, msg, NULL, &error);
+        else
+                response = soup_session_send_and_read (test->session, msg, NULL, &error);
 
         g_assert_no_error (error);
         /* Size hardcoded to match http2-server.py's response */
         g_assert_cmpuint (g_bytes_get_size (response), ==, (1024 * 24) + 1);
 
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
 }
 
 static GBytes *
@@ -626,9 +631,13 @@ main (int argc, char **argv)
                     setup_session,
                     do_no_content_async_test,
                     teardown_session);
-        g_test_add ("/http2/large/async", Test, NULL,
+        g_test_add ("/http2/large/async", Test, GINT_TO_POINTER (FALSE),
                     setup_session,
-                    do_large_async_test,
+                    do_large_test,
+                    teardown_session);
+        g_test_add ("/http2/large/sync", Test, GINT_TO_POINTER (TRUE),
+                    setup_session,
+                    do_large_test,
                     teardown_session);
         g_test_add ("/http2/multiplexing/async", Test, NULL,
                     setup_session,
