@@ -35,7 +35,7 @@ typedef struct {
 	GUri *proxy_uri;
 	gboolean ssl;
 
-	SoupMessage *current_msg;
+	SoupMessage *proxy_msg;
         SoupClientMessageIO *io_data;
 	SoupConnectionState state;
 	time_t       unused_timeout;
@@ -100,7 +100,7 @@ soup_connection_finalize (GObject *object)
         g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
 	g_clear_object (&priv->remote_connectable);
         g_clear_object (&priv->remote_address);
-	g_clear_object (&priv->current_msg);
+	g_clear_object (&priv->proxy_msg);
 
 	if (priv->cancellable) {
 		g_warning ("Disposing connection %p during connect", object);
@@ -362,72 +362,48 @@ soup_connection_set_state (SoupConnection     *conn,
 }
 
 static void
-current_msg_got_body (SoupMessage *msg, gpointer user_data)
+proxy_msg_got_body (SoupMessage    *msg,
+                    SoupConnection *conn)
 {
-	SoupConnection *conn = user_data;
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	priv->unused_timeout = 0;
-
-	if (priv->proxy_uri &&
-	    soup_message_get_method (msg) == SOUP_METHOD_CONNECT &&
-	    SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
+	if (SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
 		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
 
 		/* We're now effectively no longer proxying */
 		g_clear_pointer (&priv->proxy_uri, g_uri_unref);
+                g_signal_handlers_disconnect_by_func (priv->proxy_msg, proxy_msg_got_body, conn);
+                g_clear_object (&priv->proxy_msg);
 	}
 }
 
 static void
-clear_current_msg (SoupConnection *conn)
-{
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
-	SoupMessage *msg;
-
-	msg = priv->current_msg;
-	priv->current_msg = NULL;
-
-	g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (current_msg_got_body), conn);
-	g_object_unref (msg);
-}
-
-static void
-set_current_msg (SoupConnection *conn, SoupMessage *msg)
+clear_proxy_msg (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	g_return_if_fail (priv->state == SOUP_CONNECTION_IN_USE);
-
-        /* With HTTP/1.x we keep track of the current message for proxying.
-         * With HTTP/2 we don't support proxying. */
-        switch (priv->http_version) {
-        case SOUP_HTTP_1_0:
-        case SOUP_HTTP_1_1:
-                break;
-        case SOUP_HTTP_2_0:
-                // FIXME: stop_idle_timer() needs to be handled
+        if (!priv->proxy_msg)
                 return;
-        }
 
-	g_object_freeze_notify (G_OBJECT (conn));
+        g_signal_handlers_disconnect_by_func (priv->proxy_msg, proxy_msg_got_body, conn);
+        g_clear_object (&priv->proxy_msg);
+}
 
-	if (priv->current_msg) {
-		g_return_if_fail (soup_message_get_method (priv->current_msg) == SOUP_METHOD_CONNECT);
-		clear_current_msg (conn);
-	}
+static void
+set_proxy_msg (SoupConnection *conn,
+               SoupMessage    *msg)
+{
+	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	stop_idle_timer (priv);
+        g_assert (priv->http_version != SOUP_HTTP_2_0);
 
-	priv->current_msg = g_object_ref (msg);
+        clear_proxy_msg (conn);
+	priv->proxy_msg = g_object_ref (msg);
+	g_signal_connect_object (msg, "got-body",
+                                 G_CALLBACK (proxy_msg_got_body),
+                                 conn, 0);
 
-	g_signal_connect (msg, "got-body",
-			  G_CALLBACK (current_msg_got_body), conn);
-
-	if (priv->proxy_uri && soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
-		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATING, NULL);
-
-	g_object_thaw_notify (G_OBJECT (conn));
+        soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATING, NULL);
 }
 
 static void
@@ -1067,8 +1043,7 @@ soup_connection_set_in_use (SoupConnection *conn,
                 return;
         }
 
-        if (priv->current_msg)
-                clear_current_msg (conn);
+        clear_proxy_msg (conn);
 
         if (soup_connection_is_reusable (conn))
                 soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
@@ -1082,11 +1057,13 @@ soup_connection_setup_message_io (SoupConnection *conn,
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        g_assert (priv->state != SOUP_CONNECTION_NEW &&
-                  priv->state != SOUP_CONNECTION_DISCONNECTED);
+        g_assert (priv->state == SOUP_CONNECTION_IN_USE);
 
-        if (priv->current_msg != msg)
-                set_current_msg (conn, msg);
+        priv->unused_timeout = 0;
+        stop_idle_timer (priv);
+
+        if (priv->proxy_uri && soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
+                set_proxy_msg (conn, msg);
 
         if (!soup_client_message_io_is_reusable (priv->io_data)) {
                 g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
