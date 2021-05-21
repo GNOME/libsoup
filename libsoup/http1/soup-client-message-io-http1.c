@@ -51,6 +51,7 @@ typedef struct {
 
         SoupMessageIOHTTP1 *msg_io;
         gboolean is_reusable;
+        gboolean ever_used;
 } SoupClientMessageIOHTTP1;
 
 #define RESPONSE_BLOCK_SIZE 8192
@@ -653,6 +654,7 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
                 io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
                 soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
                 client_io->is_reusable = soup_message_is_keepalive (msg);
+                client_io->ever_used = TRUE;
                 soup_message_got_body (msg);
                 break;
 
@@ -680,7 +682,7 @@ request_is_restartable (SoupMessage *msg, GError *error)
 
         return (io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
                 io->read_header_buf->len == 0 &&
-                soup_connection_get_ever_used (soup_message_get_connection (client_io->msg_io->item->msg)) &&
+                client_io->ever_used &&
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&

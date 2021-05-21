@@ -1076,16 +1076,6 @@ soup_connection_set_in_use (SoupConnection *conn,
                 soup_connection_disconnect (conn);
 }
 
-gboolean
-soup_connection_get_ever_used (SoupConnection *conn)
-{
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
-
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-
-	return priv->unused_timeout == 0;
-}
-
 SoupClientMessageIO *
 soup_connection_setup_message_io (SoupConnection *conn,
                                   SoupMessage    *msg)
