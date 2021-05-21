@@ -819,7 +819,10 @@ send_message_request (SoupMessage          *msg,
 
         GUri *uri = soup_message_get_uri (msg);
         char *host = soup_uri_get_host_for_headers (uri);
-        char *authority = g_strdup_printf ("%s:%u", host, g_uri_get_port (uri));
+        char *authority = NULL;
+        if (!soup_uri_uses_default_port (uri))
+                authority = g_strdup_printf ("%s:%d", host, g_uri_get_port (uri));
+        const char *authority_header = authority ? authority : host;
 
         char *path_and_query;
         if (soup_message_get_is_options_ping (msg))
@@ -830,7 +833,7 @@ send_message_request (SoupMessage          *msg,
         const nghttp2_nv pseudo_headers[] = {
                 MAKE_NV3 (":method", soup_message_get_method (msg), NGHTTP2_NV_FLAG_NO_COPY_VALUE),
                 MAKE_NV2 (":scheme", g_uri_get_scheme (uri)),
-                MAKE_NV2 (":authority", authority),
+                MAKE_NV2 (":authority", authority_header),
                 MAKE_NV2 (":path", path_and_query),
         };
 
