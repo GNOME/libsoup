@@ -41,7 +41,6 @@ typedef struct {
 	time_t       unused_timeout;
 	GSource     *idle_timeout_src;
         guint        in_use;
-	gboolean     reusable;
         SoupHTTPVersion http_version;
 
 	GCancellable *cancellable;
@@ -378,8 +377,6 @@ current_msg_got_body (SoupMessage *msg, gpointer user_data)
 		/* We're now effectively no longer proxying */
 		g_clear_pointer (&priv->proxy_uri, g_uri_unref);
 	}
-
-	priv->reusable = soup_client_message_io_is_reusable (priv->io_data);
 }
 
 static void
@@ -402,18 +399,14 @@ set_current_msg (SoupConnection *conn, SoupMessage *msg)
 
 	g_return_if_fail (priv->state == SOUP_CONNECTION_IN_USE);
 
-        /* With HTTP/1.x we keep track of the current message both for
-         * proxying and to find out later if the connection is reusable
-         * with keep-alive. With HTTP/2 we don't support proxying and
-         * we assume its reusable by default and detect a closed connection
-         * elsewhere */
+        /* With HTTP/1.x we keep track of the current message for proxying.
+         * With HTTP/2 we don't support proxying. */
         switch (priv->http_version) {
         case SOUP_HTTP_1_0:
         case SOUP_HTTP_1_1:
                 break;
         case SOUP_HTTP_2_0:
                 // FIXME: stop_idle_timer() needs to be handled
-                priv->reusable = TRUE;
                 return;
         }
 
@@ -427,7 +420,6 @@ set_current_msg (SoupConnection *conn, SoupMessage *msg)
 	stop_idle_timer (priv);
 
 	priv->current_msg = g_object_ref (msg);
-	priv->reusable = FALSE;
 
 	g_signal_connect (msg, "got-body",
 			  G_CALLBACK (current_msg_got_body), conn);
@@ -1078,21 +1070,10 @@ soup_connection_set_in_use (SoupConnection *conn,
         if (priv->current_msg)
                 clear_current_msg (conn);
 
-        if (priv->reusable)
+        if (soup_connection_is_reusable (conn))
                 soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
         else
                 soup_connection_disconnect (conn);
-}
-
-void
-soup_connection_set_reusable (SoupConnection *conn,
-                              gboolean        reusable)
-{
-        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
-
-        g_return_if_fail (SOUP_IS_CONNECTION (conn));
-
-        priv->reusable = TRUE;
 }
 
 gboolean
@@ -1116,8 +1097,6 @@ soup_connection_setup_message_io (SoupConnection *conn,
 
         if (priv->current_msg != msg)
                 set_current_msg (conn, msg);
-        else
-                priv->reusable = FALSE;
 
         if (!soup_client_message_io_is_reusable (priv->io_data)) {
                 g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
@@ -1186,5 +1165,5 @@ soup_connection_is_reusable (SoupConnection *conn)
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        return priv->reusable;
+        return priv->io_data && soup_client_message_io_is_reusable (priv->io_data);
 }

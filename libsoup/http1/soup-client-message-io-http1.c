@@ -50,6 +50,7 @@ typedef struct {
         GOutputStream *ostream;
 
         SoupMessageIOHTTP1 *msg_io;
+        gboolean is_reusable;
 } SoupClientMessageIOHTTP1;
 
 #define RESPONSE_BLOCK_SIZE 8192
@@ -651,6 +652,7 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
         case SOUP_MESSAGE_IO_STATE_BODY_DONE:
                 io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
                 soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
+                client_io->is_reusable = soup_message_is_keepalive (msg);
                 soup_message_got_body (msg);
                 break;
 
@@ -1032,6 +1034,7 @@ soup_client_message_io_http1_send_item (SoupClientMessageIO       *iface,
 #endif
 
         io->msg_io = msg_io;
+        io->is_reusable = FALSE;
 }
 
 static void
@@ -1112,10 +1115,7 @@ soup_client_message_io_http1_is_reusable (SoupClientMessageIO *iface)
 {
         SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
 
-        if (!io->msg_io)
-                return TRUE;
-
-        return soup_message_is_keepalive (io->msg_io->item->msg);
+        return io->is_reusable;
 }
 
 static const SoupClientMessageIOFuncs io_funcs = {
@@ -1145,6 +1145,7 @@ soup_client_message_io_http1_new (GIOStream *stream)
         io->iostream = g_object_ref (stream);
         io->istream = g_io_stream_get_input_stream (io->iostream);
         io->ostream = g_io_stream_get_output_stream (io->iostream);
+        io->is_reusable = TRUE;
 
         io->iface.funcs = &io_funcs;
 

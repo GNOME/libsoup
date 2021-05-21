@@ -3889,16 +3889,10 @@ preconnect_async_complete (SoupMessage *msg,
 {
         SoupMessageQueueItem *item = g_task_get_task_data (task);
 
-        if (item->error) {
+        if (item->error)
                 g_task_return_error (task, g_error_copy (item->error));
-        } else {
-                SoupConnection *conn;
-
-                conn = soup_message_get_connection (item->msg);
-                if (conn)
-                        soup_connection_set_reusable (conn, TRUE);
+        else
                 g_task_return_boolean (task, TRUE);
-        }
         g_object_unref (task);
 }
 

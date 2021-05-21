@@ -59,9 +59,6 @@ SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void            soup_connection_set_in_use     (SoupConnection   *conn,
                                                 gboolean          in_use);
 gboolean        soup_connection_is_idle_open   (SoupConnection   *conn);
-void            soup_connection_set_reusable   (SoupConnection   *conn,
-                                                gboolean          reusable);
-
 gboolean        soup_connection_get_ever_used  (SoupConnection   *conn);
 
 SoupClientMessageIO *soup_connection_setup_message_io    (SoupConnection *conn,
