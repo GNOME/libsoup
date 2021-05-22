@@ -1,3 +1,7 @@
+Changes in libsoup from 2.99.5 to 2.99.6:
+
+    * Added HTTP/2 support. Enable by setting `SOUP_ENABLE_HTTP2` env var. [Patrick Griffis, Carlos Garcia Campos]
+
 Changes in libsoup from 2.99.4 to 2.99.5:
 
     * Add soup_message_get_remote_address() API [Carlos Garcia Campos]
