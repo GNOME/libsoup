@@ -87,7 +87,7 @@ async def misdirected_request():
 if __name__ == '__main__':
     # Always close so this is never left running by accident
     loop = asyncio.get_event_loop()
-    loop.call_later(15, lambda: sys.exit(0))
+    loop.call_later(25, lambda: sys.exit(0))
 
     app.run(use_reloader=False, loop=loop,
         certfile='test-cert.pem',
