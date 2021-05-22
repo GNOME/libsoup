@@ -1794,16 +1794,18 @@ get_connection_for_host (SoupSession *session,
                 force_http1 = TRUE;
 
 	for (conns = host->connections; conns; conns = conns->next) {
+                SoupHTTPVersion http_version;
+
 		conn = conns->data;
 
-                if (force_http1 && soup_connection_get_negotiated_protocol (conn) > SOUP_HTTP_1_1)
+                http_version = soup_connection_get_negotiated_protocol (conn);
+                if (force_http1 && http_version > SOUP_HTTP_1_1)
                         continue;
 
 		switch (soup_connection_get_state (conn)) {
                 case SOUP_CONNECTION_IN_USE:
-                        if (!need_new_connection && soup_connection_is_reusable (conn)) {
+                        if (!need_new_connection && http_version == SOUP_HTTP_2_0 && soup_connection_is_reusable (conn))
                                 return conn;
-                        }
                         break;
 		case SOUP_CONNECTION_IDLE:
 			if (!need_new_connection && soup_connection_is_idle_open (conn))
