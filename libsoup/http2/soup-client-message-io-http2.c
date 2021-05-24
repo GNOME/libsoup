@@ -589,9 +589,10 @@ on_data_read (GInputStream *source,
         if (read < 0) {
                 g_byte_array_set_size (data->data_source_buffer, 0);
                 data->data_source_error = g_steal_pointer (&error);
-        } else if (read == 0)
+        } else if (read == 0) {
+                g_byte_array_set_size (data->data_source_buffer, 0);
                 data->data_source_eof = TRUE;
-        else
+        } else
                 g_byte_array_set_size (data->data_source_buffer, read);
 
         h2_debug (data->io, data, "[SEND_BODY] Resuming send");
