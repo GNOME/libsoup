@@ -577,7 +577,7 @@ on_data_read (GInputStream *source,
         GError *error = NULL;
         gssize read = g_input_stream_read_finish (source, res, &error);
 
-        h2_debug (data->io, data, "[SEND_BODY] Read %zu", read);
+        h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
 
         /* This operation may have outlived the message data in which
            case this will have been cancelled. */
@@ -640,7 +640,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                 gssize read = g_pollable_input_stream_read_nonblocking  (in_stream, buf, length, data->cancellable, &error);
 
                 if (read) {
-                        h2_debug (io, data, "[SEND_BODY] Read %zu", read);
+                        h2_debug (io, data, "[SEND_BODY] Read %zd", read);
                         log_request_data (data, buf, read);
                 }
 
