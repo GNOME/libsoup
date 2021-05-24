@@ -629,7 +629,6 @@ on_data_source_read_callback (nghttp2_session     *session,
                               void                *user_data)
 {
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
-        SoupClientMessageIOHTTP2 *io = get_io_data (data->msg);
 
         /* We support pollable streams in the best case because they
          * should perform better with one fewer copy of each buffer and no threading. */
@@ -640,7 +639,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                 gssize read = g_pollable_input_stream_read_nonblocking  (in_stream, buf, length, data->cancellable, &error);
 
                 if (read) {
-                        h2_debug (io, data, "[SEND_BODY] Read %zd", read);
+                        h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
                         log_request_data (data, buf, read);
                 }
 
@@ -648,7 +647,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                                 g_assert (data->data_source_poll == NULL);
 
-                                h2_debug (io, data, "[SEND_BODY] Polling");
+                                h2_debug (data->io, data, "[SEND_BODY] Polling");
                                 data->data_source_poll = g_pollable_input_stream_create_source (in_stream, data->cancellable);
                                 g_source_set_callback (data->data_source_poll, (GSourceFunc)on_data_readable, data, NULL);
                                 g_source_set_priority (data->data_source_poll, get_data_io_priority (data));
@@ -664,7 +663,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                         return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
                 }
                 else if (read == 0) {
-                        h2_debug (io, data, "[SEND_BODY] EOF");
+                        h2_debug (data->io, data, "[SEND_BODY] EOF");
                         *data_flags |= NGHTTP2_DATA_FLAG_EOF;
                 }
 
@@ -681,21 +680,21 @@ on_data_source_read_callback (nghttp2_session     *session,
 
                 guint buffer_len = data->data_source_buffer->len;
                 if (buffer_len) {
-                        h2_debug (io, data, "[SEND_BODY] Sending %zu", buffer_len);
+                        h2_debug (data->io, data, "[SEND_BODY] Sending %zu", buffer_len);
                         g_assert (buffer_len <= length); /* QUESTION: Maybe not reliable */
                         memcpy (buf, data->data_source_buffer->data, buffer_len);
                         log_request_data (data, buf, buffer_len);
                         g_byte_array_set_size (data->data_source_buffer, 0);
                         return buffer_len;
                 } else if (data->data_source_eof) {
-                        h2_debug (io, data, "[SEND_BODY] EOF");
+                        h2_debug (data->io, data, "[SEND_BODY] EOF");
                         *data_flags |= NGHTTP2_DATA_FLAG_EOF;
                         return 0;
                 } else if (data->data_source_error) {
                         set_error_for_data (data, g_steal_pointer (&data->data_source_error));
                         return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
                 } else {
-                        h2_debug (io, data, "[SEND_BODY] Reading async");
+                        h2_debug (data->io, data, "[SEND_BODY] Reading async");
                         g_byte_array_set_size (data->data_source_buffer, length);
                         g_assert (!data->data_source_cancellable);
                         data->data_source_cancellable = g_cancellable_new ();
