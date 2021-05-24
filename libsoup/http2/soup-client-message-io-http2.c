@@ -936,6 +936,12 @@ soup_client_message_io_http2_pause (SoupClientMessageIO *iface,
         if (data->paused)
                 g_warn_if_reached ();
 
+        if (data->io_source) {
+                g_source_destroy (data->io_source);
+                g_source_unref (data->io_source);
+                data->io_source = NULL;
+        }
+
         data->paused = TRUE;
 }
 
@@ -993,14 +999,15 @@ soup_client_message_io_http2_is_reusable (SoupClientMessageIO *iface)
 static gboolean
 message_source_check (GSource *source)
 {
-	SoupMessageIOSource *message_source = (SoupMessageIOSource *)source;
-        SoupMessage *msg = SOUP_MESSAGE (message_source->msg);
-        SoupClientMessageIOHTTP2 *io = get_io_data (msg);
-        SoupHTTP2MessageData *data = get_data_for_message (io, msg);
+        SoupMessageIOSource *message_source = (SoupMessageIOSource *)source;
 
-        /* QUESTION: What is the point of message_source->paused */
+        if (message_source->paused) {
+                if (soup_message_is_io_paused (SOUP_MESSAGE (message_source->msg)))
+                        return FALSE;
+                return TRUE;
+        }
 
-        return !data->paused;
+        return FALSE;
 }
 
 static GSource *

@@ -314,7 +314,7 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
                         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream), (guint8*)" Part 2", 8);
                         soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream));
                 }
-                g_main_context_iteration (async_context, TRUE);
+                g_main_context_iteration (async_context, FALSE);
         }
 
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Part 1 - Part 2");
