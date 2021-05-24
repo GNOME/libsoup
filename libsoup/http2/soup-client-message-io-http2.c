@@ -1009,13 +1009,12 @@ message_source_check (GSource *source)
 }
 
 static GSource *
-soup_client_message_io_http2_get_source (SoupMessage             *msg,
+soup_client_message_io_http2_get_source (SoupHTTP2MessageData    *data,
+                                         SoupMessage             *msg,
                                          GCancellable            *cancellable,
                                          SoupMessageIOSourceFunc  callback,
                                          gpointer                 user_data)
 {
-        SoupClientMessageIOHTTP2 *io = get_io_data (msg);
-        SoupHTTP2MessageData *data = get_data_for_message (io, msg);
         GSource *base_source;
 
         /* TODO: Handle mixing writes in? */
@@ -1023,12 +1022,12 @@ soup_client_message_io_http2_get_source (SoupMessage             *msg,
                 base_source = cancellable ? g_cancellable_source_new (cancellable) : NULL;
         else if (data->state < STATE_WRITE_DONE && data->data_source_cancellable)
                 base_source = g_cancellable_source_new (data->data_source_cancellable);
-        else if (data->state < STATE_WRITE_DONE && nghttp2_session_want_write (io->session))
-                base_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), cancellable);
+        else if (data->state < STATE_WRITE_DONE && nghttp2_session_want_write (data->io->session))
+                base_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (data->io->ostream), cancellable);
         else if (data->state < STATE_READ_DONE && data->decoded_data_istream)
                 base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (data->decoded_data_istream), cancellable);
-        else if (data->state < STATE_READ_DONE && nghttp2_session_want_read (io->session))
-                base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), cancellable);
+        else if (data->state < STATE_READ_DONE && nghttp2_session_want_read (data->io->session))
+                base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (data->io->istream), cancellable);
         else {
                 g_warn_if_reached ();
                 base_source = g_timeout_source_new (0);
@@ -1312,9 +1311,9 @@ io_run_until_read_async (SoupMessage *msg,
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
-                data->io_source = soup_client_message_io_http2_get_source (msg, g_task_get_cancellable (task),
-                                                                  (SoupMessageIOSourceFunc)io_run_until_read_ready,
-                                                                  task);
+                data->io_source = soup_client_message_io_http2_get_source (data, msg, g_task_get_cancellable (task),
+                                                                           (SoupMessageIOSourceFunc)io_run_until_read_ready,
+                                                                           task);
 		g_source_set_priority (data->io_source, g_task_get_priority (task));
                 g_source_attach (data->io_source, io->async_context);
                 return;
