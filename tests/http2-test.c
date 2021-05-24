@@ -457,6 +457,9 @@ do_connections_test (Test *test, gconstpointer data)
         soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_ready, &complete_count);
         g_object_unref (msg);
 
+        while (complete_count != N_TESTS + 1)
+                g_main_context_iteration (async_context, TRUE);
+
         while (g_main_context_pending (async_context))
                 g_main_context_iteration (async_context, FALSE);
 
