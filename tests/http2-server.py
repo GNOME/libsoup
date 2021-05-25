@@ -2,6 +2,7 @@
 
 import asyncio
 from functools import wraps
+import os
 from secrets import compare_digest
 import sys
 from urllib.parse import urlparse
@@ -19,6 +20,10 @@ loop = None
 
 def set_timeout():
     global timer_handle
+
+    # ASAN is very slow, just don't have a timer.
+    if 'ASAN_OPTIONS' in os.environ:
+        return
 
     if timer_handle:
         timer_handle.cancel()
