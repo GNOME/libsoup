@@ -514,10 +514,11 @@ on_frame_send_callback (nghttp2_session     *session,
                 }
                 break;
         case NGHTTP2_DATA:
-                h2_debug (user_data, data, "[SEND] [DATA] bytes=%zu, finished=%d",
-                          frame->data.hd.length, frame->hd.flags & NGHTTP2_FLAG_END_STREAM);
                 if (data->state < STATE_WRITE_DATA)
                         advance_state_from (data, STATE_WRITE_HEADERS, STATE_WRITE_DATA);
+
+                h2_debug (user_data, data, "[SEND] [DATA] bytes=%zu, finished=%d",
+                          frame->data.hd.length, frame->hd.flags & NGHTTP2_FLAG_END_STREAM);
                 if (data->metrics) {
                         data->metrics->request_body_bytes_sent += frame->hd.length + FRAME_HEADER_SIZE;
                         data->metrics->request_body_size += frame->data.hd.length;
