@@ -90,18 +90,6 @@ soup_client_message_io_run_until_read_async (SoupClientMessageIO *io,
 }
 
 gboolean
-soup_client_message_io_close_async (SoupClientMessageIO *io,
-                                    SoupConnection      *conn,
-                                    GAsyncReadyCallback  callback)
-{
-        if (!io->funcs->close_async)
-                return FALSE;
-
-        io->funcs->close_async (io, conn, callback);
-        return TRUE;
-}
-
-gboolean
 soup_client_message_io_skip (SoupClientMessageIO *io,
                              SoupMessage         *msg,
                              gboolean             blocking,

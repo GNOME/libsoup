@@ -1132,7 +1132,6 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_run,
         soup_client_message_io_http1_run_until_read,
         soup_client_message_io_http1_run_until_read_async,
-        NULL,
         soup_client_message_io_http1_skip,
         soup_client_message_io_http1_is_open,
         soup_client_message_io_http1_in_progress,
