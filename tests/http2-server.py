@@ -14,21 +14,39 @@ from quart import (
 
 app = Quart(__name__)
 
+timer_handle = None
+loop = None
+
+def set_timeout():
+    global timer_handle
+
+    if timer_handle:
+        timer_handle.cancel()
+
+    # This timeout just prevents a zombie process from
+    # running even if a test crashes.
+    timer_handle = loop.call_later(10, lambda: sys.exit(0))
+
+
 @app.route('/')
 async def index():
+    set_timeout()
     return 'Hello world'
 
 @app.route('/slow')
 async def slow():
+    set_timeout()
     await asyncio.sleep(1)
     return 'Hello world'
 
 @app.route('/no-content')
 async def no_content():
+    set_timeout()
     return await make_response('', 204)
 
 @app.route('/large')
 async def large():
+    set_timeout()
 
     async def generate_data():
         # Send increasing letters just to aid debugging
@@ -46,16 +64,19 @@ async def large():
 
 @app.route('/echo_query')
 async def echo_query():
+    set_timeout()
     url = urlparse(request.url)
     return url.query
 
 @app.route('/echo_post', methods=['POST'])
 async def echo_post():
+    set_timeout()
     data = await request.get_data()
     return data
 
 @app.route('/auth')
 async def auth():
+    set_timeout()
     auth = request.authorization
 
     if (
@@ -75,6 +96,7 @@ has_been_misdirected = False
 
 @app.route('/misdirected_request')
 async def misdirected_request():
+    set_timeout()
     global has_been_misdirected
 
     if not has_been_misdirected:
@@ -85,9 +107,8 @@ async def misdirected_request():
     return 'Success!'
 
 if __name__ == '__main__':
-    # Always close so this is never left running by accident
     loop = asyncio.get_event_loop()
-    loop.call_later(25, lambda: sys.exit(0))
+    set_timeout()
 
     app.run(use_reloader=False, loop=loop,
         certfile='test-cert.pem',
