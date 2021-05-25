@@ -335,8 +335,10 @@ on_begin_frame_callback (nghttp2_session        *session,
 
         switch (hd->type) {
         case NGHTTP2_HEADERS:
-                if (data->state < STATE_READ_HEADERS)
+                if (data->state < STATE_READ_HEADERS) {
+                        soup_message_set_metrics_timestamp (data->item->msg, SOUP_MESSAGE_METRICS_RESPONSE_START);
                         advance_state_from (data, STATE_WRITE_DONE, STATE_READ_HEADERS);
+                }
                 break;
         case NGHTTP2_DATA:
                 if (data->state < STATE_READ_DATA_START) {
@@ -1055,6 +1057,7 @@ client_stream_eof (SoupClientInputStream *stream,
 
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
         h2_debug (io, data, "Client stream EOF");
+        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
         advance_state_from (data, STATE_READ_DATA, STATE_READ_DONE);
         g_signal_handlers_disconnect_by_func (stream, client_stream_eof, msg);
         soup_message_got_body (data->msg);
@@ -1243,7 +1246,17 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
 
-        return io_run_until (io, msg, TRUE, STATE_READ_DATA, cancellable, error);
+        if (io_run_until (io, msg, TRUE, STATE_READ_DATA, cancellable, error))
+                return TRUE;
+
+        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
+
+        if (get_io_data (msg) == io)
+                soup_client_message_io_http2_finished (iface, msg);
+        else
+                g_warn_if_reached ();
+
+        return FALSE;
 }
 
 static gboolean
@@ -1321,6 +1334,8 @@ io_run_until_read_async (SoupMessage *msg,
                 g_source_attach (data->io_source, io->async_context);
                 return;
         }
+
+        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
 
         if (get_io_data (msg) == io)
                 soup_client_message_io_http2_finished ((SoupClientMessageIO *)io, msg);

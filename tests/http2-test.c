@@ -521,7 +521,7 @@ do_logging_test (Test *test, gconstpointer data)
 }
 
 static void
-do_metrics_test (Test *test, gconstpointer data)
+do_metrics_size_test (Test *test, gconstpointer data)
 {
         GBytes *bytes = g_bytes_new_static ("Test", sizeof ("Test"));
         test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
@@ -548,6 +548,148 @@ do_metrics_test (Test *test, gconstpointer data)
         g_bytes_unref (response);
         g_bytes_unref (bytes);
         g_object_unref (test->msg);
+}
+
+static void
+metrics_test_network_event_cb (SoupMessage       *msg,
+                               GSocketClientEvent event,
+                               GIOStream         *connection,
+                               guint             *network_event_called)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+        g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
+
+        switch (event) {
+        case G_SOCKET_CLIENT_RESOLVING:
+                g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), >, 0);
+                break;
+        case G_SOCKET_CLIENT_RESOLVED:
+                g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), >=, soup_message_metrics_get_dns_start (metrics));
+                break;
+        case G_SOCKET_CLIENT_CONNECTING:
+                g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), >=, soup_message_metrics_get_dns_end (metrics));
+                break;
+        case G_SOCKET_CLIENT_TLS_HANDSHAKING:
+                g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), >=, soup_message_metrics_get_connect_start (metrics));
+                break;
+        case G_SOCKET_CLIENT_COMPLETE:
+                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >=, soup_message_metrics_get_connect_start (metrics));
+                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >=, soup_message_metrics_get_tls_start (metrics));
+                break;
+        default:
+                return;
+        }
+
+        *network_event_called += 1;
+}
+
+static void
+metrics_test_message_starting_cb (SoupMessage *msg,
+                                  gboolean    *starting_called)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+        g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >=, soup_message_metrics_get_fetch_start (metrics));
+
+        *starting_called = TRUE;
+}
+
+static void
+metrics_test_status_changed_cb (SoupMessage *msg,
+                                GParamSpec  *pspec,
+                                gboolean    *status_changed_called)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+        g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >=, soup_message_metrics_get_request_start (metrics));
+
+        *status_changed_called = TRUE;
+}
+
+static void
+metrics_test_got_body_cb (SoupMessage *msg,
+                          gboolean    *got_body_called)
+{
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
+
+        g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >=, soup_message_metrics_get_response_start (metrics));
+
+        *got_body_called = TRUE;
+}
+
+static void
+do_one_metrics_time_test (SoupSession *session,
+                          gboolean     is_new_connection)
+{
+        SoupMessage *msg;
+        GBytes *body;
+        SoupMessageMetrics *metrics;
+        gboolean starting_called = FALSE;
+        gboolean status_changed_called = FALSE;
+        gboolean got_body_called = FALSE;
+        guint network_event_called = 0;
+
+        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
+        g_signal_connect (msg, "starting",
+                          G_CALLBACK (metrics_test_message_starting_cb),
+                          &starting_called);
+        g_signal_connect (msg, "notify::status-code",
+                          G_CALLBACK (metrics_test_status_changed_cb),
+                          &status_changed_called);
+        g_signal_connect (msg, "got-body",
+                          G_CALLBACK (metrics_test_got_body_cb),
+                          &got_body_called);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (metrics_test_network_event_cb),
+                          &network_event_called);
+        body = soup_session_send_and_read (session, msg, NULL, NULL);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_bytes_unref (body);
+
+        g_assert_true (starting_called);
+        g_assert_true (status_changed_called);
+        g_assert_true (got_body_called);
+        if (is_new_connection)
+                g_assert_cmpuint (network_event_called, ==, 5);
+        else
+                g_assert_cmpuint (network_event_called, ==, 0);
+
+        metrics = soup_message_get_metrics (msg);
+        g_assert_nonnull (metrics);
+        g_assert_cmpuint (soup_message_metrics_get_fetch_start (metrics), >, 0);
+        if (is_new_connection) {
+                g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), >, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), >, 0);
+        } else {
+                g_assert_cmpuint (soup_message_metrics_get_dns_start (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_dns_end (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_start (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_tls_start (metrics), ==, 0);
+                g_assert_cmpuint (soup_message_metrics_get_connect_end (metrics), ==, 0);
+        }
+        g_assert_cmpuint (soup_message_metrics_get_request_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_start (metrics), >, 0);
+        g_assert_cmpuint (soup_message_metrics_get_response_end (metrics), >, 0);
+        g_object_unref (msg);
+}
+
+static void
+do_metrics_time_test (Test *test, gconstpointer data)
+{
+        do_one_metrics_time_test (test->session, TRUE);
+        do_one_metrics_time_test (test->session, FALSE);
 }
 
 static void
@@ -795,9 +937,13 @@ main (int argc, char **argv)
                     setup_session,
                     do_logging_test,
                     teardown_session);
-        g_test_add ("/http2/metrics", Test, NULL,
+        g_test_add ("/http2/metrics/size", Test, NULL,
                     setup_session,
-                    do_metrics_test,
+                    do_metrics_size_test,
+                    teardown_session);
+        g_test_add ("/http2/metrics/time", Test, NULL,
+                    setup_session,
+                    do_metrics_time_test,
                     teardown_session);
         g_test_add ("/http2/preconnect", Test, NULL,
                     setup_session,
