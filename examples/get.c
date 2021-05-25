@@ -249,7 +249,6 @@ main (int argc, char **argv)
                                                  "accept-language-auto", TRUE,
                                                  "timeout", 15,
                                                  NULL);
-        soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
         soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 	if (ntlm)
 		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
