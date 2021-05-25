@@ -888,29 +888,10 @@ soup_connection_tunnel_handshake (SoupConnection *conn,
         return TRUE;
 }
 
-/**
- * soup_connection_disconnect:
- * @conn: a connection
- *
- * Disconnects @conn's socket and emits a %disconnected signal.
- * After calling this, @conn will be essentially useless.
- **/
-void
-soup_connection_disconnect (SoupConnection *conn)
+static void
+soup_connection_disconnected (SoupConnection *conn)
 {
-        SoupConnectionPrivate *priv;
-        SoupConnectionState old_state;
-
-        g_return_if_fail (SOUP_IS_CONNECTION (conn));
-        priv = soup_connection_get_instance_private (conn);
-
-        old_state = priv->state;
-        soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
-
-        if (priv->cancellable) {
-                g_cancellable_cancel (priv->cancellable);
-                priv->cancellable = NULL;
-        }
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         if (priv->connection) {
                 GIOStream *connection;
@@ -923,8 +904,44 @@ soup_connection_disconnect (SoupConnection *conn)
                 g_object_unref (connection);
         }
 
-        if (old_state != SOUP_CONNECTION_DISCONNECTED)
-                g_signal_emit (conn, signals[DISCONNECTED], 0);
+        g_signal_emit (conn, signals[DISCONNECTED], 0);
+}
+
+static void
+client_message_io_closed_cb (SoupConnection *conn,
+                             GAsyncResult   *result)
+{
+        g_task_propagate_boolean (G_TASK (result), NULL);
+        soup_connection_disconnected (conn);
+}
+
+/**
+ * soup_connection_disconnect:
+ * @conn: a connection
+ *
+ * Disconnects @conn's socket and emits a %disconnected signal.
+ * After calling this, @conn will be essentially useless.
+ **/
+void
+soup_connection_disconnect (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        if (priv->state == SOUP_CONNECTION_DISCONNECTED)
+                return;
+
+        soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
+
+        if (priv->cancellable) {
+                g_cancellable_cancel (priv->cancellable);
+                priv->cancellable = NULL;
+        }
+
+        if (priv->io_data &&
+            soup_client_message_io_close_async (priv->io_data, conn, (GAsyncReadyCallback)client_message_io_closed_cb))
+                return;
+
+        soup_connection_disconnected (conn);
 }
 
 GSocket *

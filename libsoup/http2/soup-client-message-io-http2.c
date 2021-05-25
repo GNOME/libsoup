@@ -81,6 +81,10 @@ typedef struct {
         GSource *reset_stream_source;
         GSource *idle_read_source;
         gboolean is_shutdown;
+
+        GTask *close_task;
+        GSource *close_source;
+        gboolean goaway_sent;
 } SoupClientMessageIOHTTP2;
 
 typedef struct {
@@ -119,6 +123,7 @@ typedef struct {
 static gboolean io_read (SoupClientMessageIOHTTP2 *, gboolean, GCancellable *, GError **);
 static void io_write_until_stream_reset_is_sent (SoupHTTP2MessageData *data);
 static void io_idle_read (SoupClientMessageIOHTTP2 *io);
+static void io_close (SoupClientMessageIOHTTP2 *io);
 
 static void
 NGCHECK (int return_code)
@@ -270,6 +275,20 @@ advance_state_from (SoupHTTP2MessageData *data,
         data->state = to;
 }
 
+static void
+soup_client_message_io_http2_terminate_session (SoupClientMessageIOHTTP2 *io)
+{
+        if (io->goaway_sent)
+                return;
+
+        if (g_hash_table_size (io->messages) != 0)
+                return;
+
+        io->goaway_sent = TRUE;
+        NGCHECK (nghttp2_session_terminate_session (io->session, NGHTTP2_NO_ERROR));
+        io_close (io);
+}
+
 /* HTTP2 read callbacks */
 
 static int
@@ -402,6 +421,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                           frame->goaway.opaque_data ? (char *)frame->goaway.opaque_data : "");
                 handle_goaway (io, frame->goaway.error_code, frame->goaway.last_stream_id);
                 io->is_shutdown = TRUE;
+                soup_client_message_io_http2_terminate_session (io);
                 return 0;
         }
 
@@ -951,9 +971,6 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
         h2_debug (io, data, "Finished: %s", completion == SOUP_MESSAGE_IO_COMPLETE ? "completed" : "interrupted");
 
-        // ret = nghttp2_session_terminate_session (io->session, NGHTTP2_NO_ERROR);
-        // g_assert (ret == 0);
-
 	completion_cb = data->completion_cb;
 	completion_data = data->completion_data;
 
@@ -980,8 +997,12 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
 	g_object_unref (msg);
 
-        if (!io->is_shutdown)
-                io_write_until_stream_reset_is_sent (data);
+        if (io->is_shutdown) {
+                soup_client_message_io_http2_terminate_session (io);
+                return;
+        }
+
+        io_write_until_stream_reset_is_sent (data);
         if (g_hash_table_size (io->messages) == 0)
                 io_idle_read (io);
 }
@@ -1499,6 +1520,64 @@ soup_client_message_io_http2_run_until_read_async (SoupClientMessageIO *iface,
         io_run_until_read_async (msg, task);
 }
 
+static gboolean
+io_close_ready (GObject                  *stream,
+                SoupClientMessageIOHTTP2 *io)
+{
+        io_close (io);
+
+        return G_SOURCE_REMOVE;
+}
+
+static void
+io_close (SoupClientMessageIOHTTP2 *io)
+{
+        GError *error = NULL;
+
+        if (io->close_source) {
+                g_source_destroy (io->close_source);
+                g_clear_pointer (&io->close_source, g_source_unref);
+        }
+
+        while (nghttp2_session_want_write (io->session) && !error)
+                io_write (io, FALSE, FALSE, &error);
+
+        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+                g_error_free (error);
+                io->close_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
+                g_source_set_callback (io->close_source, (GSourceFunc)io_close_ready, io, NULL);
+                g_source_attach (io->close_source, g_main_context_get_thread_default ());
+                return;
+        }
+
+        if (io->close_task) {
+                if (error)
+                        g_task_return_error (io->close_task, error);
+                else
+                        g_task_return_boolean (io->close_task, TRUE);
+                g_clear_object (&io->close_task);
+                return;
+        }
+
+        g_clear_error (&error);
+}
+
+static gboolean
+soup_client_message_io_http2_close_async (SoupClientMessageIO *iface,
+                                          SoupConnection      *conn,
+                                          GAsyncReadyCallback  callback)
+{
+        SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
+
+        if (io->goaway_sent && !io->close_source)
+                return FALSE;
+
+        g_assert (!io->close_task);
+        io->close_task = g_task_new (conn, NULL, callback, NULL);
+        soup_client_message_io_http2_terminate_session (io);
+        return TRUE;
+}
+
 static void
 soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
 {
@@ -1512,7 +1591,12 @@ soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
                 g_source_destroy (io->idle_read_source);
                 g_clear_pointer (&io->idle_read_source, g_source_unref);
         }
+        if (io->close_source) {
+                g_source_destroy (io->close_source);
+                g_source_unref (io->close_source);
+        }
         g_clear_object (&io->stream);
+        g_clear_object (&io->close_task);
         g_clear_pointer (&io->async_context, g_main_context_unref);
         g_clear_pointer (&io->session, nghttp2_session_del);
         g_clear_pointer (&io->messages, g_hash_table_unref);
@@ -1533,6 +1617,7 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http2_run,
         soup_client_message_io_http2_run_until_read,
         soup_client_message_io_http2_run_until_read_async,
+        soup_client_message_io_http2_close_async,
         soup_client_message_io_http2_skip,
         soup_client_message_io_http2_is_open,
         soup_client_message_io_http2_in_progress,

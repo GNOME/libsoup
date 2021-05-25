@@ -955,6 +955,14 @@ soup_client_message_io_http1_run_until_read_async (SoupClientMessageIO *iface,
 }
 
 static gboolean
+soup_client_message_io_http1_close_async (SoupClientMessageIO *io,
+                                          SoupConnection      *conn,
+                                          GAsyncReadyCallback  callback)
+{
+        return FALSE;
+}
+
+static gboolean
 soup_client_message_io_http1_skip (SoupClientMessageIO *iface,
                                    SoupMessage         *msg,
                                    gboolean             blocking,
@@ -1132,6 +1140,7 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_run,
         soup_client_message_io_http1_run_until_read,
         soup_client_message_io_http1_run_until_read_async,
+        soup_client_message_io_http1_close_async,
         soup_client_message_io_http1_skip,
         soup_client_message_io_http1_is_open,
         soup_client_message_io_http1_in_progress,
