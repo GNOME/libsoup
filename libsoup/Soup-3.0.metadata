@@ -21,7 +21,6 @@ Message
 Server
 	.new skip=false
 Session
-	.get_features type_arguments="weak Soup.SessionFeature"
 	.send_async.cancellable#parameter default=null
 Session*.new_with_options skip=false
 

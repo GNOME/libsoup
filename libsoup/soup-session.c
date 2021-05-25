@@ -2211,12 +2211,25 @@ soup_session_abort (SoupSession *session)
 	g_slist_free (conns);
 }
 
+static gboolean
+feature_already_added (SoupSession *session, GType feature_type)
+{
+        if (soup_session_has_feature (session, feature_type)) {
+                g_warning ("SoupSession already has a %s, ignoring new feature",
+                           g_type_name (feature_type));
+                return TRUE;
+        }
+
+        return FALSE;
+}
+
 /**
  * soup_session_add_feature:
  * @session: a #SoupSession
  * @feature: an object that implements #SoupSessionFeature
  *
- * Adds @feature's functionality to @session.
+ * Adds @feature's functionality to @session. You cannot add multiple
+ * features of the same #GType to a session.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
@@ -2231,6 +2244,10 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
 
 	priv = soup_session_get_instance_private (session);
+
+        if (feature_already_added (session, G_TYPE_FROM_INSTANCE (feature)))
+                return;
+
 	priv->features = g_slist_prepend (priv->features, g_object_ref (feature));
 	g_hash_table_remove_all (priv->features_cache);
 	soup_session_feature_attach (feature, session);
@@ -2245,6 +2262,7 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * #SoupSessionFeature, this creates a new feature of that type and
  * adds it to @session as with soup_session_add_feature(). You can use
  * this when you don't need to customize the new feature in any way.
+ * Adding multiple features of the same @feature_type is not allowed.
  *
  * If @feature_type is not a #SoupSessionFeature type, this gives each
  * existing feature on @session the chance to accept @feature_type as
@@ -2265,6 +2283,9 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 
 	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
 		SoupSessionFeature *feature;
+
+                if (feature_already_added (session, feature_type))
+                        return;
 
 		feature = g_object_new (feature_type, NULL);
 		soup_session_add_feature (session, feature);
@@ -2414,9 +2435,7 @@ soup_session_get_features (SoupSession *session, GType feature_type)
  * @session: a #SoupSession
  * @feature_type: the #GType of the feature to get
  *
- * Gets the first feature in @session of type @feature_type. For
- * features where there may be more than one feature of a given type,
- * use soup_session_get_features().
+ * Gets the feature in @session of type @feature_type.
  *
  * Returns: (nullable) (transfer none): a #SoupSessionFeature, or
  * %NULL. The feature is owned by @session.
@@ -2456,13 +2475,8 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
  * @feature_type: the #GType of the feature to get
  * @msg: a #SoupMessage
  *
- * Gets the first feature in @session of type @feature_type, provided
- * that it is not disabled for @msg. As with
- * soup_session_get_feature(), this should only be used for features
- * where @feature_type is only expected to match a single feature. In
- * particular, if there are two matching features, and the first is
- * disabled on @msg, and the second is not, then this will return
- * %NULL, not the second feature.
+ * Gets the feature in @session of type @feature_type, provided
+ * that it is not disabled for @msg.
  *
  * Returns: (nullable) (transfer none): a #SoupSessionFeature, or %NULL. The
  * feature is owned by @session.

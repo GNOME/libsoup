@@ -161,9 +161,6 @@ SOUP_AVAILABLE_IN_ALL
 gboolean            soup_session_has_feature            (SoupSession        *session,
 							 GType               feature_type);
 SOUP_AVAILABLE_IN_ALL
-GSList             *soup_session_get_features           (SoupSession        *session,
-							 GType               feature_type);
-SOUP_AVAILABLE_IN_ALL
 SoupSessionFeature *soup_session_get_feature            (SoupSession        *session,
 							 GType               feature_type);
 SOUP_AVAILABLE_IN_ALL
