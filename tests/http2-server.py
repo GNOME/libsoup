@@ -25,7 +25,7 @@ def set_timeout():
 
     # This timeout just prevents a zombie process from
     # running even if a test crashes.
-    timer_handle = loop.call_later(10, lambda: sys.exit(0))
+    timer_handle = loop.call_later(20, lambda: sys.exit(0))
 
 
 @app.route('/')
