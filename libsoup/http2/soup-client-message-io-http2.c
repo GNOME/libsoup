@@ -861,7 +861,7 @@ send_message_request (SoupMessage          *msg,
 
         data->stream_id = nghttp2_submit_request (io->session, NULL, (const nghttp2_nv *)headers->data, headers->len, data_provider, data);
 
-        h2_debug (io, data, "[SESSION] Request made for %s%s", authority, path_and_query);
+        h2_debug (io, data, "[SESSION] Request made for %s%s", authority_header, path_and_query);
 
         g_array_free (headers, TRUE);
         g_free (authority);
