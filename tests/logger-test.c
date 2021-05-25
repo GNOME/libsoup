@@ -143,7 +143,11 @@ do_logger_headers_test (void)
         host = g_strdup_printf ("127.0.0.1:%d", g_uri_get_port (base_uri));
         g_assert_cmpstr (g_hash_table_lookup (log.request, "Host"), ==, host);
         g_free (host);
+#ifdef WITH_BROTLI
+        g_assert_cmpstr (g_hash_table_lookup (log.request, "Accept-Encoding"), ==, "gzip, deflate, br");
+#else
         g_assert_cmpstr (g_hash_table_lookup (log.request, "Accept-Encoding"), ==, "gzip, deflate");
+#endif
         g_assert_cmpstr (g_hash_table_lookup (log.request, "Connection"), ==, "Keep-Alive");
 
         g_assert_nonnull (log.response);
@@ -213,7 +217,11 @@ do_logger_body_test (void)
         host = g_strdup_printf ("127.0.0.1:%d", g_uri_get_port (base_uri));
         g_assert_cmpstr (g_hash_table_lookup (log.request, "Host"), ==, host);
         g_free (host);
+#ifdef WITH_BROTLI
+        g_assert_cmpstr (g_hash_table_lookup (log.request, "Accept-Encoding"), ==, "gzip, deflate, br");
+#else
         g_assert_cmpstr (g_hash_table_lookup (log.request, "Accept-Encoding"), ==, "gzip, deflate");
+#endif
         g_assert_cmpstr (g_hash_table_lookup (log.request, "Connection"), ==, "Keep-Alive");
         g_assert_cmpint (atoi (g_hash_table_lookup (log.request, "Content-Length")), ==, sizeof (body_data) - 1);
 
