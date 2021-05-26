@@ -490,15 +490,12 @@ on_frame_send_callback (nghttp2_session     *session,
 {
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
 
-        if (!data) {
-                h2_debug (user_data, NULL, "[SEND] [%s]", frame_type_to_string (frame->hd.type));
-                return 0;
-        }
-
         switch (frame->hd.type) {
         case NGHTTP2_HEADERS:
+                g_assert (data);
                 h2_debug (user_data, data, "[SEND] [HEADERS] finished=%d",
                           (frame->hd.flags & NGHTTP2_FLAG_END_HEADERS) ? 1 : 0);
+
                 if (data->metrics)
                         data->metrics->request_header_bytes_sent += frame->hd.length + FRAME_HEADER_SIZE;
 
@@ -511,6 +508,7 @@ on_frame_send_callback (nghttp2_session     *session,
                 }
                 break;
         case NGHTTP2_DATA:
+                g_assert (data);
                 if (data->state < STATE_WRITE_DATA)
                         advance_state_from (data, STATE_WRITE_HEADERS, STATE_WRITE_DATA);
 
@@ -527,8 +525,11 @@ on_frame_send_callback (nghttp2_session     *session,
                         soup_message_wrote_body (data->msg);
                 }
                 break;
+        case NGHTTP2_RST_STREAM:
+                h2_debug (user_data, data, "[SEND] [RST_STREAM] stream_id=%u", frame->hd.stream_id);
+                break;
         default:
-                h2_debug (user_data, NULL, "[SEND] [%s]", frame_type_to_string (frame->hd.type));
+                h2_debug (user_data, data, "[SEND] [%s]", frame_type_to_string (frame->hd.type));
                 break;
         }
 
@@ -555,7 +556,9 @@ on_stream_close_callback (nghttp2_session *session,
                           uint32_t         error_code,
                           void            *user_data)
 {
-        g_debug ("[S%d] [SESSION] Closed: %s", stream_id, nghttp2_http2_strerror (error_code));
+        SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
+        h2_debug (user_data, data, "[SESSION] Closed: %s", nghttp2_http2_strerror (error_code));
+
         return 0;
 }
 
