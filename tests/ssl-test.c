@@ -306,7 +306,7 @@ do_tls_interaction_msg_test (gconstpointer data)
         SoupMessage *msg;
         GBytes *body;
         GTlsDatabase *tls_db;
-        GTlsCertificate *certificate, *wrong_certificate, *pkcs11_certificate;
+        GTlsCertificate *certificate, *wrong_certificate;
         GError *error = NULL;
 
         SOUP_TEST_SKIP_IF_NO_TLS;
@@ -402,50 +402,56 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_clear_error (&error);
         g_object_unref (msg);
 
-        /* Using PKCS#11 works, and asks for a PIN */
-        pkcs11_certificate = g_tls_certificate_new_from_pkcs11_uris (
-                "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%43%65%72%74%69%66%69%63%61%74%65;object=Mock%20Certificate;type=cert",
-                "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%50%72%69%76%61%74%65%20%4B%65%79;object=Mock%20Private%20Key;type=private",
-                &error
-        );
-        g_assert_no_error (error);
-        g_assert_nonnull (pkcs11_certificate);
-        g_assert_true (G_IS_TLS_CERTIFICATE (pkcs11_certificate));
-        msg = soup_message_new_from_uri ("GET", uri);
-        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
-        g_signal_connect (msg, "request-certificate",
-                          G_CALLBACK (request_certificate_cb),
-                          pkcs11_certificate);
-        g_signal_connect (msg, "request-certificate-password",
-                          G_CALLBACK (request_certificate_password_cb),
-                          "ABC123");
-        body = soup_test_session_async_send (session, msg, NULL, &error);
-        g_assert_no_error (error);
-        g_clear_error (&error);
-        g_bytes_unref (body);
-        g_object_unref (msg);
+        /* Currently on the gnutls backend supports pkcs#11 */
+        if (g_strcmp0 (g_type_name (G_TYPE_FROM_INSTANCE (g_tls_backend_get_default ())), "GTlsBackendGnutls") == 0) {
+                g_test_message ("Running PKCS#11 tests");
 
-        /* Handling the request-certificate-password signal asynchronously */
-        msg = soup_message_new_from_uri ("GET", uri);
-        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
-        g_signal_connect (msg, "request-certificate",
-                          G_CALLBACK (request_certificate_async_cb),
-                          pkcs11_certificate);
-        g_signal_connect (msg, "request-certificate-password",
-                          G_CALLBACK (request_certificate_password_async_cb),
-                          "ABC123");
-        body = soup_test_session_async_send (session, msg, NULL, &error);
-        g_assert_no_error (error);
-        g_clear_error (&error);
-        g_bytes_unref (body);
-        g_object_unref (msg);
+                /* Using PKCS#11 works, and asks for a PIN */
+                GTlsCertificate *pkcs11_certificate = g_tls_certificate_new_from_pkcs11_uris (
+                        "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%43%65%72%74%69%66%69%63%61%74%65;object=Mock%20Certificate;type=cert",
+                        "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%50%72%69%76%61%74%65%20%4B%65%79;object=Mock%20Private%20Key;type=private",
+                        &error
+                );
+                g_assert_no_error (error);
+                g_assert_nonnull (pkcs11_certificate);
+                g_assert_true (G_IS_TLS_CERTIFICATE (pkcs11_certificate));
+                msg = soup_message_new_from_uri ("GET", uri);
+                soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+                g_signal_connect (msg, "request-certificate",
+                                G_CALLBACK (request_certificate_cb),
+                                pkcs11_certificate);
+                g_signal_connect (msg, "request-certificate-password",
+                                G_CALLBACK (request_certificate_password_cb),
+                                "ABC123");
+                body = soup_test_session_async_send (session, msg, NULL, &error);
+                g_assert_no_error (error);
+                g_clear_error (&error);
+                g_bytes_unref (body);
+                g_object_unref (msg);
+
+                /* Handling the request-certificate-password signal asynchronously */
+                msg = soup_message_new_from_uri ("GET", uri);
+                soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+                g_signal_connect (msg, "request-certificate",
+                                G_CALLBACK (request_certificate_async_cb),
+                                pkcs11_certificate);
+                g_signal_connect (msg, "request-certificate-password",
+                                G_CALLBACK (request_certificate_password_async_cb),
+                                "ABC123");
+                body = soup_test_session_async_send (session, msg, NULL, &error);
+                g_assert_no_error (error);
+                g_clear_error (&error);
+                g_bytes_unref (body);
+                g_object_unref (msg);
+
+                g_object_unref (pkcs11_certificate);
+        }
 
         g_signal_handlers_disconnect_by_data (server, tls_db);
 
         soup_test_session_abort_unref (session);
         g_object_unref (certificate);
         g_object_unref (wrong_certificate);
-        g_object_unref (pkcs11_certificate);
 }
 
 static void
