@@ -390,6 +390,10 @@ on_frame_recv_callback (nghttp2_session     *session,
         h2_debug (io, data, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
 
         if (frame->hd.type == NGHTTP2_GOAWAY) {
+                h2_debug (io, data, "[RECV] GOAWAY: error=%s, last_stream_id=%u %s",
+                          nghttp2_http2_strerror (frame->goaway.error_code),
+                          frame->goaway.last_stream_id,
+                          frame->goaway.opaque_data ? (char *)frame->goaway.opaque_data : "");
                 handle_goaway (io, frame->goaway.error_code, frame->goaway.last_stream_id);
                 io->is_shutdown = TRUE;
                 return 0;
