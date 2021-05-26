@@ -1044,7 +1044,7 @@ soup_client_message_io_http2_is_reusable (SoupClientMessageIO *iface)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
 
-        if (!nghttp2_session_want_write (io->session) && !nghttp2_session_want_read (io->session))
+        if (!nghttp2_session_check_request_allowed (io->session))
                 return FALSE;
 
         return !io->is_shutdown;
