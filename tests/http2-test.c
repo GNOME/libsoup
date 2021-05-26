@@ -433,8 +433,15 @@ on_send_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 static void
 do_connections_test (Test *test, gconstpointer data)
 {
-        GMainContext *async_context = g_main_context_ref_thread_default ();
+        GMainContext *async_context;
         guint complete_count = 0;
+
+        if (g_getenv ("ASAN_OPTIONS")) {
+                g_test_skip ("Flakey on asan GitLab runner");
+                return;
+        }
+
+        async_context = g_main_context_ref_thread_default ();
 
 #define N_TESTS 100
 
