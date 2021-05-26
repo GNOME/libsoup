@@ -3022,7 +3022,7 @@ run_until_read_done (SoupMessage          *msg,
 	GError *error = NULL;
 
 	soup_message_io_run_until_read_finish (msg, result, &error);
-	if (error && !item->io_started) {
+	if (error && (!item->io_started || item->state == SOUP_MESSAGE_RESTARTING)) {
 		/* Message was restarted, we'll try again. */
 		g_error_free (error);
 		return;

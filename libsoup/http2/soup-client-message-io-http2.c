@@ -576,6 +576,8 @@ on_stream_close_callback (nghttp2_session *session,
 {
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
         h2_debug (user_data, data, "[SESSION] Closed: %s", nghttp2_http2_strerror (error_code));
+        if (error_code == NGHTTP2_REFUSED_STREAM && data && data->state < STATE_READ_DATA)
+                data->can_be_restarted = TRUE;
 
         return 0;
 }
@@ -1331,16 +1333,19 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
                                              GError              **error)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
+        SoupHTTP2MessageData *data = get_data_for_message (io, msg);
 
         if (io_run_until (io, msg, TRUE, STATE_READ_DATA, cancellable, error))
                 return TRUE;
 
-        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
+        if (get_io_data (msg) == io) {
+                if (data->can_be_restarted)
+                        data->item->state = SOUP_MESSAGE_RESTARTING;
+                else
+                        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
 
-        if (get_io_data (msg) == io)
                 soup_client_message_io_http2_finished (iface, msg);
-        else
-                g_warn_if_reached ();
+        }
 
         return FALSE;
 }
@@ -1421,12 +1426,14 @@ io_run_until_read_async (SoupMessage *msg,
                 return;
         }
 
-        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
+        if (get_io_data (msg) == io) {
+                if (data->can_be_restarted)
+                        data->item->state = SOUP_MESSAGE_RESTARTING;
+                else
+                        soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
 
-        if (get_io_data (msg) == io)
                 soup_client_message_io_http2_finished ((SoupClientMessageIO *)io, msg);
-        else
-                g_warn_if_reached ();
+        }
 
         g_task_return_error (task, error);
         g_object_unref (task);
