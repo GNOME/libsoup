@@ -1040,7 +1040,7 @@ soup_client_message_io_http2_is_paused (SoupClientMessageIO *iface,
 }
 
 static gboolean
-soup_client_message_io_http2_is_reusable (SoupClientMessageIO *iface)
+soup_client_message_io_http2_is_open (SoupClientMessageIO *iface)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
 
@@ -1048,6 +1048,12 @@ soup_client_message_io_http2_is_reusable (SoupClientMessageIO *iface)
                 return FALSE;
 
         return !io->is_shutdown;
+}
+
+static gboolean
+soup_client_message_io_http2_is_reusable (SoupClientMessageIO *iface)
+{
+        return soup_client_message_io_http2_is_open (iface);
 }
 
 static gboolean
@@ -1452,14 +1458,6 @@ soup_client_message_io_http2_run_until_read_async (SoupClientMessageIO *iface,
         task = g_task_new (msg, cancellable, callback, user_data);
 	g_task_set_priority (task, io_priority);
         io_run_until_read_async (msg, task);
-}
-
-static gboolean
-soup_client_message_io_http2_is_open (SoupClientMessageIO *iface)
-{
-        SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
-
-        return nghttp2_session_want_read (io->session) || nghttp2_session_want_write (io->session);
 }
 
 static void
