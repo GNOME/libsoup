@@ -604,7 +604,7 @@ on_stream_close_callback (nghttp2_session *session,
         if (error_code == NGHTTP2_REFUSED_STREAM && data->state < STATE_READ_DATA)
                 data->can_be_restarted = TRUE;
 
-        if (data->state < STATE_READ_DATA && !data->in_run_until_read_async) {
+        if (data->state < STATE_READ_DATA && data->task && !data->in_run_until_read_async) {
                 /* Start polling the decoded data stream instead of the network input stream. */
                 if (data->io_source) {
                         g_source_destroy (data->io_source);
