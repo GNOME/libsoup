@@ -79,6 +79,7 @@ typedef struct {
         gssize written_bytes;
 
         GSource *reset_stream_source;
+        GSource *idle_read_source;
         gboolean is_shutdown;
 } SoupClientMessageIOHTTP2;
 
@@ -117,6 +118,7 @@ typedef struct {
 
 static gboolean io_read (SoupClientMessageIOHTTP2 *, gboolean, GCancellable *, GError **);
 static void io_write_until_stream_reset_is_sent (SoupHTTP2MessageData *data);
+static void io_idle_read (SoupClientMessageIOHTTP2 *io);
 
 static void
 NGCHECK (int return_code)
@@ -919,6 +921,10 @@ soup_client_message_io_http2_send_item (SoupClientMessageIO       *iface,
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
         SoupHTTP2MessageData *data = add_message_to_io_data (io, item, completion_cb, user_data);
 
+        if (io->idle_read_source) {
+                g_source_destroy (io->idle_read_source);
+                g_clear_pointer (&io->idle_read_source, g_source_unref);
+        }
         send_message_request (item->msg, io, data);
 }
 
@@ -976,6 +982,8 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
         if (!io->is_shutdown)
                 io_write_until_stream_reset_is_sent (data);
+        if (g_hash_table_size (io->messages) == 0)
+                io_idle_read (io);
 }
 
 static void
@@ -1333,6 +1341,37 @@ io_write_until_stream_reset_is_sent (SoupHTTP2MessageData *data)
 }
 
 static gboolean
+io_idle_read_ready (GObject                  *stream,
+                    SoupClientMessageIOHTTP2 *io)
+{
+        io_idle_read (io);
+
+        return G_SOURCE_REMOVE;
+}
+
+static void
+io_idle_read (SoupClientMessageIOHTTP2 *io)
+{
+        GError *error = NULL;
+
+        if (io->idle_read_source) {
+                g_source_destroy (io->idle_read_source);
+                g_clear_pointer (&io->idle_read_source, g_source_unref);
+        }
+
+        while (nghttp2_session_want_read (io->session) && !error)
+                io_read (io, FALSE, FALSE, &error);
+
+        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+                io->idle_read_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), NULL);
+                g_source_set_callback (io->idle_read_source, (GSourceFunc)io_idle_read_ready, io, NULL);
+                g_source_attach (io->idle_read_source, g_main_context_get_thread_default ());
+        }
+
+        g_clear_error (&error);
+}
+
+static gboolean
 soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
                                              SoupMessage          *msg,
                                              GCancellable         *cancellable,
@@ -1468,6 +1507,10 @@ soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
         if (io->reset_stream_source) {
                 g_source_destroy (io->reset_stream_source);
                 g_clear_pointer (&io->reset_stream_source, g_source_unref);
+        }
+        if (io->idle_read_source) {
+                g_source_destroy (io->idle_read_source);
+                g_clear_pointer (&io->idle_read_source, g_source_unref);
         }
         g_clear_object (&io->stream);
         g_clear_pointer (&io->async_context, g_main_context_unref);
