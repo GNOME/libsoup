@@ -385,7 +385,7 @@ on_begin_frame_callback (nghttp2_session        *session,
 static void
 handle_goaway (SoupClientMessageIOHTTP2 *io,
                guint32                   error_code,
-               guint32                   last_stream_id)
+               int32_t                   last_stream_id)
 {
         GHashTableIter iter;
         SoupHTTP2MessageData *data;
@@ -394,7 +394,7 @@ handle_goaway (SoupClientMessageIOHTTP2 *io,
         while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&data)) {
                 /* If there is no error it is a graceful shutdown and
                  * existing messages can be handled otherwise it is a fatal error */
-                if ((error_code == 0 && data->stream_id > last_stream_id) ||
+                if ((error_code == 0 && (int32_t)data->stream_id > last_stream_id) ||
                      data->state < STATE_READ_DONE) {
                         /* TODO: We can restart unfinished messages */
                         set_error_for_data (data, g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED,
@@ -414,7 +414,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         h2_debug (io, data, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
 
         if (frame->hd.type == NGHTTP2_GOAWAY) {
-                h2_debug (io, data, "[RECV] GOAWAY: error=%s, last_stream_id=%u %s",
+                h2_debug (io, data, "[RECV] GOAWAY: error=%s, last_stream_id=%d %s",
                           nghttp2_http2_strerror (frame->goaway.error_code),
                           frame->goaway.last_stream_id,
                           frame->goaway.opaque_data ? (char *)frame->goaway.opaque_data : "");
