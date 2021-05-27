@@ -912,14 +912,13 @@ send_message_request (SoupMessage          *msg,
         if (logger && body_stream)
                 data->logger = SOUP_LOGGER (logger);
 
-        nghttp2_data_provider *data_provider = NULL;
+        nghttp2_data_provider data_provider;
         if (body_stream) {
-                data_provider = g_new (nghttp2_data_provider, 1);
-                data_provider->source.ptr = body_stream;
-                data_provider->read_callback = on_data_source_read_callback;
+                data_provider.source.ptr = body_stream;
+                data_provider.read_callback = on_data_source_read_callback;
         }
 
-        data->stream_id = nghttp2_submit_request (io->session, NULL, (const nghttp2_nv *)headers->data, headers->len, data_provider, data);
+        data->stream_id = nghttp2_submit_request (io->session, NULL, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
 
         h2_debug (io, data, "[SESSION] Request made for %s%s", authority_header, path_and_query);
 
@@ -927,7 +926,6 @@ send_message_request (SoupMessage          *msg,
         g_free (authority);
         g_free (host);
         g_free (path_and_query);
-        g_free (data_provider);
 }
 
 
