@@ -847,6 +847,25 @@ request_header_is_valid (const char *name)
         return !g_hash_table_contains (invalid_request_headers, name);
 }
 
+static int32_t
+message_priority_to_weight (SoupMessage *msg)
+{
+        switch (soup_message_get_priority (msg)) {
+        case SOUP_MESSAGE_PRIORITY_VERY_LOW:
+                return NGHTTP2_MIN_WEIGHT;
+        case SOUP_MESSAGE_PRIORITY_LOW:
+                return (NGHTTP2_DEFAULT_WEIGHT - NGHTTP2_MIN_WEIGHT) / 2;
+        case SOUP_MESSAGE_PRIORITY_NORMAL:
+                return NGHTTP2_DEFAULT_WEIGHT;
+        case SOUP_MESSAGE_PRIORITY_HIGH:
+                return (NGHTTP2_MAX_WEIGHT - NGHTTP2_DEFAULT_WEIGHT) / 2;
+        case SOUP_MESSAGE_PRIORITY_VERY_HIGH:
+                return NGHTTP2_MAX_WEIGHT;
+        }
+
+        return NGHTTP2_DEFAULT_WEIGHT;
+}
+
 #define MAKE_NV(NAME, VALUE, VALUELEN)                                      \
         {                                                                   \
                 (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), VALUELEN, \
@@ -912,13 +931,16 @@ send_message_request (SoupMessage          *msg,
         if (logger && body_stream)
                 data->logger = SOUP_LOGGER (logger);
 
+        nghttp2_priority_spec priority_spec;
+        nghttp2_priority_spec_init (&priority_spec, 0, message_priority_to_weight (msg), 0);
+
         nghttp2_data_provider data_provider;
         if (body_stream) {
                 data_provider.source.ptr = body_stream;
                 data_provider.read_callback = on_data_source_read_callback;
         }
 
-        data->stream_id = nghttp2_submit_request (io->session, NULL, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
+        data->stream_id = nghttp2_submit_request (io->session, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
 
         h2_debug (io, data, "[SESSION] Request made for %s%s", authority_header, path_and_query);
 
