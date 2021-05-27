@@ -1428,8 +1428,10 @@ io_idle_read (SoupClientMessageIOHTTP2 *io)
                 g_clear_pointer (&io->idle_read_source, g_source_unref);
         }
 
-        while (nghttp2_session_want_read (io->session) && !error)
-                io_read (io, FALSE, FALSE, &error);
+        while (nghttp2_session_want_read (io->session)) {
+                if (!io_read (io, FALSE, FALSE, &error))
+                        break;
+        }
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 io->idle_read_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), NULL);
@@ -1578,8 +1580,10 @@ io_close (SoupClientMessageIOHTTP2 *io)
                 g_clear_pointer (&io->close_source, g_source_unref);
         }
 
-        while (nghttp2_session_want_write (io->session) && !error)
-                io_write (io, FALSE, FALSE, &error);
+        while (nghttp2_session_want_write (io->session)) {
+                if (!io_write (io, FALSE, FALSE, &error))
+                        break;
+        }
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
