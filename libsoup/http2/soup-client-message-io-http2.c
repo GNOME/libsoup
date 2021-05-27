@@ -317,13 +317,8 @@ on_header_callback (nghttp2_session     *session,
                 return 0;
         }
 
-        // FIXME: Encoding
-        char *name_utf8 = g_utf8_make_valid ((const char *)name, namelen);
-        char *value_utf8 = g_utf8_make_valid ((const char *)value, valuelen);
         soup_message_headers_append (soup_message_get_response_headers (data->msg),
-                                     name_utf8, value_utf8);
-        g_free (name_utf8);
-        g_free (value_utf8);
+                                     (const char *)name, (const char *)value);
         return 0;
 }
 
