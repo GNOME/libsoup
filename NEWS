@@ -1,3 +1,11 @@
+Changes in libsoup from 2.99.6 to 2.99.7:
+
+    * Change SoupSession to only support one SoupSessionFeature of a given type [Patrick Griffis]
+
+    * Remove soup_session_get_features() API [Patrick Griffis]
+
+    * Numerous HTTP/2 fixes and improvements [Carlos Garcia Campos]
+
 Changes in libsoup from 2.99.5 to 2.99.6:
 
     * Added HTTP/2 support. Enable by setting `SOUP_ENABLE_HTTP2` env var. [Patrick Griffis, Carlos Garcia Campos]
