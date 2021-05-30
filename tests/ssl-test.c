@@ -436,7 +436,11 @@ do_tls_interaction_msg_test (gconstpointer data)
                                 G_CALLBACK (request_certificate_cb),
                                 pkcs11_certificate);
                 body = soup_test_session_async_send (session, msg, NULL, &error);
-                g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+#if GLIB_CHECK_VERSION (2, 69, 0)
+                g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+#else
+                g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED);
+#endif
                 g_clear_error (&error);
                 g_bytes_unref (body);
                 g_object_unref (msg);
