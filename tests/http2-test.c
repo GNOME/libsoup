@@ -900,11 +900,11 @@ main (int argc, char **argv)
                     setup_session,
                     do_no_content_async_test,
                     teardown_session);
-        g_test_add ("/http2/large/async", Test, GINT_TO_POINTER (FALSE),
+        g_test_add ("/http2/large/async", Test, GINT_TO_POINTER (TRUE),
                     setup_session,
                     do_large_test,
                     teardown_session);
-        g_test_add ("/http2/large/sync", Test, GINT_TO_POINTER (TRUE),
+        g_test_add ("/http2/large/sync", Test, GINT_TO_POINTER (FALSE),
                     setup_session,
                     do_large_test,
                     teardown_session);
