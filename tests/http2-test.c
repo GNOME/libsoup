@@ -297,8 +297,7 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context = g_main_context_ref_thread_default ();
 
-        GInputStream *parent_stream = g_memory_input_stream_new ();
-        GInputStream *in_stream = soup_body_input_stream_http2_new (G_POLLABLE_INPUT_STREAM (parent_stream));
+        GInputStream *in_stream = soup_body_input_stream_http2_new ();
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream), (guint8*)"Part 1 -", 8);
 
         test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
@@ -307,10 +306,9 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
         GBytes *response = NULL;
         soup_session_send_async (test->session, test->msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
 
-        int iteration_count = 20;
         while (!response) {
                 // Let it iterate for a bit waiting on blocked data
-                if (iteration_count-- == 0) {
+                if (soup_body_input_stream_http2_is_blocked (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream))) {
                         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream), (guint8*)" Part 2", 8);
                         soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream));
                 }
@@ -323,7 +321,6 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
                 g_main_context_iteration (async_context, FALSE);
 
         g_bytes_unref (response);
-        g_object_unref (parent_stream);
         g_object_unref (in_stream);
         g_main_context_unref (async_context);
         g_object_unref (test->msg);
@@ -869,8 +866,7 @@ do_sniffer_sync_test (Test *test, gconstpointer data)
         soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
 
         do_one_sniffer_test (test->session, "https://127.0.0.1:5000/", 11, TRUE, NULL);
-        /* FIXME: large seems to be broken in sync mode */
-        /* do_one_sniffer_test (test->session, "https://127.0.0.1:5000/large", (1024 * 24) + 1, TRUE, NULL); */
+        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/large", (1024 * 24) + 1, TRUE, NULL);
         do_one_sniffer_test (test->session, "https://127.0.0.1:5000/no-content", 0, FALSE, NULL);
 }
 

@@ -103,6 +103,7 @@ SoupClientMessageIO *soup_message_get_io_data (SoupMessage             *msg);
 
 void                soup_message_set_content_sniffer    (SoupMessage        *msg,
 							 SoupContentSniffer *sniffer);
+gboolean            soup_message_has_content_sniffer    (SoupMessage        *msg);
 gboolean            soup_message_try_sniff_content      (SoupMessage        *msg,
                                                          GInputStream       *stream,
                                                          gboolean            blocking,

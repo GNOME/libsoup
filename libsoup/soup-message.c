@@ -2324,6 +2324,14 @@ soup_message_set_content_sniffer (SoupMessage *msg, SoupContentSniffer *sniffer)
 }
 
 gboolean
+soup_message_has_content_sniffer (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->sniffer != NULL;
+}
+
+gboolean
 soup_message_try_sniff_content (SoupMessage  *msg,
                                 GInputStream *stream,
                                 gboolean      blocking,

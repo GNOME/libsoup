@@ -43,11 +43,11 @@ struct _SoupBodyInputStreamHttp2 {
 
 typedef struct {
         GSList *chunks;
-        GPollableInputStream *parent_stream;
         gsize start_offset;
         gsize len;
         gsize pos;
         gboolean completed;
+        GCancellable *need_more_data_cancellable;
 } SoupBodyInputStreamHttp2Private;
 
 static void soup_body_input_stream_http2_pollable_iface_init (GPollableInputStreamInterface *iface);
@@ -72,24 +72,15 @@ static guint signals [LAST_SIGNAL] = { 0 };
  * Returns: a new #GInputStream
  */
 GInputStream *
-soup_body_input_stream_http2_new (GPollableInputStream *parent_stream)
+soup_body_input_stream_http2_new ()
 {
-        GInputStream *stream;
-        SoupBodyInputStreamHttp2Private *priv;
-
-        g_assert (G_IS_POLLABLE_INPUT_STREAM (parent_stream));
-
-        stream = g_object_new (SOUP_TYPE_BODY_INPUT_STREAM_HTTP2, NULL);
-        priv = soup_body_input_stream_http2_get_instance_private (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
-        priv->parent_stream = g_object_ref (parent_stream);
-
-        return stream;
+        return G_INPUT_STREAM (g_object_new (SOUP_TYPE_BODY_INPUT_STREAM_HTTP2, NULL));
 }
 
 void
 soup_body_input_stream_http2_add_data (SoupBodyInputStreamHttp2 *stream,
-                                       const guint8          *data,
-                                       gsize                  size)
+                                       const guint8             *data,
+                                       gsize                     size)
 {
         SoupBodyInputStreamHttp2Private *priv;
 
@@ -100,6 +91,21 @@ soup_body_input_stream_http2_add_data (SoupBodyInputStreamHttp2 *stream,
 
         priv->chunks = g_slist_append (priv->chunks, g_bytes_new (data, size));
         priv->len += size;
+        if (priv->need_more_data_cancellable) {
+                g_cancellable_cancel (priv->need_more_data_cancellable);
+                g_clear_object (&priv->need_more_data_cancellable);
+        }
+}
+
+gboolean
+soup_body_input_stream_http2_is_blocked (SoupBodyInputStreamHttp2 *stream)
+{
+        SoupBodyInputStreamHttp2Private *priv;
+
+        g_return_val_if_fail (SOUP_IS_BODY_INPUT_STREAM_HTTP2 (stream), FALSE);
+
+        priv = soup_body_input_stream_http2_get_instance_private (stream);
+        return priv->need_more_data_cancellable != NULL;
 }
 
 static gssize
@@ -174,9 +180,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
         if (count == 0 && blocking && !priv->completed) {
                 GError *read_error = NULL;
                 g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0,
-                               cancellable,
-                               TRUE,
-                               &read_error);
+                               cancellable, &read_error);
 
                 if (read_error) {
                         g_propagate_error (error, read_error);
@@ -214,28 +218,7 @@ soup_body_input_stream_http2_read_nonblocking (GPollableInputStream  *stream,
         gsize read = soup_body_input_stream_http2_read_real (G_INPUT_STREAM (stream), FALSE, buffer, count, NULL, &inner_error);
 
         if (read == 0 && !priv->completed && !inner_error) {
-                /* Try requesting more reads from the io backend */
-                GError *inner_error = NULL;
-
-                g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0,
-                               NULL, FALSE, &inner_error);
-
-                if (inner_error) {
-                        g_propagate_error (error, inner_error);
-
-                        return -1;
-                }
-
-                if (priv->completed)
-                        return soup_body_input_stream_http2_read_real (G_INPUT_STREAM (stream), FALSE, buffer, count, NULL, error);
-
-                if (priv->pos < priv->len) {
-                        read = soup_body_input_stream_http2_read_real (G_INPUT_STREAM (stream), FALSE, buffer, count, NULL, NULL);
-                        if (read > 0)
-                                return read;
-                }
-
-                g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK, "Operation would block");
+                g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK, _("Operation would block"));
                 return -1;
         }
 
@@ -250,6 +233,10 @@ soup_body_input_stream_http2_complete (SoupBodyInputStreamHttp2 *stream)
 {
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
         priv->completed = TRUE;
+        if (priv->need_more_data_cancellable) {
+                g_cancellable_cancel (priv->need_more_data_cancellable);
+                g_clear_object (&priv->need_more_data_cancellable);
+        }
 }
 
 static gssize
@@ -352,13 +339,9 @@ soup_body_input_stream_http2_close_finish (GInputStream  *stream,
 static gboolean
 soup_body_input_stream_http2_is_readable (GPollableInputStream *stream)
 {
-        SoupBodyInputStreamHttp2 *memory_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
-        SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (memory_stream);
+        SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
 
-        if (priv->pos < priv->len || priv->completed)
-                return TRUE;
-
-        return g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (priv->parent_stream));
+        return priv->pos < priv->len || priv->completed;
 }
 
 static GSource *
@@ -368,10 +351,9 @@ soup_body_input_stream_http2_create_source (GPollableInputStream *stream,
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
         GSource *base_source, *pollable_source;
 
-        if (g_pollable_input_stream_is_readable (stream))
-                base_source = g_timeout_source_new (0);
-        else
-                base_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->parent_stream), NULL);
+        if (!priv->need_more_data_cancellable)
+                priv->need_more_data_cancellable = g_cancellable_new ();
+        base_source = g_cancellable_source_new (priv->need_more_data_cancellable);
 
         pollable_source = g_pollable_source_new_full (stream, base_source, cancellable);
         g_source_set_name (pollable_source, "SoupMemoryStreamSource");
@@ -387,6 +369,10 @@ soup_body_input_stream_http2_dispose (GObject *object)
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
 
         priv->completed = TRUE;
+        if (priv->need_more_data_cancellable) {
+		g_cancellable_cancel (priv->need_more_data_cancellable);
+                g_clear_object (&priv->need_more_data_cancellable);
+        }
 
         G_OBJECT_CLASS (soup_body_input_stream_http2_parent_class)->dispose (object);
 }
@@ -398,7 +384,6 @@ soup_body_input_stream_http2_finalize (GObject *object)
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
 
         g_slist_free_full (priv->chunks, (GDestroyNotify)g_bytes_unref);
-        g_clear_object (&priv->parent_stream);
 
         G_OBJECT_CLASS (soup_body_input_stream_http2_parent_class)->finalize (object);
 }
@@ -444,5 +429,5 @@ soup_body_input_stream_http2_class_init (SoupBodyInputStreamHttp2Class *klass)
                               NULL, NULL,
                               NULL,
                               G_TYPE_ERROR,
-                              2, G_TYPE_CANCELLABLE, G_TYPE_BOOLEAN);
+                              1, G_TYPE_CANCELLABLE);
 }
