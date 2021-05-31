@@ -36,6 +36,7 @@ soup_sources = [
   'http1/soup-body-input-stream.c',
   'http1/soup-body-output-stream.c',
   'http1/soup-message-io-data.c',
+  'http1/soup-message-io-source.c',
 
   'http2/soup-client-message-io-http2.c',
   'http2/soup-body-input-stream-http2.c',
@@ -71,7 +72,6 @@ soup_sources = [
   'soup-message-headers.c',
   'soup-message-metrics.c',
   'soup-message-queue-item.c',
-  'soup-message-io-source.c',
   'soup-method.c',
   'soup-misc.c',
   'soup-multipart.c',
