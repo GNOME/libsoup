@@ -161,6 +161,8 @@ static gboolean mock_logged_in_state = FALSE;
 static size_t mock_login_attempts = 0;
 static CK_ULONG mock_sign_algo = 0;
 
+/* LCOV_EXCL_START */
+
 static CK_FUNCTION_LIST pkcs11_mock_functions = 
 {
         {2, 20},
@@ -2864,3 +2866,5 @@ CK_DEFINE_FUNCTION(CK_RV, C_WaitForSlotEvent)(CK_FLAGS flags, CK_SLOT_ID_PTR pSl
 
         return CKR_NO_EVENT;
 }
+
+/* LCOV_EXCL_STOP */
