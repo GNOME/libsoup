@@ -91,6 +91,9 @@ soup_filter_input_stream_read_fn (GInputStream  *stream,
         SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
         gssize bytes_read;
 
+        if (g_cancellable_set_error_if_cancelled (cancellable, error))
+                return -1;
+
 	if (!priv->in_read_until)
 		priv->need_more = FALSE;
 
@@ -115,6 +118,9 @@ soup_filter_input_stream_skip (GInputStream  *stream,
         SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
         SoupFilterInputStreamPrivate *priv = soup_filter_input_stream_get_instance_private (fstream);
         gssize bytes_skipped;
+
+        if (g_cancellable_set_error_if_cancelled (cancellable, error))
+                return -1;
 
         if (!priv->in_read_until)
                 priv->need_more = FALSE;
