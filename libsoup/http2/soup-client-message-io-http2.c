@@ -965,6 +965,42 @@ on_data_source_read_callback (nghttp2_session     *session,
 
 /* HTTP2 IO functions */
 
+static int32_t
+message_priority_to_weight (SoupMessage *msg)
+{
+        switch (soup_message_get_priority (msg)) {
+        case SOUP_MESSAGE_PRIORITY_VERY_LOW:
+                return NGHTTP2_MIN_WEIGHT;
+        case SOUP_MESSAGE_PRIORITY_LOW:
+                return (NGHTTP2_DEFAULT_WEIGHT - NGHTTP2_MIN_WEIGHT) / 2;
+        case SOUP_MESSAGE_PRIORITY_NORMAL:
+                return NGHTTP2_DEFAULT_WEIGHT;
+        case SOUP_MESSAGE_PRIORITY_HIGH:
+                return (NGHTTP2_MAX_WEIGHT - NGHTTP2_DEFAULT_WEIGHT) / 2;
+        case SOUP_MESSAGE_PRIORITY_VERY_HIGH:
+                return NGHTTP2_MAX_WEIGHT;
+        }
+
+        return NGHTTP2_DEFAULT_WEIGHT;
+}
+
+static void
+message_priority_changed (SoupHTTP2MessageData *data)
+{
+        nghttp2_priority_spec priority_spec;
+        int32_t weight;
+
+        if (!data->stream_id)
+                return;
+
+        weight = message_priority_to_weight (data->msg);
+        h2_debug (data->io, data, "[PRIORITY] weight=%d", weight);
+
+        nghttp2_priority_spec_init (&priority_spec, 0, weight, 0);
+        NGCHECK (nghttp2_submit_priority (data->io->session, NGHTTP2_FLAG_NONE, data->stream_id, &priority_spec));
+        io_try_write (data->io);
+}
+
 static SoupHTTP2MessageData *
 add_message_to_io_data (SoupClientMessageIOHTTP2  *io,
                         SoupMessageQueueItem      *item,
@@ -984,6 +1020,10 @@ add_message_to_io_data (SoupClientMessageIOHTTP2  *io,
         if (!g_hash_table_insert (io->messages, item->msg, data))
                 g_warn_if_reached ();
 
+        g_signal_connect_swapped (data->msg, "notify::priority",
+                                  G_CALLBACK (message_priority_changed),
+                                  data);
+
         return data;
 }
 
@@ -998,6 +1038,9 @@ soup_http2_message_data_close (SoupHTTP2MessageData *data)
                 g_signal_handlers_disconnect_by_data (data->body_istream, data);
                 g_clear_object (&data->body_istream);
         }
+
+        if (data->msg)
+                g_signal_handlers_disconnect_by_data (data->msg, data);
 
         data->msg = NULL;
         data->metrics = NULL;
@@ -1044,25 +1087,6 @@ request_header_is_valid (const char *name)
         }
 
         return !g_hash_table_contains (invalid_request_headers, name);
-}
-
-static int32_t
-message_priority_to_weight (SoupMessage *msg)
-{
-        switch (soup_message_get_priority (msg)) {
-        case SOUP_MESSAGE_PRIORITY_VERY_LOW:
-                return NGHTTP2_MIN_WEIGHT;
-        case SOUP_MESSAGE_PRIORITY_LOW:
-                return (NGHTTP2_DEFAULT_WEIGHT - NGHTTP2_MIN_WEIGHT) / 2;
-        case SOUP_MESSAGE_PRIORITY_NORMAL:
-                return NGHTTP2_DEFAULT_WEIGHT;
-        case SOUP_MESSAGE_PRIORITY_HIGH:
-                return (NGHTTP2_MAX_WEIGHT - NGHTTP2_DEFAULT_WEIGHT) / 2;
-        case SOUP_MESSAGE_PRIORITY_VERY_HIGH:
-                return NGHTTP2_MAX_WEIGHT;
-        }
-
-        return NGHTTP2_DEFAULT_WEIGHT;
 }
 
 #define MAKE_NV(NAME, VALUE, VALUELEN)                                      \
