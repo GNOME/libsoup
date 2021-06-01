@@ -38,7 +38,6 @@ struct _SoupMessageQueueItem {
         guint io_started   : 1;
         guint async        : 1;
         guint connect_only : 1;
-        guint priority     : 3;
         guint resend_count : 5;
         int io_priority;
 

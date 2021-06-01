@@ -26,7 +26,6 @@ soup_message_queue_item_new (SoupSession  *session,
         item->msg = g_object_ref (msg);
         item->async = async;
         item->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
-        item->priority = soup_message_get_priority (msg);
 
         return item;
 }

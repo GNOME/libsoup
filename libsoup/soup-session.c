@@ -107,6 +107,8 @@ typedef struct {
 
 	GQueue *queue;
 	GSource *queue_source;
+        guint16 in_async_run_queue;
+        gboolean needs_queue_sort;
 
 	char *user_agent;
 	char *accept_language;
@@ -1323,8 +1325,27 @@ static int
 compare_queue_item (SoupMessageQueueItem *a,
 		    SoupMessageQueueItem *b)
 {
+        SoupMessagePriority a_priority = soup_message_get_priority (a->msg);
+        SoupMessagePriority b_priority = soup_message_get_priority (b->msg);
+
 	/* For the same priority we want to append items in the queue */
-	return b->priority > a->priority ? 1 : -1;
+	return b_priority > a_priority ? 1 : -1;
+}
+
+static void
+message_priority_changed (SoupMessage          *msg,
+                          GParamSpec           *pspec,
+                          SoupMessageQueueItem *item)
+{
+        SoupSessionPrivate *priv = soup_session_get_instance_private (item->session);
+
+        if (priv->in_async_run_queue) {
+                priv->needs_queue_sort = TRUE;
+                return;
+        }
+
+        g_queue_sort (priv->queue, (GCompareDataFunc)compare_queue_item, NULL);
+        priv->needs_queue_sort = FALSE;
 }
 
 static SoupMessageQueueItem *
@@ -1359,6 +1380,8 @@ soup_session_append_queue_item (SoupSession        *session,
                                               G_CALLBACK (misdirected_handler), item);
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (message_restarted), item);
+        g_signal_connect (msg, "notify::priority",
+                          G_CALLBACK (message_priority_changed), item);
 
 	for (f = priv->features; f; f = g_slist_next (f)) {
 		SoupSessionFeature *feature = SOUP_SESSION_FEATURE (f->data);
@@ -2054,6 +2077,7 @@ async_run_queue (SoupSession *session)
 	gboolean try_cleanup = TRUE, should_cleanup = FALSE;
 
 	g_object_ref (session);
+        priv->in_async_run_queue++;
 	soup_session_cleanup_connections (session, FALSE);
 
  try_again:
@@ -2069,6 +2093,12 @@ async_run_queue (SoupSession *session)
 			goto try_again;
 		}
 	}
+
+        priv->in_async_run_queue--;
+        if (!priv->in_async_run_queue && priv->needs_queue_sort) {
+                g_queue_sort (priv->queue, (GCompareDataFunc)compare_queue_item, NULL);
+                priv->needs_queue_sort = FALSE;
+        }
 
 	g_object_unref (session);
 }

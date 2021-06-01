@@ -231,6 +231,50 @@ do_priority_tests (void)
 }
 
 static void
+do_priority_change_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msgs[3];
+        int i, finished_count = 0;
+        SoupMessagePriority priorities[] =
+                { SOUP_MESSAGE_PRIORITY_LOW,
+                  SOUP_MESSAGE_PRIORITY_HIGH,
+                  SOUP_MESSAGE_PRIORITY_NORMAL };
+
+        session = soup_test_session_new ("max-conns", 1, NULL);
+
+        expected_priorities[0] = SOUP_MESSAGE_PRIORITY_HIGH;
+        expected_priorities[1] = SOUP_MESSAGE_PRIORITY_LOW;
+        expected_priorities[2] = SOUP_MESSAGE_PRIORITY_VERY_LOW;
+
+        for (i = 0; i < 3; i++) {
+                GUri *msg_uri;
+                char buf[5];
+
+                g_snprintf (buf, sizeof (buf), "%d", i);
+                msg_uri = g_uri_parse_relative (base_uri, buf, SOUP_HTTP_URI_FLAGS, NULL);
+                msgs[i] = soup_message_new_from_uri ("GET", msg_uri);
+                g_uri_unref (msg_uri);
+
+                soup_message_set_priority (msgs[i], priorities[i]);
+                g_signal_connect (msgs[i], "finished",
+                                  G_CALLBACK (priority_test_finished_cb), &finished_count);
+                soup_session_send_async (session, msgs[i], G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+        }
+
+        soup_message_set_priority (msgs[2], SOUP_MESSAGE_PRIORITY_VERY_LOW);
+
+        debug_printf (2, "    waiting for finished\n");
+        while (finished_count != 3)
+                g_main_context_iteration (NULL, TRUE);
+
+        for (i = 0; i < 3; i++)
+                g_object_unref (msgs[i]);
+
+        soup_test_session_abort_unref (session);
+}
+
+static void
 test_session_properties (const char *name,
 			 SoupSession *session,
 			 GProxyResolver *expected_proxy_resolver,
@@ -437,6 +481,7 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/session/SoupSession", do_plain_tests);
 	g_test_add_func ("/session/priority", do_priority_tests);
+        g_test_add_func ("/session/priority-change", do_priority_change_test);
 	g_test_add_func ("/session/property", do_property_tests);
 	g_test_add_func ("/session/features", do_features_test);
 	g_test_add_func ("/session/queue-order", do_queue_order_test);
