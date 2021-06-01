@@ -2,6 +2,7 @@
 
 #include "test-utils.h"
 #include "soup-misc.h"
+#include "soup-session-private.h"
 
 #include <glib/gprintf.h>
 #ifdef G_OS_UNIX
@@ -817,7 +818,10 @@ soup_test_request_send (SoupSession   *session,
 	if (flags & SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH) {
 		GMainContext *context;
 
-		g_cancellable_cancel (cancellable);
+                if (flags & SOUP_TEST_REQUEST_CANCEL_BY_SESSION)
+                        soup_session_cancel_message (session, msg);
+                else
+                        g_cancellable_cancel (cancellable);
 
 		context = g_main_loop_get_context (data.loop);
 		while (g_main_context_pending (context))

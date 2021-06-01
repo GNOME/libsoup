@@ -1128,6 +1128,15 @@ soup_client_message_io_http1_is_reusable (SoupClientMessageIO *iface)
         return io->is_reusable;
 }
 
+static GCancellable *
+soup_client_message_io_http1_get_cancellable (SoupClientMessageIO *iface,
+                                          SoupMessage         *msg)
+{
+	SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
+
+        return io->msg_io ? io->msg_io->item->cancellable : NULL;
+}
+
 static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_destroy,
         soup_client_message_io_http1_finished,
@@ -1145,6 +1154,7 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http1_is_open,
         soup_client_message_io_http1_in_progress,
         soup_client_message_io_http1_is_reusable,
+        soup_client_message_io_http1_get_cancellable
 };
 
 SoupClientMessageIO *

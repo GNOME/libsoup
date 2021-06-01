@@ -91,7 +91,6 @@ typedef struct {
         SoupMessageQueueItem *item;
         SoupMessage *msg;
         SoupMessageMetrics *metrics;
-        GCancellable *cancellable;
         GInputStream *decoded_data_istream;
         GInputStream *body_istream;
         GTask *task;
@@ -657,7 +656,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                 if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM && data->body_istream) {
                         soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
                         if (data->state == STATE_READ_DATA_START)
-                                io_try_sniff_content (data, FALSE, data->cancellable);
+                                io_try_sniff_content (data, FALSE, data->item->cancellable);
                 }
                 break;
         case NGHTTP2_RST_STREAM:
@@ -690,7 +689,7 @@ on_data_chunk_recv_callback (nghttp2_session *session,
         g_assert (msgdata->body_istream != NULL);
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (msgdata->body_istream), data, len);
         if (msgdata->state == STATE_READ_DATA_START)
-                io_try_sniff_content (msgdata, FALSE, msgdata->cancellable);
+                io_try_sniff_content (msgdata, FALSE, msgdata->item->cancellable);
 
         return 0;
 }
@@ -897,7 +896,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                 GPollableInputStream *in_stream = G_POLLABLE_INPUT_STREAM (source->ptr);
                 GError *error = NULL;
 
-                gssize read = g_pollable_input_stream_read_nonblocking  (in_stream, buf, length, data->cancellable, &error);
+                gssize read = g_pollable_input_stream_read_nonblocking  (in_stream, buf, length, data->item->cancellable, &error);
 
                 if (read) {
                         h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
@@ -909,7 +908,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                                 g_assert (data->data_source_poll == NULL);
 
                                 h2_debug (data->io, data, "[SEND_BODY] Polling");
-                                data->data_source_poll = g_pollable_input_stream_create_source (in_stream, data->cancellable);
+                                data->data_source_poll = g_pollable_input_stream_create_source (in_stream, data->item->cancellable);
                                 g_source_set_callback (data->data_source_poll, (GSourceFunc)on_data_readable, data, NULL);
                                 g_source_set_priority (data->data_source_poll, get_data_io_priority (data));
                                 g_source_attach (data->data_source_poll, g_main_context_get_thread_default ());
@@ -957,7 +956,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                         g_byte_array_set_size (data->data_source_buffer, length);
                         g_input_stream_read_async (in_stream, data->data_source_buffer->data, length,
                                                    get_data_io_priority (data),
-                                                   data->cancellable,
+                                                   data->item->cancellable,
                                                    (GAsyncReadyCallback)on_data_read, data);
                         return NGHTTP2_ERR_DEFERRED;
                 }
@@ -967,7 +966,7 @@ on_data_source_read_callback (nghttp2_session     *session,
 /* HTTP2 IO functions */
 
 static SoupHTTP2MessageData *
-add_message_to_io_data (SoupClientMessageIOHTTP2        *io,
+add_message_to_io_data (SoupClientMessageIOHTTP2  *io,
                         SoupMessageQueueItem      *item,
                         SoupMessageIOCompletionFn  completion_cb,
                         gpointer                   completion_data)
@@ -977,7 +976,6 @@ add_message_to_io_data (SoupClientMessageIOHTTP2        *io,
         data->item = soup_message_queue_item_ref (item);
         data->msg = item->msg;
         data->metrics = soup_message_get_metrics (data->msg);
-        data->cancellable = item->cancellable;
         data->completion_cb = completion_cb;
         data->completion_data = completion_data;
         data->stream_id = 0;
@@ -1003,7 +1001,6 @@ soup_http2_message_data_close (SoupHTTP2MessageData *data)
 
         data->msg = NULL;
         data->metrics = NULL;
-        data->cancellable = NULL;
         g_clear_pointer (&data->item, soup_message_queue_item_unref);
         g_clear_object (&data->decoded_data_istream);
 
@@ -1296,6 +1293,16 @@ soup_client_message_io_http2_is_reusable (SoupClientMessageIO *iface)
         return soup_client_message_io_http2_is_open (iface);
 }
 
+static GCancellable *
+soup_client_message_io_http2_get_cancellable (SoupClientMessageIO *iface,
+                                              SoupMessage         *msg)
+{
+        SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
+        SoupHTTP2MessageData *data = get_data_for_message (io, msg);
+
+        return data ? data->item->cancellable : NULL;
+}
+
 static void
 client_stream_eof (SoupClientInputStream *stream,
                    gpointer               user_data)
@@ -1530,7 +1537,8 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http2_skip,
         soup_client_message_io_http2_is_open,
         soup_client_message_io_http2_in_progress,
-        soup_client_message_io_http2_is_reusable
+        soup_client_message_io_http2_is_reusable,
+        soup_client_message_io_http2_get_cancellable
 };
 
 G_GNUC_PRINTF(1, 0)

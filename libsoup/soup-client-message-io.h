@@ -53,6 +53,8 @@ typedef struct {
         gboolean      (*in_progress)          (SoupClientMessageIO       *io,
                                                SoupMessage               *msg);
         gboolean      (*is_reusable)          (SoupClientMessageIO       *io);
+        GCancellable *(*get_cancellable)      (SoupClientMessageIO       *io,
+                                               SoupMessage               *msg);
 } SoupClientMessageIOFuncs;
 
 struct _SoupClientMessageIO {
@@ -101,3 +103,5 @@ gboolean      soup_client_message_io_is_open              (SoupClientMessageIO  
 gboolean      soup_client_message_io_in_progress          (SoupClientMessageIO       *io,
                                                            SoupMessage               *msg);
 gboolean      soup_client_message_io_is_reusable          (SoupClientMessageIO       *io);
+GCancellable *soup_client_message_io_get_cancellable      (SoupClientMessageIO       *io,
+                                                           SoupMessage               *msg);

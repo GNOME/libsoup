@@ -14,10 +14,10 @@
 #include "soup.h"
 
 SoupMessageQueueItem *
-soup_message_queue_item_new (SoupSession        *session,
-                             SoupMessage        *msg,
-                             gboolean            async,
-                             GCancellable       *cancellable)
+soup_message_queue_item_new (SoupSession  *session,
+                             SoupMessage  *msg,
+                             gboolean      async,
+                             GCancellable *cancellable)
 {
         SoupMessageQueueItem *item;
 
@@ -28,9 +28,6 @@ soup_message_queue_item_new (SoupSession        *session,
         item->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
         item->priority = soup_message_get_priority (msg);
 
-        g_signal_connect_swapped (msg, "restarted",
-                                  G_CALLBACK (g_cancellable_reset),
-                                  item->cancellable);
         return item;
 }
 

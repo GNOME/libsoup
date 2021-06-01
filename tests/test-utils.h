@@ -58,6 +58,7 @@ typedef enum {
 	SOUP_TEST_REQUEST_CANCEL_IMMEDIATE = (1 << 1),
 	SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE = (1 << 2),
 	SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH = (1 << 3),
+        SOUP_TEST_REQUEST_CANCEL_BY_SESSION = (1 << 4)
 } SoupTestRequestFlags;
 
 SoupSession *soup_test_session_new                (const char   *propname, ...);

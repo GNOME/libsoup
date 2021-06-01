@@ -110,6 +110,9 @@ soup_client_input_stream_read_fn (GInputStream  *stream,
         SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (SOUP_CLIENT_INPUT_STREAM (stream));
 	gssize nread;
 
+        if (g_cancellable_set_error_if_cancelled (soup_message_io_get_cancellable (priv->msg), error))
+                return -1;
+
 	nread = G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->
 		read_fn (stream, buffer, count, cancellable, error);
 
@@ -131,6 +134,9 @@ soup_client_input_stream_skip (GInputStream  *stream,
         SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (SOUP_CLIENT_INPUT_STREAM (stream));
         gssize nread;
 
+        if (g_cancellable_set_error_if_cancelled (soup_message_io_get_cancellable (priv->msg), error))
+                return -1;
+
         nread = G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->
                 skip (stream, count, cancellable, error);
 
@@ -151,6 +157,9 @@ soup_client_input_stream_read_nonblocking (GPollableInputStream  *stream,
 {
         SoupClientInputStreamPrivate *priv = soup_client_input_stream_get_instance_private (SOUP_CLIENT_INPUT_STREAM (stream));
 	gssize nread;
+
+        if (g_cancellable_set_error_if_cancelled (soup_message_io_get_cancellable (priv->msg), error))
+                return -1;
 
 	nread = soup_client_input_stream_parent_pollable_interface->
 		read_nonblocking (stream, buffer, count, error);

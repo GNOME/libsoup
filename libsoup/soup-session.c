@@ -2903,6 +2903,10 @@ async_send_request_return_result (SoupMessageQueueItem *item,
 	task = item->task;
 	item->task = NULL;
 
+        /* This cancellable was set for the send operation that is done now */
+        g_object_unref (item->cancellable);
+        item->cancellable = g_cancellable_new ();
+
 	if (error)
 		g_task_return_error (task, error);
 	else if (item->error) {
@@ -3439,6 +3443,10 @@ soup_session_send (SoupSession   *session,
 		g_object_unref (ostream);
 	}
 
+        /* This cancellable was set for the send operation that is done now */
+        g_object_unref (item->cancellable);
+        item->cancellable = g_cancellable_new ();
+
 	if (my_error)
 		g_propagate_error (error, my_error);
 	else if (item->error) {
@@ -3845,7 +3853,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
 	item->io_priority = io_priority;
 
-        task = g_task_new (session, cancellable, callback, user_data);
+        task = g_task_new (session, item->cancellable, callback, user_data);
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
 	soup_message_add_status_code_handler (msg, "got-informational",
@@ -3948,7 +3956,7 @@ soup_session_preconnect_async (SoupSession        *session,
         item->connect_only = TRUE;
         item->io_priority = io_priority;
 
-        task = g_task_new (session, cancellable, callback, user_data);
+        task = g_task_new (session, item->cancellable, callback, user_data);
         g_task_set_priority (task, io_priority);
         g_task_set_task_data (task, item, (GDestroyNotify)soup_message_queue_item_unref);
 

@@ -133,3 +133,10 @@ soup_client_message_io_is_reusable (SoupClientMessageIO *io)
 {
         return io->funcs->is_reusable (io);
 }
+
+GCancellable *
+soup_client_message_io_get_cancellable (SoupClientMessageIO *io,
+                                        SoupMessage         *msg)
+{
+        return io->funcs->get_cancellable (io, msg);
+}

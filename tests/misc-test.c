@@ -565,6 +565,72 @@ do_cancel_while_reading_preemptive_req_test (void)
 }
 
 static void
+do_one_cancel_after_send_request_test (SoupSession *session,
+                                       gboolean     reuse_cancellable,
+                                       gboolean     cancelled_by_session)
+{
+        SoupMessage *msg;
+        GCancellable *cancellable;
+        GInputStream *istream;
+        GOutputStream *ostream;
+        guint flags = SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH;
+        GBytes *body;
+        GError *error = NULL;
+
+        if (cancelled_by_session)
+                flags |= SOUP_TEST_REQUEST_CANCEL_BY_SESSION;
+
+        msg = soup_message_new_from_uri ("GET", base_uri);
+        cancellable = g_cancellable_new ();
+        istream = soup_test_request_send (session, msg, cancellable, flags, &error);
+        g_assert_no_error (error);
+        g_assert_nonnull (istream);
+
+        /* If we use a new cancellable to read the stream
+         * it shouldn't fail with cancelled error.
+         */
+        if (!reuse_cancellable) {
+                g_object_unref (cancellable);
+                cancellable = g_cancellable_new ();
+        }
+        ostream = g_memory_output_stream_new_resizable ();
+        g_output_stream_splice (ostream, istream,
+                                G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+                                G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                cancellable, &error);
+
+        if (reuse_cancellable || cancelled_by_session) {
+                g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+                g_clear_error (&error);
+        } else {
+                g_assert_no_error (error);
+                body = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
+                g_assert_cmpstr (g_bytes_get_data (body, NULL), ==, "index");
+                g_bytes_unref (body);
+        }
+
+        while (g_main_context_pending (NULL))
+		g_main_context_iteration (NULL, FALSE);
+
+        g_object_unref (cancellable);
+        g_object_unref (ostream);
+        g_object_unref (istream);
+        g_object_unref (msg);
+}
+
+static void
+do_cancel_after_send_request_tests (void)
+{
+        SoupSession *session;
+
+        session = soup_test_session_new (NULL);
+        do_one_cancel_after_send_request_test (session, TRUE, FALSE);
+        do_one_cancel_after_send_request_test (session, FALSE, FALSE);
+        do_one_cancel_after_send_request_test (session, FALSE, TRUE);
+        soup_test_session_abort_unref (session);
+}
+
+static void
 do_msg_flags_test (void)
 {
 	SoupMessage *msg;
@@ -724,6 +790,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/cancel-while-reading/req/immediate", do_cancel_while_reading_immediate_req_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/delayed", do_cancel_while_reading_delayed_req_test);
 	g_test_add_func ("/misc/cancel-while-reading/req/preemptive", do_cancel_while_reading_preemptive_req_test);
+        g_test_add_func ("/misc/cancel-after-send-request", do_cancel_after_send_request_tests);
 	g_test_add_func ("/misc/msg-flags", do_msg_flags_test);
         g_test_add_func ("/misc/connection-id", do_connection_id_test);
         g_test_add_func ("/misc/remote-address", do_remote_address_test);

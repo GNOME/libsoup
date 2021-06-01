@@ -72,6 +72,8 @@ gboolean soup_message_io_run_until_read_finish (SoupMessage        *msg,
 GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
 						    GError      **error);
 
+GCancellable *soup_message_io_get_cancellable  (SoupMessage *msg);
+
 void soup_message_wrote_headers     (SoupMessage *msg);
 void soup_message_wrote_body_data   (SoupMessage *msg,
 				     gsize        chunk_size);
