@@ -44,6 +44,8 @@ ignore_headers = [
   'soup-client-message-io-http2.h',
   'soup-body-input-stream-http2.h',
   'soup-tls-interaction.h',
+  'soup-header-names.h',
+  'soup-message-headers-private.h',
 ]
 
 mkdb_args = [

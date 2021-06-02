@@ -65,6 +65,7 @@ soup_sources = [
   'soup-filter-input-stream.c',
   'soup-form.c',
   'soup-headers.c',
+  'soup-header-names.c',
   'soup-init.c',
   'soup-io-stream.c',
   'soup-logger.c',

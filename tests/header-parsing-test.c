@@ -124,8 +124,8 @@ static struct RequestTest {
 	  "GET / HTTP/1.1\r\nFoo: bar\r\n baz\r\nConnection: close\r\nBlah: blah\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
-	  { { "Foo", "bar baz" },
-	    { "Connection", "close" },
+	  { { "Connection", "close" },
+            { "Foo", "bar baz" },
 	    { "Blah", "blah" },
 	    { NULL }
 	  }
@@ -166,8 +166,8 @@ static struct RequestTest {
 	  "GET / HTTP/1.0\r\nFoo: bar\r\nConnection: Bar, Quux\r\nBar: baz\r\nQuux: foo\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_0,
-	  { { "Foo", "bar" },
-	    { "Connection", "Bar, Quux" },
+	  { { "Connection", "Bar, Quux" },
+            { "Foo", "bar" },
 	    { NULL }
 	  }
 	},
@@ -321,8 +321,8 @@ static struct RequestTest {
 	  "GET / HTTP/1.1\r\na: b\r\nHost: example\rcom\r\np: \rq\r\ns: t\r\r\nc: d\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
-	  { { "a", "b" },
-	    { "Host", "example com" },	/* CR in the middle turns to space */
+	  { { "Host", "example com" },  /* CR in the middle turns to space */
+            { "a", "b" },
 	    { "p", "q" },		/* CR at beginning is ignored */
 	    { "s", "t" },		/* CR at end is ignored */
 	    { "c", "d" },
@@ -528,8 +528,8 @@ static struct ResponseTest {
 	{ "Connection header on HTTP/1.0 message", NULL,
 	  "HTTP/1.0 200 ok\r\nFoo: bar\r\nConnection: Bar\r\nBar: quux\r\n", -1,
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
-	  { { "Foo", "bar" },
-	    { "Connection", "Bar" },
+	  { { "Connection", "Bar" },
+            { "Foo", "bar" },
 	    { NULL }
 	  }
 	},
