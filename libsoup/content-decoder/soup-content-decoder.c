@@ -14,6 +14,7 @@
 #include "soup-session-feature-private.h"
 #include "soup-message-private.h"
 #include "soup-headers.h"
+#include "soup-uri-utils-private.h"
 #ifdef WITH_BROTLI
 #include "soup-brotli-decompressor.h"
 #endif
@@ -176,13 +177,6 @@ soup_content_decoder_content_processor_init (SoupContentProcessorInterface *proc
 	processor_interface->wrap_input = soup_content_decoder_content_processor_wrap_input;
 }
 
-/* This is constant for now */
-#ifdef WITH_BROTLI
-#define ACCEPT_ENCODING_HEADER "gzip, deflate, br"
-#else
-#define ACCEPT_ENCODING_HEADER "gzip, deflate"
-#endif
-
 static GConverter *
 gzip_decoder_creator (void)
 {
@@ -247,9 +241,21 @@ soup_content_decoder_request_queued (SoupSessionFeature *feature,
 {
 	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg),
 					   "Accept-Encoding")) {
+                const char *header = "gzip, deflate";
+
+#ifdef WITH_BROTLI
+                /* brotli is only enabled over TLS connections
+                 * as other browsers have found that some networks have expectations
+                 * regarding the encoding of HTTP messages and this may break those
+                 * expectations. Firefox and Chromium behave similarly.
+                 */
+                if (soup_uri_is_https (soup_message_get_uri (msg)))
+                        header = "gzip, deflate, br";
+#endif
+
 		soup_message_headers_append (soup_message_get_request_headers (msg),
 					     "Accept-Encoding",
-					     ACCEPT_ENCODING_HEADER);
+					     header);
 	}
 }
 
