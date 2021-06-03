@@ -1163,11 +1163,18 @@ send_message_request (SoupMessage          *msg,
                 data_provider.read_callback = on_data_source_read_callback;
         }
 
-        data->stream_id = nghttp2_submit_request (io->session, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
-
-        h2_debug (io, data, "[SESSION] Request made for %s%s", authority_header, path_and_query);
-        io_try_write (io);
-
+        int32_t stream_id = nghttp2_submit_request (io->session, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
+        if (stream_id == NGHTTP2_ERR_STREAM_ID_NOT_AVAILABLE) {
+                set_error_for_data (data,
+                                    g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+                                                         "HTTP/2 Error: stream ID not available"));
+                data->can_be_restarted = TRUE;
+        } else {
+                NGCHECK (stream_id);
+                data->stream_id = stream_id;
+                h2_debug (io, data, "[SESSION] Request made for %s%s", authority_header, path_and_query);
+                io_try_write (io);
+        }
         g_array_free (headers, TRUE);
         g_free (authority);
         g_free (host);
@@ -1406,7 +1413,7 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
 
 	g_object_ref (msg);
 
-	while (progress && get_io_data (msg) == io && !data->paused && data->state < state)
+	while (progress && get_io_data (msg) == io && !data->paused && !data->error && data->state < state)
                 progress = io_run (data, cancellable, &my_error);
 
         if (my_error) {
@@ -1504,6 +1511,8 @@ soup_client_message_io_http2_run_until_read_async (SoupClientMessageIO *iface,
         data->task = g_task_new (msg, cancellable, callback, user_data);
         g_task_set_priority (data->task, io_priority);
         io->pending_io_messages = g_list_prepend (io->pending_io_messages, data);
+        if (data->error)
+                soup_http2_message_data_check_status (data);
 }
 
 static gboolean
