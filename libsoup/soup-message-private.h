@@ -148,4 +148,9 @@ void soup_message_set_force_http1               (SoupMessage *msg,
                                                  gboolean     force_http1);
 
 gboolean soup_message_get_force_http1           (SoupMessage *msg);
+
+void     soup_message_set_is_misdirected_retry  (SoupMessage *msg,
+                                                 gboolean     is_misdirected_retry);
+gboolean soup_message_is_misdirected_retry      (SoupMessage *msg);
+
 #endif /* __SOUP_MESSAGE_PRIVATE_H__ */

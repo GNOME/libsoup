@@ -1297,11 +1297,11 @@ misdirected_handler (SoupMessage *msg,
 
         /* HTTP/2 messages may get the misdirected request status and MAY
          * try a new connection */
-        if (!soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION)) {
-                soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        if (!soup_message_is_misdirected_retry (msg)) {
+                soup_message_set_is_misdirected_retry (msg, TRUE);
                 soup_session_requeue_item (session,
-					  item,
-					  &item->error);
+                                           item,
+                                           &item->error);
         }
 }
 
@@ -1915,6 +1915,7 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 
 	need_new_connection =
 		(soup_message_query_flags (item->msg, SOUP_MESSAGE_NEW_CONNECTION)) ||
+                (soup_message_is_misdirected_retry (item->msg)) ||
 		(!soup_message_query_flags (item->msg, SOUP_MESSAGE_IDEMPOTENT) &&
 		 !SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (item->msg)));
 

@@ -98,6 +98,7 @@ typedef struct {
 	gboolean is_top_level_navigation;
         gboolean is_options_ping;
         gboolean force_http1;
+        gboolean is_misdirected_retry;
         guint    last_connection_id;
         GSocketAddress *remote_address;
 
@@ -2928,4 +2929,21 @@ soup_message_get_force_http1 (SoupMessage *msg)
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
         return priv->force_http1;
+}
+
+void
+soup_message_set_is_misdirected_retry (SoupMessage *msg,
+                                       gboolean     is_misdirected_retry)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        priv->is_misdirected_retry = is_misdirected_retry;
+}
+
+gboolean
+soup_message_is_misdirected_retry (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->is_misdirected_retry;
 }
