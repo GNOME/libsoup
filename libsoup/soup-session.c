@@ -18,6 +18,7 @@
 #include "cache/soup-cache-private.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-misc.h"
 #include "soup-message-queue-item.h"
 #include "soup-session-private.h"
@@ -1158,8 +1159,8 @@ redirection_uri (SoupSession *session,
 	const char *new_loc;
 	GUri *new_uri;
 
-	new_loc = soup_message_headers_get_one (soup_message_get_response_headers (msg),
-						"Location");
+	new_loc = soup_message_headers_get_one_common (soup_message_get_response_headers (msg),
+                                                       SOUP_HEADER_LOCATION);
 	if (!new_loc || !*new_loc) {
 		g_set_error_literal (error,
 				     SOUP_SESSION_ERROR,
@@ -1405,10 +1406,10 @@ soup_session_send_queue_item (SoupSession *session,
 
 	request_headers = soup_message_get_request_headers (item->msg);
 	if (priv->user_agent)
-		soup_message_headers_replace (request_headers, "User-Agent", priv->user_agent);
+		soup_message_headers_replace_common (request_headers, SOUP_HEADER_USER_AGENT, priv->user_agent);
 
-	if (priv->accept_language && !soup_message_headers_get_list (request_headers, "Accept-Language"))
-		soup_message_headers_append (request_headers, "Accept-Language", priv->accept_language);
+	if (priv->accept_language && !soup_message_headers_get_list_common (request_headers, SOUP_HEADER_ACCEPT_LANGUAGE))
+		soup_message_headers_append_common (request_headers, SOUP_HEADER_ACCEPT_LANGUAGE, priv->accept_language);
 
         soup_message_set_http_version (item->msg, soup_connection_get_negotiated_protocol (soup_message_get_connection (item->msg)));
 
@@ -3801,8 +3802,8 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 		client = soup_websocket_connection_new (stream,
 							soup_message_get_uri (item->msg),
 							SOUP_WEBSOCKET_CONNECTION_CLIENT,
-							soup_message_headers_get_one (soup_message_get_request_headers (msg), "Origin"),
-							soup_message_headers_get_one (soup_message_get_response_headers (msg), "Sec-WebSocket-Protocol"),
+							soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_ORIGIN),
+							soup_message_headers_get_one_common (soup_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL),
 							accepted_extensions);
 		g_object_unref (stream);
 		g_task_return_pointer (task, client, g_object_unref);

@@ -13,6 +13,7 @@
 
 #include "soup-multipart.h"
 #include "soup-headers.h"
+#include "soup-message-headers-private.h"
 #include "soup.h"
 
 /**
@@ -363,13 +364,13 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
 		g_string_append (disposition, "; ");
 		soup_header_g_string_append_param_quoted (disposition, "filename", filename);
 	}
-	soup_message_headers_append (headers, "Content-Disposition",
-				     disposition->str);
+	soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_DISPOSITION,
+                                            disposition->str);
 	g_string_free (disposition, TRUE);
 
 	if (content_type) {
-		soup_message_headers_append (headers, "Content-Type",
-					     content_type);
+		soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_TYPE,
+                                                    content_type);
 	}
 
 	g_ptr_array_add (multipart->headers, headers);

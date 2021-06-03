@@ -19,6 +19,7 @@
 #include "soup-auth-ntlm.h"
 #include "soup.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 
 static void        soup_ntlm_lanmanager_hash   (const char  *password,
 						guchar       hash[21]);
@@ -326,8 +327,8 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 			 */
 			conn->state = SOUP_NTLM_FAILED;
 			if (soup_message_is_keepalive (msg)) {
-				soup_message_headers_append (soup_message_get_response_headers (msg),
-							     "Connection", "close");
+				soup_message_headers_append_common (soup_message_get_response_headers (msg),
+                                                                    SOUP_HEADER_CONNECTION, "close");
 			}
 			return TRUE;
 		}

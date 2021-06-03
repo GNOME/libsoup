@@ -14,6 +14,7 @@
 #include "auth/soup-auth-digest-private.h"
 #include "soup.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-uri-utils-private.h"
 
 #ifdef G_OS_WIN32
@@ -391,10 +392,10 @@ authentication_info_cb (SoupMessage *msg, gpointer data)
 	if (auth != soup_message_get_auth (msg))
 		return;
 
-	header = soup_message_headers_get_one (soup_message_get_response_headers (msg),
-					       soup_auth_is_for_proxy (auth) ?
-					       "Proxy-Authentication-Info" :
-					       "Authentication-Info");
+	header = soup_message_headers_get_one_common (soup_message_get_response_headers (msg),
+                                                      soup_auth_is_for_proxy (auth) ?
+                                                      SOUP_HEADER_PROXY_AUTHENTICATION_INFO :
+                                                      SOUP_HEADER_AUTHENTICATION_INFO);
 	g_return_if_fail (header != NULL);
 
 	auth_params = soup_header_parse_param_list (header);

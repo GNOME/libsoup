@@ -15,6 +15,7 @@
 #include "soup.h"
 #include "soup-connection-auth.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-path-map.h"
 #include "soup-session-private.h"
 #include "soup-session-feature-private.h"
@@ -242,11 +243,11 @@ static inline const char *
 auth_header_for_message (SoupMessage *msg)
 {
 	if (soup_message_get_status (msg) == SOUP_STATUS_PROXY_UNAUTHORIZED) {
-		return soup_message_headers_get_list (soup_message_get_response_headers (msg),
-						      "Proxy-Authenticate");
+		return soup_message_headers_get_list_common (soup_message_get_response_headers (msg),
+                                                             SOUP_HEADER_PROXY_AUTHENTICATE);
 	} else {
-		return soup_message_headers_get_list (soup_message_get_response_headers (msg),
-						      "WWW-Authenticate");
+		return soup_message_headers_get_list_common (soup_message_get_response_headers (msg),
+                                                             SOUP_HEADER_WWW_AUTHENTICATE);
 	}
 }
 
@@ -442,11 +443,11 @@ make_auto_ntlm_auth (SoupAuthManagerPrivate *priv, SoupAuthHost *host)
 static void
 update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy)
 {
-	const char *authorization_header = is_proxy ? "Proxy-Authorization" : "Authorization";
+        SoupHeaderName authorization_header = is_proxy ? SOUP_HEADER_PROXY_AUTHORIZATION : SOUP_HEADER_AUTHORIZATION;
 	char *token;
 
 	if (soup_message_get_auth (msg))
-		soup_message_headers_remove (soup_message_get_request_headers (msg), authorization_header);
+		soup_message_headers_remove_common (soup_message_get_request_headers (msg), authorization_header);
 
 	if (!auth)
 		return;
@@ -455,7 +456,7 @@ update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy
 	if (!token)
 		return;
 
-	soup_message_headers_replace (soup_message_get_request_headers (msg), authorization_header, token);
+	soup_message_headers_replace_common (soup_message_get_request_headers (msg), authorization_header, token);
 	g_free (token);
 }
 

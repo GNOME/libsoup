@@ -14,6 +14,7 @@
 #include "soup.h"
 #include "soup-connection.h"
 #include "soup-server-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-socket.h"
 #include "soup-uri-utils-private.h"
 
@@ -384,15 +385,18 @@ soup_server_message_is_keepalive (SoupServerMessage *msg)
                  * doesn't request it. So ignore c_conn.
                  */
 
-                if (!soup_message_headers_header_contains (msg->response_headers,
-                                                           "Connection", "Keep-Alive"))
+                if (!soup_message_headers_header_contains_common (msg->response_headers,
+                                                                  SOUP_HEADER_CONNECTION,
+                                                                  "Keep-Alive"))
                         return FALSE;
         } else {
                 /* Normally persistent unless either side requested otherwise */
-                if (soup_message_headers_header_contains (msg->request_headers,
-                                                          "Connection", "close") ||
-                    soup_message_headers_header_contains (msg->response_headers,
-                                                          "Connection", "close"))
+                if (soup_message_headers_header_contains_common (msg->request_headers,
+                                                                 SOUP_HEADER_CONNECTION,
+                                                                 "close") ||
+                    soup_message_headers_header_contains_common (msg->response_headers,
+                                                                 SOUP_HEADER_CONNECTION,
+                                                                 "close"))
                         return FALSE;
 
                 return TRUE;
@@ -726,13 +730,14 @@ soup_server_message_set_response (SoupServerMessage *msg,
         if (content_type) {
                 g_warn_if_fail (strchr (content_type, '/') != NULL);
 
-                soup_message_headers_replace (msg->response_headers,
-                                              "Content-Type", content_type);
+                soup_message_headers_replace_common (msg->response_headers,
+                                                     SOUP_HEADER_CONTENT_TYPE,
+                                                     content_type);
                 soup_message_body_append (msg->response_body, resp_use,
                                           resp_body, resp_length);
         } else {
-                soup_message_headers_remove (msg->response_headers,
-                                             "Content-Type");
+                soup_message_headers_remove_common (msg->response_headers,
+                                                    SOUP_HEADER_CONTENT_TYPE);
                 soup_message_body_truncate (msg->response_body);
         }
 }
@@ -767,8 +772,8 @@ soup_server_message_set_redirect (SoupServerMessage *msg,
 
 	soup_server_message_set_status (msg, status_code, NULL);
 	location_str = g_uri_to_string (location);
-	soup_message_headers_replace (msg->response_headers, "Location",
-				      location_str);
+	soup_message_headers_replace_common (msg->response_headers, SOUP_HEADER_LOCATION,
+                                             location_str);
 	g_free (location_str);
 	g_uri_unref (location);
 }

@@ -15,8 +15,8 @@
 
 #include "soup-server.h"
 #include "soup-server-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup.h"
-#include "soup-server-message-private.h"
 #include "soup-misc.h"
 #include "soup-path-map.h"
 #include "soup-socket.h"
@@ -708,7 +708,7 @@ got_headers (SoupServer        *server,
 
 	date = g_date_time_new_now_utc ();
 	date_string = soup_date_time_to_string (date, SOUP_DATE_HTTP);
-	soup_message_headers_replace (headers, "Date", date_string);
+	soup_message_headers_replace_common (headers, SOUP_HEADER_DATE, date_string);
 	g_free (date_string);
 	g_date_time_unref (date);
 
@@ -804,8 +804,8 @@ complete_websocket_upgrade (SoupServer        *server,
 	stream = soup_server_message_steal_connection (msg);
 	conn = soup_websocket_connection_new (stream, uri,
 					      SOUP_WEBSOCKET_CONNECTION_SERVER,
-					      soup_message_headers_get_one (soup_server_message_get_request_headers (msg), "Origin"),
-					      soup_message_headers_get_one (soup_server_message_get_response_headers (msg), "Sec-WebSocket-Protocol"),
+					      soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg), SOUP_HEADER_ORIGIN),
+					      soup_message_headers_get_one_common (soup_server_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL),
 					      handler->websocket_extensions);
 	handler->websocket_extensions = NULL;
 	g_object_unref (stream);
@@ -932,8 +932,8 @@ start_request (SoupServer        *server,
 		SoupMessageHeaders *headers;
 
 		headers = soup_server_message_get_response_headers (msg);
-		soup_message_headers_append (headers, "Server",
-					     priv->server_header);
+		soup_message_headers_append_common (headers, SOUP_HEADER_SERVER,
+                                                    priv->server_header);
 	}
 
 	g_signal_connect_object (msg, "got-headers",

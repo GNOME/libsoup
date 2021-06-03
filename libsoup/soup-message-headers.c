@@ -41,7 +41,7 @@
  **/
 
 static gboolean parse_content_foo (SoupMessageHeaders *hdrs,
-                                   const char         *header_name,
+                                   SoupHeaderName      header_name,
                                    char              **foo,
                                    GHashTable        **params);
 typedef struct {
@@ -174,7 +174,7 @@ soup_message_headers_set (SoupMessageHeaders *hdrs,
                 if (value) {
                         char *content_type = NULL, *p;
 
-                        parse_content_foo (hdrs, "Content-Type", &content_type, NULL);
+                        parse_content_foo (hdrs, SOUP_HEADER_CONTENT_TYPE, &content_type, NULL);
                         g_assert (content_type != NULL);
 
                         p = strpbrk (content_type, " /");
@@ -265,7 +265,7 @@ soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs)
 	const char *connection;
 	GSList *tokens, *t;
 
-	connection = soup_message_headers_get_list (hdrs, "Connection");
+	connection = soup_message_headers_get_list_common (hdrs, SOUP_HEADER_CONNECTION);
 	if (!connection)
 		return;
 
@@ -921,7 +921,7 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
 	/* If Transfer-Encoding was set, hdrs->encoding would already
 	 * be set. So we don't need to check that possibility.
 	 */
-	header = soup_message_headers_get_one (hdrs, "Content-Length");
+	header = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
 	if (header) {
                 soup_message_headers_set (hdrs, SOUP_HEADER_CONTENT_LENGTH, header);
 		if (hdrs->encoding != -1)
@@ -959,17 +959,17 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
 	switch (encoding) {
 	case SOUP_ENCODING_NONE:
 	case SOUP_ENCODING_EOF:
-		soup_message_headers_remove (hdrs, "Transfer-Encoding");
-		soup_message_headers_remove (hdrs, "Content-Length");
+		soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
+		soup_message_headers_remove_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
 		break;
 
 	case SOUP_ENCODING_CONTENT_LENGTH:
-		soup_message_headers_remove (hdrs, "Transfer-Encoding");
+		soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
 		break;
 
 	case SOUP_ENCODING_CHUNKED:
-		soup_message_headers_remove (hdrs, "Content-Length");
-		soup_message_headers_replace (hdrs, "Transfer-Encoding", "chunked");
+		soup_message_headers_remove_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
+		soup_message_headers_replace_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING, "chunked");
 		break;
 
 	default:
@@ -1026,8 +1026,8 @@ soup_message_headers_set_content_length (SoupMessageHeaders *hdrs,
 
 	g_snprintf (length, sizeof (length), "%" G_GUINT64_FORMAT,
 		    content_length);
-	soup_message_headers_remove (hdrs, "Transfer-Encoding");
-	soup_message_headers_replace (hdrs, "Content-Length", length);
+	soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
+	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_LENGTH, length);
 }
 
 /**
@@ -1077,9 +1077,9 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
 	g_return_if_fail ((expectations & ~SOUP_EXPECTATION_CONTINUE) == 0);
 
 	if (expectations & SOUP_EXPECTATION_CONTINUE)
-		soup_message_headers_replace (hdrs, "Expect", "100-continue");
+		soup_message_headers_replace_common (hdrs, SOUP_HEADER_EXPECT, "100-continue");
 	else
-		soup_message_headers_remove (hdrs, "Expect");
+		soup_message_headers_remove_common (hdrs, SOUP_HEADER_EXPECT);
 }
 
 /**
@@ -1126,7 +1126,7 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 					  SoupRange          **ranges,
 					  int                 *length)
 {
-	const char *range = soup_message_headers_get_one (hdrs, "Range");
+	const char *range = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_RANGE);
 	GSList *range_list, *r;
 	GArray *array;
 	char *spec, *end;
@@ -1314,7 +1314,7 @@ soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
 		}
 	}
 
-	soup_message_headers_replace (hdrs, "Range", header->str);
+	soup_message_headers_replace_common (hdrs, SOUP_HEADER_RANGE, header->str);
 	g_string_free (header, TRUE);
 }
 
@@ -1365,7 +1365,7 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
 					goffset             *end,
 					goffset             *total_length)
 {
-	const char *header = soup_message_headers_get_one (hdrs, "Content-Range");
+	const char *header = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_RANGE);
 	goffset length;
 	char *p;
 
@@ -1430,18 +1430,20 @@ soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
 		header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
 					  G_GINT64_FORMAT "/*", start, end);
 	}
-	soup_message_headers_replace (hdrs, "Content-Range", header);
+	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header);
 	g_free (header);
 }
 
 static gboolean
-parse_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
-		   char **foo, GHashTable **params)
+parse_content_foo (SoupMessageHeaders *hdrs,
+                   SoupHeaderName      header_name,
+		   char              **foo,
+                   GHashTable        **params)
 {
 	const char *header;
 	char *semi;
 
-	header = soup_message_headers_get_one (hdrs, header_name);
+	header = soup_message_headers_get_one_common (hdrs, header_name);
 	if (!header)
 		return FALSE;
 
@@ -1474,8 +1476,10 @@ parse_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
 }
 
 static void
-set_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
-		 const char *foo, GHashTable *params)
+set_content_foo (SoupMessageHeaders *hdrs,
+                 SoupHeaderName      header_name,
+		 const char         *foo,
+                 GHashTable         *params)
 {
 	GString *str;
 	GHashTableIter iter;
@@ -1490,7 +1494,7 @@ set_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
 		}
 	}
 
-	soup_message_headers_replace (hdrs, header_name, str->str);
+	soup_message_headers_replace_common (hdrs, header_name, str->str);
 	g_string_free (str, TRUE);
 }
 
@@ -1519,7 +1523,7 @@ soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
 		return NULL;
 
 	if (params)
-		parse_content_foo (hdrs, "Content-Type", NULL, params);
+		parse_content_foo (hdrs, SOUP_HEADER_CONTENT_TYPE, NULL, params);
 	return hdrs->content_type;
 }
 
@@ -1539,7 +1543,7 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
 				       const char          *content_type,
 				       GHashTable          *params)
 {
-	set_content_foo (hdrs, "Content-Type", content_type, params);
+	set_content_foo (hdrs, SOUP_HEADER_CONTENT_TYPE, content_type, params);
 }
 
 /**
@@ -1579,7 +1583,7 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
 {
 	gpointer orig_key, orig_value;
 
-	if (!parse_content_foo (hdrs, "Content-Disposition",
+	if (!parse_content_foo (hdrs, SOUP_HEADER_CONTENT_DISPOSITION,
 				disposition, params))
 		return FALSE;
 
@@ -1615,6 +1619,6 @@ soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,
 					      const char          *disposition,
 					      GHashTable          *params)
 {
-	set_content_foo (hdrs, "Content-Disposition", disposition, params);
+	set_content_foo (hdrs, SOUP_HEADER_CONTENT_DISPOSITION, disposition, params);
 }
 

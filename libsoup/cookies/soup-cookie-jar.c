@@ -14,6 +14,7 @@
 #include "soup-cookie-jar.h"
 #include "soup-date-utils-private.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-misc.h"
 #include "soup.h"
 #include "soup-session-feature-private.h"
@@ -814,11 +815,11 @@ msg_starting_cb (SoupMessage *msg, gpointer feature)
 							               soup_message_get_is_top_level_navigation (msg));
 	if (cookies != NULL) {
 		char *cookie_header = soup_cookies_to_cookie_header (cookies);
-		soup_message_headers_replace (soup_message_get_request_headers (msg), "Cookie", cookie_header);
+		soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_COOKIE, cookie_header);
 		g_free (cookie_header);
 		g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 	} else {
-		soup_message_headers_remove (soup_message_get_request_headers (msg), "Cookie");
+		soup_message_headers_remove_common (soup_message_get_request_headers (msg), SOUP_HEADER_COOKIE);
 	}
 }
 

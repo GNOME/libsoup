@@ -14,6 +14,7 @@
 
 #include "soup-cookie.h"
 #include "soup-date-utils-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-misc.h"
 #include "soup-uri-utils-private.h"
 #include "soup.h"
@@ -931,7 +932,7 @@ soup_cookies_from_request (SoupMessage *msg)
 	gpointer name, value;
 	const char *header;
 
-	header = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Cookie");
+	header = soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_COOKIE);
 	if (!header)
 		return NULL;
 
@@ -967,8 +968,8 @@ soup_cookies_to_response (GSList *cookies, SoupMessage *msg)
 	header = g_string_new (NULL);
 	while (cookies) {
 		serialize_cookie (cookies->data, header, TRUE);
-		soup_message_headers_append (soup_message_get_response_headers (msg),
-					     "Set-Cookie", header->str);
+		soup_message_headers_append_common (soup_message_get_response_headers (msg),
+                                                    SOUP_HEADER_SET_COOKIE, header->str);
 		g_string_truncate (header, 0);
 		cookies = cookies->next;
 	}
@@ -992,14 +993,14 @@ soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
 {
 	GString *header;
 
-	header = g_string_new (soup_message_headers_get_one (soup_message_get_request_headers (msg),
-							     "Cookie"));
+	header = g_string_new (soup_message_headers_get_one_common (soup_message_get_request_headers (msg),
+                                                                    SOUP_HEADER_COOKIE));
 	while (cookies) {
 		serialize_cookie (cookies->data, header, FALSE);
 		cookies = cookies->next;
 	}
-	soup_message_headers_replace (soup_message_get_request_headers (msg),
-				      "Cookie", header->str);
+	soup_message_headers_replace_common (soup_message_get_request_headers (msg),
+                                             SOUP_HEADER_COOKIE, header->str);
 	g_string_free (header, TRUE);
 }
 

@@ -14,6 +14,7 @@
 
 #include "soup-auth-domain-digest.h"
 #include "soup-uri-utils-private.h"
+#include "soup-message-headers-private.h"
 #include "soup.h"
 #include "auth/soup-auth-digest-private.h"
 
@@ -391,8 +392,8 @@ soup_auth_domain_digest_check_password (SoupAuthDomain    *domain,
 	char hex_urp[33];
 	gboolean accept;
 
-	header = soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
-					       "Authorization");
+	header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
+                                                      SOUP_HEADER_AUTHORIZATION);
 	if (!header || (strncmp (header, "Digest ", 7) != 0))
 		return FALSE;
 

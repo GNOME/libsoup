@@ -13,6 +13,7 @@
 #include "soup-converter-wrapper.h"
 #include "soup-session-feature-private.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-headers.h"
 #include "soup-uri-utils-private.h"
 #ifdef WITH_BROTLI
@@ -86,8 +87,8 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 	SoupContentDecoderCreator converter_creator;
 	GConverter *converter;
 
-	header = soup_message_headers_get_list (soup_message_get_response_headers (msg),
-						"Content-Encoding");
+	header = soup_message_headers_get_list_common (soup_message_get_response_headers (msg),
+                                                       SOUP_HEADER_CONTENT_ENCODING);
 	if (!header)
 		return NULL;
 
@@ -239,8 +240,8 @@ static void
 soup_content_decoder_request_queued (SoupSessionFeature *feature,
 				     SoupMessage        *msg)
 {
-	if (!soup_message_headers_get_one (soup_message_get_request_headers (msg),
-					   "Accept-Encoding")) {
+	if (!soup_message_headers_get_one_common (soup_message_get_request_headers (msg),
+                                                  SOUP_HEADER_ACCEPT_ENCODING)) {
                 const char *header = "gzip, deflate";
 
 #ifdef WITH_BROTLI
@@ -253,9 +254,8 @@ soup_content_decoder_request_queued (SoupSessionFeature *feature,
                         header = "gzip, deflate, br";
 #endif
 
-		soup_message_headers_append (soup_message_get_request_headers (msg),
-					     "Accept-Encoding",
-					     header);
+		soup_message_headers_append_common (soup_message_get_request_headers (msg),
+                                                    SOUP_HEADER_ACCEPT_ENCODING, header);
 	}
 }
 

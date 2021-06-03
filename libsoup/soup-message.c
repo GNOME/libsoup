@@ -15,6 +15,7 @@
 #include "soup.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-message-metrics-private.h"
 #include "soup-uri-utils-private.h"
 #include "content-sniffer/soup-content-sniffer-stream.h"
@@ -1061,7 +1062,7 @@ soup_message_set_request_body (SoupMessage  *msg,
                         g_warn_if_fail (strchr (content_type, '/') != NULL);
 
                         if (soup_message_headers_get_content_type (priv->request_headers, NULL) != content_type)
-                                soup_message_headers_replace (priv->request_headers, "Content-Type", content_type);
+                                soup_message_headers_replace_common (priv->request_headers, SOUP_HEADER_CONTENT_TYPE, content_type);
                 }
 
                 if (content_length == -1)
@@ -1071,8 +1072,8 @@ soup_message_set_request_body (SoupMessage  *msg,
 
                 priv->request_body_stream = g_object_ref (stream);
         } else {
-                soup_message_headers_remove (priv->request_headers, "Content-Type");
-                soup_message_headers_remove (priv->request_headers, "Content-Length");
+                soup_message_headers_remove_common (priv->request_headers, SOUP_HEADER_CONTENT_TYPE);
+                soup_message_headers_remove_common (priv->request_headers, SOUP_HEADER_CONTENT_LENGTH);
         }
 }
 
@@ -1816,15 +1817,18 @@ soup_message_is_keepalive (SoupMessage *msg)
 		 * doesn't request it. So ignore c_conn.
 		 */
 
-		if (!soup_message_headers_header_contains (priv->response_headers,
-							   "Connection", "Keep-Alive"))
+		if (!soup_message_headers_header_contains_common (priv->response_headers,
+                                                                  SOUP_HEADER_CONNECTION,
+                                                                  "Keep-Alive"))
 			return FALSE;
 	} else {
 		/* Normally persistent unless either side requested otherwise */
-		if (soup_message_headers_header_contains (priv->request_headers,
-							  "Connection", "close") ||
-		    soup_message_headers_header_contains (priv->response_headers,
-							  "Connection", "close"))
+		if (soup_message_headers_header_contains_common (priv->request_headers,
+                                                                 SOUP_HEADER_CONNECTION,
+                                                                 "close") ||
+		    soup_message_headers_header_contains_common (priv->response_headers,
+                                                                 SOUP_HEADER_CONNECTION,
+                                                                 "close"))
 			return FALSE;
 
 		return TRUE;
@@ -2869,12 +2873,12 @@ soup_message_set_request_host_from_uri (SoupMessage *msg,
 
         host = soup_uri_get_host_for_headers (uri);
         if (soup_uri_uses_default_port (uri))
-                soup_message_headers_replace (priv->request_headers, "Host", host);
+                soup_message_headers_replace_common (priv->request_headers, SOUP_HEADER_HOST, host);
         else {
                 char *value;
 
                 value = g_strdup_printf ("%s:%d", host, g_uri_get_port (uri));
-                soup_message_headers_replace (priv->request_headers, "Host", value);
+                soup_message_headers_replace_common (priv->request_headers, SOUP_HEADER_HOST, value);
                 g_free (value);
         }
         g_free (host);
@@ -2888,7 +2892,7 @@ soup_message_update_request_host_if_needed (SoupMessage *msg)
         if (priv->http_version == SOUP_HTTP_2_0)
                 return;
 
-        if (soup_message_headers_get_one (priv->request_headers, "Host"))
+        if (soup_message_headers_get_one_common (priv->request_headers, SOUP_HEADER_HOST))
                 return;
 
         soup_message_set_request_host_from_uri (msg, priv->uri);
@@ -2907,10 +2911,10 @@ soup_message_force_keep_alive_if_needed (SoupMessage *msg)
          * a short period of time, as we wouldn't need to establish
          * new connections. Keep alive is implicit for HTTP 1.1.
          */
-        if (!soup_message_headers_header_contains (priv->request_headers, "Connection", "Keep-Alive") &&
-            !soup_message_headers_header_contains (priv->request_headers, "Connection", "close") &&
-            !soup_message_headers_header_contains (priv->request_headers, "Connection", "Upgrade")) {
-                soup_message_headers_append (priv->request_headers, "Connection", "Keep-Alive");
+        if (!soup_message_headers_header_contains_common (priv->request_headers, SOUP_HEADER_CONNECTION, "Keep-Alive") &&
+            !soup_message_headers_header_contains_common (priv->request_headers, SOUP_HEADER_CONNECTION, "close") &&
+            !soup_message_headers_header_contains_common (priv->request_headers, SOUP_HEADER_CONNECTION, "Upgrade")) {
+                soup_message_headers_append_common (priv->request_headers, SOUP_HEADER_CONNECTION, "Keep-Alive");
         }
 }
 

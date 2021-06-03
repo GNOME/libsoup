@@ -16,6 +16,7 @@
 #include "soup-body-output-stream.h"
 #include "soup-filter-input-stream.h"
 #include "soup-server-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
 
@@ -244,14 +245,13 @@ handle_partial_get (SoupServerMessage *msg)
                  */
 
                 multipart = soup_multipart_new ("multipart/byteranges");
-                content_type = soup_message_headers_get_one (response_headers,
-                                                             "Content-Type");
+                content_type = soup_message_headers_get_one_common (response_headers, SOUP_HEADER_CONTENT_TYPE);
                 for (i = 0; i < nranges; i++) {
                         part_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
                         if (content_type) {
-                                soup_message_headers_append (part_headers,
-                                                             "Content-Type",
-                                                             content_type);
+                                soup_message_headers_append_common (part_headers,
+                                                                    SOUP_HEADER_CONTENT_TYPE,
+                                                                    content_type);
                         }
                         soup_message_headers_set_content_range (part_headers,
                                                                 ranges[i].start,
@@ -584,14 +584,14 @@ parse_headers (SoupServerMessage *msg,
         /* Handle request body encoding */
         *encoding = soup_message_headers_get_encoding (request_headers);
         if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
-                if (soup_message_headers_get_list (request_headers, "Transfer-Encoding"))
+                if (soup_message_headers_get_list_common (request_headers, SOUP_HEADER_TRANSFER_ENCODING))
                         return SOUP_STATUS_NOT_IMPLEMENTED;
                 else
                         return SOUP_STATUS_BAD_REQUEST;
         }
 
         /* Generate correct context for request */
-        req_host = soup_message_headers_get_one (request_headers, "Host");
+        req_host = soup_message_headers_get_one_common (request_headers, SOUP_HEADER_HOST);
         if (req_host && strchr (req_host, '/')) {
                 g_free (req_path);
                 return SOUP_STATUS_BAD_REQUEST;
@@ -691,7 +691,7 @@ io_read (SoupServerMessage *msg,
                          * closed when we're done.
                          */
                         soup_server_message_set_status (msg, status, NULL);
-                        soup_message_headers_append (request_headers, "Connection", "close");
+                        soup_message_headers_append_common (request_headers, SOUP_HEADER_CONNECTION, "close");
                         io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
                         break;
                 }

@@ -39,6 +39,7 @@
 #include "soup-cache-private.h"
 #include "soup-content-processor.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup.h"
 #include "soup-message-metrics-private.h"
 #include "soup-misc.h"
@@ -184,7 +185,7 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 	if (content_type && !g_ascii_strcasecmp (content_type, "multipart/x-mixed-replace"))
 		return SOUP_CACHE_UNCACHEABLE;
 
-	cache_control = soup_message_headers_get_list (soup_message_get_response_headers (msg), "Cache-Control");
+	cache_control = soup_message_headers_get_list_common (soup_message_get_response_headers (msg), SOUP_HEADER_CACHE_CONTROL);
 	if (cache_control && *cache_control) {
 		GHashTable *hash;
 
@@ -222,7 +223,7 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 
 	/* Section 13.9 */
 	if ((g_uri_get_query (soup_message_get_uri (msg))) &&
-	    !soup_message_headers_get_one (soup_message_get_response_headers (msg), "Expires") &&
+	    !soup_message_headers_get_one_common (soup_message_get_response_headers (msg), SOUP_HEADER_EXPIRES) &&
 	    !has_max_age)
 		return SOUP_CACHE_UNCACHEABLE;
 
@@ -307,7 +308,16 @@ remove_headers (const char *name, const char *value, SoupMessageHeaders *headers
 	soup_message_headers_remove (headers, name);
 }
 
-static char *hop_by_hop_headers[] = {"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailer", "Transfer-Encoding", "Upgrade"};
+static SoupHeaderName hop_by_hop_headers[] = {
+        SOUP_HEADER_CONNECTION,
+        SOUP_HEADER_KEEP_ALIVE,
+        SOUP_HEADER_PROXY_AUTHENTICATE,
+        SOUP_HEADER_PROXY_AUTHORIZATION,
+        SOUP_HEADER_TE,
+        SOUP_HEADER_TRAILER,
+        SOUP_HEADER_TRANSFER_ENCODING,
+        SOUP_HEADER_UPGRADE
+};
 
 static void
 copy_end_to_end_headers (SoupMessageHeaders *source, SoupMessageHeaders *destination)
@@ -316,7 +326,7 @@ copy_end_to_end_headers (SoupMessageHeaders *source, SoupMessageHeaders *destina
 
 	soup_message_headers_foreach (source, (SoupMessageHeadersForeachFunc) copy_headers, destination);
 	for (i = 0; i < G_N_ELEMENTS (hop_by_hop_headers); i++)
-		soup_message_headers_remove (destination, hop_by_hop_headers[i]);
+		soup_message_headers_remove_common (destination, hop_by_hop_headers[i]);
 	soup_message_headers_clean_connection_headers (destination);
 }
 
@@ -355,7 +365,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	entry->must_revalidate = FALSE;
 	entry->freshness_lifetime = 0;
 
-	cache_control = soup_message_headers_get_list (entry->headers, "Cache-Control");
+	cache_control = soup_message_headers_get_list_common (entry->headers, SOUP_HEADER_CACHE_CONTROL);
 	if (cache_control && *cache_control) {
 		const char *max_age, *s_maxage;
 		gint64 freshness_lifetime = 0;
@@ -398,8 +408,8 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	/* If the 'Expires' response header is present, use its value
 	 * minus the value of the 'Date' response header
 	 */
-	expires = soup_message_headers_get_one (entry->headers, "Expires");
-	date = soup_message_headers_get_one (entry->headers, "Date");
+	expires = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_EXPIRES);
+	date = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_DATE);
 	if (expires && date) {
 		GDateTime *expires_d, *date_d;
 		time_t expires_t, date_t;
@@ -443,7 +453,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	   than 24h (section 2.3.1.1) when using heuristics */
 
 	/* Last-Modified based heuristic */
-	last_modified = soup_message_headers_get_one (entry->headers, "Last-Modified");
+	last_modified = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_LAST_MODIFIED);
 	if (last_modified) {
 		GDateTime *soup_date;
 		time_t now, last_modified_t;
@@ -489,7 +499,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	soup_cache_entry_set_freshness (entry, msg, cache);
 
 	/* Section 2.3.2, Calculating Age */
-	date = soup_message_headers_get_one (entry->headers, "Date");
+	date = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_DATE);
 
 	if (date) {
 		GDateTime *soup_date;
@@ -500,7 +510,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 		date_value = g_date_time_to_unix (soup_date);
 		g_date_time_unref (soup_date);
 
-		age = soup_message_headers_get_one (entry->headers, "Age");
+		age = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_AGE);
 		if (age)
 			age_value = g_ascii_strtoll (age, NULL, 10);
 
@@ -1145,8 +1155,8 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* 4. The request is a conditional request issued by the client.
 	 */
-	if (soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-Modified-Since") ||
-	    soup_message_headers_get_list (soup_message_get_request_headers (msg), "If-None-Match"))
+	if (soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_IF_MODIFIED_SINCE) ||
+	    soup_message_headers_get_list_common (soup_message_get_request_headers (msg), SOUP_HEADER_IF_NONE_MATCH))
 		return SOUP_CACHE_RESPONSE_STALE;
 
 	/* 5. The presented request and stored response are free from
@@ -1157,10 +1167,10 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* For HTTP 1.0 compatibility. RFC2616 section 14.9.4
 	 */
-	if (soup_message_headers_header_contains (soup_message_get_request_headers (msg), "Pragma", "no-cache"))
+	if (soup_message_headers_header_contains_common (soup_message_get_request_headers (msg), SOUP_HEADER_PRAGMA, "no-cache"))
 		return SOUP_CACHE_RESPONSE_STALE;
 
-	cache_control = soup_message_headers_get_list (soup_message_get_request_headers (msg), "Cache-Control");
+	cache_control = soup_message_headers_get_list_common (soup_message_get_request_headers (msg), SOUP_HEADER_CACHE_CONTROL);
 	if (cache_control && *cache_control) {
 		GHashTable *hash = soup_header_parse_param_list (cache_control);
 
@@ -1391,8 +1401,8 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	entry = soup_cache_entry_lookup (cache, original);
 	g_return_val_if_fail (entry, NULL);
 
-	last_modified = soup_message_headers_get_one (entry->headers, "Last-Modified");
-	etag = soup_message_headers_get_one (entry->headers, "ETag");
+	last_modified = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_LAST_MODIFIED);
+	etag = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_ETAG);
 
 	if (!last_modified && !etag)
 		return NULL;
@@ -1415,13 +1425,13 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	g_list_free (disabled_features);
 
 	if (last_modified)
-		soup_message_headers_append (soup_message_get_request_headers (msg),
-					     "If-Modified-Since",
-					     last_modified);
+		soup_message_headers_append_common (soup_message_get_request_headers (msg),
+                                                    SOUP_HEADER_IF_MODIFIED_SINCE,
+                                                    last_modified);
 	if (etag)
-		soup_message_headers_append (soup_message_get_request_headers (msg),
-					     "If-None-Match",
-					     etag);
+		soup_message_headers_append_common (soup_message_get_request_headers (msg),
+                                                    SOUP_HEADER_IF_NONE_MATCH,
+                                                    etag);
 
 	return msg;
 }

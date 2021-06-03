@@ -27,6 +27,7 @@
 #include "soup-websocket.h"
 #include "soup-headers.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-server-message.h"
 #include "soup-websocket-extension.h"
 
@@ -210,8 +211,8 @@ choose_subprotocol (SoupServerMessage *msg,
 		return TRUE;
 
 	client_protocols_str =
-		soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
-					      "Sec-Websocket-Protocol");
+		soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
+                                                     SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL);
 	if (!client_protocols_str)
 		return TRUE;
 
@@ -265,28 +266,28 @@ soup_websocket_client_prepare_handshake (SoupMessage *msg,
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	soup_message_headers_replace (soup_message_get_request_headers (msg), "Upgrade", "websocket");
-	soup_message_headers_append (soup_message_get_request_headers (msg), "Connection", "Upgrade");
+	soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_UPGRADE, "websocket");
+	soup_message_headers_append_common (soup_message_get_request_headers (msg), SOUP_HEADER_CONNECTION, "Upgrade");
 
 	raw[0] = g_random_int ();
 	raw[1] = g_random_int ();
 	raw[2] = g_random_int ();
 	raw[3] = g_random_int ();
 	key = g_base64_encode ((const guchar *)raw, sizeof (raw));
-	soup_message_headers_replace (soup_message_get_request_headers (msg), "Sec-WebSocket-Key", key);
+	soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_KEY, key);
 	g_free (key);
 
-	soup_message_headers_replace (soup_message_get_request_headers (msg), "Sec-WebSocket-Version", "13");
+	soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_VERSION, "13");
 
 	if (origin)
-		soup_message_headers_replace (soup_message_get_request_headers (msg), "Origin", origin);
+		soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_ORIGIN, origin);
 
 	if (protocols) {
 		char *protocols_str;
 
 		protocols_str = g_strjoinv (", ", protocols);
-		soup_message_headers_replace (soup_message_get_request_headers (msg),
-					      "Sec-WebSocket-Protocol", protocols_str);
+		soup_message_headers_replace_common (soup_message_get_request_headers (msg),
+                                                     SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL, protocols_str);
 		g_free (protocols_str);
 	}
 
@@ -321,12 +322,12 @@ soup_websocket_client_prepare_handshake (SoupMessage *msg,
 		}
 
 		if (extensions->len > 0) {
-			soup_message_headers_replace (soup_message_get_request_headers (msg),
-						      "Sec-WebSocket-Extensions",
-						      extensions->str);
+			soup_message_headers_replace_common (soup_message_get_request_headers (msg),
+                                                             SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS,
+                                                             extensions->str);
 		} else {
-			soup_message_headers_remove (soup_message_get_request_headers (msg),
-						     "Sec-WebSocket-Extensions");
+			soup_message_headers_remove_common (soup_message_get_request_headers (msg),
+                                                            SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS);
 		}
 		g_string_free (extensions, TRUE);
 	}
@@ -346,7 +347,7 @@ extract_extension_names_from_request (SoupMessage *msg)
         GSList *extension_list, *l;
         GHashTable *return_value = NULL;
 
-        extensions = soup_message_headers_get_list (soup_message_get_request_headers (msg), "Sec-WebSocket-Extensions");
+        extensions = soup_message_headers_get_list_common (soup_message_get_request_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS);
         if (!extensions || !*extensions)
                 return NULL;
 
@@ -578,8 +579,8 @@ soup_websocket_server_check_handshake (SoupServerMessage *msg,
 	}
 
 	request_headers = soup_server_message_get_request_headers (msg);
-	if (!soup_message_headers_header_equals (request_headers, "Upgrade", "websocket") ||
-	    !soup_message_headers_header_contains (request_headers, "Connection", "upgrade")) {
+	if (!soup_message_headers_header_equals_common (request_headers, SOUP_HEADER_UPGRADE, "websocket") ||
+	    !soup_message_headers_header_contains_common (request_headers, SOUP_HEADER_CONNECTION, "upgrade")) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
@@ -587,7 +588,7 @@ soup_websocket_server_check_handshake (SoupServerMessage *msg,
 		return FALSE;
 	}
 
-	if (!soup_message_headers_header_equals (request_headers, "Sec-WebSocket-Version", "13")) {
+	if (!soup_message_headers_header_equals_common (request_headers, SOUP_HEADER_SEC_WEBSOCKET_VERSION, "13")) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
@@ -595,7 +596,7 @@ soup_websocket_server_check_handshake (SoupServerMessage *msg,
 		return FALSE;
 	}
 
-	key = soup_message_headers_get_one (request_headers, "Sec-WebSocket-Key");
+	key = soup_message_headers_get_one_common (request_headers, SOUP_HEADER_SEC_WEBSOCKET_KEY);
 	if (key == NULL || !validate_key (key)) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
@@ -605,7 +606,7 @@ soup_websocket_server_check_handshake (SoupServerMessage *msg,
 	}
 
 	if (expected_origin) {
-		origin = soup_message_headers_get_one (request_headers, "Origin");
+		origin = soup_message_headers_get_one_common (request_headers, SOUP_HEADER_ORIGIN);
 		if (!origin || g_ascii_strcasecmp (origin, expected_origin) != 0) {
 			g_set_error (error,
 				     SOUP_WEBSOCKET_ERROR,
@@ -623,7 +624,7 @@ soup_websocket_server_check_handshake (SoupServerMessage *msg,
 		return FALSE;
 	}
 
-	extensions = soup_message_headers_get_list (request_headers, "Sec-WebSocket-Extensions");
+	extensions = soup_message_headers_get_list_common (request_headers, SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS);
 	if (extensions && *extensions) {
 		if (!process_extensions (extensions, NULL, supported_extensions, NULL, error))
 			return FALSE;
@@ -639,8 +640,8 @@ static void
 respond_handshake_forbidden (SoupServerMessage *msg)
 {
 	soup_server_message_set_status (msg, SOUP_STATUS_FORBIDDEN, NULL);
-	soup_message_headers_append (soup_server_message_get_response_headers (msg),
-				     "Connection", "close");
+	soup_message_headers_append_common (soup_server_message_get_response_headers (msg),
+                                            SOUP_HEADER_CONNECTION, "close");
 	soup_server_message_set_response (msg, "text/html", SOUP_MEMORY_COPY,
 					  RESPONSE_FORBIDDEN, strlen (RESPONSE_FORBIDDEN));
 }
@@ -656,8 +657,8 @@ respond_handshake_bad (SoupServerMessage *msg,
 
 	text = g_strdup_printf (RESPONSE_BAD, why);
 	soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
-	soup_message_headers_append (soup_server_message_get_response_headers (msg),
-				     "Connection", "close");
+	soup_message_headers_append_common (soup_server_message_get_response_headers (msg),
+                                            SOUP_HEADER_CONNECTION, "close");
 	soup_server_message_set_response (msg, "text/html", SOUP_MEMORY_TAKE,
 					  text, strlen (text));
 }
@@ -723,20 +724,20 @@ soup_websocket_server_process_handshake (SoupServerMessage *msg,
 
 	soup_server_message_set_status (msg, SOUP_STATUS_SWITCHING_PROTOCOLS, NULL);
 	response_headers = soup_server_message_get_response_headers (msg);
-	soup_message_headers_replace (response_headers, "Upgrade", "websocket");
-	soup_message_headers_append (response_headers, "Connection", "Upgrade");
+	soup_message_headers_replace_common (response_headers, SOUP_HEADER_UPGRADE, "websocket");
+	soup_message_headers_append_common (response_headers, SOUP_HEADER_CONNECTION, "Upgrade");
 
 	request_headers = soup_server_message_get_request_headers (msg);
-	key = soup_message_headers_get_one (request_headers, "Sec-WebSocket-Key");
+	key = soup_message_headers_get_one_common (request_headers, SOUP_HEADER_SEC_WEBSOCKET_KEY);
 	accept_key = compute_accept_key (key);
-	soup_message_headers_append (response_headers, "Sec-WebSocket-Accept", accept_key);
+	soup_message_headers_append_common (response_headers, SOUP_HEADER_SEC_WEBSOCKET_ACCEPT, accept_key);
 	g_free (accept_key);
 
 	choose_subprotocol (msg, (const char **) protocols, &chosen_protocol);
 	if (chosen_protocol)
-		soup_message_headers_append (response_headers, "Sec-WebSocket-Protocol", chosen_protocol);
+		soup_message_headers_append_common (response_headers, SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL, chosen_protocol);
 
-	extensions = soup_message_headers_get_list (request_headers, "Sec-WebSocket-Extensions");
+	extensions = soup_message_headers_get_list_common (request_headers, SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS);
 	if (extensions && *extensions) {
 		GList *websocket_extensions = NULL;
 		GList *l;
@@ -763,12 +764,12 @@ soup_websocket_server_process_handshake (SoupServerMessage *msg,
 			}
 
 			if (response_extensions->len > 0) {
-				soup_message_headers_replace (response_headers,
-							      "Sec-WebSocket-Extensions",
-							      response_extensions->str);
+				soup_message_headers_replace_common (response_headers,
+                                                                     SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS,
+                                                                     response_extensions->str);
 			} else {
-				soup_message_headers_remove (response_headers,
-							     "Sec-WebSocket-Extensions");
+				soup_message_headers_remove_common (response_headers,
+                                                                    SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS);
 			}
 			g_string_free (response_extensions, TRUE);
 
@@ -837,8 +838,8 @@ soup_websocket_client_verify_handshake (SoupMessage *msg,
 		return FALSE;
 	}
 
-	if (!soup_message_headers_header_equals (soup_message_get_response_headers (msg), "Upgrade", "websocket") ||
-	    !soup_message_headers_header_contains (soup_message_get_response_headers (msg), "Connection", "upgrade")) {
+	if (!soup_message_headers_header_equals_common (soup_message_get_response_headers (msg), SOUP_HEADER_UPGRADE, "websocket") ||
+	    !soup_message_headers_header_contains_common (soup_message_get_response_headers (msg), SOUP_HEADER_CONNECTION, "upgrade")) {
 		g_set_error_literal (error,
 				     SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
@@ -846,9 +847,9 @@ soup_websocket_client_verify_handshake (SoupMessage *msg,
 		return FALSE;
 	}
 
-	protocol = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Sec-WebSocket-Protocol");
+	protocol = soup_message_headers_get_one_common (soup_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL);
 	if (protocol) {
-		request_protocols = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Sec-WebSocket-Protocol");
+		request_protocols = soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL);
 		if (!request_protocols ||
 		    !soup_header_contains (request_protocols, protocol)) {
 			g_set_error_literal (error,
@@ -859,14 +860,14 @@ soup_websocket_client_verify_handshake (SoupMessage *msg,
 		}
 	}
 
-	extensions = soup_message_headers_get_list (soup_message_get_response_headers (msg), "Sec-WebSocket-Extensions");
+	extensions = soup_message_headers_get_list_common (soup_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_EXTENSIONS);
 	if (extensions && *extensions) {
 		if (!process_extensions (extensions, msg, supported_extensions, accepted_extensions, error))
 			return FALSE;
 	}
 
-	accept_key = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Sec-WebSocket-Accept");
-	expected_accept_key = compute_accept_key (soup_message_headers_get_one (soup_message_get_request_headers (msg), "Sec-WebSocket-Key"));
+	accept_key = soup_message_headers_get_one_common (soup_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_ACCEPT);
+	expected_accept_key = compute_accept_key (soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_KEY));
 	key_ok = (accept_key && expected_accept_key &&
 		  !g_ascii_strcasecmp (accept_key, expected_accept_key));
 	g_free (expected_accept_key);

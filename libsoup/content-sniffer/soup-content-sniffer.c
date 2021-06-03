@@ -20,6 +20,7 @@
 #include "soup-content-processor.h"
 #include "soup-content-sniffer-stream.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-session-feature-private.h"
 
 /**
@@ -807,7 +808,7 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 
 	/* MIMESNIFF: 7 Determining the sniffed MIME type of a resource. */
 
-	x_content_type_options = soup_message_headers_get_one (soup_message_get_response_headers (msg), "X-Content-Type-Options");
+	x_content_type_options = soup_message_headers_get_one_common (soup_message_get_response_headers (msg), SOUP_HEADER_X_CONTENT_TYPE_OPTIONS);
 	if (!g_strcmp0 (x_content_type_options, "nosniff"))
 		no_sniff = TRUE;
 

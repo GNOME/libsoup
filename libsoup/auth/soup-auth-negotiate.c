@@ -20,6 +20,7 @@
 #include "soup-headers.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-misc.h"
 #include "soup-uri-utils-private.h"
 
@@ -357,8 +358,8 @@ check_server_response (SoupMessage *msg, gpointer auth)
 		return;
 
 	/* FIXME: need to check for proxy-auth too */
-	auth_headers = soup_message_headers_get_one (soup_message_get_response_headers (msg),
-						     "WWW-Authenticate");
+	auth_headers = soup_message_headers_get_one_common (soup_message_get_response_headers (msg),
+                                                            SOUP_HEADER_WWW_AUTHENTICATE);
 	if (!auth_headers || g_ascii_strncasecmp (auth_headers, "Negotiate ", 10) != 0) {
 		g_warning ("Failed to parse auth header");
 		conn->state = SOUP_NEGOTIATE_FAILED;

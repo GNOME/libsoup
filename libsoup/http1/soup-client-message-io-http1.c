@@ -25,6 +25,7 @@
 #include "soup-filter-input-stream.h"
 #include "soup-logger-private.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-message-metrics-private.h"
 #include "soup-message-queue-item.h"
 #include "soup-misc.h"
@@ -550,8 +551,8 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
                          * reading, and make sure the connection gets
                          * closed when we're done.
                          */
-                        soup_message_headers_append (soup_message_get_request_headers (msg),
-                                                     "Connection", "close");
+                        soup_message_headers_append_common (soup_message_get_request_headers (msg),
+                                                            SOUP_HEADER_CONNECTION, "close");
                         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
                         io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
                         break;
@@ -763,10 +764,10 @@ io_run_until (SoupClientMessageIOHTTP1 *client_io,
             io->write_state == SOUP_MESSAGE_IO_STATE_DONE) {
                 GUri *uri = soup_message_get_uri (msg);
                 char *uri_str = g_uri_to_string_partial (uri, G_URI_HIDE_PASSWORD);
-                const gchar *last_modified = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Last-Modified");
-                const gchar *etag = soup_message_headers_get_one (soup_message_get_response_headers (msg), "ETag");
-                const gchar *if_modified_since = soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-Modified-Since");
-                const gchar *if_none_match = soup_message_headers_get_one (soup_message_get_request_headers (msg), "If-None-Match");
+                const gchar *last_modified = soup_message_headers_get_one_common (soup_message_get_response_headers (msg), SOUP_HEADER_LAST_MODIFIED);
+                const gchar *etag = soup_message_headers_get_one_common (soup_message_get_response_headers (msg), SOUP_HEADER_ETAG);
+                const gchar *if_modified_since = soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_IF_MODIFIED_SINCE);
+                const gchar *if_none_match = soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_IF_NONE_MATCH);
 
                 /* FIXME: Expand and generalise sysprof support:
                  * https://gitlab.gnome.org/GNOME/sysprof/-/issues/43 */

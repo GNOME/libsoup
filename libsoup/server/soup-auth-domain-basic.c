@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-auth-domain-basic.h"
+#include "soup-message-headers-private.h"
 #include "soup.h"
 
 /**
@@ -292,8 +293,8 @@ soup_auth_domain_basic_check_password (SoupAuthDomain    *domain,
 	char *msg_username, *msg_password;
 	gboolean ok;
 
-	header = soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
-					       "Authorization");
+	header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
+                                                      SOUP_HEADER_AUTHORIZATION);
 	if (!parse_basic (header, &msg_username, &msg_password))
 		return FALSE;
 

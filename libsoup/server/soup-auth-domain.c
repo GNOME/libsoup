@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-auth-domain.h"
+#include "soup-message-headers-private.h"
 #include "soup.h"
 #include "soup-path-map.h"
 
@@ -539,10 +540,10 @@ soup_auth_domain_accepts (SoupAuthDomain    *domain,
 	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 	const char *header;
 
-	header = soup_message_headers_get_one (soup_server_message_get_request_headers (msg),
-					       priv->proxy ?
-					       "Proxy-Authorization" :
-					       "Authorization");
+	header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
+                                                      priv->proxy ?
+                                                      SOUP_HEADER_PROXY_AUTHORIZATION :
+                                                      SOUP_HEADER_AUTHORIZATION);
 	if (!header)
 		return NULL;
 	return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->accepts (domain, msg, header);
@@ -572,10 +573,10 @@ soup_auth_domain_challenge (SoupAuthDomain    *domain,
 					SOUP_STATUS_PROXY_UNAUTHORIZED :
 					SOUP_STATUS_UNAUTHORIZED,
 					NULL);
-	soup_message_headers_append (soup_server_message_get_response_headers (msg),
-				     priv->proxy ?
-				     "Proxy-Authenticate" :
-				     "WWW-Authenticate",
-				     challenge);
+	soup_message_headers_append_common (soup_server_message_get_response_headers (msg),
+                                            priv->proxy ?
+                                            SOUP_HEADER_PROXY_AUTHENTICATE :
+                                            SOUP_HEADER_WWW_AUTHENTICATE,
+                                            challenge);
 	g_free (challenge);
 }
