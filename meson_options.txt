@@ -82,3 +82,9 @@ option('fuzzing',
   value: 'disabled',
   description: 'enable fuzzing support'
 )
+
+option('http2_tests',
+  type: 'feature',
+  value: 'auto',
+  description: 'enable HTTP/2 tests depending on quart'
+)

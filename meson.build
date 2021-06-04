@@ -292,17 +292,22 @@ else
 endif
 
 # Quart server used for HTTP/2 tests
-pymod = import('python')
 quart_found = false
 
-python = pymod.find_installation('python3')
-if python.found()
-  ret = run_command(python, '-c', 'import importlib\nassert(importlib.find_loader("quart"))')
-  if ret.returncode() == 0
-    quart_found = true
+if not get_option('http2_tests').disabled()
+  pymod = import('python')
+  python = pymod.find_installation('python3')
+  if python.found()
+    ret = run_command(python, '-c', 'import importlib\nassert(importlib.find_loader("quart"))')
+    if ret.returncode() == 0
+      quart_found = true
+    endif
+  endif
+  message('Python module quart found: @0@'.format(quart_found.to_string('YES', 'NO')))
+  if get_option('http2_tests').enabled() and not quart_found
+    error('quart is required for http2 tests')
   endif
 endif
-message('Python module quart found: @0@'.format(quart_found.to_string('YES', 'NO')))
 
 gnutls_dep = dependency('gnutls', required : get_option('tests'))
 
