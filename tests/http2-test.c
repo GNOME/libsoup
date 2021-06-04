@@ -944,8 +944,6 @@ main (int argc, char **argv)
                 return 1;
         }
 
-        g_setenv ("SOUP_ENABLE_HTTP2", "1", TRUE);
-
         g_test_add ("/http2/basic/async", Test, NULL,
                     setup_session,
                     do_basic_async_test,

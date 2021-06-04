@@ -1812,10 +1812,10 @@ get_connection_for_host (SoupSession *session,
 		return conn;
 	}
 
-        if (g_getenv ("SOUP_ENABLE_HTTP2"))
-                force_http1 = soup_message_get_force_http1 (item->msg);
-        else
+        if (g_getenv ("SOUP_FORCE_HTTP1"))
                 force_http1 = TRUE;
+        else
+                force_http1 = soup_message_get_force_http1 (item->msg);
 
 	for (conns = host->connections; conns; conns = conns->next) {
                 SoupHTTPVersion http_version;
