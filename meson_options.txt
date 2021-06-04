@@ -88,3 +88,9 @@ option('http2_tests',
   value: 'auto',
   description: 'enable HTTP/2 tests depending on quart'
 )
+
+option('pkcs11_tests',
+  type: 'feature',
+  value: 'auto',
+  description: 'enable PKCS #11 tests depending on gnutls'
+)

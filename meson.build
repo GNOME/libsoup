@@ -309,7 +309,7 @@ if not get_option('http2_tests').disabled()
   endif
 endif
 
-gnutls_dep = dependency('gnutls', required : get_option('tests'))
+gnutls_dep = dependency('gnutls', required : get_option('pkcs11_tests'))
 
 if not have_apache or not quart_found or not have_autobahn or not gnutls_dep.found()
   warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
@@ -440,7 +440,7 @@ summary({
     'Tests requiring Quart' : quart_found,
     'Fuzzing tests' : get_option('fuzzing').enabled(),
     'Autobahn tests' : have_autobahn,
-    'PKCS#11 tests' : gnutls_dep.found(),
+    'PKCS #11 tests' : gnutls_dep.found(),
     'Install tests': get_option('installed_tests'),
     'Unix sockets' : unix_socket_dep.found(),
   },
