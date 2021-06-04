@@ -1,3 +1,16 @@
+Changes in libsoup from 2.99.7 to 2.99.8:
+
+    * Enable HTTP/2 by default. The SOUP_FORCE_HTTP1 env var can disable for debugging
+      [Carlos Garcia Campos]
+
+    * Restrict advertising brotli decoding support to HTTPS [Patrick Griffis]
+
+    * Add new API to handle client certificate authentication per-message as
+      well as API to PKCS #11 PINs [Carlos Garcia Campos, Patrick Griffis]
+
+    * Add new build features `http2_tests` and `pkcs11_tests` to more granularly control
+      optional test dependencies [Patrick Griffis]
+
 Changes in libsoup from 2.99.6 to 2.99.7:
 
     * Change SoupSession to only support one SoupSessionFeature of a given type [Patrick Griffis]
