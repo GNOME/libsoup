@@ -159,6 +159,10 @@ SOUP_AVAILABLE_IN_ALL
 const char         *soup_message_get_method     (SoupMessage        *msg);
 
 SOUP_AVAILABLE_IN_ALL
+void                soup_message_set_method     (SoupMessage        *msg,
+                                                 const char         *method);
+
+SOUP_AVAILABLE_IN_ALL
 SoupStatus          soup_message_get_status     (SoupMessage        *msg);
 
 SOUP_AVAILABLE_IN_ALL

@@ -116,9 +116,6 @@ GInputStream       *soup_message_get_request_body_stream (SoupMessage        *ms
 void                soup_message_set_reason_phrase       (SoupMessage        *msg,
                                                           const char         *reason_phrase);
 
-void                soup_message_set_method              (SoupMessage        *msg,
-                                                          const char         *method);
-
 void                soup_message_set_http_version        (SoupMessage       *msg,
 						          SoupHTTPVersion    version);
 

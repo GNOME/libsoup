@@ -2682,6 +2682,13 @@ soup_message_set_reason_phrase (SoupMessage *msg, const char *reason_phrase)
         g_object_notify_by_pspec (G_OBJECT (msg), properties[PROP_REASON_PHRASE]);
 }
 
+/**
+ * soup_message_set_method:
+ * @msg: a #SoupMessage
+ * @method: the value to set
+ *
+ * Set @msg's HTTP method to @method.
+ */
 void
 soup_message_set_method (SoupMessage *msg,
                          const char  *method)

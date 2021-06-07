@@ -20,6 +20,7 @@ soup_message_get_http_version
 soup_message_get_uri
 soup_message_set_uri
 soup_message_get_method
+soup_message_set_method
 soup_message_get_status
 soup_message_get_reason_phrase
 <SUBSECTION>
