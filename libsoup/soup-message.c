@@ -231,9 +231,6 @@ soup_message_set_property (GObject *object, guint prop_id,
 	case PROP_IS_TOP_LEVEL_NAVIGATION:
 		soup_message_set_is_top_level_navigation (msg, g_value_get_boolean (value));
 		break;
-	case PROP_HTTP_VERSION:
-		soup_message_set_http_version (msg, g_value_get_enum (value));
-		break;
 	case PROP_FLAGS:
 		soup_message_set_flags (msg, g_value_get_flags (value));
 		break;
@@ -710,7 +707,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   "The HTTP protocol version to use",
 				   SOUP_TYPE_HTTP_VERSION,
 				   SOUP_HTTP_1_1,
-				   G_PARAM_READWRITE |
+				   G_PARAM_READABLE |
 				   G_PARAM_STATIC_STRINGS);
         properties[PROP_FLAGS] =
 		g_param_spec_flags ("flags",
