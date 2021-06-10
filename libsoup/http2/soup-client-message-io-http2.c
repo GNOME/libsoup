@@ -369,6 +369,11 @@ io_write_ready (GObject                  *stream,
 {
         GError *error = NULL;
 
+        if (io->error) {
+                g_clear_pointer (&io->write_source, g_source_unref);
+                return G_SOURCE_REMOVE;
+        }
+
         while (nghttp2_session_want_write (io->session) && !error)
                 io_write (io, FALSE, NULL, &error);
 
@@ -433,6 +438,11 @@ io_read_ready (GObject                  *stream,
         GError *error = NULL;
         gboolean progress = TRUE;
 
+        if (io->error) {
+                g_clear_pointer (&io->read_source, g_source_unref);
+                return G_SOURCE_REMOVE;
+        }
+
         while (nghttp2_session_want_read (io->session) && progress) {
                 progress = io_read (io, FALSE, NULL, &error);
                 if (progress) {
@@ -449,6 +459,8 @@ io_read_ready (GObject                  *stream,
 
         if (error)
                 set_io_error (io, error);
+
+        io->is_shutdown = TRUE;
 
         g_clear_pointer (&io->read_source, g_source_unref);
         return G_SOURCE_REMOVE;
@@ -1319,7 +1331,7 @@ soup_client_message_io_http2_is_open (SoupClientMessageIO *iface)
         if (!nghttp2_session_check_request_allowed (io->session))
                 return FALSE;
 
-        return !io->is_shutdown;
+        return !io->is_shutdown && !io->error;
 }
 
 static gboolean
