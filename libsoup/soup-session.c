@@ -87,10 +87,6 @@ typedef struct {
 static guint soup_host_uri_hash (gconstpointer key);
 static gboolean soup_host_uri_equal (gconstpointer v1, gconstpointer v2);
 
-struct _SoupSession {
-	GObject parent;
-};
-
 typedef struct {
 	gboolean disposed;
 
@@ -2626,8 +2622,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	signals[REQUEST_QUEUED] =
 		g_signal_new ("request-queued",
 			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0, /* FIXME? */
+                              G_SIGNAL_RUN_LAST,
+                              G_STRUCT_OFFSET (SoupSessionClass, request_queued),
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 1,
@@ -2647,8 +2643,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	signals[REQUEST_UNQUEUED] =
 		g_signal_new ("request-unqueued",
 			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0, /* FIXME? */
+                              G_SIGNAL_RUN_LAST,
+                              G_STRUCT_OFFSET (SoupSessionClass, request_unqueued),
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 1,

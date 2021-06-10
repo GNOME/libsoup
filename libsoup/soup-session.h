@@ -13,7 +13,25 @@ G_BEGIN_DECLS
 
 #define SOUP_TYPE_SESSION soup_session_get_type ()
 SOUP_AVAILABLE_IN_ALL
-G_DECLARE_FINAL_TYPE (SoupSession, soup_session, SOUP, SESSION, GObject)
+G_DECLARE_DERIVABLE_TYPE (SoupSession, soup_session, SOUP, SESSION, GObject)
+
+struct _SoupSessionClass {
+        GObjectClass parent_class;
+
+        void (* request_queued)   (SoupSession *session,
+                                   SoupMessage *msg);
+        void (* request_unqueued) (SoupSession *session,
+                                   SoupMessage *msg);
+
+        void (*_soup_reserved1) (void);
+        void (*_soup_reserved2) (void);
+        void (*_soup_reserved3) (void);
+        void (*_soup_reserved4) (void);
+        void (*_soup_reserved5) (void);
+        void (*_soup_reserved6) (void);
+        void (*_soup_reserved7) (void);
+        void (*_soup_reserved8) (void);
+};
 
 SOUP_AVAILABLE_IN_ALL
 GQuark soup_session_error_quark (void);
