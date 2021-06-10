@@ -655,8 +655,11 @@ on_frame_recv_callback (nghttp2_session     *session,
                         data->metrics->response_body_bytes_received += frame->data.hd.length + FRAME_HEADER_SIZE;
                 if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM && data->body_istream) {
                         soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
-                        if (data->state == STATE_READ_DATA_START)
+                        if (data->state == STATE_READ_DATA_START) {
                                 io_try_sniff_content (data, FALSE, data->item->cancellable);
+                                if (data->state == STATE_READ_DATA && data->item->async)
+                                        soup_http2_message_data_check_status (data);
+                        }
                 }
                 break;
         case NGHTTP2_RST_STREAM:
@@ -1279,7 +1282,8 @@ soup_client_message_io_http2_unpause (SoupClientMessageIO *iface,
 
         data->paused = FALSE;
 
-        soup_http2_message_data_check_status (data);
+        if (data->item->async)
+                soup_http2_message_data_check_status (data);
 }
 
 static void
