@@ -760,6 +760,45 @@ do_remote_address_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static void
+redirect_handler (SoupMessage *msg,
+                  SoupSession *session)
+{
+        SoupMessage *new_msg;
+        GBytes *body;
+
+        new_msg = soup_message_new_from_uri ("GET", base_uri);
+        body = soup_test_session_async_send (session, new_msg, NULL, NULL);
+        g_assert_nonnull (body);
+        g_assert_cmpstr (g_bytes_get_data (body, NULL), ==, "index");
+        g_object_unref (new_msg);
+}
+
+static void
+do_new_request_on_redirect_test (void)
+{
+        SoupSession *session;
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *body;
+
+        session = soup_test_session_new (NULL);
+
+        uri = g_uri_parse_relative (base_uri, "/redirect", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_signal_connect_after (msg, "got-body",
+                                G_CALLBACK (redirect_handler),
+                                session);
+        body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
+        g_assert_cmpstr (g_bytes_get_data (body, NULL), ==, "index");
+
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        g_uri_unref (uri);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -794,6 +833,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/msg-flags", do_msg_flags_test);
         g_test_add_func ("/misc/connection-id", do_connection_id_test);
         g_test_add_func ("/misc/remote-address", do_remote_address_test);
+        g_test_add_func ("/misc/new-request-on-redirect", do_new_request_on_redirect_test);
 
 	ret = g_test_run ();
 

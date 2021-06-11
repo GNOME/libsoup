@@ -1043,6 +1043,8 @@ soup_client_message_io_http1_send_item (SoupClientMessageIO       *iface,
 #ifdef HAVE_SYSPROF
         msg_io->begin_time_nsec = SYSPROF_CAPTURE_CURRENT_TIME;
 #endif
+        if (io->msg_io)
+                g_warn_if_reached ();
 
         io->msg_io = msg_io;
         io->is_reusable = FALSE;

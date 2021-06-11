@@ -1205,7 +1205,7 @@ soup_session_requeue_item (SoupSession          *session,
 		retval = FALSE;
 	} else {
 		item->resend_count++;
-		item->state = SOUP_MESSAGE_RESTARTING;
+		item->state = SOUP_MESSAGE_REQUEUED;
 		retval = TRUE;
 	}
 
@@ -1590,6 +1590,9 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 		return;
 	}
 
+        if (item->state == SOUP_MESSAGE_REQUEUED)
+                item->state = SOUP_MESSAGE_RESTARTING;
+
 	if (item->state != SOUP_MESSAGE_RESTARTING) {
 		item->state = SOUP_MESSAGE_FINISHING;
 
@@ -1645,6 +1648,9 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 	SoupMessageQueueItem *item = tunnel_item->related;
 	SoupSession *session = tunnel_item->session;
 	guint status;
+
+        if (tunnel_item->state == SOUP_MESSAGE_REQUEUED)
+                tunnel_item->state = SOUP_MESSAGE_RESTARTING;
 
 	if (tunnel_item->state == SOUP_MESSAGE_RESTARTING) {
 		soup_message_restarted (msg);
@@ -2028,6 +2034,7 @@ soup_session_process_queue_item (SoupSession          *session,
 
 		case SOUP_MESSAGE_CACHED:
 		case SOUP_MESSAGE_TUNNELING:
+                case SOUP_MESSAGE_REQUEUED:
 			/* Will be handled elsewhere */
 			return;
 
