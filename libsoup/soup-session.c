@@ -200,6 +200,8 @@ static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
  *   Location header was missing or empty in response
  * @SOUP_SESSION_ERROR_REDIRECT_BAD_URI: failed to redirect message because
  *   Location header contains an invalid URI
+ * @SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE: the message is already in the
+ *   session queue. Messages can only be reused after unqueued.
  *
  * A #SoupSession error.
  */
@@ -3290,6 +3292,35 @@ async_respond_from_cache (SoupSession          *session,
 		return FALSE;
 }
 
+static gboolean
+soup_session_return_error_if_message_already_in_queue (SoupSession         *session,
+                                                       SoupMessage         *msg,
+                                                       GCancellable        *cancellable,
+                                                       GAsyncReadyCallback  callback,
+                                                       gpointer             user_data)
+{
+        SoupMessageQueueItem *item;
+        GTask *task;
+
+        if (!soup_session_lookup_queue_item (session, msg))
+                return FALSE;
+
+        /* Set a new SoupMessageQueueItem in finished state as task data for
+         * soup_session_get_async_result_message() and soup_session_send_finish().
+         */
+        item = soup_message_queue_item_new (session, msg, TRUE, cancellable);
+        item->state = SOUP_MESSAGE_FINISHED;
+        item->error = g_error_new_literal (SOUP_SESSION_ERROR,
+                                           SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE,
+                                           _("Message is already in session queue"));
+        task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_task_data (task, item, (GDestroyNotify)soup_message_queue_item_unref);
+        g_task_return_error (task, g_error_copy (item->error));
+        g_object_unref (task);
+
+        return TRUE;
+}
+
 /**
  * soup_session_send_async:
  * @session: a #SoupSession
@@ -3319,6 +3350,9 @@ soup_session_send_async (SoupSession         *session,
 	SoupMessageQueueItem *item;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
+
+        if (soup_session_return_error_if_message_already_in_queue (session, msg, cancellable, callback, user_data))
+            return;
 
 	item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
 	item->io_priority = io_priority;
@@ -3364,13 +3398,15 @@ soup_session_send_finish (SoupSession   *session,
 	if (g_task_had_error (task)) {
 		SoupMessageQueueItem *item = g_task_get_task_data (task);
 
-		if (soup_message_io_in_progress (item->msg))
-			soup_message_io_finished (item->msg);
-		else if (item->state != SOUP_MESSAGE_FINISHED)
-			item->state = SOUP_MESSAGE_FINISHING;
+                if (!g_error_matches (item->error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE)) {
+                        if (soup_message_io_in_progress (item->msg))
+                                soup_message_io_finished (item->msg);
+                        else if (item->state != SOUP_MESSAGE_FINISHED)
+                                item->state = SOUP_MESSAGE_FINISHING;
 
-		if (item->state != SOUP_MESSAGE_FINISHED)
-			soup_session_process_queue_item (session, item, NULL, FALSE);
+                        if (item->state != SOUP_MESSAGE_FINISHED)
+                                soup_session_process_queue_item (session, item, NULL, FALSE);
+                }
 	}
 
 	return g_task_propagate_pointer (task, error);
@@ -3420,6 +3456,14 @@ soup_session_send (SoupSession   *session,
 	GError *my_error = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+        if (soup_session_lookup_queue_item (session, msg)) {
+                g_set_error_literal (error,
+                                     SOUP_SESSION_ERROR,
+                                     SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE,
+                                     _("Message is already in session queue"));
+                return NULL;
+        }
 
 	item = soup_session_append_queue_item (session, msg, FALSE, cancellable);
 
@@ -3869,6 +3913,9 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
+        if (soup_session_return_error_if_message_already_in_queue (session, msg, cancellable, callback, user_data))
+                return;
+
 	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
 	soup_websocket_client_prepare_handshake (msg, origin, protocols, supported_extensions);
 
@@ -3986,6 +4033,9 @@ soup_session_preconnect_async (SoupSession        *session,
 
         g_return_if_fail (SOUP_IS_SESSION (session));
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+        if (soup_session_return_error_if_message_already_in_queue (session, msg, cancellable, callback, user_data))
+                return;
 
         item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
         item->connect_only = TRUE;

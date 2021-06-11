@@ -379,6 +379,7 @@ typedef struct {
 	GBytes *body;
 	GError *error;
 	gboolean done;
+        gboolean message_finished;
 } SendAsyncData;
 
 static void
@@ -389,13 +390,15 @@ send_and_read_async_ready_cb (SoupSession   *session,
 	data->done = TRUE;
 	g_assert_true (soup_session_get_async_result_message (session, result) == data->msg);
 	data->body = soup_session_send_and_read_finish (session, result, &data->error);
+        if (g_error_matches (data->error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE))
+                data->message_finished = TRUE;
 }
 
 static void
-on_message_finished (SoupMessage *msg,
-                    gboolean    *message_finished)
+on_message_finished (SoupMessage   *msg,
+                     SendAsyncData *data)
 {
-        *message_finished = TRUE;
+        data->message_finished = TRUE;
 }
 
 GBytes *
@@ -404,18 +407,17 @@ soup_test_session_async_send (SoupSession  *session,
 			      GCancellable *cancellable,
 			      GError      **error)
 {
-	gboolean message_finished = FALSE;
 	GMainContext *async_context = g_main_context_ref_thread_default ();
 	gulong signal_id;
-	SendAsyncData data = { msg, NULL, NULL, FALSE };
+	SendAsyncData data = { msg, NULL, NULL, FALSE, FALSE };
 
 	signal_id = g_signal_connect (msg, "finished",
-                                     G_CALLBACK (on_message_finished), &message_finished);
+                                      G_CALLBACK (on_message_finished), &data);
 
 	soup_session_send_and_read_async (session, msg, G_PRIORITY_DEFAULT, cancellable,
 					  (GAsyncReadyCallback)send_and_read_async_ready_cb, &data);
 
-	while (!data.done || !message_finished)
+	while (!data.done || !data.message_finished)
 		g_main_context_iteration (async_context, TRUE);
 
 	g_signal_handler_disconnect (msg, signal_id);

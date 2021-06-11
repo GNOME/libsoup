@@ -256,6 +256,22 @@ reuse_test_authenticate (SoupMessage *msg,
 }
 
 static void
+reuse_preconnect_finished (SoupSession   *session,
+                           GAsyncResult  *result,
+                           GError       **error)
+{
+        g_assert_false (soup_session_preconnect_finish (session, result, error));
+}
+
+static void
+reuse_websocket_connect_finished (SoupSession   *session,
+                                  GAsyncResult  *result,
+                                  GError       **error)
+{
+        g_assert_false (soup_session_websocket_connect_finish (session, result, error));
+}
+
+static void
 do_msg_reuse_test (void)
 {
 	SoupSession *session;
@@ -263,6 +279,8 @@ do_msg_reuse_test (void)
         GBytes *body;
 	GUri *uri;
 	guint *signal_ids, n_signal_ids;
+        GInputStream *stream;
+        GError *error = NULL;
 
 	g_test_bug ("559054");
 
@@ -302,6 +320,41 @@ do_msg_reuse_test (void)
         g_assert_nonnull (body);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
         g_bytes_unref (body);
+
+        debug_printf (1, "  Reuse before finishing\n");
+        msg = soup_message_new_from_uri ("GET", base_uri);
+        stream = soup_test_request_send (session, msg, NULL, 0, &error);
+        g_assert_no_error (error);
+        g_assert_null (soup_test_request_send (session, msg, NULL, 0, &error));
+        g_assert_error (error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE);
+        g_clear_error (&error);
+        g_assert_null (soup_test_session_async_send (session, msg, NULL, &error));
+        g_assert_error (error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE);
+        g_clear_error (&error);
+        g_assert_null (soup_session_send (session, msg, NULL, &error));
+        g_assert_error (error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE);
+        g_clear_error (&error);
+        g_assert_null (soup_session_send_and_read (session, msg, NULL, &error));
+        g_assert_error (error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE);
+        g_clear_error (&error);
+        soup_session_preconnect_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                       (GAsyncReadyCallback)reuse_preconnect_finished, &error);
+        while (error == NULL)
+                g_main_context_iteration (NULL, TRUE);
+        g_assert_error (error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE);
+        g_clear_error (&error);
+        soup_session_websocket_connect_async (session, msg, NULL, NULL, G_PRIORITY_DEFAULT, NULL,
+                                              (GAsyncReadyCallback)reuse_websocket_connect_finished, &error);
+        while (error == NULL)
+                g_main_context_iteration (NULL, TRUE);
+        g_assert_error (error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE);
+        g_clear_error (&error);
+        g_object_unref (stream);
+
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+
+        ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (msg);
