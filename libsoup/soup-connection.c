@@ -1110,10 +1110,8 @@ soup_connection_setup_message_io (SoupConnection *conn,
         if (priv->proxy_uri && soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
                 set_proxy_msg (conn, msg);
 
-        if (!soup_client_message_io_is_reusable (priv->io_data)) {
-                g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
-                soup_connection_create_io_data (conn);
-        }
+        if (!soup_client_message_io_is_reusable (priv->io_data))
+                g_warn_if_reached ();
 
         return priv->io_data;
 }
