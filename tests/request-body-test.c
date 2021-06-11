@@ -157,9 +157,13 @@ do_request_test (gconstpointer data)
         g_signal_connect (msg, "wrote-body",
                           G_CALLBACK (wrote_body), &ptd);
 
-        if (flags & ASYNC)
-                soup_test_session_async_send (session, msg, NULL, NULL);
-        else
+        if (flags & ASYNC) {
+                GBytes *body;
+
+                body = soup_test_session_async_send (session, msg, NULL, NULL);
+                g_assert_nonnull (body);
+                g_bytes_unref (body);
+        } else
                 soup_test_session_send_message (session, msg);
         soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
 

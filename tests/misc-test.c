@@ -260,6 +260,7 @@ do_msg_reuse_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
+        GBytes *body;
 	GUri *uri;
 	guint *signal_ids, n_signal_ids;
 
@@ -273,26 +274,34 @@ do_msg_reuse_test (void)
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	g_signal_connect (msg, "authenticate",
                           G_CALLBACK (reuse_test_authenticate), NULL);
-	soup_test_session_async_send (session, msg, NULL, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
+        g_bytes_unref (body);
 
 	debug_printf (1, "  Redirect message\n");
 	uri = g_uri_parse_relative (base_uri, "/redirect", SOUP_HTTP_URI_FLAGS, NULL);
 	soup_message_set_uri (msg, uri);
 	g_uri_unref (uri);
-	soup_test_session_async_send (session, msg, NULL, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
 	g_assert_true (soup_uri_equal (soup_message_get_uri (msg), base_uri));
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
+        g_bytes_unref (body);
 
 	debug_printf (1, "  Auth message\n");
 	uri = g_uri_parse_relative (base_uri, "/auth", SOUP_HTTP_URI_FLAGS, NULL);
 	soup_message_set_uri (msg, uri);
 	g_uri_unref (uri);
-	soup_test_session_async_send (session, msg, NULL, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_bytes_unref (body);
 	soup_message_set_uri (msg, base_uri);
-	soup_test_session_async_send (session, msg, NULL, NULL);
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
+        g_bytes_unref (body);
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (msg);

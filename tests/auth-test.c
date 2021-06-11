@@ -792,7 +792,7 @@ do_async_auth_cancel_test (void)
 	g_signal_connect (msg, "authenticate",
 			  G_CALLBACK (async_authenticate_cancel_authenticate),
 			  &data);
-	soup_test_session_async_send (session, msg, data.cancellable, &error);
+	g_assert_null (soup_test_session_async_send (session, msg, data.cancellable, &error));
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 
 	g_object_unref (data.auth);
