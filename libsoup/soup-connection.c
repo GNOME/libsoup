@@ -1152,7 +1152,7 @@ soup_connection_set_tls_client_certificate (SoupConnection  *conn,
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        if (G_IS_TLS_CONNECTION (priv->connection)) {
+        if (G_IS_TLS_CONNECTION (priv->connection) && certificate) {
                 g_tls_connection_set_certificate (G_TLS_CONNECTION (priv->connection),
                                                   certificate);
                 g_clear_object (&priv->tls_client_cert);
@@ -1163,7 +1163,7 @@ soup_connection_set_tls_client_certificate (SoupConnection  *conn,
                 return;
 
         g_clear_object (&priv->tls_client_cert);
-        priv->tls_client_cert = g_object_ref (certificate);
+        priv->tls_client_cert = certificate ? g_object_ref (certificate) : NULL;
 }
 
 void

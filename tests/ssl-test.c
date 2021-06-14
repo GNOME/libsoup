@@ -360,6 +360,38 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_bytes_unref (body);
         g_object_unref (msg);
 
+        /* Using the wrong certificate fails */
+        wrong_certificate = g_tls_certificate_new_from_files (
+                g_test_get_filename (G_TEST_DIST, "test-cert-2.pem", NULL),
+                g_test_get_filename (G_TEST_DIST, "test-key-2.pem", NULL),
+                NULL
+        );
+        g_assert_nonnull (wrong_certificate);
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_cb),
+                          wrong_certificate);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+                g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+        g_assert_null (body);
+        g_clear_error (&error);
+        g_object_unref (msg);
+
+        /* Passing NULL certificate fails */
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_cb),
+                          NULL);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+                g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
         /* request-certificate is not emitted if the certificate is set before the load */
         msg = soup_message_new_from_uri ("GET", uri);
         soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
@@ -385,19 +417,27 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_object_unref (msg);
 
         /* Using the wrong certificate fails */
-        wrong_certificate = g_tls_certificate_new_from_files (
-                g_test_get_filename (G_TEST_DIST, "test-cert-2.pem", NULL),
-                g_test_get_filename (G_TEST_DIST, "test-key-2.pem", NULL),
-                NULL
-        );
-        g_assert_nonnull (wrong_certificate);
         msg = soup_message_new_from_uri ("GET", uri);
         soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
         g_signal_connect (msg, "request-certificate",
                           G_CALLBACK (request_certificate_async_cb),
                           wrong_certificate);
         body = soup_test_session_async_send (session, msg, NULL, &error);
-        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+                g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+        g_assert_null (body);
+        g_clear_error (&error);
+        g_object_unref (msg);
+
+        /* Passing NULL certificate fails */
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_add_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_async_cb),
+                          NULL);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
+                g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
         g_assert_null (body);
         g_clear_error (&error);
         g_object_unref (msg);

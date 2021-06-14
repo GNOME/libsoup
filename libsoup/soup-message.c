@@ -2234,12 +2234,13 @@ soup_message_get_tls_peer_certificate_errors (SoupMessage *msg)
 /**
  * soup_message_set_tls_client_certificate:
  * @msg: a #SoupMessage
- * @certificate: the #GTlsCertificate to set
+ * @certificate: (nullable): the #GTlsCertificate to set, or %NULL
  *
  * Sets the @certificate to be used by @msg's connection when a
  * client certificate is requested during the TLS handshake.
  * You can call this as a response to #SoupMessage::request-certificate
- * signal, or before the connection is started.
+ * signal, or before the connection is started. If @certificate is %NULL
+ * the handshake will continue without providing a GTlsCertificate.
  * Note that the #GTlsCertificate set by this function will be ignored if
  * #SoupSession::tls-interaction is not %NULL.
  */
@@ -2250,7 +2251,7 @@ soup_message_set_tls_client_certificate (SoupMessage     *msg,
         SoupMessagePrivate *priv;
 
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (G_IS_TLS_CERTIFICATE (certificate));
+        g_return_if_fail (certificate == NULL || G_IS_TLS_CERTIFICATE (certificate));
 
         priv = soup_message_get_instance_private (msg);
         if (priv->pending_tls_cert_request) {
@@ -2271,7 +2272,7 @@ soup_message_set_tls_client_certificate (SoupMessage     *msg,
                 return;
 
         g_clear_object (&priv->tls_client_certificate);
-        priv->tls_client_certificate = g_object_ref (certificate);
+        priv->tls_client_certificate = certificate ? g_object_ref (certificate) : NULL;
 }
 
 /**
