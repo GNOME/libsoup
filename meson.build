@@ -100,7 +100,8 @@ if not sqlite_dep.found()
 endif
 
 if not sqlite_dep.found()
-  sqlite_dep = subproject('sqlite').get_variable('sqlite_dep')
+  # Allows fallback to subproject
+  sqlite_dep = dependency('sqlite3')
 endif
 
 libxml_dep = dependency('libxml-2.0', required: false)
