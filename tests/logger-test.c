@@ -426,6 +426,44 @@ do_logger_cookies_test (void)
 }
 
 static void
+preconnect_message_finsihed_cb (SoupMessage *msg,
+                                gboolean    *finished)
+{
+        *finished = TRUE;
+}
+
+static void
+do_logger_preconnect_test (void)
+{
+        SoupSession *session;
+        SoupLogger *logger;
+        SoupMessage *msg;
+        gboolean finished = FALSE;
+        LogData log = { NULL, NULL, NULL, NULL };
+
+        /* Preconnect messages should not be logged */
+        session = soup_test_session_new (NULL);
+        logger = soup_logger_new (SOUP_LOGGER_LOG_MINIMAL);
+        soup_logger_set_printer (logger, (SoupLoggerPrinter)printer, &log, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
+        g_object_unref (logger);
+
+        msg = soup_message_new_from_uri ("HEAD", base_uri);
+        g_signal_connect_after (msg, "finished",
+                                G_CALLBACK (preconnect_message_finsihed_cb),
+                                &finished);
+        soup_session_preconnect_async (session, msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+        while (!finished)
+                g_main_context_iteration (NULL, TRUE);
+        g_object_unref (msg);
+
+        g_assert_null (log.request);
+        g_assert_null (log.response);
+
+        soup_test_session_abort_unref (session);
+}
+
+static void
 server_callback (SoupServer        *server,
                  SoupServerMessage *msg,
                  const char        *path,
@@ -460,6 +498,7 @@ main (int argc, char **argv)
         g_test_add_func ("/logger/body",    do_logger_body_test);
         g_test_add_func ("/logger/filters", do_logger_filters_test);
         g_test_add_func ("/logger/cookies", do_logger_cookies_test);
+        g_test_add_func ("/logger/preconnect", do_logger_preconnect_test);
 
         ret = g_test_run ();
 

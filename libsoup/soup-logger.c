@@ -773,6 +773,12 @@ finished (SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
 
+        /* Do not print the response if we didn't print a request. This can happen if
+         * msg is a preconnect request, for example.
+         */
+        if (!soup_logger_get_id (logger, msg))
+                return;
+
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 }
