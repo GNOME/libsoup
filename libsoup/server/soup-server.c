@@ -1636,7 +1636,7 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
- * Adds a handler to @server for requests under @path. If @path is
+ * Adds a handler to @server for requests prefixed by @path. If @path is
  * %NULL or "/", then this will be the default handler for all
  * requests that don't have a more specific handler. (Note though that
  * if you want to handle requests to the special "*" URI, you must
@@ -1701,7 +1701,7 @@ soup_server_add_handler (SoupServer            *server,
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
- * Adds an "early" handler to @server for requests under @path. Note
+ * Adds an "early" handler to @server for requests prefixed by @path. Note
  * that "normal" and "early" handlers are matched up together, so if
  * you add a normal handler for "/foo" and an early handler for
  * "/foo/bar", then a request to "/foo/bar" (or any path below it)
@@ -1779,7 +1779,7 @@ soup_server_add_early_handler (SoupServer            *server,
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
- * Adds a WebSocket handler to @server for requests under @path. (If
+ * Adds a WebSocket handler to @server for requests prefixed by @path. (If
  * @path is %NULL or "/", then this will be the default handler for
  * all requests that don't have a more specific handler.)
  *
