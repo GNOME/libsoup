@@ -101,11 +101,10 @@
  * If you want to handle the special "*" URI (eg, "OPTIONS *"), you
  * must explicitly register a handler for "*"; the default handler
  * will not be used for that case.
- * 
+ *
  * If you want to process https connections in addition to (or instead
- * of) http connections, you can either set the
- * SoupServer:tls-certificate property when creating the server, or
- * else call soup_server_set_ssl_cert_file() after creating it.
+ * of) http connections, you can set the #SoupServer:tls-certificate
+ * property.
  *
  * Once the server is set up, make one or more calls to
  * soup_server_listen(), soup_server_listen_local(), or
@@ -268,9 +267,7 @@ soup_server_set_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_TLS_CERTIFICATE:
-		if (priv->tls_cert)
-			g_object_unref (priv->tls_cert);
-		priv->tls_cert = g_value_dup_object (value);
+                soup_server_set_tls_certificate (server, g_value_get_object (value));
 		break;
 	case PROP_RAW_PATHS:
 		priv->raw_paths = g_value_get_boolean (value);
@@ -434,10 +431,6 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * A #GTlsCertificate that has a #GTlsCertificate:private-key
 	 * set. If this is set, then the server will be able to speak
 	 * https in addition to (or instead of) plain http.
-	 *
-	 * Alternatively, you can call soup_server_set_ssl_cert_file()
-	 * to have #SoupServer read in a a certificate from a file.
-	 *
 	 */
         properties[PROP_TLS_CERTIFICATE] =
 		g_param_spec_object ("tls-certificate",
@@ -445,7 +438,7 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "GTlsCertificate to use for https",
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE |
-                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_CONSTRUCT |
                                      G_PARAM_STATIC_STRINGS);
 
         properties[PROP_RAW_PATHS] =
@@ -524,41 +517,46 @@ soup_server_new (const char *optname1, ...)
 }
 
 /**
- * soup_server_set_ssl_cert_file:
+ * soup_server_set_tls_certificate:
  * @server: a #SoupServer
- * @ssl_cert_file: path to a file containing a PEM-encoded SSL/TLS
- *   certificate.
- * @ssl_key_file: path to a file containing a PEM-encoded private key.
- * @error: return location for a #GError
+ * @certificate: a #GTlsCertificate
  *
- * Sets @server up to do https, using the SSL/TLS certificate
- * specified by @ssl_cert_file and @ssl_key_file (which may point to
- * the same file).
- *
- * Alternatively, you can set the #SoupServer:tls-certificate property
- * at construction time, if you already have a #GTlsCertificate.
- *
- * Returns: success or failure.
- *
+ * Sets @server up to do https, using the given SSL/TLS @certificate.
  */
-gboolean
-soup_server_set_ssl_cert_file  (SoupServer  *server,
-				const char  *ssl_cert_file,
-				const char  *ssl_key_file,
-				GError     **error)
+void
+soup_server_set_tls_certificate (SoupServer      *server,
+                                 GTlsCertificate *certificate)
 {
 	SoupServerPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_SERVER (server), FALSE);
+	g_return_if_fail (SOUP_IS_SERVER (server));
+
 	priv = soup_server_get_instance_private (server);
+        if (priv->tls_cert == certificate)
+                return;
 
-	if (priv->tls_cert)
-		g_object_unref (priv->tls_cert);
+        g_clear_object (&priv->tls_cert);
+        priv->tls_cert = certificate ? g_object_ref (certificate) : NULL;
+        g_object_notify_by_pspec (G_OBJECT (server), properties[PROP_TLS_CERTIFICATE]);
+}
 
-	priv->tls_cert = g_tls_certificate_new_from_files (ssl_cert_file,
-							   ssl_key_file,
-							   error);
-	return priv->tls_cert != NULL;
+/**
+ * soup_server_get_tls_certificate:
+ * @server: a #SoupServer
+ *
+ * Gets the @server SSL/TLS certificate
+ *
+ * Returns: (transfer none) (nullable): a #GTlsCertificate or %NULL
+ */
+GTlsCertificate *
+soup_server_get_tls_certificate (SoupServer *server)
+{
+        SoupServerPrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
+
+        priv = soup_server_get_instance_private (server);
+        return priv->tls_cert;
 }
 
 /**

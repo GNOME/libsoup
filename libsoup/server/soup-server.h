@@ -42,10 +42,11 @@ SoupServer     *soup_server_new                (const char               *optnam
 					        ...) G_GNUC_NULL_TERMINATED;
 
 SOUP_AVAILABLE_IN_ALL
-gboolean        soup_server_set_ssl_cert_file  (SoupServer               *server,
-					        const char               *ssl_cert_file,
-					        const char               *ssl_key_file,
-					        GError                  **error);
+void            soup_server_set_tls_certificate (SoupServer              *server,
+                                                 GTlsCertificate         *certificate);
+SOUP_AVAILABLE_IN_ALL
+GTlsCertificate *soup_server_get_tls_certificate (SoupServer             *server);
+
 SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_is_https           (SoupServer               *server);
 
