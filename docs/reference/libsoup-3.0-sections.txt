@@ -227,6 +227,10 @@ SoupServer
 soup_server_new
 soup_server_set_tls_certificate
 soup_server_get_tls_certificate
+soup_server_set_tls_database
+soup_server_get_tls_database
+soup_server_set_tls_auth_mode
+soup_server_get_tls_auth_mode
 <SUBSECTION>
 SoupServerListenOptions
 soup_server_listen

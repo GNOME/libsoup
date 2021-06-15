@@ -160,6 +160,8 @@ typedef struct {
 	GSList            *clients;
 
 	GTlsCertificate   *tls_cert;
+        GTlsDatabase      *tls_database;
+        GTlsAuthenticationMode tls_auth_mode;
 
 	char              *server_header;
 
@@ -183,6 +185,8 @@ enum {
 	PROP_0,
 
 	PROP_TLS_CERTIFICATE,
+        PROP_TLS_DATABASE,
+        PROP_TLS_AUTH_MODE,
 	PROP_RAW_PATHS,
 	PROP_SERVER_HEADER,
 
@@ -243,6 +247,7 @@ soup_server_finalize (GObject *object)
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	g_clear_object (&priv->tls_cert);
+        g_clear_object (&priv->tls_database);
 
 	g_free (priv->server_header);
 
@@ -269,6 +274,12 @@ soup_server_set_property (GObject *object, guint prop_id,
 	case PROP_TLS_CERTIFICATE:
                 soup_server_set_tls_certificate (server, g_value_get_object (value));
 		break;
+        case PROP_TLS_DATABASE:
+                soup_server_set_tls_database (server, g_value_get_object (value));
+                break;
+        case PROP_TLS_AUTH_MODE:
+                soup_server_set_tls_auth_mode (server, g_value_get_enum (value));
+                break;
 	case PROP_RAW_PATHS:
 		priv->raw_paths = g_value_get_boolean (value);
 		break;
@@ -304,6 +315,12 @@ soup_server_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_CERTIFICATE:
 		g_value_set_object (value, priv->tls_cert);
 		break;
+        case PROP_TLS_DATABASE:
+                g_value_set_object (value, priv->tls_database);
+                break;
+        case PROP_TLS_AUTH_MODE:
+                g_value_set_enum (value, priv->tls_auth_mode);
+                break;
 	case PROP_RAW_PATHS:
 		g_value_set_boolean (value, priv->raw_paths);
 		break;
@@ -441,6 +458,35 @@ soup_server_class_init (SoupServerClass *server_class)
                                      G_PARAM_CONSTRUCT |
                                      G_PARAM_STATIC_STRINGS);
 
+        /**
+         * SoupServer:tls-database:
+         *
+         * A #GTlsDatabase to use for validating SSL/TLS client certificates.
+         */
+        properties[PROP_TLS_DATABASE] =
+                g_param_spec_object ("tls-database",
+                                     "TLS database",
+                                     "GTlsDatabase to use for validating SSL/TLS client certificates",
+                                     G_TYPE_TLS_DATABASE,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_CONSTRUCT |
+                                     G_PARAM_STATIC_STRINGS);
+
+        /**
+         * SoupServer:tls-auth-mode:
+         *
+         * A #GTlsAuthenticationMode for SSL/TLS client authentication
+         */
+        properties[PROP_TLS_AUTH_MODE] =
+                g_param_spec_enum ("tls-auth-mode",
+                                   "TLS Authentication Mode",
+                                   "GTlsAuthenticationMode to use for SSL/TLS client authentication",
+                                   G_TYPE_TLS_AUTHENTICATION_MODE,
+                                   G_TLS_AUTHENTICATION_NONE,
+                                   G_PARAM_READWRITE |
+                                   G_PARAM_CONSTRUCT |
+                                   G_PARAM_STATIC_STRINGS);
+
         properties[PROP_RAW_PATHS] =
 		g_param_spec_boolean ("raw-paths",
 				      "Raw paths",
@@ -527,11 +573,11 @@ void
 soup_server_set_tls_certificate (SoupServer      *server,
                                  GTlsCertificate *certificate)
 {
-	SoupServerPrivate *priv;
+        SoupServerPrivate *priv;
 
-	g_return_if_fail (SOUP_IS_SERVER (server));
+        g_return_if_fail (SOUP_IS_SERVER (server));
 
-	priv = soup_server_get_instance_private (server);
+        priv = soup_server_get_instance_private (server);
         if (priv->tls_cert == certificate)
                 return;
 
@@ -557,6 +603,91 @@ soup_server_get_tls_certificate (SoupServer *server)
 
         priv = soup_server_get_instance_private (server);
         return priv->tls_cert;
+}
+
+/**
+ * soup_server_set_tls_database:
+ * @server: a #SoupServer
+ * @tls_database: a #GTlsDatabase
+ *
+ * Sets @server's #GTlsDatabase to use for validating SSL/TLS client certificates
+ */
+void
+soup_server_set_tls_database (SoupServer   *server,
+                              GTlsDatabase *tls_database)
+{
+        SoupServerPrivate *priv;
+
+        g_return_if_fail (SOUP_IS_SERVER (server));
+
+        priv = soup_server_get_instance_private (server);
+        if (priv->tls_database == tls_database)
+                return;
+
+        g_clear_object (&priv->tls_database);
+        priv->tls_database = tls_database ? g_object_ref (tls_database) : NULL;
+        g_object_notify_by_pspec (G_OBJECT (server), properties[PROP_TLS_DATABASE]);
+}
+
+/**
+ * soup_server_get_tls_database:
+ * @server: a #SoupServer
+ *
+ * Gets the @server SSL/TLS database
+ *
+ * Returns: (transfer none) (nullable): a #GTlsDatabase or %NULL
+ */
+GTlsDatabase *
+soup_server_get_tls_database (SoupServer *server)
+{
+        SoupServerPrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
+
+        priv = soup_server_get_instance_private (server);
+        return priv->tls_database;
+}
+
+/**
+ * soup_server_set_tls_auth_mode:
+ * @server: a #SoupServer
+ * @mode: a #GTlsAuthenticationMode
+ *
+ * Sets @server's #GTlsAuthenticationMode to use for SSL/TLS client authentication
+ */
+void
+soup_server_set_tls_auth_mode (SoupServer             *server,
+                               GTlsAuthenticationMode  mode)
+{
+        SoupServerPrivate *priv;
+
+        g_return_if_fail (SOUP_IS_SERVER (server));
+
+        priv = soup_server_get_instance_private (server);
+        if (priv->tls_auth_mode == mode)
+                return;
+
+        priv->tls_auth_mode = mode;
+        g_object_notify_by_pspec (G_OBJECT (server), properties[PROP_TLS_AUTH_MODE]);
+}
+
+/**
+ * soup_server_get_tls_auth_mode:
+ * @server: a #SoupServer
+ *
+ * Gets the @server SSL/TLS client authentication mode
+ *
+ * Returns: a #GTlsAuthenticationMode
+ */
+GTlsAuthenticationMode
+soup_server_get_tls_auth_mode (SoupServer *server)
+{
+        SoupServerPrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_SERVER (server), G_TLS_AUTHENTICATION_NONE);
+
+        priv = soup_server_get_instance_private (server);
+        return priv->tls_auth_mode;
 }
 
 /**
@@ -1071,9 +1202,15 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
 			return FALSE;
 		}
 
-		g_object_set (G_OBJECT (listener),
-			      "tls-certificate", priv->tls_cert,
-			      NULL);
+                g_object_bind_property (server, "tls-certificate",
+                                        listener, "tls-certificate",
+                                        G_BINDING_SYNC_CREATE);
+                g_object_bind_property (server, "tls-database",
+                                        listener, "tls-database",
+                                        G_BINDING_SYNC_CREATE);
+                g_object_bind_property (server, "tls-auth-mode",
+                                        listener, "tls-auth-mode",
+                                        G_BINDING_SYNC_CREATE);
 	}
 
 	if (soup_socket_get_gsocket (listener) == NULL) {

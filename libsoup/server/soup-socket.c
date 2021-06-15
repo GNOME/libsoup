@@ -31,6 +31,7 @@
 enum {
 	DISCONNECTED,
 	NEW_CONNECTION,
+        ACCEPT_CERTIFICATE,
 	LAST_SIGNAL
 };
 
@@ -46,6 +47,8 @@ enum {
 	PROP_REMOTE_CONNECTABLE,
 	PROP_IPV6_ONLY,
 	PROP_TLS_CERTIFICATE,
+        PROP_TLS_DATABASE,
+        PROP_TLS_AUTH_MODE,
 
 	LAST_PROPERTY
 };
@@ -67,6 +70,8 @@ typedef struct {
 	guint ipv6_only:1;
 	guint ssl:1;
 	GTlsCertificate *tls_certificate;
+        GTlsDatabase *tls_database;
+        GTlsAuthenticationMode tls_auth_mode;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
@@ -162,6 +167,7 @@ soup_socket_finalize (GObject *object)
         g_clear_object (&priv->remote_connectable);
 
 	g_clear_object (&priv->tls_certificate);
+        g_clear_object (&priv->tls_database);
 
 	if (priv->watch_src) {
 		g_source_destroy (priv->watch_src);
@@ -224,6 +230,12 @@ soup_socket_set_property (GObject *object, guint prop_id,
 	case PROP_TLS_CERTIFICATE:
 		priv->tls_certificate = g_value_dup_object (value);
 		break;
+        case PROP_TLS_DATABASE:
+                priv->tls_database = g_value_dup_object (value);
+                break;
+        case PROP_TLS_AUTH_MODE:
+                priv->tls_auth_mode = g_value_get_enum (value);
+                break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -253,6 +265,12 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_CERTIFICATE:
 		g_value_set_object (value, priv->tls_certificate);
 		break;
+        case PROP_TLS_DATABASE:
+                g_value_set_object (value, priv->tls_database);
+                break;
+        case PROP_TLS_AUTH_MODE:
+                g_value_set_enum (value, priv->tls_auth_mode);
+                break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -307,6 +325,17 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      NULL,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_SOCKET);
+
+	signals[ACCEPT_CERTIFICATE] =
+		g_signal_new ("accept-certificate",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              g_signal_accumulator_true_handled, NULL,
+                              NULL,
+                              G_TYPE_BOOLEAN, 2,
+                              G_TYPE_TLS_CERTIFICATE,
+                              G_TYPE_TLS_CERTIFICATE_FLAGS);
 
 	/* properties */
         properties[PROP_GSOCKET] =
@@ -363,6 +392,23 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS);
+
+        properties[PROP_TLS_DATABASE] =
+                g_param_spec_object ("tls-database",
+                                     "TLS Database",
+                                     "The server TLS database",
+                                     G_TYPE_TLS_DATABASE,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_STATIC_STRINGS);
+
+        properties[PROP_TLS_AUTH_MODE] =
+                g_param_spec_enum ("tls-auth-mode",
+                                     "TLS Authentication Mode",
+                                     "The server TLS authentication mode",
+                                     G_TYPE_TLS_AUTHENTICATION_MODE,
+                                     G_TLS_AUTHENTICATION_NONE,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_STATIC_STRINGS);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
@@ -438,6 +484,18 @@ soup_socket_get_iostream (SoupSocket *sock)
 }
 
 static gboolean
+tls_connection_accept_certificate (SoupSocket          *sock,
+                                   GTlsCertificate     *tls_certificate,
+                                   GTlsCertificateFlags tls_errors)
+{
+        gboolean accept = FALSE;
+
+        g_signal_emit (sock, signals[ACCEPT_CERTIFICATE], 0,
+                       tls_certificate, tls_errors, &accept);
+        return accept;
+}
+
+static gboolean
 soup_socket_setup_ssl (SoupSocket *sock)
 {
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
@@ -453,7 +511,8 @@ soup_socket_setup_ssl (SoupSocket *sock)
 			       NULL, NULL,
 			       "base-io-stream", priv->conn,
 			       "certificate", priv->tls_certificate,
-			       "use-system-certdb", FALSE,
+			       "database", priv->tls_database,
+                               "authentication-mode", priv->tls_auth_mode,
 			       "require-close-notify", FALSE,
 			       NULL);
 	if (!conn)
@@ -461,6 +520,10 @@ soup_socket_setup_ssl (SoupSocket *sock)
 
 	g_object_unref (priv->conn);
 	priv->conn = G_IO_STREAM (conn);
+
+        g_signal_connect_object (priv->conn, "accept-certificate",
+                                 G_CALLBACK (tls_connection_accept_certificate),
+                                 sock, G_CONNECT_SWAPPED);
 
 	g_clear_object (&priv->istream);
 	g_clear_object (&priv->ostream);
@@ -490,6 +553,9 @@ listen_watch (GObject *pollable, gpointer data)
 	new_priv->ssl = priv->ssl;
 	if (priv->tls_certificate)
 		new_priv->tls_certificate = g_object_ref (priv->tls_certificate);
+        if (priv->tls_database)
+                new_priv->tls_database = g_object_ref (priv->tls_database);
+        new_priv->tls_auth_mode = priv->tls_auth_mode;
 	finish_socket_setup (new);
 
 	if (new_priv->tls_certificate) {

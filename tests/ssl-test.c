@@ -127,7 +127,7 @@ test_tls_interaction_class_init (TestTlsInteractionClass *klass)
 
 
 static gboolean
-accept_client_certificate (GTlsConnection       *server,
+accept_client_certificate (SoupServerMessage    *msg,
 			   GTlsCertificate      *client_cert,
 			   GTlsCertificateFlags  errors)
 {
@@ -136,19 +136,11 @@ accept_client_certificate (GTlsConnection       *server,
 
 static void
 server_request_started (SoupServer        *server,
-			SoupServerMessage *msg,
-			GTlsDatabase      *tls_db)
+                        SoupServerMessage *msg)
 {
-	SoupSocket *sock;
-	GIOStream *conn;
-
-	sock = soup_server_message_get_soup_socket (msg);
-	conn = soup_socket_get_connection (sock);
-	g_tls_connection_set_database (G_TLS_CONNECTION (conn), tls_db);
-	g_object_set (conn, "authentication-mode", G_TLS_AUTHENTICATION_REQUIRED, NULL);
-	g_signal_connect (conn, "accept-certificate",
-			  G_CALLBACK (accept_client_certificate),
-			  NULL);
+        g_signal_connect (msg, "accept-certificate",
+                          G_CALLBACK (accept_client_certificate),
+                          NULL);
 }
 
 static void
@@ -167,10 +159,11 @@ do_tls_interaction_test (gconstpointer data)
 
 	session = soup_test_session_new (NULL);
 	tls_db = soup_session_get_tls_database (session);
+        g_object_set (server, "tls-database", tls_db, "tls-auth-mode", G_TLS_AUTHENTICATION_REQUIRED, NULL);
 
 	g_signal_connect (server, "request-started",
-			  G_CALLBACK (server_request_started),
-			  tls_db);
+                          G_CALLBACK (server_request_started),
+                          session);
 
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -203,7 +196,8 @@ do_tls_interaction_test (gconstpointer data)
 	g_bytes_unref (body);
 	g_object_unref (msg);
 
-	g_signal_handlers_disconnect_by_data (server, tls_db);
+        g_object_set (server, "tls-database", NULL, "tls-auth-mode", G_TLS_AUTHENTICATION_NONE, NULL);
+	g_signal_handlers_disconnect_by_data (server, session);
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (certificate);
@@ -313,10 +307,11 @@ do_tls_interaction_msg_test (gconstpointer data)
 
         session = soup_test_session_new (NULL);
         tls_db = soup_session_get_tls_database (session);
+        g_object_set (server, "tls-database", tls_db, "tls-auth-mode", G_TLS_AUTHENTICATION_REQUIRED, NULL);
 
         g_signal_connect (server, "request-started",
                           G_CALLBACK (server_request_started),
-                          tls_db);
+                          session);
 
         /* Not handling request-certificate signal */
         msg = soup_message_new_from_uri ("GET", uri);
@@ -502,7 +497,8 @@ do_tls_interaction_msg_test (gconstpointer data)
                 g_object_unref (pkcs11_certificate);
         }
 
-        g_signal_handlers_disconnect_by_data (server, tls_db);
+        g_object_set (server, "tls-database", NULL, "tls-auth-mode", G_TLS_AUTHENTICATION_NONE, NULL);
+        g_signal_handlers_disconnect_by_data (server, session);
 
         soup_test_session_abort_unref (session);
         g_object_unref (certificate);

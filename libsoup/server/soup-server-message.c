@@ -94,6 +94,8 @@ enum {
         DISCONNECTED,
         FINISHED,
 
+        ACCEPT_CERTIFICATE,
+
         LAST_SIGNAL
 };
 
@@ -313,12 +315,50 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
                               NULL, NULL,
                               NULL,
                               G_TYPE_NONE, 0);
+
+	/**
+	 * SoupServerMessage::accept-certificate:
+	 * @msg: the message
+	 * @tls_peer_certificate: the peer's #GTlsCertificate
+	 * @tls_peer_errors: the tls errors of @tls_certificate
+	 *
+	 * Emitted during the @msg's connection TLS handshake
+	 * after client TLS certificate has been received.
+	 * You can return %TRUE to accept @tls_certificate despite
+	 * @tls_errors.
+	 *
+	 * Returns: %TRUE to accept the TLS certificate and stop other
+	 *     handlers from being invoked, or %FALSE to propagate the
+	 *     event further.
+	 */
+	signals[ACCEPT_CERTIFICATE] =
+		g_signal_new ("accept-certificate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      g_signal_accumulator_true_handled, NULL,
+			      NULL,
+			      G_TYPE_BOOLEAN, 2,
+			      G_TYPE_TLS_CERTIFICATE,
+			      G_TYPE_TLS_CERTIFICATE_FLAGS);
 }
 
 static void
 socket_disconnected (SoupServerMessage *msg)
 {
         g_signal_emit (msg, signals[DISCONNECTED], 0);
+}
+
+static gboolean
+socket_accept_certificate (SoupServerMessage    *msg,
+                           GTlsCertificate      *tls_certificate,
+                           GTlsCertificateFlags *tls_errors)
+{
+	gboolean accept = FALSE;
+
+	g_signal_emit (msg, signals[ACCEPT_CERTIFICATE], 0,
+		       tls_certificate, tls_errors, &accept);
+	return accept;
 }
 
 SoupServerMessage *
@@ -334,6 +374,9 @@ soup_server_message_new (SoupSocket *sock)
 
         g_signal_connect_object (sock, "disconnected",
                                  G_CALLBACK (socket_disconnected),
+                                 msg, G_CONNECT_SWAPPED);
+        g_signal_connect_object (sock, "accept-certificate",
+                                 G_CALLBACK (socket_accept_certificate),
                                  msg, G_CONNECT_SWAPPED);
 
         return msg;
@@ -921,6 +964,8 @@ soup_server_message_steal_connection (SoupServerMessage *msg)
                                         soup_socket_steal_gsocket (msg->sock),
                                         g_object_unref);
         }
+
+        g_signal_handlers_disconnect_by_data (msg, msg->sock);
 
         socket_disconnected (msg);
         g_object_unref (msg);

@@ -48,6 +48,18 @@ SOUP_AVAILABLE_IN_ALL
 GTlsCertificate *soup_server_get_tls_certificate (SoupServer             *server);
 
 SOUP_AVAILABLE_IN_ALL
+void            soup_server_set_tls_database   (SoupServer               *server,
+                                                GTlsDatabase             *tls_database);
+SOUP_AVAILABLE_IN_ALL
+GTlsDatabase   *soup_server_get_tls_database   (SoupServer               *server);
+
+SOUP_AVAILABLE_IN_ALL
+void            soup_server_set_tls_auth_mode  (SoupServer               *server,
+                                                GTlsAuthenticationMode    mode);
+SOUP_AVAILABLE_IN_ALL
+GTlsAuthenticationMode soup_server_get_tls_auth_mode (SoupServer               *server);
+
+SOUP_AVAILABLE_IN_ALL
 gboolean        soup_server_is_https           (SoupServer               *server);
 
 SOUP_AVAILABLE_IN_ALL
