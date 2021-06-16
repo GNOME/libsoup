@@ -1681,6 +1681,48 @@ do_cancel_on_authenticate (void)
         g_main_loop_unref (loop);
 }
 
+static void
+do_cancel_request_on_authenticate (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GCancellable *cancellable;
+        SoupAuth *auth = NULL;
+        char *uri;
+
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+
+        session = soup_test_session_new (NULL);
+        loop = g_main_loop_new (NULL, FALSE);
+
+        uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
+        msg = soup_message_new ("GET", uri);
+        g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (async_authenticate),
+                          &auth);
+        g_signal_connect (msg, "finished",
+                          G_CALLBACK (async_no_auth_cache_finished), NULL);
+        cancellable = g_cancellable_new ();
+        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, cancellable, NULL, NULL);
+        g_main_loop_run (loop);
+
+        soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
+        g_cancellable_cancel (cancellable);
+        g_main_loop_run (loop);
+
+        soup_auth_cancel (auth);
+
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+
+        g_object_unref (auth);
+        g_object_unref (cancellable);
+        g_object_unref (msg);
+        g_free (uri);
+        soup_test_session_abort_unref (session);
+        g_main_loop_unref (loop);
+}
+
 static const struct {
 	const char *url;
 	guint status;
@@ -1748,6 +1790,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/cancel-after-retry", do_cancel_after_retry_test);
 	g_test_add_func ("/auth/cancel-on-authenticate", do_cancel_on_authenticate);
 	g_test_add_func ("/auth/auth-uri", do_auth_uri_test);
+        g_test_add_func ("/auth/cancel-request-on-authenticate", do_cancel_request_on_authenticate);
 
 	ret = g_test_run ();
 

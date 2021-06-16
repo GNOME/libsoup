@@ -2183,7 +2183,9 @@ soup_session_unpause_message (SoupSession *session,
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	item = soup_session_lookup_queue_item (session, msg);
-	g_return_if_fail (item != NULL);
+        if (!item)
+                return;
+
 	g_return_if_fail (item->async);
 
 	item->paused = FALSE;
