@@ -92,12 +92,15 @@ typedef struct {
 
         GTlsCertificate *tls_client_certificate;
         GTask *pending_tls_cert_request;
+        GTlsClientConnection *pending_tls_cert_conn;
         GTask *pending_tls_cert_pass_request;
+        GTlsPassword *pending_tls_cert_password;
 
 	SoupMessagePriority priority;
 
 	gboolean is_top_level_navigation;
         gboolean is_options_ping;
+        gboolean is_preconnect;
         gboolean force_http1;
         gboolean is_misdirected_retry;
         guint    last_connection_id;
@@ -181,11 +184,13 @@ soup_message_finalize (GObject *object)
                 g_task_return_int (priv->pending_tls_cert_request, G_TLS_INTERACTION_FAILED);
                 g_object_unref (priv->pending_tls_cert_request);
         }
+        g_clear_object (&priv->pending_tls_cert_conn);
 
         if (priv->pending_tls_cert_pass_request) {
                 g_task_return_int (priv->pending_tls_cert_pass_request, G_TLS_INTERACTION_FAILED);
                 g_object_unref (priv->pending_tls_cert_pass_request);
         }
+        g_clear_object (&priv->pending_tls_cert_password);
 
 	soup_message_set_connection (msg, NULL);
 
@@ -1476,6 +1481,15 @@ re_emit_request_certificate (SoupMessage          *msg,
 
         priv->pending_tls_cert_request = g_object_ref (task);
 
+        /* Skip interaction for preconnect requests, keep the operation
+         * pending that will be handled by the new message once the
+         * connection is transferred.
+         */
+        if (priv->is_preconnect) {
+                priv->pending_tls_cert_conn = g_object_ref (tls_conn);
+                return TRUE;
+        }
+
         g_signal_emit (msg, signals[REQUEST_CERTIFICATE], 0, tls_conn, &handled);
         if (!handled)
                 g_clear_object (&priv->pending_tls_cert_request);
@@ -1492,6 +1506,15 @@ re_emit_request_certificate_password (SoupMessage  *msg,
         gboolean handled = FALSE;
 
         priv->pending_tls_cert_pass_request = g_object_ref (task);
+
+        /* Skip interaction for preconnect requests, keep the operation
+         * pending that will be handled by the new message once the
+         * connection is transferred.
+         */
+        if (priv->is_preconnect) {
+                priv->pending_tls_cert_password = g_object_ref (password);
+                return TRUE;
+        }
 
         g_signal_emit (msg, signals[REQUEST_CERTIFICATE_PASSWORD], 0, password, &handled);
         if (!handled)
@@ -1578,6 +1601,80 @@ soup_message_set_connection (SoupMessage    *msg,
         g_signal_connect_object (priv->connection, "notify::remote-address",
                                  G_CALLBACK (connection_remote_address_changed),
                                  msg, G_CONNECT_SWAPPED);
+}
+
+void
+soup_message_set_is_preconnect (SoupMessage *msg,
+                                gboolean     is_preconnect)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        priv->is_preconnect = is_preconnect;
+}
+
+void
+soup_message_transfer_connection (SoupMessage *preconnect_msg,
+                                  SoupMessage *msg)
+{
+        SoupMessagePrivate *preconnect_priv = soup_message_get_instance_private (preconnect_msg);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        GTlsCertificate *client_certificate = NULL;
+
+        g_assert (preconnect_priv->is_preconnect);
+        g_assert (!priv->connection);
+        client_certificate = g_steal_pointer (&priv->tls_client_certificate);
+        soup_message_set_connection (msg, preconnect_priv->connection);
+
+        /* If connection has pending interactions, transfer them too */
+        g_assert (!priv->pending_tls_cert_request);
+        priv->pending_tls_cert_request = g_steal_pointer (&preconnect_priv->pending_tls_cert_request);
+        if (priv->pending_tls_cert_request) {
+                if (client_certificate) {
+                        soup_connection_complete_tls_certificate_request (priv->connection,
+                                                                          client_certificate,
+                                                                          g_steal_pointer (&priv->pending_tls_cert_request));
+                        g_object_unref (client_certificate);
+                } else {
+                        gboolean handled = FALSE;
+
+                        g_signal_emit (msg, signals[REQUEST_CERTIFICATE], 0, preconnect_priv->pending_tls_cert_conn, &handled);
+                        g_clear_object (&preconnect_priv->pending_tls_cert_conn);
+                        if (!handled)
+                                g_clear_object (&priv->pending_tls_cert_request);
+                }
+        } else if (client_certificate) {
+                soup_connection_set_tls_client_certificate (priv->connection, client_certificate);
+                g_object_unref (client_certificate);
+        }
+
+        g_assert (!priv->pending_tls_cert_pass_request);
+        priv->pending_tls_cert_pass_request = g_steal_pointer (&preconnect_priv->pending_tls_cert_pass_request);
+        if (priv->pending_tls_cert_pass_request) {
+                gboolean handled = FALSE;
+
+                g_signal_emit (msg, signals[REQUEST_CERTIFICATE_PASSWORD], 0, preconnect_priv->pending_tls_cert_password, &handled);
+                g_clear_object (&preconnect_priv->pending_tls_cert_password);
+                if (!handled)
+                        g_clear_object (&priv->pending_tls_cert_pass_request);
+        }
+
+        soup_message_set_connection (preconnect_msg, NULL);
+}
+
+gboolean
+soup_message_has_pending_tls_cert_request (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->pending_tls_cert_request != NULL;
+}
+
+gboolean
+soup_message_has_pending_tls_cert_pass_request (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->pending_tls_cert_pass_request != NULL;
 }
 
 /**

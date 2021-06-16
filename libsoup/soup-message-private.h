@@ -100,6 +100,12 @@ GList *soup_message_get_disabled_features (SoupMessage *msg);
 SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
 					     SoupConnection *conn);
+void            soup_message_transfer_connection (SoupMessage *preconnect_msg,
+                                                  SoupMessage *msg);
+void            soup_message_set_is_preconnect   (SoupMessage *msg,
+                                                  gboolean     is_preconnect);
+gboolean        soup_message_has_pending_tls_cert_request      (SoupMessage *msg);
+gboolean        soup_message_has_pending_tls_cert_pass_request (SoupMessage *msg);
 
 SoupClientMessageIO *soup_message_get_io_data (SoupMessage             *msg);
 

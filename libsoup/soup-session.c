@@ -1360,6 +1360,7 @@ soup_session_append_queue_item (SoupSession        *session,
 
         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_FETCH_START);
 	soup_message_cleanup_response (msg);
+        soup_message_set_is_preconnect (msg, FALSE);
 
 	item = soup_message_queue_item_new (session, msg, async, cancellable);
 	g_queue_insert_sorted (priv->queue,
@@ -1786,8 +1787,7 @@ steal_preconnection (SoupSession          *session,
         if (!preconnect_item->connect_only || preconnect_item->state != SOUP_MESSAGE_CONNECTING)
                 return FALSE;
 
-        soup_message_set_connection (item->msg, conn);
-        soup_message_set_connection (preconnect_item->msg, NULL);
+        soup_message_transfer_connection (preconnect_item->msg, item->msg);
         g_assert (preconnect_item->related == NULL);
         preconnect_item->related = soup_message_queue_item_ref (item);
 
@@ -4040,6 +4040,7 @@ soup_session_preconnect_async (SoupSession        *session,
         item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
         item->connect_only = TRUE;
         item->io_priority = io_priority;
+        soup_message_set_is_preconnect (msg, TRUE);
 
         task = g_task_new (session, item->cancellable, callback, user_data);
         g_task_set_priority (task, io_priority);

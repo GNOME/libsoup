@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
+#include "soup-message-private.h"
 #include "soup-server-message-private.h"
 
 #if HAVE_GNUTLS
@@ -505,6 +506,178 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_object_unref (wrong_certificate);
 }
 
+static gboolean
+preconnect_request_certificate (SoupMessage          *msg,
+                                GTlsClientConnection *conn,
+                                gboolean             *called)
+{
+        *called = TRUE;
+
+        return FALSE;
+}
+
+static gboolean
+preconnect_request_certificate_password (SoupMessage  *msg,
+                                         GTlsPassword *password,
+                                         gboolean     *called)
+{
+        *called = TRUE;
+
+        return FALSE;
+}
+
+static void
+preconnect_finished_cb (SoupSession  *session,
+                        GAsyncResult *result,
+                        gboolean     *preconnect_finished)
+{
+        g_assert_true (soup_session_preconnect_finish (session, result, NULL));
+        *preconnect_finished = TRUE;
+}
+
+static void
+do_tls_interaction_preconnect_test (gconstpointer data)
+{
+        SoupServer *server = (SoupServer *)data;
+        SoupSession *session;
+        SoupMessage *preconnect_msg;
+        SoupMessage *msg;
+        GBytes *body;
+        GTlsDatabase *tls_db;
+        GTlsCertificate *certificate;
+        GError *error = NULL;
+        gboolean preconnect_request_cert_called = FALSE;
+        gboolean preconnect_request_cert_pass_called = FALSE;
+        gboolean preconnect_finished = FALSE;
+
+        SOUP_TEST_SKIP_IF_NO_TLS;
+
+        session = soup_test_session_new (NULL);
+        tls_db = soup_session_get_tls_database (session);
+        g_object_set (server, "tls-database", tls_db, "tls-auth-mode", G_TLS_AUTHENTICATION_REQUIRED, NULL);
+        g_object_get (server, "tls-certificate", &certificate, NULL);
+        g_signal_connect (server, "request-started",
+                          G_CALLBACK (server_request_started),
+                          session);
+
+        /* Start a preconnect until it get blocked on tls interaction */
+        preconnect_msg = soup_message_new_from_uri ("HEAD", uri);
+        g_signal_connect (preconnect_msg, "request-certificate",
+                          G_CALLBACK (preconnect_request_certificate),
+                          &preconnect_request_cert_called);
+        soup_session_preconnect_async (session, preconnect_msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+        while (!soup_message_has_pending_tls_cert_request (preconnect_msg))
+                g_main_context_iteration (NULL, TRUE);
+
+        /* New message should steal the preconnect connection */
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_signal_connect (msg, "request-certificate",
+                          G_CALLBACK (request_certificate_cb),
+                          certificate);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_assert_false (preconnect_request_cert_called);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        g_object_unref (preconnect_msg);
+
+        soup_session_abort (session);
+
+        /* Preconnect finishes if we set the certificate before */
+        preconnect_msg = soup_message_new_from_uri ("HEAD", uri);
+        g_signal_connect (preconnect_msg, "request-certificate",
+                          G_CALLBACK (preconnect_request_certificate),
+                          &preconnect_request_cert_called);
+        soup_message_set_tls_client_certificate (preconnect_msg, certificate);
+        soup_session_preconnect_async (session, preconnect_msg, G_PRIORITY_DEFAULT, NULL,
+                                       (GAsyncReadyCallback)preconnect_finished_cb,
+                                       &preconnect_finished);
+        while (!preconnect_finished)
+                g_main_context_iteration (NULL, TRUE);
+        g_assert_false (preconnect_request_cert_called);
+        g_object_unref (preconnect_msg);
+        /* New request will use the idle connection without having to provide a certificate */
+        msg = soup_message_new_from_uri ("GET", uri);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        soup_session_abort (session);
+
+        /* request-certificate signal is not emitted either if the message stealing the
+         * preconnect connection has a certificate set.
+         */
+        preconnect_msg = soup_message_new_from_uri ("HEAD", uri);
+        g_signal_connect (preconnect_msg, "request-certificate",
+                          G_CALLBACK (preconnect_request_certificate),
+                          &preconnect_request_cert_called);
+        soup_session_preconnect_async (session, preconnect_msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+        while (!soup_message_has_pending_tls_cert_request (preconnect_msg))
+                g_main_context_iteration (NULL, TRUE);
+
+        /* New message should steal the preconnect connection */
+        msg = soup_message_new_from_uri ("GET", uri);
+        soup_message_set_tls_client_certificate (msg, certificate);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_assert_false (preconnect_request_cert_called);
+        g_clear_error (&error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        g_object_unref (preconnect_msg);
+
+        soup_session_abort (session);
+
+        /* Currently on the gnutls backend supports pkcs#11 */
+        if (g_strcmp0 (g_type_name (G_TYPE_FROM_INSTANCE (g_tls_backend_get_default ())), "GTlsBackendGnutls") == 0) {
+                GTlsCertificate *pkcs11_certificate;
+
+                pkcs11_certificate = g_tls_certificate_new_from_pkcs11_uris (
+                        "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%43%65%72%74%69%66%69%63%61%74%65;object=Mock%20Certificate;type=cert",
+                        "pkcs11:model=mock;serial=1;token=Mock%20Certificate;id=%4D%6F%63%6B%20%50%72%69%76%61%74%65%20%4B%65%79;object=Mock%20Private%20Key;type=private",
+                        &error
+                );
+                g_assert_no_error (error);
+
+                preconnect_msg = soup_message_new_from_uri ("HEAD", uri);
+                g_signal_connect (preconnect_msg, "request-certificate-password",
+                                  G_CALLBACK (preconnect_request_certificate_password),
+                                  &preconnect_request_cert_pass_called);
+                soup_message_set_tls_client_certificate (preconnect_msg, pkcs11_certificate);
+                soup_session_preconnect_async (session, preconnect_msg, G_PRIORITY_DEFAULT, NULL, NULL, NULL);
+                while (!soup_message_has_pending_tls_cert_pass_request (preconnect_msg))
+                        g_main_context_iteration (NULL, TRUE);
+
+                /* New message should steal the preconnect connection */
+                msg = soup_message_new_from_uri ("GET", uri);
+                g_signal_connect (msg, "request-certificate-password",
+                                  G_CALLBACK (request_certificate_password_cb),
+                                  "ABC123");
+                body = soup_test_session_async_send (session, msg, NULL, &error);
+                g_assert_no_error (error);
+                soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+                g_assert_false (preconnect_request_cert_pass_called);
+                g_clear_error (&error);
+                g_bytes_unref (body);
+                g_object_unref (msg);
+                g_object_unref (preconnect_msg);
+
+                g_object_unref (pkcs11_certificate);
+        }
+
+        g_object_set (server, "tls-database", NULL, "tls-auth-mode", G_TLS_AUTHENTICATION_NONE, NULL);
+        g_signal_handlers_disconnect_by_data (server, session);
+
+        soup_test_session_abort_unref (session);
+        g_object_unref (certificate);
+}
+
 static void
 server_handler (SoupServer        *server,
 		SoupServerMessage *msg,
@@ -544,6 +717,7 @@ main (int argc, char **argv)
 
 	g_test_add_data_func ("/ssl/tls-interaction", server, do_tls_interaction_test);
         g_test_add_data_func ("/ssl/tls-interaction-msg", server, do_tls_interaction_msg_test);
+        g_test_add_data_func ("/ssl/tls-interaction/preconnect", server, do_tls_interaction_preconnect_test);
 
 	for (i = 0; i < G_N_ELEMENTS (strictness_tests); i++) {
 		g_test_add_data_func (strictness_tests[i].name,
