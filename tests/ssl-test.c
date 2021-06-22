@@ -174,10 +174,10 @@ do_session_property_tests (void)
 		      "tls-database", &tlsdb,
 		      "ssl-ca-file", &ca_file,
 		      NULL);
-	soup_test_assert (!use_system,
-			  "ssl-use-system-ca-file defaults to TRUE");
-	soup_test_assert (tlsdb == NULL,
-			  "tls-database set by default");
+	soup_test_assert (use_system,
+			  "ssl-use-system-ca-file defaults to FALSE");
+	soup_test_assert (tlsdb != NULL,
+			  "tls-database not set by default");
 	soup_test_assert (ca_file == NULL,
 			  "ca-file set by default");
 
@@ -195,7 +195,7 @@ do_session_property_tests (void)
 	g_assert_true (use_system_changed);
 	soup_test_assert (tlsdb != NULL,
 			  "setting ssl-use-system-ca-file didn't set tls-database");
-	g_assert_true (tlsdb_changed);
+	g_assert_false (tlsdb_changed);
 	g_clear_object (&tlsdb);
 	soup_test_assert (ca_file == NULL,
 			  "setting ssl-use-system-ca-file set ssl-ca-file");

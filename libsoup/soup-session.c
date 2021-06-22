@@ -270,16 +270,19 @@ soup_session_constructor (GType                  type,
 			  GObjectConstructParam *construct_params)
 {
 	GObject *object;
+	SoupSession *session;
+	SoupSessionPrivate *priv;
 
 	object = G_OBJECT_CLASS (soup_session_parent_class)->constructor (type, n_construct_properties, construct_params);
+	session = SOUP_SESSION (object);
+	priv = soup_session_get_instance_private (session);
+
+	priv->tlsdb_use_default = TRUE;
 
 	/* If this is a "plain" SoupSession, fix up the default
 	 * properties values, etc.
 	 */
 	if (type == SOUP_TYPE_SESSION) {
-		SoupSession *session = SOUP_SESSION (object);
-		SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
 		g_clear_pointer (&priv->async_context, g_main_context_unref);
 		priv->async_context = g_main_context_ref_thread_default ();
 		priv->use_thread_context = TRUE;
@@ -293,7 +296,6 @@ soup_session_constructor (GType                  type,
 		 * we just set flags saying to do it later.
 		 */
 		priv->proxy_use_default = TRUE;
-		priv->tlsdb_use_default = TRUE;
 
 		soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
 	}
@@ -3413,10 +3415,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * See #SoupSession:ssl-strict for more information on how
 	 * https certificate validation is handled.
 	 *
-	 * Note that the default value of %TRUE only applies to plain
-	 * #SoupSessions. If you are using #SoupSessionAsync or
-	 * #SoupSessionSync, the default value is %FALSE, for backward
-	 * compatibility.
+	 * If you are using #SoupSessionAsync or
+	 * #SoupSessionSync, on libsoup older than 2.72.1, the default value
+	 * is %FALSE, for backward compatibility.
 	 *
 	 * Since: 2.38
 	 **/
@@ -3453,7 +3454,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupSession:ssl-use-system-ca-file will be %TRUE by
 	 * default, and so this property will be a copy of the system
 	 * CA database. If you are using #SoupSessionAsync or
-	 * #SoupSessionSync, this property will be %NULL by default.
+	 * #SoupSessionSync, on libsoup older than 2.72.1, this property
+	 * will be %NULL by default.
 	 *
 	 * Since: 2.38
 	 **/
