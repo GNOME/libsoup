@@ -9,7 +9,6 @@
 
 G_BEGIN_DECLS
 
-SoupClientMessageIO *soup_client_message_io_http2_new (GIOStream *stream,
-                                                       guint64    connection_id);
+SoupClientMessageIO *soup_client_message_io_http2_new (SoupConnection *conn);
 
 G_END_DECLS

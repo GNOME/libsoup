@@ -7,4 +7,4 @@
 
 #include "soup-client-message-io.h"
 
-SoupClientMessageIO *soup_client_message_io_http1_new (GIOStream *stream);
+SoupClientMessageIO *soup_client_message_io_http1_new (SoupConnection *conn);

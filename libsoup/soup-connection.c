@@ -455,10 +455,10 @@ soup_connection_create_io_data (SoupConnection *conn)
         switch (priv->http_version) {
         case SOUP_HTTP_1_0:
         case SOUP_HTTP_1_1:
-                priv->io_data = soup_client_message_io_http1_new (priv->iostream);
+                priv->io_data = soup_client_message_io_http1_new (conn);
                 break;
         case SOUP_HTTP_2_0:
-                priv->io_data = soup_client_message_io_http2_new (priv->iostream, priv->id);
+                priv->io_data = soup_client_message_io_http2_new (conn);
                 break;
         }
 }
@@ -820,7 +820,7 @@ tunnel_handshake_ready_cb (GTlsConnection *tls_connection,
                 soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
 
                 g_assert (!priv->io_data);
-                priv->io_data = soup_client_message_io_http1_new (priv->iostream);
+                priv->io_data = soup_client_message_io_http1_new (conn);
 
                 g_task_return_boolean (task, TRUE);
         } else {
@@ -911,7 +911,7 @@ soup_connection_tunnel_handshake (SoupConnection *conn,
         soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
 
         g_assert (!priv->io_data);
-        priv->io_data = soup_client_message_io_http1_new (priv->iostream);
+        priv->io_data = soup_client_message_io_http1_new (conn);
 
         return TRUE;
 }

@@ -61,6 +61,7 @@ typedef enum {
 typedef struct {
         SoupClientMessageIO iface;
 
+        SoupConnection *conn;
         GIOStream *stream;
         GInputStream *istream;
         GOutputStream *ostream;
@@ -443,6 +444,12 @@ io_read_ready (GObject                  *stream,
                 return G_SOURCE_REMOVE;
         }
 
+        /* Mark the connection as in use to make sure it's not disconnected while
+         * processing pending messages, for example if a goaway is received.
+         */
+        if (io->conn)
+                soup_connection_set_in_use (io->conn, TRUE);
+
         while (nghttp2_session_want_read (io->session) && progress) {
                 progress = io_read (io, FALSE, NULL, &error);
                 if (progress) {
@@ -454,6 +461,8 @@ io_read_ready (GObject                  *stream,
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
+                if (io->conn)
+                        soup_connection_set_in_use (io->conn, FALSE);
                 return G_SOURCE_CONTINUE;
         }
 
@@ -463,6 +472,8 @@ io_read_ready (GObject                  *stream,
         io->is_shutdown = TRUE;
 
         g_clear_pointer (&io->read_source, g_source_unref);
+        if (io->conn)
+                soup_connection_set_in_use (io->conn, FALSE);
         return G_SOURCE_REMOVE;
 }
 
@@ -1560,6 +1571,9 @@ soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
                 g_source_destroy (io->write_source);
                 g_source_unref (io->write_source);
         }
+
+        if (io->conn)
+                g_object_remove_weak_pointer (G_OBJECT (io->conn), (gpointer*)&io->conn);
         g_clear_object (&io->stream);
         g_clear_object (&io->close_task);
         g_clear_pointer (&io->session, nghttp2_session_del);
@@ -1642,15 +1656,18 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
 #define MAX_HEADER_TABLE_SIZE 65536 /* Match size used by Chromium/Firefox */
 
 SoupClientMessageIO *
-soup_client_message_io_http2_new (GIOStream *stream, guint64 connection_id)
+soup_client_message_io_http2_new (SoupConnection *conn)
 {
         SoupClientMessageIOHTTP2 *io = g_new0 (SoupClientMessageIOHTTP2, 1);
         soup_client_message_io_http2_init (io);
 
-        io->stream = g_object_ref (stream);
+        io->conn = conn;
+        g_object_add_weak_pointer (G_OBJECT (io->conn), (gpointer*)&io->conn);
+
+        io->stream = g_object_ref (soup_connection_get_iostream (conn));
         io->istream = g_io_stream_get_input_stream (io->stream);
         io->ostream = g_io_stream_get_output_stream (io->stream);
-        io->connection_id = connection_id;
+        io->connection_id = soup_connection_get_id (conn);
 
         io->read_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), NULL);
         g_source_set_name (io->read_source, "Soup HTTP/2 read source");

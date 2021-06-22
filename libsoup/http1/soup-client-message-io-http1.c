@@ -1161,12 +1161,12 @@ static const SoupClientMessageIOFuncs io_funcs = {
 };
 
 SoupClientMessageIO *
-soup_client_message_io_http1_new (GIOStream *stream)
+soup_client_message_io_http1_new (SoupConnection *conn)
 {
         SoupClientMessageIOHTTP1 *io;
 
         io = g_slice_new0 (SoupClientMessageIOHTTP1);
-        io->iostream = g_object_ref (stream);
+        io->iostream = g_object_ref (soup_connection_get_iostream (conn));
         io->istream = g_io_stream_get_input_stream (io->iostream);
         io->ostream = g_io_stream_get_output_stream (io->iostream);
         io->is_reusable = TRUE;
