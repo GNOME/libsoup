@@ -45,32 +45,6 @@ linkend="SoupSessionAsync"><type>SoupSessionAsync</type></link> and
 <itemizedlist>
   <listitem>
     <para>
-      The system TLS/SSL certificate database is used by default to
-      validate https certificates, and sites with invalid certificates
-      will refuse to load with a
-      <link linkend="SOUP-STATUS-SSL-FAILED:CAPS"><literal>SOUP_STATUS_SSL_FAILED</literal></link>
-      error.
-    </para>
-    <para>
-      You can still override the CA database as before, by setting the
-      <link linkend="SoupSession--ssl-ca-file"><type>"ssl-ca-file"</type></link>
-      property, although the
-      <link linkend="SoupSession--tls-database"><type>"tls-database"</type></link>
-      property is preferred, since it allows you to do proper error
-      handling.
-    </para>
-    <para>
-      If you want to accept all certificates, set
-      <link linkend="SoupSession--ssl-strict"><type>"ssl-strict"</type></link> to
-      <literal>FALSE</literal>. Note that libsoup will still check
-      certificates, it will just continue with the HTTP request even
-      if the certificate fails to validate. You can use
-      <link linkend="soup-message-get-https-status"><function>soup_message_get_https_status()</function></link>
-      to look at the certificate after the fact.
-    </para>
-  </listitem>
-  <listitem>
-    <para>
       The
       <link linkend="SoupSession--timeout"><type>"timeout"</type></link>
       and
