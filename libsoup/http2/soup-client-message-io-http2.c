@@ -630,23 +630,35 @@ on_frame_recv_callback (nghttp2_session     *session,
                         gpointer             user_data)
 {
         SoupClientMessageIOHTTP2 *io = user_data;
-        SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
+        SoupHTTP2MessageData *data;
 
-        h2_debug (io, data, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
+        if (frame->hd.stream_id == 0) {
+                h2_debug (io, NULL, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
 
-        if (frame->hd.type == NGHTTP2_GOAWAY) {
-                h2_debug (io, data, "[RECV] GOAWAY: error=%s, last_stream_id=%d %s",
-                          nghttp2_http2_strerror (frame->goaway.error_code),
-                          frame->goaway.last_stream_id,
-                          frame->goaway.opaque_data ? (char *)frame->goaway.opaque_data : "");
-                handle_goaway (io, frame->goaway.error_code, frame->goaway.last_stream_id);
-                io->is_shutdown = TRUE;
-                soup_client_message_io_http2_terminate_session (io);
+                switch (frame->hd.type) {
+                case NGHTTP2_GOAWAY:
+                        h2_debug (io, NULL, "[RECV] GOAWAY: error=%s, last_stream_id=%d %s",
+                                  nghttp2_http2_strerror (frame->goaway.error_code),
+                                  frame->goaway.last_stream_id,
+                                  frame->goaway.opaque_data ? (char *)frame->goaway.opaque_data : "");
+                        handle_goaway (io, frame->goaway.error_code, frame->goaway.last_stream_id);
+                        io->is_shutdown = TRUE;
+                        soup_client_message_io_http2_terminate_session (io);
+                        break;
+                case NGHTTP2_WINDOW_UPDATE:
+                        h2_debug (io, NULL, "[RECV] WINDOW_UPDATE: increment=%d, total=%d", frame->window_update.window_size_increment,
+                                  nghttp2_session_get_remote_window_size (session));
+                        break;
+                }
+
                 return 0;
         }
 
+        data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
+        h2_debug (io, data, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
+
         if (!data) {
-                if (frame->hd.stream_id != 0 && !(frame->hd.flags & NGHTTP2_FLAG_END_STREAM))
+                if (!(frame->hd.flags & NGHTTP2_FLAG_END_STREAM))
                         g_warn_if_reached ();
                 return 0;
         }
@@ -690,6 +702,12 @@ on_frame_recv_callback (nghttp2_session     *session,
                         set_error_for_data (data, g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
                                                                        nghttp2_http2_strerror (frame->rst_stream.error_code)));
                 }
+                break;
+        case NGHTTP2_WINDOW_UPDATE:
+                h2_debug (io, data, "[RECV] WINDOW_UPDATE: increment=%d, total=%d", frame->window_update.window_size_increment,
+                          nghttp2_session_get_stream_remote_window_size (session, frame->hd.stream_id));
+                if (nghttp2_session_get_stream_remote_window_size (session, frame->hd.stream_id) > 0)
+                        io_try_write (io);
                 break;
         };
 
