@@ -2,16 +2,16 @@
 # Copyright © 2012, 2013 libsoup
 # This file is distributed under the same license as the libsoup package.
 # Duarte Loreto <happyguy_pt@hotmail.com>, 2012, 2013.
-#
 # Pedro Albuquerque <palbuquerque73@openmailbox.com>, 2015.
 # Juliano de Souza Camargo <julianosc@protonmail.com>, 2020.
+# Hugo Carvalho <hugokarvalho@hotmail.com>, 2021.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: 3.8\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-12-13 19:31+0000\n"
-"PO-Revision-Date: 2021-01-06 13:21+0000\n"
+"POT-Creation-Date: 2021-06-11 18:40+0000\n"
+"PO-Revision-Date: 2021-06-25 20:02+0100\n"
 "Last-Translator: Hugo Carvalho <hugokarvalho@hotmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt\n"
@@ -19,34 +19,70 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.4.2\n"
+"X-Generator: Poedit 3.0\n"
 
-#: libsoup/cache/soup-cache-input-stream.c:79
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Fluxo de rede terminado inesperadamente"
 
-#: libsoup/cache/soup-cache-input-stream.c:295
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Falha ao colocar o recurso totalmente em cache"
 
-#: libsoup/content-decoder/soup-converter-wrapper.c:193
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Buffer de resultado é demasiado pequeno"
 
-#: libsoup/server/soup-server.c:1166
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Ligação terminou inesperadamente"
+
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Pedido de procura inválido"
+
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Impossível truncar SoupBodyInputStream"
+
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:354 libsoup/server/soup-server-io.c:819
+msgid "Operation would block"
+msgstr "A operação iria bloquear"
+
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Impossível processar a resposta HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Codificação de resposta HTTP desconhecida"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1426
+#: libsoup/http2/soup-client-message-io-http2.c:1450
+msgid "Operation was cancelled"
+msgstr "A operação foi cancelada"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Cabeçalho demasiado grande"
+
+#: libsoup/server/soup-server.c:1072
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impossível criar um servidor TLS sem um certificado TLS"
 
-#: libsoup/server/soup-server.c:1185
+#: libsoup/server/soup-server.c:1088
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impossível ouvir no endereço %s, porta %d: "
-
-#: libsoup/server/soup-server-io.c:344 libsoup/server/soup-server-io.c:809
-#: libsoup/soup-message-io.c:327 libsoup/soup-message-io.c:726
-msgid "Operation would block"
-msgstr "A operação iria bloquear"
 
 #: libsoup/server/soup-socket.c:116
 msgid "Could not import existing socket: "
@@ -56,115 +92,75 @@ msgstr "Impossível importar socket existente: "
 msgid "Can’t import unconnected socket"
 msgstr "Impossível importar socket desligado"
 
-#: libsoup/soup-body-input-stream.c:148 libsoup/soup-body-input-stream.c:180
-#: libsoup/soup-body-input-stream.c:213 libsoup/soup-message-io-data.c:76
-msgid "Connection terminated unexpectedly"
-msgstr "Ligação terminou inesperadamente"
-
-#: libsoup/soup-body-input-stream.c:474
-msgid "Invalid seek request"
-msgstr "Pedido de procura inválido"
-
-#: libsoup/soup-body-input-stream.c:502
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Impossível truncar SoupBodyInputStream"
-
-#: libsoup/soup-message-io.c:467
-msgid "Could not parse HTTP response"
-msgstr "Impossível processar a resposta HTTP"
-
-#: libsoup/soup-message-io.c:490
-msgid "Unrecognized HTTP response encoding"
-msgstr "Codificação de resposta HTTP desconhecida"
-
-#: libsoup/soup-message-io.c:687 libsoup/soup-message-io.c:711
-msgid "Operation was cancelled"
-msgstr "A operação foi cancelada"
-
-#: libsoup/soup-message-io-data.c:100
-msgid "Header too big"
-msgstr "Cabeçalho demasiado grande"
-
-#: libsoup/soup-session.c:788
+#: libsoup/soup-session.c:1166
 msgid "Location header is missing or empty in response headers"
 msgstr "Cabeçalho de localização ausente ou vazio nos cabeçalhos de resposta"
 
-#: libsoup/soup-session.c:804
+#: libsoup/soup-session.c:1180
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "URI inválido “%s” no cabeçalho de resposta de localização"
 
-#: libsoup/soup-session.c:824
+#: libsoup/soup-session.c:1200
 msgid "Too many redirects"
 msgstr "Muitos redirecionamentos"
 
-#: libsoup/soup-session.c:829
+#: libsoup/soup-session.c:1205
 msgid "Message was restarted too many times"
 msgstr "A mensagem foi reiniciada demasiadas vezes"
 
-#: libsoup/soup-session.c:3258 libsoup/soup-session.c:3391
-#, c-format
-msgid "Could not parse URI “%s”: %s"
-msgstr "Impossível processar o URI “%s”: %s"
+#: libsoup/soup-session.c:3315 libsoup/soup-session.c:3464
+msgid "Message is already in session queue"
+msgstr "A mensagem já está na fila de sessão"
 
-#: libsoup/soup-session.c:3273 libsoup/soup-session.c:3406
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Esquema de URI “%s” não suportado"
-
-#: libsoup/soup-session.c:3284 libsoup/soup-session.c:3417
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "URI “%s” inválido: %s"
-
-#: libsoup/soup-session.c:3726
+#: libsoup/soup-session.c:3825
 msgid "The server did not accept the WebSocket handshake."
 msgstr "O servidor não aceitou o handshake WebSocket."
 
-#: libsoup/soup-tld.c:146
+#: libsoup/soup-tld.c:142
 msgid "No public-suffix list available."
 msgstr "Nenhuma lista de sufixos públicos disponível."
 
-#: libsoup/soup-tld.c:156 libsoup/soup-tld.c:172
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
 msgid "Invalid hostname"
 msgstr "Nome de máquina inválido"
 
-#: libsoup/soup-tld.c:163
+#: libsoup/soup-tld.c:159
 msgid "Hostname is an IP address"
 msgstr "Nome da máquina é um endereço IP"
 
-#: libsoup/soup-tld.c:184
+#: libsoup/soup-tld.c:180
 msgid "Hostname has no base domain"
 msgstr "Nome de máquina não possui domínio base"
 
-#: libsoup/soup-tld.c:192
+#: libsoup/soup-tld.c:188
 msgid "Not enough domains"
 msgstr "Domínios insuficientes"
 
-#: libsoup/websocket/soup-websocket.c:405
-#: libsoup/websocket/soup-websocket.c:449
-#: libsoup/websocket/soup-websocket.c:465
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "O servidor pediu uma extensão não suportada"
 
-#: libsoup/websocket/soup-websocket.c:428
-#: libsoup/websocket/soup-websocket.c:620
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Cabeçalho WebSocket “%s” incorreto"
 
-#: libsoup/websocket/soup-websocket.c:429
-#: libsoup/websocket/soup-websocket.c:884
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "O servidor devolveu uma chave “%s” incorreta"
 
-#: libsoup/websocket/soup-websocket.c:492
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Parâmetro duplicado no cabeçalho de extensão WebSocket “%s”"
 
-#: libsoup/websocket/soup-websocket.c:493
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
@@ -172,35 +168,44 @@ msgstr ""
 "Servidor retornou um parâmetro duplicado no cabeçalho de extensão WebSocket "
 "“%s”"
 
-#: libsoup/websocket/soup-websocket.c:583
-#: libsoup/websocket/soup-websocket.c:593
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "Esperado handshake WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:601
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "Versão WebSocket não suportada"
 
-#: libsoup/websocket/soup-websocket.c:610
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Chave WebSocket inválida"
 
-#: libsoup/websocket/soup-websocket.c:629
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Subprotocolo WebSocket não suportado"
 
-#: libsoup/websocket/soup-websocket.c:835
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "O servidor rejeitou o handshake WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:843
-#: libsoup/websocket/soup-websocket.c:852
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "O servidor ignorou o handshake WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:864
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "O servidor pediu um protocolo não suportado"
+
+#~ msgid "Could not parse URI “%s”: %s"
+#~ msgstr "Impossível processar o URI “%s”: %s"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "Esquema de URI “%s” não suportado"
+
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "URI “%s” inválido: %s"
 
 #~ msgid "Name"
 #~ msgstr "Nome"
