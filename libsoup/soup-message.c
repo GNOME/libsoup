@@ -89,6 +89,8 @@ typedef struct {
 
 	GTlsCertificate      *tls_peer_certificate;
 	GTlsCertificateFlags  tls_peer_certificate_errors;
+        GTlsProtocolVersion   tls_protocol_version;
+        char                 *tls_ciphersuite_name;
 
         GTlsCertificate *tls_client_certificate;
         GTask *pending_tls_cert_request;
@@ -151,6 +153,8 @@ enum {
 	PROP_RESPONSE_HEADERS,
 	PROP_TLS_PEER_CERTIFICATE,
 	PROP_TLS_PEER_CERTIFICATE_ERRORS,
+        PROP_TLS_PROTOCOL_VERSION,
+        PROP_TLS_CIPHERSUITE_NAME,
         PROP_REMOTE_ADDRESS,
 	PROP_PRIORITY,
 	PROP_SITE_FOR_COOKIES,
@@ -198,6 +202,7 @@ soup_message_finalize (GObject *object)
 	g_clear_pointer (&priv->first_party, g_uri_unref);
 	g_clear_pointer (&priv->site_for_cookies, g_uri_unref);
         g_clear_pointer (&priv->metrics, soup_message_metrics_free);
+        g_clear_pointer (&priv->tls_ciphersuite_name, g_free);
 
 	g_clear_object (&priv->auth);
 	g_clear_object (&priv->proxy_auth);
@@ -301,6 +306,12 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_PEER_CERTIFICATE_ERRORS:
 		g_value_set_flags (value, priv->tls_peer_certificate_errors);
 		break;
+        case PROP_TLS_PROTOCOL_VERSION:
+                g_value_set_enum (value, priv->tls_protocol_version);
+		break;
+        case PROP_TLS_CIPHERSUITE_NAME:
+		g_value_set_string (value, priv->tls_ciphersuite_name);
+                break;
         case PROP_REMOTE_ADDRESS:
                 g_value_set_object (value, priv->remote_address);
                 break;
@@ -814,6 +825,33 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupMessage:tls-protocol-version:
+         *
+         * The TLS protocol version negotiated for the message connection.
+         */
+        properties[PROP_TLS_PROTOCOL_VERSION] =
+	        g_param_spec_enum ("tls-protocol-version",
+                                   "TLS Protocol Version",
+                                   "TLS protocol version negotiated for this connection",
+                                   G_TYPE_TLS_PROTOCOL_VERSION,
+                                   G_TLS_PROTOCOL_VERSION_UNKNOWN,
+                                   G_PARAM_READABLE |
+                                   G_PARAM_STATIC_STRINGS);
+
+        /**
+         * SoupMessage:tls-ciphersuite-name:
+         *
+         * The Name of TLS ciphersuite negotiated for this message connection.
+         */
+        properties[PROP_TLS_CIPHERSUITE_NAME] =
+                g_param_spec_string ("tls-ciphersuite-name",
+                                     "TLS Ciphersuite Name",
+                                     "Name of TLS ciphersuite negotiated for this connection",
+                                     NULL,
+                                     G_PARAM_READABLE |
+                                     G_PARAM_STATIC_STRINGS);
+
         /**
          * SoupMessage:remote-address:
          *
@@ -1397,6 +1435,35 @@ soup_message_set_tls_peer_certificate (SoupMessage         *msg,
 }
 
 static void
+soup_message_set_tls_protocol_version (SoupMessage        *msg,
+                                       GTlsProtocolVersion version)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        if (priv->tls_protocol_version == version)
+                return;
+
+        priv->tls_protocol_version = version;
+        g_object_notify_by_pspec (G_OBJECT (msg), properties[PROP_TLS_PROTOCOL_VERSION]);
+}
+
+static void
+soup_message_set_tls_ciphersuite_name (SoupMessage *msg,
+                                       char        *name)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        if (g_strcmp0 (priv->tls_ciphersuite_name, name) == 0) {
+                g_free (name);
+                return;
+        }
+
+        g_clear_pointer (&priv->tls_ciphersuite_name, g_free);
+        priv->tls_ciphersuite_name = name;
+        g_object_notify_by_pspec (G_OBJECT (msg), properties[PROP_TLS_CIPHERSUITE_NAME]);
+}
+
+static void
 soup_message_set_remote_address (SoupMessage    *msg,
                                  GSocketAddress *address)
 {
@@ -1534,6 +1601,22 @@ re_emit_tls_certificate_changed (SoupMessage    *msg,
 }
 
 static void
+connection_tls_protocol_version_changed (SoupMessage    *msg,
+                                         GParamSpec     *pspec,
+                                         SoupConnection *conn)
+{
+        soup_message_set_tls_protocol_version (msg, soup_connection_get_tls_protocol_version (conn));
+}
+
+static void
+connection_tls_ciphersuite_name_changed (SoupMessage    *msg,
+                                         GParamSpec     *pspec,
+                                         SoupConnection *conn)
+{
+        soup_message_set_tls_ciphersuite_name (msg, soup_connection_get_tls_ciphersuite_name (conn));
+}
+
+static void
 connection_remote_address_changed (SoupMessage    *msg,
                                    GParamSpec     *pspec,
                                    SoupConnection *conn)
@@ -1575,6 +1658,8 @@ soup_message_set_connection (SoupMessage    *msg,
         soup_message_set_tls_peer_certificate (msg,
                                                soup_connection_get_tls_certificate (priv->connection),
                                                soup_connection_get_tls_certificate_errors (priv->connection));
+        soup_message_set_tls_protocol_version (msg, soup_connection_get_tls_protocol_version (conn));
+        soup_message_set_tls_ciphersuite_name (msg, soup_connection_get_tls_ciphersuite_name (conn));
         soup_message_set_remote_address (msg, soup_connection_get_remote_address (priv->connection));
 
         if (priv->tls_client_certificate) {
@@ -1598,6 +1683,12 @@ soup_message_set_connection (SoupMessage    *msg,
 	g_signal_connect_object (priv->connection, "notify::tls-certificate",
 				 G_CALLBACK (re_emit_tls_certificate_changed),
 				 msg, G_CONNECT_SWAPPED);
+        g_signal_connect_object (priv->connection, "notify::tls-protocol-version",
+                                 G_CALLBACK (connection_tls_protocol_version_changed),
+                                 msg, G_CONNECT_SWAPPED);
+        g_signal_connect_object (priv->connection, "notify::tls-ciphersuite-name",
+                                 G_CALLBACK (connection_tls_ciphersuite_name_changed),
+                                 msg, G_CONNECT_SWAPPED);
         g_signal_connect_object (priv->connection, "notify::remote-address",
                                  G_CALLBACK (connection_remote_address_changed),
                                  msg, G_CONNECT_SWAPPED);
@@ -1699,6 +1790,8 @@ soup_message_cleanup_response (SoupMessage *msg)
 
         if (!priv->connection) {
                 soup_message_set_tls_peer_certificate (msg, NULL, 0);
+                soup_message_set_tls_protocol_version (msg, G_TLS_PROTOCOL_VERSION_UNKNOWN);
+                soup_message_set_tls_ciphersuite_name (msg, NULL);
                 soup_message_set_remote_address (msg, NULL);
                 priv->last_connection_id = 0;
         }
@@ -2326,6 +2419,48 @@ soup_message_get_tls_peer_certificate_errors (SoupMessage *msg)
 	priv = soup_message_get_instance_private (msg);
 
 	return priv->tls_peer_certificate_errors;
+}
+
+/**
+ * soup_message_get_tls_protocol_version:
+ * @msg: a #SoupMessage
+ *
+ * Gets the TLS protocol version negotiated for @msg's connection.
+ * If the message connection is not SSL, %G_TLS_PROTOCOL_VERSION_UNKNOWN is returned.
+ *
+ * Returns: a #GTlsProtocolVersion
+ */
+GTlsProtocolVersion
+soup_message_get_tls_protocol_version (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), G_TLS_PROTOCOL_VERSION_UNKNOWN);
+
+        priv = soup_message_get_instance_private (msg);
+
+        return priv->tls_protocol_version;
+}
+
+/**
+ * soup_message_get_tls_ciphersuite_name:
+ * @msg: a #SoupMessage
+ *
+ * Gets the name of the TLS ciphersuite negotiated for @msg's connection.
+ *
+ * Returns: (transfer none): the name of the TLS ciphersuite,
+ *    or %NULL if @msg's connection is not SSL.
+ */
+const char *
+soup_message_get_tls_ciphersuite_name (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+        priv = soup_message_get_instance_private (msg);
+
+        return priv->tls_ciphersuite_name;
 }
 
 /**

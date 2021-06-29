@@ -107,6 +107,12 @@ SOUP_AVAILABLE_IN_ALL
 GTlsCertificateFlags soup_message_get_tls_peer_certificate_errors                  (SoupMessage     *msg);
 
 SOUP_AVAILABLE_IN_ALL
+GTlsProtocolVersion  soup_message_get_tls_protocol_version                         (SoupMessage     *msg);
+
+SOUP_AVAILABLE_IN_ALL
+const char          *soup_message_get_tls_ciphersuite_name                         (SoupMessage     *msg);
+
+SOUP_AVAILABLE_IN_ALL
 void                 soup_message_set_tls_client_certificate                       (SoupMessage     *msg,
                                                                                     GTlsCertificate *certificate);
 

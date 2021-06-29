@@ -73,6 +73,8 @@ enum {
 	PROP_SSL,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_CERTIFICATE_ERRORS,
+        PROP_TLS_PROTOCOL_VERSION,
+        PROP_TLS_CIPHERSUITE_NAME,
         PROP_FORCE_HTTP1,
 
 	LAST_PROPERTY
@@ -194,6 +196,12 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_CERTIFICATE_ERRORS:
 		g_value_set_flags (value, soup_connection_get_tls_certificate_errors (SOUP_CONNECTION (object)));
 		break;
+        case PROP_TLS_PROTOCOL_VERSION:
+                g_value_set_enum (value, soup_connection_get_tls_protocol_version (SOUP_CONNECTION (object)));
+                break;
+        case PROP_TLS_CIPHERSUITE_NAME:
+                g_value_set_string (value, soup_connection_get_tls_ciphersuite_name (SOUP_CONNECTION (object)));
+                break;
 	case PROP_FORCE_HTTP1:
 		g_value_set_boolean (value, priv->force_http1);
 		break;
@@ -321,6 +329,21 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                                     G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
                                     G_PARAM_READABLE |
                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_TLS_PROTOCOL_VERSION] =
+                g_param_spec_enum ("tls-protocol-version",
+                                   "TLS Protocol Version",
+                                   "TLS protocol version negotiated for this connection",
+                                   G_TYPE_TLS_PROTOCOL_VERSION,
+                                   G_TLS_PROTOCOL_VERSION_UNKNOWN,
+                                   G_PARAM_READABLE |
+                                   G_PARAM_STATIC_STRINGS);
+        properties[PROP_TLS_CIPHERSUITE_NAME] =
+                g_param_spec_string ("tls-ciphersuite-name",
+                                     "TLS Ciphersuite Name",
+                                     "Name of TLS ciphersuite negotiated for this connection",
+                                     NULL,
+                                     G_PARAM_READABLE |
+                                     G_PARAM_STATIC_STRINGS);
         properties[PROP_FORCE_HTTP1] =
                 g_param_spec_boolean ("force-http1",
                                       "Force HTTP 1.x",
@@ -522,6 +545,18 @@ tls_connection_peer_certificate_changed (SoupConnection *conn)
 	g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_TLS_CERTIFICATE]);
 }
 
+static void
+tls_connection_protocol_version_changed (SoupConnection *conn)
+{
+        g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_TLS_PROTOCOL_VERSION]);
+}
+
+static void
+tls_connection_ciphersuite_name_changed (SoupConnection *conn)
+{
+        g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_TLS_CIPHERSUITE_NAME]);
+}
+
 static GTlsClientConnection *
 new_tls_connection (SoupConnection    *conn,
                     GSocketConnection *connection,
@@ -563,6 +598,12 @@ new_tls_connection (SoupConnection    *conn,
 				 conn, G_CONNECT_SWAPPED);
 	g_signal_connect_object (tls_connection, "notify::peer-certificate",
 				 G_CALLBACK (tls_connection_peer_certificate_changed),
+				 conn, G_CONNECT_SWAPPED);
+        g_signal_connect_object (tls_connection, "notify::protocol-version",
+				 G_CALLBACK (tls_connection_protocol_version_changed),
+				 conn, G_CONNECT_SWAPPED);
+        g_signal_connect_object (tls_connection, "notify::ciphersuite-name",
+				 G_CALLBACK (tls_connection_ciphersuite_name_changed),
 				 conn, G_CONNECT_SWAPPED);
 
         return tls_connection;
@@ -1144,6 +1185,28 @@ soup_connection_get_tls_certificate_errors (SoupConnection *conn)
 		return 0;
 
 	return g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->connection));
+}
+
+GTlsProtocolVersion
+soup_connection_get_tls_protocol_version (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        if (!G_IS_TLS_CONNECTION (priv->connection))
+                return G_TLS_PROTOCOL_VERSION_UNKNOWN;
+
+        return g_tls_connection_get_protocol_version (G_TLS_CONNECTION (priv->connection));
+}
+
+char *
+soup_connection_get_tls_ciphersuite_name (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        if (!G_IS_TLS_CONNECTION (priv->connection))
+                return NULL;
+
+        return g_tls_connection_get_ciphersuite_name (G_TLS_CONNECTION (priv->connection));
 }
 
 void

@@ -65,6 +65,8 @@ SoupClientMessageIO *soup_connection_setup_message_io    (SoupConnection *conn,
 
 GTlsCertificate     *soup_connection_get_tls_certificate                       (SoupConnection  *conn);
 GTlsCertificateFlags soup_connection_get_tls_certificate_errors                (SoupConnection  *conn);
+GTlsProtocolVersion  soup_connection_get_tls_protocol_version                  (SoupConnection  *conn);
+char                *soup_connection_get_tls_ciphersuite_name                  (SoupConnection  *conn);
 void                 soup_connection_request_tls_certificate                   (SoupConnection  *conn,
                                                                                 GTlsConnection  *connection,
                                                                                 GTask           *task);
