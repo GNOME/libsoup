@@ -1,9 +1,10 @@
-FROM fedora-minimal:34
+FROM fedora:34
 
-RUN microdnf update -y \
-    && microdnf install -y autoconf-archive \
+RUN dnf update -y \
+    && dnf install -y \
                       brotli-devel \
                       clang-analyzer \
+                      'dnf-command(builddep)' \
                       git \
                       glib2-doc \
                       gnutls-devel \
@@ -26,12 +27,28 @@ RUN microdnf update -y \
                       sysprof-devel \
                       valgrind \
                       which \
+    && dnf builddep -y glib2 \
+    && dnf install --releasever=35 -y vala \
+    && dnf clean all \
     && python2.7 -m ensurepip \
     && pip2.7 install virtualenv autobahntestsuite \
-    && pip3 install quart \
-    && microdnf install -y fedora-repos-rawhide \
-    && microdnf install --enablerepo=rawhide -y vala \
-    && microdnf clean all
+    && pip3 install quart
+
+RUN git clone https://gitlab.gnome.org/GNOME/glib.git \
+    && pushd glib \
+    && git checkout 2.69.0 \
+    && meson _build --prefix=/usr \
+    && ninja -C _build install \
+    && popd \
+    && rm -rf glib
+
+RUN git clone https://gitlab.gnome.org/GNOME/glib-networking.git \
+    && pushd glib-networking \
+    && git checkout 2.70.alpha \
+    && meson _build --prefix=/usr \
+    && ninja -C _build install \
+    && popd \
+    && rm -rf glib-networking
 
 ARG HOST_USER_ID=5555
 ENV HOST_USER_ID ${HOST_USER_ID}
