@@ -1,3 +1,21 @@
+Changes in libsoup from 2.99.8 to 2.99.9:
+
+    * Make soup_message_set_method() public API [Carlos Garcia Campos]
+
+    * Make SoupMessage:http-version read only [Carlos Garcia Campos]
+
+    * Prevent the same message being queued multiple times [Carlos Garcia Campos]
+
+    * Allow completing SoupMessage::tls-interaction with NULL certificate [Carlos Garcia Campos]
+
+    * Replace soup_server_set_ssl_cert_file() with soup_server_set_tls_certificate() [Carlos Garcia Campos]
+
+    * Add SoupServer support for client certificates [Carlos Garcia Campos]
+
+    * Fallback to building meson wrap of sqlite if not found [Xavier Claessens]
+
+    * Add soup_message_get_tls_protocol_version() and soup_message_get_tls_ciphersuite_name() API [Carlos Garcia Campos]
+
 Changes in libsoup from 2.99.7 to 2.99.8:
 
     * Enable HTTP/2 by default. The SOUP_FORCE_HTTP1 env var can disable for debugging
