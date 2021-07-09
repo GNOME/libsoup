@@ -1055,7 +1055,7 @@ process_frame (SoupWebsocketConnection *self)
 
 	/* Safety valve */
 	if (priv->max_incoming_payload_size > 0 &&
-	    payload_len >= priv->max_incoming_payload_size) {
+	    payload_len > priv->max_incoming_payload_size) {
 		too_big_error_and_close (self, payload_len);
 		return FALSE;
 	}
