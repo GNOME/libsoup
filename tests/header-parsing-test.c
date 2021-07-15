@@ -1032,13 +1032,15 @@ do_param_list_tests (void)
 #define RFC5987_TEST_HEADER_UTF8     "attachment; filename*=UTF-8''t%C3%A9st.txt; filename=\"test.txt\""
 #define RFC5987_TEST_HEADER_ISO      "attachment; filename=\"test.txt\"; filename*=iso-8859-1''t%E9st.txt"
 #define RFC5987_TEST_HEADER_FALLBACK "attachment; filename*=Unknown''t%FF%FF%FFst.txt; filename=\"test.txt\""
+#define RFC5987_TEST_HEADER_NO_TYPE  "filename=\"test.txt\""
+#define RFC5987_TEST_HEADER_NO_TYPE_2  "filename=\"test.txt\"; foo=bar"
 
 static void
 do_content_disposition_tests (void)
 {
 	SoupMessageHeaders *hdrs;
 	GHashTable *params;
-	const char *header, *filename;
+	const char *header, *filename, *parameter2;
 	char *disposition;
 	SoupBuffer *buffer;
 	SoupMultipart *multipart;
@@ -1099,6 +1101,38 @@ do_content_disposition_tests (void)
 
 	filename = g_hash_table_lookup (params, "filename");
 	g_assert_cmpstr (filename, ==, RFC5987_TEST_FALLBACK_FILENAME);
+	g_hash_table_destroy (params);
+
+        /* Invalid disposition with only a filename still works */
+        soup_message_headers_clear (hdrs);
+        soup_message_headers_append (hdrs, "Content-Disposition",
+				     RFC5987_TEST_HEADER_NO_TYPE);
+	if (!soup_message_headers_get_content_disposition (hdrs,
+							   &disposition,
+							   &params)) {
+		soup_test_assert (FALSE, "filename-only decoding FAILED");
+		return;
+	}
+        g_assert_null (disposition);
+        filename = g_hash_table_lookup (params, "filename");
+	g_assert_cmpstr (filename, ==, RFC5987_TEST_FALLBACK_FILENAME);
+	g_hash_table_destroy (params);
+
+        /* Invalid disposition with only two parameters still works */
+        soup_message_headers_clear (hdrs);
+        soup_message_headers_append (hdrs, "Content-Disposition",
+				     RFC5987_TEST_HEADER_NO_TYPE_2);
+	if (!soup_message_headers_get_content_disposition (hdrs,
+							   &disposition,
+							   &params)) {
+		soup_test_assert (FALSE, "only two parameters decoding FAILED");
+		return;
+	}
+        g_assert_null (disposition);
+        filename = g_hash_table_lookup (params, "filename");
+	g_assert_cmpstr (filename, ==, RFC5987_TEST_FALLBACK_FILENAME);
+        parameter2 = g_hash_table_lookup (params, "foo");
+        g_assert_cmpstr (parameter2, ==, "bar");
 	g_hash_table_destroy (params);
 
 	soup_message_headers_free (hdrs);

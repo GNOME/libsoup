@@ -1272,26 +1272,36 @@ parse_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
 {
 	const char *header;
 	char *semi;
+        char *equal;
 
 	header = soup_message_headers_get_one (hdrs, header_name);
 	if (!header)
 		return FALSE;
 
-	if (foo) {
-		*foo = g_strdup (header);
-		semi = strchr (*foo, ';');
-		if (semi) {
-			char *p = semi;
+        /* Some websites send an invalid disposition that only contains parameters;
+         * We can be flexible about handling these by detecting if the first word
+         * is a parameter (foo=bar). */
+        equal = strchr (header, '=');
+        semi = strchr (header, ';');
+        if (equal && (!semi || (equal < semi))) {
+                semi = (char *)header;
+                if (foo)
+                        *foo = NULL;
+        } else if (foo) {
+                *foo = g_strdup (header);
+                semi = strchr (*foo, ';');
+                if (semi) {
+                        char *p = semi;
 
-			*semi++ = '\0';
-			while (p - 1 > *foo && g_ascii_isspace(p[-1]))
-				*(--p) = '\0';
-		}
-	} else {
-		semi = strchr (header, ';');
-		if (semi)
-			semi++;
-	}
+                        *semi++ = '\0';
+                        while (p - 1 > *foo && g_ascii_isspace(p[-1]))
+                                *(--p) = '\0';
+                }
+        } else {
+                /* Skip type, we don't store it */
+                if (semi)
+                        semi++;
+        }
 
 	if (!params)
 		return TRUE;
