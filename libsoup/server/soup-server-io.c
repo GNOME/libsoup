@@ -288,7 +288,6 @@ write_headers (SoupServerMessage  *msg,
 	const char *reason_phrase;
 	const char *method;
 	SoupMessageHeaders *response_headers;
-	SoupMessageBody *response_body;
 
         if (soup_server_message_get_status (msg) == 0)
                 soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
@@ -315,9 +314,11 @@ write_headers (SoupServerMessage  *msg,
         else
                 *encoding = claimed_encoding;
 
-	response_body = soup_server_message_get_response_body (msg);
         if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
             !soup_message_headers_get_content_length (response_headers)) {
+                SoupMessageBody *response_body;
+
+                response_body = soup_server_message_get_response_body (msg);
                 soup_message_headers_set_content_length (response_headers,
                                                          response_body->length);
         }
