@@ -861,6 +861,78 @@ do_new_request_on_redirect_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static void
+wrote_informational_check_content_length (SoupServerMessage *msg,
+                                          gpointer           user_data)
+{
+        SoupMessageHeaders *response_headers;
+
+        response_headers = soup_server_message_get_response_headers (msg);
+        g_assert_null (soup_message_headers_get_one (response_headers, "Content-Length"));
+}
+
+static void
+upgrade_server_check_content_length_callback (SoupServer        *server,
+                                              SoupServerMessage *msg,
+                                              const char        *path,
+                                              GHashTable        *query,
+                                              gpointer           data)
+{
+        SoupMessageHeaders *request_headers;
+
+        if (soup_server_message_get_method (msg) != SOUP_METHOD_GET) {
+                soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
+                return;
+        }
+
+        soup_server_message_set_status (msg, SOUP_STATUS_SWITCHING_PROTOCOLS, NULL);
+
+        request_headers = soup_server_message_get_request_headers (msg);
+        soup_message_headers_append (request_headers, "Upgrade", "ECHO");
+        soup_message_headers_append (request_headers, "Connection", "upgrade");
+
+        g_signal_connect (msg, "wrote-informational",
+                          G_CALLBACK (wrote_informational_check_content_length), NULL);
+}
+
+static void
+switching_protocols_check_length (SoupMessage *msg,
+                                  gpointer     user_data)
+{
+        SoupMessageHeaders *response_headers;
+
+        response_headers = soup_message_get_response_headers (msg);
+        g_assert_null (soup_message_headers_get_one (response_headers, "Content-Length"));
+}
+
+static void
+do_response_informational_content_length_test (void)
+{
+        SoupServer *server;
+        SoupSession *session;
+        SoupMessage *msg;
+        SoupMessageHeaders *request_headers;
+
+        server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+        soup_server_add_handler (server, NULL, upgrade_server_check_content_length_callback, NULL, NULL);
+
+        session = soup_test_session_new (NULL);
+        msg = soup_message_new_from_uri ("GET", base_uri);
+        request_headers = soup_message_get_request_headers (msg);
+        soup_message_headers_append (request_headers, "Upgrade", "echo");
+        soup_message_headers_append (request_headers, "Connection", "upgrade");
+
+        soup_message_add_status_code_handler (msg, "got-informational",
+                                              SOUP_STATUS_SWITCHING_PROTOCOLS,
+                                              G_CALLBACK (switching_protocols_check_length), NULL);
+
+        soup_test_session_send_message (session, msg);
+        g_object_unref (msg);
+
+        soup_test_session_abort_unref (session);
+        soup_test_server_quit_unref (server);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -896,6 +968,7 @@ main (int argc, char **argv)
         g_test_add_func ("/misc/connection-id", do_connection_id_test);
         g_test_add_func ("/misc/remote-address", do_remote_address_test);
         g_test_add_func ("/misc/new-request-on-redirect", do_new_request_on_redirect_test);
+        g_test_add_func ("/misc/response/informational/content-length", do_response_informational_content_length_test);
 
 	ret = g_test_run ();
 

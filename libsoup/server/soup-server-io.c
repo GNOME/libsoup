@@ -314,7 +314,15 @@ write_headers (SoupServerMessage  *msg,
         else
                 *encoding = claimed_encoding;
 
-        if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
+        /* Per rfc 7230:
+         * A server MUST NOT send a Content-Length header field in any response
+         * with a status code of 1xx (Informational) or 204 (No Content).
+         */
+
+        if (status_code  == SOUP_STATUS_NO_CONTENT ||
+            SOUP_STATUS_IS_INFORMATIONAL (status_code)) {
+                soup_message_headers_remove (response_headers, "Content-Length");
+        } else if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
             !soup_message_headers_get_content_length (response_headers)) {
                 SoupMessageBody *response_body;
 
