@@ -310,7 +310,7 @@ if not get_option('http2_tests').disabled()
   endif
 endif
 
-gnutls_dep = dependency('gnutls', required : get_option('pkcs11_tests'))
+gnutls_dep = dependency('gnutls', version: '>= 3.6.0', required : get_option('pkcs11_tests'))
 
 if not have_apache or not quart_found or not have_autobahn or not gnutls_dep.found()
   warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
