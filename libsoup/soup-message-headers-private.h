@@ -10,6 +10,9 @@
 
 G_BEGIN_DECLS
 
+void        soup_message_headers_append_untrusted_data  (SoupMessageHeaders *hdrs,
+                                                         const char         *name,
+                                                         const char         *value);
 void        soup_message_headers_append_common          (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name,
                                                          const char         *value);

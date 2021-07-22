@@ -32,6 +32,7 @@
 
 #include "soup-body-input-stream.h"
 #include "soup-message-metrics-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-message-private.h"
 #include "soup-message-io-source.h"
 #include "soup-message-queue-item.h"
@@ -544,8 +545,8 @@ on_header_callback (nghttp2_session     *session,
                 return 0;
         }
 
-        soup_message_headers_append (soup_message_get_response_headers (data->msg),
-                                     (const char *)name, (const char *)value);
+        soup_message_headers_append_untrusted_data (soup_message_get_response_headers (data->msg),
+                                                    (const char*)name, (const char*)value);
         return 0;
 }
 

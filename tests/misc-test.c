@@ -6,6 +6,7 @@
 #include "test-utils.h"
 #include "soup-connection.h"
 #include "soup-session-private.h"
+#include "soup-message-headers-private.h"
 
 SoupServer *server;
 GUri *base_uri;
@@ -54,6 +55,15 @@ server_callback (SoupServer        *server,
                                             1000, timeout_finish_message, msg);
                 g_source_unref (timeout);
 	}
+
+        if (!strcmp (path, "/invalid_utf8_headers")) {
+                SoupMessageHeaders *headers = soup_server_message_get_response_headers (msg);
+                const char *invalid_utf8_value = "\xe2\x82\xa0gh\xe2\xffjl";
+
+                /* Purposefully insert invalid utf8 data */
+                g_assert_false (g_utf8_validate (invalid_utf8_value, -1, NULL));
+                soup_message_headers_append (headers, "InvalidValue", invalid_utf8_value);
+        }
 
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 	if (!strcmp (g_uri_get_host (uri), "foo")) {
@@ -933,6 +943,34 @@ do_response_informational_content_length_test (void)
         soup_test_server_quit_unref (server);
 }
 
+static void
+do_invalid_utf8_headers_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GUri *uri;
+        SoupMessageHeaders *headers;
+        guint status;
+        const char *header_value;
+
+        session = soup_test_session_new (NULL);
+
+        uri = g_uri_parse_relative (base_uri, "/invalid_utf8_headers", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+
+        status = soup_test_session_send_message (session, msg);
+        g_assert_cmpuint (status, ==, SOUP_STATUS_OK);
+
+        headers = soup_message_get_response_headers (msg);
+        header_value = soup_message_headers_get_one (headers, "InvalidValue");
+        g_assert_nonnull (header_value);
+        g_assert_true (g_utf8_validate (header_value, -1, NULL));
+
+        g_object_unref (msg);
+        g_uri_unref (uri);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -969,6 +1007,7 @@ main (int argc, char **argv)
         g_test_add_func ("/misc/remote-address", do_remote_address_test);
         g_test_add_func ("/misc/new-request-on-redirect", do_new_request_on_redirect_test);
         g_test_add_func ("/misc/response/informational/content-length", do_response_informational_content_length_test);
+        g_test_add_func ("/misc/invalid-utf8-headers", do_invalid_utf8_headers_test);
 
 	ret = g_test_run ();
 

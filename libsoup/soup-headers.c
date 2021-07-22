@@ -14,6 +14,7 @@
 
 #include "soup-misc.h"
 #include "soup-headers.h"
+#include "soup-message-headers-private.h"
 #include "soup.h"
 
 /**
@@ -154,7 +155,7 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 		for (p = strchr (value, '\r'); p; p = strchr (p, '\r'))
 			*p = ' ';
 
-		soup_message_headers_append (dest, name, value);
+		soup_message_headers_append_untrusted_data (dest, name, value);
         }
 	success = TRUE;
 

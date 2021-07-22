@@ -353,6 +353,21 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
 		g_hash_table_remove (hdrs->uncommon_concat, header.name);
 }
 
+/*
+ * Appends a header value ensuring that it is valid UTF8.
+ */
+void
+soup_message_headers_append_untrusted_data (SoupMessageHeaders *hdrs,
+                                            const char         *name,
+                                            const char         *value)
+{
+        char *safe_value = g_utf8_make_valid (value, -1);
+        char *safe_name = g_utf8_make_valid (name, -1);
+        soup_message_headers_append (hdrs, safe_name, safe_value);
+        g_free (safe_value);
+        g_free (safe_name);
+}
+
 void
 soup_message_headers_replace_common (SoupMessageHeaders *hdrs,
                                      SoupHeaderName      name,
