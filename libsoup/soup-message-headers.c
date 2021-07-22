@@ -1283,7 +1283,8 @@ parse_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
          * is a parameter (foo=bar). */
         equal = strchr (header, '=');
         semi = strchr (header, ';');
-        if (equal && (!semi || (equal < semi))) {
+        if (header_name == SOUP_HEADER_CONTENT_DISPOSITION &&
+            (equal && (!semi || (equal < semi)))) {
                 semi = (char *)header;
                 if (foo)
                         *foo = NULL;
