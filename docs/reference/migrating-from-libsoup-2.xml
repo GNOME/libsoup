@@ -129,7 +129,7 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
         <para>Note that unlike <type>SoupURI</type> <link linkend="GUri"><type>GUri</type></link> is an immutable type so you cannot change the contents
             of one after it has been constructed. We provide <link linkend="soup_copy_uri"><function>soup_copy_uri()</function></link> to aid in modifying them.</para>
         <para>The equivalent behavior to <code>soup_uri_to_string (uri, FALSE)</code> is
-                <code>g_uri_to_string (uri, G_URI_HIDE_PASSWORD)</code>.</para>
+                <code>g_uri_to_string_partial (uri, G_URI_HIDE_PASSWORD)</code>.</para>
         <para>Since GUri does not provide any function to check for equality
                 <link linkend="soup_uri_equal"><function>soup_uri_equal()</function></link> still exists.</para>
         <para>Sending a <literal>OPTIONS</literal> message with a path of <literal>*</literal> is no
