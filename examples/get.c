@@ -110,59 +110,6 @@ on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
         g_object_unref (in);
 }
 
-
-/* Inline class for providing a pre-configured client certificate */
-typedef struct _GetTlsCertInteraction        GetTlsCertInteraction;
-typedef struct _GetTlsCertInteractionClass   GetTlsCertInteractionClass;
-
-static GType                    _get_tls_cert_interaction_get_type    (void) G_GNUC_CONST;
-static GetTlsCertInteraction *  _get_tls_cert_interaction_new         (GTlsCertificate *cert);
-
-struct _GetTlsCertInteraction
-{
-	GTlsInteraction parent_instance;
-	GTlsCertificate *cert;
-};
-
-struct _GetTlsCertInteractionClass
-{
-	GTlsInteractionClass parent_class;
-};
-
-G_DEFINE_TYPE (GetTlsCertInteraction, _get_tls_cert_interaction, G_TYPE_TLS_INTERACTION);
-
-static GTlsInteractionResult
-request_certificate (GTlsInteraction              *interaction,
-                     GTlsConnection               *connection,
-                     GTlsCertificateRequestFlags   flags,
-                     GCancellable                 *cancellable,
-                     GError                      **error)
-{
-	GetTlsCertInteraction *self = (GetTlsCertInteraction*)interaction;
-	g_tls_connection_set_certificate (connection, self->cert);
-	return G_TLS_INTERACTION_HANDLED;
-}
-
-static void
-_get_tls_cert_interaction_init (GetTlsCertInteraction *interaction)
-{
-}
-
-static void
-_get_tls_cert_interaction_class_init (GetTlsCertInteractionClass *klass)
-{
-	GTlsInteractionClass *interaction_class = G_TLS_INTERACTION_CLASS (klass);
-	interaction_class->request_certificate = request_certificate;
-}
-
-GetTlsCertInteraction *
-_get_tls_cert_interaction_new (GTlsCertificate *cert)
-{
-	GetTlsCertInteraction *self = g_object_new (_get_tls_cert_interaction_get_type (), NULL);
-	self->cert = g_object_ref (cert);
-	return self;
-}
-
 static const char *ca_file, *proxy;
 static char *client_cert_file, *client_key_file;
 static gboolean ntlm;
@@ -213,6 +160,7 @@ main (int argc, char **argv)
 	const char *url;
 	SoupMessage *msg;
 	GUri *parsed;
+        GTlsCertificate *client_cert = NULL;
 	GError *error = NULL;
 
 	opts = g_option_context_new (NULL);
@@ -272,8 +220,6 @@ main (int argc, char **argv)
         }
 
 	if (client_cert_file) {
-		GTlsCertificate *client_cert;
-		GetTlsCertInteraction *interaction;
 		if (!client_key_file) {
 			g_printerr ("--key is required with --cert\n");
                         g_object_unref (session);
@@ -286,9 +232,6 @@ main (int argc, char **argv)
                         g_object_unref (session);
 			exit (1);
 		}
-		interaction = _get_tls_cert_interaction_new (client_cert);
-		soup_session_set_tls_interaction (session, G_TLS_INTERACTION (interaction));
-		g_object_unref (interaction);
 	}
 
 	if (debug) {
@@ -316,6 +259,7 @@ main (int argc, char **argv)
 
         /* Send the request */
 	msg = soup_message_new (head ? "HEAD" : "GET", url);
+        soup_message_set_tls_client_certificate (msg, client_cert);
         soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
 				 on_request_sent, NULL);
 	g_object_unref (msg);
