@@ -36,7 +36,7 @@ RUN dnf update -y \
 
 RUN git clone https://gitlab.gnome.org/GNOME/glib.git \
     && pushd glib \
-    && git checkout 2.69.0 \
+    && git checkout 02742ef957b532789c003eef80ec7f51c370e3d5 \
     && meson _build --prefix=/usr \
     && ninja -C _build install \
     && popd \
