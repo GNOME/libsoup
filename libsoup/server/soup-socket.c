@@ -79,10 +79,10 @@ typedef struct {
 
 static void soup_socket_initable_interface_init (GInitableIface *initable_interface);
 
-G_DEFINE_TYPE_WITH_CODE (SoupSocket, soup_socket, G_TYPE_OBJECT,
-                         G_ADD_PRIVATE (SoupSocket)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
-						soup_socket_initable_interface_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupSocket, soup_socket, G_TYPE_OBJECT,
+                               G_ADD_PRIVATE (SoupSocket)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
+						      soup_socket_initable_interface_init))
 
 static void finish_socket_setup (SoupSocket *sock);
 static void finish_listener_setup (SoupSocket *sock);

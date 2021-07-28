@@ -35,10 +35,10 @@ typedef struct {
 
 static void soup_cache_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
-G_DEFINE_TYPE_WITH_CODE (SoupCacheInputStream, soup_cache_input_stream, SOUP_TYPE_FILTER_INPUT_STREAM,
-                         G_ADD_PRIVATE (SoupCacheInputStream)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_cache_input_stream_pollable_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupCacheInputStream, soup_cache_input_stream, SOUP_TYPE_FILTER_INPUT_STREAM,
+                               G_ADD_PRIVATE (SoupCacheInputStream)
+                               G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+                                                      soup_cache_input_stream_pollable_init))
 
 
 static void soup_cache_input_stream_write_next_buffer (SoupCacheInputStream *istream);

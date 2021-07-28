@@ -139,12 +139,12 @@ static void soup_logger_session_feature_init (SoupSessionFeatureInterface *featu
 static SoupContentProcessorInterface *soup_logger_default_content_processor_interface;
 static void soup_logger_content_processor_init (SoupContentProcessorInterface *interface, gpointer interface_data);
 
-G_DEFINE_TYPE_WITH_CODE (SoupLogger, soup_logger, G_TYPE_OBJECT,
-                         G_ADD_PRIVATE (SoupLogger)
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_logger_session_feature_init)
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
-						soup_logger_content_processor_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupLogger, soup_logger, G_TYPE_OBJECT,
+                               G_ADD_PRIVATE (SoupLogger)
+                               G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+                                                      soup_logger_session_feature_init)
+                               G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
+                                                      soup_logger_content_processor_init))
 
 static void
 write_body (SoupLogger *logger, const char *buffer, gsize nread,

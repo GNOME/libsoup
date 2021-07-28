@@ -44,10 +44,10 @@ static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 static GPollableInputStreamInterface *soup_client_input_stream_parent_pollable_interface;
 static void soup_client_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
-G_DEFINE_TYPE_WITH_CODE (SoupClientInputStream, soup_client_input_stream, SOUP_TYPE_FILTER_INPUT_STREAM,
-                         G_ADD_PRIVATE (SoupClientInputStream)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_client_input_stream_pollable_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupClientInputStream, soup_client_input_stream, SOUP_TYPE_FILTER_INPUT_STREAM,
+                               G_ADD_PRIVATE (SoupClientInputStream)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+						      soup_client_input_stream_pollable_init))
 
 static void
 soup_client_input_stream_init (SoupClientInputStream *stream)

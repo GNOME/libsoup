@@ -78,7 +78,7 @@ struct _SoupServerMessageClass {
         GObjectClass parent_class;
 };
 
-G_DEFINE_TYPE (SoupServerMessage, soup_server_message, G_TYPE_OBJECT)
+G_DEFINE_FINAL_TYPE (SoupServerMessage, soup_server_message, G_TYPE_OBJECT)
 
 enum {
         WROTE_INFORMATIONAL,

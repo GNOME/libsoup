@@ -74,10 +74,10 @@ typedef struct {
 
 static void soup_multipart_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
-G_DEFINE_TYPE_WITH_CODE (SoupMultipartInputStream, soup_multipart_input_stream, G_TYPE_FILTER_INPUT_STREAM,
-                         G_ADD_PRIVATE (SoupMultipartInputStream)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_multipart_input_stream_pollable_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupMultipartInputStream, soup_multipart_input_stream, G_TYPE_FILTER_INPUT_STREAM,
+                               G_ADD_PRIVATE (SoupMultipartInputStream)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+						      soup_multipart_input_stream_pollable_init))
 
 static void
 soup_multipart_input_stream_dispose (GObject *object)

@@ -37,7 +37,7 @@ enum {
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupIOStream, soup_io_stream, G_TYPE_IO_STREAM)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupIOStream, soup_io_stream, G_TYPE_IO_STREAM)
 
 static void
 soup_io_stream_init (SoupIOStream *stream)

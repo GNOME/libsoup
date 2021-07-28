@@ -58,10 +58,10 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 static void soup_body_output_stream_pollable_init (GPollableOutputStreamInterface *pollable_interface, gpointer interface_data);
 
-G_DEFINE_TYPE_WITH_CODE (SoupBodyOutputStream, soup_body_output_stream, G_TYPE_FILTER_OUTPUT_STREAM,
-                         G_ADD_PRIVATE (SoupBodyOutputStream)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_OUTPUT_STREAM,
-						soup_body_output_stream_pollable_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupBodyOutputStream, soup_body_output_stream, G_TYPE_FILTER_OUTPUT_STREAM,
+                               G_ADD_PRIVATE (SoupBodyOutputStream)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_OUTPUT_STREAM,
+						      soup_body_output_stream_pollable_init))
 
 
 static void

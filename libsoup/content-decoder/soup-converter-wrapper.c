@@ -51,10 +51,10 @@ typedef struct {
 
 static void soup_converter_wrapper_iface_init (GConverterIface *iface);
 
-G_DEFINE_TYPE_WITH_CODE (SoupConverterWrapper, soup_converter_wrapper, G_TYPE_OBJECT,
-                         G_ADD_PRIVATE (SoupConverterWrapper)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER,
-						soup_converter_wrapper_iface_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupConverterWrapper, soup_converter_wrapper, G_TYPE_OBJECT,
+                               G_ADD_PRIVATE (SoupConverterWrapper)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER,
+                                                      soup_converter_wrapper_iface_init))
 
 static void
 soup_converter_wrapper_init (SoupConverterWrapper *converter)

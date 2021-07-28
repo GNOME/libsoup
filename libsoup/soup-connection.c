@@ -49,7 +49,7 @@ typedef struct {
 	GCancellable *cancellable;
 } SoupConnectionPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 
 enum {
 	EVENT,

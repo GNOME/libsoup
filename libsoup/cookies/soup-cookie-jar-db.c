@@ -56,7 +56,7 @@ typedef struct {
 	sqlite3 *db;
 } SoupCookieJarDBPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupCookieJarDB, soup_cookie_jar_db, SOUP_TYPE_COOKIE_JAR)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupCookieJarDB, soup_cookie_jar_db, SOUP_TYPE_COOKIE_JAR)
 
 static void load (SoupCookieJar *jar);
 

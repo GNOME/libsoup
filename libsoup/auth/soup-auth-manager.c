@@ -84,10 +84,10 @@ typedef struct {
 	GHashTable  *auths;            /* scheme:realm -> SoupAuth */
 } SoupAuthHost;
 
-G_DEFINE_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
-                         G_ADD_PRIVATE (SoupAuthManager)
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_auth_manager_session_feature_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
+                               G_ADD_PRIVATE (SoupAuthManager)
+			       G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						      soup_auth_manager_session_feature_init))
 
 static void soup_auth_host_free (SoupAuthHost *host);
 static SoupAuth *record_auth_for_uri (SoupAuthManagerPrivate *priv,

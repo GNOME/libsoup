@@ -61,12 +61,12 @@ static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 static void soup_body_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 static void soup_body_input_stream_seekable_init (GSeekableIface *seekable_interface);
 
-G_DEFINE_TYPE_WITH_CODE (SoupBodyInputStream, soup_body_input_stream, G_TYPE_FILTER_INPUT_STREAM,
-                         G_ADD_PRIVATE (SoupBodyInputStream)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_body_input_stream_pollable_init)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_SEEKABLE,
-						soup_body_input_stream_seekable_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupBodyInputStream, soup_body_input_stream, G_TYPE_FILTER_INPUT_STREAM,
+                               G_ADD_PRIVATE (SoupBodyInputStream)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+						      soup_body_input_stream_pollable_init)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_SEEKABLE,
+						      soup_body_input_stream_seekable_init))
 
 static void
 soup_body_input_stream_init (SoupBodyInputStream *bistream)

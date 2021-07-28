@@ -111,7 +111,7 @@ typedef struct {
         SoupMessageMetrics *metrics;
 } SoupMessagePrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
 
 enum {
 	WROTE_HEADERS,

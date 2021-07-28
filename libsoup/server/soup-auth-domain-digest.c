@@ -54,7 +54,7 @@ typedef struct {
 
 } SoupAuthDomainDigestPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
 
 static void
 soup_auth_domain_digest_init (SoupAuthDomainDigest *digest)

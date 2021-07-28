@@ -36,8 +36,8 @@ struct _SoupBrotliDecompressor
 
 static void soup_brotli_decompressor_iface_init (GConverterIface *iface);
 
-G_DEFINE_TYPE_EXTENDED (SoupBrotliDecompressor, soup_brotli_decompressor, G_TYPE_OBJECT, 0,
-                        G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER, soup_brotli_decompressor_iface_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupBrotliDecompressor, soup_brotli_decompressor, G_TYPE_OBJECT,
+                               G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER, soup_brotli_decompressor_iface_init))
 
 SoupBrotliDecompressor *
 soup_brotli_decompressor_new (void)

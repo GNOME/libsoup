@@ -51,7 +51,7 @@ typedef struct {
 
 } SoupCookieJarTextPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupCookieJarText, soup_cookie_jar_text, SOUP_TYPE_COOKIE_JAR)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupCookieJarText, soup_cookie_jar_text, SOUP_TYPE_COOKIE_JAR)
 
 static void load (SoupCookieJar *jar);
 

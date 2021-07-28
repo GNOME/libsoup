@@ -50,7 +50,7 @@ typedef struct {
 	GDestroyNotify auth_dnotify;
 } SoupAuthDomainBasicPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
 
 static void
 soup_auth_domain_basic_init (SoupAuthDomainBasic *basic)

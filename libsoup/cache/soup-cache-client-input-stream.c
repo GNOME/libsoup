@@ -25,7 +25,7 @@ struct _SoupCacheClientInputStream {
 	GFilterInputStream parent_instance;
 };
 
-G_DEFINE_TYPE (SoupCacheClientInputStream, soup_cache_client_input_stream, G_TYPE_FILTER_INPUT_STREAM)
+G_DEFINE_FINAL_TYPE (SoupCacheClientInputStream, soup_cache_client_input_stream, G_TYPE_FILTER_INPUT_STREAM)
 
 static void
 soup_cache_client_input_stream_init (SoupCacheClientInputStream *stream)

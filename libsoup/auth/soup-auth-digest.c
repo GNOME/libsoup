@@ -55,7 +55,7 @@ static void recompute_hex_a1 (SoupAuthDigestPrivate *priv);
  *
  */
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthDigest, soup_auth_digest, SOUP_TYPE_AUTH)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthDigest, soup_auth_digest, SOUP_TYPE_AUTH)
 
 static void
 soup_auth_digest_init (SoupAuthDigest *digest)

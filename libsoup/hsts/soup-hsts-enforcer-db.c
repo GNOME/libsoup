@@ -51,8 +51,8 @@ typedef struct {
 	sqlite3 *db;
 } SoupHSTSEnforcerDBPrivate;
 
-G_DEFINE_TYPE_WITH_CODE (SoupHSTSEnforcerDB, soup_hsts_enforcer_db, SOUP_TYPE_HSTS_ENFORCER,
-			 G_ADD_PRIVATE(SoupHSTSEnforcerDB))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupHSTSEnforcerDB, soup_hsts_enforcer_db, SOUP_TYPE_HSTS_ENFORCER,
+			       G_ADD_PRIVATE(SoupHSTSEnforcerDB))
 
 static void load (SoupHSTSEnforcer *hsts_enforcer);
 

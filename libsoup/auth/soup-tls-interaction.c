@@ -19,7 +19,7 @@ typedef struct {
         SoupConnection *conn;
 } SoupTlsInteractionPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupTlsInteraction, soup_tls_interaction, G_TYPE_TLS_INTERACTION)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupTlsInteraction, soup_tls_interaction, G_TYPE_TLS_INTERACTION)
 
 static void
 soup_tls_interaction_request_certificate_async (GTlsInteraction             *tls_interaction,

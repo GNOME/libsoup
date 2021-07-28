@@ -46,10 +46,10 @@ typedef struct {
 
 static void soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 
-G_DEFINE_TYPE_WITH_CODE (SoupContentSnifferStream, soup_content_sniffer_stream, G_TYPE_FILTER_INPUT_STREAM,
-                         G_ADD_PRIVATE (SoupContentSnifferStream)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_content_sniffer_stream_pollable_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupContentSnifferStream, soup_content_sniffer_stream, G_TYPE_FILTER_INPUT_STREAM,
+                               G_ADD_PRIVATE (SoupContentSnifferStream)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+						      soup_content_sniffer_stream_pollable_init))
 
 static void
 soup_content_sniffer_stream_finalize (GObject *object)

@@ -51,11 +51,11 @@ struct _SoupContentSniffer {
         GObject parent_instance;
 };
 
-G_DEFINE_TYPE_WITH_CODE (SoupContentSniffer, soup_content_sniffer, G_TYPE_OBJECT,
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_content_sniffer_session_feature_init)
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
-						soup_content_sniffer_content_processor_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupContentSniffer, soup_content_sniffer, G_TYPE_OBJECT,
+			       G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						      soup_content_sniffer_session_feature_init)
+			       G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
+						      soup_content_sniffer_content_processor_init))
 
 
 static GInputStream *

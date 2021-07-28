@@ -71,12 +71,12 @@ static SoupContentProcessorInterface *soup_content_decoder_default_content_proce
 static void soup_content_decoder_content_processor_init (SoupContentProcessorInterface *interface, gpointer interface_data);
 
 
-G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT,
-                         G_ADD_PRIVATE (SoupContentDecoder)
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_content_decoder_session_feature_init)
-			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
-						soup_content_decoder_content_processor_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT,
+                               G_ADD_PRIVATE (SoupContentDecoder)
+			       G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						      soup_content_decoder_session_feature_init)
+			       G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
+						      soup_content_decoder_content_processor_init))
 
 static GSList *
 soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMessage *msg)

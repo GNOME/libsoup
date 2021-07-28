@@ -88,7 +88,7 @@ typedef struct {
  * was.
  *
  */
-G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CONNECTION_AUTH)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CONNECTION_AUTH)
 
 #ifdef LIBSOUP_HAVE_GSSAPI
 static gboolean check_auth_trusted_uri (SoupConnectionAuth *auth,

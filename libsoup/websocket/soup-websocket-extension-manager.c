@@ -65,10 +65,10 @@ typedef struct {
         GPtrArray *extension_types;
 } SoupWebsocketExtensionManagerPrivate;
 
-G_DEFINE_TYPE_WITH_CODE (SoupWebsocketExtensionManager, soup_websocket_extension_manager, G_TYPE_OBJECT,
-                         G_ADD_PRIVATE (SoupWebsocketExtensionManager)
-                         G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-                                                soup_websocket_extension_manager_session_feature_init))
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupWebsocketExtensionManager, soup_websocket_extension_manager, G_TYPE_OBJECT,
+                               G_ADD_PRIVATE (SoupWebsocketExtensionManager)
+                               G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+                                                      soup_websocket_extension_manager_session_feature_init))
 
 static void
 soup_websocket_extension_manager_init (SoupWebsocketExtensionManager *manager)

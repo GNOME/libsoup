@@ -32,7 +32,7 @@ typedef struct {
  *
  */
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupAuthBasic, soup_auth_basic, SOUP_TYPE_AUTH)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthBasic, soup_auth_basic, SOUP_TYPE_AUTH)
 
 static void
 soup_auth_basic_init (SoupAuthBasic *basic)

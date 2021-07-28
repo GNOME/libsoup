@@ -52,10 +52,10 @@ typedef struct {
 
 static void soup_body_input_stream_http2_pollable_iface_init (GPollableInputStreamInterface *iface);
 
-G_DEFINE_TYPE_WITH_CODE (SoupBodyInputStreamHttp2, soup_body_input_stream_http2, G_TYPE_INPUT_STREAM,
-                         G_ADD_PRIVATE (SoupBodyInputStreamHttp2)
-                         G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-                                                soup_body_input_stream_http2_pollable_iface_init);)
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupBodyInputStreamHttp2, soup_body_input_stream_http2, G_TYPE_INPUT_STREAM,
+                               G_ADD_PRIVATE (SoupBodyInputStreamHttp2)
+                               G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
+                                                      soup_body_input_stream_http2_pollable_iface_init);)
 
 enum {
         NEED_MORE_DATA,

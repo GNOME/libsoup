@@ -84,7 +84,7 @@ typedef struct {
  *
  */
 
-G_DEFINE_TYPE_WITH_PRIVATE (SoupWebsocketExtensionDeflate, soup_websocket_extension_deflate, SOUP_TYPE_WEBSOCKET_EXTENSION)
+G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupWebsocketExtensionDeflate, soup_websocket_extension_deflate, SOUP_TYPE_WEBSOCKET_EXTENSION)
 
 static void
 soup_websocket_extension_deflate_init (SoupWebsocketExtensionDeflate *basic)
