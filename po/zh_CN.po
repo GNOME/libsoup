@@ -8,13 +8,15 @@
 # Aron Xu <aronxu@gnome.org>, 2018.
 # Mingcong Bai <jeffbai@aosc.xyz>, 2018.
 # Dingzhong Chen <wsxy162@gmail.com>, 2017-2019.
+# Boyuan Yang <073plan@gmail.com>, 2020.
+# Zhou Nan <zhounan@nfschina.com>, 2021.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-06-26 17:08+0000\n"
-"PO-Revision-Date: 2020-07-01 20:29-0400\n"
+"POT-Creation-Date: 2021-07-24 18:56+0000\n"
+"PO-Revision-Date: 2021-08-02 16:08-0400\n"
 "Last-Translator: Boyuan Yang <073plan@gmail.com>\n"
 "Language-Team: Chinese (China) <i18n-zh@googlegroups.com>\n"
 "Language: zh_CN\n"
@@ -22,189 +24,208 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 2.3.1\n"
+"X-Generator: Poedit 3.0\n"
 
-#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
-msgid "Connection terminated unexpectedly"
-msgstr "连接异常终止"
-
-#: libsoup/soup-body-input-stream.c:459
-msgid "Invalid seek request"
-msgstr "无效的 seek 请求"
-
-#: libsoup/soup-body-input-stream.c:487
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "无法截断（truncate）SoupBodyInputStream"
-
-#: libsoup/soup-cache-input-stream.c:76
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "网络流意外关闭"
 
-#: libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "无法完全缓存该资源"
 
-#: libsoup/soup-directory-input-stream.c:231
-msgid "Name"
-msgstr "名称"
-
-#: libsoup/soup-directory-input-stream.c:232
-msgid "Size"
-msgstr "大小"
-
-#: libsoup/soup-directory-input-stream.c:233
-msgid "Date Modified"
-msgstr "修改日期"
-
-#: libsoup/soup-converter-wrapper.c:189
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "输出缓冲区太小"
 
-#: libsoup/soup-message-client-io.c:39
-msgid "Could not parse HTTP response"
-msgstr "无法解析 HTTP 响应"
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "连接异常终止"
 
-#: libsoup/soup-message-client-io.c:62
-msgid "Unrecognized HTTP response encoding"
-msgstr "未识别的 HTTP 响应编码"
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "无效的 seek 请求"
 
-#: libsoup/soup-message-io.c:261
-msgid "Header too big"
-msgstr "首部太大"
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "无法截断（truncate）SoupBodyInputStream"
 
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
 msgid "Operation would block"
 msgstr "操作将阻塞"
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "无法解析 HTTP 响应"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "未识别的 HTTP 响应编码"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1456
+#: libsoup/http2/soup-client-message-io-http2.c:1480
 msgid "Operation was cancelled"
 msgstr "操作被取消"
 
-#: libsoup/soup-message-server-io.c:63
-msgid "Could not parse HTTP request"
-msgstr "无法解析 HTTP 请求"
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "首部太大"
 
-#: libsoup/soup-request.c:141
-#, c-format
-msgid "No URI provided"
-msgstr "未提供 URI"
-
-#: libsoup/soup-request.c:151
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "无效的“%s”URI：%s"
-
-#: libsoup/soup-server.c:1810
+#: libsoup/server/soup-server.c:1201
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "没有 TLS 证书不能创建 TLS 服务器"
 
-#: libsoup/soup-server.c:1827
+#: libsoup/server/soup-server.c:1223
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "不能监听 %s 地址的 %d 端口："
 
-#: libsoup/soup-session.c:4570
-#, c-format
-msgid "Could not parse URI “%s”"
-msgstr "无法解析 URI“%s”"
-
-#: libsoup/soup-session.c:4607
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "不支持的 URI 方案“%s”"
-
-#: libsoup/soup-session.c:4629
-#, c-format
-msgid "Not an HTTP URI"
-msgstr "不是一个 HTTP URI"
-
-#: libsoup/soup-session.c:4840
-msgid "The server did not accept the WebSocket handshake."
-msgstr "服务器不接受 WebSocket 握手。"
-
-#: libsoup/soup-socket.c:148
-msgid "Can’t import non-socket as SoupSocket"
-msgstr "不能将 non-socket 作为 SoupSocket 导入"
-
-#: libsoup/soup-socket.c:166
+#: libsoup/server/soup-socket.c:121
 msgid "Could not import existing socket: "
 msgstr "不能导入已存在的套接字："
 
-#: libsoup/soup-socket.c:175
+#: libsoup/server/soup-socket.c:130
 msgid "Can’t import unconnected socket"
 msgstr "不能导入未连接的套接字"
 
-#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
-#: libsoup/soup-websocket.c:539
+#: libsoup/soup-session.c:1166
+msgid "Location header is missing or empty in response headers"
+msgstr "消息标头中 Location 首部未发现或为空"
+
+#: libsoup/soup-session.c:1180
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Location 响应首部中的 URI“%s”无效"
+
+#: libsoup/soup-session.c:1200
+msgid "Too many redirects"
+msgstr "重定向过多"
+
+#: libsoup/soup-session.c:1205
+msgid "Message was restarted too many times"
+msgstr "消息重启次数过多"
+
+#: libsoup/soup-session.c:3317 libsoup/soup-session.c:3466
+msgid "Message is already in session queue"
+msgstr "消息已经在会话队列中"
+
+#: libsoup/soup-session.c:3827
+msgid "The server did not accept the WebSocket handshake."
+msgstr "服务器不接受 WebSocket 握手。"
+
+#: libsoup/soup-tld.c:142
+msgid "No public-suffix list available."
+msgstr "无可用的 public-suffix 列表。"
+
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
+msgid "Invalid hostname"
+msgstr "主机名无效"
+
+#: libsoup/soup-tld.c:159
+msgid "Hostname is an IP address"
+msgstr "主机名是一个 IP 地址"
+
+#: libsoup/soup-tld.c:180
+msgid "Hostname has no base domain"
+msgstr "主机名没有基域"
+
+#: libsoup/soup-tld.c:188
+msgid "Not enough domains"
+msgstr "没有足够的域"
+
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "服务器请求不支持的扩展"
 
-#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "不正确的 WebSocket “%s”首部"
 
-#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "服务器返回不正确的“%s”密钥"
 
-#: libsoup/soup-websocket.c:566
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "“%s”WebSocket 扩展首部中有重复的参数"
 
-#: libsoup/soup-websocket.c:567
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
 msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr "服务器在“%s”WebSocket 扩展首部中返回了重复的参数"
 
-#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "期待 WebSocket 握手"
 
-#: libsoup/soup-websocket.c:675
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "不支持的 WebSocket 版本"
 
-#: libsoup/soup-websocket.c:684
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "无效的 WebSocket 密钥"
 
-#: libsoup/soup-websocket.c:703
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "不支持的 WebSocket 子协议"
 
-#: libsoup/soup-websocket.c:975
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "服务器拒绝 WebSocket 握手"
 
-#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "服务器忽略 WebSocket 握手"
 
-#: libsoup/soup-websocket.c:1004
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "服务器请求不支持的协议"
 
-#: libsoup/soup-tld.c:150
-msgid "No public-suffix list available."
-msgstr "无可用的 public-suffix 列表。"
+#~ msgid "Name"
+#~ msgstr "名称"
 
-#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
-msgid "Invalid hostname"
-msgstr "主机名无效"
+#~ msgid "Size"
+#~ msgstr "大小"
 
-#: libsoup/soup-tld.c:167
-msgid "Hostname is an IP address"
-msgstr "主机名是一个 IP 地址"
+#~ msgid "Date Modified"
+#~ msgstr "修改日期"
 
-#: libsoup/soup-tld.c:188
-msgid "Hostname has no base domain"
-msgstr "主机名没有基域"
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "无法解析 HTTP 请求"
 
-#: libsoup/soup-tld.c:196
-msgid "Not enough domains"
-msgstr "没有足够的域"
+#~ msgid "No URI provided"
+#~ msgstr "未提供 URI"
+
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "无效的“%s”URI：%s"
+
+#~ msgid "Could not parse URI “%s”"
+#~ msgstr "无法解析 URI“%s”"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "不支持的 URI 方案“%s”"
+
+#~ msgid "Not an HTTP URI"
+#~ msgstr "不是一个 HTTP URI"
+
+#~ msgid "Can’t import non-socket as SoupSocket"
+#~ msgstr "不能将 non-socket 作为 SoupSocket 导入"
