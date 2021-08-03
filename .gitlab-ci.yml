@@ -1,4 +1,4 @@
-image: registry.gitlab.gnome.org/gnome/libsoup/master:v14
+image: registry.gitlab.gnome.org/gnome/libsoup/master:v15
 
 stages:
   - build
@@ -61,7 +61,8 @@ fedora-asan:
     ASAN_OPTIONS: fast_unwind_on_malloc=0
     SOUP_TEST_NO_IPV6: 1
   script:
-    - meson _build -Dauto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled
+    # Introspection doesn't work when linking to libasan, the NTLM tests fail most likely due to unsafe usage of setenv()
+    - meson _build -Dauto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled -Dntlm=disabled
     - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose --timeout-multiplier=10
   artifacts:
     when: on_failure
@@ -87,12 +88,14 @@ reference:
     DESTDIR: _install
   needs: []
   script:
-    - meson _build -Dgtk_doc=true
+    - meson _build --prefix=/usr -Dgtk_doc=true
     - ninja -C _build libsoup-3.0-doc
-    - ninja -C _build install
-    - mv _build/docs/reference/html/ _reference/
     - .gitlab-ci/check-docs.py
-    - gtkdoc-rebase --html-dir=_reference/ --online
+    - mkdir -p _reference/libsoup-3.0
+    - cp -R _build/docs/reference/html/* _reference/libsoup-3.0/
+    - cp -R /usr/share/gtk-doc/html/{glib,gio,gobject,libsoup-2.4} _reference
+    - cp .gitlab-ci/index.html _reference
+    - gtkdoc-rebase --relative --html-dir=./_reference/ --verbose
   artifacts:
     paths:
       - _build/docs/reference/libsoup-3.0-*.txt
