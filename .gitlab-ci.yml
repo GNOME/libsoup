@@ -28,6 +28,7 @@ fedora-test:
     when: always
     paths:
       - "_build/config.h"
+      - "_build/meson-logs/meson-log.txt"
       - "_build/meson-logs/testlog.txt"
       - "_build/meson-logs/coveragereport"
   coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
