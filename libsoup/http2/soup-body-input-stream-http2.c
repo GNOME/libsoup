@@ -24,8 +24,8 @@
 #include "soup-body-input-stream-http2.h"
 #include <glib/gi18n-lib.h>
 
-/**
- * SECTION:SoupBodyInputStreamHttp2
+/*
+ * SoupBodyInputStreamHttp2
  * @short_description: Streaming input operations on memory chunks
  *
  * #SoupBodyInputStreamHttp2 is a class for using arbitrary
