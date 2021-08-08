@@ -1,32 +1,27 @@
-// Vala-specific
+// Behave like Soup.Form is a class with methods
 form_* parent="Soup.Form" name="form_(.+)"
+form_* skip=false
 form_encode_datalist.form_data_set type_arguments="string"
+
+// Enum prefix differs from type name
 HTTPVersion.http_* name="http_(.+)"
 
-// Report upstream
-Auth
-	// Factory method
-	.new symbol_type="function"
-AuthDomain
-	.accepts#method name="accepts_authorization"
+// Conflicts with signal method
+AuthDomain.accepts#method name="accepts_authorization"
+
+Message
+    // Vala can use these C style methods
+    .add_header_handler skip=false
+    .add_status_code_handler skip=false
+
+// Constructor overrides
+Server.new skip=false
+Session.new_with_options skip=false
 AuthDomainBasic.new skip=false
 AuthDomainDigest.new skip=false
-ContentSniffer.sniff.params nullable
-form_* skip=false
-Message
-	.add_header_handler skip=false
-	.add_status_code_handler skip=false
-	.request_*#property skip
-	.response_*#property skip
-Server
-	.new skip=false
-Session
-	.send_async.cancellable#parameter default=null
-Session*.new_with_options skip=false
+// Factory method
+Auth.new symbol_type="function"
 
-// Not enough GIR information
-MessageBody.data type="uint8[]" array_length_field="length"
 
 // Simplify memory management
-MessageBody
-  .append deprecated_since="2.32" replacement="MessageBody.append_take"
+MessageBody.append deprecated_since="2.32" replacement="MessageBody.append_take"

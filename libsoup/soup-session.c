@@ -3328,8 +3328,8 @@ soup_session_return_error_if_message_already_in_queue (SoupSession         *sess
  * @session: a #SoupSession
  * @msg: a #SoupMessage
  * @io_priority: the I/O priority of the request
- * @cancellable: a #GCancellable
- * @callback: the callback to invoke
+ * @cancellable: (nullable): a #GCancellable
+ * @callback: (scope async): the callback to invoke
  * @user_data: data for @callback
  *
  * Asynchronously sends @msg and waits for the beginning of a
@@ -3418,7 +3418,7 @@ soup_session_send_finish (SoupSession   *session,
  * soup_session_send:
  * @session: a #SoupSession
  * @msg: a #SoupMessage
- * @cancellable: a #GCancellable
+ * @cancellable: (nullable): a #GCancellable
  * @error: return location for a #GError, or %NULL
  *
  * Synchronously sends @msg and waits for the beginning of a response.
@@ -3607,8 +3607,8 @@ send_and_read_stream_ready_cb (SoupSession  *session,
  * @session: a #SoupSession
  * @msg: a #SoupMessage
  * @io_priority: the I/O priority of the request
- * @cancellable: a #GCancellable
- * @callback: the callback to invoke
+ * @cancellable: (nullable): a #GCancellable
+ * @callback: (scope async): the callback to invoke
  * @user_data: data for @callback
  *
  * Asynchronously sends @msg and reads the response body.
@@ -3670,7 +3670,7 @@ soup_session_send_and_read_finish (SoupSession  *session,
  * soup_session_send_and_read:
  * @session: a #SoupSession
  * @msg: a #SoupMessage
- * @cancellable: a #GCancellable
+ * @cancellable: (nullable): a #GCancellable
  * @error: return location for a #GError, or %NULL
  *
  * Synchronously sends @msg and reads the response body.
@@ -3874,8 +3874,8 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
  * @protocols: (allow-none) (array zero-terminated=1): a
  *   %NULL-terminated array of protocols supported
  * @io_priority: the I/O priority of the request
- * @cancellable: a #GCancellable
- * @callback: the callback to invoke
+ * @cancellable: (nullable): a #GCancellable
+ * @callback: (scope async): the callback to invoke
  * @user_data: data for @callback
  *
  * Asynchronously creates a #SoupWebsocketConnection to communicate
@@ -4009,7 +4009,7 @@ preconnect_async_complete (SoupMessage *msg,
  * @session: a #SoupSession
  * @msg: a #SoupMessage
  * @io_priority: the I/O priority of the request
- * @cancellable: a #GCancellable
+ * @cancellable: (nullable): a #GCancellable
  * @callback: (allow-none) (scope async): the callback to invoke when the operation finishes
  * @user_data: data for @progress_callback and @callback
  *

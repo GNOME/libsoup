@@ -243,7 +243,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 }
 
 /**
- * soup_auth_new:
+ * soup_auth_new: (constructor)
  * @type: the type of auth to create (a subtype of #SoupAuth)
  * @msg: the #SoupMessage the auth is being created for
  * @auth_header: the WWW-Authenticate/Proxy-Authenticate header

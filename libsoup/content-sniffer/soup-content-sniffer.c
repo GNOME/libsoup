@@ -784,7 +784,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
  * @sniffer: a #SoupContentSniffer
  * @msg: the message to sniff
  * @buffer: a buffer containing the start of @msg's response body
- * @params: (element-type utf8 utf8) (out) (transfer full) (allow-none): return
+ * @params: (element-type utf8 utf8) (out) (transfer full) (nullable): return
  *   location for Content-Type parameters (eg, "charset"), or %NULL
  *
  * Sniffs @buffer to determine its Content-Type. The result may also

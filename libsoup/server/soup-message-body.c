@@ -39,7 +39,7 @@
 
 /**
  * SoupMessageBody:
- * @data: the data
+ * @data: (array length=length) (element-type guint8): the data
  * @length: length of @data
  *
  * A #SoupMessage request or response body.

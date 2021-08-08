@@ -118,7 +118,7 @@ soup_auth_domain_digest_get_property (GObject *object, guint prop_id,
 }
 
 /**
- * soup_auth_domain_digest_new:
+ * soup_auth_domain_digest_new: (constructor)
  * @optname1: name of first option, or %NULL
  * @...: option name/value pairs
  *
