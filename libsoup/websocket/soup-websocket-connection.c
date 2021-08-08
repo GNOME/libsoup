@@ -1726,8 +1726,8 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
  * @stream: a #GIOStream connected to the WebSocket server
  * @uri: the URI of the connection
  * @type: the type of connection (client/side)
- * @origin: (allow-none): the Origin of the client
- * @protocol: (allow-none): the subprotocol in use
+ * @origin: (nullable): the Origin of the client
+ * @protocol: (nullable): the subprotocol in use
  * @extensions: (element-type SoupWebsocketExtension) (transfer full): a #GList of #SoupWebsocketExtension objects
  *
  * Creates a #SoupWebsocketConnection on @stream with the given active @extensions.
@@ -2034,7 +2034,7 @@ soup_websocket_connection_send_message (SoupWebsocketConnection *self,
  * soup_websocket_connection_close:
  * @self: the WebSocket
  * @code: close code
- * @data: (allow-none): close data
+ * @data: (nullable): close data
  *
  * Close the connection in an orderly fashion.
  *

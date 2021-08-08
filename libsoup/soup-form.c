@@ -111,10 +111,10 @@ soup_form_decode (const char *encoded_form)
 /**
  * soup_form_decode_multipart:
  * @multipart: a #SoupMultipart
- * @file_control_name: (allow-none): the name of the HTML file upload control, or %NULL
- * @filename: (out) (allow-none): return location for the name of the uploaded file, or %NULL
- * @content_type: (out) (allow-none): return location for the MIME type of the uploaded file, or %NULL
- * @file: (out) (allow-none): return location for the uploaded file data, or %NULL
+ * @file_control_name: (nullable): the name of the HTML file upload control, or %NULL
+ * @filename: (out) (optional): return location for the name of the uploaded file, or %NULL
+ * @content_type: (out) (optional): return location for the MIME type of the uploaded file, or %NULL
+ * @file: (out) (optional): return location for the uploaded file data, or %NULL
  *
  * Decodes the "multipart/form-data" request in @multipart; this is a
  * convenience method for the case when you have a single file upload

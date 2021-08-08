@@ -1073,8 +1073,8 @@ soup_message_new_from_multipart (const char    *uri_string,
 /**
  * soup_message_set_request_body:
  * @msg: the message
- * @content_type: (allow-none): MIME Content-Type of the body, or %NULL if unknown
- * @stream: (allow-none): a #GInputStream to read the request body from
+ * @content_type: (nullable): MIME Content-Type of the body, or %NULL if unknown
+ * @stream: (nullable): a #GInputStream to read the request body from
  * @content_length: the byte length of @stream or -1 if unknown
  *
  * Set the request body of a #SoupMessage.
@@ -1120,8 +1120,8 @@ soup_message_set_request_body (SoupMessage  *msg,
 /**
  * soup_message_set_request_body_from_bytes:
  * @msg: the message
- * @content_type: (allow-none): MIME Content-Type of the body, or %NULL if unknown
- * @bytes: (allow-none): a #GBytes with the request body data
+ * @content_type: (nullable): MIME Content-Type of the body, or %NULL if unknown
+ * @bytes: (nullable): a #GBytes with the request body data
  *
  * Set the request body of a #SoupMessage from #GBytes.
  * If @content_type is %NULL and @bytes is not %NULL the Content-Type header will

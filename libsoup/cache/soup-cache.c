@@ -1068,7 +1068,7 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 
 /**
  * soup_cache_new:
- * @cache_dir: (allow-none): the directory to store the cached data, or %NULL
+ * @cache_dir: (nullable): the directory to store the cached data, or %NULL
  *   to use the default one. Note that since the cache isn't safe to access for
  *   multiple processes at once, and the default directory isn't namespaced by
  *   process, clients are strongly discouraged from passing %NULL.

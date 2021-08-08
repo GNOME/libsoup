@@ -1527,7 +1527,7 @@ set_content_foo (SoupMessageHeaders *hdrs,
 /**
  * soup_message_headers_get_content_type:
  * @hdrs: a #SoupMessageHeaders
- * @params: (out) (element-type utf8 utf8) (allow-none) (transfer full):
+ * @params: (out) (element-type utf8 utf8) (optional) (transfer full):
  *   return location for the Content-Type parameters (eg, "charset"), or
  *   %NULL
  *
@@ -1557,7 +1557,7 @@ soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
  * soup_message_headers_set_content_type:
  * @hdrs: a #SoupMessageHeaders
  * @content_type: the MIME type
- * @params: (allow-none) (element-type utf8 utf8): additional
+ * @params: (nullable) (element-type utf8 utf8): additional
  * parameters, or %NULL
  *
  * Sets the "Content-Type" header in @hdrs to @content_type,
@@ -1630,7 +1630,7 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
  * soup_message_headers_set_content_disposition:
  * @hdrs: a #SoupMessageHeaders
  * @disposition: the disposition-type
- * @params: (allow-none) (element-type utf8 utf8): additional
+ * @params: (nullable) (element-type utf8 utf8): additional
  * parameters, or %NULL
  *
  * Sets the "Content-Disposition" header in @hdrs to @disposition,

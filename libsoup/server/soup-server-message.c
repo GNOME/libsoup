@@ -751,9 +751,9 @@ soup_server_message_get_uri (SoupServerMessage *msg)
 /**
  * soup_server_message_set_response:
  * @msg: the message
- * @content_type: (allow-none): MIME Content-Type of the body
+ * @content_type: (nullable): MIME Content-Type of the body
  * @resp_use: a #SoupMemoryUse describing how to handle @resp_body
- * @resp_body: (allow-none) (array length=resp_length) (element-type guint8):
+ * @resp_body: (nullable) (array length=resp_length) (element-type guint8):
  *   a data buffer containing the body of the message response.
  * @resp_length: the byte length of @resp_body.
  *

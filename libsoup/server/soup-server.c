@@ -1083,8 +1083,8 @@ start_request (SoupServer        *server,
  * soup_server_accept_iostream:
  * @server: a #SoupServer
  * @stream: a #GIOStream
- * @local_addr: (allow-none): the local #GSocketAddress associated with the @stream
- * @remote_addr: (allow-none): the remote #GSocketAddress associated with the @stream
+ * @local_addr: (nullable): the local #GSocketAddress associated with the @stream
+ * @remote_addr: (nullable): the remote #GSocketAddress associated with the @stream
  * @error: return location for a #GError
  *
  * Add a new client stream to the @server.
@@ -1581,7 +1581,7 @@ soup_server_get_uris (SoupServer *server)
  * @server: the #SoupServer
  * @msg: the message being processed
  * @path: the path component of @msg's Request-URI
- * @query: (element-type utf8 utf8) (allow-none): the parsed query
+ * @query: (element-type utf8 utf8) (nullable): the parsed query
  *   component of @msg's Request-URI
  * @user_data: the data passed to soup_server_add_handler() or
  *   soup_server_add_early_handler().
@@ -1631,8 +1631,8 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
 /**
  * soup_server_add_handler:
  * @server: a #SoupServer
- * @path: (allow-none): the toplevel path for the handler
- * @callback: callback to invoke for requests under @path
+ * @path: (nullable): the toplevel path for the handler
+ * @callback: (scope notified) (destroy destroy): callback to invoke for requests under @path
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
@@ -1696,8 +1696,8 @@ soup_server_add_handler (SoupServer            *server,
 /**
  * soup_server_add_early_handler:
  * @server: a #SoupServer
- * @path: (allow-none): the toplevel path for the handler
- * @callback: callback to invoke for requests under @path
+ * @path: (nullable): the toplevel path for the handler
+ * @callback: (scope notified) (destroy destroy): callback to invoke for requests under @path
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
@@ -1771,11 +1771,11 @@ soup_server_add_early_handler (SoupServer            *server,
 /**
  * soup_server_add_websocket_handler:
  * @server: a #SoupServer
- * @path: (allow-none): the toplevel path for the handler
- * @origin: (allow-none): the origin of the connection
- * @protocols: (allow-none) (array zero-terminated=1): the protocols
+ * @path: (nullable): the toplevel path for the handler
+ * @origin: (nullable): the origin of the connection
+ * @protocols: (nullable) (array zero-terminated=1): the protocols
  *   supported by this handler
- * @callback: callback to invoke for successful WebSocket requests under @path
+ * @callback: (scope notified) (destroy destroy): callback to invoke for successful WebSocket requests under @path
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *

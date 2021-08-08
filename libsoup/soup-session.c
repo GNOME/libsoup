@@ -3870,8 +3870,8 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
  * soup_session_websocket_connect_async:
  * @session: a #SoupSession
  * @msg: #SoupMessage indicating the WebSocket server to connect to
- * @origin: (allow-none): origin of the connection
- * @protocols: (allow-none) (array zero-terminated=1): a
+ * @origin: (nullable): origin of the connection
+ * @protocols: (nullable) (array zero-terminated=1): a
  *   %NULL-terminated array of protocols supported
  * @io_priority: the I/O priority of the request
  * @cancellable: (nullable): a #GCancellable
@@ -4010,7 +4010,7 @@ preconnect_async_complete (SoupMessage *msg,
  * @msg: a #SoupMessage
  * @io_priority: the I/O priority of the request
  * @cancellable: (nullable): a #GCancellable
- * @callback: (allow-none) (scope async): the callback to invoke when the operation finishes
+ * @callback: (nullable) (scope async): the callback to invoke when the operation finishes
  * @user_data: data for @progress_callback and @callback
  *
  * Start a preconnection to @msg. Once the connection is done, it will remain in idle state so that

@@ -69,7 +69,7 @@ soup_add_completion_reffed (GMainContext   *async_context,
 
 /*
  * soup_add_completion: (skip)
- * @async_context: (allow-none): the #GMainContext to dispatch the I/O
+ * @async_context: (nullable): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @function: the callback to invoke
  * @data: user data to pass to @function
@@ -91,7 +91,7 @@ soup_add_completion (GMainContext *async_context,
 
 /**
  * soup_add_timeout: (skip)
- * @async_context: (allow-none): the #GMainContext to dispatch the I/O
+ * @async_context: (nullable): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @interval: the timeout interval, in milliseconds
  * @function: the callback to invoke at timeout time
