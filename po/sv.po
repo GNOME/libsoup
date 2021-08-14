@@ -4,198 +4,206 @@
 # Daniel Nylander <po@danielnylander.se>, 2012.
 # Sebastian Rasmussen <sebras@gmail.com>, 2015, 2016.
 # Anders Jonsson <anders.jonsson@norsjovallen.se>, 2018, 2019, 2020, 2021.
+# Luna Jernberg <droidbittin@gmail.com>, 2021.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-12-13 19:31+0000\n"
-"PO-Revision-Date: 2021-02-03 23:17+0100\n"
+"POT-Creation-Date: 2021-07-24 18:56+0000\n"
+"PO-Revision-Date: 2021-06-12 14:24+0200\n"
 "Last-Translator: Anders Jonsson <anders.jonsson@norsjovallen.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.4.2\n"
+"X-Generator: Poedit 3.0\n"
 
-#: libsoup/cache/soup-cache-input-stream.c:79
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Nätverksström stängdes oväntat"
 
-#: libsoup/cache/soup-cache-input-stream.c:295
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Misslyckades med att helt mellanlagra resursen"
 
-#: libsoup/content-decoder/soup-converter-wrapper.c:193
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Utmatningsbufferten är för liten"
 
-#: libsoup/server/soup-server.c:1166
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Anslutningen avslutades oväntat"
+
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Ogiltig ”seek”-förfrågan"
+
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Kan inte trunkera ”SoupBodyInputStream”"
+
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
+msgid "Operation would block"
+msgstr "Åtgärden skulle blockera"
+
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Kunde inte tolka HTTP-svar"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Okänd kodning på HTTP-svar"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1456
+#: libsoup/http2/soup-client-message-io-http2.c:1480
+msgid "Operation was cancelled"
+msgstr "Åtgärden avbröts"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Huvudet är för stort"
+
+#: libsoup/server/soup-server.c:1201
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Kan inte skapa en TLS-server utan ett TLS-certifikat"
 
-#: libsoup/server/soup-server.c:1185
+#: libsoup/server/soup-server.c:1223
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Kan inte lyssna på adress %s, port %d: "
 
-#: libsoup/server/soup-server-io.c:344 libsoup/server/soup-server-io.c:809
-#: libsoup/soup-message-io.c:327 libsoup/soup-message-io.c:726
-msgid "Operation would block"
-msgstr "Åtgärden skulle blockera"
-
-#: libsoup/server/soup-socket.c:116
+#: libsoup/server/soup-socket.c:121
 msgid "Could not import existing socket: "
 msgstr "Kan inte importera befintligt uttag (socket): "
 
-#: libsoup/server/soup-socket.c:125
+#: libsoup/server/soup-socket.c:130
 msgid "Can’t import unconnected socket"
 msgstr "Kan inte importera ett icke anslutet uttag (socket)"
 
-#: libsoup/soup-body-input-stream.c:148 libsoup/soup-body-input-stream.c:180
-#: libsoup/soup-body-input-stream.c:213 libsoup/soup-message-io-data.c:76
-msgid "Connection terminated unexpectedly"
-msgstr "Anslutningen avslutades oväntat"
-
-#: libsoup/soup-body-input-stream.c:474
-msgid "Invalid seek request"
-msgstr "Ogiltig ”seek”-förfrågan"
-
-#: libsoup/soup-body-input-stream.c:502
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Kan inte trunkera ”SoupBodyInputStream”"
-
-#: libsoup/soup-message-io.c:467
-msgid "Could not parse HTTP response"
-msgstr "Kunde inte tolka HTTP-svar"
-
-#: libsoup/soup-message-io.c:490
-msgid "Unrecognized HTTP response encoding"
-msgstr "Okänd kodning på HTTP-svar"
-
-#: libsoup/soup-message-io.c:687 libsoup/soup-message-io.c:711
-msgid "Operation was cancelled"
-msgstr "Åtgärden avbröts"
-
-#: libsoup/soup-message-io-data.c:100
-msgid "Header too big"
-msgstr "Huvudet är för stort"
-
-#: libsoup/soup-session.c:788
+#: libsoup/soup-session.c:1166
 msgid "Location header is missing or empty in response headers"
 msgstr "Location-huvud saknas eller är tomt i svarshuvuden"
 
-#: libsoup/soup-session.c:804
+#: libsoup/soup-session.c:1180
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "Ogiltig URI ”%s” i Location-svarshuvud"
 
-#: libsoup/soup-session.c:824
+#: libsoup/soup-session.c:1200
 msgid "Too many redirects"
 msgstr "För många omdirigeringar"
 
-#: libsoup/soup-session.c:829
+#: libsoup/soup-session.c:1205
 msgid "Message was restarted too many times"
 msgstr "Meddelandet startades om för många gånger"
 
-#: libsoup/soup-session.c:3258 libsoup/soup-session.c:3391
-#, c-format
-msgid "Could not parse URI “%s”: %s"
-msgstr "Kunde inte tolka URI:n ”%s”: %s"
+#: libsoup/soup-session.c:3317 libsoup/soup-session.c:3466
+msgid "Message is already in session queue"
+msgstr "Meddelandet finns redan i sessionskön"
 
-#: libsoup/soup-session.c:3273 libsoup/soup-session.c:3406
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "URI-schemat ”%s” stöds inte"
-
-#: libsoup/soup-session.c:3284 libsoup/soup-session.c:3417
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "Ogiltig ”%s”-URI: %s"
-
-#: libsoup/soup-session.c:3726
+#: libsoup/soup-session.c:3827
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Servern accepterade inte WebSocket-handskakningen."
 
-#: libsoup/soup-tld.c:146
+#: libsoup/soup-tld.c:142
 msgid "No public-suffix list available."
 msgstr "Ingen public-suffix-lista tillgänglig."
 
-#: libsoup/soup-tld.c:156 libsoup/soup-tld.c:172
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
 msgid "Invalid hostname"
 msgstr "Ogiltigt värdnamn"
 
-#: libsoup/soup-tld.c:163
+#: libsoup/soup-tld.c:159
 msgid "Hostname is an IP address"
 msgstr "Värdnamnet är en IP-adress"
 
-#: libsoup/soup-tld.c:184
+#: libsoup/soup-tld.c:180
 msgid "Hostname has no base domain"
 msgstr "Värdnamnet har ingen basdomän"
 
-#: libsoup/soup-tld.c:192
+#: libsoup/soup-tld.c:188
 msgid "Not enough domains"
 msgstr "Inte tillräckligt många domäner"
 
-#: libsoup/websocket/soup-websocket.c:405
-#: libsoup/websocket/soup-websocket.c:449
-#: libsoup/websocket/soup-websocket.c:465
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "Servern begärde tillägg som ej stöds"
 
-#: libsoup/websocket/soup-websocket.c:428
-#: libsoup/websocket/soup-websocket.c:620
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Felaktigt WebSocket ”%s”-huvud"
 
-#: libsoup/websocket/soup-websocket.c:429
-#: libsoup/websocket/soup-websocket.c:884
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Servern returnerade felaktig ”%s”-nyckel"
 
-#: libsoup/websocket/soup-websocket.c:492
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Duplicerad parameter i ”%s”-WebSocket-tilläggshuvud"
 
-#: libsoup/websocket/soup-websocket.c:493
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "Servern returnerade en duplicerad parameter i ”%s”-WebSocket-tilläggshuvud"
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Servern returnerade en duplicerad parameter i ”%s”-WebSocket-tilläggshuvud"
 
-#: libsoup/websocket/soup-websocket.c:583
-#: libsoup/websocket/soup-websocket.c:593
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "WebSocket-handskakning förväntad"
 
-#: libsoup/websocket/soup-websocket.c:601
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "WebSocket-version stöds ej"
 
-#: libsoup/websocket/soup-websocket.c:610
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Ogiltig WebSocket-nyckel"
 
-#: libsoup/websocket/soup-websocket.c:629
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "WebSocket-underprotokoll stöds ej"
 
-#: libsoup/websocket/soup-websocket.c:835
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "Servern avböjde WebSocket-handskakning"
 
-#: libsoup/websocket/soup-websocket.c:843
-#: libsoup/websocket/soup-websocket.c:852
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "Servern ignorerade WebSocket-handskakning"
 
-#: libsoup/websocket/soup-websocket.c:864
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "Servern begärde protokoll som ej stöds"
+
+#~ msgid "Could not parse URI “%s”: %s"
+#~ msgstr "Kunde inte tolka URI:n ”%s”: %s"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "URI-schemat ”%s” stöds inte"
+
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "Ogiltig ”%s”-URI: %s"
 
 #~ msgid "Name"
 #~ msgstr "Namn"
