@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Iñaki Larrañaga Murgoitio <dooteo@zundan.com>, 2013, 2014, 2015, 2017.
-# Asier Sarasua Garmendia  <asiersarasua@ni.eus>, 2019, 2020.
+# Asier Sarasua Garmendia  <asiersarasua@ni.eus>, 2019, 2020, 2921.
 #
 msgid ""
 msgstr "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-12-13 19:31+0000\n"
-"PO-Revision-Date: 2020-12-27 10:00+0100\n"
+"POT-Creation-Date: 2021-08-09 09:48+0000\n"
+"PO-Revision-Date: 2021-08-18 10:00+0100\n"
 "Last-Translator: Asier Sarasua Garmendia <asiersarasua@ni.eus>\n"
 "Language-Team: Basque <librezale@librezale.eus>\n"
 "Language: eu\n"
@@ -18,184 +18,189 @@ msgstr "Project-Id-Version: libsoup master\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: libsoup/cache/soup-cache-input-stream.c:79
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Sarearen korrontea ustekabean itxi da"
 
-#: libsoup/cache/soup-cache-input-stream.c:295
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Huts egin du baliabidea erabat cachean gordetzean"
 
-#: libsoup/content-decoder/soup-converter-wrapper.c:193
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Irteeraren bufferra txikiegia da"
 
-#: libsoup/server/soup-server.c:1166
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Konexioa ustekabean amaitu da"
+
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Bilaketa-eskaera baliogabea"
+
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Ezin da SoupBodyInputStream trunkatu"
+
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
+msgid "Operation would block"
+msgstr "Eragiketa blokea daiteke"
+
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Ezin izan da HTTP erantzuna analizatu"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "HTTP erantzunaren kodeketa ezezaguna"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1456
+#: libsoup/http2/soup-client-message-io-http2.c:1480
+msgid "Operation was cancelled"
+msgstr "Eragiketa bertan behera utzi da"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Goiburu handiegia"
+
+#: libsoup/server/soup-server.c:1201
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Ezin da TLS zerbitzaria sortu TLS ziurtagirik gabe"
 
-#: libsoup/server/soup-server.c:1185
+#: libsoup/server/soup-server.c:1223
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Ezin izan da '%s:%d' helbidean entzun: "
 
-#: libsoup/server/soup-server-io.c:344 libsoup/server/soup-server-io.c:809
-#: libsoup/soup-message-io.c:327 libsoup/soup-message-io.c:726
-msgid "Operation would block"
-msgstr "Eragiketa blokea daiteke"
-
-#: libsoup/server/soup-socket.c:116
+#: libsoup/server/soup-socket.c:121
 msgid "Could not import existing socket: "
 msgstr "Ezin izan da dagoen socket-a inportatu: "
 
-#: libsoup/server/soup-socket.c:125
+#: libsoup/server/soup-socket.c:130
 msgid "Can’t import unconnected socket"
 msgstr "Ezin da deskonektatutako socket-a inportatu"
 
-#: libsoup/soup-body-input-stream.c:148 libsoup/soup-body-input-stream.c:180
-#: libsoup/soup-body-input-stream.c:213 libsoup/soup-message-io-data.c:76
-msgid "Connection terminated unexpectedly"
-msgstr "Konexioa ustekabean amaitu da"
-
-#: libsoup/soup-body-input-stream.c:474
-msgid "Invalid seek request"
-msgstr "Bilaketa-eskaera baliogabea"
-
-#: libsoup/soup-body-input-stream.c:502
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Ezin da SoupBodyInputStream trunkatu"
-
-#: libsoup/soup-message-io.c:467
-msgid "Could not parse HTTP response"
-msgstr "Ezin izan da HTTP erantzuna analizatu"
-
-#: libsoup/soup-message-io.c:490
-msgid "Unrecognized HTTP response encoding"
-msgstr "HTTP erantzunaren kodeketa ezezaguna"
-
-#: libsoup/soup-message-io.c:687 libsoup/soup-message-io.c:711
-msgid "Operation was cancelled"
-msgstr "Eragiketa bertan behera utzi da"
-
-#: libsoup/soup-message-io-data.c:100
-msgid "Header too big"
-msgstr "Goiburu handiegia"
-
-#: libsoup/soup-session.c:788
+#: libsoup/soup-session.c:1166
 msgid "Location header is missing or empty in response headers"
 msgstr "Kokaleku-goiburua falta da edo hutsik dago erantzu-goiburuetan"
 
-#: libsoup/soup-session.c:804
+#: libsoup/soup-session.c:1180
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "”%s” URI baliogabea kokalekuko erantzun-goiburuan"
 
-#: libsoup/soup-session.c:824
+#: libsoup/soup-session.c:1200
 msgid "Too many redirects"
 msgstr "Berbideratze gehiegi"
 
-#: libsoup/soup-session.c:829
+#: libsoup/soup-session.c:1205
 msgid "Message was restarted too many times"
 msgstr "Mezua gehiegitan berrabiarazi da"
 
-#: libsoup/soup-session.c:3258 libsoup/soup-session.c:3391
-#, c-format
-msgid "Could not parse URI “%s”: %s"
-msgstr "Ezin izan da “%s“ URIa analizatu: %s"
+#: libsoup/soup-session.c:3317 libsoup/soup-session.c:3466
+msgid "Message is already in session queue"
+msgstr "Mezua saioaren ilaran dago jadanik"
 
-#: libsoup/soup-session.c:3273 libsoup/soup-session.c:3406
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Onartu gabeko “%s“ URI eskema"
-
-#: libsoup/soup-session.c:3284 libsoup/soup-session.c:3417
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "Baliogabeko “%s“ URIa: %s"
-
-#: libsoup/soup-session.c:3726
+#: libsoup/soup-session.c:3827
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Zerbitzariak ez du WebSocket diosala onartu"
 
-#: libsoup/soup-tld.c:146
+#: libsoup/soup-tld.c:142
 msgid "No public-suffix list available."
 msgstr "Ez dago atzizki publikoen zerrendarik erabilgarri."
 
-#: libsoup/soup-tld.c:156 libsoup/soup-tld.c:172
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
 msgid "Invalid hostname"
 msgstr "Ostalari-izen baliogabea"
 
-#: libsoup/soup-tld.c:163
+#: libsoup/soup-tld.c:159
 msgid "Hostname is an IP address"
 msgstr "Ostalari-izena IP helbide bat da"
 
-#: libsoup/soup-tld.c:184
+#: libsoup/soup-tld.c:180
 msgid "Hostname has no base domain"
 msgstr "Ostalari-izenak ez dauka oinarrizko domeinurik"
 
-#: libsoup/soup-tld.c:192
+#: libsoup/soup-tld.c:188
 msgid "Not enough domains"
 msgstr "Ez dago nahikoa domeinurik"
 
-#: libsoup/websocket/soup-websocket.c:405
-#: libsoup/websocket/soup-websocket.c:449
-#: libsoup/websocket/soup-websocket.c:465
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "Zerbitzariak onartu gabeko hedapena eskatu du"
 
-#: libsoup/websocket/soup-websocket.c:428
-#: libsoup/websocket/soup-websocket.c:620
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "WebSocket-aren okerreko “%s“ goiburua"
 
-#: libsoup/websocket/soup-websocket.c:429
-#: libsoup/websocket/soup-websocket.c:884
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Zerbitzariak okerreko “%s“ gakoa itzuli du"
 
-#: libsoup/websocket/soup-websocket.c:492
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Parametro bikoiztua “%s” WebSocket hedapenaren goiburuan"
 
-#: libsoup/websocket/soup-websocket.c:493
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr "Zerbitzariak parametro bikoiztua itzuli du “%s” WebSocket hedapenaren goiburuan"
 
-#: libsoup/websocket/soup-websocket.c:583
-#: libsoup/websocket/soup-websocket.c:593
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "WebSocket diosala espero zen"
 
-#: libsoup/websocket/soup-websocket.c:601
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "Onartu gabeko WebSocket bertsioa"
 
-#: libsoup/websocket/soup-websocket.c:610
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Baliogabeko WebSocket gakoa"
 
-#: libsoup/websocket/soup-websocket.c:629
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Onartu gabeko WebSocket azpi-protokoloa"
 
-#: libsoup/websocket/soup-websocket.c:835
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "Zerbitzariak ukatu egin du WebSocket diosala"
 
-#: libsoup/websocket/soup-websocket.c:843
-#: libsoup/websocket/soup-websocket.c:852
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "Zerbitzariak ez ikusi egin dio WebSocket diosalari"
 
-#: libsoup/websocket/soup-websocket.c:864
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "Zerbitzariak onartu gabeko protokoloa eskatu du"
+
+#~ msgid "Could not parse URI “%s”: %s"
+#~ msgstr "Ezin izan da “%s“ URIa analizatu: %s"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "Onartu gabeko “%s“ URI eskema"
+
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "Baliogabeko “%s“ URIa: %s"
 
 #~ msgid "Name"
 #~ msgstr "Izena"
