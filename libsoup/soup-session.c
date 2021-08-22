@@ -3416,7 +3416,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * https certificate validation is handled.
 	 *
 	 * If you are using #SoupSessionAsync or
-	 * #SoupSessionSync, on libsoup older than 2.72.1, the default value
+	 * #SoupSessionSync, on libsoup older than 2.74.0, the default value
 	 * is %FALSE, for backward compatibility.
 	 *
 	 * Since: 2.38
@@ -3454,7 +3454,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupSession:ssl-use-system-ca-file will be %TRUE by
 	 * default, and so this property will be a copy of the system
 	 * CA database. If you are using #SoupSessionAsync or
-	 * #SoupSessionSync, on libsoup older than 2.72.1, this property
+	 * #SoupSessionSync, on libsoup older than 2.74.0, this property
 	 * will be %NULL by default.
 	 *
 	 * Since: 2.38
