@@ -1,3 +1,24 @@
+Changes in libsoup from 2.72.0 to 2.74.0:
+
+	* IMPORTANT: Enable ssl-use-system-ca-file by default on deprecated
+	  Sync and Async sessions [Patrick Griffis]
+	  See here for details:
+	    https://gitlab.gnome.org/GNOME/libsoup/-/commit/71ca70a0f62cfc30dfacfd2ee0952a86e2e64055
+
+	* Fix including headers in C++ projects [Patrick Griffis]
+
+	* Fix attempting to resolve relative paths with data URIs [Ryan Gonzalez]
+
+	* Support Content-Disposition headers without a disposition-type [Patrick Griffis]
+
+	* Fix building VAPI bindings with latest Vala [Rico Tzschichholz]
+
+	* Fix sending a Content-Length header in a response with status code of 1xx or 204
+	  [Ignacio Casal Quinteiro]
+
+	* Updated translations: Occitan, Persian, Nepali, Belarusian, Greek, British English,
+	                        Portuguese
+
 Changes in libsoup from 2.71.1 to 2.72.0:
 
 	* Fix critical after cancelling a message that failed auth [Carlos Garcia Campos]
