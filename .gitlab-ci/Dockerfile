@@ -36,7 +36,7 @@ RUN dnf update -y \
 
 RUN git clone https://gitlab.gnome.org/GNOME/glib.git \
     && pushd glib \
-    && git checkout 02742ef957b532789c003eef80ec7f51c370e3d5 \
+    && git checkout 2.69.1 \
     && meson _build --prefix=/usr \
     && ninja -C _build install \
     && popd \
@@ -44,7 +44,7 @@ RUN git clone https://gitlab.gnome.org/GNOME/glib.git \
 
 RUN git clone https://gitlab.gnome.org/GNOME/glib-networking.git \
     && pushd glib-networking \
-    && git checkout 2.70.alpha \
+    && git checkout f7b3250d3e3fce4ea02b00610d9f2148ade4a6ce \
     && meson _build --prefix=/usr \
     && ninja -C _build install \
     && popd \
