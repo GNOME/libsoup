@@ -8,8 +8,8 @@ static struct {
         gboolean equal;
         GUriFlags flags_one, flags_two;
 } eq_tests[] = {
-        // NOTE: GUri doesn't remove dot segments from absolute URIs
-	// { "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7Bfoo%7D", "628728" },
+	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7Bfoo%7D", TRUE,
+          SOUP_HTTP_URI_FLAGS, SOUP_HTTP_URI_FLAGS },
 	{ "http://example.com", "http://example.com/", TRUE,
           SOUP_HTTP_URI_FLAGS, SOUP_HTTP_URI_FLAGS },
 	/* From RFC 2616 */
