@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-07-12 16:30+0000\n"
-"PO-Revision-Date: 2020-08-30 13:38+0300\n"
+"POT-Creation-Date: 2021-06-11 18:40+0000\n"
+"PO-Revision-Date: 2021-08-31 15:12+0300\n"
 "Last-Translator: Jiri Grönroos <jiri.gronroos+l10n@iki.fi>\n"
 "Language-Team: Finnish <lokalisointi-lista@googlegroups.com>\n"
 "Language: fi\n"
@@ -16,189 +16,199 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.4.1\n"
+"X-Generator: Poedit 3.0\n"
 
-#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
-msgid "Connection terminated unexpectedly"
-msgstr "Yhteys päättyi odottamatta"
-
-#: libsoup/soup-body-input-stream.c:459
-msgid "Invalid seek request"
-msgstr ""
-
-#: libsoup/soup-body-input-stream.c:487
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr ""
-
-#: libsoup/soup-cache-input-stream.c:76
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr ""
 
-#: libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr ""
 
-#: libsoup/soup-directory-input-stream.c:231
-msgid "Name"
-msgstr "Nimi"
-
-#: libsoup/soup-directory-input-stream.c:232
-msgid "Size"
-msgstr "Koko"
-
-#: libsoup/soup-directory-input-stream.c:233
-msgid "Date Modified"
-msgstr "Muokkauspäivä"
-
-#: libsoup/soup-converter-wrapper.c:189
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr ""
 
-#: libsoup/soup-message-client-io.c:39
-msgid "Could not parse HTTP response"
-msgstr "HTTP-vastausta ei voitu jäsentää"
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Yhteys päättyi odottamatta"
 
-#: libsoup/soup-message-client-io.c:62
-msgid "Unrecognized HTTP response encoding"
-msgstr "Tunnistamaton HTTP-vastauksen merkistö"
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr ""
 
-#: libsoup/soup-message-io.c:261
-msgid "Header too big"
-msgstr "Otsake on liian suuri"
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr ""
 
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:354 libsoup/server/soup-server-io.c:819
 msgid "Operation would block"
 msgstr ""
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "HTTP-vastausta ei voitu jäsentää"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Tunnistamaton HTTP-vastauksen merkistö"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1426
+#: libsoup/http2/soup-client-message-io-http2.c:1450
 msgid "Operation was cancelled"
 msgstr "Toimenpide peruttiin"
 
-#: libsoup/soup-message-server-io.c:63
-msgid "Could not parse HTTP request"
-msgstr "HTTP-pyyntöä ei voitu jäsentää"
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Otsake on liian suuri"
 
-#: libsoup/soup-request.c:141
-#, c-format
-msgid "No URI provided"
-msgstr ""
-
-#: libsoup/soup-request.c:151
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr ""
-
-#: libsoup/soup-server.c:1810
+#: libsoup/server/soup-server.c:1072
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "TLS-palvelinta ei voi luoda ilman TLS-varmennetta"
 
-#: libsoup/soup-server.c:1827
+#: libsoup/server/soup-server.c:1088
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Ei voitu kuunnella osoitteessa %s, portissa %d: "
 
-#: libsoup/soup-session.c:4583
-#, c-format
-msgid "Could not parse URI “%s”"
-msgstr "URI:a “%s” ei voitu jäsentää"
-
-#: libsoup/soup-session.c:4620
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Ei-tuettu URI-skeema “%s”"
-
-#: libsoup/soup-session.c:4642
-#, c-format
-msgid "Not an HTTP URI"
-msgstr "Ei HTTP URI"
-
-#: libsoup/soup-session.c:4853
-msgid "The server did not accept the WebSocket handshake."
-msgstr "Palvelin ei hyväksynyt WebSocket-kättelyä."
-
-#: libsoup/soup-socket.c:148
-msgid "Can’t import non-socket as SoupSocket"
-msgstr ""
-
-#: libsoup/soup-socket.c:166
+#: libsoup/server/soup-socket.c:116
 msgid "Could not import existing socket: "
-msgstr ""
+msgstr "Ei voitu tuoda olemassa olevaa pistoketta: "
 
-#: libsoup/soup-socket.c:175
+#: libsoup/server/soup-socket.c:125
 msgid "Can’t import unconnected socket"
 msgstr ""
 
-#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
-#: libsoup/soup-websocket.c:539
+#: libsoup/soup-session.c:1166
+msgid "Location header is missing or empty in response headers"
+msgstr "Location-otsake puuttuu tai se on tyhjä vastausotsakkeissa"
+
+#: libsoup/soup-session.c:1180
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Virheellinen URI “%s” Location-vastausotsakkeessa"
+
+#: libsoup/soup-session.c:1200
+msgid "Too many redirects"
+msgstr "Liian monta uudelleenohjausta"
+
+#: libsoup/soup-session.c:1205
+msgid "Message was restarted too many times"
+msgstr "Viesti käynnistettiin uudelleen liian monta kertaa"
+
+#: libsoup/soup-session.c:3315 libsoup/soup-session.c:3464
+msgid "Message is already in session queue"
+msgstr "Viesti on jo istuntojonossa"
+
+#: libsoup/soup-session.c:3825
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Palvelin ei hyväksynyt WebSocket-kättelyä."
+
+#: libsoup/soup-tld.c:142
+msgid "No public-suffix list available."
+msgstr ""
+
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
+msgid "Invalid hostname"
+msgstr ""
+
+#: libsoup/soup-tld.c:159
+msgid "Hostname is an IP address"
+msgstr "Konenimi on IP-osoite"
+
+#: libsoup/soup-tld.c:180
+msgid "Hostname has no base domain"
+msgstr ""
+
+#: libsoup/soup-tld.c:188
+msgid "Not enough domains"
+msgstr ""
+
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "Palvelin pyysi ei-tuettua laajennusta"
 
-#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Virheellinen WebSocket “%s” -otsake"
 
-#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Palvelin palautti virheellisen “%s”-avaimen"
 
-#: libsoup/soup-websocket.c:566
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr ""
 
-#: libsoup/soup-websocket.c:567
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
 msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr ""
 
-#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr ""
 
-#: libsoup/soup-websocket.c:675
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "Ei-tuettu WebSocket-versio"
 
-#: libsoup/soup-websocket.c:684
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Virheellinen WebSocket-avain"
 
-#: libsoup/soup-websocket.c:703
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Ei-tuettu WebSocket-aliprotokolla"
 
-#: libsoup/soup-websocket.c:975
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "Palvelin hylkäsi WebSocket-kättelyn"
 
-#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "Palvelin jätti huomiotta WebSocket-kättelyn"
 
-#: libsoup/soup-websocket.c:1004
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "Palvelin pyysi ei-tuettua protokollaa"
 
-#: libsoup/soup-tld.c:150
-msgid "No public-suffix list available."
-msgstr ""
+#~ msgid "Name"
+#~ msgstr "Nimi"
 
-#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
-msgid "Invalid hostname"
-msgstr ""
+#~ msgid "Size"
+#~ msgstr "Koko"
 
-#: libsoup/soup-tld.c:167
-msgid "Hostname is an IP address"
-msgstr "Konenimi on IP-osoite"
+#~ msgid "Date Modified"
+#~ msgstr "Muokkauspäivä"
 
-#: libsoup/soup-tld.c:188
-msgid "Hostname has no base domain"
-msgstr ""
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "HTTP-pyyntöä ei voitu jäsentää"
 
-#: libsoup/soup-tld.c:196
-msgid "Not enough domains"
-msgstr ""
+#~ msgid "Could not parse URI “%s”"
+#~ msgstr "URI:a “%s” ei voitu jäsentää"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "Ei-tuettu URI-skeema “%s”"
+
+#~ msgid "Not an HTTP URI"
+#~ msgstr "Ei HTTP URI"
