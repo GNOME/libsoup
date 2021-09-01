@@ -116,22 +116,6 @@ if not sqlite_dep.found()
   sqlite_dep = dependency('sqlite3')
 endif
 
-libxml_dep = dependency('libxml-2.0', required: false)
-
-# Fallback check for libxml2, not all platforms ship pkg-config file
-if not libxml_dep.found()
-  # Note: The XML include dir needs to be within the INCLUDE envvar,
-  # such as <INCLUDEDIR>\libxml2
-  libxml2_libname = cc.get_id() == 'msvc' ? 'libxml2' : 'xml2'
-  libxml_dep = cc.find_library(libxml2_libname,
-    has_headers : 'libxml/tree.h',
-    required: false)
-endif
-
-if not libxml_dep.found()
-  libxml_dep = subproject('libxml2').get_variable('xml2lib_dep')
-endif
-
 cdata = configuration_data()
 
 brotlidec_dep = dependency('libbrotlidec', required : get_option('brotli'))
