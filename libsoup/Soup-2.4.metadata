@@ -16,10 +16,6 @@ Requester deprecated_since="2.42" replacement="Session"
 KnownStatusCode deprecated_since="2.44" replacement="Status"
 ProxyResolver deprecated_since="2.28" replacement="ProxyURIResolver"
 
-// Defined in Soup-2.4-custom.vala, see https://gitlab.gnome.org/GNOME/vala/-/commit/f3a8f1a6444ae0ab59ec4bd6496a7c1025785ad4
-status_get_phrase skip
-status_proxify skip
-
 // Report upstream
 add_* skip=false type="unowned GLib.TimeoutSource"
 Auth
