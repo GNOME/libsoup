@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-12-13 19:31+0000\n"
-"PO-Revision-Date: 2021-01-04 16:58+0200\n"
+"POT-Creation-Date: 2021-08-09 09:48+0000\n"
+"PO-Revision-Date: 2021-09-02 15:57+0300\n"
 "Last-Translator: Aurimas Černius <aurisc4@gmail.com>\n"
 "Language-Team: Lietuvių <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
@@ -17,188 +17,193 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n"
 "%100<10 || n%100>=20) ? 1 : 2)\n"
-"X-Generator: Gtranslator 3.38.0\n"
+"X-Generator: Gtranslator 40.0\n"
 
-#: libsoup/cache/soup-cache-input-stream.c:79
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Tinklo srautas netikėtai užsivėrė"
 
-#: libsoup/cache/soup-cache-input-stream.c:295
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Nepavyko visiškai patalpinti resurso į podėlį"
 
-#: libsoup/content-decoder/soup-converter-wrapper.c:193
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Išvesties buferis yra per mažas"
 
-#: libsoup/server/soup-server.c:1166
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Ryšys netikėtai nutrūko"
+
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Netinkama paieškos užklausa"
+
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Negalima trumpinti SoupBodyInputStream"
+
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
+msgid "Operation would block"
+msgstr "Veiksmas blokuosis"
+
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Nepavyko perskaityti URI „%s“Nepavyko perskaityti HTTP atsako"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Neatpažinta HTTP atsako koduotė"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1456
+#: libsoup/http2/soup-client-message-io-http2.c:1480
+msgid "Operation was cancelled"
+msgstr "Veiksmas buvo nutrauktas"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Antraštė yra per didelė"
+
+#: libsoup/server/soup-server.c:1201
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Negalima sukurti TLS serverio be TLS liudijimo"
 
-#: libsoup/server/soup-server.c:1185
+#: libsoup/server/soup-server.c:1223
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepavyksta klausytis adreso %s, prievadu %d: "
 
-#: libsoup/server/soup-server-io.c:344 libsoup/server/soup-server-io.c:809
-#: libsoup/soup-message-io.c:327 libsoup/soup-message-io.c:726
-msgid "Operation would block"
-msgstr "Veiksmas blokuosis"
-
-#: libsoup/server/soup-socket.c:116
+#: libsoup/server/soup-socket.c:121
 msgid "Could not import existing socket: "
 msgstr "Nepavyko importuoti esamo lizdo: "
 
-#: libsoup/server/soup-socket.c:125
+#: libsoup/server/soup-socket.c:130
 msgid "Can’t import unconnected socket"
 msgstr "Negalima importuoti neprijungto lizdo"
 
-#: libsoup/soup-body-input-stream.c:148 libsoup/soup-body-input-stream.c:180
-#: libsoup/soup-body-input-stream.c:213 libsoup/soup-message-io-data.c:76
-msgid "Connection terminated unexpectedly"
-msgstr "Ryšys netikėtai nutrūko"
-
-#: libsoup/soup-body-input-stream.c:474
-msgid "Invalid seek request"
-msgstr "Netinkama paieškos užklausa"
-
-#: libsoup/soup-body-input-stream.c:502
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Negalima trumpinti SoupBodyInputStream"
-
-#: libsoup/soup-message-io.c:467
-msgid "Could not parse HTTP response"
-msgstr "Nepavyko perskaityti URI „%s“Nepavyko perskaityti HTTP atsako"
-
-#: libsoup/soup-message-io.c:490
-msgid "Unrecognized HTTP response encoding"
-msgstr "Neatpažinta HTTP atsako koduotė"
-
-#: libsoup/soup-message-io.c:687 libsoup/soup-message-io.c:711
-msgid "Operation was cancelled"
-msgstr "Veiksmas buvo nutrauktas"
-
-#: libsoup/soup-message-io-data.c:100
-msgid "Header too big"
-msgstr "Antraštė yra per didelė"
-
-#: libsoup/soup-session.c:788
+#: libsoup/soup-session.c:1166
 msgid "Location header is missing or empty in response headers"
 msgstr "Atsako antraštėse trūksta Location antraštės arba ji tuščia"
 
-#: libsoup/soup-session.c:804
+#: libsoup/soup-session.c:1180
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "Netinkamas URI „%s“ atsako antraštėje Location"
 
-#: libsoup/soup-session.c:824
+#: libsoup/soup-session.c:1200
 msgid "Too many redirects"
 msgstr "Per daug nukreipimų"
 
-#: libsoup/soup-session.c:829
+#: libsoup/soup-session.c:1205
 msgid "Message was restarted too many times"
 msgstr "Pranešimas buvo pradėtas iš naujo per daug kartų"
 
-#: libsoup/soup-session.c:3258 libsoup/soup-session.c:3391
-#, c-format
-#| msgid "Could not parse URI “%s”"
-msgid "Could not parse URI “%s”: %s"
-msgstr "Nepavyko išanalizuoti URI „%s“: %s"
+#: libsoup/soup-session.c:3317 libsoup/soup-session.c:3466
+msgid "Message is already in session queue"
+msgstr "Pranešimas jau yra seanso eilėje"
 
-#: libsoup/soup-session.c:3273 libsoup/soup-session.c:3406
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Nepalaikoma URI schema „%s“"
-
-#: libsoup/soup-session.c:3284 libsoup/soup-session.c:3417
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "Netinkamas „%s“ URI: %s"
-
-#: libsoup/soup-session.c:3726
+#: libsoup/soup-session.c:3827
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serveris nepriėmė WebSocket rankos paspaudimo."
 
-#: libsoup/soup-tld.c:146
+#: libsoup/soup-tld.c:142
 msgid "No public-suffix list available."
 msgstr "Nėra prieinamas viešų galūnių sąrašas."
 
-#: libsoup/soup-tld.c:156 libsoup/soup-tld.c:172
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
 msgid "Invalid hostname"
 msgstr "Netinkamas serverio vardas"
 
-#: libsoup/soup-tld.c:163
+#: libsoup/soup-tld.c:159
 msgid "Hostname is an IP address"
 msgstr "Serverio vardas arba IP adresas"
 
-#: libsoup/soup-tld.c:184
+#: libsoup/soup-tld.c:180
 msgid "Hostname has no base domain"
 msgstr "Serverio vardas neturi bazinio domeno"
 
-#: libsoup/soup-tld.c:192
+#: libsoup/soup-tld.c:188
 msgid "Not enough domains"
 msgstr "Nepakanka domenų"
 
-#: libsoup/websocket/soup-websocket.c:405
-#: libsoup/websocket/soup-websocket.c:449
-#: libsoup/websocket/soup-websocket.c:465
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "Serveris paprašė nepalaikomo plėtinio"
 
-#: libsoup/websocket/soup-websocket.c:428
-#: libsoup/websocket/soup-websocket.c:620
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Neteisinga WebSocket „%s“ antraštė"
 
-#: libsoup/websocket/soup-websocket.c:429
-#: libsoup/websocket/soup-websocket.c:884
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Serveris grąžino neteisingą „%s“ raktą"
 
-#: libsoup/websocket/soup-websocket.c:492
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Dubliuotas parametras „%s“ WebSocket plėtinio antraštėje"
 
-#: libsoup/websocket/soup-websocket.c:493
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr ""
 "Serveris grąžino dubliuotą parametrą „%s“ WebSocket plėtinio antraštėje"
 
-#: libsoup/websocket/soup-websocket.c:583
-#: libsoup/websocket/soup-websocket.c:593
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "Tikėtasi WebSocket rankos paspaudimo"
 
-#: libsoup/websocket/soup-websocket.c:601
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "Nepalaikoma WebSocket versija"
 
-#: libsoup/websocket/soup-websocket.c:610
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Netinkamas WebSocket raktas"
 
-#: libsoup/websocket/soup-websocket.c:629
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nepalaikomas WebSocket paprotokolis"
 
-#: libsoup/websocket/soup-websocket.c:835
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "Serveris atmetė WebSocket rankos paspaudimą"
 
-#: libsoup/websocket/soup-websocket.c:843
-#: libsoup/websocket/soup-websocket.c:852
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "Serveris nepaisė WebSocket rankos paspaudimo"
 
-#: libsoup/websocket/soup-websocket.c:864
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "Serveris paprašė nepalaikomo protokolo"
+
+#~| msgid "Could not parse URI “%s”"
+#~ msgid "Could not parse URI “%s”: %s"
+#~ msgstr "Nepavyko išanalizuoti URI „%s“: %s"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "Nepalaikoma URI schema „%s“"
+
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "Netinkamas „%s“ URI: %s"
 
 #~ msgid "Name"
 #~ msgstr "Pavadinimas"
