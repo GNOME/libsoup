@@ -1,3 +1,19 @@
+Changes in libsoup from 2.99.9 to 3.0.0:
+
+* Remove unused dependency on libxml [Patrick Griffis]
+
+* Use G_DECLARE_FINAL_TYPE when applicable and bump GLib dependency
+  to 2.69.1 [Patrick Griffis]
+
+* Add PyGObject overrides for SoupMessageHeaders to behave like a dict [Patrick Griffis]
+
+* Fix soup_message_add_status_code_handler() in Vala [Rico Tzschichholz]
+
+* Ensure that all header values are valid UTF-8, other encodings are not
+  supported [Patrick Griffis]
+
+* Support Content-Disposition headers missing a disposition-type [Patrick Griffis]
+
 Changes in libsoup from 2.99.8 to 2.99.9:
 
     * Make soup_message_set_method() public API [Carlos Garcia Campos]

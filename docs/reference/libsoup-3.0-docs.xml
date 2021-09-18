@@ -5,7 +5,7 @@
   <bookinfo>
     <title>libsoup Reference Manual</title>
     <releaseinfo>
-      This documentation is for libsoup 3.0 which is in development.
+      This documentation is for libsoup 3.0.
       You can find older versions online at <ulink role="online-location" url="https://libsoup.org/libsoup-2.4/index.html">https://libsoup.org/libsoup-2.4/</ulink>.
     </releaseinfo>
   </bookinfo>

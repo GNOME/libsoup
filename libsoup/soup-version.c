@@ -139,7 +139,7 @@ soup_check_version (guint major,
                     guint minor,
                     guint micro)
 {
-    return SOUP_CHECK_VERSION (major, minor, micro);
+    return SOUP_CHECK_VERSION (major, (int)minor, micro);
 }
 
 /**
