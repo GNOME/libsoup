@@ -611,7 +611,7 @@ typedef guint32 DES_KS[16][2]; /* Single-key DES key schedule */
 
 static void deskey                (DES_KS, unsigned char *, int);
 
-static void des                   (DES_KS, unsigned char *);
+static void des                   (DES_KS, unsigned char[8]);
 
 static void setup_schedule        (const guchar *key_56, DES_KS ks);
 
