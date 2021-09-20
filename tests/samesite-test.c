@@ -60,6 +60,9 @@ assert_highest_policy_visible (GSList *cookies, SoupSameSitePolicy policy)
 	case SOUP_SAME_SITE_POLICY_NONE:
 		expected_count = 1;
 		break;
+        default:
+                g_assert_not_reached ();
+                break;
 	}
 
 	g_assert_cmpuint (size, ==, expected_count);

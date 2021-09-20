@@ -473,7 +473,7 @@ send_message (SoupWebsocketConnection *self,
 	GByteArray *bytes;
 	gsize frame_len;
 	guint8 *outer;
-	guint8 mask_offset;
+	guint8 mask_offset = 0;
 	GBytes *filtered_bytes;
 	GList *l;
 	GError *error = NULL;
