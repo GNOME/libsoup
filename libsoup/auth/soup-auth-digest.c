@@ -248,7 +248,7 @@ soup_auth_digest_compute_hex_urp (const char *username,
 	g_checksum_update (checksum, (guchar *)realm, strlen (realm));
 	g_checksum_update (checksum, (guchar *)":", 1);
 	g_checksum_update (checksum, (guchar *)password, strlen (password));
-	strncpy (hex_urp, g_checksum_get_string (checksum), 33);
+        g_strlcpy (hex_urp, g_checksum_get_string (checksum), 33);
 	g_checksum_free (checksum);
 }
 
@@ -278,7 +278,7 @@ soup_auth_digest_compute_hex_a1 (const char              *hex_urp,
 		g_checksum_update (checksum, (guchar *)nonce, strlen (nonce));
 		g_checksum_update (checksum, (guchar *)":", 1);
 		g_checksum_update (checksum, (guchar *)cnonce, strlen (cnonce));
-		strncpy (hex_a1, g_checksum_get_string (checksum), 33);
+                g_strlcpy (hex_a1, g_checksum_get_string (checksum), 33);
 		g_checksum_free (checksum);
 	}
 }

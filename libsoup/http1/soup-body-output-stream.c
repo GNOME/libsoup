@@ -224,12 +224,12 @@ again:
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_END:
-		strncpy (buf, "\r\n", sizeof (priv->buf));
+                g_strlcpy (buf, "\r\n", sizeof (priv->buf));
 		priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_TRAILERS:
-		strncpy (buf, "\r\n", sizeof (priv->buf));
+                g_strlcpy (buf, "\r\n", sizeof (priv->buf));
 		priv->chunked_state = SOUP_BODY_OUTPUT_STREAM_STATE_DONE;
 		break;
 
