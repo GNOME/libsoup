@@ -297,17 +297,22 @@ python3 = pymod.find_installation('python3')
 get_overridedir = '''
 import os
 import sysconfig
-libdir = sysconfig.get_config_var('LIBDIR')
-if not libdir:
-  libdir = '/usr/lib'
+
 try:
   import gi
   overridedir = gi._overridesdir
 except ImportError:
   purelibdir = sysconfig.get_path('purelib')
   overridedir = os.path.join(purelibdir, 'gi', 'overrides')
-if overridedir.startswith(libdir): # Should always be True..
-  overridedir = overridedir[len(libdir) + 1:]
+
+# We need to strip the libdir from the path so files we install
+# are in our own prefix'd libdir.
+libdir = sysconfig.get_config_var('LIBDIR').removesuffix(sysconfig.get_config_var('MULTIARCH'))
+if not libdir:
+  libdir = '/usr/lib/'
+
+overridedir = overridedir.removeprefix(libdir).lstrip('/')
+
 print(overridedir)
 '''
 
@@ -317,5 +322,7 @@ if ret.returncode() != 0
 else
   pygobject_override_dir = join_paths(get_option('libdir'), ret.stdout().strip())
 endif
+
+message('Found pygobject overridedir: @0@'.format(pygobject_override_dir))
 
 install_data('Soup.py', install_dir: pygobject_override_dir)
