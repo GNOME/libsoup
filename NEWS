@@ -1,3 +1,9 @@
+Changes in libsoup from 3.0.0 to 3.0.1:
+
+* Move python overrides to upstream pygobject [Patrick Griffis]
+
+* Fix minor build warnings [Patrick Griffis]
+
 Changes in libsoup from 2.99.9 to 3.0.0:
 
 * Remove unused dependency on libxml [Patrick Griffis]

@@ -1,5 +1,5 @@
 project('libsoup', 'c',
-        version: '3.0.0',
+        version: '3.0.1',
         meson_version : '>= 0.53',
         license : 'LGPL2',
         default_options : [
@@ -19,7 +19,7 @@ soup_version = meson.project_version()
 #
 # When bumping the first component version, set the second and third components
 # to 0. When bumping the second version, set the third one to zero.
-libversion = '0.0.0'
+libversion = '0.0.1'
 apiversion = '3.0'
 soversion = libversion.split('.')[0]
 libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
