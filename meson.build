@@ -48,6 +48,12 @@ common_flags = [
 ]
 
 cc = meson.get_compiler('c')
+
+# define ssize_t as Microsoft's headers do not define it
+if cc.get_argument_syntax() == 'msvc'
+  add_project_arguments('-Dssize_t=gssize', language: 'c')
+endif
+
 # Enable extra warnings if compiler supports them.
 if cc.get_id() == 'msvc'
   common_flags += ['/FImsvc_recommended_pragmas.h']
