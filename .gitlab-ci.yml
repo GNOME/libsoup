@@ -1,4 +1,4 @@
-image: registry.gitlab.gnome.org/gnome/libsoup/master:v15
+image: registry.gitlab.gnome.org/gnome/libsoup/master:v16
 
 stages:
   - build
@@ -64,6 +64,17 @@ fedora-asan:
     # Introspection doesn't work when linking to libasan, the NTLM tests fail most likely due to unsafe usage of setenv()
     - meson _build -Dauto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled -Dntlm=disabled
     - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose --timeout-multiplier=10
+  artifacts:
+    when: on_failure
+    paths:
+      - "_build/meson-logs/testlog.txt"
+
+fedora-i686:
+  extends: .build
+  script:
+    - meson _build -Dauto_features=enabled --cross-file=.gitlab-ci/fedora-i686.ini
+    - meson compile -C _build
+    - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose
   artifacts:
     when: on_failure
     paths:
