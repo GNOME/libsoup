@@ -412,7 +412,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	date = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_DATE);
 	if (expires && date) {
 		GDateTime *expires_d, *date_d;
-		time_t expires_t, date_t;
+		gint64 expires_t, date_t;
 
 		expires_d = soup_date_time_new_from_http_string (expires);
 		if (expires_d) {
@@ -456,7 +456,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	last_modified = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_LAST_MODIFIED);
 	if (last_modified) {
 		GDateTime *soup_date;
-		time_t now, last_modified_t;
+		gint64 now, last_modified_t;
 
 		soup_date = soup_date_time_new_from_http_string (last_modified);
 		last_modified_t = g_date_time_to_unix (soup_date);
@@ -504,7 +504,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	if (date) {
 		GDateTime *soup_date;
 		const char *age;
-		time_t date_value, apparent_age, corrected_received_age, response_delay, age_value = 0;
+		gint64 date_value, apparent_age, corrected_received_age, response_delay, age_value = 0;
 
 		soup_date = soup_date_time_new_from_http_string (date);
 		date_value = g_date_time_to_unix (soup_date);
