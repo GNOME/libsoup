@@ -1760,6 +1760,76 @@ do_auth_uri_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+on_request_read (SoupServer        *server,
+                 SoupServerMessage *msg,
+                 gpointer           user_data)
+{
+        SoupMessageHeaders *response_headers = soup_server_message_get_response_headers (msg);
+        char *old_header = g_strdup (soup_message_headers_get_one (response_headers, "WWW-Authenticate"));
+        if (old_header) {
+                /* These must be in order to ensure libsoup passes over the invalid one. */
+                soup_message_headers_replace (response_headers, "WWW-Authenticate",
+                                "Digest realm=\"auth-test\", nonce=\"0000000000001\", qop=\"auth\", algorithm=FAKE");
+                soup_message_headers_append (response_headers, "WWW-Authenticate", old_header);
+                g_free (old_header);
+        }
+}
+
+static gboolean
+on_digest_authenticate (SoupMessage *msg,
+                        SoupAuth    *auth,
+                        gboolean     retrying,
+                        gpointer     user_data)
+{
+        g_assert_false (retrying);
+        soup_auth_authenticate (auth, "user", "good");
+        return TRUE;
+}
+
+static void
+do_multiple_digest_algorithms (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        SoupServer *server;
+        SoupAuthDomain *digest_auth_domain;
+        gint status;
+        GUri *uri;
+
+       	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_add_handler (server, NULL,
+				 server_callback, NULL, NULL);
+	uri = soup_test_server_get_uri (server, "http", NULL);
+
+        /* Add one real authentication option, later we will add
+           a fake one with an unsupported algorithm. */
+	digest_auth_domain = soup_auth_domain_digest_new (
+		"realm", "auth-test",
+		"auth-callback", server_digest_auth_callback,
+		NULL);
+        soup_auth_domain_add_path (digest_auth_domain, "/");
+	soup_server_add_auth_domain (server, digest_auth_domain);
+        g_object_unref (digest_auth_domain);
+
+        /* We wait for the message to come in and will add a header. */
+        g_signal_connect (server, "request-read",
+                          G_CALLBACK (on_request_read),
+                          NULL);
+
+        session = soup_test_session_new (NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (on_digest_authenticate),
+                          NULL);
+
+        status = soup_test_session_send_message (session, msg);
+
+        g_assert_cmpint (status, ==, SOUP_STATUS_OK);
+	g_uri_unref (uri);
+	soup_test_server_quit_unref (server);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1791,6 +1861,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/cancel-on-authenticate", do_cancel_on_authenticate);
 	g_test_add_func ("/auth/auth-uri", do_auth_uri_test);
         g_test_add_func ("/auth/cancel-request-on-authenticate", do_cancel_request_on_authenticate);
+        g_test_add_func ("/auth/multiple-algorithms", do_multiple_digest_algorithms);
 
 	ret = g_test_run ();
 

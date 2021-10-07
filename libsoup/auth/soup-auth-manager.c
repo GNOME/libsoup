@@ -311,41 +311,49 @@ next_challenge_start (GSList *items)
 	return NULL;
 }
 
-static char *
-soup_auth_manager_extract_challenge (const char *challenges, const char *scheme)
+static GStrv
+soup_auth_manager_extract_challenges (const char *challenges, const char *scheme)
 {
+        GPtrArray *challenge_list = g_ptr_array_new ();
 	GSList *items, *i, *next;
 	int schemelen = strlen (scheme);
 	char *item;
 	GString *challenge;
 
-	items = soup_header_parse_list (challenges);
+	i = items = soup_header_parse_list (challenges);
 
-	/* First item will start with the scheme name, followed by
-	 * either nothing, or else a space and then the first
-	 * auth-param.
-	 */
-	for (i = items; i; i = next_challenge_start (i->next)) {
-		item = i->data;
-		if (!g_ascii_strncasecmp (item, scheme, schemelen) &&
-		    (!item[schemelen] || g_ascii_isspace (item[schemelen])))
-			break;
-	}
-	if (!i) {
-		soup_header_free_list (items);
-		return NULL;
-	}
+        /* We need to split this list into individual challenges. */
+        while (i) {
+                /* First item will start with the scheme name, followed by
+                * either nothing, or else a space and then the first
+                * auth-param.
+                */
+                for (; i; i = next_challenge_start (i->next)) {
+                        item = i->data;
+                        if (!g_ascii_strncasecmp (item, scheme, schemelen) &&
+                            (!item[schemelen] || g_ascii_isspace (item[schemelen])))
+                                break;
+                }
+                if (!i)
+                        break;
 
-	next = next_challenge_start (i->next);
-	challenge = g_string_new (item);
-	for (i = i->next; i != next; i = i->next) {
-		item = i->data;
-		g_string_append (challenge, ", ");
-		g_string_append (challenge, item);
-	}
+                next = next_challenge_start (i->next);
+                challenge = g_string_new (item);
+                for (i = i->next; i != next; i = i->next) {
+                        item = i->data;
+                        g_string_append (challenge, ", ");
+                        g_string_append (challenge, item);
+                }
+
+                i = next;
+                g_ptr_array_add (challenge_list, g_string_free (challenge, FALSE));
+        };
 
 	soup_header_free_list (items);
-	return g_string_free (challenge, FALSE);
+
+        if (challenge_list->len)
+                g_ptr_array_add (challenge_list, NULL); /* Trailing NULL for GStrv. */
+        return (GStrv)g_ptr_array_free (challenge_list, FALSE);
 }
 
 static SoupAuth *
@@ -353,7 +361,7 @@ create_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 {
 	const char *header;
 	SoupAuthClass *auth_class;
-	char *challenge = NULL;
+        GStrv challenges;
 	SoupAuth *auth = NULL;
 	int i;
 
@@ -363,38 +371,56 @@ create_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 
 	for (i = priv->auth_types->len - 1; i >= 0; i--) {
 		auth_class = priv->auth_types->pdata[i];
-		challenge = soup_auth_manager_extract_challenge (header, auth_class->scheme_name);
-		if (!challenge)
-			continue;
-		auth = soup_auth_new (G_TYPE_FROM_CLASS (auth_class), msg, challenge);
-		g_free (challenge);
-		if (auth)
-			break;
+                challenges = soup_auth_manager_extract_challenges (header, auth_class->scheme_name);
+                if (!challenges)
+                        continue;
+
+                for (int j = 0; challenges[j]; j++) {
+                        /* TODO: We use the first successfully parsed auth, in the future this should
+                         * prioritise more secure ones when they are supported. */
+                        auth = soup_auth_new (G_TYPE_FROM_CLASS (auth_class), msg, challenges[j]);
+                        if (auth) {
+                                g_strfreev (challenges);
+                                return auth;
+                        }
+                }
+
+		g_strfreev (challenges);
 	}
 
-	return auth;
+	return NULL;
 }
 
 static gboolean
 check_auth (SoupMessage *msg, SoupAuth *auth)
 {
 	const char *header, *scheme;
-	char *challenge = NULL;
+        GStrv challenges = NULL;
 	gboolean ok = TRUE;
+        gboolean a_challenge_was_ok = FALSE;
 
 	scheme = soup_auth_get_scheme_name (auth);
 
 	header = auth_header_for_message (msg);
 	if (header)
-		challenge = soup_auth_manager_extract_challenge (header, scheme);
-	if (!challenge) {
-		ok = FALSE;
-		challenge = g_strdup (scheme);
+                challenges = soup_auth_manager_extract_challenges (header, scheme);
+	if (!challenges) {
+                challenges = g_new0 (char*, 2);
+                challenges[0] = g_strdup (scheme);
+                ok = FALSE;
 	}
 
-	if (!soup_auth_update (auth, msg, challenge))
-		ok = FALSE;
-	g_free (challenge);
+        for (int i = 0; challenges[i]; i++) {
+                if (soup_auth_update (auth, msg, challenges[i])) {
+                        a_challenge_was_ok = TRUE;
+                        break;
+                }
+        }
+
+        if (!a_challenge_was_ok)
+                ok = FALSE;
+
+        g_strfreev (challenges);
 	return ok;
 }
 
