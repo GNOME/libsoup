@@ -209,8 +209,9 @@ check_hex_urp (SoupAuthDomain    *domain,
 {
 	const char *uri, *qop, *realm, *msg_username;
 	const char *nonce, *nc, *cnonce, *response;
-	char hex_a1[33], computed_response[33];
+	char *hex_a1, *computed_response;
 	int nonce_count;
+        gboolean ret;
 	GUri *dig_uri, *req_uri;
 
 	msg_username = g_hash_table_lookup (params, "username");
@@ -272,16 +273,21 @@ check_hex_urp (SoupAuthDomain    *domain,
 	if (!response)
 		return FALSE;
 
-	soup_auth_digest_compute_hex_a1 (hex_urp,
-					 SOUP_AUTH_DIGEST_ALGORITHM_MD5,
-					 nonce, cnonce, hex_a1);
-	soup_auth_digest_compute_response (soup_server_message_get_method (msg),
-					   uri,
-					   hex_a1,
-					   SOUP_AUTH_DIGEST_QOP_AUTH,
-					   nonce, cnonce, nonce_count,
-					   computed_response);
-	return strcmp (response, computed_response) == 0;
+        // FIXME algo
+
+	hex_a1 = soup_auth_digest_compute_hex_a1 (hex_urp,
+					          SOUP_AUTH_DIGEST_ALGORITHM_MD5,
+					          nonce, cnonce);
+	computed_response = soup_auth_digest_compute_response (SOUP_AUTH_DIGEST_ALGORITHM_MD5,
+                                                               soup_server_message_get_method (msg),
+					                       uri,
+					                       hex_a1,
+					                       SOUP_AUTH_DIGEST_QOP_AUTH,
+					                       nonce, cnonce, nonce_count);
+        ret = strcmp (response, computed_response) == 0;
+        g_free (hex_a1);
+        g_free (computed_response);
+	return ret;
 }
 
 static char *
@@ -374,10 +380,7 @@ soup_auth_domain_digest_encode_password (const char *username,
 					 const char *realm,
 					 const char *password)
 {
-	char hex_urp[33];
-
-	soup_auth_digest_compute_hex_urp (username, realm, password, hex_urp);
-	return g_strdup (hex_urp);
+	return soup_auth_digest_compute_hex_urp (SOUP_AUTH_DIGEST_ALGORITHM_MD5, username, realm, password);
 }
 
 static gboolean
@@ -389,7 +392,7 @@ soup_auth_domain_digest_check_password (SoupAuthDomain    *domain,
 	const char *header;
 	GHashTable *params;
 	const char *msg_username;
-	char hex_urp[33];
+	char *hex_urp;
 	gboolean accept;
 
 	header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
@@ -407,10 +410,12 @@ soup_auth_domain_digest_check_password (SoupAuthDomain    *domain,
 		return FALSE;
 	}
 
-	soup_auth_digest_compute_hex_urp (username,
-					  soup_auth_domain_get_realm (domain),
-					  password, hex_urp);
+	hex_urp = soup_auth_digest_compute_hex_urp (SOUP_AUTH_DIGEST_ALGORITHM_MD5,
+                                                    username,
+					            soup_auth_domain_get_realm (domain),
+					            password);
 	accept = check_hex_urp (domain, msg, params, username, hex_urp);
+        g_free (hex_urp);
 	soup_header_free_param_list (params);
 	return accept;
 }

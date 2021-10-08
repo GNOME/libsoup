@@ -27,8 +27,8 @@ struct _SoupAuthDigest {
 
 typedef struct {
 	char                    *user;
-	char                     hex_urp[33];
-	char                     hex_a1[33];
+        char                    *hex_urp;
+	char                    *hex_a1;
 
 	/* These are provided by the server */
 	char                    *nonce;
@@ -71,9 +71,8 @@ soup_auth_digest_finalize (GObject *object)
 	g_free (priv->nonce);
 	g_free (priv->domain);
 	g_free (priv->cnonce);
-
-	memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
-	memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
+        g_free (priv->hex_urp);
+        g_free (priv->hex_a1);
 
 	G_OBJECT_CLASS (soup_auth_digest_parent_class)->finalize (object);
 }
@@ -85,6 +84,10 @@ soup_auth_digest_parse_algorithm (const char *algorithm)
 		return SOUP_AUTH_DIGEST_ALGORITHM_MD5;
 	else if (!g_ascii_strcasecmp (algorithm, "MD5-sess"))
 		return SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS;
+        else if (!g_ascii_strcasecmp (algorithm, "SHA256"))
+                return SOUP_AUTH_DIGEST_ALGORITHM_SHA256;
+        else if (!g_ascii_strcasecmp (algorithm, "SHA256-sess"))
+                return SOUP_AUTH_DIGEST_ALGORITHM_SHA256_SESS;
 	else
 		return -1;
 }
@@ -96,6 +99,10 @@ soup_auth_digest_get_algorithm (SoupAuthDigestAlgorithm algorithm)
 		return g_strdup ("MD5");
 	else if (algorithm == SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS)
 		return g_strdup ("MD5-sess");
+	if (algorithm == SOUP_AUTH_DIGEST_ALGORITHM_SHA256)
+		return g_strdup ("SHA-256");
+	else if (algorithm == SOUP_AUTH_DIGEST_ALGORITHM_SHA256_SESS)
+		return g_strdup ("SHA-256-sess");
 	else
 		return NULL;
 }
@@ -172,15 +179,13 @@ soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 		ok = FALSE;
 
 	stale = g_hash_table_lookup (auth_params, "stale");
-	if (stale && !g_ascii_strcasecmp (stale, "TRUE") && *priv->hex_urp)
+	if (stale && !g_ascii_strcasecmp (stale, "TRUE") && priv->hex_urp)
 		recompute_hex_a1 (priv);
 	else {
-		g_free (priv->user);
-		priv->user = NULL;
-		g_free (priv->cnonce);
-		priv->cnonce = NULL;
-		memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
-		memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
+                g_clear_pointer (&priv->user, g_free);
+                g_clear_pointer (&priv->cnonce, g_free);
+                g_clear_pointer (&priv->hex_urp, g_free);
+                g_clear_pointer (&priv->hex_a1, g_free);
         }
 
 	return ok;
@@ -234,13 +239,27 @@ soup_auth_digest_get_protection_space (SoupAuth *auth, GUri *source_uri)
 	return space;
 }
 
-void
-soup_auth_digest_compute_hex_urp (const char *username,
+char *
+soup_auth_digest_compute_hex_urp (SoupAuthDigestAlgorithm algorithm,
+                                  const char *username,
 				  const char *realm,
-				  const char *password,
-				  char        hex_urp[33])
+				  const char *password)
 {
 	GChecksum *checksum;
+        GChecksumType type;
+        char *ret;
+
+        switch (algorithm) {
+        case SOUP_AUTH_DIGEST_ALGORITHM_NONE:
+        case SOUP_AUTH_DIGEST_ALGORITHM_MD5:
+        case SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS:
+                type = G_CHECKSUM_MD5;
+                break;
+        case SOUP_AUTH_DIGEST_ALGORITHM_SHA256:
+        case SOUP_AUTH_DIGEST_ALGORITHM_SHA256_SESS:
+                type = G_CHECKSUM_SHA256;
+                break;
+        }
 
 	checksum = g_checksum_new (G_CHECKSUM_MD5);
 	g_checksum_update (checksum, (guchar *)username, strlen (username));
@@ -248,49 +267,55 @@ soup_auth_digest_compute_hex_urp (const char *username,
 	g_checksum_update (checksum, (guchar *)realm, strlen (realm));
 	g_checksum_update (checksum, (guchar *)":", 1);
 	g_checksum_update (checksum, (guchar *)password, strlen (password));
-        g_strlcpy (hex_urp, g_checksum_get_string (checksum), 33);
+        g_message ("LEN: %zu", g_checksum_type_get_length (type));
+
+        ret =  g_strdup (g_checksum_get_string (checksum));
 	g_checksum_free (checksum);
+
+        return ret;
 }
 
-void
+char *
 soup_auth_digest_compute_hex_a1 (const char              *hex_urp,
 				 SoupAuthDigestAlgorithm  algorithm,
 				 const char              *nonce,
-				 const char              *cnonce,
-				 char                     hex_a1[33])
+				 const char              *cnonce)
 {
-	if (algorithm == SOUP_AUTH_DIGEST_ALGORITHM_MD5) {
-		/* In MD5, A1 is just user:realm:password, so hex_A1
-		 * is just hex_urp.
-		 */
-		/* You'd think you could say "sizeof (hex_a1)" here,
-		 * but you'd be wrong.
-		 */
-		memcpy (hex_a1, hex_urp, 33);
-	} else {
-		GChecksum *checksum;
+        GChecksum *checksum;
+        GChecksumType type;
+        char *ret;
 
-		/* In MD5-sess, A1 is hex_urp:nonce:cnonce */
+        /* In non-sess digests, A1 is just user:realm:password, so hex_A1
+         * is just hex_urp. */
+        if (algorithm == SOUP_AUTH_DIGEST_ALGORITHM_MD5 ||
+            algorithm == SOUP_AUTH_DIGEST_ALGORITHM_SHA256) {
+                return g_strdup (hex_urp);
+        }
 
-		checksum = g_checksum_new (G_CHECKSUM_MD5);
-		g_checksum_update (checksum, (guchar *)hex_urp, strlen (hex_urp));
-		g_checksum_update (checksum, (guchar *)":", 1);
-		g_checksum_update (checksum, (guchar *)nonce, strlen (nonce));
-		g_checksum_update (checksum, (guchar *)":", 1);
-		g_checksum_update (checksum, (guchar *)cnonce, strlen (cnonce));
-                g_strlcpy (hex_a1, g_checksum_get_string (checksum), 33);
-		g_checksum_free (checksum);
-	}
+        if (algorithm == SOUP_AUTH_DIGEST_ALGORITHM_SHA256_SESS)
+                type = G_CHECKSUM_SHA256;
+        else if (algorithm == SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS)
+                type = G_CHECKSUM_MD5;
+
+        checksum = g_checksum_new (type);
+        g_checksum_update (checksum, (guchar *)hex_urp, strlen (hex_urp));
+        g_checksum_update (checksum, (guchar *)":", 1);
+        g_checksum_update (checksum, (guchar *)nonce, strlen (nonce));
+        g_checksum_update (checksum, (guchar *)":", 1);
+        g_checksum_update (checksum, (guchar *)cnonce, strlen (cnonce));
+        ret = g_strdup (g_checksum_get_string (checksum));
+        g_checksum_free (checksum);
+
+        return ret;
 }
 
 static void
 recompute_hex_a1 (SoupAuthDigestPrivate *priv)
 {
-	soup_auth_digest_compute_hex_a1 (priv->hex_urp,
-					 priv->algorithm,
-					 priv->nonce,
-					 priv->cnonce,
-					 priv->hex_a1);
+	priv->hex_a1 = soup_auth_digest_compute_hex_a1 (priv->hex_urp,
+					                priv->algorithm,
+					                priv->nonce,
+					                priv->cnonce);
 }
 
 static void
@@ -315,9 +340,10 @@ soup_auth_digest_authenticate (SoupAuth *auth, const char *username,
 	priv->user = g_strdup (username);
 
 	/* compute "URP" (user:realm:password) */
-	soup_auth_digest_compute_hex_urp (username, soup_auth_get_realm (auth),
-					  password ? password : "",
-					  priv->hex_urp);
+	priv->hex_urp = soup_auth_digest_compute_hex_urp (priv->algorithm,
+                                                          priv->user,
+                                                          soup_auth_get_realm (auth),
+					                  password ? password : "");
 
 	/* And compute A1 from that */
 	recompute_hex_a1 (priv);
@@ -331,29 +357,42 @@ soup_auth_digest_is_authenticated (SoupAuth *auth)
 	return priv->cnonce != NULL;
 }
 
-void
-soup_auth_digest_compute_response (const char        *method,
-				   const char        *uri,
-				   const char        *hex_a1,
-				   SoupAuthDigestQop  qop,
-				   const char        *nonce,
-				   const char        *cnonce,
-				   int                nc,
-				   char               response[33])
+char *
+soup_auth_digest_compute_response (SoupAuthDigestAlgorithm  algorithm,
+                                   const char              *method,
+				   const char              *uri,
+				   const char              *hex_a1,
+				   SoupAuthDigestQop        qop,
+				   const char              *nonce,
+				   const char              *cnonce,
+				   int                      nc)
 {
-	char hex_a2[33];
+	char *hex_a2, *response;
 	GChecksum *checksum;
+        GChecksumType checksum_type;
+
+        switch (algorithm) {
+        case SOUP_AUTH_DIGEST_ALGORITHM_NONE:
+        case SOUP_AUTH_DIGEST_ALGORITHM_MD5:
+        case SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS:
+                checksum_type = G_CHECKSUM_MD5;
+                break;
+        case SOUP_AUTH_DIGEST_ALGORITHM_SHA256:
+        case SOUP_AUTH_DIGEST_ALGORITHM_SHA256_SESS:
+                checksum_type = G_CHECKSUM_SHA256;
+                break;
+        }
 
 	/* compute A2 */
-	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	checksum = g_checksum_new (checksum_type);
 	g_checksum_update (checksum, (guchar *)method, strlen (method));
 	g_checksum_update (checksum, (guchar *)":", 1);
 	g_checksum_update (checksum, (guchar *)uri, strlen (uri));
-	memcpy (hex_a2, g_checksum_get_string (checksum), sizeof (char) * 33);
+        hex_a2 = g_strdup (g_checksum_get_string (checksum));
 	g_checksum_free (checksum);
 
 	/* compute KD */
-	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	checksum = g_checksum_new (checksum_type);
 	g_checksum_update (checksum, (guchar *)hex_a1, strlen (hex_a1));
 	g_checksum_update (checksum, (guchar *)":", 1);
 	g_checksum_update (checksum, (guchar *)nonce, strlen (nonce));
@@ -374,9 +413,11 @@ soup_auth_digest_compute_response (const char        *method,
 		g_checksum_update (checksum, (guchar *)":", 1);
 	}
 
-	g_checksum_update (checksum, (guchar *)hex_a2, 32);
-	memcpy (response, g_checksum_get_string (checksum), sizeof (char) * 33);
+	g_checksum_update (checksum, (guchar *)hex_a2, strlen (hex_a2));
+        response = g_strdup (g_checksum_get_string (checksum));
 	g_checksum_free (checksum);
+        g_free (hex_a2);
+        return response;
 }
 
 static void
@@ -416,7 +457,7 @@ soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
 	SoupAuthDigest *auth_digest = SOUP_AUTH_DIGEST (auth);
 	SoupAuthDigestPrivate *priv = soup_auth_digest_get_instance_private (auth_digest);
-	char response[33], *token;
+	char *response, *token;
 	char *url, *algorithm;
 	GString *out;
 	GUri *uri;
@@ -425,10 +466,10 @@ soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 	g_return_val_if_fail (uri != NULL, NULL);
 	url = soup_uri_get_path_and_query (uri);
 
-	soup_auth_digest_compute_response (soup_message_get_method (msg), url, priv->hex_a1,
-					   priv->qop, priv->nonce,
-					   priv->cnonce, priv->nc,
-					   response);
+	response = soup_auth_digest_compute_response (priv->algorithm,
+                                                      soup_message_get_method (msg), url, priv->hex_a1,
+					              priv->qop, priv->nonce,
+					              priv->cnonce, priv->nc);
 
 	out = g_string_new ("Digest ");
 
