@@ -249,6 +249,7 @@ deps = [
   libpsl_dep,
   brotlidec_dep,
   platform_deps,
+  gssapi_dep,
   libz_dep,
 ]
 
@@ -275,7 +276,7 @@ pkg.generate(libsoup,
 libsoup_dep = declare_dependency(link_with : libsoup,
   include_directories : configinc,
   sources : soup_enum_h,
-  dependencies : [ platform_deps, glib_deps ])
+  dependencies : [ platform_deps, gssapi_dep, glib_deps ])
 
 if enable_gnome
   soup_gnome_api_name = 'soup-gnome-' + apiversion
