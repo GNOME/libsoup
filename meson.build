@@ -317,12 +317,11 @@ if cc.get_id() == 'msvc'
   else
     gssapi_lib_type = '64'
   endif
-  gssapi_lib = cc.find_library('gssapi' + gssapi_lib_type,
+  gssapi_dep = cc.find_library('gssapi' + gssapi_lib_type,
     has_headers: 'gssapi/gssapi.h',
     required: gssapi_opt)
-  if gssapi_lib.found()
+  if gssapi_dep.found()
       enable_gssapi = true
-      add_project_link_arguments('gssapi@0@.lib'.format(gssapi_lib_type), language : 'c')
   endif
 else
   krb5_config_path = get_option('krb5_config')
@@ -335,9 +334,12 @@ else
     cflags_output = run_command (krb5_config, '--cflags', 'gssapi', check: gssapi_opt.enabled())
     if libs_output.returncode() == 0 and cflags_output.returncode() == 0
       enable_gssapi = true
-      add_project_link_arguments(libs_output.stdout().split(), language : 'c')
-      add_project_arguments(cflags_output.stdout().split(), language : 'c')
+      gssapi_dep = declare_dependency(
+        link_args: libs_output.stdout().split(),
+        compile_args: cflags_output.stdout().split())
     endif
+  else
+    gssapi_dep = dependency('', required: false)
   endif
 endif
 
