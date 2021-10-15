@@ -70,7 +70,7 @@ else
       '-Werror=aggregate-return',
       '-Werror=format=2',
       '-Werror=return-type',
-      '-Werror=incompatible-pointer-types',
+      '-Wincompatible-pointer-types',
       '-Wstrict-prototypes',
       '-Wno-format-zero-length',
       '-Wno-missing-include-dirs',
