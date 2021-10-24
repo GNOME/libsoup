@@ -1,3 +1,18 @@
+Changes in libsoup from 3.0.1 to 3.0.2:
+
+* Add support for multiple auth challenges in one response [Patrick Griffis]
+
+* Fix SoupCache test failures on 32bit [Patrick Griffis]
+
+* Don't treat `-Wincompatible-pointer-types` as error
+  The `glib-mkenums` tool sometimes triggered this [Patrick Griffis]
+
+* Improve `gssapi` dependency handling [Nirbheek Chauhan]
+
+* Fix undefined `ssize_t` on Windows [Chun-wei Fan]
+
+* Updated translations: Hebrew
+
 Changes in libsoup from 3.0.0 to 3.0.1:
 
 * Move python overrides to upstream pygobject [Patrick Griffis]
