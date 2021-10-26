@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Tranzistors <rudolfs.mazurs@gmail.com>, 2012.
-# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014, 2016, 2017, 2018, 2019, 2020.
+# Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012, 2013, 2014, 2016, 2017, 2018, 2019, 2020, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-06-26 17:08+0000\n"
-"PO-Revision-Date: 2020-09-12 13:15+0300\n"
+"POT-Creation-Date: 2021-06-11 18:40+0000\n"
+"PO-Revision-Date: 2021-10-26 20:23+0300\n"
 "Last-Translator: Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>\n"
 "Language-Team: Latvian <lata-l10n@googlegroups.com>\n"
 "Language: lv\n"
@@ -18,191 +18,211 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 :"
 " 2);\n"
-"X-Generator: Lokalize 19.12.3\n"
+"X-Generator: Lokalize 21.08.1\n"
 
-#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
-msgid "Connection terminated unexpectedly"
-msgstr "Savienojums tika negaidīti pārtraukts"
-
-#: libsoup/soup-body-input-stream.c:459
-msgid "Invalid seek request"
-msgstr "Nederīgs meklēšanas pieprasījums"
-
-#: libsoup/soup-body-input-stream.c:487
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Nevar apraut SoupBodyInputStream"
-
-#: libsoup/soup-cache-input-stream.c:76
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Tīkla straume negaidīti aizvērās"
 
-#: libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Neizdevās resursu pilnībā noglabāt kešatmiņā"
 
-#: libsoup/soup-directory-input-stream.c:231
-msgid "Name"
-msgstr "Nosaukums"
-
-#: libsoup/soup-directory-input-stream.c:232
-msgid "Size"
-msgstr "Izmērs"
-
-#: libsoup/soup-directory-input-stream.c:233
-msgid "Date Modified"
-msgstr "Izmaiņu datums"
-
-#: libsoup/soup-converter-wrapper.c:189
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Izvades buferis ir pārāk mazs"
 
-#: libsoup/soup-message-client-io.c:39
-msgid "Could not parse HTTP response"
-msgstr "Nevarēja parsēt HTTP atbildi"
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Savienojums tika negaidīti pārtraukts"
 
-#: libsoup/soup-message-client-io.c:62
-msgid "Unrecognized HTTP response encoding"
-msgstr "Neatpazīts HTTP atbildes kodējums"
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Nederīgs meklēšanas pieprasījums"
 
-#: libsoup/soup-message-io.c:261
-msgid "Header too big"
-msgstr "Galvene ir pārāk liela"
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Nevar apraut SoupBodyInputStream"
 
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:354 libsoup/server/soup-server-io.c:819
 msgid "Operation would block"
 msgstr "Darbība bloķētu"
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Nevarēja parsēt HTTP atbildi"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Neatpazīts HTTP atbildes kodējums"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1426
+#: libsoup/http2/soup-client-message-io-http2.c:1450
 msgid "Operation was cancelled"
 msgstr "Darbība tika atcelta"
 
-#: libsoup/soup-message-server-io.c:63
-msgid "Could not parse HTTP request"
-msgstr "Nevarēja parsēt HTTP pieprasījumu"
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Galvene ir pārāk liela"
 
-#: libsoup/soup-request.c:141
-#, c-format
-msgid "No URI provided"
-msgstr "Nav sniegts URI"
-
-#: libsoup/soup-request.c:151
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "Nederīgs “%s” URI — %s"
-
-#: libsoup/soup-server.c:1810
+#: libsoup/server/soup-server.c:1072
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Bez TLS sertifikāta nevar izveidot TLS serveri"
 
-#: libsoup/soup-server.c:1827
+#: libsoup/server/soup-server.c:1088
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nevarēja sākt klausīties adresi %s, portu %d: "
 
-#: libsoup/soup-session.c:4570
-#, c-format
-msgid "Could not parse URI “%s”"
-msgstr "Nevarēja parsēt URI “%s”"
-
-#: libsoup/soup-session.c:4607
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Neatbalstīta URI shēma “%s”"
-
-#: libsoup/soup-session.c:4629
-#, c-format
-msgid "Not an HTTP URI"
-msgstr "Nav HTTP URI"
-
-#: libsoup/soup-session.c:4840
-msgid "The server did not accept the WebSocket handshake."
-msgstr "Serveris nepieņēma WebSocket rokasspiedienu."
-
-#: libsoup/soup-socket.c:148
-msgid "Can’t import non-socket as SoupSocket"
-msgstr "Nevar importēt ne-ligzdu kā SoupSocket"
-
-#: libsoup/soup-socket.c:166
+#: libsoup/server/soup-socket.c:116
 msgid "Could not import existing socket: "
 msgstr "Nevarēja importēt esošu ligzdu: "
 
-#: libsoup/soup-socket.c:175
+#: libsoup/server/soup-socket.c:125
 msgid "Can’t import unconnected socket"
 msgstr "Nevar importēt nesavienotu ligzdu"
 
-#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
-#: libsoup/soup-websocket.c:539
+#: libsoup/soup-session.c:1166
+msgid "Location header is missing or empty in response headers"
+msgstr ""
+"Atbildes galvenē vai nu nav atrodama vai ir tukša atrašanās vietas galvene"
+
+#: libsoup/soup-session.c:1180
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Atrašanās vietas atbildes galvenē ir nederīgs URI “%s”"
+
+#: libsoup/soup-session.c:1200
+msgid "Too many redirects"
+msgstr "Pārāk daudz pāradresāciju"
+
+#: libsoup/soup-session.c:1205
+msgid "Message was restarted too many times"
+msgstr "Ziņojums tika pārstartēts pārāk daudz reižu"
+
+#: libsoup/soup-session.c:3315 libsoup/soup-session.c:3464
+msgid "Message is already in session queue"
+msgstr "Ziņojums jau ir sesijas rindā"
+
+#: libsoup/soup-session.c:3825
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Serveris nepieņēma WebSocket rokasspiedienu."
+
+#: libsoup/soup-tld.c:142
+msgid "No public-suffix list available."
+msgstr "Nav pieejams public-suffix saraksts."
+
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
+msgid "Invalid hostname"
+msgstr "Nederīgs datora nosaukums"
+
+#: libsoup/soup-tld.c:159
+msgid "Hostname is an IP address"
+msgstr "Datora nosaukums ir IP adrese"
+
+#: libsoup/soup-tld.c:180
+msgid "Hostname has no base domain"
+msgstr "Datora nosaukumam nav bāzes domēna"
+
+#: libsoup/soup-tld.c:188
+msgid "Not enough domains"
+msgstr "Nepietiekami daudz domēnu"
+
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "Serveris pieprasīja neatbalstītu paplašinājumu"
 
-#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Nederīga WebSocket “%s” galvene"
 
-#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Serveris atgrieza nederīgu “%s” atslēgu"
 
-#: libsoup/soup-websocket.c:566
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Dublēti parametri “%s” WebSocket paplašinājumu galvenē"
 
-#: libsoup/soup-websocket.c:567
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr ""
 "Serveris atgrieza dublētu parametru “%s” WebSocket paplašinājumu galvenē"
 
-#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "WebSocket rokasspiedienam beidzās termiņš"
 
-#: libsoup/soup-websocket.c:675
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "Neatbalstīta WebSocket versija"
 
-#: libsoup/soup-websocket.c:684
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Nederīga WebSocket atslēga"
 
-#: libsoup/soup-websocket.c:703
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Neatbalstīts WebSocket apakšprotokols"
 
-#: libsoup/soup-websocket.c:975
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "Serveris noraidīja WebSocket rokasspiedienu"
 
-#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "Serveris ignorēja WebSocket rokasspiedienu"
 
-#: libsoup/soup-websocket.c:1004
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "Serveris pieprasīja neatbalstītu protokolu"
 
-#: libsoup/soup-tld.c:150
-msgid "No public-suffix list available."
-msgstr "Nav pieejams public-suffix saraksts."
+#~ msgid "Name"
+#~ msgstr "Nosaukums"
 
-#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
-msgid "Invalid hostname"
-msgstr "Nederīgs datora nosaukums"
+#~ msgid "Size"
+#~ msgstr "Izmērs"
 
-#: libsoup/soup-tld.c:167
-msgid "Hostname is an IP address"
-msgstr "Datora nosaukums ir IP adrese"
+#~ msgid "Date Modified"
+#~ msgstr "Izmaiņu datums"
 
-#: libsoup/soup-tld.c:188
-msgid "Hostname has no base domain"
-msgstr "Datora nosaukumam nav bāzes domēna"
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "Nevarēja parsēt HTTP pieprasījumu"
 
-#: libsoup/soup-tld.c:196
-msgid "Not enough domains"
-msgstr "Nepietiekami daudz domēnu"
+#~ msgid "No URI provided"
+#~ msgstr "Nav sniegts URI"
+
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "Nederīgs “%s” URI — %s"
+
+#~ msgid "Could not parse URI “%s”"
+#~ msgstr "Nevarēja parsēt URI “%s”"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "Neatbalstīta URI shēma “%s”"
+
+#~ msgid "Not an HTTP URI"
+#~ msgstr "Nav HTTP URI"
+
+#~ msgid "Can’t import non-socket as SoupSocket"
+#~ msgstr "Nevar importēt ne-ligzdu kā SoupSocket"
