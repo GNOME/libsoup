@@ -679,8 +679,8 @@ too_big_error_and_close (SoupWebsocketConnection *self,
 	error = g_error_new_literal (SOUP_WEBSOCKET_ERROR,
 				     SOUP_WEBSOCKET_CLOSE_TOO_BIG,
 				     priv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER ?
-				     "Received extremely large WebSocket data from the client" :
-				     "Received extremely large WebSocket data from the server");
+				     "Received WebSocket payload from the client larger than configured max-incoming-payload-size" :
+				     "Received WebSocket payload from the server larger than configured max-incoming-payload-size");
 	g_debug ("%s is trying to frame of size %" G_GUINT64_FORMAT " or greater, but max supported size is %" G_GUINT64_FORMAT,
 		 priv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER ? "server" : "client",
 	         payload_len, priv->max_incoming_payload_size);
