@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2021-02-24 00:10+0000\n"
-"PO-Revision-Date: 2021-02-24 18:48+0100\n"
+"POT-Creation-Date: 2021-08-09 09:48+0000\n"
+"PO-Revision-Date: 2021-08-18 13:24+0200\n"
 "Last-Translator: Milo Casagrande <milo@milo.name>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
@@ -18,103 +18,99 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
 "X-Generator: Poedit 2.4.2\n"
 
-#: libsoup/cache/soup-cache-input-stream.c:79
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Flusso di rete chiuso inaspettatamente"
 
-#: libsoup/cache/soup-cache-input-stream.c:295
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Salvataggio in memoria della risorsa non riuscito"
 
-#: libsoup/content-decoder/soup-converter-wrapper.c:193
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Il buffer di uscita è troppo piccolo"
 
-#: libsoup/server/soup-server.c:1065
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Connessione terminata inaspettatamente"
+
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Richiesta di posizionamento non valida"
+
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Impossibile troncare SoupBodyInputStream"
+
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
+msgid "Operation would block"
+msgstr "L'operazione potrebbe bloccarsi"
+
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Impossibile analizzare la risposta HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Codifica risposta HTTP non riconosciuta"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1456
+#: libsoup/http2/soup-client-message-io-http2.c:1480
+msgid "Operation was cancelled"
+msgstr "L'operazione è stata annullata"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Intestazione troppo grande"
+
+#: libsoup/server/soup-server.c:1201
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Impossibile creare un server TLS senza un certificato TLS"
 
-#: libsoup/server/soup-server.c:1081
+#: libsoup/server/soup-server.c:1223
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Impossibile restare in ascolto sull'indirizzo %s, porta %d: "
 
-#: libsoup/server/soup-server-io.c:345 libsoup/server/soup-server-io.c:810
-#: libsoup/soup-message-io.c:327 libsoup/soup-message-io.c:726
-msgid "Operation would block"
-msgstr "L'operazione potrebbe bloccarsi"
-
-#: libsoup/server/soup-socket.c:114
+#: libsoup/server/soup-socket.c:121
 msgid "Could not import existing socket: "
 msgstr "Impossibile importare il socket esistente: "
 
-#: libsoup/server/soup-socket.c:123
+#: libsoup/server/soup-socket.c:130
 msgid "Can’t import unconnected socket"
 msgstr "Impossibile importare un socket non connesso"
 
-#: libsoup/soup-body-input-stream.c:148 libsoup/soup-body-input-stream.c:180
-#: libsoup/soup-body-input-stream.c:213 libsoup/soup-message-io-data.c:76
-msgid "Connection terminated unexpectedly"
-msgstr "Connessione terminata inaspettatamente"
-
-#: libsoup/soup-body-input-stream.c:474
-msgid "Invalid seek request"
-msgstr "Richiesta di posizionamento non valida"
-
-#: libsoup/soup-body-input-stream.c:502
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Impossibile troncare SoupBodyInputStream"
-
-#: libsoup/soup-message-io.c:467
-msgid "Could not parse HTTP response"
-msgstr "Impossibile analizzare la risposta HTTP"
-
-#: libsoup/soup-message-io.c:490
-msgid "Unrecognized HTTP response encoding"
-msgstr "Codifica risposta HTTP non riconosciuta"
-
-#: libsoup/soup-message-io.c:687 libsoup/soup-message-io.c:711
-msgid "Operation was cancelled"
-msgstr "L'operazione è stata annullata"
-
-#: libsoup/soup-message-io-data.c:100
-msgid "Header too big"
-msgstr "Intestazione troppo grande"
-
-#: libsoup/soup-session.c:1083
+#: libsoup/soup-session.c:1166
 msgid "Location header is missing or empty in response headers"
 msgstr "Header Location mancante o vuoto negli header della risposta"
 
-#: libsoup/soup-session.c:1097
+#: libsoup/soup-session.c:1180
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "URI «%s» non valido nell'header Location della risposta"
 
-#: libsoup/soup-session.c:1117
+#: libsoup/soup-session.c:1200
 msgid "Too many redirects"
 msgstr "Troppi reindirizzamenti"
 
-#: libsoup/soup-session.c:1122
+#: libsoup/soup-session.c:1205
 msgid "Message was restarted too many times"
 msgstr "Il messaggio è stato riavviato troppe volte"
 
-#: libsoup/soup-session.c:3485 libsoup/soup-session.c:3614
-#, c-format
-msgid "Could not parse URI “%s”: %s"
-msgstr "Impossibile analizzare l'URI «%s»: %s"
+#: libsoup/soup-session.c:3317 libsoup/soup-session.c:3466
+msgid "Message is already in session queue"
+msgstr "Il messaggio è già nella coda di sessione"
 
-#: libsoup/soup-session.c:3497 libsoup/soup-session.c:3626
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Schema URI «%s» non supportato"
-
-#: libsoup/soup-session.c:3508 libsoup/soup-session.c:3637
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "URI «%s» non valido: %s"
-
-#: libsoup/soup-session.c:3950
+#: libsoup/soup-session.c:3827
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Il server non ha accettato l'handshake WebSocket."
 
@@ -138,30 +134,30 @@ msgstr "Il nome host non ha un dominio di base"
 msgid "Not enough domains"
 msgstr "Domini insufficienti"
 
-#: libsoup/websocket/soup-websocket.c:398
-#: libsoup/websocket/soup-websocket.c:442
-#: libsoup/websocket/soup-websocket.c:458
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "Il server ha richiesto un'estensione non supportata"
 
-#: libsoup/websocket/soup-websocket.c:421
-#: libsoup/websocket/soup-websocket.c:613
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Intestazione WebSocket «%s» non valida"
 
-#: libsoup/websocket/soup-websocket.c:422
-#: libsoup/websocket/soup-websocket.c:877
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Il server ha restituito una chiave «%s» non corretta"
 
-#: libsoup/websocket/soup-websocket.c:485
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Parametro duplicato nell'intestazione di estensione WebSocket «%s»"
 
-#: libsoup/websocket/soup-websocket.c:486
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
@@ -169,32 +165,32 @@ msgstr ""
 "Il server ha restituito un parametro duplicato nell'intestazione di "
 "estensione WebSocket «%s»"
 
-#: libsoup/websocket/soup-websocket.c:576
-#: libsoup/websocket/soup-websocket.c:586
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "Atteso handshake WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:594
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "Version WebSocket non supportata"
 
-#: libsoup/websocket/soup-websocket.c:603
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Chiave WebSocket non valida"
 
-#: libsoup/websocket/soup-websocket.c:622
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Sotto-protocollo WebSocket non supportato"
 
-#: libsoup/websocket/soup-websocket.c:828
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "Il server ha rifiutato l'handshake WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:836
-#: libsoup/websocket/soup-websocket.c:845
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "Il server ha ignorato l'handshake WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:857
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "Il server ha richiesto un protocollo non supportato"
