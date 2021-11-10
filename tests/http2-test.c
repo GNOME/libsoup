@@ -328,6 +328,35 @@ do_post_sync_test (Test *test, gconstpointer data)
 }
 
 static void
+do_post_large_sync_test (Test *test, gconstpointer data)
+{
+        guint large_size = 1000000;
+        char *large_data;
+        unsigned int i;
+
+        large_data = g_malloc (large_size);
+        for (i = 0; i < large_size; i++)
+                large_data[i] = i & 0xFF;
+        GBytes *bytes = g_bytes_new_take (large_data, large_size);
+        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
+        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
+
+        GError *error = NULL;
+        GInputStream *response = soup_session_send (test->session, test->msg, NULL, &error);
+
+        g_assert_no_error (error);
+        g_assert_nonnull (response);
+
+        GBytes *response_bytes = read_stream_to_bytes_sync (response);
+        g_assert_true (g_bytes_equal (bytes, response_bytes));
+
+        g_bytes_unref (response_bytes);
+        g_object_unref (response);
+        g_bytes_unref (bytes);
+        g_object_unref (test->msg);
+}
+
+static void
 do_post_async_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context = g_main_context_ref_thread_default ();
@@ -344,6 +373,39 @@ do_post_async_test (Test *test, gconstpointer data)
         }
 
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "body 1");
+
+        while (g_main_context_pending (async_context))
+                g_main_context_iteration (async_context, FALSE);
+
+        g_bytes_unref (response);
+        g_bytes_unref (bytes);
+        g_main_context_unref (async_context);
+        g_object_unref (test->msg);
+}
+
+static void
+do_post_large_async_test (Test *test, gconstpointer data)
+{
+        GMainContext *async_context = g_main_context_ref_thread_default ();
+        guint large_size = 1000000;
+        char *large_data;
+        unsigned int i;
+
+        large_data = g_malloc (large_size);
+        for (i = 0; i < large_size; i++)
+                large_data[i] = i & 0xFF;
+        GBytes *bytes = g_bytes_new_take (large_data, large_size);
+        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
+        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
+
+        GBytes *response = NULL;
+        soup_session_send_async (test->session, test->msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+
+        while (!response) {
+                g_main_context_iteration (async_context, TRUE);
+        }
+
+        g_assert_true (g_bytes_equal (bytes, response));
 
         while (g_main_context_pending (async_context))
                 g_main_context_iteration (async_context, FALSE);
@@ -975,6 +1037,14 @@ main (int argc, char **argv)
         g_test_add ("/http2/post/sync", Test, NULL,
                     setup_session,
                     do_post_sync_test,
+                    teardown_session);
+        g_test_add ("/http2/post/large/sync", Test, NULL,
+                    setup_session,
+                    do_post_large_sync_test,
+                    teardown_session);
+        g_test_add ("/http2/post/large/async", Test, NULL,
+                    setup_session,
+                    do_post_large_async_test,
                     teardown_session);
         g_test_add ("/http2/post/blocked/async", Test, NULL,
                     setup_session,
