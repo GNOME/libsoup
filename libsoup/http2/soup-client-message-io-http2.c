@@ -392,7 +392,8 @@ io_write_ready (GObject                  *stream,
 }
 
 static void
-io_try_write (SoupClientMessageIOHTTP2 *io)
+io_try_write (SoupClientMessageIOHTTP2 *io,
+              gboolean                  blocking)
 {
         GError *error = NULL;
 
@@ -400,7 +401,7 @@ io_try_write (SoupClientMessageIOHTTP2 *io)
                 return;
 
         while (nghttp2_session_want_write (io->session) && !error)
-                io_write (io, FALSE, NULL, &error);
+                io_write (io, blocking, NULL, &error);
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
@@ -514,7 +515,7 @@ soup_client_message_io_http2_terminate_session (SoupClientMessageIOHTTP2 *io)
 
         io->session_terminated = TRUE;
         NGCHECK (nghttp2_session_terminate_session (io->session, NGHTTP2_NO_ERROR));
-        io_try_write (io);
+        io_try_write (io, FALSE);
 }
 
 /* HTTP2 read callbacks */
@@ -708,7 +709,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                 h2_debug (io, data, "[RECV] WINDOW_UPDATE: increment=%d, total=%d", frame->window_update.window_size_increment,
                           nghttp2_session_get_stream_remote_window_size (session, frame->hd.stream_id));
                 if (nghttp2_session_get_stream_remote_window_size (session, frame->hd.stream_id) > 0)
-                        io_try_write (io);
+                        io_try_write (io, !data->item->async);
                 break;
         };
 
@@ -872,7 +873,7 @@ on_data_readable (GInputStream *stream,
         h2_debug (data->io, data, "on data readable");
 
         NGCHECK (nghttp2_session_resume_data (data->io->session, data->stream_id));
-        io_try_write (data->io);
+        io_try_write (data->io, !data->item->async);
 
         g_clear_pointer (&data->data_source_poll, g_source_unref);
         return G_SOURCE_REMOVE;
@@ -907,7 +908,7 @@ on_data_read (GInputStream *source,
 
         h2_debug (data->io, data, "[SEND_BODY] Resuming send");
         NGCHECK (nghttp2_session_resume_data (data->io->session, data->stream_id));
-        io_try_write (data->io);
+        io_try_write (data->io, !data->item->async);
 }
 
 static void
@@ -1043,7 +1044,7 @@ message_priority_changed (SoupHTTP2MessageData *data)
 
         nghttp2_priority_spec_init (&priority_spec, 0, weight, 0);
         NGCHECK (nghttp2_submit_priority (data->io->session, NGHTTP2_FLAG_NONE, data->stream_id, &priority_spec));
-        io_try_write (data->io);
+        io_try_write (data->io, !data->item->async);
 }
 
 static SoupHTTP2MessageData *
@@ -1218,7 +1219,7 @@ send_message_request (SoupMessage          *msg,
                 NGCHECK (stream_id);
                 data->stream_id = stream_id;
                 h2_debug (io, data, "[SESSION] Request made for %s%s", authority_header, path_and_query);
-                io_try_write (io);
+                io_try_write (io, !data->item->async);
         }
         g_array_free (headers, TRUE);
         g_free (authority);
@@ -1292,7 +1293,7 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
                 return;
         }
 
-        io_try_write (io);
+        io_try_write (io, FALSE);
 }
 
 static void
@@ -1531,7 +1532,7 @@ soup_client_message_io_http2_skip (SoupClientMessageIO *iface,
 
         h2_debug (io, data, "Skip");
         NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id, NGHTTP2_STREAM_CLOSED));
-        io_try_write (io);
+        io_try_write (io, blocking);
         return TRUE;
 }
 
@@ -1701,7 +1702,7 @@ soup_client_message_io_http2_new (SoupConnection *conn)
                 { NGHTTP2_SETTINGS_ENABLE_PUSH, 0 },
         };
         NGCHECK (nghttp2_submit_settings (io->session, NGHTTP2_FLAG_NONE, settings, G_N_ELEMENTS (settings)));
-        io_try_write (io);
+        io_try_write (io, FALSE);
 
         return (SoupClientMessageIO *)io;
 }
