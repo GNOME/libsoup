@@ -659,7 +659,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         h2_debug (io, data, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
 
         if (!data) {
-                if (!(frame->hd.flags & NGHTTP2_FLAG_END_STREAM))
+                if (!(frame->hd.flags & NGHTTP2_FLAG_END_STREAM) && frame->hd.type != NGHTTP2_RST_STREAM)
                         g_warn_if_reached ();
                 return 0;
         }
