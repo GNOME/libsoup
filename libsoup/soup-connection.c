@@ -585,6 +585,7 @@ new_tls_connection (SoupConnection    *conn,
                                          "advertised-protocols", advertised_protocols->pdata,
                                          NULL);
 
+        g_object_unref (tls_interaction);
         g_ptr_array_unref (advertised_protocols);
 
         if (!tls_connection)
