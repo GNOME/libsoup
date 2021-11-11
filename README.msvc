@@ -3,16 +3,16 @@ Building with Visual Studio using Meson
 
 Meson is now the supported method of building libsoup using Visual Studio.
 
-Note that you will need libxml2, SQLite3, libpsl and optionally MIT
-Kerberos, in addition to GLib and all its dependencies.  You will also need
+Note that you will need SQLite3, libpsl and optionally MIT Kerberos,
+in addition to GLib and all its dependencies.  You will also need
 a set of GIO modules that implement TLS functionality, which needs to be
 found and loadable by GLib (GIO).  glib-openssl is the
 only supported option for this at this time of writing for Visual Studio
 builds.  Note that these should be built with the same compiler that is being
 used to build libsoup.
 
-For libxml2, SQLite3 and MIT Kerberos (for GSSAPI functionality), ensure that
-their headers, .lib's and DLLs can be found in the paths defined in your INCLUDE,
+For SQLite3 and MIT Kerberos (for GSSAPI functionality), ensure that their
+headers, .lib's and DLLs can be found in the paths defined in your INCLUDE,
 LIB and PATH environmental variables, while you need to set PKG_CONFIG_PATH to
 contain the path to the pkg-config (.pc) files for the various components of GLib
 and for libpsl.  If GObject-Introspection is found via pkg-config files, the
