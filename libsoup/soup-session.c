@@ -3326,7 +3326,7 @@ soup_session_return_error_if_message_already_in_queue (SoupSession         *sess
 /**
  * soup_session_send_async:
  * @session: a #SoupSession
- * @msg: a #SoupMessage
+ * @msg: (transfer none): a #SoupMessage
  * @io_priority: the I/O priority of the request
  * @cancellable: (nullable): a #GCancellable
  * @callback: (scope async): the callback to invoke
@@ -3417,7 +3417,7 @@ soup_session_send_finish (SoupSession   *session,
 /**
  * soup_session_send:
  * @session: a #SoupSession
- * @msg: a #SoupMessage
+ * @msg: (transfer none): a #SoupMessage
  * @cancellable: (nullable): a #GCancellable
  * @error: return location for a #GError, or %NULL
  *
@@ -3605,7 +3605,7 @@ send_and_read_stream_ready_cb (SoupSession  *session,
 /**
  * soup_session_send_and_read_async:
  * @session: a #SoupSession
- * @msg: a #SoupMessage
+ * @msg: (transfer none): a #SoupMessage
  * @io_priority: the I/O priority of the request
  * @cancellable: (nullable): a #GCancellable
  * @callback: (scope async): the callback to invoke
@@ -3669,7 +3669,7 @@ soup_session_send_and_read_finish (SoupSession  *session,
 /**
  * soup_session_send_and_read:
  * @session: a #SoupSession
- * @msg: a #SoupMessage
+ * @msg: (transfer none): a #SoupMessage
  * @cancellable: (nullable): a #GCancellable
  * @error: return location for a #GError, or %NULL
  *
@@ -4020,7 +4020,7 @@ preconnect_async_complete (SoupMessage *msg,
  * the ownership of the connection and the preconnect operation will finish successfully (if
  * there's a connection error it will be handled by the request).
  *
- * The operation finishes when the connection is done or an error ocurred.
+ * The operation finishes when the connection is done or an error occurred.
  */
 void
 soup_session_preconnect_async (SoupSession        *session,
