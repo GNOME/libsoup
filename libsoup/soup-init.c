@@ -10,6 +10,7 @@
 #endif
 
 #include <glib/gi18n-lib.h>
+#include <gmodule.h>
 #include "gconstructor.h"
 
 #ifdef G_OS_WIN32
@@ -18,6 +19,21 @@
 
 HMODULE soup_dll;
 #endif
+
+static gboolean
+soup3_is_loaded (void)
+{
+    GModule *module = g_module_open (NULL, 0);
+    gpointer func;
+    gboolean result = FALSE;
+
+    if (g_module_symbol (module, "soup_date_time_new_from_http_string", &func))
+        result = TRUE;
+
+    g_module_close (module);
+
+    return result;
+}
 
 static void
 soup_init (void)
@@ -34,6 +50,9 @@ soup_init (void)
 #ifdef HAVE_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 #endif
+
+        if (soup3_is_loaded ())
+                g_error ("libsoup3 symbols detected. Using libsoup2 and libsoup3 in the same process is not supported.");
 }
 
 #if defined (G_OS_WIN32)

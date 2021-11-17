@@ -83,12 +83,14 @@ add_project_arguments(common_flags, language : 'c')
 glib_required_version = '>= 2.58'
 glib_dep = dependency('glib-2.0', version : glib_required_version,
                        fallback: ['glib', 'libglib_dep'])
+gmodule_dep = dependency('gmodule-2.0', version : glib_required_version,
+                         fallback: ['glib', 'libgmodule_dep'])
 gobject_dep = dependency('gobject-2.0', version : glib_required_version,
                        fallback: ['glib', 'libgobject_dep'])
 gio_dep = dependency('gio-2.0', version : glib_required_version,
                        fallback: ['glib', 'libgio_dep'])
 
-glib_deps = [glib_dep, gobject_dep, gio_dep]
+glib_deps = [glib_dep, gmodule_dep, gobject_dep, gio_dep]
 
 sqlite_dep = dependency('sqlite3', required: false)
 
