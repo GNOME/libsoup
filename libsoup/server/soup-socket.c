@@ -49,6 +49,8 @@ enum {
 	PROP_TLS_CERTIFICATE,
         PROP_TLS_DATABASE,
         PROP_TLS_AUTH_MODE,
+        PROP_TLS_PEER_CERTIFICATE,
+        PROP_TLS_PEER_CERTIFICATE_ERRORS,
 
 	LAST_PROPERTY
 };
@@ -411,6 +413,22 @@ soup_socket_class_init (SoupSocketClass *socket_class)
                                      G_PARAM_READWRITE |
                                      G_PARAM_STATIC_STRINGS);
 
+        properties[PROP_TLS_PEER_CERTIFICATE] =
+                g_param_spec_object ("tls-peer-certificate",
+                                     "TLS Peer Certificate",
+                                     "The TLS peer certificate associated with the message",
+                                     G_TYPE_TLS_CERTIFICATE,
+                                     G_PARAM_READABLE |
+                                     G_PARAM_STATIC_STRINGS);
+
+        properties[PROP_TLS_PEER_CERTIFICATE_ERRORS] =
+                g_param_spec_flags ("tls-peer-certificate-errors",
+                                    "TLS Peer Certificate Errors",
+                                    "The verification errors on the message's TLS peer certificate",
+                                    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
+                                    G_PARAM_READABLE |
+                                    G_PARAM_STATIC_STRINGS);
+
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
 
@@ -496,6 +514,12 @@ tls_connection_accept_certificate (SoupSocket          *sock,
         return accept;
 }
 
+static void
+tls_connection_peer_certificate_changed (SoupSocket *sock)
+{
+	g_object_notify_by_pspec (G_OBJECT (sock), properties[PROP_TLS_CERTIFICATE]);
+}
+
 static gboolean
 soup_socket_setup_ssl (SoupSocket *sock)
 {
@@ -524,6 +548,9 @@ soup_socket_setup_ssl (SoupSocket *sock)
 
         g_signal_connect_object (priv->conn, "accept-certificate",
                                  G_CALLBACK (tls_connection_accept_certificate),
+                                 sock, G_CONNECT_SWAPPED);
+        g_signal_connect_object (priv->conn, "notify::peer-certificate",
+                                 G_CALLBACK (tls_connection_peer_certificate_changed),
                                  sock, G_CONNECT_SWAPPED);
 
 	g_clear_object (&priv->istream);
@@ -805,4 +832,34 @@ soup_socket_get_connection (SoupSocket *sock)
 	SoupSocketPrivate *priv = soup_socket_get_instance_private (sock);
 
 	return priv->conn;
+}
+
+GTlsCertificate *
+soup_socket_get_tls_certificate (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+
+	priv = soup_socket_get_instance_private (sock);
+
+	if (!G_IS_TLS_CONNECTION (priv->conn))
+		return NULL;
+
+	return g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (priv->conn));
+}
+
+GTlsCertificateFlags
+soup_socket_get_tls_certificate_errors (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), 0);
+
+	priv = soup_socket_get_instance_private (sock);
+
+	if (!G_IS_TLS_CONNECTION (priv->conn))
+		return 0;
+
+	return g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->conn));
 }

@@ -30,4 +30,7 @@ GIOStream     *soup_socket_get_iostream       (SoupSocket         *sock);
 GInetSocketAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
 GInetSocketAddress   *soup_socket_get_remote_address (SoupSocket         *sock);
 
+GTlsCertificate      *soup_socket_get_tls_certificate        (SoupSocket *sock);
+GTlsCertificateFlags  soup_socket_get_tls_certificate_errors (SoupSocket *sock);
+
 G_END_DECLS

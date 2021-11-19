@@ -80,6 +80,12 @@ GIOStream          *soup_server_message_steal_connection      (SoupServerMessage
 SOUP_AVAILABLE_IN_ALL
 gboolean            soup_server_message_is_options_ping       (SoupServerMessage *msg);
 
+SOUP_AVAILABLE_IN_3_2
+GTlsCertificate     *soup_server_message_get_tls_peer_certificate          (SoupServerMessage *msg);
+
+SOUP_AVAILABLE_IN_3_2
+GTlsCertificateFlags soup_server_message_get_tls_peer_certificate_errors   (SoupServerMessage *msg);
+
 G_END_DECLS
 
 #endif /* __SOUP_SERVER_MESSAGE_H__ */
