@@ -798,6 +798,15 @@ remove_closed_stream (SoupHTTP2MessageData *data,
         return data->stream_id == frame->hd.stream_id;
 }
 
+static gboolean
+close_in_idle_cb (SoupClientMessageIOHTTP2 *io)
+{
+        g_task_return_boolean (io->close_task, TRUE);
+        g_clear_object (&io->close_task);
+
+        return G_SOURCE_REMOVE;
+}
+
 static int
 on_frame_send_callback (nghttp2_session     *session,
                         const nghttp2_frame *frame,
@@ -851,8 +860,8 @@ on_frame_send_callback (nghttp2_session     *session,
                 h2_debug (io, data, "[SEND] [%s]", frame_type_to_string (frame->hd.type));
                 io->goaway_sent = TRUE;
                 if (io->close_task) {
-                        g_task_return_boolean (io->close_task, TRUE);
-                        g_clear_object (&io->close_task);
+                        /* Close in idle to ensure all pending io is finished first */
+                        g_idle_add ((GSourceFunc)close_in_idle_cb, io);
                 }
                 break;
         default:
