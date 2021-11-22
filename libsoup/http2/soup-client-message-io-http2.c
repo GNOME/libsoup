@@ -1652,6 +1652,7 @@ soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
         g_clear_pointer (&io->messages, g_hash_table_unref);
         g_clear_pointer (&io->closed_messages, g_hash_table_unref);
         g_clear_pointer (&io->pending_io_messages, g_list_free);
+        g_clear_error (&io->error);
 
         g_free (io);
 }
