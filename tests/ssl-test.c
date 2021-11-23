@@ -165,10 +165,12 @@ do_tls_interaction_test (gconstpointer data)
 	GTlsDatabase *tls_db;
 	GTlsCertificate *certificate;
 	GTlsInteraction *interaction;
+	GUri *peer_uri;
 	GError *error = NULL;
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
+        peer_uri = g_uri_parse_relative (uri, "/check-peer", SOUP_HTTP_URI_FLAGS, NULL);
 	session = soup_test_session_new (NULL);
 	tls_db = soup_session_get_tls_database (session);
         g_object_set (server, "tls-database", tls_db, "tls-auth-mode", G_TLS_AUTHENTICATION_REQUIRED, NULL);
@@ -200,7 +202,7 @@ do_tls_interaction_test (gconstpointer data)
 	g_object_unref (interaction);
 
 	/* With a GTlsInteraction */
-	msg = soup_message_new_from_uri ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", peer_uri);
 	body = soup_test_session_async_send (session, msg, NULL, &error);
 	g_assert_no_error (error);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
@@ -213,6 +215,7 @@ do_tls_interaction_test (gconstpointer data)
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (certificate);
+	g_uri_unref (peer_uri);
 }
 
 static gboolean
@@ -700,6 +703,26 @@ server_handler (SoupServer        *server,
 	soup_server_message_set_response (msg, "text/plain",
 					  SOUP_MEMORY_STATIC,
 					  "ok\r\n", 4);
+
+        if (!strcmp (path, "/check-peer")) {
+                GTlsCertificate *certificate;
+                GTlsCertificateFlags flags;
+
+                certificate = soup_server_message_get_tls_peer_certificate (msg);
+                g_assert_nonnull (certificate);
+
+                flags = soup_server_message_get_tls_peer_certificate_errors (msg);
+                g_assert_cmpuint (flags, ==, 0);
+
+                /* Check also the properties are properly working */
+                g_object_get (G_OBJECT (msg),
+                              "tls-peer-certificate", &certificate,
+                              "tls-peer-certificate-errors", &flags,
+                              NULL);
+                g_assert_nonnull (certificate);
+                g_assert_cmpuint (flags, ==, 0);
+                g_object_unref (certificate);
+        }
 }
 
 int
