@@ -1,3 +1,7 @@
+Changes in libsoup from 2.74.1 to 2.74.2:
+
+    * Error when libsoup3 is already loaded before libsoup2 [Patrick Griffis]
+
 Changes in libsoup from 2.74.0 to 2.74.1:
 
 	* Fix support for older versions of Vala [Rico Tzschichholz]
