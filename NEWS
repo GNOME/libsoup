@@ -1,3 +1,11 @@
+Changes in libsoup from 3.0.2 to 3.0.3:
+
+* Fix various HTTP/2 issues [Carlos Garcia Campos]
+
+* Error when libsoup2 has been loaded before libsoup3 [Patrick Griffis]
+
+* Fix memory leak when using TLS [Mart Raudsepp]
+
 Changes in libsoup from 3.0.1 to 3.0.2:
 
 * Add support for multiple auth challenges in one response [Patrick Griffis]
