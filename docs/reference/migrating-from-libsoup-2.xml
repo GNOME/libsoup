@@ -177,7 +177,7 @@ linkend="soup-uri-decode-data-uri"><function>soup_uri_decode_data_uri()</functio
         <para>If you want to simply request a buffer and nothing more you can use the
                 <link linkend="soup_session_send_and_read"><function>soup_session_send_and_read()</function></link> or
                 <link linkend="soup_session_send_and_read_async"><function>soup_session_send_and_read_async()</function></link> APIs.</para>
-        <para>This also applies to writing data where you can set a <link linkend="GOutputStream"><type>GOutputStream</type></link> using
+        <para>This also applies to writing data where you can set a <link linkend="GInputStream"><type>GInputStream</type></link> using
                 <link linkend="soup_message_set_request_body"><function>soup_message_set_request_body()</function></link> or use the convenience API
                 <link linkend="soup_message_set_request_body_from_bytes"><function>soup_message_set_request_body_from_bytes()</function></link> to use a GBytes
             buffer.</para>
