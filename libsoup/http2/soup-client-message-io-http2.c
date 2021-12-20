@@ -477,8 +477,12 @@ io_read_ready (GObject                  *stream,
                 return G_SOURCE_CONTINUE;
         }
 
-        if (error)
+        if (error) {
                 set_io_error (io, error);
+                g_list_foreach (io->pending_io_messages,
+                                (GFunc)soup_http2_message_data_check_status,
+                                NULL);
+        }
 
         io->is_shutdown = TRUE;
 

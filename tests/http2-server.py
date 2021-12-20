@@ -44,6 +44,12 @@ async def slow():
     await asyncio.sleep(1)
     return 'Hello world'
 
+@app.route('/timeout')
+async def timeout():
+    set_timeout()
+    await asyncio.sleep(4)
+    return 'Hello world'
+
 @app.route('/no-content')
 async def no_content():
     set_timeout()

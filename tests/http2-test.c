@@ -994,6 +994,25 @@ do_sniffer_sync_test (Test *test, gconstpointer data)
         do_one_sniffer_test (test->session, "https://127.0.0.1:5000/no-content", 0, FALSE, NULL);
 }
 
+static void
+do_timeout_test (Test *test, gconstpointer data)
+{
+        SoupMessage *msg;
+        GBytes *response;
+        GError *error = NULL;
+
+        soup_session_set_timeout (test->session, 2);
+
+        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/timeout");
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
+        g_assert_null (response);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT);
+        g_object_unref (msg);
+
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1101,6 +1120,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/sniffer/sync", Test, NULL,
                     setup_session,
                     do_sniffer_sync_test,
+                    teardown_session);
+        g_test_add ("/http2/timeout", Test, NULL,
+                    setup_session,
+                    do_timeout_test,
                     teardown_session);
 
 	ret = g_test_run ();
