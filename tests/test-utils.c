@@ -14,6 +14,7 @@
 
 #ifdef HAVE_APACHE
 static gboolean apache_running;
+static char *server_root = NULL;
 #endif
 
 static SoupLogger *logger;
@@ -164,7 +165,7 @@ static gboolean
 apache_cmd (const char *cmd)
 {
 	GPtrArray *argv;
-	char *server_root, *cwd, *pid_file;
+	char *cwd, *pid_file;
 #ifdef HAVE_APACHE_2_4
 	char *default_runtime_dir;
 #endif
@@ -173,7 +174,10 @@ apache_cmd (const char *cmd)
 	GString *str;
 	guint i;
 
-	server_root = soup_test_build_filename_abs (G_TEST_BUILT, "", NULL);
+	if (server_root == NULL) {
+		g_test_message ("Server root not initialized");
+		return FALSE;
+	}
 
 	cwd = g_get_current_dir ();
 #ifdef HAVE_APACHE_2_4
@@ -216,7 +220,6 @@ apache_cmd (const char *cmd)
 	if (ok)
 		ok = (status == 0);
 
-	g_free (server_root);
 	g_free (cwd);
 	g_free (pid_file);
 #ifdef HAVE_APACHE_2_4
@@ -235,6 +238,8 @@ apache_init (void)
 	 * suitably-configured Apache server */
 	if (g_getenv ("SOUP_TESTS_ALREADY_RUNNING_APACHE"))
 		return;
+
+	server_root = soup_test_build_filename_abs (G_TEST_BUILT, "", NULL);
 
 	if (!apache_cmd ("start")) {
 		g_printerr ("Could not start apache\n");
@@ -263,6 +268,8 @@ apache_cleanup (void)
 		while (kill (pid, 0) == 0)
 			g_usleep (100);
 	}
+
+	g_clear_pointer (&server_root, g_free);
 }
 
 #endif /* HAVE_APACHE */
