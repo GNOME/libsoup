@@ -165,7 +165,7 @@ static gboolean
 apache_cmd (const char *cmd)
 {
 	GPtrArray *argv;
-	char *cwd, *pid_file;
+	char *cwd, *pid_file, *error_log;
 #ifdef HAVE_APACHE_2_4
 	char *default_runtime_dir;
 #endif
@@ -184,6 +184,7 @@ apache_cmd (const char *cmd)
 	default_runtime_dir = g_strdup_printf ("DefaultRuntimeDir %s", cwd);
 #endif
 	pid_file = g_strdup_printf ("PidFile %s/httpd.pid", cwd);
+	error_log = g_strdup_printf ("ErrorLog %s/error.log", cwd);
 
 	argv = g_ptr_array_new ();
 	g_ptr_array_add (argv, APACHE_HTTPD);
@@ -196,6 +197,8 @@ apache_cmd (const char *cmd)
 	g_ptr_array_add (argv, "-c");
 	g_ptr_array_add (argv, default_runtime_dir);
 #endif
+	g_ptr_array_add (argv, "-c");
+	g_ptr_array_add (argv, error_log);
 	g_ptr_array_add (argv, "-c");
 	g_ptr_array_add (argv, pid_file);
 
@@ -222,6 +225,7 @@ apache_cmd (const char *cmd)
 
 	g_free (cwd);
 	g_free (pid_file);
+	g_free (error_log);
 #ifdef HAVE_APACHE_2_4
 	g_free (default_runtime_dir);
 #endif
@@ -267,6 +271,11 @@ apache_cleanup (void)
 	if (pid) {
 		while (kill (pid, 0) == 0)
 			g_usleep (100);
+	}
+
+	if (g_file_get_contents ("error.log", &contents, NULL, NULL)) {
+		g_test_message ("error.log contents:\n%s", contents);
+		g_free (contents);
 	}
 
 	g_clear_pointer (&server_root, g_free);
