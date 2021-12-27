@@ -156,6 +156,8 @@ apache_cmd (const char *cmd)
 #endif
 	int status;
 	gboolean ok;
+	GString *str;
+	guint i;
 
 	server_root = soup_test_build_filename_abs (G_TEST_BUILT, "", NULL);
 
@@ -183,6 +185,18 @@ apache_cmd (const char *cmd)
 	g_ptr_array_add (argv, (char *)cmd);
 	g_ptr_array_add (argv, NULL);
 
+	str = g_string_new ("Apache command:");
+
+	for (i = 0; i < argv->len - 1; i++) {
+		char *escaped = g_shell_quote (argv->pdata[i]);
+		g_string_append_c (str, ' ');
+		g_string_append (str, escaped);
+		g_free (escaped);
+	}
+
+	g_test_message ("%s", str->str);
+	g_string_free (str, TRUE);
+
 	ok = g_spawn_sync (cwd, (char **)argv->pdata, NULL, 0, NULL, NULL,
 			   NULL, NULL, &status, NULL);
 	if (ok)
@@ -196,6 +210,7 @@ apache_cmd (const char *cmd)
 #endif
 	g_ptr_array_free (argv, TRUE);
 
+	g_test_message (ok ? "-> success" : "-> failed");
 	return ok;
 }
 
