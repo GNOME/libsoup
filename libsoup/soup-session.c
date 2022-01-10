@@ -3338,6 +3338,9 @@ soup_session_return_error_if_message_already_in_queue (SoupSession         *sess
  * Call soup_session_send_finish() to get a #GInputStream for reading
  * the response body.
  *
+ * The @callback will be invoked on the thread-default context at the time
+ * when this function is called.
+ *
  * See soup_session_send() for more details on the general semantics.
  *
  */
