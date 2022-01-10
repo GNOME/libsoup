@@ -64,6 +64,9 @@
  * for %SOUP_TYPE_AUTH_BASIC and %SOUP_TYPE_AUTH_DIGEST. Additionally,
  * sessions using the plain #SoupSession class (rather than one of its deprecated
  * subtypes) have a #SoupContentDecoder by default.
+ *
+ * Note that all async methods will invoke their callbacks on the thread-default
+ * context at the time of the function call.
  **/
 
 /**
