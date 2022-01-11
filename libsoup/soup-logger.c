@@ -163,14 +163,13 @@ write_body (SoupLogger *logger, const char *buffer, gsize nread,
             g_hash_table_insert (bodies, key, body);
         }
 
-        if (priv->max_body_size > 0) {
+        if (priv->max_body_size >= 0) {
                 /* longer than max => we've written the extra [...] */
                 if (body->len > priv->max_body_size)
                         return;
                 int cap = priv->max_body_size - body->len;
-                if (cap)
-                        g_string_append_len (body, buffer,
-                                             (nread < cap) ? nread : cap);
+                if (cap > 0)
+                        g_string_append_len (body, buffer, MIN (nread, cap));
                 if (nread > cap)
                         g_string_append (body, "\n[...]");
         } else {
@@ -368,6 +367,7 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 				    -1,
 				    G_MAXINT,
 				    -1,
+				    G_PARAM_CONSTRUCT |
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS);
 
