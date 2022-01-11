@@ -864,8 +864,14 @@ on_frame_send_callback (nghttp2_session     *session,
                 h2_debug (io, data, "[SEND] [%s]", frame_type_to_string (frame->hd.type));
                 io->goaway_sent = TRUE;
                 if (io->close_task) {
+                        GSource *source;
+
                         /* Close in idle to ensure all pending io is finished first */
-                        g_idle_add ((GSourceFunc)close_in_idle_cb, io);
+                        source = g_idle_source_new ();
+                        g_source_set_name (source, "Soup HTTP/2 close source");
+                        g_source_set_callback (source, (GSourceFunc)close_in_idle_cb, io, NULL);
+                        g_source_attach (source, g_main_context_get_thread_default ());
+                        g_source_unref (source);
                 }
                 break;
         default:
