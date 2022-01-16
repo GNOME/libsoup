@@ -1,7 +1,7 @@
 project('libsoup', 'c',
         version: '3.0.4',
         meson_version : '>= 0.53',
-        license : 'LGPL2',
+        license : 'LGPL-2.0-or-later',
         default_options : [
           'c_std=gnu99',
           'warning_level=2',
