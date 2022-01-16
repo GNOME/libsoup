@@ -1,15 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<?xml-model href="http://docbook.org/xml/5.1/rng/docbook.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
-<?xml-model href="http://docbook.org/xml/5.1/sch/docbook.sch" type="application/xml" schematypens="http://purl.oclc.org/dsdl/schematron"?>
-<sect1 xmlns="http://docbook.org/ns/docbook" 
-    xmlns:xlink="http://www.w3.org/1999/xlink" version="5.1">
-  <title>Everything TLS Related</title>
-  <para>libsoup comes with TLS support provided by glib-networking. This has multiple backends
-  including gnutls (default on all platforms), SChannel on Windows, or OpenSSL.</para>
-  <sect2>
-    <title>Accepting Invalid or Pinned Certificates</title>
-    <para>This makes use of the <literal>SoupMessage::accept-certificate</literal> signal.</para>
-<informalexample><programlisting><![CDATA[
+Title: Everything TLS Related
+Slug: client-tls
+
+# Everything TLS Related
+
+libsoup comes with TLS support provided by glib-networking. This has multiple backends
+including gnutls (default on all platforms), SChannel on Windows, or OpenSSL.
+
+## Accepting Invalid or Pinned Certificates
+
+This makes use of the [signal@Message::accept-certificate] signal.
+
+```c
 static gboolean
 accept_certificate_callback (SoupMessage *msg, GTlsCertificate *certificate,
                              GTlsCertificateFlags tls_errors, gpointer user_data)
@@ -32,12 +33,12 @@ int main (int argc, char **argv)
     }
 
     return 0;
-}]]>
-</programlisting></informalexample>
-  </sect2>
-  <sect2>
-    <title>Setting a Custom CA</title>
-<informalexample><programlisting><![CDATA[
+}
+```
+
+## Setting a Custom CA
+
+```c
 {
     GError *error = NULL;
     // NOTE: This is blocking IO
@@ -51,12 +52,12 @@ int main (int argc, char **argv)
 
     SoupSession *session = soup_session_new_with_options ("tls-database", tls_db, NULL);
     g_object_unref (tls_db);
-}]]>
-</programlisting></informalexample>
-  </sect2>
-  <sect2>
-    <title>Using Client Certificates</title>
-<informalexample><programlisting><![CDATA[
+}
+```
+
+## Using Client Certificates
+
+```c
 static gboolean
 on_request_certificate (SoupMessage *msg, GTlsClientConnection *conn, gpointer user_data)
 {
@@ -96,7 +97,5 @@ int main (int argc, char **argv)
     g_object_unref (session);
     g_object_unref (client_cert);
     return 0;
-}]]>
-</programlisting></informalexample>
-  </sect2>
-</sect1>
+}
+```

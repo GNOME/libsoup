@@ -86,28 +86,27 @@ fedora-asan:
 reference:
   stage: docs
   variables:
-    DESTDIR: _install
-  needs: []
+    MESON_ARGS: >-
+      -Dgtk_doc=true
+      -Dvapi=disabled
   script:
-    - meson _build --prefix=/usr -Dgtk_doc=true
-    - ninja -C _build libsoup-3.0-doc
-    - .gitlab-ci/check-docs.py
     - mkdir -p _reference/libsoup-3.0
-    - cp -R _build/docs/reference/html/* _reference/libsoup-3.0/
-    - cp -R /usr/share/gtk-doc/html/{glib,gio,gobject,libsoup-2.4} _reference
-    - cp .gitlab-ci/index.html _reference
-    - gtkdoc-rebase --relative --html-dir=./_reference/ --verbose
+    - meson ${MESON_ARGS} _build
+    - ninja -C _build
+    - mv _build/docs/reference/libsoup-3.0/* _reference/libsoup-3.0
+    # Add libsoup-2.4 docs.
+    - cp -R /usr/share/gtk-doc/html/{glib,gio,gobject,libsoup-2.4} _reference/
+    - cp .gitlab-ci/index.html _reference/
   artifacts:
     paths:
-      - _build/docs/reference/libsoup-3.0-*.txt
       - _reference
-  coverage: '/^([\d]+\%) symbol docs coverage\.\s+/'
 
 pages:
   stage: deploy
   needs: ['reference']
   script:
-    - mv _reference/ public/
+    - mv _reference public
   artifacts:
+    when: on_success
     paths:
       - public

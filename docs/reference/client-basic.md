@@ -1,25 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<?xml-model href="http://docbook.org/xml/5.1/rng/docbook.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
-<?xml-model href="http://docbook.org/xml/5.1/sch/docbook.sch" type="application/xml" schematypens="http://purl.oclc.org/dsdl/schematron"?>
-<sect1 xmlns="http://docbook.org/ns/docbook" 
-    xmlns:xlink="http://www.w3.org/1999/xlink" version="5.1">
-    <title>Creating a Basic Client</title>
-    <para>libsoup provides a feature rich and complete HTTP client feature-set however in this guide
-        we will just be touching the basics. See … for a more in-depth example.</para>
-        <sect2>
-            <title>Creating a SoupSession</title>
-            <para>The core of libsoup is <type>SoupSession</type>; It contains all of the state of a
-                client including managing connections, queuing messages, handling authentication and
-                redirects, and much more. For now lets assume the default set of options and
-                features it provides are acceptable for most usage in which case you simply need to
-                create one with <link linkend="soup-session-new"><function>soup_session_new()</function></link>.</para>
-        </sect2>
-        <sect2>
-            <title>Downloading Into Memory</title>
-            <para>A common use case is that you simply want to request an HTTP resource and store it
-                for later use. There are a few methods of doing this but libsoup provides a high
-                level API to accomplish this:</para>
-<informalexample><programlisting><![CDATA[#include <libsoup/soup.h>
+Title: Creating a Basic Client
+Slug: client-basic
+
+# Creating a Basic Client
+
+libsoup provides a feature rich and complete HTTP client feature-set however in this guide we will just be touching the basics.
+
+## Creating a SoupSession
+The core of libsoup is [class@Session]; It contains all of the state of a client
+including managing connections, queuing messages, handling authentication and
+redirects, and much more. For now lets assume the default set of options and
+features it provides are acceptable for most usage in which case you simply need
+to create one with [ctor@Session.new].
+
+## Downloading Into Memory
+
+A common use case is that you simply want to request an HTTP resource and store
+it for later use. There are a few methods of doing this but libsoup provides a high
+level API to accomplish this:
+
+```c
+#include <libsoup/soup.h>
 
 int main (int argc, char **argv)
 {
@@ -54,16 +54,17 @@ int main (int argc, char **argv)
     g_object_unref (msg);
     g_object_unref (session);
     return 0;
-}]]>
-</programlisting></informalexample>
-        </sect2>
-        <sect2>
-            <title>Efficiently Streaming Data</title>
-            <para>While sometimes you want to store an entire download in memory it is often more
-                efficient to stream the data in chunks. In this example we will write the output to
-                a file.</para>
-            <para>
-<informalexample><programlisting><![CDATA[#include <libsoup/soup.h>
+}
+```
+
+## Efficiently Streaming Data
+
+While sometimes you want to store an entire download in memory it is often more
+efficient to stream the data in chunks. In this example we will write the output
+to a file.
+            
+```c
+#include <libsoup/soup.h>
 
 int main (int argc, char **argv)
 {
@@ -128,18 +129,19 @@ int main (int argc, char **argv)
     g_object_unref (msg);
     g_object_unref (session);
     return error ? 1 : 0;
-}]]>
-</programlisting></informalexample>
-            </para>
-        </sect2>
-        <sect2>
-            <title>Using Asynchronously</title>
-            <para>If you are using libsoup in an application with a <link linkend="GMainLoop"><type>GMainLoop</type></link> such as a GTK application
-            you do not want to block the mainloop by doing IO. To accomplish this libsoup provides an
-            asynchronous version of each of the APIs: <link linkend="soup-session-send-and-read-async"><function>soup_session_send_and_read_async()</function></link>
-            and <link linkend="soup-session-send-async"><function>soup_session_send_async()</function></link>. These behave the same as all async GLib
-            APIs, for example:</para>
-<informalexample><programlisting><![CDATA[#include <libsoup/soup.h>
+}
+```
+
+## Using Asynchronously
+
+If you are using libsoup in an application with a [struct@GLib.MainLoop] such as
+a GTK application you do not want to block the mainloop by doing IO. To
+accomplish this libsoup provides an asynchronous version of each of the APIs:
+[method@Session.send_and_read_async] and [method@Session.send_async]. These
+behave the same as all async GLib APIs, for example:
+
+```c
+#include <libsoup/soup.h>
 
 static void on_load_callback (GObject *source, GAsyncResult *result, gpointer user_data)
 {
@@ -177,7 +179,5 @@ int main (int argc, char **argv)
     g_object_unref (msg);
     g_object_unref (session);
     return 0;
-}]]>
-</programlisting></informalexample>
-        </sect2>
-</sect1>
+}
+```

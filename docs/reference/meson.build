@@ -1,87 +1,46 @@
-ignore_headers = [
-  'gconstructor.h',
-  'soup.h',
-  'soup-enum-types.h',
-  'soup-message-private.h',
-  'soup-session-private.h',
-  'soup-auth-digest-private.h',
-  'soup-brotli-decompressor.h',
-  'soup-connection.h',
-  'soup-connection-auth.h',
-  'soup-message-queue-item.h',
-  'soup-path-map.h',
-  'soup-http-input-stream.h',
-  'soup-converter-wrapper.h',
-  'soup-body-input-stream.h',
-  'soup-body-output-stream.h',
-  'soup-client-input-stream.h',
-  'soup-content-processor.h',
-  'soup-content-sniffer-stream.h',
-  'soup-io-stream.h',
-  'soup-cache-input-stream.h',
-  'soup-filter-input-stream.h',
-  'soup-cookie-jar-sqlite.h',
-  'soup-cache-private.h',
-  'soup-cache-client-input-stream.h',
-  'soup-logger-input-stream.h',
-  'soup-logger-private.h',
-  'soup-socket.h',
-  'soup-socket-properties.h',
-  'soup-websocket-extension-manager-private.h',
-  'soup-misc.h',
-  'soup-date-utils-private.h',
-  'soup-resources.h',
-  'soup-private-enum-types.h',
-  'soup-server-message-private.h',
-  'soup-message-io-data.h',
-  'soup-message-io-source.h',
-  'soup-uri-utils-private.h',
-  'soup-session-feature-private.h',
-  'soup-message-metrics-private.h',
-  'soup-client-message-io.h',
-  'soup-message-io-completion.h',
-  'soup-client-message-io-http1.h',
-  'soup-client-message-io-http2.h',
-  'soup-body-input-stream-http2.h',
-  'soup-tls-interaction.h',
-  'soup-header-names.h',
-  'soup-message-headers-private.h',
+expand_content_md_files = [
+    'build-howto.md',
+    'client-basic.md',
+    'client-advanced.md',
+    'client-tls.md',
+    'server-howto.md',
+    'migrating-from-libsoup-2.md',
 ]
 
-mkdb_args = [
-  '--output-format=xml'
-]
+toml_data = configuration_data()
+toml_data.set('VERSION', meson.project_version())
 
-scan_args = [
-  '--deprecated-guards=SOUP_DISABLE_DEPRECATED',
-  '--rebuild-types',
-  '--ignore-decorators="SOUP_DEPRECATED\w*\s*()|SOUP_DEPRECATED\w*|SOUP_AVAILABLE[\w_]*"'
-]
+libsoup_toml = configure_file(
+  input: 'libsoup.toml.in',
+  output: 'libsoup.toml',
+  configuration: toml_data
+)
 
-glib_prefix = glib_dep.get_pkgconfig_variable('prefix')
-glib_docpath = glib_prefix / 'share' / 'gtk-doc' / 'html'
+dependency('gi-docgen', version: '>= 2021.1',
+           fallback: ['gi-docgen', 'dummy_dep'],
+           native: true,
+           required: get_option('gtk_doc'))
 
-gnome.gtkdoc('libsoup-3.0',
-  main_xml : 'libsoup-3.0-docs.xml',
-  src_dir : srcdir,
-  ignore_headers : ignore_headers,
-  namespace : 'soup',
-  mkdb_args : mkdb_args,
-  scan_args : scan_args,
-  fixxref_args : [
-    '--html-dir=@0@'.format(get_option('datadir') / 'gtk-doc', 'html'),
-    '--extra-dir=@0@'.format(glib_docpath / 'glib'),
-    '--extra-dir=@0@'.format(glib_docpath /'gobject'),
-    '--extra-dir=@0@'.format(glib_docpath /'gio'),
+gidocgen = find_program('gi-docgen')
+
+docs_dir = get_option('datadir') / 'doc'
+
+custom_target('libsoup-doc',
+  input: [ libsoup_toml, soup_gir_gen_sources[0] ],
+  output: 'libsoup-@0@'.format(apiversion),
+  command: [
+    gidocgen,
+    'generate',
+    '--quiet',
+    '--add-include-path=@0@'.format(meson.current_build_dir() / '../../libsoup'),
+    '--config=@INPUT0@',
+    '--output-dir=@OUTPUT@',
+    '--no-namespace-dir',
+    '--content-dir=@0@'.format(meson.current_source_dir()),
+    '@INPUT1@',
   ],
-  dependencies : libsoup_dep,
-  install : true,
-  content_files: [
-    'build-howto.xml',
-    'client-basic.xml',
-    'client-advanced.xml',
-    'client-tls.xml',
-    'server-howto.xml',
-    'migrating-from-libsoup-2.xml',
-  ],
+  depend_files: [ expand_content_md_files ],
+  build_by_default: true,
+  install: true,
+  install_dir: docs_dir,
 )
