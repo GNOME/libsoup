@@ -1,4 +1,4 @@
-image: registry.gitlab.gnome.org/gnome/libsoup/master:v15
+image: registry.gitlab.gnome.org/gnome/libsoup/master:v16
 
 stages:
   - build
