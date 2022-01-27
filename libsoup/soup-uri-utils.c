@@ -432,10 +432,48 @@ soup_uri_copy (GUri            *uri,
         );
 }
 
+static char *
+maybe_encode_userinfo (const char *userinfo, GUriFlags flags)
+{
+        if (!userinfo || flags & G_URI_FLAGS_ENCODED)
+                return g_strdup (userinfo);
+
+        return g_uri_escape_string (userinfo, G_URI_RESERVED_CHARS_ALLOWED_IN_USERINFO, FALSE);
+}
+
+static char *
+maybe_encode_path (const char *path, GUriFlags flags)
+{
+        if (!path || flags & G_URI_FLAGS_ENCODED || flags & G_URI_FLAGS_ENCODED_PATH)
+                return g_strdup (path);
+
+        return g_uri_escape_string (path, G_URI_RESERVED_CHARS_ALLOWED_IN_PATH, FALSE);
+}
+
+static char *
+maybe_encode_query (const char *query, GUriFlags flags)
+{
+        if (!query || flags & G_URI_FLAGS_ENCODED || flags & G_URI_FLAGS_ENCODED_QUERY)
+                return g_strdup (query);
+
+        return g_uri_escape_string (query, NULL, FALSE);
+}
+
+static char *
+maybe_encode_fragment (const char *fragment, GUriFlags flags)
+{
+        if (!fragment || flags & G_URI_FLAGS_ENCODED || flags & G_URI_FLAGS_ENCODED_FRAGMENT)
+                return g_strdup (fragment);
+
+        return g_uri_escape_string (fragment, NULL, FALSE);
+}
+
 GUri *
 soup_uri_copy_with_normalized_flags (GUri *uri)
 {
         GUriFlags flags = g_uri_get_flags (uri);
+        char *path, *query, *fragment, *userinfo;
+        GUri *new_uri;
 
         /* We require its encoded (hostname encoding optional) */
         if (((flags & (G_URI_FLAGS_ENCODED_PATH | G_URI_FLAGS_ENCODED_QUERY | G_URI_FLAGS_ENCODED_FRAGMENT)) ||
@@ -444,18 +482,28 @@ soup_uri_copy_with_normalized_flags (GUri *uri)
             (flags & G_URI_FLAGS_SCHEME_NORMALIZE))
                 return g_uri_ref (uri);
 
-        return g_uri_build_with_user (
+        userinfo = maybe_encode_userinfo (g_uri_get_userinfo (uri), flags);
+        path = maybe_encode_path (g_uri_get_path (uri), flags);
+        query = maybe_encode_query (g_uri_get_query (uri), flags);
+        fragment = maybe_encode_fragment (g_uri_get_fragment (uri), flags);
+
+        new_uri = g_uri_build (
                 g_uri_get_flags (uri) | SOUP_HTTP_URI_FLAGS,
                 g_uri_get_scheme (uri),
-                g_uri_get_user (uri),
-                g_uri_get_password (uri),
-                g_uri_get_auth_params (uri),
+                userinfo,
                 g_uri_get_host (uri),
                 g_uri_get_port (uri),
-                g_uri_get_path (uri),
-                g_uri_get_query (uri),
-                g_uri_get_fragment (uri)
+                path,
+                query,
+                fragment
         );
+
+        g_free (userinfo);
+        g_free (path);
+        g_free (query);
+        g_free (fragment);
+
+        return new_uri;
 }
 
 char *
