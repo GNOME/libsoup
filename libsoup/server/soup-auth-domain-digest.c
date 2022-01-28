@@ -237,7 +237,7 @@ check_hex_urp (SoupAuthDomain    *domain,
 		req_path = soup_uri_get_path_and_query (req_uri);
 		dig_path = g_uri_unescape_string (uri, NULL);
 
-		if (strcmp (dig_path, req_path) != 0) {
+		if (g_strcmp0 (dig_path, req_path) != 0) {
 			g_free (req_path);
 			g_free (dig_path);
 			return FALSE;

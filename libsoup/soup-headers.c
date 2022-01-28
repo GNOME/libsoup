@@ -697,6 +697,9 @@ decode_rfc5987 (char *encoded_string)
 		return FALSE;
 
 	decoded = g_uri_unescape_string (q + 1, NULL);
+	if (decoded == NULL)
+		return FALSE;
+
 	if (iso_8859_1) {
 		char *utf8 =  g_convert_with_fallback (decoded, -1, "UTF-8",
 						       "iso-8859-1", "_",
