@@ -858,7 +858,8 @@ got_headers (SoupServer        *server,
 
                 decoded_path = g_uri_unescape_string (g_uri_get_path (uri), NULL);
 
-		if (strstr (decoded_path, "/../") ||
+		if (decoded_path == NULL ||
+		    strstr (decoded_path, "/../") ||
 		    g_str_has_suffix (decoded_path, "/..")
 #ifdef G_OS_WIN32
 		    ||
