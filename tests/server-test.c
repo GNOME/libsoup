@@ -247,6 +247,28 @@ do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 }
 
 static void
+do_invalid_percent_encoding_paths_test (ServerData *sd, gconstpointer test_data)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	GUri *uri;
+
+	g_test_bug ("262");
+
+	session = soup_test_session_new (NULL);
+
+	uri = g_uri_parse_relative (sd->base_uri, "/TestString1%00%0aTestString2", SOUP_HTTP_URI_FLAGS, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	g_uri_unref (uri);
+
+	soup_test_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+}
+
+static void
 ipv6_server_callback (SoupServer        *server,
 		      SoupServerMessage *msg,
 		      const char        *path,
@@ -1304,6 +1326,8 @@ main (int argc, char **argv)
 		    server_setup, do_star_test, server_teardown);
 	g_test_add ("/server/..-in-path", ServerData, NULL,
 		    server_setup, do_dot_dot_test, server_teardown);
+	g_test_add ("/server/invalid-percent-encoding-paths", ServerData, NULL,
+		    server_setup, do_invalid_percent_encoding_paths_test, server_teardown);
 	g_test_add ("/server/ipv6", ServerData, NULL,
 		    NULL, do_ipv6_test, server_teardown);
 	g_test_add ("/server/multi/port", ServerData, NULL,
