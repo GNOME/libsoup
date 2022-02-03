@@ -1899,7 +1899,7 @@ out:
  * @boundary: boundary to read until
  * @boundary_len: length of @boundary in bytes
  * @nread: (out): on return, the number of bytes read into @buffer
- * @got_boundary: on return, whether or not the data in @buffer
+ * @got_boundary: (out): on return, whether or not the data in @buffer
  * ends with the boundary string
  * @cancellable: a #GCancellable, or %NULL
  * @error: error pointer

@@ -465,7 +465,7 @@ soup_address_get_name (SoupAddress *addr)
 /**
  * soup_address_get_sockaddr:
  * @addr: a #SoupAddress
- * @len: return location for sockaddr length
+ * @len: (out): return location for sockaddr length
  *
  * Returns the sockaddr associated with @addr, with its length in
  * *@len. If the sockaddr is not yet known, returns %NULL.
