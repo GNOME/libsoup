@@ -27,9 +27,10 @@
 /**
  * soup_auth_negotiate_supported:
  *
- * Indicates whether libsoup was built with GSSAPI support. If this is
- * %FALSE, %SOUP_TYPE_AUTH_NEGOTIATE will still be defined and can
- * still be added to a #SoupSession, but libsoup will never attempt to
+ * Indicates whether libsoup was built with GSSAPI support.
+ *
+ * If this is %FALSE, %SOUP_TYPE_AUTH_NEGOTIATE will still be defined and can
+ * still be added to a [class@Session], but libsoup will never attempt to
  * actually use this auth type.
  *
  */
@@ -76,17 +77,17 @@ typedef struct {
 } SoupAuthNegotiatePrivate;
 
 /**
- * SOUP_TYPE_AUTH_NEGOTIATE:
+ * SoupAuthNegotiate:
  *
- * A #GType corresponding to HTTP-based GSS-Negotiate authentication.
- * #SoupSessions do not support this type by default; if you want to
- * enable support for it, call soup_session_add_feature_by_type(),
+ * HTTP-based GSS-Negotiate authentication.
+ *
+ * [class@Session]s do not support this type by default; if you want to
+ * enable support for it, call [method@Session.add_feature_by_type],
  * passing %SOUP_TYPE_AUTH_NEGOTIATE.
  *
  * This auth type will only work if libsoup was compiled with GSSAPI
- * support; you can check soup_auth_negotiate_supported() to see if it
+ * support; you can check [func@AuthNegotiate.supported] to see if it
  * was.
- *
  */
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthNegotiate, soup_auth_negotiate, SOUP_TYPE_CONNECTION_AUTH)
 

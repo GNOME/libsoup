@@ -16,15 +16,6 @@
 #include "soup-misc.h"
 
 /**
- * SECTION:soup-message-headers
- * @short_description: HTTP message headers
- * @see_also: #SoupMessage
- *
- * #SoupMessageHeaders represents the HTTP message headers associated
- * with a request or response.
- **/
-
-/**
  * SoupMessageHeaders:
  *
  * The HTTP message headers associated with a request or response.
@@ -36,7 +27,7 @@
  * @SOUP_MESSAGE_HEADERS_RESPONSE: response headers
  * @SOUP_MESSAGE_HEADERS_MULTIPART: multipart body part headers
  *
- * Value passed to soup_message_headers_new() to set certain default
+ * Value passed to [ctor@MessageHeaders.new] to set certain default
  * behaviors.
  **/
 
@@ -71,9 +62,11 @@ struct _SoupMessageHeaders {
  * soup_message_headers_new:
  * @type: the type of headers
  *
- * Creates a #SoupMessageHeaders. (#SoupMessage does this
- * automatically for its own headers. You would only need to use this
- * method if you are manually parsing or generating message headers.)
+ * Creates a #SoupMessageHeaders.
+ *
+ * ([class@Message] does this automatically for its own headers. You would only
+ * need to use this method if you are manually parsing or generating message
+ * headers.)
  *
  * Returns: a new #SoupMessageHeaders
  **/
@@ -122,6 +115,7 @@ soup_message_headers_destroy (SoupMessageHeaders *hdrs)
  * @hdrs: a #SoupMessageHeaders
  *
  * Atomically decrements the reference count of @hdrs by one.
+ *
  * When the reference count reaches zero, the resources allocated by
  * @hdrs are freed
  */
@@ -140,7 +134,6 @@ G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_head
  * Gets the type of headers.
  *
  * Returns: the header's type.
- *
  **/
 SoupMessageHeadersType
 soup_message_headers_get_headers_type (SoupMessageHeaders *hdrs)
@@ -256,7 +249,6 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
  * @hdrs: a #SoupMessageHeaders
  *
  * Removes all the headers listed in the Connection header.
- *
  */
 void
 soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs)
@@ -300,10 +292,11 @@ soup_message_headers_append_common (SoupMessageHeaders *hdrs,
  * @name: the header name to add
  * @value: the new value of @name
  *
- * Appends a new header with name @name and value @value to @hdrs. (If
- * there is an existing header with name @name, then this creates a
- * second one, which is only allowed for list-valued headers; see also
- * soup_message_headers_replace().)
+ * Appends a new header with name @name and value @value to @hdrs.
+ *
+ * (If there is an existing header with name @name, then this creates a second
+ * one, which is only allowed for list-valued headers; see also
+ * [method@MessageHeaders.replace].)
  *
  * The caller is expected to make sure that @name and @value are
  * syntactically correct.
@@ -383,8 +376,9 @@ soup_message_headers_replace_common (SoupMessageHeaders *hdrs,
  * @name: the header name to replace
  * @value: the new value of @name
  *
- * Replaces the value of the header @name in @hdrs with @value. (See
- * also soup_message_headers_append().)
+ * Replaces the value of the header @name in @hdrs with @value.
+ *
+ * See also [method@MessageHeaders.append].
  *
  * The caller is expected to make sure that @name and @value are
  * syntactically correct.
@@ -493,8 +487,9 @@ soup_message_headers_remove_common (SoupMessageHeaders *hdrs,
  * @hdrs: a #SoupMessageHeaders
  * @name: the header name to remove
  *
- * Removes @name from @hdrs. If there are multiple values for @name,
- * they are all removed.
+ * Removes @name from @hdrs.
+ *
+ * If there are multiple values for @name, they are all removed.
  **/
 void
 soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
@@ -547,10 +542,11 @@ soup_message_headers_get_one_common (SoupMessageHeaders *hdrs,
  * @hdrs: a #SoupMessageHeaders
  * @name: (in): header name
  * 
- * Gets the value of header @name in @hdrs. Use this for headers whose
- * values are <emphasis>not</emphasis> comma-delimited lists, and
- * which therefore can only appear at most once in the headers. For
- * list-valued headers, use soup_message_headers_get_list().
+ * Gets the value of header @name in @hdrs.
+ *
+ * Use this for headers whose values are *not* comma-delimited lists, and which
+ * therefore can only appear at most once in the headers. For list-valued
+ * headers, use [method@MessageHeaders.get_list].
  *
  * If @hdrs does erroneously contain multiple copies of the header, it
  * is not defined which one will be returned. (Ideally, it will return
@@ -558,7 +554,6 @@ soup_message_headers_get_one_common (SoupMessageHeaders *hdrs,
  * implementations.)
  *
  * Returns: (nullable) (transfer none): the header's value or %NULL if not found.
- *
  **/
 const char *
 soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
@@ -603,11 +598,10 @@ soup_message_headers_header_contains_common (SoupMessageHeaders *hdrs,
  * and contains a case-insensitive match for @token.
  *
  * (If @name is present in @hdrs, then this is equivalent to calling
- * soup_header_contains() on its value.)
+ * [func@header_contains] on its value.)
  *
  * Returns: %TRUE if the header is present and contains @token,
  *   %FALSE otherwise.
- *
  **/
 gboolean
 soup_message_headers_header_contains (SoupMessageHeaders *hdrs, const char *name, const char *token)
@@ -642,7 +636,6 @@ soup_message_headers_header_equals_common (SoupMessageHeaders *hdrs,
  *
  * Returns: %TRUE if the header is present and its value is
  *   @value, %FALSE otherwise.
- *
  **/
 gboolean
 soup_message_headers_header_equals (SoupMessageHeaders *hdrs, const char *name, const char *value)
@@ -700,13 +693,14 @@ soup_message_headers_get_list_common (SoupMessageHeaders *hdrs,
  * @hdrs: a #SoupMessageHeaders
  * @name: header name
  * 
- * Gets the value of header @name in @hdrs. Use this for headers whose
- * values are comma-delimited lists, and which are therefore allowed
- * to appear multiple times in the headers. For non-list-valued
- * headers, use soup_message_headers_get_one().
+ * Gets the value of header @name in @hdrs.
+ *
+ * Use this for headers whose values are comma-delimited lists, and which are
+ * therefore allowed to appear multiple times in the headers. For
+ * non-list-valued headers, use [method@MessageHeaders.get_one].
  *
  * If @name appears multiple times in @hdrs,
- * soup_message_headers_get_list() will concatenate all of the values
+ * [method@MessageHeaders.get_list] will concatenate all of the values
  * together, separated by commas. This is sometimes awkward to parse
  * (eg, WWW-Authenticate, Set-Cookie), but you have to be able to deal
  * with it anyway, because the HTTP spec explicitly states that this
@@ -714,7 +708,6 @@ soup_message_headers_get_list_common (SoupMessageHeaders *hdrs,
  * same thing.
  * 
  * Returns: (nullable) (transfer none): the header's value or %NULL if not found.
- *
  **/
 const char *
 soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
@@ -770,9 +763,8 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
  * An opaque type used to iterate over a %SoupMessageHeaders
  * structure.
  *
- * After intializing the iterator with
- * soup_message_headers_iter_init(), call
- * soup_message_headers_iter_next() to fetch data from it.
+ * After intializing the iterator with [func@MessageHeadersIter.init], call
+ * [method@MessageHeadersIter.next] to fetch data from it.
  *
  * You may not modify the headers while iterating over them.
  **/
@@ -786,7 +778,7 @@ typedef struct {
 /**
  * soup_message_headers_iter_init:
  * @iter: (out) (transfer none): a pointer to a %SoupMessageHeadersIter
- * structure
+ *   structure
  * @hdrs: a %SoupMessageHeaders
  *
  * Initializes @iter for iterating @hdrs.
@@ -806,17 +798,19 @@ soup_message_headers_iter_init (SoupMessageHeadersIter *iter,
  * soup_message_headers_iter_next:
  * @iter: (inout) (transfer none): a %SoupMessageHeadersIter
  * @name: (out) (transfer none): pointer to a variable to return
- * the header name in
+ *   the header name in
  * @value: (out) (transfer none): pointer to a variable to return
- * the header value in
+ *   the header value in
  *
- * Yields the next name/value pair in the %SoupMessageHeaders being
- * iterated by @iter. If @iter has already yielded the last header,
- * then soup_message_headers_iter_next() will return %FALSE and @name
- * and @value will be unchanged.
+ * Yields the next name/value pair in the [struct@MessageHeaders] being
+ * iterated by @iter.
+ *
+ * If @iter has already yielded the last header, then
+ * [method@MessageHeadersIter.next] will return %FALSE and @name and @value
+ * will be unchanged.
  *
  * Returns: %TRUE if another name and value were returned, %FALSE
- * if the end of the headers has been reached.
+ *   if the end of the headers has been reached.
  **/
 gboolean
 soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
@@ -851,9 +845,9 @@ soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
  * SoupMessageHeadersForeachFunc:
  * @name: the header name
  * @value: the header value
- * @user_data: the data passed to soup_message_headers_foreach()
+ * @user_data: the data passed to [method@MessageHeaders.foreach]
  *
- * The callback passed to soup_message_headers_foreach().
+ * The callback passed to [method@MessageHeaders.foreach].
  **/
 
 /**
@@ -864,11 +858,11 @@ soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
  * 
  * Calls @func once for each header value in @hdrs.
  *
- * Beware that unlike soup_message_headers_get_list(), this processes the
+ * Beware that unlike [method@MessageHeaders.get_list], this processes the
  * headers in exactly the way they were added, rather than
  * concatenating multiple same-named headers into a single value.
  * (This is intentional; it ensures that if you call
- * soup_message_headers_append() multiple times with the same name,
+ * [method@MessageHeaders.append] multiple times with the same name,
  * then the I/O code will output multiple copies of the header when
  * sending the message to the remote implementation, which may be
  * required for interoperability in some cases.)
@@ -903,13 +897,13 @@ soup_message_headers_foreach (SoupMessageHeaders           *hdrs,
  * SoupEncoding:
  * @SOUP_ENCODING_UNRECOGNIZED: unknown / error
  * @SOUP_ENCODING_NONE: no body is present (which is not the same as a
- * 0-length body, and only occurs in certain places)
+ *   0-length body, and only occurs in certain places)
  * @SOUP_ENCODING_CONTENT_LENGTH: Content-Length encoding
  * @SOUP_ENCODING_EOF: Response body ends when the connection is closed
  * @SOUP_ENCODING_CHUNKED: chunked encoding (currently only supported
- * for response)
+ *   for response)
  * @SOUP_ENCODING_BYTERANGES: multipart/byteranges (Reserved for future
- * use: NOT CURRENTLY IMPLEMENTED)
+ *   use: NOT CURRENTLY IMPLEMENTED)
  *
  * How a message body is encoded for transport
  **/
@@ -918,10 +912,11 @@ soup_message_headers_foreach (SoupMessageHeaders           *hdrs,
  * soup_message_headers_get_encoding:
  * @hdrs: a #SoupMessageHeaders
  *
- * Gets the message body encoding that @hdrs declare. This may not
- * always correspond to the encoding used on the wire; eg, a HEAD
- * response may declare a Content-Length or Transfer-Encoding, but
- * it will never actually include a body.
+ * Gets the message body encoding that @hdrs declare.
+ *
+ * This may not always correspond to the encoding used on the wire; eg, a HEAD
+ * response may declare a Content-Length or Transfer-Encoding, but it will never
+ * actually include a body.
  *
  * Returns: the encoding declared by @hdrs.
  **/
@@ -960,9 +955,10 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
  * @hdrs: a #SoupMessageHeaders
  * @encoding: a #SoupEncoding
  *
- * Sets the message body encoding that @hdrs will declare. In particular,
- * you should use this if you are going to send a request or response in
- * chunked encoding.
+ * Sets the message body encoding that @hdrs will declare.
+ *
+ * In particular, you should use this if you are going to send a request or
+ * response in chunked encoding.
  **/
 void
 soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
@@ -998,8 +994,9 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
  * soup_message_headers_get_content_length:
  * @hdrs: a #SoupMessageHeaders
  *
- * Gets the message body length that @hdrs declare. This will only
- * be non-0 if soup_message_headers_get_encoding() returns
+ * Gets the message body length that @hdrs declare.
+ *
+ * This will only be non-0 if [method@MessageHeaders.get_encoding] returns
  * %SOUP_ENCODING_CONTENT_LENGTH.
  *
  * Returns: the message body length declared by @hdrs.
@@ -1029,7 +1026,7 @@ soup_message_headers_get_content_length (SoupMessageHeaders *hdrs)
  * Content-Length header for you immediately before sending the
  * headers. One situation in which this method is useful is when
  * generating the response to a HEAD request; Calling
- * soup_message_headers_set_content_length() allows you to put the
+ * [method@MessageHeaders.set_content_length] allows you to put the
  * correct content length into the response without needing to waste
  * memory by filling in a response body which won't actually be sent.
  **/
@@ -1058,6 +1055,7 @@ soup_message_headers_set_content_length (SoupMessageHeaders *hdrs,
  * @hdrs: a #SoupMessageHeaders
  *
  * Gets the expectations declared by @hdrs's "Expect" header.
+ *
  * Currently this will either be %SOUP_EXPECTATION_CONTINUE or
  * %SOUP_EXPECTATION_UNRECOGNIZED.
  *
@@ -1116,7 +1114,6 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
  * If @end is -1 and @start is negative, then it represents a "suffix
  * range", referring to the last -@start bytes of the resource body.
  * (Eg, the last 500 bytes would be @start = -500 and @end = -1.)
- *
  **/
 
 static int
@@ -1229,24 +1226,24 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  * @hdrs: a #SoupMessageHeaders
  * @total_length: the total_length of the response body
  * @ranges: (out) (array length=length): return location for an array
- * of #SoupRange
+ *   of #SoupRange
  * @length: the length of the returned array
  *
  * Parses @hdrs's Range header and returns an array of the requested
- * byte ranges. The returned array must be freed with
- * soup_message_headers_free_ranges().
+ * byte ranges.
+ *
+ * The returned array must be freed with [method@MessageHeaders.free_ranges].
  *
  * If @total_length is non-0, its value will be used to adjust the
  * returned ranges to have explicit start and end values, and the
  * returned ranges will be sorted and non-overlapping. If
  * @total_length is 0, then some ranges may have an end value of -1,
- * as described under #SoupRange, and some of the ranges may be
+ * as described under [struct@Range], and some of the ranges may be
  * redundant.
  *
  * Beware that even if given a @total_length, this function does not
  * check that the ranges are satisfiable.
  *
- * <note><para>
  * #SoupServer has built-in handling for range requests. If your
  * server handler returns a %SOUP_STATUS_OK response containing the
  * complete response body (rather than pausing the message and
@@ -1260,12 +1257,10 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  * it all at once, or you do not already have the complete response
  * body available, and only want to generate the parts that were
  * actually requested by the client.
- * </para></note>
  *
  * Returns: %TRUE if @hdrs contained a syntactically-valid
- * "Range" header, %FALSE otherwise (in which case @range and @length
- * will not be set).
- *
+ *   "Range" header, %FALSE otherwise (in which case @range and @length
+ *   will not be set).
  **/
 gboolean
 soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
@@ -1284,8 +1279,7 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
  * @hdrs: a #SoupMessageHeaders
  * @ranges: an array of #SoupRange
  *
- * Frees the array of ranges returned from soup_message_headers_get_ranges().
- *
+ * Frees the array of ranges returned from [method@MessageHeaders.get_ranges].
  **/
 void
 soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
@@ -1300,10 +1294,10 @@ soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
  * @ranges: an array of #SoupRange
  * @length: the length of @range
  *
- * Sets @hdrs's Range header to request the indicated ranges. (If you
- * only want to request a single range, you can use
- * soup_message_headers_set_range().)
+ * Sets @hdrs's Range header to request the indicated ranges.
  *
+ * If you only want to request a single range, you can use
+ * [method@MessageHeaders.set_range].
  **/
 void
 soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
@@ -1340,11 +1334,11 @@ soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
  * @end: the end of the range to request
  *
  * Sets @hdrs's Range header to request the indicated range.
- * @start and @end are interpreted as in a #SoupRange.
+ *
+ * @start and @end are interpreted as in a [struct@Range].
  *
  * If you need to request multiple ranges, use
- * soup_message_headers_set_ranges().
- *
+ * [method@MessageHeaders.set_ranges].
  **/
 void
 soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
@@ -1364,15 +1358,14 @@ soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
  * @start: (out): return value for the start of the range
  * @end: (out): return value for the end of the range
  * @total_length: (out) (optional): return value for the total length of the
- * resource, or %NULL if you don't care.
+ *   resource, or %NULL if you don't care.
  *
  * Parses @hdrs's Content-Range header and returns it in @start,
  * @end, and @total_length. If the total length field in the header
  * was specified as "*", then @total_length will be set to -1.
  *
  * Returns: %TRUE if @hdrs contained a "Content-Range" header
- * containing a byte range which could be parsed, %FALSE otherwise.
- *
+ *   containing a byte range which could be parsed, %FALSE otherwise.
  **/
 gboolean
 soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
@@ -1419,15 +1412,13 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
  * @total_length: the total length of the resource, or -1 if unknown
  *
  * Sets @hdrs's Content-Range header according to the given values.
+ *
  * (Note that @total_length is the total length of the entire resource
  * that this is a range of, not simply @end - @start + 1.)
  *
- * <note><para>
- * #SoupServer has built-in handling for range requests, and you do
+ * [class@Server] has built-in handling for range requests, and you do
  * not normally need to call this function youself. See
- * soup_message_headers_get_ranges() for more details.
- * </para></note>
- *
+ * [method@MessageHeaders.get_ranges] for more details.
  **/
 void
 soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
@@ -1532,14 +1523,14 @@ set_content_foo (SoupMessageHeaders *hdrs,
  *   %NULL
  *
  * Looks up the "Content-Type" header in @hdrs, parses it, and returns
- * its value in *@content_type and *@params. @params can be %NULL if you
- * are only interested in the content type itself.
+ * its value in *@content_type and *@params.
+ *
+ * @params can be %NULL if you are only interested in the content type itself.
  *
  * Returns: (nullable): a string with the value of the
- * "Content-Type" header or %NULL if @hdrs does not contain that
- * header or it cannot be parsed (in which case *@params will be
- * unchanged).
- *
+ *   "Content-Type" header or %NULL if @hdrs does not contain that
+ *   header or it cannot be parsed (in which case *@params will be
+ *   unchanged).
  **/
 const char *
 soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
@@ -1557,12 +1548,11 @@ soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
  * soup_message_headers_set_content_type:
  * @hdrs: a #SoupMessageHeaders
  * @content_type: the MIME type
- * @params: (nullable) (element-type utf8 utf8): additional
- * parameters, or %NULL
+ * @params: (nullable) (element-type utf8 utf8): additional parameters
  *
- * Sets the "Content-Type" header in @hdrs to @content_type,
- * optionally with additional parameters specified in @params.
+ * Sets the "Content-Type" header in @hdrs to @content_type.
  *
+ * Accepts additional parameters specified in @params.
  **/
 void
 soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
@@ -1576,13 +1566,14 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
  * soup_message_headers_get_content_disposition:
  * @hdrs: a #SoupMessageHeaders
  * @disposition: (out) (transfer full): return location for the
- * disposition-type, or %NULL
+ *   disposition-type, or %NULL
  * @params: (out) (transfer full) (element-type utf8 utf8): return
- * location for the Content-Disposition parameters, or %NULL
+ *   location for the Content-Disposition parameters, or %NULL
  *
  * Looks up the "Content-Disposition" header in @hdrs, parses it, and
- * returns its value in *@disposition and *@params. @params can be
- * %NULL if you are only interested in the disposition-type.
+ * returns its value in *@disposition and *@params.
+ *
+ * @params can be %NULL if you are only interested in the disposition-type.
  *
  * In HTTP, the most common use of this header is to set a
  * disposition-type of "attachment", to suggest to the browser that a
@@ -1594,13 +1585,12 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
  * test this yourself.)
  *
  * Content-Disposition is also used in "multipart/form-data", however
- * this is handled automatically by #SoupMultipart and the associated
+ * this is handled automatically by [struct@Multipart] and the associated
  * form methods.
  *
  * Returns: %TRUE if @hdrs contains a "Content-Disposition"
- * header, %FALSE if not (in which case *@disposition and *@params
- * will be unchanged).
- *
+ *   header, %FALSE if not (in which case *@disposition and *@params
+ *   will be unchanged).
  **/
 gboolean
 soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
@@ -1630,15 +1620,13 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
  * soup_message_headers_set_content_disposition:
  * @hdrs: a #SoupMessageHeaders
  * @disposition: the disposition-type
- * @params: (nullable) (element-type utf8 utf8): additional
- * parameters, or %NULL
+ * @params: (nullable) (element-type utf8 utf8): additional parameters
  *
  * Sets the "Content-Disposition" header in @hdrs to @disposition,
  * optionally with additional parameters specified in @params.
  *
- * See soup_message_headers_get_content_disposition() for a discussion
+ * See [method@MessageHeaders.get_content_disposition] for a discussion
  * of how Content-Disposition is used in HTTP.
- *
  **/
 void
 soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,

@@ -21,26 +21,20 @@
 #define RESPONSE_BLOCK_SIZE 8192
 
 /**
- * SECTION:soup-multipart-input-stream
- * @short_description: Multipart input handling stream
- *
- * This adds support for the multipart responses. For handling the
- * multiple parts the user needs to wrap the #GInputStream obtained by
- * sending the request with a #SoupMultipartInputStream and use
- * soup_multipart_input_stream_next_part() before reading. Responses
- * which are not wrapped will be treated like non-multipart responses.
- *
- * Note that although #SoupMultipartInputStream is a #GInputStream,
- * you should not read directly from it, and the results are undefined
- * if you do.
- *
- **/
-
-/**
  * SoupMultipartInputStream:
  *
- * Class for handling streams of multipart messages.
- */
+ * Handles streams of multipart messages.
+ *
+ * This adds support for the multipart responses. For handling the
+ * multiple parts the user needs to wrap the [class@Gio.InputStream] obtained by
+ * sending the request with a [class@MultipartInputStream] and use
+ * [method@MultipartInputStream.next_part] before reading. Responses
+ * which are not wrapped will be treated like non-multipart responses.
+ *
+ * Note that although #SoupMultipartInputStream is a [class@Gio.InputStream],
+ * you should not read directly from it, and the results are undefined
+ * if you do.
+ **/
 
 enum {
 	PROP_0,
@@ -310,6 +304,11 @@ soup_multipart_input_stream_class_init (SoupMultipartInputStreamClass *multipart
 
 	input_stream_class->read_fn = soup_multipart_input_stream_read;
 
+        /**
+         * SoupMultipartInputStream:message:
+         *
+         * The [class@Message].
+         */
         properties[PROP_MESSAGE] =
 		g_param_spec_object ("message",
 				     "Message",
@@ -433,13 +432,13 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
  * @base_stream: the #GInputStream returned by sending the request.
  *
  * Creates a new #SoupMultipartInputStream that wraps the
- * #GInputStream obtained by sending the #SoupMessage. Reads should
- * not be done directly through this object, use the input streams
- * returned by soup_multipart_input_stream_next_part() or its async
+ * [class@Gio.InputStream] obtained by sending the [class@Message].
+ *
+ * Reads should not be done directly through this object, use the input streams
+ * returned by [method@MultipartInputStream.next_part] or its async
  * counterpart instead.
  *
  * Returns: a new #SoupMultipartInputStream
- *
  **/
 SoupMultipartInputStream *
 soup_multipart_input_stream_new (SoupMessage  *msg,
@@ -457,21 +456,20 @@ soup_multipart_input_stream_new (SoupMessage  *msg,
  * @cancellable: a #GCancellable
  * @error: a #GError
  *
- * Obtains an input stream for the next part. When dealing with a
- * multipart response the input stream needs to be wrapped in a
- * #SoupMultipartInputStream and this function or its async
- * counterpart need to be called to obtain the first part for
- * reading.
+ * Obtains an input stream for the next part.
+ *
+ * When dealing with a multipart response the input stream needs to be wrapped
+ * in a #SoupMultipartInputStream and this function or its async counterpart
+ * need to be called to obtain the first part for reading.
  *
  * After calling this function,
- * soup_multipart_input_stream_get_headers() can be used to obtain the
+ * [method@MultipartInputStream.get_headers] can be used to obtain the
  * headers for the first part. A read of 0 bytes indicates the end of
  * the part; a new call to this function should be done at that point,
  * to obtain the next part.
  *
  * Returns: (nullable) (transfer full): a new #GInputStream, or
- * %NULL if there are no more parts
- *
+ *   %NULL if there are no more parts
  */
 GInputStream *
 soup_multipart_input_stream_next_part (SoupMultipartInputStream  *multipart,
@@ -523,10 +521,9 @@ soup_multipart_input_stream_next_part_thread (GTask        *task,
  * @callback: callback to call when request is satisfied.
  * @data: data for @callback
  *
- * Obtains a #GInputStream for the next request. See
- * soup_multipart_input_stream_next_part() for details on the
- * workflow.
+ * Obtains a [class@Gio.InputStream] for the next request.
  *
+ * See [method@MultipartInputStream.next_part] for details on the workflow.
  */
 void
 soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart,
@@ -563,9 +560,8 @@ soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart
  * Finishes an asynchronous request for the next part.
  *
  * Returns: (nullable) (transfer full): a newly created
- * #GInputStream for reading the next part or %NULL if there are no
- * more parts.
- *
+ *   [class@Gio.InputStream] for reading the next part or %NULL if there are no
+ *   more parts.
  */
 GInputStream *
 soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream	*multipart,
@@ -581,20 +577,19 @@ soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream	*multipar
  * soup_multipart_input_stream_get_headers:
  * @multipart: a #SoupMultipartInputStream.
  *
- * Obtains the headers for the part currently being processed. Note
- * that the #SoupMessageHeaders that are returned are owned by the
- * #SoupMultipartInputStream and will be replaced when a call is made
- * to soup_multipart_input_stream_next_part() or its async
- * counterpart, so if keeping the headers is required, a copy must be
- * made.
+ * Obtains the headers for the part currently being processed.
  *
- * Note that if a part had no headers at all an empty #SoupMessageHeaders
+ * Note that the [struct@MessageHeaders] that are returned are owned by the
+ * #SoupMultipartInputStream and will be replaced when a call is made to
+ * [method@MultipartInputStream.next_part] or its async counterpart, so if
+ * keeping the headers is required, a copy must be made.
+ *
+ * Note that if a part had no headers at all an empty [struct@MessageHeaders]
  * will be returned.
  *
  * Returns: (nullable) (transfer none): a #SoupMessageHeaders
- * containing the headers for the part currently being processed or
- * %NULL if the headers failed to parse.
- *
+ *   containing the headers for the part currently being processed or
+ *   %NULL if the headers failed to parse.
  */
 SoupMessageHeaders *
 soup_multipart_input_stream_get_headers (SoupMultipartInputStream *multipart)

@@ -19,22 +19,17 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-cookie-jar-db
- * @short_description: Database-based Cookie Jar
+ * SoupCookieJarDB:
  *
- * #SoupCookieJarDB is a #SoupCookieJar that reads cookies from and
- * writes them to a sqlite database in the new Mozilla format.
+ * Database-based Cookie Jar.
  *
- * (This is identical to <literal>SoupCookieJarSqlite</literal> in
+ * #SoupCookieJarDB is a [class@CookieJar] that reads cookies from and writes
+ * them to a sqlite database in the new Mozilla format.
+ *
+ * (This is identical to `SoupCookieJarSqlite` in
  * libsoup-gnome; it has just been moved into libsoup proper, and
  * renamed to avoid conflicting.)
  **/
-
-/**
- * SoupCookieJarDB:
- *
- * Subclass of #SoupCookieJar that stores cookies in a sqlite database.
- */
 
 enum {
 	PROP_0,
@@ -119,15 +114,13 @@ soup_cookie_jar_db_get_property (GObject *object, guint prop_id,
  *
  * Creates a #SoupCookieJarDB.
  *
- * @filename will be read in at startup to create an initial set of
- * cookies. If @read_only is %FALSE, then the non-session cookies will
- * be written to @filename when the 'changed' signal is emitted from
- * the jar. (If @read_only is %TRUE, then the cookie jar will only be
- * used for this session, and changes made to it will be lost when the
- * jar is destroyed.)
+ * @filename will be read in at startup to create an initial set of cookies. If
+ * @read_only is %FALSE, then the non-session cookies will be written to
+ * @filename when the [signal@CookieJar::changed] signal is emitted from the
+ * jar. (If @read_only is %TRUE, then the cookie jar will only be used for this
+ * session, and changes made to it will be lost when the jar is destroyed.)
  *
  * Returns: the new #SoupCookieJar
- *
  **/
 SoupCookieJar *
 soup_cookie_jar_db_new (const char *filename, gboolean read_only)
@@ -339,6 +332,11 @@ soup_cookie_jar_db_class_init (SoupCookieJarDBClass *db_class)
 	object_class->set_property = soup_cookie_jar_db_set_property;
 	object_class->get_property = soup_cookie_jar_db_get_property;
 
+	/**
+	 * SoupCookieJarDB:filename:
+	 *
+	 * Cookie-storage filename.
+	 */
         properties[PROP_FILENAME] =
 		g_param_spec_string ("filename",
 				     "Filename",

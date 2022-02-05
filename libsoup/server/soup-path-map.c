@@ -34,7 +34,7 @@ struct SoupPathMap {
 /**
  * soup_path_map_new:
  * @data_free_func: function to use to free data added with
- * soup_path_map_add().
+ *   soup_path_map_add().
  *
  * Creates a new %SoupPathMap.
  *
@@ -176,7 +176,7 @@ soup_path_map_remove (SoupPathMap *map, const char *path)
  * closest parent directory of @path that has data associated with it.
  *
  * Returns: (nullable): the data set with soup_path_map_add(), or
- * %NULL if no data could be found for @path or any of its ancestors.
+ *   %NULL if no data could be found for @path or any of its ancestors.
  **/
 gpointer
 soup_path_map_lookup (SoupPathMap *map, const char *path)

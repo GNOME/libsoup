@@ -19,22 +19,13 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-hsts-policy
- * @title: SoupHSTSPolicy
- * @short_description: HSTS policies
- *
- * Policies to be used with #SoupHSTSEnforcer.
- *
- */
-
-/**
  * SoupHSTSPolicy:
  *
  * #SoupHSTSPolicy implements HTTP policies, as described by
  * [RFC 6797](http://tools.ietf.org/html/rfc6797).
  *
  * @domain represents the host that this policy applies to. The domain
- * must be IDNA-canonicalized. soup_hsts_policy_new() and related methods
+ * must be IDNA-canonicalized. [ctor@HSTSPolicy.new] and related methods
  * will do this for you.
  *
  * @max_age contains the 'max-age' value from the Strict Transport
@@ -47,7 +38,6 @@
  *
  * If @include_subdomains is %TRUE, the Strict Transport Security policy
  * must also be enforced on subdomains of @domain.
- *
  **/
 
 struct _SoupHSTSPolicy {
@@ -66,7 +56,6 @@ G_DEFINE_BOXED_TYPE (SoupHSTSPolicy, soup_hsts_policy, soup_hsts_policy_copy, so
  * Copies @policy.
  *
  * Returns: (transfer full): a copy of @policy
- *
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_copy (SoupHSTSPolicy *policy)
@@ -90,7 +79,6 @@ soup_hsts_policy_copy (SoupHSTSPolicy *policy)
  * Tests if @policy1 and @policy2 are equal.
  *
  * Returns: whether the policies are equal.
- *
  */
 gboolean
 soup_hsts_policy_equal (SoupHSTSPolicy *policy1, SoupHSTSPolicy *policy2)
@@ -141,14 +129,13 @@ is_hostname_valid (const char *hostname)
  * represented by this object must be enforced.
  *
  * @max_age is used to set the "expires" attribute on the policy; pass
- * SOUP_HSTS_POLICY_MAX_AGE_PAST for an already-expired policy, or a
+ * %SOUP_HSTS_POLICY_MAX_AGE_PAST for an already-expired policy, or a
  * lifetime in seconds.
  *
  * If @include_subdomains is %TRUE, the strict transport security policy
  * must also be enforced on all subdomains of @domain.
  *
  * Returns: a new #SoupHSTSPolicy.
- *
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new (const char *domain,
@@ -178,11 +165,12 @@ soup_hsts_policy_new (const char *domain,
  * @expires: the date of expiration of the policy or %NULL for a permanent policy
  * @include_subdomains: %TRUE if the policy applies on subdomains
  *
- * Full version of #soup_hsts_policy_new(), to use with an existing
- * expiration date. See #soup_hsts_policy_new() for details.
+ * Full version of [ctor@HSTSPolicy.new], to use with an existing
+ * expiration date.
+ *
+ * See [ctor@HSTSPolicy.new] for details.
  *
  * Returns: a new #SoupHSTSPolicy.
- *
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_full (const char *domain,
@@ -219,8 +207,9 @@ soup_hsts_policy_new_full (const char *domain,
  * @include_subdomains: %TRUE if the policy applies on sub domains
  *
  * Creates a new session #SoupHSTSPolicy with the given attributes.
+ *
  * A session policy is a policy that is valid during the lifetime of
- * the #SoupHSTSEnforcer it is added to. Contrary to regular policies,
+ * the [class@HSTSEnforcer] it is added to. Contrary to regular policies,
  * it has no expiration date and is not stored in persistent
  * enforcers. These policies are useful for user-agent to load their
  * own or user-defined rules.
@@ -232,7 +221,6 @@ soup_hsts_policy_new_full (const char *domain,
  * must also be enforced on all subdomains of @domain.
  *
  * Returns: a new #SoupHSTSPolicy.
- *
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_session_policy (const char *domain,
@@ -253,8 +241,7 @@ soup_hsts_policy_new_session_policy (const char *domain,
  * returns a #SoupHSTSPolicy.
  *
  * Returns: (nullable): a new #SoupHSTSPolicy, or %NULL if no valid
- * "Strict-Transport-Security" response header was found.
- *
+ *   "Strict-Transport-Security" response header was found.
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_from_response (SoupMessage *msg)
@@ -315,7 +302,6 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
  * Gets @policy's domain.
  *
  * Returns: (transfer none): @policy's domain.
- *
  **/
 const char *
 soup_hsts_policy_get_domain (SoupHSTSPolicy *policy)
@@ -329,11 +315,11 @@ soup_hsts_policy_get_domain (SoupHSTSPolicy *policy)
  * soup_hsts_policy_is_expired:
  * @policy: a #SoupHSTSPolicy
  *
- * Gets whether @policy is expired. Permanent policies never
- * expire.
+ * Gets whether @policy is expired.
+ *
+ * Permanent policies never expire.
  *
  * Returns: %TRUE if @policy is expired, %FALSE otherwise.
- *
  **/
 gboolean
 soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
@@ -350,7 +336,6 @@ soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
  * Gets whether @policy include its subdomains.
  *
  * Returns: %TRUE if @policy includes subdomains, %FALSE otherwise.
- *
  **/
 gboolean
 soup_hsts_policy_includes_subdomains (SoupHSTSPolicy *policy)
@@ -365,10 +350,10 @@ soup_hsts_policy_includes_subdomains (SoupHSTSPolicy *policy)
  * @policy: a #SoupHSTSPolicy
  *
  * Gets whether @policy is a non-permanent, non-expirable session policy.
- * see soup_hsts_policy_new_session_policy() for details.
+ *
+ * See [ctor@HSTSPolicy.new_session_policy] for details.
  *
  * Returns: %TRUE if @policy is permanent, %FALSE otherwise
- *
  **/
 gboolean
 soup_hsts_policy_is_session_policy (SoupHSTSPolicy *policy)
@@ -415,7 +400,6 @@ soup_hsts_policy_get_max_age (SoupHSTSPolicy *policy)
  * @policy: (transfer full): a #SoupHSTSPolicy
  *
  * Frees @policy.
- *
  **/
 void
 soup_hsts_policy_free (SoupHSTSPolicy *policy)

@@ -23,24 +23,25 @@
 #include "soup-session-feature-private.h"
 
 /**
- * SECTION:soup-logger
- * @short_description: Debug logging support
+ * SoupLogger:
  *
- * #SoupLogger watches a #SoupSession and logs the HTTP traffic that
+ * Debug logging support
+ *
+ * #SoupLogger watches a [class@Session] and logs the HTTP traffic that
  * it generates, for debugging purposes. Many applications use an
  * environment variable to determine whether or not to use
  * #SoupLogger, and to determine the amount of debugging output.
  *
- * To use #SoupLogger, first create a logger with soup_logger_new(),
- * optionally configure it with soup_logger_set_request_filter(),
- * soup_logger_set_response_filter(), and soup_logger_set_printer(),
- * and then attach it to a session (or multiple sessions) with
- * soup_session_add_feature().
+ * To use #SoupLogger, first create a logger with [ctor@Logger.new], optionally
+ * configure it with [method@Logger.set_request_filter],
+ * [method@Logger.set_response_filter], and [method@Logger.set_printer], and
+ * then attach it to a session (or multiple sessions) with
+ * [method@Session.add_feature].
  *
- * By default, the debugging output is sent to
- * <literal>stdout</literal>, and looks something like:
+ * By default, the debugging output is sent to `stdout`, and looks something
+ * like:
  *
- * <informalexample><screen>
+ * ```
  * > POST /unauth HTTP/1.1
  * > Soup-Debug-Timestamp: 1200171744
  * > Soup-Debug: SoupSession 1 (0x612190), SoupMessage 1 (0x617000), GSocket 1 (0x612220)
@@ -53,45 +54,36 @@
  * &lt; Soup-Debug: SoupMessage 1 (0x617000)
  * &lt; Date: Sun, 12 Jan 2008 21:02:24 GMT
  * &lt; Content-Length: 0
- * </screen></informalexample>
+ * ```
  *
- * The <literal>Soup-Debug-Timestamp</literal> line gives the time (as
- * a <type>time_t</type>) when the request was sent, or the response fully
- * received.
+ * The `Soup-Debug-Timestamp` line gives the time (as a `time_t`) when the
+ * request was sent, or the response fully received.
  *
- * The <literal>Soup-Debug</literal> line gives further debugging
- * information about the #SoupSession, #SoupMessage, and #GSocket
- * involved; the hex numbers are the addresses of the objects in
- * question (which may be useful if you are running in a debugger).
- * The decimal IDs are simply counters that uniquely identify objects
- * across the lifetime of the #SoupLogger. In particular, this can be
- * used to identify when multiple messages are sent across the same
- * connection.
+ * The `Soup-Debug` line gives further debugging information about the
+ * [class@Session], [class@Message], and [class@Gio.Socket] involved; the hex
+ * numbers are the addresses of the objects in question (which may be useful if
+ * you are running in a debugger). The decimal IDs are simply counters that
+ * uniquely identify objects across the lifetime of the #SoupLogger. In
+ * particular, this can be used to identify when multiple messages are sent
+ * across the same connection.
  *
  * Currently, the request half of the message is logged just before
  * the first byte of the request gets written to the network (from the
- * #SoupMessage::starting signal).
+ * [signal@Message::starting] signal).
  *
- * The response is logged just after the last byte of the response
- * body is read from the network (from the #SoupMessage::got-body or
- * #SoupMessage::got-informational signal), which means that the
- * #SoupMessage::got-headers signal, and anything triggered off it
- * (such as #SoupMessage::authenticate) will be emitted
- * <emphasis>before</emphasis> the response headers are actually
- * logged.
+ * The response is logged just after the last byte of the response body is read
+ * from the network (from the [signal@Message::got-body] or
+ * [signal@Message::got-informational] signal), which means that the
+ * [signal@Message::got-headers] signal, and anything triggered off it (such as
+ * #SoupMessage::authenticate) will be emitted *before* the response headers are
+ * actually logged.
  *
- * If the response doesn't happen to trigger the
- * #SoupMessage::got-body nor #SoupMessage::got-informational signals
- * due to, for example, a cancellation before receiving the last byte
- * of the response body, the response will still be logged on the
- * event of the #SoupMessage::finished signal.
+ * If the response doesn't happen to trigger the [signal@Message::got-body] nor
+ * [signal@Message::got-informational] signals due to, for example, a
+ * cancellation before receiving the last byte of the response body, the
+ * response will still be logged on the event of the [signal@Message::finished]
+ * signal.
  **/
-
-/**
- * SoupLogger:
- *
- * Class implementing logging.
- */
 
 struct _SoupLogger {
 	GObject parent;
@@ -341,8 +333,7 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	/**
 	 * SoupLogger:level:
 	 *
-	 * The level of logging output
-	 *
+	 * The level of logging output.
 	 */
         properties[PROP_LEVEL] =
 		g_param_spec_enum ("level",
@@ -353,12 +344,11 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupLogger:max-body-size:
+	 * SoupLogger:max-body-size: (attributes org.gtk.Property.get=soup_logger_get_max_body_size org.gtk.Property.set=soup_logger_set_max_body_size)
 	 *
-	 * If #SoupLogger:level is %SOUP_LOGGER_LOG_BODY, this gives
+	 * If [property@Logger:level] is %SOUP_LOGGER_LOG_BODY, this gives
 	 * the maximum number of bytes of the body that will be logged.
 	 * (-1 means "no limit".)
-	 *
 	 **/
         properties[PROP_MAX_BODY_SIZE] =
 		g_param_spec_int ("max-body-size",
@@ -378,7 +368,7 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
  * SoupLoggerLogLevel:
  * @SOUP_LOGGER_LOG_NONE: No logging
  * @SOUP_LOGGER_LOG_MINIMAL: Log the Request-Line or Status-Line and
- * the Soup-Debug pseudo-headers
+ *   the Soup-Debug pseudo-headers
  * @SOUP_LOGGER_LOG_HEADERS: Log the full request/response headers
  * @SOUP_LOGGER_LOG_BODY: Log the full headers and request/response bodies
  *
@@ -392,8 +382,8 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
  * Creates a new #SoupLogger with the given debug level.
  *
  * If you need finer control over what message parts are and aren't
- * logged, use soup_logger_set_request_filter() and
- * soup_logger_set_response_filter().
+ * logged, use [method@Logger.set_request_filter] and
+ * [method@Logger.set_response_filter].
  *
  * Returns: a new #SoupLogger
  **/
@@ -407,16 +397,17 @@ soup_logger_new (SoupLoggerLogLevel level)
  * SoupLoggerFilter:
  * @logger: the #SoupLogger
  * @msg: the message being logged
- * @user_data: the data passed to soup_logger_set_request_filter()
- * or soup_logger_set_response_filter()
+ * @user_data: the data passed to [method@Logger.set_request_filter]
+ *   or [method@Logger.set_response_filter]
  *
- * The prototype for a logging filter. The filter callback will be
- * invoked for each request or response, and should analyze it and
- * return a #SoupLoggerLogLevel value indicating how much of the
- * message to log.
+ * The prototype for a logging filter.
  *
- * Returns: a #SoupLoggerLogLevel value indicating how much of
- * the message to log
+ * The filter callback will be invoked for each request or response, and should
+ * analyze it and return a [enum@LoggerLogLevel] value indicating how much of
+ * the message to log.
+ *
+ * Returns: a [enum@LoggerLogLevel] value indicating how much of the message to
+ *   log
  **/
 
 /**
@@ -427,10 +418,11 @@ soup_logger_new (SoupLoggerLogLevel level)
  * @destroy: a #GDestroyNotify to free @filter_data
  *
  * Sets up a filter to determine the log level for a given request.
+ *
  * For each HTTP request @logger will invoke @request_filter to
  * determine how much (if any) of that request to log. (If you do not
  * set a request filter, @logger will just always log requests at the
- * level passed to soup_logger_new().)
+ * level passed to [ctor@Logger.new].)
  **/
 void
 soup_logger_set_request_filter (SoupLogger       *logger,
@@ -453,10 +445,11 @@ soup_logger_set_request_filter (SoupLogger       *logger,
  * @destroy: a #GDestroyNotify to free @filter_data
  *
  * Sets up a filter to determine the log level for a given response.
+ *
  * For each HTTP response @logger will invoke @response_filter to
  * determine how much (if any) of that response to log. (If you do not
  * set a response filter, @logger will just always log responses at
- * the level passed to soup_logger_new().)
+ * the level passed to [ctor@Logger.new].)
  **/
 void
 soup_logger_set_response_filter (SoupLogger       *logger,
@@ -477,7 +470,7 @@ soup_logger_set_response_filter (SoupLogger       *logger,
  * @level: the level of the information being printed.
  * @direction: a single-character prefix to @data
  * @data: data to print
- * @user_data: the data passed to soup_logger_set_printer()
+ * @user_data: the data passed to [method@Logger.set_printer]
  *
  * The prototype for a custom printing callback.
  *
@@ -489,9 +482,9 @@ soup_logger_set_response_filter (SoupLogger       *logger,
  *
  * To get the effect of the default printer, you would do:
  *
- * <informalexample><programlisting>
- *	printf ("%c %s\n", direction, data);
- * </programlisting></informalexample>
+ * ```c
+ * printf ("%c %s\n", direction, data);
+ * ```
  **/
 
 /**
@@ -502,7 +495,7 @@ soup_logger_set_response_filter (SoupLogger       *logger,
  * @destroy: a #GDestroyNotify to free @printer_data
  *
  * Sets up an alternate log printing routine, if you don't want
- * the log to go to <literal>stdout</literal>.
+ * the log to go to `stdout`.
  **/
 void
 soup_logger_set_printer (SoupLogger        *logger,
@@ -518,7 +511,7 @@ soup_logger_set_printer (SoupLogger        *logger,
 }
 
 /**
- * soup_logger_set_max_body_size:
+ * soup_logger_set_max_body_size: (attributes org.gtk.Method.set_property=max-body-size)
  * @logger: a #SoupLogger
  * @max_body_size: the maximum body size to log
  *
@@ -533,7 +526,7 @@ soup_logger_set_max_body_size (SoupLogger *logger, int max_body_size)
 }
 
 /**
- * soup_logger_get_max_body_size:
+ * soup_logger_get_max_body_size: (attributes org.gtk.Method.get_property=max-body-size)
  * @logger: a #SoupLogger
  *
  * Get the maximum body size for @logger.

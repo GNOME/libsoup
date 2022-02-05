@@ -21,39 +21,30 @@
 #include "content-sniffer/soup-content-sniffer-stream.h"
 
 /**
- * SECTION:soup-message
- * @short_description: An HTTP request and response.
- * @see_also: #SoupMessageHeaders
- *
- * A #SoupMessage represents an HTTP message that is being sent or
- * received.
- *
- * You would create a #SoupMessage with soup_message_new() or
- * soup_message_new_from_uri(), set up its
- * fields appropriately, and send it.
- *
- * Note that libsoup's terminology here does not quite match the HTTP
- * specification: in RFC 2616, an "HTTP-message" is
- * <emphasis>either</emphasis> a Request, <emphasis>or</emphasis> a
- * Response. In libsoup, a #SoupMessage combines both the request and
- * the response.
- **/
-
-/**
  * SoupMessage:
  *
  * Represents an HTTP message being sent or received.
  *
- * @status_code will normally be a #SoupStatus value, eg,
- * %SOUP_STATUS_OK, though of course it might actually be an unknown
- * status code. @reason_phrase is the actual text returned from the
- * server, which may or may not correspond to the "standard"
- * description of @status_code. At any rate, it is almost certainly
- * not localized, and not very descriptive even if it is in the user's
- * language; you should not use @reason_phrase in user-visible
- * messages. Rather, you should look at @status_code, and determine an
- * end-user-appropriate message based on that and on what you were
- * trying to do.
+ * A #SoupMessage represents an HTTP message that is being sent or
+ * received.
+ *
+ * You would create a #SoupMessage with [ctor@Message.new] or
+ * [ctor@Message.new_from_uri], set up its fields appropriately, and send it.
+ *
+ * [property@Message:status-code] will normally be a [enum@Status] value, eg,
+ * %SOUP_STATUS_OK, though of course it might actually be an unknown status
+ * code. [property@Message:reason-phrase] is the actual text returned from the
+ * server, which may or may not correspond to the "standard" description of
+ * @status_code. At any rate, it is almost certainly not localized, and not very
+ * descriptive even if it is in the user's language; you should not use
+ * [property@Message:reason-phrase] in user-visible messages. Rather, you should
+ * look at [property@Message:status-code], and determine an end-user-appropriate
+ * message based on that and on what you were trying to do.
+ *
+ * Note that libsoup's terminology here does not quite match the HTTP
+ * specification: in RFC 2616, an "HTTP-message" is *either* a Request, *or* a
+ * Response. In libsoup, a #SoupMessage combines both the request and the
+ * response.
  */
 
 struct _SoupMessage {
@@ -362,7 +353,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Emitted immediately after writing a portion of the message
 	 * body to the network.
-	 *
 	 **/
 	signals[WROTE_BODY_DATA] =
 		g_signal_new ("wrote-body-data",
@@ -395,10 +385,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted after receiving a 1xx (Informational) response for
-	 * a (client-side) message. The response_headers will be
-	 * filled in with the headers associated with the
-	 * informational response; however, those header values will
-	 * be erased after this signal is done.
+	 * a (client-side) message.
+	 *
+	 * The response_headers will be filled in with the headers associated
+	 * with the informational response; however, those header values will be
+	 * erased after this signal is done.
 	 *
 	 * If you cancel or requeue @msg while processing this signal,
 	 * then the current HTTP I/O will be stopped after this signal
@@ -419,17 +410,17 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Emitted after receiving the Status-Line and response headers.
 	 *
-	 * See also soup_message_add_header_handler() and
-	 * soup_message_add_status_code_handler(), which can be used
-	 * to connect to a subset of emissions of this signal.
+	 * See also [method@Message.add_header_handler] and
+	 * [method@Message.add_status_code_handler], which can be used to
+	 * connect to a subset of emissions of this signal.
 	 *
 	 * If you cancel or requeue @msg while processing this signal,
 	 * then the current HTTP I/O will be stopped after this signal
 	 * emission finished, and @msg's connection will be closed.
 	 * (If you need to requeue a message--eg, after handling
 	 * authentication or redirection--it is usually better to
-	 * requeue it from a #SoupMessage::got_body handler rather
-	 * than a #SoupMessage::got_headers handler, so that the
+	 * requeue it from a [signal@Message::got-body] handler rather
+	 * than a [signal@Message::got_headers] handler, so that the
 	 * existing HTTP connection can be reused.)
 	 **/
 	signals[GOT_HEADERS] =
@@ -447,8 +438,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Emitted after receiving the complete message request body.
 	 *
-	 * See also soup_message_add_header_handler() and
-	 * soup_message_add_status_code_handler(), which can be used
+	 * See also [method@Message.add_header_handler] and
+	 * [method@Message.add_status_code_handler], which can be used
 	 * to connect to a subset of emissions of this signal.
 	 **/
 	signals[GOT_BODY] =
@@ -466,13 +457,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @type: the content type that we got from sniffing
 	 * @params: (element-type utf8 utf8): a #GHashTable with the parameters
 	 *
-	 * This signal is emitted after #SoupMessage::got-headers.
+	 * This signal is emitted after [signal@Message::got-headers].
+	 *
 	 * If content sniffing is disabled, or no content sniffing will be
 	 * performed, due to the sniffer deciding to trust the
 	 * Content-Type sent by the server, this signal is emitted
-	 * immediately after #SoupMessage::got-headers, and @type is
+	 * immediately after [signal@Message::got-headers], and @type is
 	 * %NULL.
-	 *
 	 **/
 	signals[CONTENT_SNIFFED] =
 		g_signal_new ("content-sniffed",
@@ -490,7 +481,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted just before a message is sent.
-	 *
 	 */
 	signals[STARTING] =
 		g_signal_new ("starting",
@@ -506,9 +496,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted when a request that was already sent once is now
-	 * being sent again (eg, because the first attempt received a
+	 * being sent again.
+	 *
+	 * e.g. because the first attempt received a
 	 * redirection response, or because we needed to use
-	 * authentication).
+	 * authentication.
 	 **/
 	signals[RESTARTED] =
 		g_signal_new ("restarted",
@@ -524,7 +516,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted when all HTTP processing is finished for a message.
-	 * (After #SoupMessage::got_body).
+	 *
+	 * (After [signal@Message::got_body]).
 	 **/
 	signals[FINISHED] =
 		g_signal_new ("finished",
@@ -541,22 +534,23 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @auth: the #SoupAuth to authenticate
 	 * @retrying: %TRUE if this is the second (or later) attempt
 	 *
-	 * Emitted when the message requires authentication. If
-	 * credentials are available call soup_auth_authenticate() on
-	 * @auth. If these credentials fail, the signal will be
-	 * emitted again, with @retrying set to %TRUE, which will
-	 * continue until you return without calling
-	 * soup_auth_authenticate() on @auth.
+	 * Emitted when the message requires authentication.
+	 *
+	 * If credentials are available call [method@Auth.authenticate] on
+	 * @auth. If these credentials fail, the signal will be emitted again,
+	 * with @retrying set to %TRUE, which will continue until you return
+	 * without calling [method@Auth.authenticate] on @auth.
 	 *
 	 * Note that this may be emitted before @msg's body has been
 	 * fully read.
 	 *
-	 * You can authenticate @auth asynchronously by calling g_object_ref()
-	 * on @auth and returning %TRUE. The operation will complete once
-	 * either soup_auth_authenticate() or soup_auth_cancel() are called.
+	 * You can authenticate @auth asynchronously by calling
+	 * [method@GObject.Object.ref] on @auth and returning %TRUE. The operation will
+	 * complete once either [method@Auth.authenticate] or
+	 * [method@Auth.cancel] are called.
 	 *
 	 * Returns: %TRUE to stop other handlers from being invoked
-	 *    or %FALSE to propagate the event further.
+	 *   or %FALSE to propagate the event further.
 	 **/
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
@@ -576,18 +570,17 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @connection: the current state of the network connection
 	 *
 	 * Emitted to indicate that some network-related event
-	 * related to @msg has occurred. This essentially proxies the
-	 * #GSocketClient::event signal, but only for events that
-	 * occur while @msg "owns" the connection; if @msg is sent on
-	 * an existing persistent connection, then this signal will
-	 * not be emitted. (If you want to force the message to be
-	 * sent on a new connection, set the
-	 * %SOUP_MESSAGE_NEW_CONNECTION flag on it.)
+	 * related to @msg has occurred.
 	 *
-	 * See #GSocketClient::event for more information on what
+	 * This essentially proxies the [signal@Gio.SocketClient::event] signal,
+	 * but only for events that occur while @msg "owns" the connection; if
+	 * @msg is sent on an existing persistent connection, then this signal
+	 * will not be emitted. (If you want to force the message to be sent on
+	 * a new connection, set the %SOUP_MESSAGE_NEW_CONNECTION flag on it.)
+	 *
+	 * See [signal@Gio.SocketClient::event] for more information on what
 	 * the different values of @event correspond to, and what
 	 * @connection will be in each case.
-	 *
 	 **/
 	signals[NETWORK_EVENT] =
 		g_signal_new ("network-event",
@@ -608,12 +601,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Emitted during the @msg's connection TLS handshake
 	 * after an unacceptable TLS certificate has been received.
+	 *
 	 * You can return %TRUE to accept @tls_certificate despite
 	 * @tls_errors.
 	 *
 	 * Returns: %TRUE to accept the TLS certificate and stop other
-	 *     handlers from being invoked, or %FALSE to propagate the
-	 *     event further.
+	 *   handlers from being invoked, or %FALSE to propagate the
+	 *   event further.
 	 */
 	signals[ACCEPT_CERTIFICATE] =
 		g_signal_new ("accept-certificate",
@@ -633,17 +627,18 @@ soup_message_class_init (SoupMessageClass *message_class)
          *
          * Emitted during the @msg's connection TLS handshake when
          * @tls_connection requests a certificate from the client.
+         *
          * You can set the client certificate by calling
-         * soup_message_set_tls_client_certificate() and returning %TRUE.
-         * It's possible to handle the request asynchornously by returning
-         * %TRUE and call soup_message_set_tls_client_certificate() later
-         * once the certificate is available.
-         * Note that this signal is not emitted if #SoupSession::tls-interaction
-         * was set, or if soup_message_set_tls_client_certificate() was called
-         * before the connection TLS handshake started.
+         * [method@Message.set_tls_client_certificate] and returning %TRUE. It's
+         * possible to handle the request asynchornously by returning %TRUE and
+         * call [method@Message.set_tls_client_certificate] later once the
+         * certificate is available. Note that this signal is not emitted if
+         * [property@Session:tls-interaction] was set, or if
+         * [method@Message.set_tls_client_certificate] was called before the
+         * connection TLS handshake started.
          *
          * Returns: %TRUE to handle the request, or %FALSE to make the connection
-         *     fail with %G_TLS_ERROR_CERTIFICATE_REQUIRED.
+         *   fail with %G_TLS_ERROR_CERTIFICATE_REQUIRED.
          */
         signals[REQUEST_CERTIFICATE] =
                 g_signal_new ("request-certificate",
@@ -662,18 +657,19 @@ soup_message_class_init (SoupMessageClass *message_class)
          *
          * Emitted during the @msg's connection TLS handshake when
          * @tls_connection requests a certificate password from the client.
+         *
          * You can set the certificate password on @password, then call
-         * soup_message_tls_client_certificate_password_request_complete() and return %TRUE
-         * to handle the signal synchronously.
-         * It's possible to handle the request asynchornously by calling g_object_ref()
-         * on @password, then returning %TRUE and call
-         * soup_message_tls_client_certificate_password_request_complete() later after
-         * setting the password on @password.
-         * Note that this signal is not emitted if #SoupSession::tls-interaction
-         * was set.
+         * [method@Message.tls_client_certificate_password_request_complete] and
+         * return %TRUE to handle the signal synchronously. It's possible to
+         * handle the request asynchornously by calling
+         * [method@GObject.Object.ref] on @password, then returning %TRUE and
+         * call
+         * [method@Message.tls_client_certificate_password_request_complete]
+         * later after setting the password on @password. Note that this signal
+         * is not emitted if [property@Session:tls-interaction] was set.
          *
          * Returns: %TRUE to handle the request, or %FALSE to make the connection
-         *     fail with %G_TLS_ERROR_CERTIFICATE_REQUIRED.
+         *   fail with %G_TLS_ERROR_CERTIFICATE_REQUIRED.
          */
         signals[REQUEST_CERTIFICATE_PASSWORD] =
                 g_signal_new ("request-certificate-password",
@@ -689,7 +685,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * SoupMessage::hsts-enforced:
 	 * @msg: the message
 	 *
-	 * Emitted when #SoupHSTSEnforcer has upgraded the protocol
+	 * Emitted when [class@HSTSEnforcer] has upgraded the protocol
 	 * for @msg to HTTPS as a result of matching its domain with
 	 * a HSTS policy.
 	 **/
@@ -702,6 +698,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL,
 			      G_TYPE_NONE, 0);
 
+	/**
+	 * SoupMessage:method: (attributes org.gtk.Property.get=soup_message_get_method org.gtk.Property.set=soup_message_set_method)
+	 *
+	 * The message's HTTP method.
+	 **/
 	/* properties */
         properties[PROP_METHOD] =
 		g_param_spec_string ("method",
@@ -710,6 +711,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     SOUP_METHOD_GET,
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS);
+	/**
+	 * SoupMessage:uri: (attributes org.gtk.Property.get=soup_message_get_uri org.gtk.Property.set=soup_message_set_uri)
+	 *
+	 * The message's Request-URI.
+	 **/
         properties[PROP_URI] =
 		g_param_spec_boxed ("uri",
 				    "URI",
@@ -717,6 +723,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_TYPE_URI,
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS);
+	/**
+	 * SoupMessage:http-version: (attributes org.gtk.Property.get=soup_message_get_http_version)
+	 *
+	 * The HTTP protocol version to use.
+	 **/
         properties[PROP_HTTP_VERSION] =
 		g_param_spec_enum ("http-version",
 				   "HTTP Version",
@@ -725,6 +736,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   SOUP_HTTP_1_1,
 				   G_PARAM_READABLE |
 				   G_PARAM_STATIC_STRINGS);
+	/**
+	 * SoupMessage:flags: (attributes org.gtk.Property.get=soup_message_get_flags org.gtk.Property.set=soup_message_set_flags)
+	 *
+	 * Various message options.
+	 **/
         properties[PROP_FLAGS] =
 		g_param_spec_flags ("flags",
 				    "Flags",
@@ -733,6 +749,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    0,
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS);
+	/**
+	 * SoupMessage:status-code:
+	 *
+	 * The HTTP response status code.
+	 **/
         properties[PROP_STATUS_CODE] =
 		g_param_spec_uint ("status-code",
 				   "Status code",
@@ -740,6 +761,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   0, 999, 0,
 				   G_PARAM_READABLE |
 				   G_PARAM_STATIC_STRINGS);
+	/**
+	 * SoupMessage:reason-phrase: (attributes org.gtk.Property.get=soup_message_get_reason_phrase)
+	 *
+	 * The HTTP response reason phrase.
+	 **/
         properties[PROP_REASON_PHRASE] =
 		g_param_spec_string ("reason-phrase",
 				     "Reason phrase",
@@ -748,11 +774,10 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupMessage:first-party:
+	 * SoupMessage:first-party: (attributes org.gtk.Property.get=soup_message_get_first_party org.gtk.Property.set=soup_message_set_first_party)
 	 *
-	 * The #GUri loaded in the application when the message was
+	 * The [struct@GLib.Uri] loaded in the application when the message was
 	 * queued.
-	 *
 	 */
         properties[PROP_FIRST_PARTY] =
 		g_param_spec_boxed ("first-party",
@@ -762,10 +787,9 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_PARAM_READWRITE |
 				    G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupMessage:site-for-cookkies:
+	 * SoupMessage:site-for-cookies: (attributes org.gtk.Property.get=soup_message_get_site_for_cookies org.gtk.Property.set=soup_message_set_site_for_cookies)
 	 *
 	 * Site used to compare cookies against. Used for SameSite cookie support.
-	 *
 	 */
         properties[PROP_SITE_FOR_COOKIES] =
 		g_param_spec_boxed ("site-for-cookies",
@@ -774,10 +798,9 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_TYPE_URI,
 				    G_PARAM_READWRITE);
 	/**
-	 * SoupMessage:is-top-level-navigation:
+	 * SoupMessage:is-top-level-navigation: (attributes org.gtk.Property.get=soup_message_get_is_top_level_navigation org.gtk.Property.set=soup_message_set_is_top_level_navigation)
 	 *
 	 * Set when the message is navigating between top level domains.
-	 *
 	 */
         properties[PROP_IS_TOP_LEVEL_NAVIGATION] =
 		g_param_spec_boolean ("is-top-level-navigation",
@@ -785,6 +808,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "If the current messsage is navigating between top-levels",
 				     FALSE,
 				     G_PARAM_READWRITE);
+	/**
+	 * SoupMessage:request-headers: (attributes org.gtk.Property.get=soup_message_get_request_headers)
+	 *
+	 * The HTTP request headers.
+	 */
         properties[PROP_REQUEST_HEADERS] =
 		g_param_spec_boxed ("request-headers",
 				    "Request Headers",
@@ -792,6 +820,11 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    SOUP_TYPE_MESSAGE_HEADERS,
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS);
+	/**
+	 * SoupMessage:response-headers: (attributes org.gtk.Property.get=soup_message_get_response_headers)
+	 *
+	 * The HTTP response headers.
+	 */
         properties[PROP_RESPONSE_HEADERS] =
 		g_param_spec_boxed ("response-headers",
 				    "Response Headers",
@@ -800,10 +833,9 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupMessage:tls-peer-certificate:
+	 * SoupMessage:tls-peer-certificate: (attributes org.gtk.Property.get=soup_message_get_tls_peer_certificate)
 	 *
-	 * The peer's #GTlsCertificate associated with the message
-	 *
+	 * The peer's [class@Gio.TlsCertificate] associated with the message.
 	 */
         properties[PROP_TLS_PEER_CERTIFICATE] =
 		g_param_spec_object ("tls-peer-certificate",
@@ -813,10 +845,9 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupMessage:tls-peer-certificate-errors:
+	 * SoupMessage:tls-peer-certificate-errors: (attributes org.gtk.Property.get=soup_message_get_tls_peer_certificate_errors)
 	 *
-	 * The verification errors on #SoupMessage:tls-peer-certificate
-	 *
+	 * The verification errors on [property@Message:tls-peer-certificate].
 	 */
         properties[PROP_TLS_PEER_CERTIFICATE_ERRORS] =
 		g_param_spec_flags ("tls-peer-certificate-errors",
@@ -826,7 +857,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_PARAM_READABLE |
 				    G_PARAM_STATIC_STRINGS);
         /**
-         * SoupMessage:tls-protocol-version:
+         * SoupMessage:tls-protocol-version: (attributes org.gtk.Property.get=soup_message_get_tls_protocol_version)
          *
          * The TLS protocol version negotiated for the message connection.
          */
@@ -840,7 +871,7 @@ soup_message_class_init (SoupMessageClass *message_class)
                                    G_PARAM_STATIC_STRINGS);
 
         /**
-         * SoupMessage:tls-ciphersuite-name:
+         * SoupMessage:tls-ciphersuite-name: (attributes org.gtk.Property.get=soup_message_get_tls_ciphersuite_name)
          *
          * The Name of TLS ciphersuite negotiated for this message connection.
          */
@@ -853,10 +884,10 @@ soup_message_class_init (SoupMessageClass *message_class)
                                      G_PARAM_STATIC_STRINGS);
 
         /**
-         * SoupMessage:remote-address:
+         * SoupMessage:remote-address: (attributes org.gtk.Property.get=soup_message_get_remote_address)
          *
-         * The remote #GSocketAddress of the connection associated with the message
-         *
+         * The remote [class@Gio.SocketAddress] of the connection associated
+         * with the message.
          */
         properties[PROP_REMOTE_ADDRESS] =
                 g_param_spec_object ("remote-address",
@@ -866,11 +897,10 @@ soup_message_class_init (SoupMessageClass *message_class)
                                      G_PARAM_READABLE |
                                      G_PARAM_STATIC_STRINGS);
 	/**
-	 SoupMessage:priority:
+	 SoupMessage:priority: (attributes org.gtk.Property.get=soup_message_get_priority org.gtk.Property.set=soup_message_set_priority)
 	 *
 	 * Sets the priority of the #SoupMessage. See
-	 * soup_message_set_priority() for further details.
-	 *
+	 * [method@Message.set_priority] for further details.
 	 **/
         properties[PROP_PRIORITY] =
 		g_param_spec_enum ("priority",
@@ -882,12 +912,14 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupMessage:is-options-ping:
+	 * SoupMessage:is-options-ping: (attributes org.gtk.Property.get=soup_message_get_is_options_ping org.gtk.Property.set=soup_message_set_is_options_ping)
+	 *
+	 * Whether the message is an OPTIONS ping.
 	 *
 	 * The #SoupMessage is intended to be used to send
          * `OPTIONS *` to a server. When set to %TRUE, the
-         * path of #SoupMessage:uri will be ignored and
-         * #SoupMessage:method set to %SOUP_METHOD_OPTIONS.
+         * path of [property@Message:uri] will be ignored and
+         * [property@Message:method] set to %SOUP_METHOD_OPTIONS.
 	 */
         properties[PROP_IS_OPTIONS_PING] =
 		g_param_spec_boolean ("is-options-ping",
@@ -906,10 +938,10 @@ soup_message_class_init (SoupMessageClass *message_class)
  * @method: the HTTP method for the created request
  * @uri_string: the destination endpoint (as a string)
  * 
- * Creates a new empty #SoupMessage, which will connect to @uri
+ * Creates a new empty #SoupMessage, which will connect to @uri.
  *
  * Returns: (transfer full) (nullable): the new #SoupMessage (or %NULL if @uri
- * could not be parsed).
+ *   could not be parsed).
  */
 SoupMessage *
 soup_message_new (const char *method, const char *uri_string)
@@ -936,9 +968,9 @@ soup_message_new (const char *method, const char *uri_string)
 /**
  * soup_message_new_from_uri:
  * @method: the HTTP method for the created request
- * @uri: the destination endpoint (as a #GUri)
+ * @uri: the destination endpoint
  * 
- * Creates a new empty #SoupMessage, which will connect to @uri
+ * Creates a new empty #SoupMessage, which will connect to @uri.
  *
  * Returns: (transfer full): the new #SoupMessage
  */
@@ -956,10 +988,10 @@ soup_message_new_from_uri (const char *method, GUri *uri)
 
 /**
  * soup_message_new_options_ping:
- * @base_uri: the destination endpoint (as a #GUri)
+ * @base_uri: the destination endpoint
  *
- * Creates a new #SoupMessage to send `OPTIONS *` to a server. The path of @base_uri
- * will be ignored.
+ * Creates a new #SoupMessage to send `OPTIONS *` to a server. The path of
+ * @base_uri will be ignored.
  *
  * Returns: (transfer full): the new #SoupMessage
  */
@@ -985,12 +1017,13 @@ soup_message_new_options_ping (GUri *base_uri)
  * to @uri via @method. If @method is "GET", it will include the form data
  * into @uri's query field, and if @method is "POST" or "PUT", it will be set as
  * request body.
- * This function takes the ownership of @encoded_form, that will be released
- * with g_free() when no longer in use. See also soup_form_encode(),
- * soup_form_encode_hash() and soup_form_encode_datalist().
  *
- * Returns: (transfer full) (nullable): the new #SoupMessage, or %NULL if @uri_string
- *     could not be parsed or @method is not "GET, "POST" or "PUT"
+ * This function takes the ownership of @encoded_form, that will be released
+ * with [func@GLib.free] when no longer in use. See also [func@form_encode],
+ * [func@form_encode_hash] and [func@form_encode_datalist].
+ *
+ * Returns: (transfer full) (nullable): the new #SoupMessage, or %NULL if
+ *   @uri_string could not be parsed or @method is not "GET, "POST" or "PUT"
  */
 SoupMessage *
 soup_message_new_from_encoded_form (const char *method,
@@ -1033,14 +1066,14 @@ soup_message_new_from_encoded_form (const char *method,
 
 /**
  * soup_message_new_from_multipart:
- * @uri_string: the destination endpoint (as a string)
+ * @uri_string: the destination endpoint
  * @multipart: a #SoupMultipart
  *
  * Creates a new #SoupMessage and sets it up to send @multipart to
  * @uri_string via POST.
  *
  * Returns: (transfer full) (nullable): the new #SoupMessage, or %NULL if @uri_string
- *     could not be parsed
+ *   could not be parsed
  */
 SoupMessage *
 soup_message_new_from_multipart (const char    *uri_string,
@@ -1078,6 +1111,7 @@ soup_message_new_from_multipart (const char    *uri_string,
  * @content_length: the byte length of @stream or -1 if unknown
  *
  * Set the request body of a #SoupMessage.
+ *
  * If @content_type is %NULL and @stream is not %NULL the Content-Type header will
  * not be changed if present.
  * The request body needs to be set again in case @msg is restarted
@@ -1123,7 +1157,8 @@ soup_message_set_request_body (SoupMessage  *msg,
  * @content_type: (nullable): MIME Content-Type of the body, or %NULL if unknown
  * @bytes: (nullable): a #GBytes with the request body data
  *
- * Set the request body of a #SoupMessage from #GBytes.
+ * Set the request body of a #SoupMessage from [struct@GLib.Bytes].
+ *
  * If @content_type is %NULL and @bytes is not %NULL the Content-Type header will
  * not be changed if present.
  * The request body needs to be set again in case @msg is restarted
@@ -1258,12 +1293,13 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
  * @callback: the header handler
  * @user_data: data to pass to @handler_cb
  *
- * Adds a signal handler to @msg for @signal, as with
- * g_signal_connect(), but the @callback will only be run if @msg's
- * incoming messages headers (that is, the <literal>request_headers</literal>)
- * contain a header named @header.
+ * Adds a signal handler to @msg for @signal.
  *
- * Returns: the handler ID from g_signal_connect()
+ * Similar to [func@GObject.signal_connect], but the @callback will only be run
+ * if @msg's incoming messages headers (that is, the `request_headers`) contain
+ * a header named @header.
+ *
+ * Returns: the handler ID from [func@GObject.signal_connect]
  **/
 guint
 soup_message_add_header_handler (SoupMessage *msg,
@@ -1315,14 +1351,15 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
  * @callback: the header handler
  * @user_data: data to pass to @handler_cb
  *
- * Adds a signal handler to @msg for @signal, as with
- * g_signal_connect(), but the @callback will only be run if @msg has
- * the status @status_code.
+ * Adds a signal handler to @msg for @signal.
+ *
+ * Similar to [func@GObject.signal_connect], but the @callback will only be run
+ * if @msg has the status @status_code.
  *
  * @signal must be a signal that will be emitted after @msg's status
  * is set (this means it can't be a "wrote" signal).
  *
- * Returns: the handler ID from g_signal_connect()
+ * Returns: the handler ID from [func@GObject.signal_connect]
  **/
 guint
 soup_message_add_status_code_handler (SoupMessage *msg,
@@ -1773,7 +1810,9 @@ soup_message_has_pending_tls_cert_pass_request (SoupMessage *msg)
  * @msg: a #SoupMessage
  *
  * Cleans up all response data on @msg, so that the request can be sent
- * again and receive a new response. (Eg, as a result of a redirect or
+ * again and receive a new response.
+ *
+ * (Eg, as a result of a redirect or
  * authorization request.)
  **/
 void
@@ -1806,19 +1845,19 @@ soup_message_cleanup_response (SoupMessage *msg)
  * @SOUP_MESSAGE_NEW_CONNECTION: Requests that the message should be
  *   sent on a newly-created connection, not reusing an existing
  *   persistent connection. Note that messages with non-idempotent
- *   #SoupMessage:method<!-- -->s behave this way by default, unless
+ *   [property@Message:method]s behave this way by default, unless
  *   #SOUP_MESSAGE_IDEMPOTENT is set.
  * @SOUP_MESSAGE_IDEMPOTENT: The message is considered idempotent,
- *   regardless its #SoupMessage:method, and allows reuse of existing
+ *   regardless its [property@Message:method], and allows reuse of existing
  *   idle connections, instead of always requiring a new one, unless
  *   #SOUP_MESSAGE_NEW_CONNECTION is set.
- * @SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE: The #SoupAuthManager should not use
+ * @SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE: The [class@AuthManager] should not use
  *   the credentials cache for this message, neither to use cached credentials
  *   to automatically authenticate this message nor to cache the credentials
  *   after the message is successfully authenticated. This applies to both server
- *   and proxy authentication. Note that #SoupMessage::authenticate signal will
+ *   and proxy authentication. Note that [signal@Message::authenticate] signal will
  *   be emitted, if you want to disable authentication for a message use
- *   soup_message_disable_feature() passing #SOUP_TYPE_AUTH_MANAGER instead.
+ *   [method@Message.disable_feature] passing #SOUP_TYPE_AUTH_MANAGER instead.
  * @SOUP_MESSAGE_COLLECT_METRICS: Metrics will be collected for this message.
  *
  * Various flags that can be set on a #SoupMessage to alter its
@@ -1826,7 +1865,7 @@ soup_message_cleanup_response (SoupMessage *msg)
  **/
 
 /**
- * soup_message_set_flags:
+ * soup_message_set_flags: (attributes org.gtk.Method.set_property=flags)
  * @msg: a #SoupMessage
  * @flags: a set of #SoupMessageFlags values
  *
@@ -1849,10 +1888,10 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 }
 
 /**
- * soup_message_get_flags:
+ * soup_message_get_flags: (attributes org.gtk.Method.get_property=flags)
  * @msg: a #SoupMessage
  *
- * Gets the flags on @msg
+ * Gets the flags on @msg.
  *
  * Returns: the flags
  **/
@@ -1873,7 +1912,7 @@ soup_message_get_flags (SoupMessage *msg)
  * @msg: a #SoupMessage
  * @flags: a set of #SoupMessageFlags values
  *
- * Adds @flags to the set of @msg's flags
+ * Adds @flags to the set of @msg's flags.
  */
 void
 soup_message_add_flags (SoupMessage     *msg,
@@ -1892,7 +1931,7 @@ soup_message_add_flags (SoupMessage     *msg,
  * @msg: a #SoupMessage
  * @flags: a set of #SoupMessageFlags values
  *
- * Queries if @flags are present in the set of @msg's flags
+ * Queries if @flags are present in the set of @msg's flags.
  *
  * Returns: %TRUE if @flags are enabled in @msg
  */
@@ -1913,7 +1952,7 @@ soup_message_query_flags (SoupMessage     *msg,
  * @msg: a #SoupMessage
  * @flags: a set of #SoupMessageFlags values
  *
- * Removes @flags from the set of @msg's flags
+ * Removes @flags from the set of @msg's flags.
  */
 void
 soup_message_remove_flags (SoupMessage     *msg,
@@ -1928,13 +1967,14 @@ soup_message_remove_flags (SoupMessage     *msg,
 }
 
 /**
- * soup_message_set_http_version:
+ * soup_message_set_http_version: (attributes org.gtk.Method.set_property=https-version)
  * @msg: a #SoupMessage
  * @version: the HTTP version
  *
- * Sets the HTTP version on @msg. The default version is
- * %SOUP_HTTP_1_1. Setting it to %SOUP_HTTP_1_0 will prevent certain
- * functionality from being used.
+ * Sets the HTTP version on @msg.
+ *
+ * The default version is %SOUP_HTTP_1_1. Setting it to %SOUP_HTTP_1_0 will
+ * prevent certain functionality from being used.
  **/
 void
 soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
@@ -1951,11 +1991,13 @@ soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 }
 
 /**
- * soup_message_get_http_version:
+ * soup_message_get_http_version: (attributes org.gtk.Method.get_property=http-version)
  * @msg: a #SoupMessage
  *
- * Gets the HTTP version of @msg. This is the minimum of the
- * version from the request and the version from the response.
+ * Gets the HTTP version of @msg.
+ *
+ * This is the minimum of the version from the request and the version from the
+ * response.
  *
  * Returns: the HTTP version
  **/
@@ -1976,8 +2018,9 @@ soup_message_get_http_version (SoupMessage *msg)
  * @msg: a #SoupMessage
  *
  * Determines whether or not @msg's connection can be kept alive for
- * further requests after processing @msg, based on the HTTP version,
- * Connection header, etc.
+ * further requests after processing @msg.
+ *
+ * The result is based on the HTTP version, Connection header, etc.
  *
  * Returns: %TRUE or %FALSE.
  **/
@@ -2025,12 +2068,14 @@ soup_message_is_keepalive (SoupMessage *msg)
 }
 
 /**
- * soup_message_set_uri:
+ * soup_message_set_uri: (attributes org.gtk.Method.set_property=method)
  * @msg: a #SoupMessage
  * @uri: the new #GUri
  *
- * Sets @msg's URI to @uri. If @msg has already been sent and you want
- * to re-send it with the new URI, you need to send it again.
+ * Sets @msg's URI to @uri.
+ *
+ * If @msg has already been sent and you want to re-send it with the new URI,
+ * you need to send it again.
  **/
 void
 soup_message_set_uri (SoupMessage *msg, GUri *uri)
@@ -2061,10 +2106,10 @@ soup_message_set_uri (SoupMessage *msg, GUri *uri)
 }
 
 /**
- * soup_message_get_uri:
+ * soup_message_get_uri: (attributes org.gtk.Method.get_property=method)
  * @msg: a #SoupMessage
  *
- * Gets @msg's URI
+ * Gets @msg's URI.
  *
  * Returns: (transfer none): the URI @msg is targeted for.
  **/
@@ -2085,8 +2130,9 @@ soup_message_get_uri (SoupMessage *msg)
  * @msg: a #SoupMessage
  * @status_code: an HTTP status code
  *
- * Sets @msg's status code to @status_code. If @status_code is a
- * known value, it will also set @msg's reason_phrase.
+ * Sets @msg's status code to @status_code.
+ *
+ * If @status_code is a known value, it will also set @msg's reason_phrase.
  **/
 void
 soup_message_set_status (SoupMessage *msg,
@@ -2118,8 +2164,9 @@ soup_message_set_status (SoupMessage *msg,
  * @msg: a #SoupMessage
  * @feature_type: the #GType of a #SoupSessionFeature
  *
- * This disables the actions of #SoupSessionFeature<!-- -->s with the
- * given @feature_type (or a subclass of that type) on @msg, so that
+ * Disables the actions of [iface@SessionFeature]s with the
+ * given @feature_type (or a subclass of that type) on @msg.
+ *
  * @msg is processed as though the feature(s) hadn't been added to the
  * session. Eg, passing #SOUP_TYPE_CONTENT_SNIFFER for @feature_type
  * will disable Content-Type sniffing on the message.
@@ -2128,7 +2175,6 @@ soup_message_set_status (SoupMessage *msg,
  * a message that has already been queued is undefined. In particular,
  * you cannot call this on a message that is being requeued after a
  * redirect or authentication.
- *
  **/
 void
 soup_message_disable_feature (SoupMessage *msg, GType feature_type)
@@ -2172,12 +2218,12 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
  * @msg: a #SoupMessage
  * @feature_type: the #GType of a #SoupSessionFeature
  *
- * Get whether #SoupSessionFeature<!-- -->s of the given @feature_type
+ * Get whether [iface@SessionFeature]s of the given @feature_type
  * (or a subclass of that type) are disabled on @msg.
- * See soup_message_disable_feature().
+ *
+ * See [method@Message.disable_feature].
  *
  * Returns: %TRUE if feature is disabled, or %FALSE otherwise.
- *
  */
 gboolean
 soup_message_is_feature_disabled (SoupMessage *msg, GType feature_type)
@@ -2210,13 +2256,12 @@ soup_message_get_disabled_features (SoupMessage *msg)
 }
 
 /**
- * soup_message_get_first_party:
+ * soup_message_get_first_party: (attributes org.gtk.Method.get_property=first-party)
  * @msg: a #SoupMessage
  *
- * Gets @msg's first-party #GUri
+ * Gets @msg's first-party [struct@GLib.Uri].
  * 
  * Returns: (transfer none): the @msg's first party #GUri
- * 
  **/
 GUri *
 soup_message_get_first_party (SoupMessage *msg)
@@ -2230,14 +2275,14 @@ soup_message_get_first_party (SoupMessage *msg)
 }
 
 /**
- * soup_message_set_first_party:
+ * soup_message_set_first_party: (attributes org.gtk.Method.set_property=first-party)
  * @msg: a #SoupMessage
  * @first_party: the #GUri for the @msg's first party
  * 
- * Sets @first_party as the main document #GUri for @msg. For
- * details of when and how this is used refer to the documentation for
- * #SoupCookieJarAcceptPolicy.
+ * Sets @first_party as the main document #GUri for @msg.
  *
+ * For details of when and how this is used refer to the documentation for
+ * [enum@CookieJarAcceptPolicy].
  **/
 void
 soup_message_set_first_party (SoupMessage *msg,
@@ -2268,13 +2313,12 @@ soup_message_set_first_party (SoupMessage *msg,
 }
 
 /**
- * soup_message_get_site_for_cookies:
+ * soup_message_get_site_for_cookies: (attributes org.gtk.Method.get_property=site-for-cookies)
  * @msg: a #SoupMessage
  *
- * Gets @msg's site for cookies #GUri
+ * Gets @msg's site for cookies #GUri.
  *
  * Returns: (transfer none): the @msg's site for cookies #GUri
- *
  **/
 GUri *
 soup_message_get_site_for_cookies (SoupMessage *msg)
@@ -2288,19 +2332,19 @@ soup_message_get_site_for_cookies (SoupMessage *msg)
 }
 
 /**
- * soup_message_set_site_for_cookies:
+ * soup_message_set_site_for_cookies: (attributes org.gtk.Method.set_property=site-for-cookies)
  * @msg: a #SoupMessage
  * @site_for_cookies: (nullable): the #GUri for the @msg's site for cookies
  *
  * Sets @site_for_cookies as the policy URL for same-site cookies for @msg.
  *
- * It is either the URL of the top-level document or %NULL depending on whether the registrable
- * domain of this document's URL matches the registrable domain of its parent's/opener's
- * URL. For the top-level document it is set to the document's URL.
+ * It is either the URL of the top-level document or %NULL depending on whether
+ * the registrable domain of this document's URL matches the registrable domain
+ * of its parent's/opener's URL. For the top-level document it is set to the
+ * document's URL.
  *
  * See the [same-site spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
  * for more information.
- *
  **/
 void
 soup_message_set_site_for_cookies (SoupMessage *msg,
@@ -2332,13 +2376,14 @@ soup_message_set_site_for_cookies (SoupMessage *msg,
 }
 
 /**
- * soup_message_set_is_top_level_navigation:
+ * soup_message_set_is_top_level_navigation: (attributes org.gtk.Method.set_property=is-top-level-navigation)
  * @msg: a #SoupMessage
  * @is_top_level_navigation: if %TRUE indicate the current request is a top-level navigation
  *
+ * Sets whether the current request is a top-level navitation.
+ *
  * See the [same-site spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
  * for more information.
- *
  **/
 void
 soup_message_set_is_top_level_navigation (SoupMessage *msg,
@@ -2358,12 +2403,14 @@ soup_message_set_is_top_level_navigation (SoupMessage *msg,
 }
 
 /**
- * soup_message_get_is_top_level_navigation:
+ * soup_message_get_is_top_level_navigation: (attributes org.gtk.Method.get_property=is-top-level-navigation)
  * @msg: a #SoupMessage
  *
  * Returns if this message is set as a top level navigation.
+ *
  * Used for same-site policy checks.
  *
+ * Returns: Whether the current request is a top-level navitation
  **/
 gboolean
 soup_message_get_is_top_level_navigation (SoupMessage *msg)
@@ -2380,12 +2427,13 @@ soup_message_get_is_top_level_navigation (SoupMessage *msg)
  * soup_message_get_tls_peer_certificate:
  * @msg: a #SoupMessage
  *
- * Gets the peer's #GTlsCertificate associated with @msg's connection.
+ * Gets the peer's [class@Gio.TlsCertificate] associated with @msg's connection.
+ *
  * Note that this is not set yet during the emission of
- * SoupMessage::accept-certificate signal.
+ * [signal@Message::accept-certificate] signal.
  *
  * Returns: (transfer none) (nullable): @msg's TLS peer certificate,
- *    or %NULL if @msg's connection is not SSL.
+ *   or %NULL if @msg's connection is not SSL.
  */
 GTlsCertificate *
 soup_message_get_tls_peer_certificate (SoupMessage *msg)
@@ -2405,7 +2453,7 @@ soup_message_get_tls_peer_certificate (SoupMessage *msg)
  *
  * Gets the errors associated with validating @msg's TLS peer certificate.
  * Note that this is not set yet during the emission of
- * SoupMessage::accept-certificate signal.
+ * [signal@Message::accept-certificate] signal.
  *
  * Returns: a #GTlsCertificateFlags with @msg's TLS peer certificate errors.
  */
@@ -2426,6 +2474,7 @@ soup_message_get_tls_peer_certificate_errors (SoupMessage *msg)
  * @msg: a #SoupMessage
  *
  * Gets the TLS protocol version negotiated for @msg's connection.
+ *
  * If the message connection is not SSL, %G_TLS_PROTOCOL_VERSION_UNKNOWN is returned.
  *
  * Returns: a #GTlsProtocolVersion
@@ -2449,7 +2498,7 @@ soup_message_get_tls_protocol_version (SoupMessage *msg)
  * Gets the name of the TLS ciphersuite negotiated for @msg's connection.
  *
  * Returns: (transfer none): the name of the TLS ciphersuite,
- *    or %NULL if @msg's connection is not SSL.
+ *   or %NULL if @msg's connection is not SSL.
  */
 const char *
 soup_message_get_tls_ciphersuite_name (SoupMessage *msg)
@@ -2470,11 +2519,12 @@ soup_message_get_tls_ciphersuite_name (SoupMessage *msg)
  *
  * Sets the @certificate to be used by @msg's connection when a
  * client certificate is requested during the TLS handshake.
- * You can call this as a response to #SoupMessage::request-certificate
+ *
+ * You can call this as a response to [signal@Message::request-certificate]
  * signal, or before the connection is started. If @certificate is %NULL
  * the handshake will continue without providing a GTlsCertificate.
- * Note that the #GTlsCertificate set by this function will be ignored if
- * #SoupSession::tls-interaction is not %NULL.
+ * Note that the [class@Gio.TlsCertificate] set by this function will be ignored if
+ * [property@Session:tls-interaction] is not %NULL.
  */
 void
 soup_message_set_tls_client_certificate (SoupMessage     *msg,
@@ -2513,8 +2563,9 @@ soup_message_set_tls_client_certificate (SoupMessage     *msg,
  *
  * Completes a certificate password request.
  *
- * You must call this as a response to #SoupMessage::request-certificate-password
- * signal, to notify @msg that the #GTlsPassword has already been updated.
+ * You must call this as a response to
+ * [signal@Message::request-certificate-password] signal, to notify @msg that
+ * the [class@Gio.TlsPassword] has already been updated.
  */
 void
 soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
@@ -2549,9 +2600,8 @@ soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
  *   for very urgent #SoupMessage as they will be the first ones to be
  *   attended.
  *
- * Priorities that can be set on a #SoupMessage to instruct the
- * message queue to process it before any other message with lower
- * priority.
+ * Priorities that can be set on a [class@Message] to instruct the message queue
+ * to process it before any other message with lower priority.
  **/
 
 /**
@@ -2559,9 +2609,10 @@ soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
  * @msg: a #SoupMessage
  * @priority: the #SoupMessagePriority
  *
- * Sets the priority of a message. Note that this won't have any
- * effect unless used before the message is added to the session's
- * message processing queue.
+ * Sets the priority of a message.
+ *
+ * Note that this won't have any effect unless used before the message is added
+ * to the session's message processing queue.
  *
  * The message will be placed just before any other previously added
  * message with lower priority (messages with the same priority are
@@ -2570,7 +2621,6 @@ soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
  * Setting priorities does not currently work with synchronous messages
  * because in the synchronous/blocking case, priority ends up being determined
  * semi-randomly by thread scheduling.
- *
  */
 void
 soup_message_set_priority (SoupMessage        *msg,
@@ -2592,11 +2642,11 @@ soup_message_set_priority (SoupMessage        *msg,
  * soup_message_get_priority:
  * @msg: a #SoupMessage
  *
- * Retrieves the #SoupMessagePriority. If not set this value defaults
- * to #SOUP_MESSAGE_PRIORITY_NORMAL.
+ * Retrieves the [enum@MessagePriority].
+ *
+ * If not set this value defaults to #SOUP_MESSAGE_PRIORITY_NORMAL.
  *
  * Returns: the priority of the message.
- *
  */
 SoupMessagePriority
 soup_message_get_priority (SoupMessage *msg)
@@ -2810,7 +2860,7 @@ soup_message_get_request_body_stream (SoupMessage *msg)
 }
 
 /**
- * soup_message_get_method:
+ * soup_message_get_method: (attributes org.gtk.Method.get_property=method)
  * @msg: The #SoupMessage
  *
  * Returns the method of this message.
@@ -2846,7 +2896,7 @@ soup_message_get_status (SoupMessage *msg)
 }
 
 /**
- * soup_message_get_reason_phrase:
+ * soup_message_get_reason_phrase: (attributes org.gtk.Method.get_property=reason-phrase)
  * @msg: The #SoupMessage
  *
  * Returns the reason phrase for the status of this message.
@@ -2864,7 +2914,7 @@ soup_message_get_reason_phrase (SoupMessage *msg)
 }
 
 /**
- * soup_message_get_request_headers:
+ * soup_message_get_request_headers: (attributes org.gtk.Method.get_property=request-headers)
  * @msg: The #SoupMessage
  *
  * Returns the headers sent with the request.
@@ -2882,7 +2932,7 @@ soup_message_get_request_headers (SoupMessage  *msg)
 }
 
 /**
- * soup_message_get_response_headers:
+ * soup_message_get_response_headers: (attributes org.gtk.Method.get_property=response-headers)
  * @msg: The #SoupMessage
  *
  * Returns the headers recieved with the response.
@@ -2899,6 +2949,13 @@ soup_message_get_response_headers (SoupMessage  *msg)
         return priv->response_headers; 
 }
 
+/**
+ * soup_message_set_reason_phrase: (attributes org.gtk.Method.set_property=reason-phrase)
+ * @msg: The #SoupMessage
+ * @reason_phrase: The reason phrase
+ *
+ * Sets the reason phrase for the status of this message.
+ */
 void
 soup_message_set_reason_phrase (SoupMessage *msg, const char *reason_phrase)
 {
@@ -2913,7 +2970,7 @@ soup_message_set_reason_phrase (SoupMessage *msg, const char *reason_phrase)
 }
 
 /**
- * soup_message_set_method:
+ * soup_message_set_method: (attributes org.gtk.Method.set_property=method)
  * @msg: a #SoupMessage
  * @method: the value to set
  *
@@ -2959,8 +3016,9 @@ soup_message_get_is_options_ping (SoupMessage *msg)
  * @is_options_ping: the value to set
  *
  * Set whether @msg is intended to be used to send `OPTIONS *` to a server.
- * When set to %TRUE, the path of #SoupMessage:uri will be ignored and
- * #SoupMessage:method set to %SOUP_METHOD_OPTIONS.
+ *
+ * When set to %TRUE, the path of [property@Message:uri] will be ignored and
+ * [property@Message:method] set to %SOUP_METHOD_OPTIONS.
  */
 void
 soup_message_set_is_options_ping (SoupMessage *msg,
@@ -2985,6 +3043,7 @@ soup_message_set_is_options_ping (SoupMessage *msg,
  * @msg: The #SoupMessage
  *
  * Returns the unique idenfier for the last connection used.
+ *
  * This may be 0 if it was a cached resource or it has not gotten
  * a connection yet.
  *
@@ -3004,12 +3063,14 @@ soup_message_get_connection_id (SoupMessage *msg)
  * soup_message_get_remote_address:
  * @msg: The #SoupMessage
  *
- * Get the remote #GSocketAddress of the connection associated with the message.
- * The returned address can be %NULL if the connection hasn't been established yet,
- * or the resource was loaded from the disk cache.
- * In case of proxy connections, the remote address returned is a #GProxyAddress.
- * If #SoupSession::remote-connetable is set the returned address id for the connection
- * ot the session's remote connectable.
+ * Get the remote [class@Gio.SocketAddress] of the connection associated with
+ * the message.
+ *
+ * The returned address can be %NULL if the connection hasn't been established
+ * yet, or the resource was loaded from the disk cache. In case of proxy
+ * connections, the remote address returned is a [class@Gio.ProxyAddress]. If
+ * [property@Session:remote-connectable] is set the returned address id for the
+ * connection ot the session's remote connectable.
  *
  * Returns: (transfer none) (nullable): a #GSocketAddress or %NULL if the connection
  *     hasn't been established
@@ -3029,10 +3090,12 @@ soup_message_get_remote_address (SoupMessage *msg)
  * soup_message_get_metrics:
  * @msg: The #SoupMessage
  *
- * Get the #SoupMessageMetrics of @msg. If the flag %SOUP_MESSAGE_COLLECT_METRICS is not
- * enabled for @msg this will return %NULL.
+ * Get the [struct@MessageMetrics] of @msg.
  *
- * Returns: (transfer none) (nullable): a #SoupMessageMetrics, or %NULL
+ * If the flag %SOUP_MESSAGE_COLLECT_METRICS is not enabled for @msg this will
+ * return %NULL.
+ *
+ * Returns: (transfer none) (nullable): a #SoupMessageMetrics
  */
 SoupMessageMetrics *
 soup_message_get_metrics (SoupMessage *msg)

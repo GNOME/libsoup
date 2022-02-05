@@ -17,20 +17,13 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-multipart
- * @short_description: multipart HTTP message bodies
- * @see_also: #SoupMessageBody, #SoupMessageHeaders
- *
- * Functions to use multi-part HTTP messages.
- **/
-
-/**
  * SoupMultipart:
  *
  * Represents a multipart HTTP message body, parsed according to the
- * syntax of RFC 2046. Of particular interest to HTTP are
- * <literal>multipart/byte-ranges</literal> and
- * <literal>multipart/form-data</literal>.
+ * syntax of RFC 2046.
+ *
+ * Of particular interest to HTTP are `multipart/byte-ranges` and
+ * `multipart/form-data`,
  *
  * Although the headers of a #SoupMultipart body part will contain the
  * full headers from that body part, libsoup does not interpret them
@@ -81,12 +74,13 @@ generate_boundary (void)
  * @mime_type: the MIME type of the multipart to create.
  *
  * Creates a new empty #SoupMultipart with a randomly-generated
- * boundary string. Note that @mime_type must be the full MIME type,
- * including "multipart/".
+ * boundary string.
+ *
+ * Note that @mime_type must be the full MIME type, including "multipart/".
+ *
+ * See also: [ctor@Message.new_from_multipart].
  * 
  * Returns: a new empty #SoupMultipart of the given @mime_type
- *
- * See also: soup_message_new_from_multipart()
  **/
 SoupMultipart *
 soup_multipart_new (const char *mime_type)
@@ -129,8 +123,7 @@ find_boundary (const char *start, const char *end,
  * Parses @headers and @body to form a new #SoupMultipart
  *
  * Returns: (nullable): a new #SoupMultipart (or %NULL if the
- * message couldn't be parsed or wasn't multipart).
- *
+ *   message couldn't be parsed or wasn't multipart).
  **/
 SoupMultipart *
 soup_multipart_new_from_message (SoupMessageHeaders *headers,
@@ -224,10 +217,9 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
  * soup_multipart_get_length:
  * @multipart: a #SoupMultipart
  *
- * Gets the number of body parts in @multipart
+ * Gets the number of body parts in @multipart.
  *
  * Returns: the number of body parts in @multipart
- *
  **/
 int
 soup_multipart_get_length (SoupMultipart *multipart)
@@ -240,15 +232,14 @@ soup_multipart_get_length (SoupMultipart *multipart)
  * @multipart: a #SoupMultipart
  * @part: the part number to get (counting from 0)
  * @headers: (out) (transfer none): return location for the MIME part
- * headers
+ *   headers
  * @body: (out) (transfer none): return location for the MIME part
- * body
+ *   body
  *
  * Gets the indicated body part from @multipart.
  *
  * Returns: %TRUE on success, %FALSE if @part is out of range (in
- * which case @headers and @body won't be set)
- *
+ *   which case @headers and @body won't be set)
  **/
 gboolean
 soup_multipart_get_part (SoupMultipart *multipart, int part,
@@ -268,10 +259,10 @@ soup_multipart_get_part (SoupMultipart *multipart, int part,
  * @body: the MIME part body
  *
  * Adds a new MIME part to @multipart with the given headers and body.
+ *
  * (The multipart will make its own copies of @headers and @body, so
  * you should free your copies if you are not using them for anything
  * else.)
- *
  **/
 void
 soup_multipart_append_part (SoupMultipart      *multipart,
@@ -319,11 +310,10 @@ soup_multipart_append_part (SoupMultipart      *multipart,
  * @control_name: the name of the control associated with @data
  * @data: the body data
  *
- * Adds a new MIME part containing @data to @multipart, using
- * "Content-Disposition: form-data", as per the HTML forms
- * specification.
+ * Adds a new MIME part containing @data to @multipart.
  *
- **/ 
+ * Uses "Content-Disposition: form-data", as per the HTML forms specification.
+ **/
 void
 soup_multipart_append_form_string (SoupMultipart *multipart,
 				   const char *control_name, const char *data)
@@ -344,11 +334,10 @@ soup_multipart_append_form_string (SoupMultipart *multipart,
  * @content_type: the MIME type of the file, or %NULL if not known
  * @body: the file data
  *
- * Adds a new MIME part containing @body to @multipart, using
- * "Content-Disposition: form-data", as per the HTML forms
- * specification.
+ * Adds a new MIME part containing @body to @multipart
  *
- **/ 
+ * Uses "Content-Disposition: form-data", as per the HTML forms specification.
+ **/
 void
 soup_multipart_append_form_file (SoupMultipart *multipart,
 				 const char *control_name, const char *filename,
@@ -384,7 +373,6 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
  * @dest_body: (out): the body of the HTTP message to serialize @multipart to
  *
  * Serializes @multipart to @dest_headers and @dest_body.
- *
  **/
 void
 soup_multipart_to_message (SoupMultipart      *multipart,
@@ -442,8 +430,7 @@ soup_multipart_to_message (SoupMultipart      *multipart,
  * soup_multipart_free:
  * @multipart: a #SoupMultipart
  *
- * Frees @multipart
- *
+ * Frees @multipart.
  **/
 void
 soup_multipart_free (SoupMultipart *multipart)

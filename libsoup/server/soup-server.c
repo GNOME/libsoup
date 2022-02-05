@@ -26,50 +26,44 @@
 #include "websocket/soup-websocket-extension-deflate.h"
 
 /**
- * SECTION:soup-server
- * @short_description: HTTP server
- * @see_also: #SoupAuthDomain
+ * SoupServer:
+ *
+ * A HTTP server.
  *
  * #SoupServer implements a simple HTTP server.
  *
- * (The following documentation describes the current #SoupServer API,
- * available in <application>libsoup</application> 2.48 and later. See
- * the section "<link linkend="soup-server-old-api">The Old SoupServer
- * Listening API</link>" in the server how-to documentation for
- * details on the older #SoupServer API.)
- * 
- * To begin, create a server using soup_server_new(). Add at least one
- * handler by calling soup_server_add_handler() or
- * soup_server_add_early_handler(); the handler will be called to
+ * To begin, create a server using [ctor@Server.new]. Add at least one
+ * handler by calling [method@Server.add_handler] or
+ * [method@Server.add_early_handler]; the handler will be called to
  * process any requests underneath the path you pass. (If you want all
  * requests to go to the same handler, just pass "/" (or %NULL) for
  * the path.)
  *
  * When a new connection is accepted (or a new request is started on
  * an existing persistent connection), the #SoupServer will emit
- * #SoupServer::request-started and then begin processing the request
+ * [signal@Server::request-started] and then begin processing the request
  * as described below, but note that once the message is assigned a
  * status-code, then callbacks after that point will be
  * skipped. Note also that it is not defined when the callbacks happen
- * relative to various #SoupServerMessage signals.
+ * relative to various [class@ServerMessage] signals.
  *
  * Once the headers have been read, #SoupServer will check if there is
- * a #SoupAuthDomain (qv) covering the Request-URI; if so, and if the
+ * a [class@AuthDomain] `(qv)` covering the Request-URI; if so, and if the
  * message does not contain suitable authorization, then the
- * #SoupAuthDomain will set a status of %SOUP_STATUS_UNAUTHORIZED on
+ * [class@AuthDomain] will set a status of %SOUP_STATUS_UNAUTHORIZED on
  * the message.
  *
  * After checking for authorization, #SoupServer will look for "early"
- * handlers (added with soup_server_add_early_handler()) matching the
+ * handlers (added with [method@Server.add_early_handler]) matching the
  * Request-URI. If one is found, it will be run; in particular, this
  * can be used to connect to signals to do a streaming read of the
  * request body.
  *
- * (At this point, if the request headers contain "<literal>Expect:
- * 100-continue</literal>", and a status code has been set, then
+ * (At this point, if the request headers contain `Expect:
+ * 100-continue`, and a status code has been set, then
  * #SoupServer will skip the remaining steps and return the response.
- * If the request headers contain "<literal>Expect:
- * 100-continue</literal>" and no status code has been set,
+ * If the request headers contain `Expect:
+ * 100-continue` and no status code has been set,
  * #SoupServer will return a %SOUP_STATUS_CONTINUE status before
  * continuing.)
  *
@@ -80,7 +74,7 @@
  *
  * Otherwise (assuming no previous step assigned a status to the
  * message) any "normal" handlers (added with
- * soup_server_add_handler()) for the message's Request-URI will be
+ * [method@Server.add_handler]) for the message's Request-URI will be
  * run.
  *
  * Then, if the path has a WebSocket handler registered (and has
@@ -90,12 +84,12 @@
  * %SOUP_STATUS_BAD_REQUEST accordingly.
  *
  * If the message still has no status code at this point (and has not
- * been paused with soup_server_pause_message()), then it will be
+ * been paused with [method@Server.pause_message]), then it will be
  * given a status of %SOUP_STATUS_INTERNAL_SERVER_ERROR (because at
  * least one handler ran, but returned without assigning a status).
  *
- * Finally, the server will emit #SoupServer::request-finished (or
- * #SoupServer::request-aborted if an I/O error occurred before
+ * Finally, the server will emit [signal@Server::request-finished] (or
+ * [signal@Server::request-aborted] if an I/O error occurred before
  * handling was completed).
  *
  * If you want to handle the special "*" URI (eg, "OPTIONS *"), you
@@ -103,27 +97,21 @@
  * will not be used for that case.
  *
  * If you want to process https connections in addition to (or instead
- * of) http connections, you can set the #SoupServer:tls-certificate
+ * of) http connections, you can set the [property@Server:tls-certificate]
  * property.
  *
  * Once the server is set up, make one or more calls to
- * soup_server_listen(), soup_server_listen_local(), or
- * soup_server_listen_all() to tell it where to listen for
+ * [method@Server.listen], [method@Server.listen_local], or
+ * [method@Server.listen_all] to tell it where to listen for
  * connections. (All ports on a #SoupServer use the same handlers; if
  * you need to handle some ports differently, such as returning
  * different data for http and https, you'll need to create multiple
- * #SoupServers, or else check the passed-in URI in the handler
+ * `SoupServer`s, or else check the passed-in URI in the handler
  * function.).
  *
  * #SoupServer will begin processing connections as soon as you return
  * to (or start) the main loop for the current thread-default
- * #GMainContext.
- */
-
-/**
- * SoupServer:
- *
- * Class implementing an HTTP server.
+ * [struct@GLib.MainContext].
  */
 
 enum {
@@ -352,16 +340,17 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * @message: the new message
 	 *
 	 * Emitted when the server has started reading a new request.
+	 *
 	 * @message will be completely blank; not even the
 	 * Request-Line will have been read yet. About the only thing
 	 * you can usefully do with it is connect to its signals.
 	 *
 	 * If the request is read successfully, this will eventually
-	 * be followed by a #SoupServer::request_read signal. If a
+	 * be followed by a [signal@Server::request_read signal]. If a
 	 * response is then sent, the request processing will end with
-	 * a #SoupServer::request_finished signal. If a network error
+	 * a [signal@Server::request-finished] signal. If a network error
 	 * occurs, the processing will instead end with
-	 * #SoupServer::request_aborted.
+	 * [signal@Server::request-aborted].
 	 **/
 	signals[REQUEST_STARTED] =
 		g_signal_new ("request-started",
@@ -379,6 +368,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * @message: the message
 	 *
 	 * Emitted when the server has successfully read a request.
+	 *
 	 * @message will have all of its request-side information
 	 * filled in, and if the message was authenticated, @client
 	 * will have information about that. This signal is emitted
@@ -419,17 +409,17 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * @server: the server
 	 * @message: the message
 	 *
-	 * Emitted when processing has failed for a message; this
-	 * could mean either that it could not be read (if
-	 * #SoupServer::request_read has not been emitted for it yet),
-	 * or that the response could not be written back (if
-	 * #SoupServer::request_read has been emitted but
-	 * #SoupServer::request_finished has not been).
+	 * Emitted when processing has failed for a message.
+	 *
+	 * This could mean either that it could not be read (if
+	 * [signal@Server::request-read] has not been emitted for it yet), or that
+	 * the response could not be written back (if [signal@Server::request-read]
+	 * has been emitted but [signal@Server::request-finished] has not been).
 	 *
 	 * @message is in an undefined state when this signal is
 	 * emitted; the signal exists primarily to allow the server to
 	 * free any state that it may have allocated in
-	 * #SoupServer::request_started.
+	 * [signal@Server::request-started].
 	 **/
 	signals[REQUEST_ABORTED] =
 		g_signal_new ("request-aborted",
@@ -443,10 +433,12 @@ soup_server_class_init (SoupServerClass *server_class)
 
 	/* properties */
 	/**
-	 * SoupServer:tls-certificate:
+	 * SoupServer:tls-certificate: (attributes org.gtk.Property.get=soup_server_get_tls_certificate org.gtk.Property.set=soup_server_set_tls_certificate)
 	 *
-	 * A #GTlsCertificate that has a #GTlsCertificate:private-key
-	 * set. If this is set, then the server will be able to speak
+	 * A [class@Gio.TlsCertificate[] that has a
+	 * [property@Gio.TlsCertificate:private-key] set.
+	 *
+	 * If this is set, then the server will be able to speak
 	 * https in addition to (or instead of) plain http.
 	 */
         properties[PROP_TLS_CERTIFICATE] =
@@ -459,9 +451,10 @@ soup_server_class_init (SoupServerClass *server_class)
                                      G_PARAM_STATIC_STRINGS);
 
         /**
-         * SoupServer:tls-database:
+         * SoupServer:tls-database: (attributes org.gtk.Property.get=soup_server_get_tls_database org.gtk.Property.set=soup_server_set_tls_database)
          *
-         * A #GTlsDatabase to use for validating SSL/TLS client certificates.
+         * A [class@Gio.TlsDatabase] to use for validating SSL/TLS client
+         * certificates.
          */
         properties[PROP_TLS_DATABASE] =
                 g_param_spec_object ("tls-database",
@@ -473,9 +466,9 @@ soup_server_class_init (SoupServerClass *server_class)
                                      G_PARAM_STATIC_STRINGS);
 
         /**
-         * SoupServer:tls-auth-mode:
+         * SoupServer:tls-auth-mode: (attributes org.gtk.Property.get=soup_server_get_tls_auth_mode org.gtk.Property.set=soup_server_set_tls_auth_mode)
          *
-         * A #GTlsAuthenticationMode for SSL/TLS client authentication
+         * A [enum@Gio.TlsAuthenticationMode] for SSL/TLS client authentication.
          */
         properties[PROP_TLS_AUTH_MODE] =
                 g_param_spec_enum ("tls-auth-mode",
@@ -487,6 +480,12 @@ soup_server_class_init (SoupServerClass *server_class)
                                    G_PARAM_CONSTRUCT |
                                    G_PARAM_STATIC_STRINGS);
 
+        /**
+         * SoupServer:raw-paths:
+         *
+         * If %TRUE, percent-encoding in the Request-URI path will not be
+         * automatically decoded.
+         */
         properties[PROP_RAW_PATHS] =
 		g_param_spec_boolean ("raw-paths",
 				      "Raw paths",
@@ -499,8 +498,10 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SoupServer:server-header:
 	 *
+	 * Server header.
+	 *
 	 * If non-%NULL, the value to use for the "Server" header on
-	 * #SoupServerMessage<!-- -->s processed by this server.
+	 * [class@ServerMessage]s processed by this server.
 	 *
 	 * The Server header is the server equivalent of the
 	 * User-Agent header, and provides information about the
@@ -518,11 +519,10 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * end up advertising their vulnerability to specific security
 	 * holes.
 	 *
-	 * As with #SoupSession:user_agent, if you set a
-	 * #SoupServer:server_header property that has trailing whitespace,
-	 * #SoupServer will append its own product token (eg,
-	 * "<literal>libsoup/2.3.2</literal>") to the end of the
-	 * header for you.
+	 * As with [property@Session:user_agent], if you set a
+	 * [property@Server:server-header] property that has trailing
+	 * whitespace, #SoupServer will append its own product token (eg,
+	 * `libsoup/2.3.2`) to the end of the header for you.
 	 **/
         properties[PROP_SERVER_HEADER] =
 		g_param_spec_string ("server-header",
@@ -541,12 +541,14 @@ soup_server_class_init (SoupServerClass *server_class)
  * @optname1: name of first property to set
  * @...: value of @optname1, followed by additional property/value pairs
  *
- * Creates a new #SoupServer. This is exactly equivalent to calling
- * g_object_new() and specifying %SOUP_TYPE_SERVER as the type.
+ * Creates a new #SoupServer.
+ *
+ * This is exactly equivalent to calling [ctor@GObject.Object.new] and
+ * specifying %SOUP_TYPE_SERVER as the type.
  *
  * Returns: (nullable): a new #SoupServer. If you are using
- * certain legacy properties, this may also return %NULL if an error
- * occurs.
+ *   certain legacy properties, this may also return %NULL if an error
+ *   occurs.
  **/
 SoupServer *
 soup_server_new (const char *optname1, ...)
@@ -563,7 +565,7 @@ soup_server_new (const char *optname1, ...)
 }
 
 /**
- * soup_server_set_tls_certificate:
+ * soup_server_set_tls_certificate: (attributes org.gtk.Method.set_property=tls-certificate)
  * @server: a #SoupServer
  * @certificate: a #GTlsCertificate
  *
@@ -587,10 +589,10 @@ soup_server_set_tls_certificate (SoupServer      *server,
 }
 
 /**
- * soup_server_get_tls_certificate:
+ * soup_server_get_tls_certificate: (attributes org.gtk.Method.get_property=tls-certificate)
  * @server: a #SoupServer
  *
- * Gets the @server SSL/TLS certificate
+ * Gets the @server SSL/TLS certificate.
  *
  * Returns: (transfer none) (nullable): a #GTlsCertificate or %NULL
  */
@@ -606,11 +608,11 @@ soup_server_get_tls_certificate (SoupServer *server)
 }
 
 /**
- * soup_server_set_tls_database:
+ * soup_server_set_tls_database: (attributes org.gtk.Method.set_property=tls-database)
  * @server: a #SoupServer
  * @tls_database: a #GTlsDatabase
  *
- * Sets @server's #GTlsDatabase to use for validating SSL/TLS client certificates
+ * Sets @server's #GTlsDatabase to use for validating SSL/TLS client certificates.
  */
 void
 soup_server_set_tls_database (SoupServer   *server,
@@ -630,12 +632,12 @@ soup_server_set_tls_database (SoupServer   *server,
 }
 
 /**
- * soup_server_get_tls_database:
+ * soup_server_get_tls_database: (attributes org.gtk.Method.get_property=tls-database)
  * @server: a #SoupServer
  *
- * Gets the @server SSL/TLS database
+ * Gets the @server SSL/TLS database.
  *
- * Returns: (transfer none) (nullable): a #GTlsDatabase or %NULL
+ * Returns: (transfer none) (nullable): a #GTlsDatabase
  */
 GTlsDatabase *
 soup_server_get_tls_database (SoupServer *server)
@@ -649,11 +651,11 @@ soup_server_get_tls_database (SoupServer *server)
 }
 
 /**
- * soup_server_set_tls_auth_mode:
+ * soup_server_set_tls_auth_mode: (attributes org.gtk.Method.set_property=tls-auth-mode)
  * @server: a #SoupServer
  * @mode: a #GTlsAuthenticationMode
  *
- * Sets @server's #GTlsAuthenticationMode to use for SSL/TLS client authentication
+ * Sets @server's #GTlsAuthenticationMode to use for SSL/TLS client authentication.
  */
 void
 soup_server_set_tls_auth_mode (SoupServer             *server,
@@ -672,10 +674,10 @@ soup_server_set_tls_auth_mode (SoupServer             *server,
 }
 
 /**
- * soup_server_get_tls_auth_mode:
+ * soup_server_get_tls_auth_mode: (attributes org.gtk.Method.get_property=tls-auth-mode)
  * @server: a #SoupServer
  *
- * Gets the @server SSL/TLS client authentication mode
+ * Gets the @server SSL/TLS client authentication mode.
  *
  * Returns: a #GTlsAuthenticationMode
  */
@@ -697,17 +699,16 @@ soup_server_get_tls_auth_mode (SoupServer *server)
  * Checks whether @server is capable of https.
  *
  * In order for a server to run https, you must call
- * soup_server_set_ssl_cert_file(), or set the
- * #SoupServer:tls-certificate property, to provide it with a
+ * [method@Server.set_tls_certificate], or set the
+ * [property@Server:tls-certificate] property, to provide it with a
  * certificate to use.
  *
- * If you are using the deprecated single-listener APIs, then a return
- * value of %TRUE indicates that the #SoupServer serves https
- * exclusively. If you are using soup_server_listen(), etc, then a
- * %TRUE return value merely indicates that the server is
- * <emphasis>able</emphasis> to do https, regardless of whether it
- * actually currently is or not. Use soup_server_get_uris() to see if
- * it currently has any https listeners.
+ * If you are using the deprecated single-listener APIs, then a return value of
+ * %TRUE indicates that the #SoupServer serves https exclusively. If you are
+ * using [method@Server.listen], etc, then a %TRUE return value merely indicates
+ * that the server is *able* to do https, regardless of whether it actually
+ * currently is or not. Use [method@Server.get_uris] to see if it currently has
+ * any https listeners.
  *
  * Returns: %TRUE if @server is configured to serve https.
  **/
@@ -732,7 +733,7 @@ soup_server_is_https (SoupServer *server)
  * modifiying any of these sockets may cause @server to malfunction.
  *
  * Returns: (transfer container) (element-type Gio.Socket): a
- * list of listening sockets.
+ *   list of listening sockets.
  **/
 GSList *
 soup_server_get_listeners (SoupServer *server)
@@ -1084,16 +1085,17 @@ start_request (SoupServer        *server,
  * soup_server_accept_iostream:
  * @server: a #SoupServer
  * @stream: a #GIOStream
- * @local_addr: (nullable): the local #GSocketAddress associated with the @stream
- * @remote_addr: (nullable): the remote #GSocketAddress associated with the @stream
+ * @local_addr: (nullable): the local #GSocketAddress associated with the
+ *   @stream
+ * @remote_addr: (nullable): the remote #GSocketAddress associated with the
+ *   @stream
  * @error: return location for a #GError
  *
- * Add a new client stream to the @server.
+ * Adds a new client stream to the @server.
  *
  * Returns: %TRUE on success, %FALSE if the stream could not be
- * accepted or any other error occurred (in which case @error will be
- * set).
- *
+ *   accepted or any other error occurred (in which case @error will be
+ *   set).
  **/
 gboolean
 soup_server_accept_iostream (SoupServer     *server,
@@ -1133,11 +1135,11 @@ new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
  *
  * Closes and frees @server's listening sockets.
  *
- * Note that if there are currently requests in progress on @server,
- * that they will continue to be processed if @server's #GMainContext
- * is still running.
+ * Note that if there are currently requests in progress on @server, that they
+ * will continue to be processed if @server's [struct@GLib.MainContext] is still
+ * running.
  *
- * You can call soup_server_listen(), etc, after calling this function
+ * You can call [method@Server.listen], etc, after calling this function
  * if you want to start listening again.
  **/
 void
@@ -1177,14 +1179,13 @@ soup_server_disconnect (SoupServer *server)
  * @SOUP_SERVER_LISTEN_IPV4_ONLY: Only listen on IPv4 interfaces.
  * @SOUP_SERVER_LISTEN_IPV6_ONLY: Only listen on IPv6 interfaces.
  *
- * Options to pass to soup_server_listen(), etc.
+ * Options to pass to [method@Server.listen], etc.
  *
  * %SOUP_SERVER_LISTEN_IPV4_ONLY and %SOUP_SERVER_LISTEN_IPV6_ONLY
- * only make sense with soup_server_listen_all() and
- * soup_server_listen_local(), not plain soup_server_listen() (which
+ * only make sense with [method@Server.listen_all] and
+ * [method@Server.listen_local], not plain [method@Server.listen] (which
  * simply listens on whatever kind of socket you give it). And you
  * cannot specify both of them in a single call.
- *
  */
 
 static gboolean
@@ -1246,8 +1247,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
  * @options: listening options for this server
  * @error: return location for a #GError
  *
- * This attempts to set up @server to listen for connections on
- * @address.
+ * Attempts to set up @server to listen for connections on @address.
  *
  * If @options includes %SOUP_SERVER_LISTEN_HTTPS, and @server has
  * been configured for TLS, then @server will listen for https
@@ -1257,18 +1257,16 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
  * any number of times on a server, if you want to listen on multiple
  * ports, or set up both http and https service.
  *
- * After calling this method, @server will begin accepting and
- * processing connections as soon as the appropriate #GMainContext is
- * run.
+ * After calling this method, @server will begin accepting and processing
+ * connections as soon as the appropriate [struct@GLib.MainContext] is run.
  *
  * Note that #SoupServer never makes use of dual IPv4/IPv6 sockets; if
  * @address is an IPv6 address, it will only accept IPv6 connections.
  * You must configure IPv4 listening separately.
  *
  * Returns: %TRUE on success, %FALSE if @address could not be
- * bound or any other error occurred (in which case @error will be
- * set).
- *
+ *   bound or any other error occurred (in which case @error will be
+ *   set).
  **/
 gboolean
 soup_server_listen (SoupServer *server, GSocketAddress *address,
@@ -1378,20 +1376,20 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
  * @options: listening options for this server
  * @error: return location for a #GError
  *
- * This attempts to set up @server to listen for connections on all
- * interfaces on the system. (That is, it listens on the addresses
- * <literal>0.0.0.0</literal> and/or <literal>::</literal>, depending
- * on whether @options includes %SOUP_SERVER_LISTEN_IPV4_ONLY,
- * %SOUP_SERVER_LISTEN_IPV6_ONLY, or neither.) If @port is specified,
- * @server will listen on that port. If it is 0, @server will find an
- * unused port to listen on. (In that case, you can use
- * soup_server_get_uris() to find out what port it ended up choosing.)
+ * Attempts to set up @server to listen for connections on all interfaces
+ * on the system.
  *
- * See soup_server_listen() for more details.
+ * That is, it listens on the addresses `0.0.0.0` and/or `::`, depending on
+ * whether @options includes %SOUP_SERVER_LISTEN_IPV4_ONLY,
+ * %SOUP_SERVER_LISTEN_IPV6_ONLY, or neither.) If @port is specified, @server
+ * will listen on that port. If it is 0, @server will find an unused port to
+ * listen on. (In that case, you can use [method@Server.get_uris] to find out
+ * what port it ended up choosing.
+ *
+ * See [method@Server.listen] for more details.
  *
  * Returns: %TRUE on success, %FALSE if @port could not be bound
- * or any other error occurred (in which case @error will be set).
- *
+ *   or any other error occurred (in which case @error will be set).
  **/
 gboolean 
 soup_server_listen_all (SoupServer *server, guint port,
@@ -1431,20 +1429,18 @@ soup_server_listen_all (SoupServer *server, guint port,
  * @options: listening options for this server
  * @error: return location for a #GError
  *
- * This attempts to set up @server to listen for connections on
- * "localhost" (that is, <literal>127.0.0.1</literal> and/or
- * <literal>::1</literal>, depending on whether @options includes
- * %SOUP_SERVER_LISTEN_IPV4_ONLY, %SOUP_SERVER_LISTEN_IPV6_ONLY, or
- * neither). If @port is specified, @server will listen on that port.
- * If it is 0, @server will find an unused port to listen on. (In that
- * case, you can use soup_server_get_uris() to find out what port it
- * ended up choosing.)
+ * Attempts to set up @server to listen for connections on "localhost".
  *
- * See soup_server_listen() for more details.
+ * That is, `127.0.0.1` and/or `::1`, depending on whether @options includes
+ * %SOUP_SERVER_LISTEN_IPV4_ONLY, %SOUP_SERVER_LISTEN_IPV6_ONLY, or neither). If
+ * @port is specified, @server will listen on that port. If it is 0, @server
+ * will find an unused port to listen on. (In that case, you can use
+ * [method@Server.get_uris] to find out what port it ended up choosing.
+ *
+ * See [method@Server.listen] for more details.
  *
  * Returns: %TRUE on success, %FALSE if @port could not be bound
- * or any other error occurred (in which case @error will be set).
- *
+ *   or any other error occurred (in which case @error will be set).
  **/
 gboolean
 soup_server_listen_local (SoupServer *server, guint port,
@@ -1484,14 +1480,12 @@ soup_server_listen_local (SoupServer *server, guint port,
  * @options: listening options for this server
  * @error: return location for a #GError
  *
- * This attempts to set up @server to listen for connections on
- * @socket.
+ * Attempts to set up @server to listen for connections on @socket.
  *
- * See soup_server_listen() for more details.
+ * See [method@Server.listen] for more details.
  *
  * Returns: %TRUE on success, %FALSE if an error occurred (in
- * which case @error will be set).
- *
+ *   which case @error will be set).
  **/
 gboolean
 soup_server_listen_socket (SoupServer *server, GSocket *socket,
@@ -1528,17 +1522,17 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
  * @server: a #SoupServer
  *
  * Gets a list of URIs corresponding to the interfaces @server is
- * listening on. These will contain IP addresses, not hostnames, and
- * will also indicate whether the given listener is http or https.
+ * listening on.
  *
- * Note that if you used soup_server_listen_all(), the returned URIs
- * will use the addresses <literal>0.0.0.0</literal> and
- * <literal>::</literal>, rather than actually returning separate URIs
- * for each interface on the system.
+ * These will contain IP addresses, not hostnames, and will also indicate
+ * whether the given listener is http or https.
  *
- * Returns: (transfer full) (element-type GUri): a list of
- * #GUris, which you must free when you are done with it.
+ * Note that if you used [method@Server.listen_all] the returned URIs will use
+ * the addresses `0.0.0.0` and `::`, rather than actually returning separate
+ * URIs for each interface on the system.
  *
+ * Returns: (transfer full) (element-type GUri): a list of #GUris, which you
+ *   must free when you are done with it.
  */
 GSList *
 soup_server_get_uris (SoupServer *server)
@@ -1584,29 +1578,28 @@ soup_server_get_uris (SoupServer *server)
  * @path: the path component of @msg's Request-URI
  * @query: (element-type utf8 utf8) (nullable): the parsed query
  *   component of @msg's Request-URI
- * @user_data: the data passed to soup_server_add_handler() or
- *   soup_server_add_early_handler().
+ * @user_data: the data passed to [method@Server.add_handler] or
+ *   [method@Server.add_early_handler].
  *
- * A callback used to handle requests to a #SoupServer.
+ * A callback used to handle requests to a [class@Server].
  *
  * @path and @query contain the likewise-named components of the
  * Request-URI, subject to certain assumptions. By default,
- * #SoupServer decodes all percent-encoding in the URI path, such that
- * "/foo%<!-- -->2Fbar" is treated the same as "/foo/bar". If your
+ * [class@Server] decodes all percent-encoding in the URI path, such that
+ * `"/foo%2Fbar"` is treated the same as `"/foo/bar"`. If your
  * server is serving resources in some non-POSIX-filesystem namespace,
  * you may want to distinguish those as two distinct paths. In that
- * case, you can set the SoupServer:raw-paths property when creating
- * the #SoupServer, and it will leave those characters undecoded.
+ * case, you can set the [property@Server:raw-paths] property when creating
+ * the [class@Server], and it will leave those characters undecoded.
  *
- * @query contains the query component of the Request-URI parsed
- * according to the rules for HTML form handling. Although this is the
- * only commonly-used query string format in HTTP, there is nothing
- * that actually requires that HTTP URIs use that format; if your
- * server needs to use some other format, you can just ignore @query,
- * and call soup_message_get_uri() and parse the URI's query field
- * yourself.
+ * @query contains the query component of the Request-URI parsed according to
+ * the rules for HTML form handling. Although this is the only commonly-used
+ * query string format in HTTP, there is nothing that actually requires that
+ * HTTP URIs use that format; if your server needs to use some other format, you
+ * can just ignore @query, and call [method@Message.get_uri] and parse the URI's
+ * query field yourself.
  *
- * See soup_server_add_handler() and soup_server_add_early_handler()
+ * See [method@Server.add_handler] and [method@Server.add_early_handler]
  * for details of what handlers can/should do.
  **/
 
@@ -1633,45 +1626,44 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
  * soup_server_add_handler:
  * @server: a #SoupServer
  * @path: (nullable): the toplevel path for the handler
- * @callback: (scope notified) (destroy destroy): callback to invoke for requests under @path
+ * @callback: (scope notified) (destroy destroy): callback to invoke for
+ *   requests under @path
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
- * Adds a handler to @server for requests prefixed by @path. If @path is
- * %NULL or "/", then this will be the default handler for all
- * requests that don't have a more specific handler. (Note though that
- * if you want to handle requests to the special "*" URI, you must
- * explicitly register a handler for "*"; the default handler will not
- * be used for that case.)
+ * Adds a handler to @server for requests prefixed by @path.
+ *
+ * If @path is %NULL or "/", then this will be the default handler for all
+ * requests that don't have a more specific handler. (Note though that if you
+ * want to handle requests to the special "*" URI, you must explicitly register
+ * a handler for "*"; the default handler will not be used for that case.)
  *
  * For requests under @path (that have not already been assigned a
- * status code by a #SoupAuthDomain, an early server handler, or a
+ * status code by a [class@AuthDomain], an early server handler, or a
  * signal handler), @callback will be invoked after receiving the
- * request body; the #SoupServerMessage<!-- -->'s method, request-headers,
+ * request body; the [class@ServerMessage]'s method, request-headers,
  * and request-body properties will be set.
  *
- * After determining what to do with the request, the callback must at
- * a minimum call soup_server_message_set_status() on the message to set the response
- * status code. Additionally, it may set response headers and/or fill
- * in the response body.
+ * After determining what to do with the request, the callback must at a minimum
+ * call [method@ServerMessage.set_status] on the message to set the response
+ * status code. Additionally, it may set response headers and/or fill in the
+ * response body.
  *
  * If the callback cannot fully fill in the response before returning
  * (eg, if it needs to wait for information from a database, or
- * another network server), it should call soup_server_pause_message()
+ * another network server), it should call [method@Server.pause_message]
  * to tell @server to not send the response right away. When the
- * response is ready, call soup_server_unpause_message() to cause it
+ * response is ready, call [method@Server.unpause_message] to cause it
  * to be sent.
  *
- * To send the response body a bit at a time using "chunked" encoding,
- * first call soup_message_headers_set_encoding() to set
- * %SOUP_ENCODING_CHUNKED on the response-headers. Then call
- * soup_message_body_append() (or soup_message_body_append_bytes))
- * to append each chunk as it becomes ready, and
- * soup_server_unpause_message() to make sure it's running. (The
- * server will automatically pause the message if it is using chunked
- * encoding but no more chunks are available.) When you are done, call
- * soup_message_body_complete() to indicate that no more chunks are
- * coming.
+ * To send the response body a bit at a time using "chunked" encoding, first
+ * call [method@MessageHeaders.set_encoding] to set %SOUP_ENCODING_CHUNKED on
+ * the response-headers. Then call [method@MessageBody.append] (or
+ * [method@MessageBody.append_bytes])) to append each chunk as it becomes ready,
+ * and [method@Server.unpause_message] to make sure it's running. (The server
+ * will automatically pause the message if it is using chunked encoding but no
+ * more chunks are available.) When you are done, call
+ * [method@MessageBody.complete] to indicate that no more chunks are coming.
  **/
 void
 soup_server_add_handler (SoupServer            *server,
@@ -1698,38 +1690,37 @@ soup_server_add_handler (SoupServer            *server,
  * soup_server_add_early_handler:
  * @server: a #SoupServer
  * @path: (nullable): the toplevel path for the handler
- * @callback: (scope notified) (destroy destroy): callback to invoke for requests under @path
+ * @callback: (scope notified) (destroy destroy): callback to invoke for
+ *   requests under @path
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
- * Adds an "early" handler to @server for requests prefixed by @path. Note
- * that "normal" and "early" handlers are matched up together, so if
- * you add a normal handler for "/foo" and an early handler for
- * "/foo/bar", then a request to "/foo/bar" (or any path below it)
- * will run only the early handler. (But if you add both handlers at
- * the same path, then both will get run.)
+ * Adds an "early" handler to @server for requests prefixed by @path.
+ *
+ * Note that "normal" and "early" handlers are matched up together, so if you
+ * add a normal handler for "/foo" and an early handler for "/foo/bar", then a
+ * request to "/foo/bar" (or any path below it) will run only the early handler.
+ * (But if you add both handlers at the same path, then both will get run.)
  *
  * For requests under @path (that have not already been assigned a
- * status code by a #SoupAuthDomain or a signal handler), @callback
+ * status code by a [class@AuthDomain] or a signal handler), @callback
  * will be invoked after receiving the request headers, but before
  * receiving the request body; the message's method and
  * request-headers properties will be set.
  *
- * Early handlers are generally used for processing requests with
- * request bodies in a streaming fashion. If you determine that the
- * request will contain a message body, normally you would call
- * soup_message_body_set_accumulate() on the message's
- * request-body to turn off request-body accumulation,
- * and connect to the message's #SoupServerMessage::got-chunk signal to
- * process each chunk as it comes in.
+ * Early handlers are generally used for processing requests with request bodies
+ * in a streaming fashion. If you determine that the request will contain a
+ * message body, normally you would call [method@MessageBody.set_accumulate] on
+ * the message's request-body to turn off request-body accumulation, and connect
+ * to the message's [signal@ServerMessage::got-chunk] signal to process each
+ * chunk as it comes in.
  *
  * To complete the message processing after the full message body has
- * been read, you can either also connect to #SoupServerMessage::got-body,
+ * been read, you can either also connect to [signal@ServerMessage::got-body],
  * or else you can register a non-early handler for @path as well. As
  * long as you have not set the status-code by the time
- * #SoupServerMessage::got-body is emitted, the non-early handler will be
+ * [signal@ServerMessage::got-body] is emitted, the non-early handler will be
  * run as well.
- *
  **/
 void
 soup_server_add_early_handler (SoupServer            *server,
@@ -1760,13 +1751,13 @@ soup_server_add_early_handler (SoupServer            *server,
  * @msg: the #SoupServerMessage
  * @user_data: the data passed to @soup_server_add_handler
  *
- * A callback used to handle WebSocket requests to a #SoupServer. The
- * callback will be invoked after sending the handshake response back
- * to the client (and is only invoked if the handshake was
- * successful).
+ * A callback used to handle WebSocket requests to a #SoupServer.
+ *
+ * The callback will be invoked after sending the handshake response back to the
+ * client (and is only invoked if the handshake was successful).
  *
  * @path contains the path of the Request-URI, subject to the same
- * rules as #SoupServerCallback (qv).
+ * rules as [callback@ServerCallback] `(qv)`.
  **/
 
 /**
@@ -1776,13 +1767,15 @@ soup_server_add_early_handler (SoupServer            *server,
  * @origin: (nullable): the origin of the connection
  * @protocols: (nullable) (array zero-terminated=1): the protocols
  *   supported by this handler
- * @callback: (scope notified) (destroy destroy): callback to invoke for successful WebSocket requests under @path
+ * @callback: (scope notified) (destroy destroy): callback to invoke for
+ *   successful WebSocket requests under @path
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
- * Adds a WebSocket handler to @server for requests prefixed by @path. (If
- * @path is %NULL or "/", then this will be the default handler for
- * all requests that don't have a more specific handler.)
+ * Adds a WebSocket handler to @server for requests prefixed by @path.
+ *
+ * If @path is %NULL or "/", then this will be the default handler for all
+ * requests that don't have a more specific handler.
  *
  * When a path has a WebSocket handler registered, @server will check
  * incoming requests for WebSocket handshakes after all other handlers
@@ -1852,15 +1845,15 @@ soup_server_remove_handler (SoupServer *server, const char *path)
  * @server: a #SoupServer
  * @auth_domain: a #SoupAuthDomain
  *
- * Adds an authentication domain to @server. Each auth domain will
- * have the chance to require authentication for each request that
- * comes in; normally auth domains will require authentication for
- * requests on certain paths that they have been set up to watch, or
- * that meet other criteria set by the caller. If an auth domain
- * determines that a request requires authentication (and the request
- * doesn't contain authentication), @server will automatically reject
- * the request with an appropriate status (401 Unauthorized or 407
- * Proxy Authentication Required). If the request used the
+ * Adds an authentication domain to @server.
+ *
+ * Each auth domain will have the chance to require authentication for each
+ * request that comes in; normally auth domains will require authentication for
+ * requests on certain paths that they have been set up to watch, or that meet
+ * other criteria set by the caller. If an auth domain determines that a request
+ * requires authentication (and the request doesn't contain authentication),
+ * @server will automatically reject the request with an appropriate status (401
+ * Unauthorized or 407 Proxy Authentication Required). If the request used the
  * SoupServer:100-continue Expectation, @server will reject it before the
  * request body is sent.
  **/
@@ -1900,13 +1893,16 @@ soup_server_remove_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
  * @server: a #SoupServer
  * @msg: a #SoupServerMessage associated with @server.
  *
- * Pauses I/O on @msg. This can be used when you need to return from
- * the server handler without having the full response ready yet. Use
- * soup_server_unpause_message() to resume I/O.
+ * Pauses I/O on @msg.
  *
- * This must only be called on a #SoupServerMessage which was created by the
+ * This can be used when you need to return from the server handler without
+ * having the full response ready yet. Use [method@Server.unpause_message] to
+ * resume I/O.
+ *
+ * This must only be called on a [class@ServerMessage] which was created by the
  * #SoupServer and are currently doing I/O, such as those passed into a
- * #SoupServerCallback or emitted in a #SoupServer::request-read signal.
+ * [callback@ServerCallback] or emitted in a [signal@Server::request-read]
+ * signal.
  **/
 void
 soup_server_pause_message (SoupServer        *server,
@@ -1923,15 +1919,17 @@ soup_server_pause_message (SoupServer        *server,
  * @server: a #SoupServer
  * @msg: a #SoupServerMessage associated with @server.
  *
- * Resumes I/O on @msg. Use this to resume after calling
- * soup_server_pause_message(), or after adding a new chunk to a
- * chunked response.
+ * Resumes I/O on @msg.
+ *
+ * Use this to resume after calling [method@Server.pause_message], or after
+ * adding a new chunk to a chunked response.
  *
  * I/O won't actually resume until you return to the main loop.
  *
- * This must only be called on a #SoupServerMessage which was created by the
+ * This must only be called on a [class@ServerMessage] which was created by the
  * #SoupServer and are currently doing I/O, such as those passed into a
- * #SoupServerCallback or emitted in a #SoupServer::request-read signal.
+ * [callback@ServerCallback] or emitted in a [signal@Server::request-read]
+ * signal.
  **/
 void
 soup_server_unpause_message (SoupServer        *server,
@@ -1949,13 +1947,13 @@ soup_server_unpause_message (SoupServer        *server,
  * @extension_type: a #GType
  *
  * Add support for a WebSocket extension of the given @extension_type.
+ *
  * When a WebSocket client requests an extension of @extension_type,
- * a new #SoupWebsocketExtension of type @extension_type will be created
+ * a new [class@WebsocketExtension] of type @extension_type will be created
  * to handle the request.
  *
- * Note that #SoupWebsocketExtensionDeflate is supported by default, use
- * soup_server_remove_websocket_extension() if you want to disable it.
- *
+ * Note that [class@WebsocketExtensionDeflate] is supported by default, use
+ * [method@Server.remove_websocket_extension] if you want to disable it.
  */
 void
 soup_server_add_websocket_extension (SoupServer *server, GType extension_type)
@@ -1980,7 +1978,6 @@ soup_server_add_websocket_extension (SoupServer *server, GType extension_type)
  *
  * Removes support for WebSocket extension of type @extension_type (or any subclass of
  * @extension_type) from @server.
- *
  */
 void
 soup_server_remove_websocket_extension (SoupServer *server, GType extension_type)

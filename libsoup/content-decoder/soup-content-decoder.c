@@ -21,8 +21,9 @@
 #endif
 
 /**
- * SECTION:soup-content-decoder
- * @short_description: Content-Encoding handler
+ * SoupContentDecoder:
+ *
+ * Handles decoding of HTTP messages.
  *
  * #SoupContentDecoder handles adding the "Accept-Encoding" header on
  * outgoing messages, and processing the "Content-Encoding" header on
@@ -31,7 +32,7 @@
  *
  * A #SoupContentDecoder will automatically be
  * added to the session by default. (You can use
- * soup_session_remove_feature_by_type() if you don't
+ * [method@Session.remove_feature_by_type] if you don't
  * want this.)
  *
  * If #SoupContentDecoder successfully decodes the Content-Encoding,
@@ -46,14 +47,7 @@
  * (Note that currently there is no way to (automatically) use
  * Content-Encoding when sending a request body, or to pick specific
  * encoding types to support.)
- *
  **/
-
-/**
- * SoupContentDecoder:
- *
- * Class handling decoding of HTTP messages.
- */
 
 struct _SoupContentDecoder {
 	GObject parent;

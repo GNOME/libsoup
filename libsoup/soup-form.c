@@ -15,31 +15,19 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-form
- * @section_id: SoupForm
- * @short_description: HTML form handling
- * @see_also: #SoupMultipart
- *
- * libsoup contains several help methods for processing HTML forms as
- * defined by the [the HTML 4.01 specification](http://www.w3.org/TR/html401/interact/forms.html#h-17.13).
- **/
-
-/**
  * SOUP_FORM_MIME_TYPE_URLENCODED:
  *
  * A macro containing the value
- * <literal>"application/x-www-form-urlencoded"</literal>; the default
+ * `application/x-www-form-urlencoded`; the default
  * MIME type for POSTing HTML form data.
- *
  **/
 
 /**
  * SOUP_FORM_MIME_TYPE_MULTIPART:
  *
  * A macro containing the value
- * <literal>"multipart/form-data"</literal>; the MIME type used for
+ * `multipart/form-data`; the MIME type used for
  * posting form data that contains files to be uploaded.
- *
  **/
 
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
@@ -71,12 +59,13 @@ form_decode (char *part)
  * soup_form_decode:
  * @encoded_form: data of type "application/x-www-form-urlencoded"
  *
- * Decodes @form, which is an urlencoded dataset as defined in the
- * HTML 4.01 spec.
+ * Decodes @form.
+ *
+ * which is an urlencoded dataset as defined in the HTML 4.01 spec.
  *
  * Returns: (element-type utf8 utf8) (transfer container): a hash
- * table containing the name/value pairs from @encoded_form, which you
- * can free with g_hash_table_destroy().
+ *   table containing the name/value pairs from @encoded_form, which you
+ *   can free with [func@GLib.HashTable.destroy].
  **/
 GHashTable *
 soup_form_decode (const char *encoded_form)
@@ -111,35 +100,35 @@ soup_form_decode (const char *encoded_form)
 /**
  * soup_form_decode_multipart:
  * @multipart: a #SoupMultipart
- * @file_control_name: (nullable): the name of the HTML file upload control, or %NULL
- * @filename: (out) (optional): return location for the name of the uploaded file, or %NULL
- * @content_type: (out) (optional): return location for the MIME type of the uploaded file, or %NULL
- * @file: (out) (optional): return location for the uploaded file data, or %NULL
+ * @file_control_name: (nullable): the name of the HTML file upload control
+ * @filename: (out) (optional): return location for the name of the uploaded file
+ * @content_type: (out) (optional): return location for the MIME type of the uploaded file
+ * @file: (out) (optional): return location for the uploaded file data
  *
- * Decodes the "multipart/form-data" request in @multipart; this is a
- * convenience method for the case when you have a single file upload
- * control in a form. (Or when you don't have any file upload
- * controls, but are still using "multipart/form-data" anyway.) Pass
- * the name of the file upload control in @file_control_name, and
- * soup_form_decode_multipart() will extract the uploaded file data
- * into @filename, @content_type, and @file. All of the other form
- * control data will be returned (as strings, as with
- * soup_form_decode()) in the returned #GHashTable.
+ * Decodes the "multipart/form-data" request in @multipart.
+ *
+ * this is a convenience method for the case when you have a single file upload
+ * control in a form. (Or when you don't have any file upload controls, but are
+ * still using "multipart/form-data" anyway.) Pass the name of the file upload
+ * control in @file_control_name, and [func@form_decode_multipart] will extract
+ * the uploaded file data into @filename, @content_type, and @file. All of the
+ * other form control data will be returned (as strings, as with
+ * [func@form_decode] in the returned [struct@GLib.HashTable].
  *
  * You may pass %NULL for @filename, @content_type and/or @file if you do not
- * care about those fields. soup_form_decode_multipart() may also
+ * care about those fields. [func@form_decode_multipart] may also
  * return %NULL in those fields if the client did not provide that
  * information. You must free the returned filename and content-type
- * with g_free(), and the returned file data with g_bytes_unref().
+ * with [func@GLib.free], and the returned file data with [method@Glib.Bytes.unref].
  *
  * If you have a form with more than one file upload control, you will
- * need to decode it manually, using soup_multipart_new_from_message()
- * and soup_multipart_get_part().
+ * need to decode it manually, using [ctor@Multipart.new_from_message]
+ * and [method@Multipart.get_part].
  *
  * Returns: (nullable) (element-type utf8 utf8) (transfer container):
- * a hash table containing the name/value pairs (other than
- * @file_control_name) from @msg, which you can free with
- * g_hash_table_destroy(). On error, it will return %NULL.
+ *   a hash table containing the name/value pairs (other than
+ *   @file_control_name) from @msg, which you can free with
+ *   [func@GLib.HashTable.destroy]. On error, it will return %NULL.
  */
 GHashTable *
 soup_form_decode_multipart (SoupMultipart *multipart,
@@ -234,20 +223,21 @@ encode_pair (GString *str, const char *name, const char *value)
  * soup_form_encode:
  * @first_field: name of the first form field
  * @...: value of @first_field, followed by additional field names
- * and values, terminated by %NULL.
+ *   and values, terminated by %NULL.
  *
  * Encodes the given field names and values into a value of type
- * "application/x-www-form-urlencoded", as defined in the HTML 4.01
- * spec.
+ * "application/x-www-form-urlencoded".
+ *
+ * Encodes as defined in the HTML 4.01 spec.
  *
  * This method requires you to know the names of the form fields (or
  * at the very least, the total number of fields) at compile time; for
- * working with dynamic forms, use soup_form_encode_hash() or
- * soup_form_encode_datalist().
+ * working with dynamic forms, use [func@form_encode_hash] or
+ * [func@form_encode_datalist].
+ *
+ * See also: [ctor@Message.new_from_encoded_form].
  *
  * Returns: the encoded form
- *
- * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode (const char *first_field, ...)
@@ -265,20 +255,21 @@ soup_form_encode (const char *first_field, ...)
 /**
  * soup_form_encode_hash:
  * @form_data_set: (element-type utf8 utf8): a hash table containing
- * name/value pairs (as strings)
+ *   name/value pairs (as strings)
  *
  * Encodes @form_data_set into a value of type
- * "application/x-www-form-urlencoded", as defined in the HTML 4.01
- * spec.
+ * "application/x-www-form-urlencoded".
+ *
+ * Encodes as defined in the HTML 4.01 spec.
  *
  * Note that the HTML spec states that "The control names/values are
  * listed in the order they appear in the document." Since this method
  * takes a hash table, it cannot enforce that; if you care about the
- * ordering of the form fields, use soup_form_encode_datalist().
+ * ordering of the form fields, use [func@form_encode_datalist].
+ *
+ * See also: [ctor@Message.new_from_encoded_form].
  *
  * Returns: the encoded form
- *
- * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode_hash (GHashTable *form_data_set)
@@ -304,13 +295,15 @@ datalist_encode_foreach (GQuark key_id, gpointer value, gpointer str)
  * @form_data_set: a datalist containing name/value pairs
  *
  * Encodes @form_data_set into a value of type
- * "application/x-www-form-urlencoded", as defined in the HTML 4.01
- * spec. Unlike soup_form_encode_hash(), this preserves the ordering
- * of the form elements, which may be required in some situations.
+ * "application/x-www-form-urlencoded".
+ *
+ * Encodes as defined in the HTML 4.01 spec. Unlike [func@form_encode_hash],
+ * this preserves the ordering of the form elements, which may be required in
+ * some situations.
+ *
+ * See also: [ctor@Message.new_from_encoded_form].
  *
  * Returns: the encoded form
- *
- * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode_datalist (GData **form_data_set)
@@ -324,14 +317,16 @@ soup_form_encode_datalist (GData **form_data_set)
 /**
  * soup_form_encode_valist:
  * @first_field: name of the first form field
- * @args: pointer to additional values, as in soup_form_encode()
+ * @args: pointer to additional values, as in [func@form_encode]
  *
- * See soup_form_encode(). This is mostly an internal method, used by
- * various other methods such as soup_form_encode().
+ * See [func@form_encode].
+ *
+ * This is mostly an internal method, used by various other methods such as
+ * [func@form_encode].
+ *
+ * See also: [ctor@Message.new_from_encoded_form].
  *
  * Returns: the encoded form
- *
- * See also: soup_message_new_from_encoded_form()
  **/
 char *
 soup_form_encode_valist (const char *first_field, va_list args)

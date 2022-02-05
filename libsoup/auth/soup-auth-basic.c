@@ -23,11 +23,12 @@ typedef struct {
 } SoupAuthBasicPrivate;
 
 /**
- * SOUP_TYPE_AUTH_BASIC:
+ * SoupAuthBasic:
  *
- * A #GType corresponding to HTTP "Basic" authentication.
- * #SoupSessions support this by default; if you want to disable
- * support for it, call soup_session_remove_feature_by_type(),
+ * HTTP "Basic" authentication.
+ *
+ * [class@Session]s support this by default; if you want to disable
+ * support for it, call [method@Session.remove_feature_by_type],
  * passing %SOUP_TYPE_AUTH_BASIC.
  *
  */

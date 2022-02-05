@@ -29,48 +29,40 @@
 #include "soup-websocket-extension.h"
 
 /*
- * SECTION:websocketconnection
- * @title: SoupWebsocketConnection
- * @short_description: A WebSocket connection
+ * SoupWebsocketConnection:
+ *
+ * A WebSocket connection.
  *
  * A #SoupWebsocketConnection is a WebSocket connection to a peer.
  * This API is modeled after the W3C API for interacting with
  * WebSockets.
  *
- * The #SoupWebsocketConnection:state property will indicate the
+ * The [property@WebsocketConnection:state] property will indicate the
  * state of the connection.
  *
- * Use soup_websocket_connection_send() to send a message to the peer.
- * When a message is received the #SoupWebsocketConnection::message
+ * Use [method@WebsocketConnection.send] to send a message to the peer.
+ * When a message is received the [signal@WebsocketConnection::message]
  * signal will fire.
  *
- * The soup_websocket_connection_close() function will perform an
+ * The [method@WebsocketConnection.close] function will perform an
  * orderly close of the connection. The
- * #SoupWebsocketConnection::closed signal will fire once the
+ * [signal@WebsocketConnection::closed] signal will fire once the
  * connection closes, whether it was initiated by this side or the
  * peer.
  *
- * Connect to the #SoupWebsocketConnection::closing signal to detect
+ * Connect to the [signal@WebsocketConnection::closing] signal to detect
  * when either peer begins closing the connection.
  */
 
 /**
- * SoupWebsocketConnection:
- *
- * A class representing a WebSocket connection.
- *
- */
-
-/**
  * SoupWebsocketConnectionClass:
- * @message: default handler for the #SoupWebsocketConnection::message signal
- * @error: default handler for the #SoupWebsocketConnection::error signal
- * @closing: the default handler for the #SoupWebsocketConnection:closing signal
- * @closed: default handler for the #SoupWebsocketConnection::closed signal
- * @pong: default handler for the #SoupWebsocketConnection::pong signal
+ * @message: default handler for the [signal@WebsocketConnection::message] signal
+ * @error: default handler for the [signal@WebsocketConnection::error] signal
+ * @closing: the default handler for the [signal@WebsocketConnection:closing] signal
+ * @closed: default handler for the [signal@WebsocketConnection::closed] signal
+ * @pong: default handler for the [signal@WebsocketConnection::pong] signal
  *
- * The abstract base class for #SoupWebsocketConnection
- *
+ * The abstract base class for [class@WebsocketConnection].
  */
 
 enum {
@@ -1486,7 +1478,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * over.
 	 *
 	 * The input and output streams must be pollable streams.
-	 *
 	 */
         properties[PROP_IO_STREAM] =
                 g_param_spec_object ("io-stream",
@@ -1501,7 +1492,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * SoupWebsocketConnection:connection-type:
 	 *
 	 * The type of connection (client/server).
-	 *
 	 */
         properties[PROP_CONNECTION_TYPE] =
                 g_param_spec_enum ("connection-type",
@@ -1520,7 +1510,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * For servers this represents the address of the WebSocket,
 	 * and for clients it is the address connected to.
-	 *
 	 */
         properties[PROP_URI] =
                 g_param_spec_boxed ("uri",
@@ -1535,7 +1524,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * SoupWebsocketConnection:origin:
 	 *
 	 * The client's Origin.
-	 *
 	 */
         properties[PROP_ORIGIN] =
                 g_param_spec_string ("origin",
@@ -1551,7 +1539,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 *
 	 * The chosen protocol, or %NULL if a protocol was not agreed
 	 * upon.
-	 *
 	 */
         properties[PROP_PROTOCOL] =
                 g_param_spec_string ("protocol",
@@ -1566,7 +1553,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * SoupWebsocketConnection:state:
 	 *
 	 * The current state of the WebSocket.
-	 *
 	 */
         properties[PROP_STATE] =
                 g_param_spec_enum ("state",
@@ -1580,9 +1566,9 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	/**
 	 * SoupWebsocketConnection:max-incoming-payload-size:
 	 *
-	 * The maximum payload size for incoming packets the protocol expects
-	 * or 0 to not limit it.
+	 * The maximum payload size for incoming packets.
 	 *
+	 * The protocol expects or 0 to not limit it.
 	 */
         properties[PROP_MAX_INCOMING_PAYLOAD_SIZE] =
                 g_param_spec_uint64 ("max-incoming-payload-size",
@@ -1599,9 +1585,9 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * SoupWebsocketConnection:keepalive-interval:
 	 *
 	 * Interval in seconds on when to send a ping message which will
-	 * serve as a keepalive message. If set to 0 the keepalive message is
-	 * disabled.
+	 * serve as a keepalive message.
 	 *
+	 * If set to 0 the keepalive message is disabled.
 	 */
         properties[PROP_KEEPALIVE_INTERVAL] =
                 g_param_spec_uint ("keepalive-interval",
@@ -1617,8 +1603,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
         /**
          * SoupWebsocketConnection:extensions:
          *
-         * List of #SoupWebsocketExtension objects that are active in the connection.
-         *
+         * List of [class@WebsocketExtension] objects that are active in the connection.
          */
         properties[PROP_EXTENSIONS] =
                 g_param_spec_pointer ("extensions",
@@ -1639,9 +1624,8 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * Emitted when we receive a message from the peer.
 	 *
 	 * As a convenience, the @message data will always be
-	 * NUL-terminated, but the NUL byte will not be included in
+	 * %NULL-terminated, but the NUL byte will not be included in
 	 * the length count.
-	 *
 	 */
 	signals[MESSAGE] = g_signal_new ("message",
 					 SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1655,10 +1639,10 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * @self: the WebSocket
 	 * @error: the error that occured
 	 *
-	 * Emitted when an error occurred on the WebSocket. This may
-	 * be fired multiple times. Fatal errors will be followed by
-	 * the #SoupWebsocketConnection::closed signal being emitted.
+	 * Emitted when an error occurred on the WebSocket.
 	 *
+	 * This may be fired multiple times. Fatal errors will be followed by
+	 * the [signal@WebsocketConnection::closed] signal being emitted.
 	 */
 	signals[ERROR] = g_signal_new ("error",
 				       SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1672,7 +1656,6 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * @self: the WebSocket
 	 *
 	 * This signal will be emitted during an orderly close.
-	 *
 	 */
 	signals[CLOSING] = g_signal_new ("closing",
 					 SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1685,13 +1668,13 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * SoupWebsocketConnection::closed:
 	 * @self: the WebSocket
 	 *
-	 * Emitted when the connection has completely closed, either
-	 * due to an orderly close from the peer, one initiated via
-	 * soup_websocket_connection_close() or a fatal error
+	 * Emitted when the connection has completely closed.
+	 *
+	 * This happens either due to an orderly close from the peer, one
+	 * initiated via [method@WebsocketConnection.close] or a fatal error
 	 * condition that caused a close.
 	 *
 	 * This signal will be emitted once.
-	 *
 	 */
 	signals[CLOSED] = g_signal_new ("closed",
 					SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1709,9 +1692,8 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * unsolicited) from the peer.
 	 *
 	 * As a convenience, the @message data will always be
-	 * NUL-terminated, but the NUL byte will not be included in
+	 * %NULL-terminated, but the NUL byte will not be included in
 	 * the length count.
-	 *
 	 */
 	signals[PONG] = g_signal_new ("pong",
 				      SOUP_TYPE_WEBSOCKET_CONNECTION,
@@ -1731,6 +1713,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
  * @extensions: (element-type SoupWebsocketExtension) (transfer full): a #GList of #SoupWebsocketExtension objects
  *
  * Creates a #SoupWebsocketConnection on @stream with the given active @extensions.
+ *
  * This should be called after completing the handshake to begin using the WebSocket
  * protocol.
  *
@@ -1765,7 +1748,6 @@ soup_websocket_connection_new (GIOStream                    *stream,
  * Get the I/O stream the WebSocket is communicating over.
  *
  * Returns: (transfer none): the WebSocket's I/O stream.
- *
  */
 GIOStream *
 soup_websocket_connection_get_io_stream (SoupWebsocketConnection *self)
@@ -1784,7 +1766,6 @@ soup_websocket_connection_get_io_stream (SoupWebsocketConnection *self)
  * Get the connection type (client/server) of the connection.
  *
  * Returns: the connection type
- *
  */
 SoupWebsocketConnectionType
 soup_websocket_connection_get_connection_type (SoupWebsocketConnection *self)
@@ -1806,7 +1787,6 @@ soup_websocket_connection_get_connection_type (SoupWebsocketConnection *self)
  * for clients it is the address connected to.
  *
  * Returns: (transfer none): the URI
- *
  */
 GUri *
 soup_websocket_connection_get_uri (SoupWebsocketConnection *self)
@@ -1824,8 +1804,7 @@ soup_websocket_connection_get_uri (SoupWebsocketConnection *self)
  *
  * Get the origin of the WebSocket.
  *
- * Returns: (nullable): the origin, or %NULL
- *
+ * Returns: (nullable): the origin
  */
 const char *
 soup_websocket_connection_get_origin (SoupWebsocketConnection *self)
@@ -1843,8 +1822,7 @@ soup_websocket_connection_get_origin (SoupWebsocketConnection *self)
  *
  * Get the protocol chosen via negotiation with the peer.
  *
- * Returns: (nullable): the chosen protocol, or %NULL
- *
+ * Returns: (nullable): the chosen protocol
  */
 const char *
 soup_websocket_connection_get_protocol (SoupWebsocketConnection *self)
@@ -1863,7 +1841,6 @@ soup_websocket_connection_get_protocol (SoupWebsocketConnection *self)
  * Get the extensions chosen via negotiation with the peer.
  *
  * Returns: (element-type SoupWebsocketExtension) (transfer none): a #GList of #SoupWebsocketExtension objects
- *
  */
 GList *
 soup_websocket_connection_get_extensions (SoupWebsocketConnection *self)
@@ -1882,7 +1859,6 @@ soup_websocket_connection_get_extensions (SoupWebsocketConnection *self)
  * Get the current state of the WebSocket.
  *
  * Returns: the state
- *
  */
 SoupWebsocketState
 soup_websocket_connection_get_state (SoupWebsocketConnection *self)
@@ -1907,11 +1883,10 @@ soup_websocket_connection_get_state (SoupWebsocketConnection *self)
  *
  * This only becomes valid once the WebSocket is in the
  * %SOUP_WEBSOCKET_STATE_CLOSED state. The value will often be in the
- * #SoupWebsocketCloseCode enumeration, but may also be an application
+ * [enum@WebsocketCloseCode] enumeration, but may also be an application
  * defined close code.
  *
  * Returns: the close code or zero.
- *
  */
 gushort
 soup_websocket_connection_get_close_code (SoupWebsocketConnection *self)
@@ -1934,7 +1909,6 @@ soup_websocket_connection_get_close_code (SoupWebsocketConnection *self)
  * the main loop is run, so copy it if you need to keep it around.
  *
  * Returns: the close data or %NULL
- *
  */
 const char *
 soup_websocket_connection_get_close_data (SoupWebsocketConnection *self)
@@ -1951,13 +1925,13 @@ soup_websocket_connection_get_close_data (SoupWebsocketConnection *self)
  * @self: the WebSocket
  * @text: the message contents
  *
- * Send a %NULL-terminated text (UTF-8) message to the peer. If you need
- * to send text messages containing %NULL characters use
- * soup_websocket_connection_send_message() instead.
+ * Send a %NULL-terminated text (UTF-8) message to the peer.
+ *
+ * If you need to send text messages containing %NULL characters use
+ * [method@WebsocketConnection.send_message] instead.
  *
  * The message is queued to be sent and will be sent when the main loop
  * is run.
- *
  */
 void
 soup_websocket_connection_send_text (SoupWebsocketConnection *self,
@@ -1981,11 +1955,12 @@ soup_websocket_connection_send_text (SoupWebsocketConnection *self,
  * @data: (array length=length) (element-type guint8) (nullable): the message contents
  * @length: the length of @data
  *
- * Send a binary message to the peer. If @length is 0, @data may be %NULL.
+ * Send a binary message to the peer.
+ *
+ * If @length is 0, @data may be %NULL.
  *
  * The message is queued to be sent and will be sent when the main loop
  * is run.
- *
  */
 void
 soup_websocket_connection_send_binary (SoupWebsocketConnection *self,
@@ -2010,7 +1985,6 @@ soup_websocket_connection_send_binary (SoupWebsocketConnection *self,
  *
  * The message is queued to be sent and will be sent when the main loop
  * is run.
- *
  */
 void
 soup_websocket_connection_send_message (SoupWebsocketConnection *self,
@@ -2038,7 +2012,7 @@ soup_websocket_connection_send_message (SoupWebsocketConnection *self,
  *
  * Close the connection in an orderly fashion.
  *
- * Note that until the #SoupWebsocketConnection::closed signal fires, the connection
+ * Note that until the [signal@WebsocketConnection::closed] signal fires, the connection
  * is not yet completely closed. The close message is not even sent until the
  * main loop runs.
  *
@@ -2046,7 +2020,6 @@ soup_websocket_connection_send_message (SoupWebsocketConnection *self,
  * If @code is %SOUP_WEBSOCKET_CLOSE_NO_STATUS a close message with no body
  * (without code and data) is sent.
  * Note that the @data must be UTF-8 valid.
- *
  */
 void
 soup_websocket_connection_close (SoupWebsocketConnection *self,
@@ -2076,7 +2049,6 @@ soup_websocket_connection_close (SoupWebsocketConnection *self,
  * Gets the maximum payload size allowed for incoming packets.
  *
  * Returns: the maximum payload size.
- *
  */
 guint64
 soup_websocket_connection_get_max_incoming_payload_size (SoupWebsocketConnection *self)
@@ -2093,9 +2065,9 @@ soup_websocket_connection_get_max_incoming_payload_size (SoupWebsocketConnection
  * @self: the WebSocket
  * @max_incoming_payload_size: the maximum payload size
  *
- * Sets the maximum payload size allowed for incoming packets. It
- * does not limit the outgoing packet size.
+ * Sets the maximum payload size allowed for incoming packets.
  *
+ * It does not limit the outgoing packet size.
  */
 void
 soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection *self,
@@ -2118,7 +2090,6 @@ soup_websocket_connection_set_max_incoming_payload_size (SoupWebsocketConnection
  * Gets the keepalive interval in seconds or 0 if disabled.
  *
  * Returns: the keepalive interval.
- *
  */
 guint
 soup_websocket_connection_get_keepalive_interval (SoupWebsocketConnection *self)
@@ -2150,8 +2121,9 @@ on_queue_ping (gpointer user_data)
  * @interval: the interval to send a ping message or 0 to disable it
  *
  * Sets the interval in seconds on when to send a ping message which will serve
- * as a keepalive message. If set to 0 the keepalive message is disabled.
+ * as a keepalive message.
  *
+ * If set to 0 the keepalive message is disabled.
  */
 void
 soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,

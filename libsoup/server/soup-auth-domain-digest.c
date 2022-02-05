@@ -19,17 +19,12 @@
 #include "auth/soup-auth-digest-private.h"
 
 /**
- * SECTION:soup-auth-domain-digest
- * @short_description: Server-side "Digest" authentication
+ * SoupAuthDomainDigest:
+ *
+ * Server-side "Digest" authentication.
  *
  * #SoupAuthDomainDigest handles the server side of HTTP "Digest"
  * authentication.
- **/
-
-/**
- * SoupAuthDomainDigest:
- *
- * Subclass of #SoupAuthDomain for Digest authentication.
  */
 
 enum {
@@ -122,10 +117,11 @@ soup_auth_domain_digest_get_property (GObject *object, guint prop_id,
  * @optname1: name of first option, or %NULL
  * @...: option name/value pairs
  *
- * Creates a #SoupAuthDomainDigest. You must set the
- * SoupAuthDomain:realm property, to indicate the realm name to be
- * returned with the authentication challenge to the client. Other
- * parameters are optional.
+ * Creates a #SoupAuthDomainDigest.
+ *
+ * You must set the [property@AuthDomain:realm] property, to indicate the realm name to
+ * be returned with the authentication challenge to the client. Other parameters
+ * are optional.
  *
  * Returns: the new #SoupAuthDomain
  **/
@@ -150,35 +146,38 @@ soup_auth_domain_digest_new (const char *optname1, ...)
  * @domain: (type SoupAuthDomainDigest): the domain
  * @msg: the message being authenticated
  * @username: the username provided by the client
- * @user_data: the data passed to soup_auth_domain_digest_set_auth_callback()
+ * @user_data: the data passed to [method@AuthDomainDigest.set_auth_callback]
  *
  * Callback used by #SoupAuthDomainDigest for authentication purposes.
+ *
  * The application should look up @username in its password database,
  * and return the corresponding encoded password (see
- * soup_auth_domain_digest_encode_password()).
+ * [func@AuthDomainDigest.encode_password].
  *
  * Returns: (nullable): the encoded password, or %NULL if
- * @username is not a valid user. @domain will free the password when
- * it is done with it.
+ *   @username is not a valid user. @domain will free the password when
+ *   it is done with it.
  **/
 
 /**
- * soup_auth_domain_digest_set_auth_callback:
+ * soup_auth_domain_digest_set_auth_callback: (attributes org.gtk.Method.set_property=auth-callback)
  * @domain: (type SoupAuthDomainDigest): the domain
  * @callback: the callback
  * @user_data: data to pass to @auth_callback
  * @dnotify: destroy notifier to free @user_data when @domain
- * is destroyed
+ *   is destroyed
  *
  * Sets the callback that @domain will use to authenticate incoming
- * requests. For each request containing authorization, @domain will
+ * requests.
+ *
+ * For each request containing authorization, @domain will
  * invoke the callback, and then either accept or reject the request
  * based on @callback's return value.
  *
  * You can also set the auth callback by setting the
- * SoupAuthDomainDigest:auth-callback and
- * SoupAuthDomainDigest:auth-data properties, which can also be
- * used to set the callback at construct time.
+ * [property@AuthDomainDigest:auth-callback] and
+ * [property@AuthDomainDigest:auth-data] properties, which can also be used to
+ * set the callback at construct time.
  **/
 void
 soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
@@ -354,8 +353,10 @@ soup_auth_domain_digest_challenge (SoupAuthDomain    *domain,
  * @password: the password for @username in @realm
  *
  * Encodes the username/realm/password triplet for Digest
- * authentication. (That is, it returns a stringified MD5 hash of
- * @username, @realm, and @password concatenated together). This is
+ * authentication.
+ *
+ * That is, it returns a stringified MD5 hash of
+ * @username, @realm, and @password concatenated together. This is
  * the form that is needed as the return value of
  * #SoupAuthDomainDigest's auth handler.
  *
@@ -431,9 +432,9 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	object_class->get_property = soup_auth_domain_digest_get_property;
 
 	/**
-	 * SoupAuthDomainDigest:auth-callback: (type SoupAuthDomainDigestAuthCallback)
+	 * SoupAuthDomainDigest:auth-callback: (type SoupAuthDomainDigestAuthCallback) (attributes org.gtk.Property.set=soup_auth_domain_digest_set_auth_callback)
 	 *
-	 * The #SoupAuthDomainDigestAuthCallback
+	 * The [callback@AuthDomainDigestAuthCallback].
 	 */
         properties[PROP_AUTH_CALLBACK] =
 		g_param_spec_pointer ("auth-callback",
@@ -444,7 +445,7 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	/**
 	 * SoupAuthDomainDigest:auth-data:
 	 *
-	 * The data to pass to the #SoupAuthDomainDigestAuthCallback
+	 * The data to pass to the [callback@AuthDomainDigestAuthCallback].
 	 */
         properties[PROP_AUTH_DATA] =
 		g_param_spec_pointer ("auth-data",

@@ -17,18 +17,13 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-cookie-jar-text
- * @short_description: Text-file-based ("cookies.txt") Cookie Jar
- *
- * #SoupCookieJarText is a #SoupCookieJar that reads cookies from and
- * writes them to a text file in format similar to Mozilla's "cookies.txt".
- **/
-
-/**
  * SoupCookieJarText:
  *
- * Subclass of #SoupCookieJar that stores cookies in a text file.
- */
+ * Text-file-based ("cookies.txt") Cookie Jar
+ *
+ * #SoupCookieJarText is a [class@CookieJar] that reads cookies from and writes
+ * them to a text file in format similar to Mozilla's "cookies.txt".
+ **/
 
 enum {
 	PROP_0,
@@ -113,15 +108,13 @@ soup_cookie_jar_text_get_property (GObject *object, guint prop_id,
  *
  * Creates a #SoupCookieJarText.
  *
- * @filename will be read in at startup to create an initial set of
- * cookies. If @read_only is %FALSE, then the non-session cookies will
- * be written to @filename when the 'changed' signal is emitted from
- * the jar. (If @read_only is %TRUE, then the cookie jar will only be
- * used for this session, and changes made to it will be lost when the
- * jar is destroyed.)
+ * @filename will be read in at startup to create an initial set of cookies. If
+ * @read_only is %FALSE, then the non-session cookies will be written to
+ * @filename when the [signal@CookieJar::changed] signal is emitted from the
+ * jar. (If @read_only is %TRUE, then the cookie jar will only be used for this
+ * session, and changes made to it will be lost when the jar is destroyed.)
  *
  * Returns: the new #SoupCookieJar
- *
  **/
 SoupCookieJar *
 soup_cookie_jar_text_new (const char *filename, gboolean read_only)
@@ -394,6 +387,11 @@ soup_cookie_jar_text_class_init (SoupCookieJarTextClass *text_class)
 	object_class->set_property = soup_cookie_jar_text_set_property;
 	object_class->get_property = soup_cookie_jar_text_get_property;
 
+	/**
+	 * SoupCookieJarText:filename:
+	 *
+	 * Cookie-storage filename.
+	 */
         properties[PROP_FILENAME] =
 		g_param_spec_string ("filename",
 				     "Filename",

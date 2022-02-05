@@ -69,19 +69,11 @@ typedef struct {
 /**
  * SoupWebsocketExtensionDeflate:
  *
- * A SoupWebsocketExtensionDeflate is a #SoupWebsocketExtension
+ * A SoupWebsocketExtensionDeflate is a [class@WebsocketExtension]
  * implementing permessage-deflate (RFC 7692).
  *
- * This extension is used by default in a #SoupSession when #SoupWebsocketExtensionManager
- * feature is present, and always used by #SoupServer.
- *
- */
-
-/**
- * SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE:
- *
- * A #GType corresponding to permessage-deflate WebSocket extension.
- *
+ * This extension is used by default in a [class@Session] when [class@WebsocketExtensionManager]
+ * feature is present, and always used by [class@Server].
  */
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupWebsocketExtensionDeflate, soup_websocket_extension_deflate, SOUP_TYPE_WEBSOCKET_EXTENSION)

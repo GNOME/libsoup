@@ -35,24 +35,22 @@
 /**
  * SoupWebsocketExtensionManager:
  *
- * SoupWebsocketExtensionManager is the #SoupSessionFeature that handles WebSockets
- * extensions for a #SoupSession.
+ * SoupWebsocketExtensionManager is the [iface@SessionFeature] that handles WebSockets
+ * extensions for a [class@Session].
  *
- * A SoupWebsocketExtensionManager is added to the session by default, and normally
+ * A #SoupWebsocketExtensionManager is added to the session by default, and normally
  * you don't need to worry about it at all. However, if you want to
  * disable WebSocket extensions, you can remove the feature from the
- * session with soup_session_remove_feature_by_type(), or disable it on
- * individual requests with soup_message_disable_feature().
- *
+ * session with [method@Session.remove_feature_by_type] or disable it on
+ * individual requests with [method@Message.disable_feature].
  **/
 
 /**
  * SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER:
  *
- * The #GType of #SoupWebsocketExtensionManager; you can use this with
- * soup_session_remove_feature_by_type() or
- * soup_message_disable_feature().
- *
+ * The #GType of [class@WebsocketExtensionManager]; you can use this with
+ * [method@Session.remove_feature_by_type] or
+ * [method@Message.disable_feature].
  */
 
 static void soup_websocket_extension_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);

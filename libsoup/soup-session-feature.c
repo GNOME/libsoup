@@ -14,24 +14,17 @@
 #include "soup-message-private.h"
 
 /**
- * SECTION:soup-session-feature
- * @short_description: Interface for miscellaneous session features
- *
- * #SoupSessionFeature is the interface used by classes that extend
- * the functionality of a #SoupSession. Some features like HTTP
- * authentication handling are implemented internally via
- * #SoupSessionFeature<!-- -->s. Other features can be added to the session
- * by the application. (Eg, #SoupLogger, #SoupCookieJar.)
- *
- * See soup_session_add_feature(), etc, to add a feature to a session.
- **/
-
-/**
  * SoupSessionFeature:
  *
- * An object that implement some sort of optional feature for
- * #SoupSession.
+ * Interface for miscellaneous [class@Session] features.
  *
+ * #SoupSessionFeature is the interface used by classes that extend
+ * the functionality of a [class@Session]. Some features like HTTP
+ * authentication handling are implemented internally via
+ * `SoupSessionFeature`s. Other features can be added to the session
+ * by the application. (Eg, [class@Logger], [class@CookieJar].)
+ *
+ * See [method@Session.add_feature], etc, to add a feature to a session.
  **/
 
 /**
@@ -39,14 +32,13 @@
  * @parent: The parent interface.
  * @attach: Perform setup when a feature is added to a session
  * @detach: Perform cleanup when a feature is removed from a session
- * @request_queued: Proxies the session's #SoupSession::request_queued signal
- * @request_unqueued: Proxies the session's #SoupSession::request_unqueued signal
+ * @request_queued: Proxies the session's [signal@Session::request_queued] signal
+ * @request_unqueued: Proxies the session's [signal@Session::request_unqueued] signal
  * @add_feature: adds a sub-feature to the main feature
  * @remove_feature: removes a sub-feature from the main feature
  * @has_feature: tests if the feature includes a sub-feature
  *
- * The interface implemented by #SoupSessionFeature<!-- -->s.
- *
+ * The interface implemented by [iface@SessionFeature]s.
  **/
 
 G_DEFINE_INTERFACE (SoupSessionFeature, soup_session_feature, G_TYPE_OBJECT)
@@ -124,12 +116,12 @@ soup_session_feature_request_unqueued (SoupSessionFeature *feature,
  * @type: the #GType of a "sub-feature"
  *
  * Adds a "sub-feature" of type @type to the base feature @feature.
+ *
  * This is used for features that can be extended with multiple
  * different types. Eg, the authentication manager can be extended
- * with subtypes of #SoupAuth.
+ * with subtypes of [class@Auth].
  *
  * Returns: %TRUE if @feature accepted @type as a subfeature.
- *
  */
 gboolean
 soup_session_feature_add_feature (SoupSessionFeature *feature,
@@ -150,10 +142,11 @@ soup_session_feature_add_feature (SoupSessionFeature *feature,
  * @type: the #GType of a "sub-feature"
  *
  * Removes the "sub-feature" of type @type from the base feature
- * @feature. See soup_session_feature_add_feature().
+ * @feature.
+ *
+ * See [method@SessionFeature.add_feature].
  *
  * Returns: %TRUE if @type was removed from @feature
- *
  */
 gboolean
 soup_session_feature_remove_feature (SoupSessionFeature *feature,
@@ -173,11 +166,11 @@ soup_session_feature_remove_feature (SoupSessionFeature *feature,
  * @feature: the "base" feature
  * @type: the #GType of a "sub-feature"
  *
- * Tests if @feature has a "sub-feature" of type @type. See
- * soup_session_feature_add_feature().
+ * Tests if @feature has a "sub-feature" of type @type.
+ *
+ * See [method@SessionFeature.add_feature].
  *
  * Returns: %TRUE if @feature has a subfeature of type @type
- *
  */
 gboolean
 soup_session_feature_has_feature (SoupSessionFeature *feature,

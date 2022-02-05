@@ -92,16 +92,16 @@ soup_add_completion (GMainContext *async_context,
 /**
  * soup_add_timeout: (skip)
  * @async_context: (nullable): the #GMainContext to dispatch the I/O
- * watch in, or %NULL for the default context
+ *   watch in, or %NULL for the default context
  * @interval: the timeout interval, in milliseconds
  * @function: the callback to invoke at timeout time
  * @data: user data to pass to @function
  *
- * Adds a timeout as with g_timeout_add(), but using the given
+ * Adds a timeout as with [func@GLib.timeout_add], but using the given
  * @async_context.
  *
  * Returns: (transfer full): a #GSource, which can be removed from @async_context
- * with g_source_destroy().
+ *   with [method@GLib.Source.destroy].
  **/
 GSource *
 soup_add_timeout (GMainContext *async_context,

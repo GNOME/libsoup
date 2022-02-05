@@ -13,14 +13,6 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-status
- * @section_id: SoupStatus
- * @short_description: HTTP (and libsoup) status codes
- *
- * HTTP (and libsoup) status codes.
- **/
-
-/**
  * SOUP_STATUS_IS_INFORMATIONAL:
  * @status: an HTTP status code
  *
@@ -224,10 +216,10 @@ static const struct {
  *
  * Looks up the stock HTTP description of @status_code.
  *
- * <emphasis>There is no reason for you to ever use this
- * function.</emphasis> If you wanted the textual description for the
- * #SoupMessage:status_code of a given #SoupMessage, you should just
- * look at the message's #SoupMessage:reason_phrase. However, you
+ * *There is no reason for you to ever use this
+ * function.* If you wanted the textual description for the
+ * [property@Message:status-code] of a given [class@Message], you should just
+ * look at the message's [property@Message:reason-phrase]. However, you
  * should only do that for use in debugging messages; HTTP reason
  * phrases are not localized, and are not generally very descriptive
  * anyway, and so they should never be presented to the user directly.

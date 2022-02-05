@@ -19,18 +19,13 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-hsts-enforcer-db
- * @short_description: Persistent HTTP Strict Transport Security enforcer
- *
- * #SoupHSTSEnforcerDB is a #SoupHSTSEnforcer that uses a SQLite
- * database as a backend for persistency.
- **/
-
-/**
  * SoupHSTSEnforcerDB:
  *
- * Subclass of #SoupHSTSEnforcer using an sqlite database.
- */
+ * Persistent HTTP Strict Transport Security enforcer.
+ *
+ * #SoupHSTSEnforcerDB is a [class@HSTSEnforcer] that uses a SQLite
+ * database as a backend for persistency.
+ **/
 
 enum {
 	PROP_0,
@@ -116,10 +111,9 @@ soup_hsts_enforcer_db_get_property (GObject *object, guint prop_id,
  * policies. If the file doesn't exist, a new database will be created
  * and initialized. Changes to the policies during the lifetime of a
  * #SoupHSTSEnforcerDB will be written to @filename when
- * #SoupHSTSEnforcer::changed is emitted.
+ * [signal@HSTSEnforcer::changed] is emitted.
  *
  * Returns: the new #SoupHSTSEnforcer
- *
  **/
 SoupHSTSEnforcer *
 soup_hsts_enforcer_db_new (const char *filename)

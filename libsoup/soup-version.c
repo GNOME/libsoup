@@ -12,26 +12,18 @@
 #include "soup-version.h"
 
 /**
- * SECTION:soup-version
- * @section_id: SoupVersion
- * @short_description: Variables and functions to check the libsoup version
- *
- * Variables and functions to check the libsoup version.
- **/
-
-/**
  * SOUP_MAJOR_VERSION:
  *
- * Like soup_get_major_version(), but from the headers used at
- * application compile time, rather than from the library linked
- * against at application run time.
+ * Like [func@get_major_version], but from the headers used at application
+ * compile time, rather than from the library linked against at application run
+ * time.
  *
  */
 
 /**
  * SOUP_MINOR_VERSION:
  *
- * Like soup_get_minor_version(), but from the headers used at
+ * Like [func@get_minor_version], but from the headers used at
  * application compile time, rather than from the library linked
  * against at application run time.
  *
@@ -40,7 +32,7 @@
 /**
  * SOUP_MICRO_VERSION:
  *
- * Like soup_get_micro_version(), but from the headers used at
+ * Like [func@get_micro_version], but from the headers used at
  * application compile time, rather than from the library linked
  * against at application run time.
  *
@@ -54,16 +46,16 @@
  *
  * Macro to test the version of libsoup being compiled against.
  *
- * Returns: %TRUE if the version of the libsoup header files
+ * Returns %TRUE if the version of the libsoup header files
  * is the same as or newer than the passed-in version.
- *
  */
 
 /**
  * soup_get_major_version:
  *
  * Returns the major version number of the libsoup library.
- * (e.g. in libsoup version 2.42.0 this is 2.)
+ *
+ * e.g. in libsoup version 2.42.0 this is 2.
  *
  * This function is in the library, so it represents the libsoup library
  * your code is running against. Contrast with the #SOUP_MAJOR_VERSION
@@ -71,7 +63,6 @@
  * have included when compiling your code.
  *
  * Returns: the major version number of the libsoup library
- *
  */
 guint
 soup_get_major_version (void)
@@ -83,7 +74,8 @@ soup_get_major_version (void)
  * soup_get_minor_version:
  *
  * Returns the minor version number of the libsoup library.
- * (e.g. in libsoup version 2.42.0 this is 42.)
+ *
+ * e.g. in libsoup version 2.42.0 this is 42.
  *
  * This function is in the library, so it represents the libsoup library
  * your code is running against. Contrast with the #SOUP_MINOR_VERSION
@@ -91,7 +83,6 @@ soup_get_major_version (void)
  * have included when compiling your code.
  *
  * Returns: the minor version number of the libsoup library
- *
  */
 guint
 soup_get_minor_version (void)
@@ -103,7 +94,8 @@ soup_get_minor_version (void)
  * soup_get_micro_version:
  *
  * Returns the micro version number of the libsoup library.
- * (e.g. in libsoup version 2.42.0 this is 0.)
+ *
+ * e.g. in libsoup version 2.42.0 this is 0.
  *
  * This function is in the library, so it represents the libsoup library
  * your code is running against. Contrast with the #SOUP_MICRO_VERSION
@@ -111,7 +103,6 @@ soup_get_minor_version (void)
  * have included when compiling your code.
  *
  * Returns: the micro version number of the libsoup library
- *
  */
 guint
 soup_get_micro_version (void)
@@ -125,14 +116,14 @@ soup_get_micro_version (void)
  * @minor: the minor version to check
  * @micro: the micro version to check
  *
- * Like SOUP_CHECK_VERSION, but the check for soup_check_version is
- * at runtime instead of compile time. This is useful for compiling
- * against older versions of libsoup, but using features from newer
- * versions.
+ * Like [func@CHECK_VERSION], but the check for soup_check_version is
+ * at runtime instead of compile time.
+ *
+ * This is useful for compiling against older versions of libsoup, but using
+ * features from newer versions.
  *
  * Returns: %TRUE if the version of the libsoup currently loaded
- * is the same as or newer than the passed-in version.
- *
+ *   is the same as or newer than the passed-in version.
  */
 gboolean
 soup_check_version (guint major,
@@ -146,7 +137,9 @@ soup_check_version (guint major,
  * SOUP_VERSION_MIN_REQUIRED:
  *
  * A macro that should be defined by the user prior to including
- * libsoup.h. The definition should be one of the predefined libsoup
+ * `libsoup.h`.
+ *
+ * The definition should be one of the predefined libsoup
  * version macros: %SOUP_VERSION_2_24, %SOUP_VERSION_2_26, ...
  *
  * This macro defines the earliest version of libsoup that the package
@@ -156,14 +149,15 @@ soup_check_version (guint major,
  * functions, then using functions that were deprecated in version
  * %SOUP_VERSION_MIN_REQUIRED or earlier will cause warnings (but
  * using functions deprecated in later releases will not).
- *
  */
 
 /**
  * SOUP_VERSION_MAX_ALLOWED:
  *
  * A macro that should be defined by the user prior to including
- * libsoup.h. The definition should be one of the predefined libsoup
+ * libsoup.h.
+ *
+ * The definition should be one of the predefined libsoup
  * version macros: %SOUP_VERSION_2_24, %SOUP_VERSION_2_26, ...
  *
  * This macro defines the latest version of the libsoup API that the
@@ -173,8 +167,7 @@ soup_check_version (guint major,
  * functions, then using functions added after version
  * %SOUP_VERSION_MAX_ALLOWED will cause warnings.
  *
- * Unless you are using SOUP_CHECK_VERSION() or the like to compile
+ * Unless you are using [func@CHECK_VERSION] or the like to compile
  * different code depending on the libsoup version, then this should be
  * set to the same value as %SOUP_VERSION_MIN_REQUIRED.
- *
  */

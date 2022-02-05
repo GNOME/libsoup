@@ -22,40 +22,26 @@
 #include "soup-uri-utils-private.h"
 
 /**
- * SECTION:soup-auth-manager
- * @short_description: HTTP client-side authentication handler
- * @see_also: #SoupSession, #SoupAuth
+ * SoupAuthManager:
  *
- * #SoupAuthManager is the #SoupSessionFeature that handles HTTP
- * authentication for a #SoupSession.
+ * HTTP client-side authentication handler.
+ *
+ * #SoupAuthManager is the [iface@SessionFeature] that handles HTTP
+ * authentication for a [class@Session].
  *
  * A #SoupAuthManager is added to the session by default, and normally
  * you don't need to worry about it at all. However, if you want to
  * disable HTTP authentication, you can remove the feature from the
- * session with soup_session_remove_feature_by_type(), or disable it on
- * individual requests with soup_message_disable_feature().
+ * session with [method@Session.remove_feature_by_type] or disable it on
+ * individual requests with [method@Message.disable_feature].
  *
+ * You can use this with [method@Session.remove_feature_by_type] or
+ * [method@Message.disable_feature].
+ *
+ * (Although this type has only been publicly visible since libsoup 2.42, it has
+ * always existed in the background, and you can use `g_type_from_name
+ * ("SoupAuthManager")` to get its [alias@GLib.Type] in earlier releases.)
  **/
-
-/**
- * SoupAuthManager:
- *
- * Class for managing client-side HTTP authentication.
- */
-
-/**
- * SOUP_TYPE_AUTH_MANAGER:
- *
- * The #GType of #SoupAuthManager; you can use this with
- * soup_session_remove_feature_by_type() or
- * soup_message_disable_feature().
- *
- * (Although this type has only been publicly visible since libsoup
- * 2.42, it has always existed in the background, and you can use
- * <literal><code>g_type_from_name ("SoupAuthManager")</code></literal>
- * to get its #GType in earlier releases.)
- *
- */
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 enum {
@@ -137,8 +123,8 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 	 * Emitted when the manager requires the application to
 	 * provide authentication credentials.
 	 *
-	 * #SoupMessage connects to this signal and emits its own
-	 * #SoupMessage::authenticate signal when it is emitted, so
+	 * [class@Message] connects to this signal and emits its own
+	 * [signal@Message::authenticate] signal when it is emitted, so
 	 * you shouldn't need to use this signal directly.
 	 */
 	signals[AUTHENTICATE] =
@@ -827,10 +813,11 @@ soup_auth_manager_request_unqueued (SoupSessionFeature *manager,
  * @auth: the #SoupAuth to use
  *
  * Records that @auth is to be used under @uri, as though a
- * WWW-Authenticate header had been received at that URI. This can be
- * used to "preload" @manager's auth cache, to avoid an extra HTTP
- * round trip in the case where you know ahead of time that a 401
- * response will be returned.
+ * WWW-Authenticate header had been received at that URI.
+ *
+ * This can be used to "preload" @manager's auth cache, to avoid an extra HTTP
+ * round trip in the case where you know ahead of time that a 401 response will
+ * be returned.
  *
  * This is only useful for authentication types where the initial
  * Authorization header does not depend on any additional information
@@ -851,7 +838,7 @@ soup_auth_manager_use_auth (SoupAuthManager *manager,
  * soup_auth_manager_clear_cached_credentials:
  * @manager: a #SoupAuthManager
  *
- * Clear all credentials cached by @manager
+ * Clear all credentials cached by @manager.
  *
  */
 void

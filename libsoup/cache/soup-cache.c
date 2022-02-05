@@ -47,16 +47,9 @@
 #include "soup-session-feature-private.h"
 
 /**
- * SECTION:soup-cache
- * @short_description: Caching support
- *
- * #SoupCache implements a file-based cache for HTTP resources.
- */
-
-/**
  * SoupCache:
  *
- * Class implementing caching for HTTP resources.
+ * File-based cache for HTTP resources.
  */
 
 static void soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
@@ -1255,8 +1248,8 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
  *
  * Calculates whether the @msg can be cached or not.
  *
- * Returns: a #SoupCacheability value indicating whether the @msg can be cached or not.
- *
+ * Returns: a #SoupCacheability value indicating whether the @msg can be cached
+ *   or not.
  */
 SoupCacheability
 soup_cache_get_cacheability (SoupCache *cache, SoupMessage *msg)
@@ -1280,13 +1273,13 @@ force_flush_timeout (gpointer data)
  * soup_cache_flush:
  * @cache: a #SoupCache
  *
- * This function will force all pending writes in the @cache to be
- * committed to disk. For doing so it will iterate the #GMainContext
- * associated with @cache's session as long as needed.
+ * Forces all pending writes in the @cache to be
+ * committed to disk.
  *
- * Contrast with soup_cache_dump(), which writes out the cache index
- * file.
+ * For doing so it will iterate the [struct@GLib.MainContext] associated with
+ * @cache's session as long as needed.
  *
+ * Contrast with [method@Cache.dump], which writes out the cache index file.
  */
 void
 soup_cache_flush (SoupCache *cache)
@@ -1365,7 +1358,6 @@ clear_cache_files (SoupCache *cache)
  * @cache: a #SoupCache
  *
  * Will remove all entries in the @cache plus all the cache files.
- *
  */
 void
 soup_cache_clear (SoupCache *cache)
@@ -1509,13 +1501,13 @@ pack_entry (gpointer data,
  * soup_cache_dump:
  * @cache: a #SoupCache
  *
- * Synchronously writes the cache index out to disk. Contrast with
- * soup_cache_flush(), which writes pending cache
- * <emphasis>entries</emphasis> to disk.
+ * Synchronously writes the cache index out to disk.
+ *
+ * Contrast with [method@Cache.flush], which writes pending cache *entries* to
+ * disk.
  *
  * You must call this before exiting if you want your cache data to
  * persist between sessions.
- *
  */
 void
 soup_cache_dump (SoupCache *cache)
@@ -1577,7 +1569,6 @@ insert_cache_file (SoupCache *cache, const char *name, GHashTable *leaked_entrie
  * @cache: a #SoupCache
  *
  * Loads the contents of @cache's index into memory.
- *
  */
 void
 soup_cache_load (SoupCache *cache)
@@ -1676,7 +1667,6 @@ soup_cache_load (SoupCache *cache)
  * @max_size: the maximum size of the cache, in bytes
  *
  * Sets the maximum size of the cache.
- *
  */
 void
 soup_cache_set_max_size (SoupCache *cache,
@@ -1694,7 +1684,6 @@ soup_cache_set_max_size (SoupCache *cache,
  * Gets the maximum size of the cache.
  *
  * Returns: the maximum size of the cache, in bytes.
- *
  */
 guint
 soup_cache_get_max_size (SoupCache *cache)

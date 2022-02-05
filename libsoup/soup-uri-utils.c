@@ -33,15 +33,6 @@
 #include "soup-misc.h"
 
 /**
- * SECTION:soup-uri-utils
- * @section_id: SoupURIUtils
- * @title: URI Utilities
- * @short_description: Functions to help working with #GUri and HTTP
- *
- * Utility functions and defines to help working with URIs.
- */
-
-/**
  * SOUP_HTTP_URI_FLAGS:
  *
  * The set of #GUriFlags libsoup expects all #GUri to use.
@@ -99,7 +90,7 @@ flags_equal (GUriFlags flags1, GUriFlags flags2)
  * @uri1: a #GUri
  * @uri2: another #GUri
  *
- * Tests whether or not @uri1 and @uri2 are equal in all parts
+ * Tests whether or not @uri1 and @uri2 are equal in all parts.
  *
  * Returns: %TRUE if equal otherwise %FALSE
  **/
@@ -150,9 +141,10 @@ soup_uri_get_path_and_query (GUri *uri)
  * soup_uri_uses_default_port:
  * @uri: a #GUri
  *
- * Tests if @uri uses the default port for its scheme. (Eg, 80 for
- * http.) (This only works for http, https and ftp; libsoup does not know
- * the default ports of other protocols.)
+ * Tests if @uri uses the default port for its scheme.
+ *
+ * (Eg, 80 for http.) (This only works for http, https and ftp; libsoup does not
+ * know the default ports of other protocols.)
  *
  * Returns: %TRUE or %FALSE
  **/
@@ -278,7 +270,7 @@ soup_uri_is_http (GUri *uri)
 /**
  * soup_uri_decode_data_uri:
  * @uri: a data URI, in string form
- * @content_type: (out) (nullable) (transfer full): location to store content type, or %NULL
+ * @content_type: (out) (nullable) (transfer full): location to store content type
  *
  * Decodes the given data URI and returns its contents and @content_type.
  *
@@ -367,7 +359,7 @@ soup_uri_decode_data_uri (const char *uri,
  * @SOUP_URI_QUERY: the URI query component
  * @SOUP_URI_FRAGMENT: the URI fragment component
  *
- * Enum values passed to soup_uri_copy() to indicate the components of
+ * Enum values passed to [func@uri_copy] to indicate the components of
  * the URI that should be updated with the given values.
  */
 
@@ -378,7 +370,7 @@ soup_uri_decode_data_uri (const char *uri,
  * @...: value of @first_component  followed by additional
  *    components and values, terminated by %SOUP_URI_NONE
  *
- * Return a copy of @uri with the given components updated
+ * Return a copy of @uri with the given components updated.
  *
  * Returns: (transfer full): a new #GUri
  */

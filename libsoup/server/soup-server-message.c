@@ -19,28 +19,21 @@
 #include "soup-uri-utils-private.h"
 
 /**
- * SECTION:soup-server-message
- * @short_description: An HTTP server request and response.
- * @see_also: #SoupMessageHeaders, #SoupMessageBody
+ * SoupServerMessage:
+ *
+ * An HTTP server request and response pair.
  *
  * A SoupServerMessage represents an HTTP message that is being sent or
- * received on a #SoupServer
+ * received on a [class@Server].
  *
- * #SoupServer will create #SoupServerMessage<!-- -->s automatically for
+ * [class@Server] will create `SoupServerMessage`s automatically for
  * incoming requests, which your application will receive via handlers.
  *
  * Note that libsoup's terminology here does not quite match the HTTP
- * specification: in RFC 2616, an "HTTP-message" is
- * <emphasis>either</emphasis> a Request, <emphasis>or</emphasis> a
- * Response. In libsoup, a #SoupServerMessage combines both the request and
- * the response.
+ * specification: in RFC 2616, an "HTTP-message" is *either* a Request, *or* a
+ * Response. In libsoup, a #SoupServerMessage combines both the request and the
+ * response.
  **/
-
-/**
- * SoupServerMessage:
- *
- * Class represnting an HTTP request and response pair for a server.
- */
 
 struct _SoupServerMessage {
         GObject             parent;
@@ -186,11 +179,11 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
          * Emitted immediately after writing a body chunk for a message.
          *
          * Note that this signal is not parallel to
-         * #SoupServerMessage::got-chunk; it is emitted only when a complete
-         * chunk (added with soup_message_body_append() or
-         * soup_message_body_append_bytes()) has been written. To get
+         * [signal@ServerMessage::got-chunk]; it is emitted only when a complete
+         * chunk (added with [method@MessageBody.append] or
+         * [method@MessageBody.append_bytes] has been written. To get
          * more useful continuous progress information, use
-         * #SoupServerMessage::wrote-body-data.
+         * [signal@ServerMessage::wrote-body-data].
          */
         signals[WROTE_CHUNK] =
                 g_signal_new ("wrote-chunk",
@@ -255,10 +248,10 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
          * @msg: the message
          * @chunk: the just-read chunk
          *
-         * Emitted after receiving a chunk of a message body. Note
-         * that "chunk" in this context means any subpiece of the
-         * body, not necessarily the specific HTTP 1.1 chunks sent by
-         * the other side.
+         * Emitted after receiving a chunk of a message body.
+         *
+         * Note that "chunk" in this context means any subpiece of the body, not
+         * necessarily the specific HTTP 1.1 chunks sent by the other side.
          */
         signals[GOT_CHUNK] =
                 g_signal_new ("got-chunk",
@@ -290,7 +283,7 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
          * @msg: the message
          *
          * Emitted when all HTTP processing is finished for a message.
-         * (After #SoupServerMessage::wrote-body).
+         * (After [signal@ServerMessage::wrote-body]).
          */
         signals[FINISHED] =
                 g_signal_new ("finished",
@@ -328,8 +321,8 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
 	 * @tls_errors.
 	 *
 	 * Returns: %TRUE to accept the TLS certificate and stop other
-	 *     handlers from being invoked, or %FALSE to propagate the
-	 *     event further.
+	 *   handlers from being invoked, or %FALSE to propagate the
+	 *   event further.
 	 */
 	signals[ACCEPT_CERTIFICATE] =
 		g_signal_new ("accept-certificate",
@@ -680,7 +673,7 @@ soup_server_message_set_http_version (SoupServerMessage *msg,
  * soup_server_message_get_reason_phrase:
  * @msg: a #SoupServerMessage:
  *
- * Get the HTTP reason phrase of @msg or %NULL.
+ * Get the HTTP reason phrase of @msg.
  *
  * Returns: (nullable): the reason phrase.
  */
@@ -714,9 +707,10 @@ soup_server_message_get_status (SoupServerMessage *msg)
  * @status_code: an HTTP status code
  * @reason_phrase: (nullable): a reason phrase
  *
- * Sets @msg's status code to @status_code. If @status_code is a
- * known value and @reason_phrase is %NULL, the reason_phrase will
- * be set automatically.
+ * Sets @msg's status code to @status_code.
+ *
+ * If @status_code is a known value and @reason_phrase is %NULL, the
+ * reason_phrase will be set automatically.
  **/
 void
 soup_server_message_set_status (SoupServerMessage *msg,
@@ -792,13 +786,13 @@ soup_server_message_set_response (SoupServerMessage *msg,
  * @redirect_uri: the URI to redirect @msg to
  *
  * Sets @msg's status_code to @status_code and adds a Location header
- * pointing to @redirect_uri. Use this from a #SoupServer when you
+ * pointing to @redirect_uri. Use this from a [class@Server] when you
  * want to redirect the client to another URI.
  *
  * @redirect_uri can be a relative URI, in which case it is
  * interpreted relative to @msg's current URI. In particular, if
  * @redirect_uri is just a path, it will replace the path
- * <emphasis>and query</emphasis> of @msg's URI.
+ * *and query* of @msg's URI.
  */
 void
 soup_server_message_set_redirect (SoupServerMessage *msg,
@@ -825,7 +819,7 @@ soup_server_message_set_redirect (SoupServerMessage *msg,
  * soup_server_message_get_socket:
  * @msg: a #SoupServerMessage
  *
- * Retrieves the #GSocket that @msg is associated with.
+ * Retrieves the [class@Gio.Socket] that @msg is associated with.
  *
  * If you are using this method to observe when multiple requests are
  * made on the same persistent HTTP connection (eg, as the ntlm-test
@@ -835,7 +829,7 @@ soup_server_message_set_redirect (SoupServerMessage *msg,
  * previously-destroyed socket to represent a new socket.
  *
  * Returns: (nullable) (transfer none): the #GSocket that @msg is
- * associated with, %NULL if you used soup_server_accept_iostream().
+ *   associated with, %NULL if you used [method@Server.accept_iostream].
  */
 GSocket *
 soup_server_message_get_socket (SoupServerMessage *msg)
@@ -849,12 +843,12 @@ soup_server_message_get_socket (SoupServerMessage *msg)
  * soup_server_message_get_remote_address:
  * @msg: a #SoupServerMessage
  *
- * Retrieves the #GSocketAddress associated with the remote end
+ * Retrieves the [class@Gio.SocketAddress] associated with the remote end
  * of a connection.
  *
  * Returns: (nullable) (transfer none): the #GSocketAddress
- *     associated with the remote end of a connection, it may be
- *     %NULL if you used soup_server_accept_iostream().
+ *   associated with the remote end of a connection, it may be
+ *   %NULL if you used [class@Server.accept_iostream].
  */
 GSocketAddress *
 soup_server_message_get_remote_address (SoupServerMessage *msg)
@@ -875,12 +869,12 @@ soup_server_message_get_remote_address (SoupServerMessage *msg)
  * soup_server_message_get_local_address:
  * @msg: a #SoupServerMessage
  *
- * Retrieves the #GSocketAddress associated with the local end
+ * Retrieves the [class@Gio.SocketAddress] associated with the local end
  * of a connection.
  *
  * Returns: (nullable) (transfer none): the #GSocketAddress
- *     associated with the local end of a connection, it may be
- *     %NULL if you used soup_server_accept_iostream().
+ *   associated with the local end of a connection, it may be
+ *   %NULL if you used [method@Server.accept_iostream].
  */
 GSocketAddress *
 soup_server_message_get_local_address (SoupServerMessage *msg)
@@ -905,8 +899,8 @@ soup_server_message_get_local_address (SoupServerMessage *msg)
  * connection.
  *
  * Returns: (nullable): the IP address associated with the remote
- *     end of a connection, it may be %NULL if you used
- *     soup_server_accept_iostream().
+ *   end of a connection, it may be %NULL if you used
+ *   [method@Server.accept_iostream].
  */
 const char *
 soup_server_message_get_remote_host (SoupServerMessage *msg)
@@ -937,12 +931,13 @@ soup_server_message_get_remote_host (SoupServerMessage *msg)
  * soup_server_message_steal_connection:
  * @msg: a #SoupServerMessage
  *
- * "Steals" the HTTP connection associated with @msg from its
- * #SoupServer. This happens immediately, regardless of the current
- * state of the connection; if the response to @msg has not yet finished
- * being sent, then it will be discarded; you can steal the connection from a
- * #SoupServerMessage::wrote-informational or #SoupServerMessage::wrote-body signal
- * handler if you need to wait for part or all of the response to be sent.
+ * "Steals" the HTTP connection associated with @msg from its #SoupServer. This
+ * happens immediately, regardless of the current state of the connection; if
+ * the response to @msg has not yet finished being sent, then it will be
+ * discarded; you can steal the connection from a
+ * [signal@ServerMessage::wrote-informational] or
+ * [signal@ServerMessage::wrote-body] signal handler if you need to wait for
+ * part or all of the response to be sent.
  *
  * Note that when calling this function from C, @msg will most
  * likely be freed as a side effect.

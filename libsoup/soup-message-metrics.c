@@ -12,29 +12,21 @@
 #include "soup-message-metrics-private.h"
 
 /**
- * SECTION:soup-message-metrics
- * @short_description: Message metrics
- * @see_also: #SoupMessage
- *
- * Metrics collected while loading a #SoupMessage.
- *
- * Metrics are not collected by default for a #SoupMessage, you need to add the
- * flag %SOUP_MESSAGE_COLLECT_METRICS to enable the feature.
- */
-
-/**
  * SoupMessageMetrics:
  *
- * SoupMessageMetrics contains metrics collected while loading a #SoupMessage
- * either from the network or the disk cache.
+ * Contains metrics collected while loading a [class@Message] either from the
+ * network or the disk cache.
+ *
+ * Metrics are not collected by default for a [class@Message], you need to add the
+ * flag %SOUP_MESSAGE_COLLECT_METRICS to enable the feature.
  *
  * Temporal metrics are expressed as a monotonic time and always start with a
  * fetch start event and finish with response end. All other events are optional.
  * An event can be 0 because it hasn't happened yet, because it's optional or
  * because the load failed before the event reached.
  *
- * Size metrics are expressed in bytes and aree updated while the #SoupMessage is
- * being loaded. You can connect to different #SoupMessage signals to get the
+ * Size metrics are expressed in bytes and aree updated while the [class@Message] is
+ * being loaded. You can connect to different [class@Message] signals to get the
  * final result of every value.
  */
 
@@ -53,7 +45,6 @@ soup_message_metrics_new (void)
  * Copies @metrics.
  *
  * Returns: a copy of @metrics
- *
  **/
 SoupMessageMetrics *
 soup_message_metrics_copy (SoupMessageMetrics *metrics)
@@ -72,7 +63,7 @@ soup_message_metrics_copy (SoupMessageMetrics *metrics)
  * soup_message_metrics_free:
  * @metrics: a #SoupMessageMetrics
  *
- * Frees @metrics
+ * Frees @metrics.
  */
 void
 soup_message_metrics_free (SoupMessageMetrics *metrics)
@@ -86,7 +77,7 @@ soup_message_metrics_free (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_fetch_start:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately before the #SoupMessage started to
+ * Get the time immediately before the [class@Message] started to
  * fetch a resource either from a remote server or local disk cache.
  *
  * Returns: the fetch start time
@@ -103,10 +94,12 @@ soup_message_metrics_get_fetch_start (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_dns_start:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately before the #SoupMessage started the
- * domain lookup name for the resource. It will be 0 if no domain
- * lookup was required to fetch the resource (a persistent connection
- * was used or resource was loaded from the local disk cache).
+ * Get the time immediately before the [class@Message] started the
+ * domain lookup name for the resource.
+ *
+ * It will be 0 if no domain lookup was required to fetch the resource (a
+ * persistent connection was used or resource was loaded from the local disk
+ * cache).
  *
  * Returns: the domain lookup start time
  */
@@ -122,10 +115,12 @@ soup_message_metrics_get_dns_start (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_dns_end:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately after the #SoupMessage completed the
- * domain lookup name for the resource. It will be 0 if no domain
- * lookup was required to fetch the resource (a persistent connection
- * was used or resource was loaded from the local disk cache).
+ * Get the time immediately after the [class@Message] completed the
+ * domain lookup name for the resource.
+ *
+ * It will be 0 if no domain lookup was required to fetch the resource (a
+ * persistent connection was used or resource was loaded from the local disk
+ * cache).
  *
  * Returns: the domain lookup end time
  */
@@ -141,10 +136,12 @@ soup_message_metrics_get_dns_end (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_connect_start:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately before the #SoupMessage started to
- * establish the connection to the server. It will be 0 if no
- * network connection was required to fetch the resource (a persistent
- * connection was used or resource was loaded from the local disk cache).
+ * Get the time immediately before the [class@Message] started to
+ * establish the connection to the server.
+ *
+ * It will be 0 if no network connection was required to fetch the resource (a
+ * persistent connection was used or resource was loaded from the local disk
+ * cache).
  *
  * Returns: the connection start time
  */
@@ -160,11 +157,13 @@ soup_message_metrics_get_connect_start (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_connect_end:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately after the #SoupMessage completed the
+ * Get the time immediately after the [class@Message] completed the
  * connection to the server. This includes the time for the proxy
- * negotiation and TLS handshake. It will be 0 if no network connection
- * was required to fetch the resource (a persistent connection was used
- * or resource was loaded from the local disk cache).
+ * negotiation and TLS handshake.
+ *
+ * It will be 0 if no network connection was required to fetch the resource (a
+ * persistent connection was used or resource was loaded from the local disk
+ * cache).
  *
  * Returns: the connection end time
  */
@@ -180,10 +179,12 @@ soup_message_metrics_get_connect_end (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_tls_start:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately before the #SoupMessage started the
- * TLS handshake. It will be 0 if no TLS handshake was required
- * to fetch the resource (connection was not secure, a persistent
- * connection was used or resource was loaded from the local disk cache).
+ * Get the time immediately before the [class@Message] started the
+ * TLS handshake.
+ *
+ * It will be 0 if no TLS handshake was required to fetch the resource
+ * (connection was not secure, a persistent connection was used or resource was
+ * loaded from the local disk cache).
  *
  * Returns: the tls start time
  */
@@ -199,7 +200,7 @@ soup_message_metrics_get_tls_start (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_request_start:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately before the #SoupMessage started the
+ * Get the time immediately before the [class@Message] started the
  * request of the resource from the server or the local disk cache.
  *
  * Returns: the request start time
@@ -216,7 +217,7 @@ soup_message_metrics_get_request_start (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_response_start:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately after the #SoupMessage received the first
+ * Get the time immediately after the [class@Message] received the first
  * bytes of the response from the server or the local disk cache.
  *
  * Returns: the response start time
@@ -233,8 +234,9 @@ soup_message_metrics_get_response_start (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_response_end:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the time immediately after the #SoupMessage received the last
+ * Get the time immediately after the [class@Message] received the last
  * bytes of the response from the server or the local disk cache.
+ *
  * In case of load failure, this returns the time immediately before the
  * fetch is aborted.
  *
@@ -253,7 +255,8 @@ soup_message_metrics_get_response_end (SoupMessageMetrics *metrics)
  * @metrics: a #SoupMessageMetrics
  *
  * Get the number of bytes sent to the network for the request headers.
- * This value is available right before #SoupMessage::wrote-headers signal
+ *
+ * This value is available right before [signal@Message::wrote-headers] signal
  * is emitted, but you might get an intermediate value if called before.
  *
  * Returns: the request headers bytes sent
@@ -271,9 +274,10 @@ soup_message_metrics_get_request_header_bytes_sent (SoupMessageMetrics *metrics)
  * @metrics: a #SoupMessageMetrics
  *
  * Get the request body size in bytes. This is the size of the original body
- * given to the request before any encoding is applied. This value is available
- * right before #SoupMessage::wrote-body signal is emitted, but you might get
- * an intermediate value if called before.
+ * given to the request before any encoding is applied.
+ *
+ * This value is available right before [signal@Message::wrote-body] signal is
+ * emitted, but you might get an intermediate value if called before.
  *
  * Returns: the request body size
  */
@@ -289,11 +293,13 @@ soup_message_metrics_get_request_body_size (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_request_body_bytes_sent:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the number of bytes sent to the network for the request body. This is
- * the size of the body sent, after encodings are applied, so it might be
- * greater than the value returned by soup_message_metrics_get_request_body_size().
- * This value is available right before #SoupMessage::wrote-body signal is
- * emitted, but you might get an intermediate value if called before.
+ * Get the number of bytes sent to the network for the request body.
+ *
+ * This is the size of the body sent, after encodings are applied, so it might
+ * be greater than the value returned by
+ * [method@MessageMetrics.get_request_body_size]. This value is available right
+ * before [signal@Message::wrote-body] signal is emitted, but you might get an
+ * intermediate value if called before.
  *
  * Returns: the request body bytes sent
  */
@@ -310,7 +316,8 @@ soup_message_metrics_get_request_body_bytes_sent (SoupMessageMetrics *metrics)
  * @metrics: a #SoupMessageMetrics
  *
  * Get the number of bytes received from the network for the response headers.
- * This value is available right before #SoupMessage::got-headers signal
+ *
+ * This value is available right before [signal@Message::got-headers] signal
  * is emitted, but you might get an intermediate value if called before.
  * For resources loaded from the disk cache this value is always 0.
  *
@@ -328,11 +335,13 @@ soup_message_metrics_get_response_header_bytes_received (SoupMessageMetrics *met
  * soup_message_metrics_get_response_body_size:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the response body size in bytes. This is the size of the body as given to the
- * user after all encodings are applied, so it might be greater than the value
- * returned by soup_message_metrics_get_response_body_bytes_received(). This value is
- * available right before #SoupMessage::got-body signal is emitted, but you might get
- * an intermediate value if called before.
+ * Get the response body size in bytes.
+ *
+ * This is the size of the body as given to the user after all encodings are
+ * applied, so it might be greater than the value returned by
+ * [method@MessageMetrics.get_response_body_bytes_received]. This value is
+ * available right before [signal@Message::got-body] signal is emitted, but you
+ * might get an intermediate value if called before.
  *
  * Returns: the response body size
  */
@@ -348,10 +357,11 @@ soup_message_metrics_get_response_body_size (SoupMessageMetrics *metrics)
  * soup_message_metrics_get_response_body_bytes_received:
  * @metrics: a #SoupMessageMetrics
  *
- * Get the number of bytes received from the network for the response body. This value is
- * available right before #SoupMessage::got-body signal is emitted, but you might get
- * an intermediate value if called before.
- * For resources loaded from the disk cache this value is always 0.
+ * Get the number of bytes received from the network for the response body.
+ *
+ * This value is available right before [signal@Message::got-body] signal is
+ * emitted, but you might get an intermediate value if called before. For
+ * resources loaded from the disk cache this value is always 0.
  *
  * Returns: the response body bytes received
  */

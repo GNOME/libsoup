@@ -27,18 +27,11 @@
 #include "soup-websocket-extension.h"
 
 /**
- * SECTION:soup-websocket-extension
- * @short_description: a WebSocket extension
- * @see_also: #SoupSession, #SoupWebsocketExtensionManager
- *
- * SoupWebsocketExtension is the base class for WebSocket extension objects.
- *
- */
-
-/**
  * SoupWebsocketExtension:
  *
- * Class for impelementing websocket extensions.
+ * A WebSocket extension
+ *
+ * #SoupWebsocketExtension is the base class for WebSocket extension objects.
  */
 
 /**
@@ -55,8 +48,7 @@
  * @process_incoming_message: called to process the payload data of a message
  *    after it's received. Reserved bits of the header should be cleared.
  *
- * The class structure for the SoupWebsocketExtension.
- *
+ * The class structure for the #SoupWebsocketExtension.
  */
 
 G_DEFINE_ABSTRACT_TYPE (SoupWebsocketExtension, soup_websocket_extension, G_TYPE_OBJECT)
@@ -75,10 +67,10 @@ soup_websocket_extension_class_init (SoupWebsocketExtensionClass *auth_class)
  * soup_websocket_extension_configure:
  * @extension: a #SoupWebsocketExtension
  * @connection_type: either %SOUP_WEBSOCKET_CONNECTION_CLIENT or %SOUP_WEBSOCKET_CONNECTION_SERVER
- * @params: (nullable): the parameters, or %NULL
+ * @params: (nullable): the parameters
  * @error: return location for a #GError
  *
- * Configures @extension with the given @params
+ * Configures @extension with the given @params.
  *
  * Returns: %TRUE if extension could be configured with the given parameters, or %FALSE otherwise
  */
@@ -105,11 +97,12 @@ soup_websocket_extension_configure (SoupWebsocketExtension     *extension,
  * soup_websocket_extension_get_request_params:
  * @extension: a #SoupWebsocketExtension
  *
- * Get the parameters strings to be included in the request header. If the extension
- * doesn't include any parameter in the request, this function returns %NULL.
+ * Get the parameters strings to be included in the request header.
+ *
+ * If the extension doesn't include any parameter in the request, this function
+ * returns %NULL.
  *
  * Returns: (nullable) (transfer full): a new allocated string with the parameters
- *
  */
 char *
 soup_websocket_extension_get_request_params (SoupWebsocketExtension *extension)
@@ -129,11 +122,12 @@ soup_websocket_extension_get_request_params (SoupWebsocketExtension *extension)
  * soup_websocket_extension_get_response_params:
  * @extension: a #SoupWebsocketExtension
  *
- * Get the parameters strings to be included in the response header. If the extension
- * doesn't include any parameter in the response, this function returns %NULL.
+ * Get the parameters strings to be included in the response header.
+ *
+ * If the extension doesn't include any parameter in the response, this function
+ * returns %NULL.
  *
  * Returns: (nullable) (transfer full): a new allocated string with the parameters
- *
  */
 char *
 soup_websocket_extension_get_response_params (SoupWebsocketExtension *extension)
@@ -156,14 +150,15 @@ soup_websocket_extension_get_response_params (SoupWebsocketExtension *extension)
  * @payload: (transfer full): the payload data
  * @error: return location for a #GError
  *
- * Process a message before it's sent. If the payload isn't changed the given
- * @payload is just returned, otherwise g_bytes_unref() is called on the given
- * @payload and a new #GBytes is returned with the new data.
+ * Process a message before it's sent.
+ *
+ * If the payload isn't changed the given @payload is just returned, otherwise
+ * [method@Glib.Bytes.unref] is called on the given @payload and a new
+ * [struct@GLib.Bytes] is returned with the new data.
  *
  * Extensions using reserved bits of the header will change them in @header.
  *
  * Returns: (transfer full): the message payload data, or %NULL in case of error
- *
  */
 GBytes *
 soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension *extension,
@@ -192,14 +187,15 @@ soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension *exten
  * @payload: (transfer full): the payload data
  * @error: return location for a #GError
  *
- * Process a message after it's received. If the payload isn't changed the given
- * @payload is just returned, otherwise g_bytes_unref() is called on the given
- * @payload and a new #GBytes is returned with the new data.
+ * Process a message after it's received.
+ *
+ * If the payload isn't changed the given @payload is just returned, otherwise
+ * [method@GLib.Bytes.unref] is called on the given @payload and a new
+ * [struct@GLib.Bytes] is returned with the new data.
  *
  * Extensions using reserved bits of the header will reset them in @header.
  *
  * Returns: (transfer full): the message payload data, or %NULL in case of error
- *
  */
 GBytes *
 soup_websocket_extension_process_incoming_message (SoupWebsocketExtension *extension,

@@ -46,11 +46,12 @@ typedef struct {
 static void recompute_hex_a1 (SoupAuthDigestPrivate *priv);
 
 /**
- * SOUP_TYPE_AUTH_DIGEST:
+ * SoupAuthDigest:
  *
- * A #GType corresponding to HTTP "Digest" authentication.
- * #SoupSessions support this by default; if you want to disable
- * support for it, call soup_session_remove_feature_by_type(),
+ * HTTP "Digest" authentication.
+ *
+ * [class@Session]s support this by default; if you want to disable
+ * support for it, call [method@Session.remove_feature_by_type]
  * passing %SOUP_TYPE_AUTH_DIGEST.
  *
  */

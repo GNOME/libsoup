@@ -16,17 +16,12 @@
 #include "soup.h"
 
 /**
- * SECTION:soup-auth-domain-basic
- * @short_description: Server-side "Basic" authentication
+ * SoupAuthDomainBasic:
+ *
+ * Server-side "Basic" authentication.
  *
  * #SoupAuthDomainBasic handles the server side of HTTP "Basic" (ie,
  * cleartext password) authentication.
- **/
-
-/**
- * SoupAuthDomainBasic:
- *
- * Subclass of #SoupAuthDomain for Basic authentication.
  */
 
 enum {
@@ -118,9 +113,10 @@ soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
  * @optname1: name of first option, or %NULL
  * @...: option name/value pairs
  *
- * Creates a #SoupAuthDomainBasic. You must set the
- * SoupAuthDomain:realm property, to indicate the realm name to be
- * returned with the authentication challenge to the client. Other
+ * Creates a #SoupAuthDomainBasic.
+ *
+ * You must set the [property@AuthDomain:realm] property, to indicate the realm
+ * name to be returned with the authentication challenge to the client. Other
  * parameters are optional.
  *
  * Returns: the new #SoupAuthDomain
@@ -147,9 +143,10 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  * @msg: the message being authenticated
  * @username: the username provided by the client
  * @password: the password provided by the client
- * @user_data: the data passed to soup_auth_domain_basic_set_auth_callback()
+ * @user_data: the data passed to [method@AuthDomainBasic.set_auth_callback]
  *
  * Callback used by #SoupAuthDomainBasic for authentication purposes.
+ *
  * The application should verify that @username and @password and valid
  * and return %TRUE or %FALSE.
  *
@@ -168,22 +165,24 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  **/
 
 /**
- * soup_auth_domain_basic_set_auth_callback:
+ * soup_auth_domain_basic_set_auth_callback: (attributes org.gtk.Method.set_property=auth-callback)
  * @domain: (type SoupAuthDomainBasic): the domain
  * @callback: the callback
  * @user_data: data to pass to @auth_callback
  * @dnotify: destroy notifier to free @user_data when @domain
- * is destroyed
+ *   is destroyed
  *
  * Sets the callback that @domain will use to authenticate incoming
- * requests. For each request containing authorization, @domain will
- * invoke the callback, and then either accept or reject the request
- * based on @callback's return value.
+ * requests.
+ *
+ * For each request containing authorization, @domain will invoke the callback,
+ * and then either accept or reject the request based on @callback's return
+ * value.
  *
  * You can also set the auth callback by setting the
- * SoupAuthDomainBasic:auth-callback and
- * SoupAuthDomainBasic:auth-data properties, which can also be
- * used to set the callback at construct time.
+ * [property@AuthDomainBasic:auth-callback] and
+ * [property@AuthDomainBasic:auth-data] properties, which can also be used to
+ * set the callback at construct time.
  **/
 void
 soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
@@ -322,9 +321,9 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	object_class->get_property = soup_auth_domain_basic_get_property;
 
 	/**
-	 * SoupAuthDomainBasic:auth-callback: (type SoupAuthDomainBasicAuthCallback)
+	 * SoupAuthDomainBasic:auth-callback: (type SoupAuthDomainBasicAuthCallback) (attributes org.gtk.Property.set=soup_auth_domain_basic_set_auth_callback)
 	 *
-	 * The #SoupAuthDomainBasicAuthCallback
+	 * The [callback@AuthDomainBasicAuthCallback].
 	 */
         properties[PROP_AUTH_CALLBACK] =
 		g_param_spec_pointer ("auth-callback",
@@ -335,7 +334,7 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	/**
 	 * SoupAuthDomainBasic:auth-data:
 	 *
-	 * The data to pass to the #SoupAuthDomainBasicAuthCallback
+	 * The data to pass to the [callback@AuthDomainBasicAuthCallback].
 	 */
         properties[PROP_AUTH_DATA] =
 		g_param_spec_pointer ("auth-data",

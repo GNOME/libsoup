@@ -18,22 +18,16 @@
 #include "soup-uri-utils-private.h"
 
 /**
- * SECTION:soup-auth
- * @short_description: HTTP client-side authentication support
- * @see_also: #SoupSession
- *
- * #SoupAuth objects store the authentication data associated with a
- * given bit of web space. They are created automatically by
- * #SoupSession.
- **/
-
-/**
  * SoupAuth:
  *
- * The abstract base class for handling authentication. Specific HTTP
- * Authentication mechanisms are implemented by its subclasses, but
- * applications never need to be aware of the specific subclasses
- * being used.
+ * The abstract base class for handling authentication.
+ *
+ * Specific HTTP Authentication mechanisms are implemented by its subclasses,
+ * but applications never need to be aware of the specific subclasses being
+ * used.
+ *
+ * #SoupAuth objects store the authentication data associated with a given bit
+ * of web space. They are created automatically by [class@Session].
  **/
 
 typedef struct {
@@ -166,7 +160,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 
 	/* properties */
 	/**
-	 * SoupAuth:scheme-name:
+         * SoupAuth:scheme-name: (attributes org.gtk.Property.get=soup_auth_get_scheme_name)
          *
          * The authentication scheme name.
 	 **/
@@ -178,7 +172,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     G_PARAM_READABLE |
 				     G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupAuth:realm:
+	 * SoupAuth:realm: (attributes org.gtk.Property.get=soup_auth_get_realm)
 	 *
 	 * The authentication realm.
 	 **/
@@ -190,7 +184,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupAuth:authority:
+	 * SoupAuth:authority: (attributes org.gtk.Property.get=soup_auth_get_authority)
 	 *
 	 * The authority (host:port) being authenticated to.
 	 **/
@@ -202,7 +196,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupAuth:is-for-proxy:
+	 * SoupAuth:is-for-proxy: (attributes org.gtk.Property.get=soup_auth_is_for_proxy)
 	 *
 	 * Whether or not the auth is for a proxy server.
 	 **/
@@ -214,7 +208,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupAuth:is-authenticated:
+	 * SoupAuth:is-authenticated: (attributes org.gtk.Property.get=soup_auth_is_authenticated)
 	 *
 	 * Whether or not the auth has been authenticated.
 	 **/
@@ -226,10 +220,9 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				      G_PARAM_READABLE |
 				      G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupAuth:is-cancelled:
+	 * SoupAuth:is-cancelled: (attributes org.gtk.Property.get=soup_auth_is_cancelled)
 	 *
-	 * An alias for the #SoupAuth:is-cancelled property.
-	 * (Whether or not the auth has been cancelled.)
+	 * Whether or not the auth has been cancelled.
 	 **/
         properties[PROP_IS_CANCELLED] =
 		g_param_spec_boolean ("is-cancelled",
@@ -251,11 +244,11 @@ soup_auth_class_init (SoupAuthClass *auth_class)
  * Creates a new #SoupAuth of type @type with the information from
  * @msg and @auth_header.
  *
- * This is called by #SoupSession; you will normally not create auths
+ * This is called by [class@Session]; you will normally not create auths
  * yourself.
  *
  * Returns: (nullable): the new #SoupAuth, or %NULL if it could
- * not be created
+ *   not be created
  **/
 SoupAuth *
 soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
@@ -310,12 +303,13 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
  * @auth_header: the WWW-Authenticate/Proxy-Authenticate header
  *
  * Updates @auth with the information from @msg and @auth_header,
- * possibly un-authenticating it. As with soup_auth_new(), this is
- * normally only used by #SoupSession.
+ * possibly un-authenticating it.
+ *
+ * As with [ctor@Auth.new], this is normally only used by [class@Session].
  *
  * Returns: %TRUE if @auth is still a valid (but potentially
- * unauthenticated) #SoupAuth. %FALSE if something about @auth_params
- * could not be parsed or incorporated into @auth at all.
+ *   unauthenticated) #SoupAuth. %FALSE if something about @auth_params
+ *   could not be parsed or incorporated into @auth at all.
  **/
 gboolean
 soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
@@ -360,8 +354,10 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
  * @username: the username provided by the user or client
  * @password: the password provided by the user or client
  *
- * Call this on an auth to authenticate it; normally this will cause
- * the auth's message to be requeued with the new authentication info.
+ * Call this on an auth to authenticate it.
+ *
+ * Normally this will cause the auth's message to be requeued with the new
+ * authentication info.
  **/
 void
 soup_auth_authenticate (SoupAuth *auth, const char *username, const char *password)
@@ -387,9 +383,10 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
  * soup_auth_cancel:
  * @auth: a #SoupAuth
  *
- * Call this on an auth to cancel it. You need to cancel an auth to complete
- * an asynchronous authenticate operation when no credentials are provided
- * (soup_auth_authenticate() is not called).
+ * Call this on an auth to cancel it.
+ *
+ * You need to cancel an auth to complete an asynchronous authenticate operation
+ * when no credentials are provided ([method@Auth.authenticate] is not called).
  * The #SoupAuth will be cancelled on dispose if it hans't been authenticated.
  */
 void
@@ -408,7 +405,7 @@ soup_auth_cancel (SoupAuth *auth)
 }
 
 /**
- * soup_auth_is_for_proxy:
+ * soup_auth_is_for_proxy: (attributes org.gtk.Method.get_property=is-for-proxy)
  * @auth: a #SoupAuth
  *
  * Tests whether or not @auth is associated with a proxy server rather
@@ -428,6 +425,7 @@ soup_auth_is_for_proxy (SoupAuth *auth)
 
 /**
  * soup_auth_get_scheme_name:
+ * soup_auth_get_scheme_name: (attributes org.gtk.Method.get_property=scheme-name)
  * @auth: a #SoupAuth
  *
  * Returns @auth's scheme name. (Eg, "Basic", "Digest", or "NTLM")
@@ -443,7 +441,7 @@ soup_auth_get_scheme_name (SoupAuth *auth)
 }
 
 /**
- * soup_auth_get_authority:
+ * soup_auth_get_authority: (attributes org.gtk.Method.get_property=authority)
  * @auth: a #SoupAuth
  *
  * Returns the authority (host:port) that @auth is associated with.
@@ -461,13 +459,14 @@ soup_auth_get_authority (SoupAuth *auth)
 }
 
 /**
- * soup_auth_get_realm:
+ * soup_auth_get_realm: (attributes org.gtk.Method.get_property=realm)
  * @auth: a #SoupAuth
  *
- * Returns @auth's realm. This is an identifier that distinguishes
- * separate authentication spaces on a given server, and may be some
- * string that is meaningful to the user. (Although it is probably not
- * localized.)
+ * Returns @auth's realm.
+ *
+ * This is an identifier that distinguishes separate authentication spaces on a
+ * given server, and may be some string that is meaningful to the user.
+ * (Although it is probably not localized.)
  *
  * Returns: the realm name
  **/
@@ -485,10 +484,12 @@ soup_auth_get_realm (SoupAuth *auth)
  * soup_auth_get_info:
  * @auth: a #SoupAuth
  *
- * Gets an opaque identifier for @auth, for use as a hash key or the
- * like. #SoupAuth objects from the same server with the same
- * identifier refer to the same authentication domain (eg, the URLs
- * associated with them take the same usernames and passwords).
+ * Gets an opaque identifier for @auth.
+ *
+ * The identifier can be used as a hash key or the like. #SoupAuth objects from
+ * the same server with the same identifier refer to the same authentication
+ * domain (eg, the URLs associated with them take the same usernames and
+ * passwords).
  *
  * Returns: the identifier
  **/
@@ -509,10 +510,10 @@ soup_auth_get_info (SoupAuth *auth)
 }
 
 /**
- * soup_auth_is_authenticated:
+ * soup_auth_is_authenticated: (attributes org.gtk.Method.get_property=is-authenticated)
  * @auth: a #SoupAuth
  *
- * Tests if @auth has been given a username and password
+ * Tests if @auth has been given a username and password.
  *
  * Returns: %TRUE if @auth has been given a username and password
  **/
@@ -531,7 +532,7 @@ soup_auth_is_authenticated (SoupAuth *auth)
 }
 
 /**
- * soup_auth_is_cancelled:
+ * soup_auth_is_cancelled: (attributes org.gtk.Method.get_property=is-cancelled)
  * @auth: a #SoupAuth
  *
  * Tests if @auth has been cancelled
@@ -554,9 +555,10 @@ soup_auth_is_cancelled (SoupAuth *auth)
  * @auth: a #SoupAuth
  * @msg: the #SoupMessage to be authorized
  *
- * Generates an appropriate "Authorization" header for @msg. (The
- * session will only call this if soup_auth_is_authenticated()
- * returned %TRUE.)
+ * Generates an appropriate "Authorization" header for @msg.
+ *
+ * (The session will only call this if [method@Auth.is_authenticated] returned
+ * %TRUE.)
  *
  * Returns: the "Authorization" header, which must be freed.
  **/
@@ -574,8 +576,9 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
  * @auth: a #SoupAuth
  * @msg: a #SoupMessage
  *
- * Tests if @auth is ready to make a request for @msg with. For most
- * auths, this is equivalent to soup_auth_is_authenticated(), but for
+ * Tests if @auth is ready to make a request for @msg with.
+ *
+ * For most auths, this is equivalent to [method@Auth.is_authenticated], but for
  * some auth types (eg, NTLM), the auth may be sendable (eg, as an
  * authentication request) even before it is authenticated.
  *
@@ -606,7 +609,7 @@ soup_auth_is_ready (SoupAuth    *auth,
  * @auth: a #SoupAuth
  *
  * Tests if @auth is able to authenticate by providing credentials to the
- * soup_auth_authenticate().
+ * [method@Auth.authenticate].
  *
  * Returns: %TRUE if @auth is able to accept credentials.
  *
@@ -629,15 +632,16 @@ soup_auth_can_authenticate (SoupAuth *auth)
  * soup_auth_get_protection_space:
  * @auth: a #SoupAuth
  * @source_uri: the URI of the request that @auth was generated in
- * response to.
+ *   response to.
  *
  * Returns a list of paths on the server which @auth extends over.
+ *
  * (All subdirectories of these paths are also assumed to be part
  * of @auth's protection space, unless otherwise discovered not to
  * be.)
  *
  * Returns: (element-type utf8) (transfer full): the list of
- * paths, which can be freed with soup_auth_free_protection_space().
+ *   paths, which can be freed with [method@Auth.free_protection_space].
  **/
 GSList *
 soup_auth_get_protection_space (SoupAuth *auth, GUri *source_uri)
@@ -654,7 +658,7 @@ soup_auth_get_protection_space (SoupAuth *auth, GUri *source_uri)
 /**
  * soup_auth_free_protection_space: (skip)
  * @auth: a #SoupAuth
- * @space: the return value from soup_auth_get_protection_space()
+ * @space: the return value from [method@Auth.get_protection_space]
  *
  * Frees @space.
  **/

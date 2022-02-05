@@ -17,16 +17,6 @@
 #include "soup-tld.h"
 #include "soup.h"
 
-/**
- * SECTION:soup-tld
- * @section_id: SoupTLD
- * @short_description: Top-Level Domain Utilities
- *
- * These functions can be used to parse hostnames to attempt to determine
- * what part of the name belongs to the domain owner, and what part is
- * simply a "public suffix" such as ".com".
- */
-
 static const char *soup_tld_get_base_domain_internal (const char *hostname,
 						      GError    **error);
 
@@ -36,10 +26,11 @@ static const char *soup_tld_get_base_domain_internal (const char *hostname,
  * @error: return location for a #GError, or %NULL to ignore
  *   errors. See #SoupTLDError for the available error codes
  *
- * Finds the base domain for a given @hostname. The base domain is
- * composed by the top level domain (such as .org, .com, .co.uk, etc)
- * plus the second level domain, for example for myhost.mydomain.com
- * it will return mydomain.com.
+ * Finds the base domain for a given @hostname
+ *
+ * The base domain is composed by the top level domain (such as .org, .com,
+ * .co.uk, etc) plus the second level domain, for example for
+ * myhost.mydomain.com it will return mydomain.com.
  *
  * Note that %NULL will be returned for private URLs (those not ending
  * with any well known TLD) because choosing a base domain for them
@@ -51,8 +42,7 @@ static const char *soup_tld_get_base_domain_internal (const char *hostname,
  * format).
  *
  * Returns: a pointer to the start of the base domain in @hostname. If
- * an error occurs, %NULL will be returned and @error set.
- *
+ *   an error occurs, %NULL will be returned and @error set.
  **/
 const char *
 soup_tld_get_base_domain (const char *hostname, GError **error)
@@ -85,7 +75,6 @@ soup_psl_context (void)
  * UTF-8 or ASCII format.
  *
  * Returns: %TRUE if it is a public domain, %FALSE otherwise.
- *
  **/
 gboolean
 soup_tld_domain_is_public_suffix (const char *domain)
@@ -106,7 +95,6 @@ soup_tld_domain_is_public_suffix (const char *domain)
  * SOUP_TLD_ERROR:
  *
  * The #GError domain for soup-tld-related errors.
- *
  */
 /**
  * SoupTLDError:
@@ -117,14 +105,13 @@ soup_tld_domain_is_public_suffix (const char *domain)
  *   public suffix).
  * @SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS: The passed-in hostname
  *   did not have enough components. Eg, calling
- *   soup_tld_get_base_domain() on <literal>"co.uk"</literal>.
+ *   [func@tld_get_base_domain] on <literal>"co.uk"</literal>.
  * @SOUP_TLD_ERROR_NO_BASE_DOMAIN: The passed-in hostname has
  *   no recognized public suffix.
  * @SOUP_TLD_ERROR_NO_PSL_DATA: The Public Suffix List was not
  *   available.
  *
  * Error codes for %SOUP_TLD_ERROR.
- *
  */
 
 G_DEFINE_QUARK (soup-tld-error-quark, soup_tld_error)

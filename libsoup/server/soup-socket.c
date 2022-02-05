@@ -310,8 +310,9 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * @sock: the socket
 	 * @new: the new socket
 	 *
-	 * Emitted when a listening socket (set up with
-	 * soup_socket_listen()) receives a new connection.
+	 * Emitted when a listening socket receives a new connection.
+	 *
+	 * Has to be set up with [func@soup_socket_listen].
 	 *
 	 * You must ref the @new if you want to keep it; otherwise it
 	 * will be destroyed after the signal is emitted.
@@ -586,8 +587,9 @@ finish_listener_setup (SoupSocket *sock)
  * @sock: a server #SoupSocket (which must not already be connected or listening)
  * @error: error pointer
  *
- * Makes @sock start listening on its local address. When connections
- * come in, @sock will emit #SoupSocket::new_connection.
+ * Makes @sock start listening on its local address.
+ *
+ * When connections come in, @sock will emit #SoupSocket::new_connection.
  *
  * Returns: whether or not @sock is now listening.
  **/

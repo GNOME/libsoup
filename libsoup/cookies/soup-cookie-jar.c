@@ -21,24 +21,18 @@
 #include "soup-uri-utils-private.h"
 
 /**
- * SECTION:soup-cookie-jar
- * @short_description: Automatic cookie handling for SoupSession
+ * SoupCookieJar:
  *
- * A #SoupCookieJar stores #SoupCookie<!-- -->s and arrange for them
- * to be sent with the appropriate #SoupMessage<!-- -->s.
- * #SoupCookieJar implements #SoupSessionFeature, so you can add a
- * cookie jar to a session with soup_session_add_feature() or
- * soup_session_add_feature_by_type().
+ * Automatic cookie handling for SoupSession.
+ *
+ * A #SoupCookieJar stores [struct@Cookie]s and arrange for them to be sent with
+ * the appropriate [class@Message]s. #SoupCookieJar implements
+ * [iface@SessionFeature], so you can add a cookie jar to a session with
+ * [method@Session.add_feature] or [method@Session.add_feature_by_type].
  *
  * Note that the base #SoupCookieJar class does not support any form
  * of long-term cookie persistence.
  **/
-
-/**
- * SoupCookieJar:
- *
- * Class that stores cookies in memory.
- */
 
 enum {
 	CHANGED,
@@ -174,7 +168,9 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 	 * @old_cookie: the old #SoupCookie value
 	 * @new_cookie: the new #SoupCookie value
 	 *
-	 * Emitted when @jar changes. If a cookie has been added,
+	 * Emitted when @jar changes.
+	 *
+	 * If a cookie has been added,
 	 * @new_cookie will contain the newly-added cookie and
 	 * @old_cookie will be %NULL. If a cookie has been deleted,
 	 * @old_cookie will contain the to-be-deleted cookie and
@@ -193,6 +189,11 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE,
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE);
 
+	/**
+	 * SoupCookieJar:read-only:
+	 *
+	 * Whether or not the cookie jar is read-only.
+	 */
         properties[PROP_READ_ONLY] =
 		g_param_spec_boolean ("read-only",
 				      "Read-only",
@@ -202,10 +203,9 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 				      G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupCookieJar:accept-policy:
+	 * SoupCookieJar:accept-policy: (attributes org.gtk.Property.get=soup_cookie_jar_get_accept_policy org.gtk.Property.set=soup_cookie_jar_set_accept_policy)
 	 *
-	 * The policy the jar should follow to accept or reject cookies
-	 *
+	 * The policy the jar should follow to accept or reject cookies.
 	 */
         properties[PROP_ACCEPT_POLICY] =
 		g_param_spec_enum ("accept-policy",
@@ -222,11 +222,12 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 /**
  * soup_cookie_jar_new:
  *
- * Creates a new #SoupCookieJar. The base #SoupCookieJar class does
- * not support persistent storage of cookies; use a subclass for that.
+ * Creates a new #SoupCookieJar.
+ *
+ * The base #SoupCookieJar class does not support persistent storage of cookies;
+ * use a subclass for that.
  *
  * Returns: a new #SoupCookieJar
- *
  **/
 SoupCookieJar *
 soup_cookie_jar_new (void) 
@@ -385,7 +386,7 @@ get_cookies (SoupCookieJar *jar,
  * @jar: a #SoupCookieJar
  * @uri: a #GUri
  * @for_http: whether or not the return value is being passed directly
- * to an HTTP operation
+ *   to an HTTP operation
  *
  * Retrieves (in Cookie-header form) the list of cookies that would
  * be sent with a request to @uri.
@@ -399,8 +400,7 @@ get_cookies (SoupCookieJar *jar,
  * this.
  *
  * Returns: (nullable): the cookies, in string form, or %NULL if
- * there are no cookies for @uri.
- *
+ *   there are no cookies for @uri.
  **/
 char *
 soup_cookie_jar_get_cookies (SoupCookieJar *jar, GUri *uri,
@@ -431,10 +431,10 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, GUri *uri,
  * @jar: a #SoupCookieJar
  * @uri: a #GUri
  * @for_http: whether or not the return value is being passed directly
- * to an HTTP operation
+ *   to an HTTP operation
  *
  * Retrieves the list of cookies that would be sent with a request to @uri
- * as a #GSList of #SoupCookie objects.
+ * as a [struct@GLib.List] of #SoupCookie objects.
  *
  * If @for_http is %TRUE, the return value will include cookies marked
  * "HttpOnly" (that is, cookies that the server wishes to keep hidden
@@ -445,8 +445,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, GUri *uri,
  * this.
  *
  * Returns: (transfer full) (element-type Soup.Cookie): a #GSList
- * with the cookies in the @jar that would be sent with a request to @uri.
- *
+ *   with the cookies in the @jar that would be sent with a request to @uri.
  **/
 GSList *
 soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, GUri *uri, gboolean for_http)
@@ -464,19 +463,20 @@ soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, GUri *uri, gboolean for_htt
  * @top_level: (nullable): a #GUri for the top level document
  * @site_for_cookies: (nullable): a #GUri indicating the origin to get cookies for
  * @for_http: whether or not the return value is being passed directly
- * to an HTTP operation
+ *   to an HTTP operation
  * @is_safe_method: if the HTTP method is safe, as defined by RFC 7231, ignored when @for_http is %FALSE
  * @is_top_level_navigation: whether or not the HTTP request is part of
- * top level navigation
+ *   top level navigation
  *
- * This is an extended version of soup_cookie_jar_get_cookie_list() that
- * provides more information required to use SameSite cookies. See the
- * [SameSite cookies spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00)
- * for more detailed information.
+ * This is an extended version of [method@CookieJar.get_cookie_list] that
+ * provides more information required to use SameSite cookies.
+ *
+ * See the [SameSite cookies
+ * spec](https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00) for
+ * more detailed information.
  *
  * Returns: (transfer full) (element-type Soup.Cookie): a #GSList
- * with the cookies in the @jar that would be sent with a request to @uri.
- *
+ *   with the cookies in the @jar that would be sent with a request to @uri.
  */
 GSList *
 soup_cookie_jar_get_cookie_list_with_same_site_info (SoupCookieJar *jar,
@@ -559,9 +559,11 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
  * @uri: (nullable): the URI setting the cookie
  * @first_party: (nullable): the URI for the main document
  *
- * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
- * an existing cookie or adding a valid new cookie ('valid' means
- * that the cookie's expire date is not in the past).
+ * Adds @cookie to @jar.
+ *
+ * Emits the [signal@CookieJar::changed] signal if we are modifying an existing
+ * cookie or adding a valid new cookie ('valid' means that the cookie's expire
+ * date is not in the past).
  *
  * @first_party will be used to reject cookies coming from third party
  * resources in case such a security policy is set in the @jar.
@@ -570,7 +572,6 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
  * from insecure origins. %NULL is treated as secure.
  * 
  * @cookie will be 'stolen' by the jar, so don't free it afterwards.
- *
  **/
 void
 soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *uri, GUri *first_party)
@@ -661,12 +662,13 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
  * @jar: a #SoupCookieJar
  * @cookie: (transfer full): a #SoupCookie
  *
- * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
+ * Adds @cookie to @jar.
+ *
+ * Emits the [signal@CookieJar::changed] signal if we are modifying
  * an existing cookie or adding a valid new cookie ('valid' means
  * that the cookie's expire date is not in the past).
  *
  * @cookie will be 'stolen' by the jar, so don't free it afterwards.
- *
  **/
 void
 soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
@@ -680,7 +682,9 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
  * @first_party: the URI for the main document
  * @cookie: (transfer full): a #SoupCookie
  *
- * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
+ * Adds @cookie to @jar.
+ *
+ * Emits the [signal@CookieJar::changed] signal if we are modifying
  * an existing cookie or adding a valid new cookie ('valid' means
  * that the cookie's expire date is not in the past).
  *
@@ -690,8 +694,7 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
  * @cookie will be 'stolen' by the jar, so don't free it afterwards.
  *
  * For secure cookies to work properly you may want to use
- * soup_cookie_jar_add_cookie_full().
- *
+ * [method@CookieJar.add_cookie_full].
  **/
 void
 soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, GUri *first_party, SoupCookie *cookie)
@@ -710,13 +713,12 @@ soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, GUri *first_par
  * Adds @cookie to @jar, exactly as though it had appeared in a
  * Set-Cookie header returned from a request to @uri.
  *
- * Keep in mind that if the #SoupCookieJarAcceptPolicy set is either
+ * Keep in mind that if the [enum@CookieJarAcceptPolicy] set is either
  * %SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY or
  * %SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY you'll need to use
- * soup_cookie_jar_set_cookie_with_first_party(), otherwise the jar
+ * [method@CookieJar.set_cookie_with_first_party], otherwise the jar
  * will have no way of knowing if the cookie is being set by a third
  * party or not.
- *
  **/
 void
 soup_cookie_jar_set_cookie (SoupCookieJar *jar, GUri *uri,
@@ -754,10 +756,10 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, GUri *uri,
  * @cookie: the stringified cookie to set
  *
  * Adds @cookie to @jar, exactly as though it had appeared in a
- * Set-Cookie header returned from a request to @uri. @first_party
- * will be used to reject cookies coming from third party resources in
- * case such a security policy is set in the @jar.
+ * Set-Cookie header returned from a request to @uri.
  *
+ * @first_party will be used to reject cookies coming from third party resources
+ * in case such a security policy is set in the @jar.
  **/
 void
 soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
@@ -860,13 +862,13 @@ soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_inter
  * soup_cookie_jar_all_cookies:
  * @jar: a #SoupCookieJar
  *
- * Constructs a #GSList with every cookie inside the @jar.
+ * Constructs a [struct@GLib.List] with every cookie inside the @jar.
+ *
  * The cookies in the list are a copy of the original, so
  * you have to free them when you are done with them.
  *
  * Returns: (transfer full) (element-type Soup.Cookie): a #GSList
- * with all the cookies in the @jar.
- *
+ *   with all the cookies in the @jar.
  **/
 GSList *
 soup_cookie_jar_all_cookies (SoupCookieJar *jar)
@@ -896,8 +898,9 @@ soup_cookie_jar_all_cookies (SoupCookieJar *jar)
  * @jar: a #SoupCookieJar
  * @cookie: a #SoupCookie
  *
- * Deletes @cookie from @jar, emitting the 'changed' signal.
+ * Deletes @cookie from @jar.
  *
+ * Emits the [signal@CookieJar::changed] signal.
  **/
 void
 soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
@@ -933,44 +936,42 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
  * SoupCookieJarAcceptPolicy:
  * @SOUP_COOKIE_JAR_ACCEPT_ALWAYS: accept all cookies unconditionally.
  * @SOUP_COOKIE_JAR_ACCEPT_NEVER: reject all cookies unconditionally.
- * @SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY: accept all cookies set by
- * the main document loaded in the application using libsoup. An
- * example of the most common case, web browsers, would be: If
- * http://www.example.com is the page loaded, accept all cookies set
- * by example.com, but if a resource from http://www.third-party.com
- * is loaded from that page reject any cookie that it could try to
- * set. For libsoup to be able to tell apart first party cookies from
- * the rest, the application must call soup_message_set_first_party()
- * on each outgoing #SoupMessage, setting the #GUri of the main
- * document. If no first party is set in a message when this policy is
- * in effect, cookies will be assumed to be third party by default.
- * @SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY: accept all cookies
- * set by the main document loaded in the application using libsoup, and
- * from domains that have previously set at least one cookie when loaded
- * as the main document. An example of the most common case, web browsers,
- * would be: if http://www.example.com is the page loaded, accept all
- * cookies set by example.com, but if a resource from http://www.third-party.com
- * is loaded from that page, reject any cookie that it could try to
- * set unless it already has a cookie in the cookie jar. For libsoup to
- * be able to tell apart first party cookies from the rest, the
- * application must call soup_message_set_first_party() on each outgoing
- * #SoupMessage, setting the #GUri of the main document. If no first
- * party is set in a message when this policy is in effect, cookies will
- * be assumed to be third party by default.
+ * @SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY: accept all cookies set by the main
+ *   document loaded in the application using libsoup. An example of the most
+ *   common case, web browsers, would be: If http://www.example.com is the page
+ *   loaded, accept all cookies set by example.com, but if a resource from
+ *   http://www.third-party.com is loaded from that page reject any cookie that
+ *   it could try to set. For libsoup to be able to tell apart first party
+ *   cookies from the rest, the application must call
+ *   [method@Message.set_first_party] on each outgoing [class@Message], setting
+ *   the [struct@GLib.Uri] of the main document. If no first party is set in a
+ *   message when this policy is in effect, cookies will be assumed to be third
+ *   party by default.
+ * @SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY: accept all cookies set by
+ *   the main document loaded in the application using libsoup, and from domains
+ *   that have previously set at least one cookie when loaded as the main
+ *   document. An example of the most common case, web browsers, would be: if
+ *   http://www.example.com is the page loaded, accept all cookies set by
+ *   example.com, but if a resource from http://www.third-party.com is loaded
+ *   from that page, reject any cookie that it could try to set unless it
+ *   already has a cookie in the cookie jar. For libsoup to be able to tell
+ *   apart first party cookies from the rest, the application must call
+ *   [method@Message.set_first_party] on each outgoing #SoupMessage, setting the
+ *   [struct@GLib.Uri] of the main document. If no first party is set in a
+ *   message when this policy is in effect, cookies will be assumed to be third
+ *   party by default.
  *
  * The policy for accepting or rejecting cookies returned in
  * responses.
- *
  */
 
 /**
- * soup_cookie_jar_get_accept_policy:
+ * soup_cookie_jar_get_accept_policy: (attributes org.gtk.Method.get_property=accept-policy)
  * @jar: a #SoupCookieJar
  *
- * Gets @jar's #SoupCookieJarAcceptPolicy
+ * Gets @jar's [enum@CookieJarAcceptPolicy].
  *
  * Returns: the #SoupCookieJarAcceptPolicy set in the @jar
- *
  **/
 SoupCookieJarAcceptPolicy
 soup_cookie_jar_get_accept_policy (SoupCookieJar *jar)
@@ -984,12 +985,11 @@ soup_cookie_jar_get_accept_policy (SoupCookieJar *jar)
 }
 
 /**
- * soup_cookie_jar_set_accept_policy:
+ * soup_cookie_jar_set_accept_policy: (attributes org.gtk.Method.set_property=accept-policy)
  * @jar: a #SoupCookieJar
  * @policy: a #SoupCookieJarAcceptPolicy
  * 
  * Sets @policy as the cookie acceptance policy for @jar.
- *
  **/
 void
 soup_cookie_jar_set_accept_policy (SoupCookieJar *jar,
@@ -1014,7 +1014,6 @@ soup_cookie_jar_set_accept_policy (SoupCookieJar *jar,
  * Gets whether @jar stores cookies persistenly.
  *
  * Returns: %TRUE if @jar storage is persistent or %FALSE otherwise.
- *
  **/
 gboolean
 soup_cookie_jar_is_persistent (SoupCookieJar *jar)

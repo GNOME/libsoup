@@ -17,34 +17,26 @@
 #include "soup-path-map.h"
 
 /**
- * SECTION:soup-auth-domain
- * @short_description: Server-side authentication
- * @see_also: #SoupServer
- *
- * A #SoupAuthDomain manages authentication for all or part of a
- * #SoupServer. To make a server require authentication, first create
- * an appropriate subclass of #SoupAuthDomain, and then add it to the
- * server with soup_server_add_auth_domain().
- *
- * In order for an auth domain to have any effect, you must add one or
- * more paths to it (via soup_auth_domain_add_path() or the
- * SoupAuthDomain:add-path property). To require authentication for
- * all ordinary requests, add the path "/". (Note that this does not
- * include the special "*" URI (eg, "OPTIONS *"), which must be added
- * as a separate path if you want to cover it.)
- *
- * If you need greater control over which requests should and
- * shouldn't be authenticated, add paths covering everything you
- * <emphasis>might</emphasis> want authenticated, and then use a
- * filter (soup_auth_domain_set_filter()) to bypass authentication for
- * those requests that don't need it.
- **/
-
-/**
  * SoupAuthDomain:
  *
- * Class managing authentication for #SoupServer.
- */
+ * Server-side authentication.
+ *
+ * A #SoupAuthDomain manages authentication for all or part of a
+ * [class@Server]. To make a server require authentication, first create
+ * an appropriate subclass of #SoupAuthDomain, and then add it to the
+ * server with [method@Server.add_auth_domain].
+ *
+ * In order for an auth domain to have any effect, you must add one or more
+ * paths to it (via [method@AuthDomain.add_path]). To require authentication for
+ * all ordinary requests, add the path `"/"`. (Note that this does not include
+ * the special `"*"` URI (eg, "OPTIONS *"), which must be added as a separate
+ * path if you want to cover it.)
+ *
+ * If you need greater control over which requests should and shouldn't be
+ * authenticated, add paths covering everything you *might* want authenticated,
+ * and then use a filter ([method@AuthDomain.set_filter] to bypass
+ * authentication for those requests that don't need it.
+ **/
 
 enum {
 	PROP_0,
@@ -183,6 +175,11 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	object_class->set_property = soup_auth_domain_set_property;
 	object_class->get_property = soup_auth_domain_get_property;
 
+	/**
+	 * SoupAuthDomain:realm: (attributes org.gtk.Property.get=soup_auth_domain_get_realm)
+	 *
+	 * The realm of this auth domain.
+	 */
         properties[PROP_REALM] =
 		g_param_spec_string ("realm",
 				     "Realm",
@@ -191,6 +188,11 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS);
 
+	/**
+	 * SoupAuthDomain:proxy:
+	 *
+	 * Whether or not this is a proxy auth domain.
+	 */
         properties[PROP_PROXY] =
 		g_param_spec_boolean ("proxy",
 				      "Proxy",
@@ -200,9 +202,9 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				      G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupAuthDomain:filter: (type SoupAuthDomainFilter)
+	 * SoupAuthDomain:filter: (type SoupAuthDomainFilter) (attributes org.gtk.Property.set=soup_auth_domain_set_filter)
 	 *
-	 * The #SoupAuthDomainFilter for the domain.
+	 * The [callback@AuthDomainFilter] for the domain.
 	 */
         properties[PROP_FILTER] =
 		g_param_spec_pointer ("filter",
@@ -213,7 +215,7 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	/**
 	 * SoupAuthDomain:filter-data:
 	 *
-	 * Data to pass to the #SoupAuthDomainFilter.
+	 * Data to pass to the [callback@AuthDomainFilter].
 	 **/
         properties[PROP_FILTER_DATA] =
 		g_param_spec_pointer ("filter-data",
@@ -222,9 +224,9 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				      G_PARAM_READWRITE |
 				      G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback)
+	 * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback) (attributes org.gtk.Property.set=soup_auth_domain_set_generic_auth_callback)
 	 *
-	 * The #SoupAuthDomainGenericAuthCallback.
+	 * The [callback@AuthDomainGenericAuthCallback].
 	 **/
         properties[PROP_GENERIC_AUTH_CALLBACK] =
 		g_param_spec_pointer ("generic-auth-callback",
@@ -235,7 +237,7 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	/**
 	 * SoupAuthDomain:generic-auth-data:
 	 *
-         * The data to pass to the #SoupAuthDomainGenericAuthCallback.
+         * The data to pass to the [callback@AuthDomainGenericAuthCallback].
 	 **/
         properties[PROP_GENERIC_AUTH_DATA] =
 		g_param_spec_pointer ("generic-auth-data",
@@ -252,13 +254,11 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
  * @domain: a #SoupAuthDomain
  * @path: the path to add to @domain
  *
- * Adds @path to @domain, such that requests under @path on @domain's
- * server will require authentication (unless overridden by
- * soup_auth_domain_remove_path() or soup_auth_domain_set_filter()).
+ * Adds @path to @domain.
  *
- * You can also add paths by setting the SoupAuthDomain:add-path
- * property, which can also be used to add one or more paths at
- * construct time.
+ * Requests under @path on @domain's server will require authentication (unless
+ * overridden by [method@AuthDomain.remove_path] or
+ * [method@AuthDomain.set_filter]).
  **/
 void
 soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
@@ -277,20 +277,18 @@ soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
  * @domain: a #SoupAuthDomain
  * @path: the path to remove from @domain
  *
- * Removes @path from @domain, such that requests under @path on
- * @domain's server will NOT require authentication.
+ * Removes @path from @domain.
  *
- * This is not simply an undo-er for soup_auth_domain_add_path(); it
+ * Requests under @path on @domain's server will NOT require
+ * authentication.
+ *
+ * This is not simply an undo-er for [method@AuthDomain.add_path]; it
  * can be used to "carve out" a subtree that does not require
  * authentication inside a hierarchy that does. Note also that unlike
- * with soup_auth_domain_add_path(), this cannot be overridden by
+ * with [method@AuthDomain.add_path], this cannot be overridden by
  * adding a filter, as filters can only bypass authentication that
  * would otherwise be required, not require it where it would
  * otherwise be unnecessary.
- *
- * You can also remove paths by setting the
- * SoupAuthDomain:remove-path property, which can also be used to
- * remove one or more paths at construct time.
  **/
 void
 soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
@@ -308,27 +306,29 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
  * SoupAuthDomainFilter:
  * @domain: a #SoupAuthDomain
  * @msg: a #SoupServerMessage
- * @user_data: the data passed to soup_auth_domain_set_filter()
+ * @user_data: the data passed to [method@AuthDomain.set_filter]
  *
- * The prototype for a #SoupAuthDomain filter; see
- * soup_auth_domain_set_filter() for details.
+ * The prototype for a #SoupAuthDomain filter.
+ *
+ * See [method@AuthDomain.set_filter] for details.
  *
  * Returns: %TRUE if @msg requires authentication, %FALSE if not.
  **/
 
 /**
- * soup_auth_domain_set_filter:
+ * soup_auth_domain_set_filter: (attributes org.gtk.Method.set_property=filter)
  * @domain: a #SoupAuthDomain
  * @filter: the auth filter for @domain
  * @filter_data: data to pass to @filter
  * @dnotify: destroy notifier to free @filter_data when @domain
- * is destroyed
+ *   is destroyed
  *
- * Adds @filter as an authentication filter to @domain. The filter
- * gets a chance to bypass authentication for certain requests that
- * would otherwise require it. Eg, it might check the message's path
- * in some way that is too complicated to do via the other methods, or
- * it might check the message's method, and allow GETs but not PUTs.
+ * Adds @filter as an authentication filter to @domain.
+ *
+ * The filter gets a chance to bypass authentication for certain requests that
+ * would otherwise require it. Eg, it might check the message's path in some way
+ * that is too complicated to do via the other methods, or it might check the
+ * message's method, and allow GETs but not PUTs.
  *
  * The filter function returns %TRUE if the request should still
  * require authentication, or %FALSE if authentication is unnecessary
@@ -346,7 +346,7 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
  * unauthenticated users.
  *
  * You can also set the filter by setting the SoupAuthDomain:filter
- * and SoupAuthDomain:filter-data properties, which can also be
+ * and [property@AuthDomain:filter-data properties], which can also be
  * used to set the filter at construct time.
  **/
 void
@@ -369,10 +369,10 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
 }
 
 /**
- * soup_auth_domain_get_realm:
+ * soup_auth_domain_get_realm: (attributes org.gtk.Method.get_property=realm)
  * @domain: a #SoupAuthDomain
  *
- * Gets the realm name associated with @domain
+ * Gets the realm name associated with @domain.
  *
  * Returns: @domain's realm
  **/
@@ -389,43 +389,43 @@ soup_auth_domain_get_realm (SoupAuthDomain *domain)
  * @domain: a #SoupAuthDomain
  * @msg: the #SoupServerMessage being authenticated
  * @username: the username from @msg
- * @user_data: the data passed to
- * soup_auth_domain_set_generic_auth_callback()
+ * @user_data: the data passed to [method@AuthDomain.set_generic_auth_callback]
  *
  * The prototype for a #SoupAuthDomain generic authentication callback.
  *
  * The callback should look up the user's password, call
- * soup_auth_domain_check_password(), and use the return value from
- * that method as its own return value.
+ * [method@AuthDomain.check_password], and use the return value from that method
+ * as its own return value.
  *
  * In general, for security reasons, it is preferable to use the
  * auth-domain-specific auth callbacks (eg,
- * #SoupAuthDomainBasicAuthCallback and
- * #SoupAuthDomainDigestAuthCallback), because they don't require
+ * [callback@AuthDomainBasicAuthCallback] and
+ * [callback@AuthDomainDigestAuthCallback]), because they don't require
  * keeping a cleartext password database. Most users will use the same
  * password for many different sites, meaning if any site with a
  * cleartext password database is compromised, accounts on other
  * servers might be compromised as well. For many of the cases where
- * #SoupServer is used, this is not really relevant, but it may still
+ * [class@Server] is used, this is not really relevant, but it may still
  * be worth considering.
  *
  * Returns: %TRUE if @msg is authenticated, %FALSE if not.
  **/
 
 /**
- * soup_auth_domain_set_generic_auth_callback:
+ * soup_auth_domain_set_generic_auth_callback: (attributes org.gtk.Method.get_property=generic-auth-callback)
  * @domain: a #SoupAuthDomain
  * @auth_callback: the auth callback
  * @auth_data: data to pass to @auth_callback
  * @dnotify: destroy notifier to free @auth_data when @domain
- * is destroyed
+ *   is destroyed
  *
- * Sets @auth_callback as an authentication-handling callback for
- * @domain. Whenever a request comes in to @domain which cannot be
- * authenticated via a domain-specific auth callback (eg,
- * #SoupAuthDomainDigestAuthCallback), the generic auth callback
- * will be invoked. See #SoupAuthDomainGenericAuthCallback for information
- * on what the callback should do.
+ * Sets @auth_callback as an authentication-handling callback for @domain.
+ *
+ * Whenever a request comes in to @domain which cannot be authenticated via a
+ * domain-specific auth callback (eg, [callback@AuthDomainDigestAuthCallback]),
+ * the generic auth callback will be invoked. See
+ * [callback@AuthDomainGenericAuthCallback] for information on what the callback
+ * should do.
  **/
 void
 soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
@@ -467,8 +467,10 @@ soup_auth_domain_try_generic_auth_callback (SoupAuthDomain    *domain,
  * @password: a password
  *
  * Checks if @msg authenticates to @domain via @username and
- * @password. This would normally be called from a
- * #SoupAuthDomainGenericAuthCallback.
+ * @password.
+ *
+ * This would normally be called from a
+ * [callback@AuthDomainGenericAuthCallback].
  *
  * Returns: whether or not the message is authenticated
  **/
@@ -489,11 +491,12 @@ soup_auth_domain_check_password (SoupAuthDomain    *domain,
  * @msg: a #SoupServerMessage
  *
  * Checks if @domain requires @msg to be authenticated (according to
- * its paths and filter function). This does not actually look at
- * whether @msg <emphasis>is</emphasis> authenticated, merely whether
- * or not it needs to be.
+ * its paths and filter function).
  *
- * This is used by #SoupServer internally and is probably of no use to
+ * This does not actually look at whether @msg *is* authenticated, merely
+ * whether or not it needs to be.
+ *
+ * This is used by [class@Server] internally and is probably of no use to
  * anyone else.
  *
  * Returns: %TRUE if @domain requires @msg to be authenticated
@@ -523,15 +526,16 @@ soup_auth_domain_covers (SoupAuthDomain    *domain,
  * @msg: a #SoupServerMessage
  *
  * Checks if @msg contains appropriate authorization for @domain to
- * accept it. Mirroring soup_auth_domain_covers(), this does not check
- * whether or not @domain <emphasis>cares</emphasis> if @msg is
- * authorized.
+ * accept it.
  *
- * This is used by #SoupServer internally and is probably of no use to
+ * Mirroring [method@AuthDomain.covers], this does not check whether or not
+ * @domain *cares* if @msg is authorized.
+ *
+ * This is used by [class@Server] internally and is probably of no use to
  * anyone else.
  *
  * Returns: (nullable): the username that @msg has authenticated
- * as, if in fact it has authenticated. %NULL otherwise.
+ *   as, if in fact it has authenticated. %NULL otherwise.
  **/
 char *
 soup_auth_domain_accepts (SoupAuthDomain    *domain,
@@ -554,11 +558,11 @@ soup_auth_domain_accepts (SoupAuthDomain    *domain,
  * @domain: a #SoupAuthDomain
  * @msg: a #SoupServerMessage
  *
- * Adds a "WWW-Authenticate" or "Proxy-Authenticate" header to @msg,
- * requesting that the client authenticate, and sets @msg's status
- * accordingly.
+ * Adds a "WWW-Authenticate" or "Proxy-Authenticate" header to @msg.
  *
- * This is used by #SoupServer internally and is probably of no use to
+ * It requests that the client authenticate, and sets @msg's status accordingly.
+ *
+ * This is used by [class@Server] internally and is probably of no use to
  * anyone else.
  **/
 void

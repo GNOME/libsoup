@@ -19,38 +19,31 @@
 #include "soup-uri-utils-private.h"
 
 /**
- * SECTION:soup-hsts-enforcer
- * @short_description: Automatic HTTP Strict Transport Security enforcing
- * for #SoupSession
+ * SoupHSTSEnforcer:
+ *
+ * Automatic HTTP Strict Transport Security enforcing for [class@Session].
  *
  * A #SoupHSTSEnforcer stores HSTS policies and enforces them when
- * required. #SoupHSTSEnforcer implements #SoupSessionFeature, so you
+ * required. #SoupHSTSEnforcer implements [iface@SessionFeature], so you
  * can add an HSTS enforcer to a session with
- * soup_session_add_feature() or soup_session_add_feature_by_type().
+ * [method@Session.add_feature] or [method@Session.add_feature_by_type].
  *
  * #SoupHSTSEnforcer keeps track of all the HTTPS destinations that,
  * when connected to, return the Strict-Transport-Security header with
  * valid values. #SoupHSTSEnforcer will forget those destinations
  * upon expiry or when the server requests it.
  *
- * When the #SoupSession the #SoupHSTSEnforcer is attached to queues
- * or restarts a message, the #SoupHSTSEnforcer will rewrite the URI
- * to HTTPS if the destination is a known HSTS host and is contacted
- * over an insecure transport protocol (HTTP). Users of
- * #SoupHSTSEnforcer are advised to listen to changes in
- * SoupMessage:uri in order to be aware of changes in the message URI.
+ * When the [class@Session] the #SoupHSTSEnforcer is attached to queues or
+ * restarts a message, the #SoupHSTSEnforcer will rewrite the URI to HTTPS if
+ * the destination is a known HSTS host and is contacted over an insecure
+ * transport protocol (HTTP). Users of #SoupHSTSEnforcer are advised to listen
+ * to changes in the [property@Message:uri] property in order to be aware of
+ * changes in the message URI.
  *
  * Note that #SoupHSTSEnforcer does not support any form of long-term
- * HSTS policy persistence. See #SoupHSTSEnforcerDB for a persistent
+ * HSTS policy persistence. See [class@HSTSEnforcerDB] for a persistent
  * enforcer.
- *
  **/
-
-/**
- * SoupHSTSEnforcer:
- *
- * Class for storing and enforcing a #SoupHSTSPolicy.
- */
 
 static void soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
@@ -160,7 +153,9 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 	 * @old_policy: the old #SoupHSTSPolicy value
 	 * @new_policy: the new #SoupHSTSPolicy value
 	 *
-	 * Emitted when @hsts_enforcer changes. If a policy has been added,
+	 * Emitted when @hsts_enforcer changes.
+	 *
+	 * If a policy has been added,
 	 * @new_policy will contain the newly-added policy and
 	 * @old_policy will be %NULL. If a policy has been deleted,
 	 * @old_policy will contain the to-be-deleted policy and
@@ -186,12 +181,12 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 /**
  * soup_hsts_enforcer_new:
  *
- * Creates a new #SoupHSTSEnforcer. The base #SoupHSTSEnforcer class
- * does not support persistent storage of HSTS policies, see
- * #SoupHSTSEnforcerDB for that.
+ * Creates a new #SoupHSTSEnforcer.
+ *
+ * The base #SoupHSTSEnforcer class does not support persistent storage of HSTS
+ * policies, see [class@HSTSEnforcerDB] for that.
  *
  * Returns: a new #SoupHSTSEnforcer
- *
  **/
 SoupHSTSEnforcer *
 soup_hsts_enforcer_new (void)
@@ -317,14 +312,14 @@ soup_hsts_enforcer_insert_policy (SoupHSTSEnforcer *hsts_enforcer,
  * @hsts_enforcer: a #SoupHSTSEnforcer
  * @policy: (transfer none): the policy of the HSTS host
  *
- * Sets @policy to @hsts_enforcer. If @policy is expired, any
- * existing HSTS policy for its host will be removed instead. If a
- * policy existed for this host, it will be replaced. Otherwise, the
- * new policy will be inserted. If the policy is a session policy, that
- * is, one created with soup_hsts_policy_new_session_policy(), the policy
- * will not expire and will be enforced during the lifetime of
- * @hsts_enforcer's #SoupSession.
+ * Sets @policy to @hsts_enforcer.
  *
+ * If @policy is expired, any existing HSTS policy for its host will be removed
+ * instead. If a policy existed for this host, it will be replaced. Otherwise,
+ * the new policy will be inserted. If the policy is a session policy, that is,
+ * one created with [ctor@HSTSPolicy.new_session_policy], the policy will not
+ * expire and will be enforced during the lifetime of @hsts_enforcer's
+ * [class@Session].
  **/
 void
 soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -365,10 +360,10 @@ soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
  * @domain: policy domain or hostname
  * @include_subdomains: %TRUE if the policy applies on sub domains
  *
- * Sets a session policy for @domain. A session policy is a policy
- * that is permanent to the lifetime of @hsts_enforcer's #SoupSession
- * and doesn't expire.
+ * Sets a session policy for @domain.
  *
+ * A session policy is a policy that is permanent to the lifetime of
+ * @hsts_enforcer's [class@Session] and doesn't expire.
  **/
 void
 soup_hsts_enforcer_set_session_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -581,7 +576,6 @@ soup_hsts_enforcer_session_feature_init (SoupSessionFeatureInterface *feature_in
  * Gets whether @hsts_enforcer stores policies persistenly.
  *
  * Returns: %TRUE if @hsts_enforcer storage is persistent or %FALSE otherwise.
- *
  **/
 gboolean
 soup_hsts_enforcer_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
@@ -599,8 +593,7 @@ soup_hsts_enforcer_is_persistent (SoupHSTSEnforcer *hsts_enforcer)
  * Gets whether @hsts_enforcer has a currently valid policy for @domain.
  *
  * Returns: %TRUE if access to @domain should happen over HTTPS, false
- * otherwise.
- *
+ *   otherwise.
  **/
 gboolean
 soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
@@ -641,10 +634,9 @@ add_domain_to_list (gpointer key,
  *
  * Gets a list of domains for which there are policies in @enforcer.
  *
- *
  * Returns: (element-type utf8) (transfer full): a newly allocated
- * list of domains. Use g_list_free_full() and g_free() to free the
- * list.
+ *   list of domains. Use [func@GLib.List.free_full] and [func@GLib.free] to free the
+ *   list.
  **/
 GList*
 soup_hsts_enforcer_get_domains (SoupHSTSEnforcer *hsts_enforcer,
@@ -679,10 +671,8 @@ add_policy_to_list (gpointer key,
  * Gets a list with the policies in @enforcer.
  *
  * Returns: (element-type SoupHSTSPolicy) (transfer full): a newly
- * allocated list of policies. Use g_list_free_full() and
- * soup_hsts_policy_free() to free the list.
- *
- *
+ *   allocated list of policies. Use [func@GLib.List.free_full] and
+ *   [method@HSTSPolicy.free] to free the list.
  **/
 GList*
 soup_hsts_enforcer_get_policies (SoupHSTSEnforcer *hsts_enforcer,

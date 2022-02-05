@@ -24,23 +24,17 @@
 #include "soup-session-feature-private.h"
 
 /**
- * SECTION:soup-content-sniffer
- * @short_description: Content sniffing for SoupSession
+ * SoupContentSniffer:
+ *
+ * Sniffs the mime type of messages.
  *
  * A #SoupContentSniffer tries to detect the actual content type of
  * the files that are being downloaded by looking at some of the data
- * before the #SoupMessage emits its #SoupMessage::got-headers signal.
- * #SoupContentSniffer implements #SoupSessionFeature, so you can add
- * content sniffing to a session with soup_session_add_feature() or
- * soup_session_add_feature_by_type().
- *
+ * before the [class@Message] emits its [signal@Message::got-headers] signal.
+ * #SoupContentSniffer implements [iface@SessionFeature], so you can add
+ * content sniffing to a session with [method@Session.add_feature] or
+ * [method@Session.add_feature_by_type].
  **/
-
-/**
- * SoupContentSniffer:
- *
- * Class that attempts to sniff the mime type of messages.
- */
 
 static void soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
@@ -787,13 +781,13 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
  * @params: (element-type utf8 utf8) (out) (transfer full) (nullable): return
  *   location for Content-Type parameters (eg, "charset"), or %NULL
  *
- * Sniffs @buffer to determine its Content-Type. The result may also
- * be influenced by the Content-Type declared in @msg's response
- * headers.
+ * Sniffs @buffer to determine its Content-Type.
+ *
+ * The result may also be influenced by the Content-Type declared in @msg's
+ * response headers.
  *
  * Returns: the sniffed Content-Type of @buffer; this will never be %NULL,
- *   but may be "application/octet-stream".
- *
+ *   but may be `application/octet-stream`.
  */
 char *
 soup_content_sniffer_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
@@ -901,7 +895,6 @@ soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_
  * Creates a new #SoupContentSniffer.
  *
  * Returns: a new #SoupContentSniffer
- *
  **/
 SoupContentSniffer *
 soup_content_sniffer_new (void)

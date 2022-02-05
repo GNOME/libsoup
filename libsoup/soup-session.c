@@ -31,9 +31,11 @@
 
 #define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
 
+
 /**
- * SECTION:soup-session
- * @short_description: Soup session state object
+ * SoupSession:
+ *
+ * Soup session state object.
  *
  * #SoupSession is the object that controls client-side HTTP. A
  * #SoupSession encapsulates all of the state that libsoup is keeping
@@ -45,35 +47,29 @@
  * reason you might need multiple sessions is if you need to have
  * multiple independent authentication contexts. (Eg, you are
  * connecting to a server and authenticating as two different users at
- * different times; the easiest way to ensure that each #SoupMessage
+ * different times; the easiest way to ensure that each [class@Message]
  * is sent with the authentication information you intended is to use
  * one session for the first user, and a second session for the other
  * user.)
  *
  * Additional #SoupSession functionality is provided by
- * #SoupSessionFeature objects, which can be added to a session with
- * soup_session_add_feature() or soup_session_add_feature_by_type()
- * For example, #SoupLogger provides support for
- * logging HTTP traffic, #SoupContentDecoder provides support for
- * compressed response handling, and #SoupContentSniffer provides
+ * [iface@SessionFeature] objects, which can be added to a session with
+ * [method@Session.add_feature] or [method@Session.add_feature_by_type]
+ * For example, [class@Logger] provides support for
+ * logging HTTP traffic, [class@ContentDecoder] provides support for
+ * compressed response handling, and [class@ContentSniffer] provides
  * support for HTML5-style response body content sniffing.
- * Additionally, subtypes of #SoupAuth can be added
+ * Additionally, subtypes of [class@Auth] can be added
  * as features, to add support for additional authentication types.
  *
- * All #SoupSessions are created with a #SoupAuthManager, and support
+ * All `SoupSession`s are created with a [class@AuthManager], and support
  * for %SOUP_TYPE_AUTH_BASIC and %SOUP_TYPE_AUTH_DIGEST. Additionally,
  * sessions using the plain #SoupSession class (rather than one of its deprecated
- * subtypes) have a #SoupContentDecoder by default.
+ * subtypes) have a [class@ContentDecoder] by default.
  *
  * Note that all async methods will invoke their callbacks on the thread-default
  * context at the time of the function call.
  **/
-
-/**
- * SoupSession:
- *
- * Class managing options and state for #SoupMessage<!-- -->s.
- */
 
 typedef struct {
 	GUri            *uri;
@@ -183,12 +179,6 @@ enum {
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
-/**
- * SOUP_SESSION_ERROR:
- *
- * A #GError domain for #SoupSession<!-- -->-related errors. Used with
- * #SoupSessionError.
- */
 /**
  * SoupSessionError:
  * @SOUP_SESSION_ERROR_PARSING: the server's response could not
@@ -469,7 +459,6 @@ soup_session_get_property (GObject *object, guint prop_id,
  * Creates a #SoupSession with the default options.
  *
  * Returns: the new session.
- *
  */
 SoupSession *
 soup_session_new (void)
@@ -485,7 +474,6 @@ soup_session_new (void)
  * Creates a #SoupSession with the specified options.
  *
  * Returns: the new session.
- *
  */
 SoupSession *
 soup_session_new_with_options (const char *optname1,
@@ -503,12 +491,13 @@ soup_session_new_with_options (const char *optname1,
 }
 
 /**
- * soup_session_get_local_address:
+ * soup_session_get_local_address: (attributes org.gtk.Method.get_property=local-address)
  * @session: a #SoupSession
  *
- * Get the #GInetSocketAddress to use for the client side of connections in @session.
+ * Get the [class@Gio.InetSocketAddress] to use for the client side of
+ * connections in @session.
  *
- * Returns: (transfer none) (nullable): a #GInetSocketAddress or %NULL
+ * Returns: (transfer none) (nullable): a #GInetSocketAddress
  */
 GInetSocketAddress *
 soup_session_get_local_address (SoupSession *session)
@@ -522,7 +511,7 @@ soup_session_get_local_address (SoupSession *session)
 }
 
 /**
- * soup_session_get_max_conns:
+ * soup_session_get_max_conns: (attributes org.gtk.Method.set_property=max-conns)
  * @session: a #SoupSession
  *
  * Get the maximum number of connections that @session can open at once.
@@ -541,10 +530,11 @@ soup_session_get_max_conns (SoupSession *session)
 }
 
 /**
- * soup_session_get_max_conns_per_host:
+ * soup_session_get_max_conns_per_host: (attributes org.gtk.Method.get_property=max-conns-per-host)
  * @session: a #SoupSession
  *
- * Get the maximum number of connections that @session can open at once to a given host.
+ * Get the maximum number of connections that @session can open at once to a
+ * given host.
  *
  * Returns: the maximum number of connections per host
  */
@@ -560,12 +550,14 @@ soup_session_get_max_conns_per_host (SoupSession *session)
 }
 
 /**
- * soup_session_set_proxy_resolver:
+ * soup_session_set_proxy_resolver: (attributes org.gtk.Method.set_property=proxy-resolver)
  * @session: a #SoupSession
  * @proxy_resolver: (nullable): a #GProxyResolver or %NULL
  *
- * Set a #GProxyResolver to be used by @session on new connections. If @proxy_resolver
- * is %NULL then no proxies will be used. See #SoupSession:proxy-resolver for more information.
+ * Set a [iface@Gio.ProxyResolver] to be used by @session on new connections.
+ *
+ * If @proxy_resolver is %NULL then no proxies will be used. See
+ * [property@Session:proxy-resolver] for more information.
  */
 void
 soup_session_set_proxy_resolver (SoupSession    *session,
@@ -588,13 +580,13 @@ soup_session_set_proxy_resolver (SoupSession    *session,
 }
 
 /**
- * soup_session_get_proxy_resolver:
+ * soup_session_get_proxy_resolver: (attributes org.gtk.Method.get_property=proxy-resolver)
  * @session: a #SoupSession
  *
- * Get the #GProxyResolver currently used by @session.
+ * Get the [iface@Gio.ProxyResolver] currently used by @session.
  *
  * Returns: (transfer none) (nullable): a #GProxyResolver or %NULL if proxies
- *    are disabled in @session
+ *   are disabled in @session
  */
 GProxyResolver *
 soup_session_get_proxy_resolver (SoupSession *session)
@@ -608,13 +600,14 @@ soup_session_get_proxy_resolver (SoupSession *session)
 }
 
 /**
- * soup_session_set_tls_database:
+ * soup_session_set_tls_database: (attributes org.gtk.Method.set_property=tls-database)
  * @session: a #SoupSession
- * @tls_database: (nullable): a #GTlsDatabase or %NULL
+ * @tls_database: (nullable): a #GTlsDatabase
  *
- * Set a #GTlsDatabase to be used by @session on new connections. If @tls_database
- * is %NULL then certificate validation will always fail. See #SoupSession:tls-database
- * for more information.
+ * Set a [class@GIo.TlsDatabase] to be used by @session on new connections.
+ *
+ * If @tls_database is %NULL then certificate validation will always fail. See
+ * [property@Session:tls-database] for more information.
  */
 void
 soup_session_set_tls_database (SoupSession  *session,
@@ -637,12 +630,12 @@ soup_session_set_tls_database (SoupSession  *session,
 }
 
 /**
- * soup_session_get_tls_database:
+ * soup_session_get_tls_database: (attributes org.gtk.Method.get_property=tls-database)
  * @session: a #SoupSession
  *
- * Get the #GTlsDatabase currently used by @session.
+ * Get the [class@Gio.TlsDatabase] currently used by @session.
  *
- * Returns: (transfer none) (nullable): a #GTlsDatabase or %NULL
+ * Returns: (transfer none) (nullable): a #GTlsDatabase
  */
 GTlsDatabase *
 soup_session_get_tls_database (SoupSession *session)
@@ -659,13 +652,16 @@ soup_session_get_tls_database (SoupSession *session)
 }
 
 /**
- * soup_session_set_tls_interaction:
+ * soup_session_set_tls_interaction: (attributes org.gtk.Method.set_property=tls-interaction)
  * @session: a #SoupSession
- * @tls_interaction: (nullable): a #GTlsInteraction or %NULL
+ * @tls_interaction: (nullable): a #GTlsInteraction
  *
- * Set a #GTlsInteraction to be used by @session on new connections. If @tls_interaction
- * is %NULL then client certificate validation will always fail. See #SoupSession:tls-interaction
- * for more information.
+ * Set a [class@Gio.TlsInteraction] to be used by @session on new connections.
+ *
+ * If @tls_interaction is %NULL then client certificate validation will always
+ * fail.
+ *
+ * See [property@Session:tls-interaction] for more information.
  */
 void
 soup_session_set_tls_interaction (SoupSession     *session,
@@ -687,12 +683,12 @@ soup_session_set_tls_interaction (SoupSession     *session,
 }
 
 /**
- * soup_session_get_tls_interaction:
+ * soup_session_get_tls_interaction: (attributes org.gtk.Method.get_property=tls-interaction)
  * @session: a #SoupSession
  *
- * Get the #GTlsInteraction currently used by @session.
+ * Get the [class@Gio.TlsInteraction] currently used by @session.
  *
- * Returns: (transfer none) (nullable): a #GTlsInteraction or %NULL
+ * Returns: (transfer none) (nullable): a #GTlsInteraction
  */
 GTlsInteraction *
 soup_session_get_tls_interaction (SoupSession *session)
@@ -706,12 +702,14 @@ soup_session_get_tls_interaction (SoupSession *session)
 }
 
 /**
- * soup_session_set_timeout:
+ * soup_session_set_timeout: (attributes org.gtk.Method.set_property=timeout)
  * @session: a #SoupSession
  * @timeout: a timeout in seconds
  *
  * Set a timeout in seconds for socket I/O operations to be used by @session
- * on new connections. See #SoupSession:timeout for more information.
+ * on new connections.
+ *
+ * See [property@Session:timeout] for more information.
  */
 void
 soup_session_set_timeout (SoupSession *session,
@@ -731,10 +729,11 @@ soup_session_set_timeout (SoupSession *session,
 }
 
 /**
- * soup_session_get_timeout:
+ * soup_session_get_timeout: (attributes org.gtk.Method.get_property=timeout)
  * @session: a #SoupSession
  *
- * Get the timeout in seconds for socket I/O operations currently used by @session.
+ * Get the timeout in seconds for socket I/O operations currently used by
+ * @session.
  *
  * Returns: the timeout in seconds
  */
@@ -750,12 +749,14 @@ soup_session_get_timeout (SoupSession *session)
 }
 
 /**
- * soup_session_set_idle_timeout:
+ * soup_session_set_idle_timeout: (attributes org.gtk.Method.set_property=idle-timeout)
  * @session: a #SoupSession
  * @timeout: a timeout in seconds
  *
  * Set a timeout in seconds for idle connection lifetime to be used by @session
- * on new connections. See #SoupSession:idle-timeout for more information.
+ * on new connections.
+ *
+ * See [property@Session:idle-timeout] for more information.
  */
 void
 soup_session_set_idle_timeout (SoupSession *session,
@@ -775,10 +776,11 @@ soup_session_set_idle_timeout (SoupSession *session,
 }
 
 /**
- * soup_session_get_idle_timeout:
+ * soup_session_get_idle_timeout: (attributes org.gtk.Method.get_property=idle-timeout)
  * @session: a #SoupSession
  *
- * Get the timeout in seconds for idle connection lifetime currently used by @session.
+ * Get the timeout in seconds for idle connection lifetime currently used by
+ * @session.
  *
  * Returns: the timeout in seconds
  */
@@ -794,15 +796,17 @@ soup_session_get_idle_timeout (SoupSession *session)
 }
 
 /**
- * soup_session_set_user_agent:
+ * soup_session_set_user_agent: (attributes org.gtk.Method.set_property=user-agent)
  * @session: a #SoupSession
  * @user_agent: the user agent string
  *
- * Set the value to use for the "User-Agent" header on #SoupMessage<!-- -->s sent from @session.
- * If @user_agent has trailing whitespace, @session will append its own product token
- * (eg, "<literal>libsoup/3.0.0</literal>") to the end of the header for you.
- * If @user_agent is %NULL then no "User-Agent" will be included in requests. See #SoupSession:user-agent
- * for more information.
+ * Set the value to use for the "User-Agent" header on [class@Message]s sent
+ * from @session.
+ *
+ * If @user_agent has trailing whitespace, @session will append its own product
+ * token (eg, `libsoup/3.0.0`) to the end of the header for you. If @user_agent
+ * is %NULL then no "User-Agent" will be included in requests. See
+ * [property@Session:user-agent] for more information.
  */
 void
 soup_session_set_user_agent (SoupSession *session,
@@ -844,12 +848,12 @@ soup_session_set_user_agent (SoupSession *session,
 }
 
 /**
- * soup_session_get_user_agent:
+ * soup_session_get_user_agent: (attributes org.gtk.Method.get_property=user-agent)
  * @session: a #SoupSession
  *
  * Get the value used by @session for the "User-Agent" header on new requests.
  *
- * Returns: (transfer none) (nullable): the user agent string or %NULL
+ * Returns: (transfer none) (nullable): the user agent string
  */
 const char *
 soup_session_get_user_agent (SoupSession *session)
@@ -863,13 +867,15 @@ soup_session_get_user_agent (SoupSession *session)
 }
 
 /**
- * soup_session_set_accept_language:
+ * soup_session_set_accept_language: (attributes org.gtk.Method.set_property=accept-language)
  * @session: a #SoupSession
  * @accept_language: the languages string
  *
- * Set the value to use for the "Accept-Language" header on #SoupMessage<!-- -->s sent from @session.
- * If @accept_language is %NULL then no "Accept-Language" will be included in requests. See #SoupSession:accept-language
- * for more information.
+ * Set the value to use for the "Accept-Language" header on [class@Message]s
+ * sent from @session.
+ *
+ * If @accept_language is %NULL then no "Accept-Language" will be included in
+ * requests. See [property@Session:accept-language] for more information.
  */
 void
 soup_session_set_accept_language (SoupSession *session,
@@ -894,12 +900,13 @@ soup_session_set_accept_language (SoupSession *session,
 }
 
 /**
- * soup_session_get_accept_language:
+ * soup_session_get_accept_language: (attributes org.gtk.Method.get_property=accept-language)
  * @session: a #SoupSession
  *
- * Get the value used by @session for the "Accept-Language" header on new requests.
+ * Get the value used by @session for the "Accept-Language" header on new
+ * requests.
  *
- * Returns: (transfer none) (nullable): the accept language string or %NULL
+ * Returns: (transfer none) (nullable): the accept language string
  */
 const char *
 soup_session_get_accept_language (SoupSession *session)
@@ -913,13 +920,15 @@ soup_session_get_accept_language (SoupSession *session)
 }
 
 /**
- * soup_session_set_accept_language_auto:
+ * soup_session_set_accept_language_auto: (attributes org.gtk.Method.set_property=accept-language-auto)
  * @session: a #SoupSession
  * @accept_language_auto: the value to set
  *
- * Set whether @session will automatically set the "Accept-Language" header on requests using
- * a value generated from system languages based on g_get_language_names(). See #SoupSession:accept-language-auto
- * for more information.
+ * Set whether @session will automatically set the "Accept-Language" header on
+ * requests using a value generated from system languages based on
+ * [func@GLib.get_language_names].
+ *
+ * See [property@Session:accept-language-auto] for more information.
  */
 void
 soup_session_set_accept_language_auto (SoupSession *session,
@@ -946,12 +955,14 @@ soup_session_set_accept_language_auto (SoupSession *session,
 }
 
 /**
- * soup_session_get_accept_language_auto:
+ * soup_session_get_accept_language_auto: (attributes org.gtk.Method.get_property=accept-language-auto)
  * @session: a #SoupSession
  *
- * Get whether @session automatically sets the "Accept-Language" header on new requests.
+ * Gets whether @session automatically sets the "Accept-Language" header on new
+ * requests.
  *
- * Returns: %TRUE if @session sets "Accept-Language" header automatically, or %FALSE otherwise.
+ * Returns: %TRUE if @session sets "Accept-Language" header automatically, or
+ *   %FALSE otherwise.
  */
 gboolean
 soup_session_get_accept_language_auto (SoupSession *session)
@@ -965,12 +976,12 @@ soup_session_get_accept_language_auto (SoupSession *session)
 }
 
 /**
- * soup_session_get_remote_connectable:
+ * soup_session_get_remote_connectable: (attributes org.gtk.Method.get_property=remote-connectable)
  * @session: a #SoupSession
  *
- * Get the remote connectable if one set.
+ * Gets the remote connectable if one set.
  *
- * Returns: (transfer none) (nullable): the #GSocketConnectable or %NULL
+ * Returns: (transfer none) (nullable): the #GSocketConnectable
  */
 GSocketConnectable *
 soup_session_get_remote_connectable (SoupSession *session)
@@ -1237,9 +1248,8 @@ soup_session_requeue_item (SoupSession          *session,
  * cause it to fail with %SOUP_STATUS_TOO_MANY_REDIRECTS.
  *
  * Returns: %TRUE if a redirection was applied, %FALSE if not
- * (eg, because there was no Location header, or it could not be
- * parsed).
- *
+ *   (eg, because there was no Location header, or it could not be
+ *   parsed).
  */
 static gboolean
 soup_session_redirect_message (SoupSession *session,
@@ -2135,8 +2145,7 @@ soup_session_requeue_message (SoupSession *session,
  * @session: a #SoupSession
  * @msg: a #SoupMessage currently running on @session
  *
- * Pauses HTTP I/O on @msg. Call soup_session_unpause_message() to
- * resume I/O.
+ * Pauses HTTP I/O on @msg. Call [method@Session.unpause_message] to resume I/O.
  **/
 void
 soup_session_pause_message (SoupSession *session,
@@ -2170,7 +2179,7 @@ soup_session_kick_queue (SoupSession *session)
  * @msg: a #SoupMessage currently running on @session
  *
  * Resumes HTTP I/O on @msg. Use this to resume after calling
- * soup_session_pause_message().
+ * [method@Session.pause_message].
  *
  * If @msg is being sent via blocking I/O, this will resume reading or
  * writing immediately. If @msg is using non-blocking I/O, then
@@ -2215,7 +2224,6 @@ soup_session_cancel_message (SoupSession *session,
  *
  * Cancels all pending requests in @session and closes all idle
  * persistent connections.
- *
  */
 void
 soup_session_abort (SoupSession *session)
@@ -2271,11 +2279,10 @@ feature_already_added (SoupSession *session, GType feature_type)
  * @feature: an object that implements #SoupSessionFeature
  *
  * Adds @feature's functionality to @session. You cannot add multiple
- * features of the same #GType to a session.
+ * features of the same [alias@GLib.Type] to a session.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
- *
  **/
 void
 soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
@@ -2301,18 +2308,17 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * @feature_type: a #GType
  *
  * If @feature_type is the type of a class that implements
- * #SoupSessionFeature, this creates a new feature of that type and
- * adds it to @session as with soup_session_add_feature(). You can use
+ * [iface@SessionFeature], this creates a new feature of that type and
+ * adds it to @session as with [method@Session.add_feature]. You can use
  * this when you don't need to customize the new feature in any way.
  * Adding multiple features of the same @feature_type is not allowed.
  *
- * If @feature_type is not a #SoupSessionFeature type, this gives each
+ * If @feature_type is not a [iface@SessionFeature] type, this gives each
  * existing feature on @session the chance to accept @feature_type as
- * a "subfeature". This can be used to add new #SoupAuth types, for instance.
+ * a "subfeature". This can be used to add new [class@Auth] types, for instance.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
- *
  **/
 void
 soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
@@ -2349,7 +2355,6 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
  * @feature: a feature that has previously been added to @session
  *
  * Removes @feature's functionality from @session.
- *
  **/
 void
 soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
@@ -2373,10 +2378,7 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
  * @feature_type: a #GType
  *
  * Removes all features of type @feature_type (or any subclass of
- * @feature_type) from @session. You can also remove standard features
- * from the session at construct time by using the
- * SoupSession:remove-feature-by-type property.
- *
+ * @feature_type) from @session.
  **/
 void
 soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
@@ -2411,11 +2413,10 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
  * @feature_type: the #GType of the class of features to check for
  *
  * Tests if @session has at a feature of type @feature_type (which can
- * be the type of either a #SoupSessionFeature, or else a subtype of
- * some class managed by another feature, such as #SoupAuth).
+ * be the type of either a [iface@SessionFeature], or else a subtype of
+ * some class managed by another feature, such as [class@Auth]).
  *
  * Returns: %TRUE or %FALSE
- *
  **/
 gboolean
 soup_session_has_feature (SoupSession *session,
@@ -2453,8 +2454,7 @@ soup_session_has_feature (SoupSession *session,
  * for @feature_type.)
  *
  * Returns: (transfer container) (element-type Soup.SessionFeature):
- * a list of features. You must free the list, but not its contents
- *
+ *   a list of features. You must free the list, but not its contents
  **/
 GSList *
 soup_session_get_features (SoupSession *session, GType feature_type)
@@ -2479,9 +2479,8 @@ soup_session_get_features (SoupSession *session, GType feature_type)
  *
  * Gets the feature in @session of type @feature_type.
  *
- * Returns: (nullable) (transfer none): a #SoupSessionFeature, or
- * %NULL. The feature is owned by @session.
- *
+ * Returns: (nullable) (transfer none): a #SoupSessionFeature, or %NULL. The
+ *   feature is owned by @session.
  **/
 SoupSessionFeature *
 soup_session_get_feature (SoupSession *session, GType feature_type)
@@ -2520,9 +2519,8 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
  * Gets the feature in @session of type @feature_type, provided
  * that it is not disabled for @msg.
  *
- * Returns: (nullable) (transfer none): a #SoupSessionFeature, or %NULL. The
- * feature is owned by @session.
- *
+ * Returns: (nullable) (transfer none): a #SoupSessionFeature. The feature is
+ *   owned by @session.
  **/
 SoupSessionFeature *
 soup_session_get_feature_for_message (SoupSession *session, GType feature_type,
@@ -2605,17 +2603,17 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Emitted when a request is queued on @session.
 	 *
-	 * When sending a request, first #SoupSession::request_queued
+	 * When sending a request, first [signal@Session::request-queued]
 	 * is emitted, indicating that the session has become aware of
 	 * the request.
 	 *
 	 * After a connection is available to send the request various
-	 * #SoupMessage signals are emitted as the message is
+	 * [class@Message] signals are emitted as the message is
 	 * processed. If the message is requeued, it will emit
-	 * #SoupMessage::restarted, which will then be followed by other
-	 * #SoupMessage signals when the message is re-sent.
+	 * [signal@Message::restarted], which will then be followed by other
+	 * [class@Message] signals when the message is re-sent.
 	 *
-	 * Eventually, the message will emit #SoupMessage::finished.
+	 * Eventually, the message will emit [signal@Message::finished].
 	 * Normally, this signals the completion of message
 	 * processing. However, it is possible that the application
 	 * will requeue the message from the "finished" handler.
@@ -2623,15 +2621,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Eventually, a message will reach "finished" and not be
 	 * requeued. At that point, the session will emit
-	 * #SoupSession::request_unqueued to indicate that it is done
+	 * [signal@Session::request-unqueued] to indicate that it is done
 	 * with the message.
 	 *
-	 * To sum up: #SoupSession::request_queued and
-	 * #SoupSession::request_unqueued are guaranteed to be emitted
-	 * exactly once, but #SoupMessage::finished (and all of the
-	 * other #SoupMessage signals) may be invoked multiple times
-	 * for a given message.
-	 *
+	 * To sum up: [signal@Session::request-queued] and
+	 * [signal@Session::request-unqueued] are guaranteed to be emitted
+	 * exactly once, but [signal@Message::finished] (and all of the other
+	 * [class@Message] signals) may be invoked multiple times for a given
+	 * message.
 	 **/
 	signals[REQUEST_QUEUED] =
 		g_signal_new ("request-queued",
@@ -2649,10 +2646,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * @msg: the request that was unqueued
 	 *
 	 * Emitted when a request is removed from @session's queue,
-	 * indicating that @session is done with it. See
-	 * #SoupSession::request_queued for a detailed description of the
-	 * message lifecycle within a session.
+	 * indicating that @session is done with it.
 	 *
+	 * See [signal@Session::request-queued] for a detailed description of
+	 * the message lifecycle within a session.
 	 **/
 	signals[REQUEST_UNQUEUED] =
 		g_signal_new ("request-unqueued",
@@ -2666,16 +2663,15 @@ soup_session_class_init (SoupSessionClass *session_class)
 
 	/* properties */
 	/**
-	 * SoupSession:proxy-resolver:
+	 * SoupSession:proxy-resolver: (attributes org.gtk.Property.get=soup_session_get_proxy_resolver org.gtk.Property.set=soup_session_set_proxy_resolver)
 	 *
-	 * A #GProxyResolver to use with this session.
+	 * A [iface@Gio.ProxyResolver] to use with this session.
 	 *
 	 * If no proxy resolver is set, then the default proxy resolver
-	 * will be used. See g_proxy_resolver_get_default().
+	 * will be used. See [func@Gio.ProxyResolver.get_default].
 	 * You can set it to %NULL if you don't want to use proxies, or
-	 * set it to your own #GProxyResolver if you want to control
+	 * set it to your own [iface@Gio.ProxyResolver] if you want to control
 	 * what proxies get used.
-	 *
 	 */
         properties[PROP_PROXY_RESOLVER] =
 		g_param_spec_object ("proxy-resolver",
@@ -2685,7 +2681,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_READWRITE |
 				     G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupSession:max-conns:
+	 * SoupSession:max-conns: (attributes org.gtk.Property.get=soup_session_get_max_conns)
 	 *
 	 * The maximum number of connections that the session can open at once.
 	 */
@@ -2701,9 +2697,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:max-conns-per-host:
+	 * SoupSession:max-conns-per-host: (attributes org.gtk.Property.get=soup_session_get_max_conns_per_host)
 	 *
-	 * The maximum number of connections that the session can open at once to a given host.
+	 * The maximum number of connections that the session can open at once
+	 * to a given host.
 	 */
         properties[PROP_MAX_CONNS_PER_HOST] =
 		g_param_spec_int ("max-conns-per-host",
@@ -2716,17 +2713,16 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  G_PARAM_CONSTRUCT_ONLY |
 				  G_PARAM_STATIC_STRINGS);
 	/**
-	 * SoupSession:idle-timeout:
+	 * SoupSession:idle-timeout: (attributes org.gtk.Property.get=soup_session_get_idle_timeout org.gtk.Property.set=soup_session_set_idle_timeout)
 	 *
 	 * Connection lifetime (in seconds) when idle. Any connection
 	 * left idle longer than this will be closed.
 	 *
 	 * Although you can change this property at any time, it will
 	 * only affect newly-created connections, not currently-open
-	 * ones. You can call soup_session_abort() after setting this
+	 * ones. You can call [method@Session.abort] after setting this
 	 * if you want to ensure that all future connections will have
 	 * this timeout value.
-	 *
 	 **/
         properties[PROP_IDLE_TIMEOUT] =
 		g_param_spec_uint ("idle-timeout",
@@ -2737,14 +2733,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:tls-database:
+	 * SoupSession:tls-database: (attributes org.gtk.Property.get=soup_session_get_tls_database org.gtk.Property.set=soup_session_set_tls_database)
 	 *
-	 * Sets the #GTlsDatabase to use for validating SSL/TLS
+	 * Sets the [class@Gio.TlsDatabase] to use for validating SSL/TLS
 	 * certificates.
 	 *
 	 * If no certificate database is set, then the default database will be
-	 * used. See g_tls_backend_get_default_database().
-	 *
+	 * used. See [method@Gio.TlsBackend.get_default_database].
 	 **/
         properties[PROP_TLS_DATABASE] =
 		g_param_spec_object ("tls-database",
@@ -2755,7 +2750,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:timeout:
+	 * SoupSession:timeout: (attributes org.gtk.Property.get=soup_session_get_timeout org.gtk.Property.set=soup_session_set_timeout)
 	 *
 	 * The timeout (in seconds) for socket I/O operations
 	 * (including connecting to a server, and waiting for a reply
@@ -2763,11 +2758,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Although you can change this property at any time, it will
 	 * only affect newly-created connections, not currently-open
-	 * ones. You can call soup_session_abort() after setting this
+	 * ones. You can call [method@Session.abort] after setting this
 	 * if you want to ensure that all future connections will have
 	 * this timeout value.
 	 *
-	 * Not to be confused with #SoupSession:idle-timeout (which is
+	 * Not to be confused with [property@Session:idle-timeout] (which is
 	 * the length of time that idle persistent connections will be
 	 * kept open).
 	 */
@@ -2780,10 +2775,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:user-agent:
+	 * SoupSession:user-agent: (attributes org.gtk.Property.get=soup_session_get_user_agent org.gtk.Property.set=soup_session_set_user_agent)
+	 *
+	 * User-Agent string.
 	 *
 	 * If non-%NULL, the value to use for the "User-Agent" header
-	 * on #SoupMessage<!-- -->s sent from this session.
+	 * on [class@Message]s sent from this session.
 	 *
 	 * RFC 2616 says: "The User-Agent request-header field
 	 * contains information about the user agent originating the
@@ -2801,9 +2798,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * followed by a version string. You may also put comments,
 	 * enclosed in parentheses, between or after the tokens.
 	 *
-	 * If you set a #SoupSession:user_agent property that has trailing
+	 * If you set a [property@Session:user-agent] property that has trailing
 	 * whitespace, #SoupSession will append its own product token
-	 * (eg, "<literal>libsoup/2.3.2</literal>") to the end of the
+	 * (eg, `libsoup/2.3.2`) to the end of the
 	 * header for you.
 	 **/
         properties[PROP_USER_AGENT] =
@@ -2815,13 +2812,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:accept-language:
+	 * SoupSession:accept-language: (attributes org.gtk.Property.get=soup_session_get_accept_language org.gtk.Property.set=soup_session_set_accept_language)
 	 *
 	 * If non-%NULL, the value to use for the "Accept-Language" header
-	 * on #SoupMessage<!-- -->s sent from this session.
+	 * on [class@Message]s sent from this session.
 	 *
-	 * Setting this will disable #SoupSession:accept-language-auto.
-	 *
+	 * Setting this will disable [property@Session:accept-language-auto].
 	 **/
         properties[PROP_ACCEPT_LANGUAGE] =
 		g_param_spec_string ("accept-language",
@@ -2832,15 +2828,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:accept-language-auto:
+	 * SoupSession:accept-language-auto: (attributes org.gtk.Property.get=soup_session_get_accept_language_auto org.gtk.Property.set=soup_session_set_accept_language_auto)
 	 *
 	 * If %TRUE, #SoupSession will automatically set the string
-	 * for the "Accept-Language" header on every #SoupMessage
-	 * sent, based on the return value of g_get_language_names().
+	 * for the "Accept-Language" header on every [class@Message]
+	 * sent, based on the return value of [func@GLib.get_language_names].
 	 *
 	 * Setting this will override any previous value of
-	 * #SoupSession:accept-language.
-	 *
+	 * [property@Session:accept-language].
 	 **/
         properties[PROP_ACCEPT_LANGUAGE_AUTO] =
 		g_param_spec_boolean ("accept-language-auto",
@@ -2851,7 +2846,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:remote-connectable:
+	 * SoupSession:remote-connectable: (attributes org.gtk.Property.get=soup_session_get_remote_connectable)
 	 *
 	 * Sets a socket to make outgoing connections on. This will override the default
 	 * behaviour of opening TCP/IP sockets to the hosts specified in the URIs.
@@ -2859,8 +2854,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * This function is not required for common HTTP usage, but only when connecting
 	 * to a HTTP service that is not using standard TCP/IP sockets. An example of
 	 * this is a local service that uses HTTP over UNIX-domain sockets, in that case
-	 * a #GUnixSocketAddress can be passed to this function.
-	 *
+	 * a [class@Gio.UnixSocketAddress] can be passed to this function.
 	 **/
         properties[PROP_REMOTE_CONNECTABLE] =
 		g_param_spec_object ("remote-connectable",
@@ -2871,14 +2865,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:local-address:
+	 * SoupSession:local-address: (attributes org.gtk.Property.get=soup_session_get_local_address)
 	 *
-	 * Sets the #GInetSocketAddress to use for the client side of
+	 * Sets the [class@Gio.InetSocketAddress] to use for the client side of
 	 * the connection.
 	 *
 	 * Use this property if you want for instance to bind the
 	 * local socket to a specific IP address.
-	 *
 	 **/
         properties[PROP_LOCAL_ADDRESS] =
 		g_param_spec_object ("local-address",
@@ -2889,12 +2882,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_STATIC_STRINGS);
 
 	/**
-	 * SoupSession:tls-interaction:
+	 * SoupSession:tls-interaction: (attributes org.gtk.Property.get=soup_session_get_tls_interaction org.gtk.Property.set=soup_session_set_tls_interaction)
 	 *
-	 * A #GTlsInteraction object that will be passed on to any
-	 * #GTlsConnections created by the session. (This can be used to
-	 * provide client-side certificates, for example.)
+	 * A [class@Gio.TlsInteraction] object that will be passed on to any
+	 * [class@Gio.TlsConnection]s created by the session.
 	 *
+	 * This can be used to provide client-side certificates, for example.
 	 **/
         properties[PROP_TLS_INTERACTION] =
 		g_param_spec_object ("tls-interaction",
@@ -3335,14 +3328,14 @@ soup_session_return_error_if_message_already_in_queue (SoupSession         *sess
  * @callback: (scope async): the callback to invoke
  * @user_data: data for @callback
  *
- * Asynchronously sends @msg and waits for the beginning of a
- * response. When @callback is called, then either @msg has been sent,
- * and its response headers received, or else an error has occurred.
- * Call soup_session_send_finish() to get a #GInputStream for reading
- * the response body.
+ * Asynchronously sends @msg and waits for the beginning of a response.
  *
- * See soup_session_send() for more details on the general semantics.
+ * When @callback is called, then either @msg has been sent, and its response
+ * headers received, or else an error has occurred. Call
+ * [method@Session.send_finish] to get a [class@Gio.InputStream] for reading the
+ * response body.
  *
+ * See [method@Session.send] for more details on the general semantics.
  */
 void
 soup_session_send_async (SoupSession         *session,
@@ -3381,13 +3374,13 @@ soup_session_send_async (SoupSession         *session,
  * @result: the #GAsyncResult passed to your callback
  * @error: return location for a #GError, or %NULL
  *
- * Gets the response to a soup_session_send_async() call and (if
- * successful), returns a #GInputStream that can be used to read the
+ * Gets the response to a [method@Session.send_async] call.
+ *
+ * If successful returns a [class@Gio.InputStream] that can be used to read the
  * response body.
  *
  * Returns: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.
- *
  */
 GInputStream *
 soup_session_send_finish (SoupSession   *session,
@@ -3425,27 +3418,26 @@ soup_session_send_finish (SoupSession   *session,
  * @error: return location for a #GError, or %NULL
  *
  * Synchronously sends @msg and waits for the beginning of a response.
- * On success, a #GInputStream will be returned which you can use to
+ *
+ * On success, a [class@Gio.InputStream] will be returned which you can use to
  * read the response body. ("Success" here means only that an HTTP
  * response was received and understood; it does not necessarily mean
  * that a 2xx class status code was received.)
  *
  * If non-%NULL, @cancellable can be used to cancel the request;
- * soup_session_send() will return a %G_IO_ERROR_CANCELLED error. Note
- * that with requests that have side effects (eg,
- * <literal>POST</literal>, <literal>PUT</literal>,
- * <literal>DELETE</literal>) it is possible that you might cancel the
- * request after the server acts on it, but before it returns a
- * response, leaving the remote resource in an unknown state.
+ * [method@Session.send] will return a %G_IO_ERROR_CANCELLED error. Note that
+ * with requests that have side effects (eg, `POST`, `PUT`, `DELETE`) it is
+ * possible that you might cancel the request after the server acts on it, but
+ * before it returns a response, leaving the remote resource in an unknown
+ * state.
  *
  * If @msg is requeued due to a redirect or authentication, the
- * initial (3xx/401/407) response body will be suppressed, and
- * soup_session_send() will only return once a final response has been
+ * initial (`3xx/401/407`) response body will be suppressed, and
+ * [method@Session.send] will only return once a final response has been
  * received.
  *
  * Returns: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.
- *
  */
 GInputStream *
 soup_session_send (SoupSession   *session,
@@ -3615,14 +3607,14 @@ send_and_read_stream_ready_cb (SoupSession  *session,
  * @user_data: data for @callback
  *
  * Asynchronously sends @msg and reads the response body.
- * When @callback is called, then either @msg has been sent, and its response
- * body read, or else an error has occurred.
- * This function should only be used when the resource to be retrieved
- * is not too long and can be stored in memory.
- * Call soup_session_send_and_read_finish() to get a #GBytes with the
- * response body.
  *
- * See soup_session_send() for more details on the general semantics.
+ * When @callback is called, then either @msg has been sent, and its response
+ * body read, or else an error has occurred. This function should only be used
+ * when the resource to be retrieved is not too long and can be stored in
+ * memory. Call [method@Session.send_and_read_finish] to get a
+ * [struct@GLib.Bytes] with the response body.
+ *
+ * See [method@Session.send] for more details on the general semantics.
  */
 void
 soup_session_send_and_read_async (SoupSession        *session,
@@ -3653,8 +3645,9 @@ soup_session_send_and_read_async (SoupSession        *session,
  * @result: the #GAsyncResult passed to your callback
  * @error: return location for a #GError, or %NULL
  *
- * Gets the response to a soup_session_send_and_read_async() call and (if
- * successful), returns a #GBytes with the response body.
+ * Gets the response to a [method@Session.send_and_read_async].
+ *
+ * If successful, returns a [struct@GLib.Bytes] with the response body.
  *
  * Returns: (transfer full): a #GBytes, or %NULL on error.
  */
@@ -3677,11 +3670,12 @@ soup_session_send_and_read_finish (SoupSession  *session,
  * @error: return location for a #GError, or %NULL
  *
  * Synchronously sends @msg and reads the response body.
- * On success, a #GBytes will be returned with the response body.
+ *
+ * On success, a [struct@GLib.Bytes] will be returned with the response body.
  * This function should only be used when the resource to be retrieved
  * is not too long and can be stored in memory.
  *
- * See soup_session_send() for more details on the general semantics.
+ * See [method@Session.send] for more details on the general semantics.
  *
  * Returns: (transfer full): a #GBytes, or %NULL on error.
  */
@@ -3718,12 +3712,12 @@ soup_session_send_and_read (SoupSession  *session,
  * @session: a #SoupSession
  * @result: the #GAsyncResult passed to your callback
  *
- * Gets the #SoupMessage of the @result asynchronous operation
- * This is useful to get the #SoupMessage of an asynchronous
- * operation started by @session from its #GAsyncReadyCallback.
+ * Gets the [class@Message] of the @result asynchronous operation This is useful
+ * to get the [class@Message] of an asynchronous operation started by @session
+ * from its [callback@Gio.AsyncReadyCallback].
  *
  * Returns: (transfer none) (nullable): a #SoupMessage or
- *    %NULL if @result is not a valid @session async operation result.
+ *   %NULL if @result is not a valid @session async operation result.
  */
 SoupMessage *
 soup_session_get_async_result_message (SoupSession  *session,
@@ -3765,9 +3759,10 @@ steal_connection (SoupSession          *session,
  * @msg: the message whose connection is to be stolen
  *
  * "Steals" the HTTP connection associated with @msg from @session.
+ *
  * This happens immediately, regardless of the current state of the
  * connection, and @msg's callback will not be called. You can steal
- * the connection from a #SoupMessage signal handler if you need to
+ * the connection from a [class@Message] signal handler if you need to
  * wait for part or all of the response to be received first.
  *
  * Calling this function may cause @msg to be freed if you are not
@@ -3777,7 +3772,6 @@ steal_connection (SoupSession          *session,
  *   with @msg (or %NULL if @msg was no longer associated with a
  *   connection). No guarantees are made about what kind of #GIOStream
  *   is returned.
- *
  */
 static GIOStream *
 soup_session_steal_connection (SoupSession *session,
@@ -3881,8 +3875,8 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
  * @callback: (scope async): the callback to invoke
  * @user_data: data for @callback
  *
- * Asynchronously creates a #SoupWebsocketConnection to communicate
- * with a remote server.
+ * Asynchronously creates a [class@WebsocketConnection] to communicate with a
+ * remote server.
  *
  * All necessary WebSocket-related headers will be added to @msg, and
  * it will then be sent and asynchronously processed normally
@@ -3891,15 +3885,13 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
  * If the server returns "101 Switching Protocols", then @msg's status
  * code and response headers will be updated, and then the WebSocket
  * handshake will be completed. On success,
- * soup_session_websocket_connect_finish() will return a new
- * #SoupWebsocketConnection. On failure it will return a #GError.
+ * [method@Session.websocket_connect_finish] will return a new
+ * [class@WebsocketConnection]. On failure it will return a #GError.
  *
- * If the server returns a status other than "101 Switching
- * Protocols", then @msg will contain the complete response headers
- * and body from the server's response, and
- * soup_session_websocket_connect_finish() will return
+ * If the server returns a status other than "101 Switching Protocols", then
+ * @msg will contain the complete response headers and body from the server's
+ * response, and [method@Session.websocket_connect_finish] will return
  * %SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET.
- *
  */
 void
 soup_session_websocket_connect_async (SoupSession          *session,
@@ -3958,14 +3950,14 @@ soup_session_websocket_connect_async (SoupSession          *session,
  * @result: the #GAsyncResult passed to your callback
  * @error: return location for a #GError, or %NULL
  *
- * Gets the #SoupWebsocketConnection response to a
- * soup_session_websocket_connect_async() call and (if successful),
- * returns a #SoupWebsocketConnection that can be used to communicate
- * with the server.
+ * Gets the [class@WebsocketConnection] response to a
+ * [method@Session.websocket_connect_async] call.
+ *
+ * If successful, returns a [class@WebsocketConnection] that can be used to
+ * communicate with the server.
  *
  * Returns: (transfer full): a new #SoupWebsocketConnection, or
  *   %NULL on error.
- *
  */
 SoupWebsocketConnection *
 soup_session_websocket_connect_finish (SoupSession      *session,
@@ -4016,12 +4008,15 @@ preconnect_async_complete (SoupMessage *msg,
  * @callback: (nullable) (scope async): the callback to invoke when the operation finishes
  * @user_data: data for @progress_callback and @callback
  *
- * Start a preconnection to @msg. Once the connection is done, it will remain in idle state so that
- * it can be reused by future requests. If there's already an idle connection for the given @msg
- * host, the operation finishes successfully without creating a new connection. If a new request
- * for the given @msg host is made while the preconnect is still ongoing, the request will take
- * the ownership of the connection and the preconnect operation will finish successfully (if
- * there's a connection error it will be handled by the request).
+ * Start a preconnection to @msg.
+ *
+ * Once the connection is done, it will remain in idle state so that it can be
+ * reused by future requests. If there's already an idle connection for the
+ * given @msg host, the operation finishes successfully without creating a new
+ * connection. If a new request for the given @msg host is made while the
+ * preconnect is still ongoing, the request will take the ownership of the
+ * connection and the preconnect operation will finish successfully (if there's
+ * a connection error it will be handled by the request).
  *
  * The operation finishes when the connection is done or an error occurred.
  */
@@ -4064,7 +4059,7 @@ soup_session_preconnect_async (SoupSession        *session,
  * @result: the #GAsyncResult passed to your callback
  * @error: return location for a #GError, or %NULL
  *
- * Complete a preconnect async operation started with soup_session_preconnect_async().
+ * Complete a preconnect async operation started with [method@Session.preconnect_async].
  *
  * Return value: %TRUE if the preconnect succeeded, or %FALSE in case of error.
  */

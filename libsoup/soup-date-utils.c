@@ -27,15 +27,6 @@
 #include "soup-date-utils-private.h"
 
 /**
- * SECTION:soup-date-utils
- * @section_id: SoupDateTime
- * @title: DateTime Utilities
- * @short_description: Functions to help working with #GDateTime and HTTP
- *
- * These are simple utility functions to help using #GDateTime.
- */
-
-/**
  * soup_date_time_is_past:
  * @date: a #GDateTime
  *
@@ -58,11 +49,11 @@ soup_date_time_is_past (GDateTime *date)
 /**
  * SoupDateFormat:
  * @SOUP_DATE_HTTP: RFC 1123 format, used by the HTTP "Date" header. Eg
- * "Sun, 06 Nov 1994 08:49:37 GMT"
+ *   "Sun, 06 Nov 1994 08:49:37 GMT".
  * @SOUP_DATE_COOKIE: The format for the "Expires" timestamp in the
- * Netscape cookie specification. Eg, "Sun, 06-Nov-1994 08:49:37 GMT".
+ *   Netscape cookie specification. Eg, "Sun, 06-Nov-1994 08:49:37 GMT".
  *
- * Date formats that soup_date_time_to_string() can use.
+ * Date formats that [func@date_time_to_string] can use.
  *
  * @SOUP_DATE_HTTP and @SOUP_DATE_COOKIE always coerce the time to
  * UTC.
@@ -88,7 +79,7 @@ static const char *const days[] = {
  *
  * Converts @date to a string in the format described by @format.
  *
- * Return: (transfer full): @date as a string or %NULL
+ * Returns: (transfer full): @date as a string or %NULL
  **/
 char *
 soup_date_time_to_string (GDateTime      *date,
@@ -307,13 +298,14 @@ parse_textual_date (const char *date_string)
  * soup_date_time_new_from_http_string:
  * @date_string: The date as a string
  *
- * Parses @date_string and tries to extract a date from it. This
- * recognizes all of the "HTTP-date" formats from RFC 2616, RFC 2822
- * dates, and reasonable approximations thereof. (Eg, it is lenient about
- * whitespace, leading "0"s, etc.)
+ * Parses @date_string and tries to extract a date from it.
+ *
+ * This recognizes all of the "HTTP-date" formats from RFC 2616, RFC 2822 dates,
+ * and reasonable approximations thereof. (Eg, it is lenient about whitespace,
+ * leading "0"s, etc.)
  *
  * Returns: (nullable): a new #GDateTime, or %NULL if @date_string
- * could not be parsed.
+ *   could not be parsed.
  **/
 GDateTime *
 soup_date_time_new_from_http_string (const char *date_string)

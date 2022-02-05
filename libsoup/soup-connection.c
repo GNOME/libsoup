@@ -989,7 +989,8 @@ client_message_io_closed_cb (SoupConnection *conn,
  * soup_connection_disconnect:
  * @conn: a connection
  *
- * Disconnects @conn's socket and emits a %disconnected signal.
+ * Disconnects @conn's socket and emits a [signal@Socket::disconnected] signal.
+ *
  * After calling this, @conn will be essentially useless.
  **/
 void

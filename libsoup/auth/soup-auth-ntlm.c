@@ -99,13 +99,13 @@ static void sso_ntlm_close (SoupAuthNTLMPrivate *priv);
 #endif
 
 /**
- * SOUP_TYPE_AUTH_NTLM:
+ * SoupAuthNTLM:
  *
- * A #GType corresponding to HTTP-based NTLM authentication.
- * #SoupSessions do not support this type by default; if you want to
- * enable support for it, call soup_session_add_feature_by_type(),
+ * HTTP-based NTLM authentication.
+ *
+ * [class@Session]s do not support this type by default; if you want to
+ * enable support for it, call [method@Session.add_feature_by_type],
  * passing %SOUP_TYPE_AUTH_NTLM.
- *
  */
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthNTLM, soup_auth_ntlm, SOUP_TYPE_CONNECTION_AUTH)
