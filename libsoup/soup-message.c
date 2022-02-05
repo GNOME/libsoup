@@ -2851,7 +2851,7 @@ soup_message_get_status (SoupMessage *msg)
  *
  * Returns the reason phrase for the status of this message.
  *
- * Returns: Phrase or %NULL
+ * Returns: (nullable): the phrase
  */
 const char *
 soup_message_get_reason_phrase (SoupMessage *msg)
