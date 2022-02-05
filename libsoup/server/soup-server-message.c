@@ -682,7 +682,7 @@ soup_server_message_set_http_version (SoupServerMessage *msg,
  *
  * Get the HTTP reason phrase of @msg or %NULL.
  *
- * Returns: the reason phrase.
+ * Returns: (nullable): the reason phrase.
  */
 const char *
 soup_server_message_get_reason_phrase (SoupServerMessage *msg)
