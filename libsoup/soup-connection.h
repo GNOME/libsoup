@@ -6,7 +6,7 @@
 #ifndef __SOUP_CONNECTION_H__
 #define __SOUP_CONNECTION_H__ 1
 
-#include "soup-types.h"
+#include "soup-types-private.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
 

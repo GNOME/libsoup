@@ -27,15 +27,8 @@ typedef struct _SoupServer              SoupServer;
 typedef struct _SoupServerMessage       SoupServerMessage;
 typedef struct _SoupSession             SoupSession;
 typedef struct _SoupSessionFeature      SoupSessionFeature;
-typedef struct _SoupSocket              SoupSocket;
 typedef struct _SoupWebsocketConnection SoupWebsocketConnection;
 typedef struct _SoupWebsocketExtension  SoupWebsocketExtension;
-
-/*< private >*/
-typedef struct _SoupConnection        SoupConnection;
-typedef struct _SoupMessageQueue      SoupMessageQueue;
-typedef struct _SoupMessageQueueItem  SoupMessageQueueItem;
-typedef struct _SoupClientMessageIO   SoupClientMessageIO;
 
 G_END_DECLS
 
