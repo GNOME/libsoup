@@ -1,0 +1,193 @@
+# Abkhazian translation for libsoup.
+# Copyright (C) 2022 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Нанба Наала <naala-nanba@rambler.ru>, 2022.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
+"POT-Creation-Date: 2022-02-08 17:27+0000\n"
+"PO-Revision-Date: 2022-02-08 17:27+0000\n"
+"Last-Translator: Нанба Наала <naala-nanba@rambler.ru>\n"
+"Language-Team: Abkhazian <ab@li.org>\n"
+"Language: ab\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: libsoup/cache/soup-cache-input-stream.c:70
+msgid "Network stream unexpectedly closed"
+msgstr "Аҳатә еишьҭаҵа иаалырҟьаны иаркхеит"
+
+#: libsoup/cache/soup-cache-input-stream.c:252
+msgid "Failed to completely cache the resource"
+msgstr "Инагӡаны аресурс кеш азура залымшахеит"
+
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Аҭыгаратә буфер амцхә ихәыҷуп"
+
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Аимадара иаалырҟьаны иеԥырҟьахеит"
+
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Аԥшаара азҵаатәхәы иашаӡам"
+
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Изалымшахеит ахсара SoupBodyInputStream"
+
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
+msgid "Operation would block"
+msgstr "Аҟаҵара аанкылоуп"
+
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "HTTP-аҭак аилыргара залымшахеит"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "HTTP- аҭак еиҩдыраам акодркра"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1513
+#: libsoup/http2/soup-client-message-io-http2.c:1537
+msgid "Operation was cancelled"
+msgstr "Аҟаҵара аԥыхуп"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Амцхә идуу ахы"
+
+#: libsoup/server/soup-server.c:1202
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Изалшом  аԥҵара  TLS-сервер TLS-сертификат ада"
+
+#: libsoup/server/soup-server.c:1224
+#, c-format
+msgid "Could not listen on address %s, port %d: "
+msgstr "Изалшом аҭыӡҭыԥ %s аҟны азыӡырҩра алагара апорт — %d:"
+
+#: libsoup/server/soup-socket.c:121
+msgid "Could not import existing socket: "
+msgstr "Иҟоу асокет аимпортҟаҵара залымшахеит:"
+
+#: libsoup/server/soup-socket.c:130
+msgid "Can’t import unconnected socket"
+msgstr "Изалшом аимпортҟаҵара иаҿакым асокет"
+
+#: libsoup/soup-session.c:1169
+msgid "Location header is missing or empty in response headers"
+msgstr "Location ахы ыҟаӡам мамзар иҭацәуп аҭакқәа рхаҟны"
+
+#: libsoup/soup-session.c:1183
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Иақәнагам  URI «%s» Location аҭак ахаҟны"
+
+#: libsoup/soup-session.c:1203
+msgid "Too many redirects"
+msgstr "Аиҭахырхарҭақәа амцхә ирацәоуп"
+
+#: libsoup/soup-session.c:1208
+msgid "Message was restarted too many times"
+msgstr "Ацҳамҭа амцхә ирацәаны еиҭадәықәҵан"
+
+#: libsoup/soup-session.c:3320 libsoup/soup-session.c:3469
+msgid "Message is already in session queue"
+msgstr "Ацҳамҭа асеансқәа реишьҭагыла иқәгылоуп"
+
+#: libsoup/soup-session.c:3830
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Асервер иаднакылаӡом аимадара ашьақәырӷәӷәара WebSocket."
+
+#: libsoup/soup-tld.c:142
+msgid "No public-suffix list available."
+msgstr "Аицзеиԥш асуффиксқәа рыхьӡынҵа ыҟаӡам"
+
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
+msgid "Invalid hostname"
+msgstr "Акомпиутер ахьӡ иашаӡам"
+
+#: libsoup/soup-tld.c:159
+msgid "Hostname is an IP address"
+msgstr "Акомпиутер ахьӡ IP - ҭыӡҭыԥуп"
+
+#: libsoup/soup-tld.c:180
+msgid "Hostname has no base domain"
+msgstr "Акомпиутер ахьӡ иамаӡам адоментә хәҭа"
+
+#: libsoup/soup-tld.c:188
+msgid "Not enough domains"
+msgstr "Иазхом адоментә хьыӡқәа аҭыӡҭыԥ аҟны"
+
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
+msgid "Server requested unsupported extension"
+msgstr "Асервер адкылара змам арҭбаара иазыҳәеит"
+
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Ииашам ахы WebSocket «%s»"
+
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr "Асервер ииашам «%s» ацаԥха WebSocket хнырҳәит"
+
+#: libsoup/websocket/soup-websocket.c:486
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Ахышәара адубльҟаҵара «%s» аҟны арҭбаара ахы WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:487
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "" 
+"Асервер идубльтәу ахышәара хнырҳәит «%s» аҟны арҭбаара ахы  WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
+msgid "WebSocket handshake expected"
+msgstr "Аимадара ашьақәырӷәӷәара азыԥшра WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:595
+msgid "Unsupported WebSocket version"
+msgstr "Адкылара змам аверсиа WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:604
+msgid "Invalid WebSocket key"
+msgstr "Ииашам ацаԥха WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:623
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Адкылара змам аиҵапротокол WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:829
+msgid "Server rejected WebSocket handshake"
+msgstr "Асервер аимадара WebSocket ашьақәырӷәӷәара мап ацәнакит "
+
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
+msgid "Server ignored WebSocket handshake"
+msgstr "Асервер иазхьамԥшӡеит аимадара ашьақәырӷәӷәара WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:858
+msgid "Server requested unsupported protocol"
+msgstr "Асервер адкылара змам апротокол азыҳәара ҟанаҵеит"
