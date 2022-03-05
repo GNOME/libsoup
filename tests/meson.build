@@ -61,6 +61,8 @@ if installed_tests_enabled
     'index.txt',
     'test-cert.pem',
     'test-key.pem',
+    'test-cert-2.pem',
+    'test-key-2.pem',
     install_dir : installed_tests_execdir
   )
 endif
