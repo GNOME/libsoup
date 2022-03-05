@@ -108,7 +108,9 @@ tests = [
 if quart_found
   configure_file(input : 'http2-server.py',
     output : 'http2-server.py',
-    copy : true)
+    copy : true,
+    install : installed_tests_enabled,
+    install_dir : installed_tests_execdir)
 
   tests += [{'name': 'http2'}]
 endif
