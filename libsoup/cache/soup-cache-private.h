@@ -27,6 +27,12 @@
 
 G_BEGIN_DECLS
 
+typedef enum {
+	SOUP_CACHE_RESPONSE_FRESH,
+	SOUP_CACHE_RESPONSE_NEEDS_VALIDATION,
+	SOUP_CACHE_RESPONSE_STALE
+} SoupCacheResponse;
+
 SoupCacheResponse  soup_cache_has_response                    (SoupCache   *cache,
 							       SoupMessage *msg);
 GInputStream      *soup_cache_send_response                   (SoupCache   *cache,
