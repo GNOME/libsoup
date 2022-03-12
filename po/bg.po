@@ -1,14 +1,15 @@
 # Bulgarian translation of libsoup po-file.
 # Copyright (C) 2012, 2013, 2016 Free Software Foundation, Inc.
+# Copyright (C) 2022 Alexander Shopov.
 # This file is distributed under the same license as the libsoup package.
-# Alexander Shopov <ash@kambanaria.org>, 2012, 2013, 2016.
+# Alexander Shopov <ash@kambanaria.org>, 2012, 2013, 2016, 2022.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-01 06:26+0200\n"
-"PO-Revision-Date: 2016-02-01 06:26+0200\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
+"POT-Creation-Date: 2022-03-11 09:17+0000\n"
+"PO-Revision-Date: 2022-03-12 10:44+0100\n"
 "Last-Translator: Alexander Shopov <ash@kambanaria.org>\n"
 "Language-Team: Bulgarian <dict@fsa-bg.org>\n"
 "Language: bg\n"
@@ -17,157 +18,180 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
-msgid "Connection terminated unexpectedly"
-msgstr "Връзката прекъсна неочаквано"
-
-#: ../libsoup/soup-body-input-stream.c:462
-msgid "Invalid seek request"
-msgstr "Неправилна заявка за търсене"
-
-#: ../libsoup/soup-body-input-stream.c:490
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Потокът SoupBodyInputStream не може да бъде прекъснат"
-
-#: ../libsoup/soup-cache-input-stream.c:74
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
-msgstr "Потокът от мрежата неочаквано прекъсна"
+msgstr "Мрежовият поток неочаквано прекъсна"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Ресурсът не може да бъде напълно кеширан"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Прекалено малък изходен буфер"
 
-#: ../libsoup/soup-message-client-io.c:41
-msgid "Could not parse HTTP response"
-msgstr "Отговорът от HTTP не може да бъде анализиран"
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Връзката прекъсна неочаквано"
 
-#: ../libsoup/soup-message-client-io.c:66
-msgid "Unrecognized HTTP response encoding"
-msgstr "Непознато кодиране на отговора от HTTP"
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Неправилна заявка за търсене"
 
-#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Потокът „SoupBodyInputStream“ не може да бъде отсечен"
+
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
 msgid "Operation would block"
 msgstr "Операцията ще блокира"
 
-#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Отговорът от HTTP не може да бъде анализиран"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Непознато кодиране на отговора от HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1521
+#: libsoup/http2/soup-client-message-io-http2.c:1545
 msgid "Operation was cancelled"
 msgstr "Операцията е отменена"
 
-#: ../libsoup/soup-message-server-io.c:64
-msgid "Could not parse HTTP request"
-msgstr "Заявката към HTTP не може да бъде анализирана"
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Прекалено голяма заглавна част"
 
-#: ../libsoup/soup-request.c:140
-#, c-format
-msgid "No URI provided"
-msgstr "Не е даден адрес"
+#: libsoup/server/soup-server.c:1202
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Не може да се създаде сървър с TLS без съответния сертификат за TLS"
 
-#: ../libsoup/soup-request.c:150
-#, c-format
-msgid "Invalid '%s' URI: %s"
-msgstr "Неправилен адрес на „%s“: %s"
-
-#: ../libsoup/soup-server.c:1720
-msgid "Can't create a TLS server without a TLS certificate"
-msgstr "Не може да се създаде сървър с TLS без съответния сертификат"
-
-#: ../libsoup/soup-server.c:1739
+#: libsoup/server/soup-server.c:1224
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Не може да се слуша на адрес „%s“, порт %d: "
 
-#: ../libsoup/soup-session.c:4543
-#, c-format
-msgid "Could not parse URI '%s'"
-msgstr "Адресът „%s“ е неправилен"
-
-#: ../libsoup/soup-session.c:4580
-#, c-format
-msgid "Unsupported URI scheme '%s'"
-msgstr "Схемата на адреса не се поддържа „%s“"
-
-#: ../libsoup/soup-session.c:4602
-#, c-format
-msgid "Not an HTTP URI"
-msgstr "Не е адрес за HTTP"
-
-#: ../libsoup/soup-session.c:4788
-msgid "The server did not accept the WebSocket handshake."
-msgstr "Сървърът не прие ръкостискането за WebSocket."
-
-#: ../libsoup/soup-socket.c:148
-msgid "Can't import non-socket as SoupSocket"
-msgstr "Не може да се внесе като гнездо за soup нещо, което не е гнездо"
-
-#: ../libsoup/soup-socket.c:166
+#: libsoup/server/soup-socket.c:121
 msgid "Could not import existing socket: "
 msgstr "Съществуващото гнездо не може да бъде внесено: "
 
-#: ../libsoup/soup-socket.c:175
-msgid "Can't import unconnected socket"
+#: libsoup/server/soup-socket.c:130
+msgid "Can’t import unconnected socket"
 msgstr "Гнездо, което не е свързано, не може да се внесе"
 
-#: ../libsoup/soup-websocket.c:338 ../libsoup/soup-websocket.c:347
-msgid "WebSocket handshake expected"
-msgstr "Очаква се ръкостискане за WebSocket"
+#: libsoup/soup-session.c:1169
+msgid "Location header is missing or empty in response headers"
+msgstr "Заглавната част за местоположение в отговора липсва или е празна"
 
-#: ../libsoup/soup-websocket.c:355
-msgid "Unsupported WebSocket version"
-msgstr "Неподдържана версия на WebSocket"
-
-#: ../libsoup/soup-websocket.c:364
-msgid "Invalid WebSocket key"
-msgstr "Неправилен ключ за WebSocket"
-
-#: ../libsoup/soup-websocket.c:374
+#: libsoup/soup-session.c:1183
 #, c-format
-msgid "Incorrect WebSocket \"%s\" header"
-msgstr "Неправилна заглавна част „%s“ за WebSocket"
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Неправилен адрес „%s“ в заглавната част за местоположение"
 
-#: ../libsoup/soup-websocket.c:383
-msgid "Unsupported WebSocket subprotocol"
-msgstr "Неподдържан подпротокол за WebSocket"
+#: libsoup/soup-session.c:1203
+msgid "Too many redirects"
+msgstr "Прекалено много пренасочвания"
 
-#: ../libsoup/soup-websocket.c:510
-msgid "Server rejected WebSocket handshake"
-msgstr "Сървърът отхвърли ръкостискането по WebSocket"
+#: libsoup/soup-session.c:1208
+msgid "Message was restarted too many times"
+msgstr "Съобщението е рестартирано прекалено много пъти"
 
-#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
-msgid "Server ignored WebSocket handshake"
-msgstr "Сървърът пренебрегна ръкостискането по WebSocket"
+#: libsoup/soup-session.c:3320 libsoup/soup-session.c:3469
+msgid "Message is already in session queue"
+msgstr "Съобщението вече е в сесийна опашка"
 
-#: ../libsoup/soup-websocket.c:539
-msgid "Server requested unsupported protocol"
-msgstr "Сървърът изиска неподдържан протокол"
+#: libsoup/soup-session.c:3830
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Сървърът не прие ръкостискането за WebSocket."
 
-#: ../libsoup/soup-websocket.c:549
-msgid "Server requested unsupported extension"
-msgstr "Сървърът изиска неподдържано разширение"
+#: libsoup/soup-tld.c:142
+msgid "No public-suffix list available."
+msgstr "Липсва списък със суфикси на публични домейни (PSL/eTLD)."
 
-#: ../libsoup/soup-websocket.c:562
-#, c-format
-msgid "Server returned incorrect \"%s\" key"
-msgstr "Сървърът върна неправилен ключ „%s“"
-
-#: ../libsoup/soup-tld.c:188
-msgid "Hostname is an IP address"
-msgstr "Името на машината е адрес по IP"
-
-#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
 msgid "Invalid hostname"
 msgstr "Неправилно име на машина"
 
-#: ../libsoup/soup-tld.c:250
+#: libsoup/soup-tld.c:159
+msgid "Hostname is an IP address"
+msgstr "Името на машината е адрес по IP"
+
+#: libsoup/soup-tld.c:180
 msgid "Hostname has no base domain"
 msgstr "Името на машината не съдържа домейн"
 
-#: ../libsoup/soup-tld.c:304
+#: libsoup/soup-tld.c:188
 msgid "Not enough domains"
 msgstr "Няма достатъчно домейни"
+
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
+msgid "Server requested unsupported extension"
+msgstr "Сървърът изиска неподдържано разширение"
+
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Неправилна заглавна част „%s“ за WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr "Сървърът върна неправилен ключ „%s“"
+
+#: libsoup/websocket/soup-websocket.c:486
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Повтарящ се параметър в „%s“ заглавната част на разширение на WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:487
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Сървърът върна повтарящ се параметър в „%s“ заглавната част на разширение на "
+"WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
+msgid "WebSocket handshake expected"
+msgstr "Очаква се ръкостискане за WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:595
+msgid "Unsupported WebSocket version"
+msgstr "Неподдържана версия на WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:604
+msgid "Invalid WebSocket key"
+msgstr "Неправилен ключ за WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:623
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Неподдържан подпротокол за WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:829
+msgid "Server rejected WebSocket handshake"
+msgstr "Сървърът отхвърли ръкостискането по WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
+msgid "Server ignored WebSocket handshake"
+msgstr "Сървърът пренебрегна ръкостискането по WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:858
+msgid "Server requested unsupported protocol"
+msgstr "Сървърът изиска неподдържан протокол"
