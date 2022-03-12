@@ -38,12 +38,6 @@ typedef enum {
 } SoupCacheability;
 
 typedef enum {
-	SOUP_CACHE_RESPONSE_FRESH,
-	SOUP_CACHE_RESPONSE_NEEDS_VALIDATION,
-	SOUP_CACHE_RESPONSE_STALE
-} SoupCacheResponse;
-
-typedef enum {
 	SOUP_CACHE_SINGLE_USER,
 	SOUP_CACHE_SHARED
 } SoupCacheType;
