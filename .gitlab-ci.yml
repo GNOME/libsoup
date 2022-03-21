@@ -41,6 +41,7 @@ fedora-autobahn-quick:
   artifacts:
     paths:
       - "_build/meson-logs/autobahn-report"
+  allow_failure: true
 
 fedora-scan:
   extends: .build
