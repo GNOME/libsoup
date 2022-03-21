@@ -112,6 +112,7 @@ on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
 
 static const char *ca_file, *proxy;
 static char *client_cert_file, *client_key_file;
+static char *user_agent;
 static gboolean ntlm;
 static gboolean negotiate;
 
@@ -128,6 +129,9 @@ static GOptionEntry entries[] = {
 	{ "debug", 'd', 0,
 	  G_OPTION_ARG_NONE, &debug,
 	  "Show HTTP headers", NULL },
+        { "user-agent", 'u', 0,
+          G_OPTION_ARG_STRING, &user_agent,
+          "User agent string", "STRING" },
 	{ "head", 'h', 0,
           G_OPTION_ARG_NONE, &head,
           "Do HEAD rather than GET", NULL },
@@ -233,6 +237,9 @@ main (int argc, char **argv)
 			exit (1);
 		}
 	}
+
+        if (user_agent)
+                soup_session_set_user_agent (session, user_agent);
 
 	if (debug) {
 		SoupLogger *logger = soup_logger_new (SOUP_LOGGER_LOG_HEADERS);
