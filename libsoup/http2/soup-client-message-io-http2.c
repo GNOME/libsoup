@@ -700,7 +700,6 @@ on_frame_recv_callback (nghttp2_session     *session,
                         if (SOUP_STATUS_IS_INFORMATIONAL (soup_message_get_status (data->msg))) {
                                 soup_message_got_informational (data->msg);
                                 soup_message_cleanup_response (data->msg);
-                                advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DONE);
                                 io->in_callback--;
                                 return 0;
                         }

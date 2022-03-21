@@ -160,6 +160,7 @@ static const struct {
 	{ SOUP_STATUS_CONTINUE,                   "Continue" },
 	{ SOUP_STATUS_SWITCHING_PROTOCOLS,        "Switching Protocols" },
 	{ SOUP_STATUS_PROCESSING,                 "Processing" },
+        { 103,                                    "Early Hints" },
 
 	/* Success */
 	{ SOUP_STATUS_OK,                         "OK" },
