@@ -119,9 +119,11 @@ typedef struct {
         gboolean paused;
         guint32 stream_id;
         gboolean can_be_restarted;
+        gboolean expect_continue;
 } SoupHTTP2MessageData;
 
 static void soup_client_message_io_http2_finished (SoupClientMessageIO *iface, SoupMessage *msg);
+static ssize_t on_data_source_read_callback (nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data);
 
 static void
 NGCHECK (int return_code)
@@ -166,6 +168,22 @@ frame_type_to_string (nghttp2_frame_type type)
                 return "UNKNOWN";
         /* LCOV_EXCL_STOP */
         }
+}
+
+static const char *
+headers_category_to_string (nghttp2_headers_category catergory)
+{
+        switch (catergory) {
+        case NGHTTP2_HCAT_REQUEST:
+                return "REQUEST";
+        case NGHTTP2_HCAT_RESPONSE:
+                return "RESPONSE";
+        case NGHTTP2_HCAT_PUSH_RESPONSE:
+                return "PUSH_RESPONSE";
+        case NGHTTP2_HCAT_HEADERS:
+                return "HEADERS";
+        }
+        g_assert_not_reached ();
 }
 
 static const char *
@@ -599,7 +617,7 @@ on_begin_frame_callback (nghttp2_session        *session,
 
         switch (hd->type) {
         case NGHTTP2_HEADERS:
-                if (data->state < STATE_READ_HEADERS) {
+                if (data->state == STATE_WRITE_DONE) {
                         soup_message_set_metrics_timestamp (data->item->msg, SOUP_MESSAGE_METRICS_RESPONSE_START);
                         advance_state_from (data, STATE_WRITE_DONE, STATE_READ_HEADERS);
                 }
@@ -691,27 +709,53 @@ on_frame_recv_callback (nghttp2_session     *session,
         }
 
         switch (frame->hd.type) {
-        case NGHTTP2_HEADERS:
+        case NGHTTP2_HEADERS: {
+                guint status = soup_message_get_status (data->msg);
+
                 if (data->metrics)
                         data->metrics->response_header_bytes_received += frame->hd.length + FRAME_HEADER_SIZE;
 
-                if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE && frame->hd.flags & NGHTTP2_FLAG_END_HEADERS) {
-                        h2_debug (io, data, "[HEADERS] status %u", soup_message_get_status (data->msg));
-                        if (SOUP_STATUS_IS_INFORMATIONAL (soup_message_get_status (data->msg))) {
+                h2_debug (io, data, "[HEADERS] category=%s status=%u",
+                          headers_category_to_string (frame->headers.cat), status);
+                switch (frame->headers.cat) {
+                case NGHTTP2_HCAT_HEADERS:
+                        if (!(frame->hd.flags & NGHTTP2_FLAG_END_HEADERS)) {
+                                io->in_callback--;
+                                return 0;
+                        }
+                        break;
+                case NGHTTP2_HCAT_RESPONSE:
+                        if (SOUP_STATUS_IS_INFORMATIONAL (status)) {
+                                if (data->expect_continue && status == SOUP_STATUS_CONTINUE) {
+                                        nghttp2_data_provider data_provider;
+
+                                        data_provider.source.ptr = soup_message_get_request_body_stream (data->msg);
+                                        data_provider.read_callback = on_data_source_read_callback;
+                                        nghttp2_submit_data (io->session, NGHTTP2_FLAG_END_STREAM, frame->hd.stream_id, &data_provider);
+                                        io_try_write (io, !data->item->async);
+                                }
+
                                 soup_message_got_informational (data->msg);
                                 soup_message_cleanup_response (data->msg);
                                 io->in_callback--;
                                 return 0;
                         }
-
-                        if (soup_message_get_status (data->msg) == SOUP_STATUS_NO_CONTENT ||
-                            frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-                                h2_debug (io, data, "Stream done");
-                                advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA);
-                        }
-                        soup_message_got_headers (data->msg);
+                        break;
+                case NGHTTP2_HCAT_PUSH_RESPONSE:
+                        g_warn_if_reached ();
+                        break;
+                default:
+                        g_assert_not_reached ();
                 }
+
+                if (soup_message_get_status (data->msg) == SOUP_STATUS_NO_CONTENT || frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+                        h2_debug (io, data, "Stream done");
+                        advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA);
+                }
+                soup_message_got_headers (data->msg);
+
                 break;
+        }
         case NGHTTP2_DATA:
                 if (data->metrics)
                         data->metrics->response_body_bytes_received += frame->data.hd.length + FRAME_HEADER_SIZE;
@@ -825,7 +869,8 @@ on_frame_send_callback (nghttp2_session     *session,
         switch (frame->hd.type) {
         case NGHTTP2_HEADERS:
                 g_assert (data);
-                h2_debug (io, data, "[SEND] [HEADERS] finished=%d",
+                h2_debug (io, data, "[SEND] [HEADERS] category=%s finished=%d",
+                          headers_category_to_string (frame->headers.cat),
                           (frame->hd.flags & NGHTTP2_FLAG_END_HEADERS) ? 1 : 0);
 
                 if (data->metrics)
@@ -1266,13 +1311,18 @@ send_message_request (SoupMessage          *msg,
         nghttp2_priority_spec priority_spec;
         nghttp2_priority_spec_init (&priority_spec, 0, message_priority_to_weight (msg), 0);
 
-        nghttp2_data_provider data_provider;
-        if (body_stream) {
-                data_provider.source.ptr = body_stream;
-                data_provider.read_callback = on_data_source_read_callback;
+        int32_t stream_id;
+        if (body_stream && soup_message_headers_get_expectations (soup_message_get_request_headers (msg)) & SOUP_EXPECTATION_CONTINUE) {
+                data->expect_continue = TRUE;
+                stream_id = nghttp2_submit_headers (io->session, 0, -1, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, data);
+        } else {
+                nghttp2_data_provider data_provider;
+                if (body_stream) {
+                        data_provider.source.ptr = body_stream;
+                        data_provider.read_callback = on_data_source_read_callback;
+                }
+                stream_id = nghttp2_submit_request (io->session, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
         }
-
-        int32_t stream_id = nghttp2_submit_request (io->session, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
         if (stream_id == NGHTTP2_ERR_STREAM_ID_NOT_AVAILABLE) {
                 set_error_for_data (data,
                                     g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
