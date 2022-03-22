@@ -11,12 +11,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <gio/gio.h>
+#ifdef G_OS_UNIX
+#include <gio/gunixinputstream.h>
+#endif
+
 #include <libsoup/soup.h>
 
 static SoupSession *session;
 static GMainLoop *loop;
-static gboolean debug, head, quiet;
-static const gchar *output_file_path = NULL;
+static gboolean debug, head, expect_continue, quiet, ignore_tls;
+static const gchar *method;
+static const gchar *output_file_path;
+static const gchar *input_file_path;
 
 #define OUTPUT_BUFFER_SIZE 8192
 
@@ -110,6 +117,14 @@ on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
         g_object_unref (in);
 }
 
+static gboolean
+accept_certificate (SoupMessage         *msg,
+                    GTlsCertificate     *certificate,
+                    GTlsCertificateFlags errors)
+{
+        return TRUE;
+}
+
 static const char *ca_file, *proxy;
 static char *client_cert_file, *client_key_file;
 static char *user_agent;
@@ -126,21 +141,33 @@ static GOptionEntry entries[] = {
 	{ "key", 0, 0,
 	  G_OPTION_ARG_STRING, &client_key_file,
 	  "Use FILE as the TLS client key file", "FILE" },
+        { "ignore-tls", 0, 0,
+          G_OPTION_ARG_NONE, &ignore_tls,
+          "Ignore TLS certificate errors", NULL },
 	{ "debug", 'd', 0,
 	  G_OPTION_ARG_NONE, &debug,
 	  "Show HTTP headers", NULL },
         { "user-agent", 'u', 0,
           G_OPTION_ARG_STRING, &user_agent,
           "User agent string", "STRING" },
+        { "method", 'm', 0,
+          G_OPTION_ARG_STRING, &method,
+          "HTTP method to use", "STRING" },
 	{ "head", 'h', 0,
           G_OPTION_ARG_NONE, &head,
-          "Do HEAD rather than GET", NULL },
+          "Do HEAD rather than GET (equivalent to --method=HEAD)", NULL },
+        { "expect-continue", 0, 0,
+          G_OPTION_ARG_NONE, &expect_continue,
+          "Include Expects: 100-continue header in the request", NULL },
 	{ "ntlm", 'n', 0,
 	  G_OPTION_ARG_NONE, &ntlm,
 	  "Use NTLM authentication", NULL },
 	{ "output", 'o', 0,
 	  G_OPTION_ARG_STRING, &output_file_path,
 	  "Write the received data to FILE instead of stdout", "FILE" },
+        { "input", 'i', 0,
+          G_OPTION_ARG_STRING, &input_file_path,
+          "Read data from FILE when method is PUT or POST", "FILE" },
 	{ "proxy", 'p', 0,
 	  G_OPTION_ARG_STRING, &proxy,
 	  "Use URL as an HTTP proxy", "URL" },
@@ -264,8 +291,48 @@ main (int argc, char **argv)
 		g_object_unref (resolver);
 	}
 
+        if (!method)
+                method = head ? "HEAD" : "GET";
+        msg = soup_message_new (method, url);
+
+        if (g_strcmp0 (method, "PUT") == 0 || g_strcmp0 (method, "POST") == 0) {
+                GInputStream *stream;
+
+                if (input_file_path) {
+                        GFile *input_file = g_file_new_for_commandline_arg (input_file_path);
+                        stream = G_INPUT_STREAM (g_file_read (input_file, NULL, &error));
+                        if (!stream) {
+                                g_printerr ("Failed to open input file \"%s\": %s\n", input_file_path, error->message);
+                                g_error_free (error);
+                                g_object_unref (session);
+                                exit (1);
+                        }
+                } else {
+#ifdef G_OS_UNIX
+                        stream = g_unix_input_stream_new (0, FALSE);
+#else
+                        g_printerr ("Input file is required for method %s\n", method);
+                        g_object_unref (session);
+                        exit (1);
+#endif
+                }
+
+                soup_message_set_request_body (msg, NULL, stream, -1);
+                g_object_unref (stream);
+
+                if (expect_continue) {
+                        soup_message_headers_set_expectations (soup_message_get_request_headers (msg),
+                                                               SOUP_EXPECTATION_CONTINUE);
+                }
+        }
+
+        if (ignore_tls) {
+                g_signal_connect (msg, "accept-certificate",
+                                  G_CALLBACK (accept_certificate),
+                                  NULL);
+        }
+
         /* Send the request */
-	msg = soup_message_new (head ? "HEAD" : "GET", url);
         soup_message_set_tls_client_certificate (msg, client_cert);
         soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
 				 on_request_sent, NULL);
