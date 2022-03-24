@@ -365,7 +365,7 @@ io_write (SoupClientMessageIOHTTP2 *io,
 
         if (io->write_buffer == NULL) {
                 io->written_bytes = 0;
-                g_assert (io->in_callback == 0);
+                g_warn_if_fail (io->in_callback == 0);
                 io->write_buffer_size = nghttp2_session_mem_send (io->session, (const guint8**)&io->write_buffer);
                 NGCHECK (io->write_buffer_size);
                 if (io->write_buffer_size == 0) {
@@ -455,7 +455,7 @@ io_read (SoupClientMessageIOHTTP2  *io,
                                             blocking, cancellable, error)) < 0)
             return FALSE;
 
-        g_assert (io->in_callback == 0);
+        g_warn_if_fail (io->in_callback == 0);
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
         NGCHECK (ret);
         return ret != 0;
