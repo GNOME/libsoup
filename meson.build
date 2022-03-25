@@ -374,7 +374,7 @@ enable_introspection = gir.found()
 # Vala API #
 ############
 vapi_opt = get_option('vapi')
-enable_vapi = add_languages('vala', required: vapi_opt)
+enable_vapi = add_languages('vala', required: vapi_opt, native: false)
 if enable_vapi and not enable_introspection
   enable_vapi = false
   if vapi_opt.enabled()
