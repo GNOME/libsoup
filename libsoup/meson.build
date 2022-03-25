@@ -278,6 +278,10 @@ libsoup_dep = declare_dependency(link_with : libsoup,
   sources : soup_enum_h,
   dependencies : [ platform_deps, gssapi_dep, glib_deps ])
 
+if meson.version().version_compare('>=0.54.0')
+  meson.override_dependency('libsoup-2.4', libsoup_dep)
+endif
+
 if enable_gnome
   soup_gnome_api_name = 'soup-gnome-' + apiversion
   libsoup_gnome_api_name = 'lib' + soup_gnome_api_name
@@ -296,6 +300,14 @@ if enable_gnome
     include_directories : configinc,
     install : true,
     dependencies : deps + [libsoup_dep])
+
+  libsoup_gnome_dep = declare_dependency(link_with : libsoup_gnome,
+    include_directories : configinc,
+    dependencies : deps + [libsoup_dep])
+
+  if meson.version().version_compare('>=0.54.0')
+    meson.override_dependency('libsoup-gnome-2.4', libsoup_gnome_dep)
+  endif
 
   pkg.generate(
     libraries : libsoup_gnome,
