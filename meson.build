@@ -234,11 +234,11 @@ apache_httpd2 = find_program('httpd2', 'httpd', 'apache2', 'apache',
 have_apache=false
 apache_httpd2_version = ''
 if apache_httpd2.found() and apachectl.found()
-  apache_httpd2_version_raw = run_command(apachectl.path(), '-v')
+  apache_httpd2_version_raw = run_command(apachectl.path(), '-v', check: false)
   # It seems that from version 2.4.39 apachectl doesn't take arguments, fallback
   # to calling apache directly just in case.
   if apache_httpd2_version_raw.returncode() != 0
-    apache_httpd2_version_raw = run_command(apache_httpd2.path(), '-v')
+    apache_httpd2_version_raw = run_command(apache_httpd2.path(), '-v', check: false)
   endif
   if apache_httpd2_version_raw.returncode() == 0
     apache_httpd2_version = apache_httpd2_version_raw.stdout().split('\n')[0]
@@ -253,11 +253,11 @@ if apache_httpd2.found() and apachectl.found()
 endif
 
 if have_apache
-  apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apachectl.path())
+  apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apachectl.path(), check: false)
   have_apache = (apache_modules_dirs_out.returncode() == 0)
   # Same as above, using apachectl might fail, try apache directly.
   if not have_apache
-    apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apache_httpd2.path())
+    apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apache_httpd2.path(), check: false)
     have_apache = (apache_modules_dirs_out.returncode() == 0)
   endif
   if have_apache
@@ -291,7 +291,7 @@ if not get_option('http2_tests').disabled()
   pymod = import('python')
   python = pymod.find_installation('python3')
   if python.found()
-    ret = run_command(python, '-c', 'import importlib\nassert(importlib.find_loader("quart"))')
+    ret = run_command(python, '-c', 'import importlib\nassert(importlib.find_loader("quart"))', check: false)
     if ret.returncode() == 0
       quart_found = true
     endif
@@ -332,8 +332,8 @@ else
   endif
   krb5_config = find_program(krb5_config_path, required : gssapi_opt)
   if krb5_config.found()
-    libs_output = run_command (krb5_config, '--libs', 'gssapi', check: gssapi_opt.enabled())
-    cflags_output = run_command (krb5_config, '--cflags', 'gssapi', check: gssapi_opt.enabled())
+    libs_output = run_command(krb5_config, '--libs', 'gssapi', check: gssapi_opt.enabled())
+    cflags_output = run_command(krb5_config, '--cflags', 'gssapi', check: gssapi_opt.enabled())
     if libs_output.returncode() == 0 and cflags_output.returncode() == 0
       enable_gssapi = true
       gssapi_dep = declare_dependency(
