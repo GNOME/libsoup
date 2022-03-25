@@ -244,6 +244,8 @@ libsoup_dep = declare_dependency(link_with : libsoup,
   dependencies : [ platform_deps, gssapi_dep, glib_deps ]
 )
 
+meson.override_dependency('libsoup-3.0', libsoup_dep)
+
 libsoup_static_dep = declare_dependency(link_with : libsoup_static,
   include_directories : libsoup_includes,
   sources : soup_enum_h,
