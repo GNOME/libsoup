@@ -759,16 +759,19 @@ on_frame_recv_callback (nghttp2_session     *session,
         case NGHTTP2_DATA:
                 if (data->metrics)
                         data->metrics->response_body_bytes_received += frame->data.hd.length + FRAME_HEADER_SIZE;
-                if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM && data->body_istream) {
-                        soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
-                        if (data->state == STATE_READ_DATA_START) {
-                                io_try_sniff_content (data, FALSE, data->item->cancellable);
-                                if (data->state == STATE_READ_DATA && data->item->async)
-                                        soup_http2_message_data_check_status (data);
+                if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+                        if (data->body_istream) {
+                                soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
+                                if (data->state == STATE_READ_DATA_START) {
+                                        io_try_sniff_content (data, FALSE, data->item->cancellable);
+                                        if (data->state == STATE_READ_DATA && data->item->async)
+                                                soup_http2_message_data_check_status (data);
+                                }
                         }
+                } else {
+                        /* Try to write after every data frame, since nghttp2 might need to send a window update. */
+                        io_try_write (io, !data->item->async);
                 }
-                /* Try to write after every data frame, since nghttp2 might need to send a window update. */
-                io_try_write (io, !data->item->async);
                 break;
         case NGHTTP2_RST_STREAM:
                 if (frame->rst_stream.error_code != NGHTTP2_NO_ERROR) {
