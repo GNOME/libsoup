@@ -82,8 +82,6 @@ typedef struct {
 	GSList      *connections;      /* CONTAINS: SoupConnection */
 	guint        num_conns;
 
-	guint        num_messages;
-
 	GSource     *keep_alive_src;
 	SoupSession *session;
 } SoupSessionHost;
@@ -1358,7 +1356,6 @@ soup_session_append_queue_item (SoupSession        *session,
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
-	SoupSessionHost *host;
 	GSList *f;
 
         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_FETCH_START);
@@ -1369,9 +1366,6 @@ soup_session_append_queue_item (SoupSession        *session,
 	g_queue_insert_sorted (priv->queue,
 			       soup_message_queue_item_ref (item),
 			       (GCompareDataFunc)compare_queue_item, NULL);
-
-	host = get_host_for_message (session, item->msg);
-	host->num_messages++;
 
 	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_header_handler (
@@ -1550,7 +1544,6 @@ soup_session_unqueue_item (SoupSession          *session,
 			   SoupMessageQueueItem *item)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupSessionHost *host;
 	GSList *f;
 
         soup_message_set_connection (item->msg, NULL);
@@ -1561,9 +1554,6 @@ soup_session_unqueue_item (SoupSession          *session,
 	}
 
 	g_queue_remove (priv->queue, item);
-
-	host = get_host_for_message (session, item->msg);
-	host->num_messages--;
 
 	/* g_signal_handlers_disconnect_by_func doesn't work if you
 	 * have a metamarshal, meaning it doesn't work with
