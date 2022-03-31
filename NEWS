@@ -1,3 +1,11 @@
+Changes in libsoup from 3.0.5 to 3.0.6:
+
+* Misc HTTP/2 fixes [Carlos Garcia Campos]
+* Add PUT/POST support to examples/get [Carlos Garcia Campos]
+* Add `--user-agent` option to examples/get [Carlos Garcia Campos]
+* Misc meson improvements [Nirbheek Chauhan]
+* Fix build with Visual Studio [Chun-wei Fan]
+
 Changes in libsoup from 3.0.4 to 3.0.5:
 
 * Misc HTTP/2 fixes [Carlos Garcia Campos]
