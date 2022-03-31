@@ -61,6 +61,7 @@ soup_sources = [
   'soup-client-input-stream.c',
   'soup-client-message-io.c',
   'soup-connection.c',
+  'soup-connection-manager.c',
   'soup-date-utils.c',
   'soup-filter-input-stream.c',
   'soup-form.c',

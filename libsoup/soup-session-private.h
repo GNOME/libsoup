@@ -7,7 +7,10 @@
 #define __SOUP_SESSION_PRIVATE_H__ 1
 
 #include "soup-session.h"
+#include "soup-connection.h"
 #include "soup-content-processor.h"
+#include "soup-message-queue-item.h"
+#include "soup-socket-properties.h"
 
 G_BEGIN_DECLS
 
@@ -30,6 +33,14 @@ GInputStream *soup_session_setup_message_body_input_stream (SoupSession        *
 
 GSList       *soup_session_get_features                    (SoupSession        *session,
 							    GType               feature_type);
+
+gboolean soup_session_steal_preconnection (SoupSession          *session,
+                                           SoupMessageQueueItem *item,
+                                           SoupConnection       *conn);
+
+void     soup_session_kick_queue (SoupSession *session);
+
+SoupSocketProperties *soup_session_ensure_socket_props (SoupSession *session);
 
 G_END_DECLS
 

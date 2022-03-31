@@ -16,7 +16,7 @@
 #include "auth/soup-auth-manager.h"
 #include "auth/soup-auth-ntlm.h"
 #include "cache/soup-cache-private.h"
-#include "soup-connection.h"
+#include "soup-connection-manager.h"
 #include "soup-message-private.h"
 #include "soup-message-headers-private.h"
 #include "soup-misc.h"
@@ -28,9 +28,6 @@
 #include "websocket/soup-websocket.h"
 #include "websocket/soup-websocket-connection.h"
 #include "websocket/soup-websocket-extension-manager-private.h"
-
-#define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
-
 
 /**
  * SoupSession:
@@ -72,19 +69,6 @@
  **/
 
 typedef struct {
-	GUri            *uri;
-	GNetworkAddress *addr;
-
-	GSList      *connections;      /* CONTAINS: SoupConnection */
-	guint        num_conns;
-
-	GSource     *keep_alive_src;
-	SoupSession *session;
-} SoupSessionHost;
-static guint soup_host_uri_hash (gconstpointer key);
-static gboolean soup_host_uri_equal (gconstpointer v1, gconstpointer v2);
-
-typedef struct {
 	gboolean disposed;
 
 	GTlsDatabase *tlsdb;
@@ -108,36 +92,19 @@ typedef struct {
 	char *accept_language;
 	gboolean accept_language_auto;
 
-	GSocketConnectable *remote_connectable;
-
 	GSList *features;
 	GHashTable *features_cache;
 
-	GHashTable *http_hosts, *https_hosts; /* char* -> SoupSessionHost */
-	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
-	guint num_conns;
-	guint max_conns, max_conns_per_host;
-        guint64 last_connection_id;
+        SoupConnectionManager *conn_manager;
 } SoupSessionPrivate;
-
-static void free_host (SoupSessionHost *host);
-static void connection_state_changed (GObject *object, GParamSpec *param,
-				      gpointer user_data);
-static void connection_disconnected (SoupConnection *conn, gpointer user_data);
-static void drop_connection (SoupSession *session, SoupSessionHost *host,
-			     SoupConnection *conn);
 
 static void async_run_queue (SoupSession *session);
 
 static void async_send_request_running (SoupSession *session, SoupMessageQueueItem *item);
 
-static void soup_session_kick_queue (SoupSession *session);
-
-static void
-soup_session_process_queue_item (SoupSession          *session,
-				 SoupMessageQueueItem *item,
-				 gboolean             *should_cleanup,
-				 gboolean              loop);
+static void soup_session_process_queue_item (SoupSession          *session,
+                                             SoupMessageQueueItem *item,
+                                             gboolean              loop);
 
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
@@ -238,16 +205,9 @@ soup_session_init (SoupSession *session)
 	g_source_attach (priv->queue_source, g_main_context_get_thread_default ());
         priv->io_timeout = priv->idle_timeout = 60;
 
-	priv->http_hosts = g_hash_table_new_full (soup_host_uri_hash,
-						  soup_host_uri_equal,
-						  NULL, (GDestroyNotify)free_host);
-	priv->https_hosts = g_hash_table_new_full (soup_host_uri_hash,
-						   soup_host_uri_equal,
-						   NULL, (GDestroyNotify)free_host);
-	priv->conns = g_hash_table_new (NULL, NULL);
-
-	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
-	priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
+        priv->conn_manager = soup_connection_manager_new (session,
+                                                          SOUP_SESSION_MAX_CONNS_DEFAULT,
+                                                          SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT);
 
 	priv->features_cache = g_hash_table_new (NULL, NULL);
 
@@ -277,7 +237,7 @@ soup_session_dispose (GObject *object)
 
 	priv->disposed = TRUE;
 	soup_session_abort (session);
-	g_warn_if_fail (g_hash_table_size (priv->conns) == 0);
+	g_warn_if_fail (soup_connection_manager_get_num_conns (priv->conn_manager) == 0);
 
 	while (priv->features)
 		soup_session_remove_feature (session, priv->features->data);
@@ -297,11 +257,7 @@ soup_session_finalize (GObject *object)
 	g_queue_free (priv->queue);
 	g_source_unref (priv->queue_source);
 
-	g_clear_object (&priv->remote_connectable);
-
-	g_hash_table_destroy (priv->http_hosts);
-	g_hash_table_destroy (priv->https_hosts);
-	g_hash_table_destroy (priv->conns);
+        g_clear_pointer (&priv->conn_manager, soup_connection_manager_free);
 
 	g_free (priv->user_agent);
 	g_free (priv->accept_language);
@@ -320,13 +276,13 @@ soup_session_finalize (GObject *object)
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
 }
 
-static void
-ensure_socket_props (SoupSession *session)
+SoupSocketProperties *
+soup_session_ensure_socket_props (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	if (priv->socket_props)
-		return;
+		return priv->socket_props;
 
 	priv->socket_props = soup_socket_properties_new (priv->local_addr,
 							 priv->tls_interaction,
@@ -336,6 +292,8 @@ ensure_socket_props (SoupSession *session)
 		soup_socket_properties_set_proxy_resolver (priv->socket_props, priv->proxy_resolver);
 	if (!priv->tlsdb_use_default)
 		soup_socket_properties_set_tls_database (priv->socket_props, priv->tlsdb);
+
+        return priv->socket_props;
 }
 
 static void
@@ -348,7 +306,7 @@ socket_props_changed (SoupSession *session)
 
 	soup_socket_properties_unref (priv->socket_props);
 	priv->socket_props = NULL;
-	ensure_socket_props (session);
+	soup_session_ensure_socket_props (session);
 }
 
 static void
@@ -367,10 +325,10 @@ soup_session_set_property (GObject *object, guint prop_id,
 		soup_session_set_proxy_resolver (session, g_value_get_object (value));
 		break;
 	case PROP_MAX_CONNS:
-		priv->max_conns = g_value_get_int (value);
+                soup_connection_manager_set_max_conns (priv->conn_manager, g_value_get_int (value));
 		break;
 	case PROP_MAX_CONNS_PER_HOST:
-		priv->max_conns_per_host = g_value_get_int (value);
+                soup_connection_manager_set_max_conns_per_host (priv->conn_manager, g_value_get_int (value));
 		break;
 	case PROP_TLS_DATABASE:
 		soup_session_set_tls_database (session, g_value_get_object (value));
@@ -391,7 +349,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 		soup_session_set_accept_language_auto (session, g_value_get_boolean (value));
 		break;
 	case PROP_REMOTE_CONNECTABLE:
-		priv->remote_connectable = g_value_dup_object (value);
+                soup_connection_manager_set_remote_connectable (priv->conn_manager, g_value_get_object (value));
 		break;
 	case PROP_IDLE_TIMEOUT:
 		soup_session_set_idle_timeout (session, g_value_get_uint (value));
@@ -524,7 +482,7 @@ soup_session_get_max_conns (SoupSession *session)
 	g_return_val_if_fail (SOUP_IS_SESSION (session), 0);
 
 	priv = soup_session_get_instance_private (session);
-	return priv->max_conns;
+	return soup_connection_manager_get_max_conns (priv->conn_manager);
 }
 
 /**
@@ -544,7 +502,7 @@ soup_session_get_max_conns_per_host (SoupSession *session)
 	g_return_val_if_fail (SOUP_IS_SESSION (session), 0);
 
 	priv = soup_session_get_instance_private (session);
-	return priv->max_conns_per_host;
+	return soup_connection_manager_get_max_conns_per_host (priv->conn_manager);
 }
 
 /**
@@ -989,122 +947,7 @@ soup_session_get_remote_connectable (SoupSession *session)
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
 	priv = soup_session_get_instance_private (session);
-	return priv->remote_connectable;
-}
-
-/* Hosts */
-
-/* Note that we can't use soup_uri_host_hash() and soup_uri_host_equal()
- * because we want to ignore the protocol; http://example.com and
- * webcal://example.com are the same host.
- */
-static guint
-soup_host_uri_hash (gconstpointer key)
-{
-	GUri *uri = (GUri*)key;
-
-	g_return_val_if_fail (uri != NULL && g_uri_get_host (uri) != NULL, 0);
-
-	return g_uri_get_port (uri) + soup_str_case_hash (g_uri_get_host (uri));
-}
-
-static gboolean
-soup_host_uri_equal (gconstpointer v1, gconstpointer v2)
-{
-	GUri *one = (GUri*)v1;
-	GUri *two = (GUri*)v2;
-
-	g_return_val_if_fail (one != NULL && two != NULL, one == two);
-
-        const char *one_host = g_uri_get_host (one);
-        const char *two_host = g_uri_get_host (two);
-	g_return_val_if_fail (one_host != NULL && two_host != NULL, one_host == two_host);
-
-	if (g_uri_get_port (one) != g_uri_get_port (two))
-		return FALSE;
-
-	return g_ascii_strcasecmp (one_host, two_host) == 0;
-}
-
-static SoupSessionHost *
-soup_session_host_new (SoupSession *session, GUri *uri)
-{
-	SoupSessionHost *host;
-        const char *scheme = g_uri_get_scheme (uri);
-
-	host = g_slice_new0 (SoupSessionHost);
-	if (g_strcmp0 (scheme, "http") &&
-	    g_strcmp0 (scheme, "https")) {
-		host->uri = soup_uri_copy (uri,
-					   SOUP_URI_SCHEME, soup_uri_is_https (uri) ?
-					   "https" : "http",
-					   SOUP_URI_NONE);
-	} else
-                host->uri = g_uri_ref (uri);
-
-	host->addr = g_object_new (G_TYPE_NETWORK_ADDRESS,
-				   "hostname", g_uri_get_host (host->uri),
-				   "port", g_uri_get_port (host->uri),
-				   "scheme", g_uri_get_scheme (host->uri),
-				   NULL);
-	host->keep_alive_src = NULL;
-	host->session = session;
-
-	return host;
-}
-
-static SoupSessionHost *
-get_host_for_uri (SoupSession *session, GUri *uri)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupSessionHost *host;
-	gboolean https;
-	GUri *uri_tmp = NULL;
-
-	https = soup_uri_is_https (uri);
-	if (https)
-		host = g_hash_table_lookup (priv->https_hosts, uri);
-	else
-		host = g_hash_table_lookup (priv->http_hosts, uri);
-	if (host)
-		return host;
-
-	if (!soup_uri_is_http (uri) && !soup_uri_is_https (uri)) {
-		uri = uri_tmp = soup_uri_copy (uri,
-					       SOUP_URI_SCHEME, https ? "https" : "http",
-					       SOUP_URI_NONE);
-	}
-	host = soup_session_host_new (session, uri);
-	if (uri_tmp)
-		g_uri_unref (uri_tmp);
-
-	if (https)
-		g_hash_table_insert (priv->https_hosts, host->uri, host);
-	else
-		g_hash_table_insert (priv->http_hosts, host->uri, host);
-
-	return host;
-}
-
-static SoupSessionHost *
-get_host_for_message (SoupSession *session, SoupMessage *msg)
-{
-	return get_host_for_uri (session, soup_message_get_uri (msg));
-}
-
-static void
-free_host (SoupSessionHost *host)
-{
-	g_warn_if_fail (host->connections == NULL);
-
-	if (host->keep_alive_src) {
-		g_source_destroy (host->keep_alive_src);
-		g_source_unref (host->keep_alive_src);
-	}
-
-	g_uri_unref (host->uri);
-	g_object_unref (host->addr);
-	g_slice_free (SoupSessionHost, host);
+	return soup_connection_manager_get_remote_connectable (priv->conn_manager);
 }
 
 static SoupMessageQueueItem *
@@ -1440,115 +1283,6 @@ soup_session_send_queue_item (SoupSession *session,
                 soup_message_send_item (item->msg, item, completion_cb, item);
 }
 
-static gboolean
-soup_session_cleanup_connections (SoupSession *session,
-				  gboolean     cleanup_idle)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GSList *conns = NULL, *c;
-	GHashTableIter iter;
-	gpointer conn, host;
-	SoupConnectionState state;
-
-	g_hash_table_iter_init (&iter, priv->conns);
-	while (g_hash_table_iter_next (&iter, &conn, &host)) {
-		state = soup_connection_get_state (conn);
-                if (state == SOUP_CONNECTION_IDLE &&
-                    (cleanup_idle || !soup_connection_is_idle_open (conn))) {
-			conns = g_slist_prepend (conns, g_object_ref (conn));
-			g_hash_table_iter_remove (&iter);
-			drop_connection (session, host, conn);
-		}
-	}
-
-	if (!conns)
-		return FALSE;
-
-	for (c = conns; c; c = c->next) {
-		conn = c->data;
-		soup_connection_disconnect (conn);
-		g_object_unref (conn);
-	}
-	g_slist_free (conns);
-
-	return TRUE;
-}
-
-static gboolean
-free_unused_host (gpointer user_data)
-{
-	SoupSessionHost *host = (SoupSessionHost *) user_data;
-	SoupSessionPrivate *priv = soup_session_get_instance_private (host->session);
-	GUri *uri = host->uri;
-
-	if (host->connections)
-		return FALSE;
-
-	/* This will free the host in addition to removing it from the
-	 * hash table
-	 */
-	if (soup_uri_is_https (uri))
-		g_hash_table_remove (priv->https_hosts, uri);
-	else
-		g_hash_table_remove (priv->http_hosts, uri);
-
-	return FALSE;
-}
-
-static void
-drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *conn)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
-	if (host) {
-		host->connections = g_slist_remove (host->connections, conn);
-		host->num_conns--;
-
-		/* Free the SoupHost (and its GNetworkAddress) if there
-		 * has not been any new connection to the host during
-		 * the last HOST_KEEP_ALIVE msecs.
-		 */
-		if (host->num_conns == 0) {
-			g_assert (host->keep_alive_src == NULL);
-			host->keep_alive_src = soup_add_timeout (g_main_context_get_thread_default (),
-								 HOST_KEEP_ALIVE,
-								 free_unused_host,
-								 host);
-		}
-	}
-
-	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
-	g_signal_handlers_disconnect_by_func (conn, connection_state_changed, session);
-	priv->num_conns--;
-
-	g_object_unref (conn);
-}
-
-static void
-connection_disconnected (SoupConnection *conn, gpointer user_data)
-{
-	SoupSession *session = user_data;
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	SoupSessionHost *host;
-
-	host = g_hash_table_lookup (priv->conns, conn);
-	if (host)
-		g_hash_table_remove (priv->conns, conn);
-	drop_connection (session, host, conn);
-
-	soup_session_kick_queue (session);
-}
-
-static void
-connection_state_changed (GObject *object, GParamSpec *param, gpointer user_data)
-{
-	SoupSession *session = user_data;
-	SoupConnection *conn = SOUP_CONNECTION (object);
-
-	if (soup_connection_get_state (conn) == SOUP_CONNECTION_IDLE && soup_connection_is_idle_open (conn))
-		soup_session_kick_queue (session);
-}
-
 static void
 soup_session_unqueue_item (SoupSession          *session,
 			   SoupMessageQueueItem *item)
@@ -1603,7 +1337,7 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 		item->state = SOUP_MESSAGE_FINISHING;
 
 		if (!item->async)
-			soup_session_process_queue_item (item->session, item, NULL, TRUE);
+			soup_session_process_queue_item (item->session, item, TRUE);
 	}
 }
 
@@ -1754,7 +1488,7 @@ connect_async_complete (GObject      *object,
 		/* Complete the preconnect successfully, since it was stolen. */
 		item->state = SOUP_MESSAGE_FINISHING;
 		item->related = NULL;
-		soup_session_process_queue_item (item->session, item, NULL, FALSE);
+		soup_session_process_queue_item (item->session, item, FALSE);
 		soup_message_queue_item_unref (item);
 
 		item = new_item;
@@ -1770,10 +1504,10 @@ connect_async_complete (GObject      *object,
 	soup_message_queue_item_unref (item);
 }
 
-static gboolean
-steal_preconnection (SoupSession          *session,
-                     SoupMessageQueueItem *item,
-                     SoupConnection       *conn)
+gboolean
+soup_session_steal_preconnection (SoupSession          *session,
+                                  SoupMessageQueueItem *item,
+                                  SoupConnection       *conn)
 {
         SoupMessageQueueItem *preconnect_item;
 
@@ -1797,153 +1531,16 @@ steal_preconnection (SoupSession          *session,
         return TRUE;
 }
 
-static SoupConnection *
-get_connection_for_host (SoupSession *session,
-			 SoupMessageQueueItem *item,
-			 SoupSessionHost *host,
-			 gboolean need_new_connection,
-			 gboolean *try_cleanup)
-{
-	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GSocketConnectable *remote_connectable;
-        guint8 force_http_version;
-	SoupConnection *conn;
-	GSList *conns;
-
-	if (priv->disposed)
-		return NULL;
-
-        conn = soup_message_get_connection (item->msg);
-	if (conn) {
-		g_return_val_if_fail (soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED, FALSE);
-		return conn;
-	}
-
-        force_http_version = g_getenv ("SOUP_FORCE_HTTP1") ? SOUP_HTTP_1_1 : soup_message_get_force_http_version (item->msg);
-
-	for (conns = host->connections; conns; conns = conns->next) {
-                SoupHTTPVersion http_version;
-
-		conn = conns->data;
-
-                http_version = soup_connection_get_negotiated_protocol (conn);
-                if (force_http_version <= SOUP_HTTP_2_0 && http_version != force_http_version)
-                        continue;
-
-		switch (soup_connection_get_state (conn)) {
-                case SOUP_CONNECTION_IN_USE:
-                        if (!need_new_connection && http_version == SOUP_HTTP_2_0 && soup_connection_is_reusable (conn))
-                                return conn;
-                        break;
-		case SOUP_CONNECTION_IDLE:
-			if (!need_new_connection && soup_connection_is_idle_open (conn))
-				return conn;
-			break;
-		case SOUP_CONNECTION_CONNECTING:
-			if (steal_preconnection (session, item, conn))
-				return conn;
-
-                        /* Always wait if we have a pending connection as it may be
-                         * an h2 connection which will be shared. http/1.x connections
-                         * will only be slightly delayed. */
-                        if (force_http_version > SOUP_HTTP_1_1 && !need_new_connection && !item->connect_only)
-                                return NULL;
-		default:
-			break;
-		}
-	}
-
-	if (host->num_conns >= priv->max_conns_per_host) {
-		if (need_new_connection)
-			*try_cleanup = TRUE;
-		return NULL;
-	}
-
-	if (priv->num_conns >= priv->max_conns) {
-		*try_cleanup = TRUE;
-		return NULL;
-	}
-
-	if (priv->remote_connectable == NULL) {
-		remote_connectable =
-			g_object_new (G_TYPE_NETWORK_ADDRESS,
-				      "hostname", g_uri_get_host (host->uri),
-				      "port", g_uri_get_port (host->uri),
-				      "scheme", g_uri_get_scheme (host->uri),
-				      NULL);
-	} else {
-		remote_connectable = g_object_ref (priv->remote_connectable);
-	}
-
-	ensure_socket_props (session);
-	conn = g_object_new (SOUP_TYPE_CONNECTION,
-                             "id", ++priv->last_connection_id,
-			     "remote-connectable", remote_connectable,
-			     "ssl", soup_uri_is_https (host->uri),
-			     "socket-properties", priv->socket_props,
-                             "force-http-version", force_http_version,
-			     NULL);
-	g_object_unref (remote_connectable);
-
-	g_signal_connect (conn, "disconnected",
-			  G_CALLBACK (connection_disconnected),
-			  session);
-	g_signal_connect (conn, "notify::state",
-			  G_CALLBACK (connection_state_changed),
-			  session);
-
-	g_hash_table_insert (priv->conns, conn, host);
-
-	priv->num_conns++;
-	host->num_conns++;
-	host->connections = g_slist_prepend (host->connections, conn);
-
-	if (host->keep_alive_src) {
-		g_source_destroy (host->keep_alive_src);
-		g_source_unref (host->keep_alive_src);
-		host->keep_alive_src = NULL;
-	}
-
-	return conn;
-}
-
 static gboolean
-get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
+soup_session_ensure_item_connection (SoupSession          *session,
+                                     SoupMessageQueueItem *item)
 {
-	SoupSession *session = item->session;
-	SoupSessionHost *host;
-	SoupConnection *conn = NULL;
-	gboolean my_should_cleanup = FALSE;
-	gboolean need_new_connection;
+        SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+	SoupConnection *conn;
 
-	soup_session_cleanup_connections (session, FALSE);
-
-	need_new_connection =
-		(soup_message_query_flags (item->msg, SOUP_MESSAGE_NEW_CONNECTION)) ||
-                (soup_message_is_misdirected_retry (item->msg)) ||
-		(!soup_message_query_flags (item->msg, SOUP_MESSAGE_IDEMPOTENT) &&
-		 !SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (item->msg)));
-
-	host = get_host_for_message (session, item->msg);
-	while (TRUE) {
-		conn = get_connection_for_host (session, item, host,
-						need_new_connection,
-						&my_should_cleanup);
-		if (conn || item->async)
-			break;
-
-		if (my_should_cleanup) {
-			soup_session_cleanup_connections (session, TRUE);
-			my_should_cleanup = FALSE;
-			continue;
-		}
-	}
-
-	if (!conn) {
-		if (should_cleanup)
-			*should_cleanup = my_should_cleanup;
+        conn = soup_connection_manager_get_connection (priv->conn_manager, item);
+	if (!conn)
 		return FALSE;
-	}
 
         soup_message_set_connection (item->msg, conn);
 
@@ -1983,7 +1580,6 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 static void
 soup_session_process_queue_item (SoupSession          *session,
 				 SoupMessageQueueItem *item,
-				 gboolean             *should_cleanup,
 				 gboolean              loop)
 {
 	g_assert (item->session == session);
@@ -1994,7 +1590,7 @@ soup_session_process_queue_item (SoupSession          *session,
 
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
-			if (!get_connection (item, should_cleanup))
+			if (!soup_session_ensure_item_connection (session, item))
 				return;
 			break;
 
@@ -2064,8 +1660,7 @@ soup_session_process_queue_item (SoupSession          *session,
 }
 
 static void
-process_queue_item (SoupMessageQueueItem *item,
-                    gboolean             *should_cleanup)
+process_queue_item (SoupMessageQueueItem *item)
 {
         if (!item->async)
                 return;
@@ -2074,32 +1669,19 @@ process_queue_item (SoupMessageQueueItem *item,
         if (soup_message_get_method (item->msg) == SOUP_METHOD_CONNECT)
                 return;
 
-        soup_session_process_queue_item (item->session, item, should_cleanup, TRUE);
+        soup_session_process_queue_item (item->session, item, TRUE);
 }
 
 static void
 async_run_queue (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	gboolean try_cleanup = TRUE, should_cleanup = FALSE;
 
 	g_object_ref (session);
         priv->in_async_run_queue++;
-	soup_session_cleanup_connections (session, FALSE);
+	soup_connection_manager_cleanup (priv->conn_manager, FALSE);
 
- try_again:
-        g_queue_foreach (priv->queue, (GFunc)process_queue_item, &should_cleanup);
-
-	if (try_cleanup && should_cleanup) {
-		/* There is at least one message in the queue that
-		 * could be sent if we cleanupd an idle connection from
-		 * some other server.
-		 */
-		if (soup_session_cleanup_connections (session, TRUE)) {
-			try_cleanup = should_cleanup = FALSE;
-			goto try_again;
-		}
-	}
+        g_queue_foreach (priv->queue, (GFunc)process_queue_item, NULL);
 
         priv->in_async_run_queue--;
         if (!priv->in_async_run_queue && priv->needs_queue_sort) {
@@ -2152,7 +1734,7 @@ soup_session_pause_message (SoupSession *session,
 		soup_message_io_pause (msg);
 }
 
-static void
+void
 soup_session_kick_queue (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
@@ -2216,36 +1798,16 @@ void
 soup_session_abort (SoupSession *session)
 {
 	SoupSessionPrivate *priv;
-	GSList *conns, *c;
-	GHashTableIter iter;
-	gpointer conn, host;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
+
 	priv = soup_session_get_instance_private (session);
 
 	/* Cancel everything */
 	g_queue_foreach (priv->queue, (GFunc)soup_message_queue_item_cancel, NULL);
 
 	/* Close all idle connections */
-	conns = NULL;
-	g_hash_table_iter_init (&iter, priv->conns);
-	while (g_hash_table_iter_next (&iter, &conn, &host)) {
-		SoupConnectionState state;
-
-		state = soup_connection_get_state (conn);
-		if (state == SOUP_CONNECTION_IDLE) {
-			conns = g_slist_prepend (conns, g_object_ref (conn));
-			g_hash_table_iter_remove (&iter);
-			drop_connection (session, host, conn);
-		}
-	}
-
-	for (c = conns; c; c = c->next) {
-		soup_connection_disconnect (c->data);
-		g_object_unref (c->data);
-	}
-
-	g_slist_free (conns);
+        soup_connection_manager_cleanup (priv->conn_manager, TRUE);
 }
 
 static gboolean
@@ -3081,7 +2643,7 @@ run_until_read_done (SoupMessage          *msg,
 			soup_message_io_finished (msg);
 		item->paused = FALSE;
 		item->state = SOUP_MESSAGE_FINISHING;
-		soup_session_process_queue_item (item->session, item, NULL, FALSE);
+		soup_session_process_queue_item (item->session, item, FALSE);
 	}
 	async_send_request_return_result (item, NULL, error);
 }
@@ -3390,7 +2952,7 @@ soup_session_send_finish (SoupSession   *session,
                                 item->state = SOUP_MESSAGE_FINISHING;
 
                         if (item->state != SOUP_MESSAGE_FINISHED)
-                                soup_session_process_queue_item (session, item, NULL, FALSE);
+                                soup_session_process_queue_item (session, item, FALSE);
                 }
 	}
 
@@ -3453,7 +3015,7 @@ soup_session_send (SoupSession   *session,
 
 	while (!stream) {
 		/* Get a connection, etc */
-		soup_session_process_queue_item (session, item, NULL, TRUE);
+		soup_session_process_queue_item (session, item, TRUE);
 		if (item->state != SOUP_MESSAGE_RUNNING)
 			break;
 
@@ -3526,7 +3088,7 @@ soup_session_send (SoupSession   *session,
 			item->state = SOUP_MESSAGE_FINISHING;
 		item->paused = FALSE;
 		if (item->state != SOUP_MESSAGE_FINISHED)
-			soup_session_process_queue_item (session, item, NULL, TRUE);
+			soup_session_process_queue_item (session, item, TRUE);
 	}
 
 	soup_message_queue_item_unref (item);
@@ -3719,27 +3281,6 @@ soup_session_get_async_result_message (SoupSession  *session,
         return item ? item->msg : NULL;
 }
 
-static GIOStream *
-steal_connection (SoupSession          *session,
-                  SoupMessageQueueItem *item)
-{
-        SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-        SoupConnection *conn;
-        SoupSessionHost *host;
-        GIOStream *stream;
-
-        conn = g_object_ref (soup_message_get_connection (item->msg));
-        host = get_host_for_message (session, item->msg);
-        g_hash_table_remove (priv->conns, conn);
-        drop_connection (session, host, conn);
-
-	stream = soup_connection_steal_iostream (conn);
-        soup_message_set_connection (item->msg, NULL);
-	g_object_unref (conn);
-
-	return stream;
-}
-
 /**
  * soup_session_steal_connection:
  * @session: a #SoupSession
@@ -3764,19 +3305,9 @@ static GIOStream *
 soup_session_steal_connection (SoupSession *session,
 			       SoupMessage *msg)
 {
-	SoupMessageQueueItem *item;
-	GIOStream *stream = NULL;
-        SoupConnection *conn;
+        SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
-	item = soup_session_lookup_queue_item (session, msg);
-	if (!item)
-		return NULL;
-
-        conn = soup_message_get_connection (item->msg);
-	if (conn && soup_connection_get_state (conn) == SOUP_CONNECTION_IN_USE)
-		stream = steal_connection (session, item);
-
-	return stream;
+        return soup_connection_manager_steal_connection (priv->conn_manager, msg);
 }
 
 static GPtrArray *
