@@ -24,6 +24,7 @@ soup_message_queue_item_new (SoupSession  *session,
         item = g_atomic_rc_box_new0 (SoupMessageQueueItem);
         item->session = g_object_ref (session);
         item->msg = g_object_ref (msg);
+        item->context = g_main_context_ref_thread_default ();
         item->async = async;
         item->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 
@@ -46,6 +47,7 @@ soup_message_queue_item_destroy (SoupMessageQueueItem *item)
 
         g_object_unref (item->session);
         g_object_unref (item->msg);
+        g_main_context_unref (item->context);
         g_object_unref (item->cancellable);
         g_clear_error (&item->error);
         g_clear_object (&item->task);

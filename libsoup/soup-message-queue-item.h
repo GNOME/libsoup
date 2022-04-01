@@ -29,6 +29,7 @@ typedef enum {
 struct _SoupMessageQueueItem {
         SoupSession *session;
         SoupMessage *msg;
+        GMainContext *context;
 
         GCancellable *cancellable;
         GError *error;

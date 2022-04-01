@@ -114,6 +114,18 @@ soup_add_timeout (GMainContext *async_context,
 	return source;
 }
 
+GMainContext *
+soup_thread_default_context (void)
+{
+        GMainContext *context;
+
+        context = g_main_context_get_thread_default ();
+        if (!context)
+                context = g_main_context_default ();
+
+        return context;
+}
+
 /* 00 URI_UNRESERVED
  * 01 URI_PCT_ENCODED
  * 02 URI_GEN_DELIMS

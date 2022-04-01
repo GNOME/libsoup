@@ -24,6 +24,7 @@ GSource           *soup_add_timeout          (GMainContext *async_context,
 					      guint         interval,
 					      GSourceFunc   function,
 					      gpointer      data);
+GMainContext      *soup_thread_default_context (void);
 
 /* Misc utils */
 
