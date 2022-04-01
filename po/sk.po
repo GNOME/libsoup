@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-06-26 17:08+0000\n"
-"PO-Revision-Date: 2020-09-06 17:36+0200\n"
+"POT-Creation-Date: 2021-06-11 18:40+0000\n"
+"PO-Revision-Date: 2022-04-01 14:04+0200\n"
 "Last-Translator: Dušan Kazik <prescott66@gmail.com>\n"
 "Language-Team: Slovak <gnome-sk-list@gnome.org>\n"
 "Language: sk\n"
@@ -16,195 +16,218 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 1 : (n>=2 && n<=4) ? 2 : 0;\n"
-"X-Generator: Poedit 2.4.1\n"
+"X-Generator: Poedit 3.0.1\n"
 
-#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:236
-msgid "Connection terminated unexpectedly"
-msgstr "Pripojenie bolo neočakávane ukončené"
-
-#: libsoup/soup-body-input-stream.c:459
-msgid "Invalid seek request"
-msgstr "Neplatná požiadavka na posunutie"
-
-# struct
-#: libsoup/soup-body-input-stream.c:487
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "SoupBodyInputStream sa nedá skrátiť"
-
-#: libsoup/soup-cache-input-stream.c:76
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Sieťový prúd bol neočakávane uzavretý"
 
-#: libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Úplné načítanie zdroja do dočasnej pamäte zlyhalo"
 
-#: libsoup/soup-directory-input-stream.c:231
-msgid "Name"
-msgstr "Názov"
-
-#: libsoup/soup-directory-input-stream.c:232
-msgid "Size"
-msgstr "Veľkosť"
-
-#: libsoup/soup-directory-input-stream.c:233
-msgid "Date Modified"
-msgstr "Dátum zmeny"
-
 # PM: buffer by som preložil ako schránka
 # PK: schranka je clipboard, buffer je jednoznacne vyrovnavacia pamet
-#: libsoup/soup-converter-wrapper.c:189
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Výstupná vyrovnávacia pamäť je príliš malá"
 
-#: libsoup/soup-message-client-io.c:39
-msgid "Could not parse HTTP response"
-msgstr "Nepodarilo sa analyzovať odpoveď HTTP"
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+msgid "Connection terminated unexpectedly"
+msgstr "Pripojenie bolo neočakávane ukončené"
 
-#: libsoup/soup-message-client-io.c:62
-msgid "Unrecognized HTTP response encoding"
-msgstr "Nerozpoznané kódovanie odpovede HTTP"
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Neplatná požiadavka na posunutie"
 
-#: libsoup/soup-message-io.c:261
-msgid "Header too big"
-msgstr "Záhlavie je príliš veľké"
+# struct
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStream sa nedá skrátiť"
 
 # PK: tu neviem ako to povedat, malo by ist o to, ze proste ta operacia neni async
-#: libsoup/soup-message-io.c:393 libsoup/soup-message-io.c:1016
+#: libsoup/http1/soup-client-message-io-http1.c:312
+#: libsoup/http1/soup-client-message-io-http1.c:756
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/soup-server-io.c:354 libsoup/server/soup-server-io.c:819
 msgid "Operation would block"
 msgstr "Operácia by blokovala spracovanie"
 
-#: libsoup/soup-message-io.c:968 libsoup/soup-message-io.c:1001
+#: libsoup/http1/soup-client-message-io-http1.c:456
+msgid "Could not parse HTTP response"
+msgstr "Nepodarilo sa analyzovať odpoveď HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:479
+msgid "Unrecognized HTTP response encoding"
+msgstr "Nerozpoznané kódovanie odpovede HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:715
+#: libsoup/http1/soup-client-message-io-http1.c:741
+#: libsoup/http2/soup-client-message-io-http2.c:1426
+#: libsoup/http2/soup-client-message-io-http2.c:1450
 msgid "Operation was cancelled"
 msgstr "Operácia bola zrušená"
 
-#: libsoup/soup-message-server-io.c:63
-msgid "Could not parse HTTP request"
-msgstr "Nepodarilo sa analyzovať požiadavku HTTP"
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Záhlavie je príliš veľké"
 
-# error
-#: libsoup/soup-request.c:141
-#, c-format
-msgid "No URI provided"
-msgstr "Nebol poskytnutý identifikátor URI"
-
-# first %s - scheme (http, ftp, ...)
-#: libsoup/soup-request.c:151
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "Neplatná schéma „%s“ identifikátora URI: %s"
-
-#: libsoup/soup-server.c:1810
+#: libsoup/server/soup-server.c:1072
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nedá sa vytvoriť TLS server bez TLS certifikátu"
 
-#: libsoup/soup-server.c:1827
+#: libsoup/server/soup-server.c:1088
 #, c-format
 msgid "Could not listen on address %s, port %d: "
 msgstr "Nepodarilo sa počúvať na adrese %s, porte %d: "
 
-#: libsoup/soup-session.c:4570
-#, c-format
-msgid "Could not parse URI “%s”"
-msgstr "Nepodarilo sa analyzovať identifikátor URI „%s“"
-
-#: libsoup/soup-session.c:4607
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Nepodporovaná schéma „%s“ pre identifikátor URI"
-
-#: libsoup/soup-session.c:4629
-#, c-format
-msgid "Not an HTTP URI"
-msgstr "Nie je HTTP URI"
-
-#: libsoup/soup-session.c:4840
-msgid "The server did not accept the WebSocket handshake."
-msgstr "Server neprijal vyjednanie protokolu WebSocket."
-
-#: libsoup/soup-socket.c:148
-msgid "Can’t import non-socket as SoupSocket"
-msgstr "Nedá sa importovať ne-soket ako SoupSocket"
-
-#: libsoup/soup-socket.c:166
+#: libsoup/server/soup-socket.c:116
 msgid "Could not import existing socket: "
 msgstr "Nepodarilo sa importovať existujúci soket: "
 
-#: libsoup/soup-socket.c:175
+#: libsoup/server/soup-socket.c:125
 msgid "Can’t import unconnected socket"
 msgstr "Nedá sa importovať nepripojený soket"
 
-#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
-#: libsoup/soup-websocket.c:539
+#: libsoup/soup-session.c:1166
+msgid "Location header is missing or empty in response headers"
+msgstr ""
+"Hlavička s umiestnením chýba alebo je prázdna v hlavičkách s odpoveďami"
+
+#: libsoup/soup-session.c:1180
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Neplatný URI „%s“ v hlavičke odpovede s umiestnením"
+
+#: libsoup/soup-session.c:1200
+msgid "Too many redirects"
+msgstr "Príliš veľa presmerovaní"
+
+#: libsoup/soup-session.c:1205
+msgid "Message was restarted too many times"
+msgstr "Správa bola reštartovaná príliš veľakrát"
+
+#: libsoup/soup-session.c:3315 libsoup/soup-session.c:3464
+msgid "Message is already in session queue"
+msgstr "Správa už je vo fronte relácie"
+
+#: libsoup/soup-session.c:3825
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Server neprijal vyjednanie protokolu WebSocket."
+
+#: libsoup/soup-tld.c:142
+msgid "No public-suffix list available."
+msgstr "Nie je dostupný žiadny zoznam verejných prípon."
+
+#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
+msgid "Invalid hostname"
+msgstr "Neplatný názov hostiteľa"
+
+#: libsoup/soup-tld.c:159
+msgid "Hostname is an IP address"
+msgstr "Názov hostiteľa je adresa IP"
+
+#: libsoup/soup-tld.c:180
+msgid "Hostname has no base domain"
+msgstr "Názov hostiteľa neobsahuje základnú doménu"
+
+#: libsoup/soup-tld.c:188
+msgid "Not enough domains"
+msgstr "Nedostatočný počet domén"
+
+#: libsoup/websocket/soup-websocket.c:399
+#: libsoup/websocket/soup-websocket.c:443
+#: libsoup/websocket/soup-websocket.c:459
 msgid "Server requested unsupported extension"
 msgstr "Server si vyžiadal nepodporované rozšírenie"
 
-#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#: libsoup/websocket/soup-websocket.c:422
+#: libsoup/websocket/soup-websocket.c:614
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Nesprávna hlavička „%s“ protokolu Websocket"
 
-#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#: libsoup/websocket/soup-websocket.c:423
+#: libsoup/websocket/soup-websocket.c:878
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Server vrátil nesprávny kľúč „%s“"
 
-#: libsoup/soup-websocket.c:566
+#: libsoup/websocket/soup-websocket.c:486
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Duplikovaný parameter v hlavičke rozšírenia protokolu WebSocket „%s“"
 
-#: libsoup/soup-websocket.c:567
+#: libsoup/websocket/soup-websocket.c:487
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "Server vrátil duplikovaný parameter v hlavičke rozšírenia protokolu WebSocket „%s“"
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Server vrátil duplikovaný parameter v hlavičke rozšírenia protokolu "
+"WebSocket „%s“"
 
-#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+#: libsoup/websocket/soup-websocket.c:577
+#: libsoup/websocket/soup-websocket.c:587
 msgid "WebSocket handshake expected"
 msgstr "Očakávalo sa vyjednanie protokolu WebSocket"
 
-#: libsoup/soup-websocket.c:675
+#: libsoup/websocket/soup-websocket.c:595
 msgid "Unsupported WebSocket version"
 msgstr "Nepodporovaná verzia protokolu WebSocket"
 
-#: libsoup/soup-websocket.c:684
+#: libsoup/websocket/soup-websocket.c:604
 msgid "Invalid WebSocket key"
 msgstr "Neplatný kľúč protokolu WebSocket"
 
-#: libsoup/soup-websocket.c:703
+#: libsoup/websocket/soup-websocket.c:623
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nepodporovaný podprotokol protokolu WebSocket"
 
-#: libsoup/soup-websocket.c:975
+#: libsoup/websocket/soup-websocket.c:829
 msgid "Server rejected WebSocket handshake"
 msgstr "Server odmietol vyjednanie protokolu WebSocket"
 
-#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:846
 msgid "Server ignored WebSocket handshake"
 msgstr "Server ignoroval vyjednanie protokolu WebSocket"
 
-#: libsoup/soup-websocket.c:1004
+#: libsoup/websocket/soup-websocket.c:858
 msgid "Server requested unsupported protocol"
 msgstr "Server si vyžiadal nepodporovaný protokol"
 
-#: libsoup/soup-tld.c:150
-msgid "No public-suffix list available."
-msgstr "Nie je dostupný žiadny zoznam verejných prípon."
+#~ msgid "Name"
+#~ msgstr "Názov"
 
-#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
-msgid "Invalid hostname"
-msgstr "Neplatný názov hostiteľa"
+#~ msgid "Size"
+#~ msgstr "Veľkosť"
 
-#: libsoup/soup-tld.c:167
-msgid "Hostname is an IP address"
-msgstr "Názov hostiteľa je adresa IP"
+#~ msgid "Date Modified"
+#~ msgstr "Dátum zmeny"
 
-#: libsoup/soup-tld.c:188
-msgid "Hostname has no base domain"
-msgstr "Názov hostiteľa neobsahuje základnú doménu"
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "Nepodarilo sa analyzovať požiadavku HTTP"
 
-#: libsoup/soup-tld.c:196
-msgid "Not enough domains"
-msgstr "Nedostatočný počet domén"
+# error
+#~ msgid "No URI provided"
+#~ msgstr "Nebol poskytnutý identifikátor URI"
+
+# first %s - scheme (http, ftp, ...)
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "Neplatná schéma „%s“ identifikátora URI: %s"
+
+#~ msgid "Could not parse URI “%s”"
+#~ msgstr "Nepodarilo sa analyzovať identifikátor URI „%s“"
+
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "Nepodporovaná schéma „%s“ pre identifikátor URI"
+
+#~ msgid "Not an HTTP URI"
+#~ msgstr "Nie je HTTP URI"
+
+#~ msgid "Can’t import non-socket as SoupSocket"
+#~ msgstr "Nedá sa importovať ne-soket ako SoupSocket"
