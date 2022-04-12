@@ -195,5 +195,11 @@ GSocketAddress     *soup_message_get_remote_address   (SoupMessage *msg);
 SOUP_AVAILABLE_IN_ALL
 SoupMessageMetrics *soup_message_get_metrics          (SoupMessage  *msg);
 
+SOUP_AVAILABLE_IN_3_0
+void soup_message_set_force_http1               (SoupMessage *msg,
+                                                 gboolean     force_http1);
+
+gboolean soup_message_get_force_http1           (SoupMessage *msg);
+
 
 G_END_DECLS
