@@ -268,6 +268,9 @@ if have_apache
     cdata.set('APACHE_SSL_MODULE_DIR', apache_modules_dirs[1])
     message('Apache mod_unixd module directory: ' + (apache_modules_dirs[2] != '' ? apache_modules_dirs[2] : '(none)'))
     cdata.set('IF_HAVE_MOD_UNIXD', apache_modules_dirs[2] != '' ? '' : '#')
+    message('Apache HTTP/2 module directory: ' + apache_modules_dirs[3])
+    cdata.set('IF_HAVE_MOD_HTTP2', apache_modules_dirs[3] != '' ? '' : '#')
+    cdata.set('APACHE_HTTP2_MODULE_DIR', apache_modules_dirs[3])
     cdata.set('HAVE_APACHE', have_apache)
   else
     message('Failed to locate necessary Apache modules for full test coverage')

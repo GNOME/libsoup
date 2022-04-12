@@ -13,7 +13,7 @@ GracefulShutdownTimeout 1
 # Change this to "./error.log" if it's failing and you don't know why
 ErrorLog /dev/null
 
-LoadModule mpm_prefork_module   @APACHE_MODULE_DIR@/mod_mpm_prefork.so
+LoadModule mpm_event_module        @APACHE_MODULE_DIR@/mod_mpm_event.so
 LoadModule alias_module         @APACHE_MODULE_DIR@/mod_alias.so
 LoadModule auth_basic_module    @APACHE_MODULE_DIR@/mod_auth_basic.so
 LoadModule auth_digest_module   @APACHE_MODULE_DIR@/mod_auth_digest.so
@@ -29,10 +29,14 @@ LoadModule proxy_http_module    @APACHE_MODULE_DIR@/mod_proxy_http.so
 LoadModule proxy_connect_module @APACHE_MODULE_DIR@/mod_proxy_connect.so
 LoadModule ssl_module           @APACHE_SSL_MODULE_DIR@/mod_ssl.so
 @IF_HAVE_MOD_UNIXD@LoadModule unixd_module         @APACHE_SSL_MODULE_DIR@/mod_unixd.so
+@IF_HAVE_MOD_HTTP2@LoadModule http2_module         @APACHE_HTTP2_MODULE_DIR@/mod_http2.so
 
 DirectoryIndex index.txt
 TypesConfig /dev/null
 Redirect permanent /redirected /index.txt
+
+# Prefer http1 for now because most of the tests expect http1 behavior.
+Protocols http/1.1 h2
 
 # Proxy #1: unauthenticated
 Listen 127.0.0.1:47526
