@@ -183,7 +183,7 @@ soup_connection_get_property (GObject *object, guint prop_id,
 		g_value_set_boxed (value, priv->socket_props);
 		break;
 	case PROP_STATE:
-		g_value_set_enum (value, priv->state);
+		g_value_set_enum (value, g_atomic_int_get (&priv->state));
 		break;
 	case PROP_SSL:
 		g_value_set_boolean (value, priv->ssl);
@@ -402,11 +402,11 @@ soup_connection_set_state (SoupConnection     *conn,
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        if (priv->state == state)
+        if (g_atomic_int_get (&priv->state) == state)
                 return;
 
-        priv->state = state;
-        if (priv->state == SOUP_CONNECTION_IDLE)
+        g_atomic_int_set (&priv->state, state);
+        if (state == SOUP_CONNECTION_IDLE)
                 start_idle_timer (conn);
 
         g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_STATE]);
@@ -1011,7 +1011,7 @@ soup_connection_disconnect (SoupConnection *conn)
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        if (priv->state == SOUP_CONNECTION_DISCONNECTED)
+        if (g_atomic_int_get (&priv->state) == SOUP_CONNECTION_DISCONNECTED)
                 return;
 
         soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
@@ -1106,7 +1106,8 @@ soup_connection_is_idle_open (SoupConnection *conn)
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        g_assert (priv->state == SOUP_CONNECTION_IDLE);
+        if (g_atomic_int_get (&priv->state) != SOUP_CONNECTION_IDLE)
+                return FALSE;
 
 	if (!g_socket_is_connected (soup_connection_get_socket (conn)))
 		return FALSE;
@@ -1122,7 +1123,7 @@ soup_connection_get_state (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	return priv->state;
+	return g_atomic_int_get (&priv->state);
 }
 
 void
@@ -1131,25 +1132,25 @@ soup_connection_set_in_use (SoupConnection *conn,
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        g_assert (in_use || priv->in_use > 0);
+        g_assert (in_use || g_atomic_int_get (&priv->in_use) > 0);
 
-        if (in_use)
-                priv->in_use++;
-        else
-                priv->in_use--;
-
-        if (priv->in_use > 0) {
-                if (priv->state == SOUP_CONNECTION_IDLE)
-                        soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
+        if (in_use) {
+                g_atomic_int_inc (&priv->in_use);
+                if (g_atomic_int_compare_and_exchange (&priv->state, SOUP_CONNECTION_IDLE, SOUP_CONNECTION_IN_USE))
+                        g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_STATE]);
                 return;
         }
 
-        clear_proxy_msg (conn);
+        g_assert (g_atomic_int_get (&priv->state) != SOUP_CONNECTION_IDLE);
 
-        if (soup_connection_is_reusable (conn))
-                soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
-        else
-                soup_connection_disconnect (conn);
+        if (g_atomic_int_dec_and_test (&priv->in_use)) {
+                clear_proxy_msg (conn);
+
+                if (soup_connection_is_reusable (conn))
+                        soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
+                else
+                        soup_connection_disconnect (conn);
+        }
 }
 
 SoupClientMessageIO *
@@ -1158,7 +1159,7 @@ soup_connection_setup_message_io (SoupConnection *conn,
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        g_assert (priv->state == SOUP_CONNECTION_IN_USE);
+        g_assert (g_atomic_int_get (&priv->state) == SOUP_CONNECTION_IN_USE);
 
         priv->unused_timeout = 0;
         stop_idle_timer (priv);
