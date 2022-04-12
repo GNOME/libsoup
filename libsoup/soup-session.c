@@ -1648,8 +1648,6 @@ soup_session_ensure_item_connection (SoupSession          *session,
 	if (!conn)
 		return FALSE;
 
-        soup_message_set_connection (item->msg, conn);
-
 	switch (soup_connection_get_state (conn)) {
 	case SOUP_CONNECTION_IN_USE:
 		item->state = SOUP_MESSAGE_READY;

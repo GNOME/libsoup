@@ -17,6 +17,8 @@
 struct _SoupConnectionManager {
         SoupSession *session;
 
+        GMutex mutex;
+        GCond cond;
         GSocketConnectable *remote_connectable;
         guint max_conns;
         guint max_conns_per_host;
@@ -201,6 +203,8 @@ soup_connection_manager_new (SoupSession *session,
                                                       NULL,
                                                       (GDestroyNotify)soup_host_free);
         manager->conns = g_hash_table_new (NULL, NULL);
+        g_mutex_init (&manager->mutex);
+        g_cond_init (&manager->cond);
 
         return manager;
 }
@@ -212,6 +216,8 @@ soup_connection_manager_free (SoupConnectionManager *manager)
         g_hash_table_destroy (manager->http_hosts);
         g_hash_table_destroy (manager->https_hosts);
         g_hash_table_destroy (manager->conns);
+        g_mutex_clear (&manager->mutex);
+        g_cond_clear (&manager->cond);
 
         g_free (manager);
 }
@@ -270,8 +276,48 @@ soup_connection_manager_drop_connection (SoupConnectionManager *manager,
 {
         g_signal_handlers_disconnect_by_data (conn, manager);
         manager->num_conns--;
-
         g_object_unref (conn);
+
+        g_cond_broadcast (&manager->cond);
+}
+
+static void
+soup_connection_list_disconnect_all (GList *conns)
+{
+        GList *c;
+
+        for (c = conns; c; c = g_list_next (c)) {
+                SoupConnection *conn = (SoupConnection *)c->data;
+
+                soup_connection_disconnect (conn);
+                g_object_unref (conn);
+	}
+        g_list_free (conns);
+}
+
+static GList *
+soup_connection_manager_cleanup_locked (SoupConnectionManager *manager,
+                                        gboolean               cleanup_idle)
+{
+        GList *conns = NULL;
+        GHashTableIter iter;
+        SoupConnection *conn;
+        SoupHost *host;
+
+        g_hash_table_iter_init (&iter, manager->conns);
+        while (g_hash_table_iter_next (&iter, (gpointer *)&conn, (gpointer *)&host)) {
+                SoupConnectionState state;
+
+                state = soup_connection_get_state (conn);
+                if (state == SOUP_CONNECTION_IDLE && (cleanup_idle || !soup_connection_is_idle_open (conn))) {
+                        conns = g_list_prepend (conns, g_object_ref (conn));
+                        g_hash_table_iter_remove (&iter);
+                        soup_host_remove_connection (host, conn);
+                        soup_connection_manager_drop_connection (manager, conn);
+                }
+        }
+
+        return conns;
 }
 
 static void
@@ -280,10 +326,12 @@ connection_disconnected (SoupConnection        *conn,
 {
         SoupHost *host = NULL;
 
+        g_mutex_lock (&manager->mutex);
         g_hash_table_steal_extended (manager->conns, conn, NULL, (gpointer *)&host);
         if (host)
                 soup_host_remove_connection (host, conn);
         soup_connection_manager_drop_connection (manager, conn);
+        g_mutex_unlock (&manager->mutex);
 
         soup_session_kick_queue (manager->session);
 }
@@ -293,13 +341,20 @@ connection_state_changed (SoupConnection        *conn,
                           GParamSpec            *param,
                           SoupConnectionManager *manager)
 {
-        if (soup_connection_get_state (conn) == SOUP_CONNECTION_IDLE && soup_connection_is_idle_open (conn))
-                soup_session_kick_queue (manager->session);
+
+        if (soup_connection_get_state (conn) != SOUP_CONNECTION_IDLE)
+                return;
+
+        g_mutex_lock (&manager->mutex);
+        g_cond_broadcast (&manager->cond);
+        g_mutex_unlock (&manager->mutex);
+
+        soup_session_kick_queue (manager->session);
 }
 
-SoupConnection *
-soup_connection_manager_get_connection (SoupConnectionManager *manager,
-                                        SoupMessageQueueItem  *item)
+static SoupConnection *
+soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
+                                               SoupMessageQueueItem  *item)
 {
         SoupMessage *msg = item->msg;
         gboolean need_new_connection;
@@ -310,14 +365,6 @@ soup_connection_manager_get_connection (SoupConnectionManager *manager,
         GList *l;
         GSocketConnectable *remote_connectable;
         gboolean try_cleanup = TRUE;
-
-        soup_connection_manager_cleanup (manager, FALSE);
-
-        conn = soup_message_get_connection (msg);
-        if (conn) {
-                g_warn_if_fail (soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED);
-                return conn;
-        }
 
         need_new_connection =
                 (soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION)) ||
@@ -354,7 +401,7 @@ soup_connection_manager_get_connection (SoupConnectionManager *manager,
                                 /* Always wait if we have a pending connection as it may be
                                  * an h2 connection which will be shared. http/1.x connections
                                  * will only be slightly delayed. */
-                                if (force_http_version > SOUP_HTTP_1_1 && !need_new_connection && !item->connect_only)
+                                if (force_http_version > SOUP_HTTP_1_1 && !need_new_connection && !item->connect_only && item->async)
                                         return NULL;
                         default:
                                 break;
@@ -363,22 +410,48 @@ soup_connection_manager_get_connection (SoupConnectionManager *manager,
 
                 if (host->num_conns >= manager->max_conns_per_host) {
                         if (need_new_connection && try_cleanup) {
+                                GList *conns;
+
                                 try_cleanup = FALSE;
-                                if (soup_connection_manager_cleanup (manager, TRUE))
+                                conns = soup_connection_manager_cleanup_locked (manager, TRUE);
+                                if (conns) {
+                                        /* The connection has already been removed and the signals disconnected so,
+                                         * it's ok to disconnect with the mutex locked.
+                                         */
+                                        soup_connection_list_disconnect_all (conns);
                                         continue;
+                                }
                         }
 
-                        return NULL;
+                        if (item->async)
+                                return NULL;
+
+                        g_cond_wait (&manager->cond, &manager->mutex);
+                        try_cleanup = TRUE;
+                        continue;
                 }
 
                 if (manager->num_conns >= manager->max_conns) {
                         if (try_cleanup) {
+                                GList *conns;
+
                                 try_cleanup = FALSE;
-                                if (soup_connection_manager_cleanup (manager, TRUE))
+                                conns = soup_connection_manager_cleanup_locked (manager, TRUE);
+                                if (conns) {
+                                        /* The connection has already been removed and the signals disconnected so,
+                                         * it's ok to disconnect with the mutex locked.
+                                         */
+                                        soup_connection_list_disconnect_all (conns);
                                         continue;
+                                }
                         }
 
-                        return NULL;
+                        if (item->async)
+                                return NULL;
+
+                        g_cond_wait (&manager->cond, &manager->mutex);
+                        try_cleanup = TRUE;
+                        continue;
                 }
 
                 break;
@@ -410,40 +483,46 @@ soup_connection_manager_get_connection (SoupConnectionManager *manager,
         return conn;
 }
 
+SoupConnection *
+soup_connection_manager_get_connection (SoupConnectionManager *manager,
+                                        SoupMessageQueueItem  *item)
+{
+        SoupConnection *conn;
+
+        soup_connection_manager_cleanup (manager, FALSE);
+
+        conn = soup_message_get_connection (item->msg);
+        if (conn) {
+                g_warn_if_fail (soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED);
+                return conn;
+        }
+
+        g_mutex_lock (&manager->mutex);
+        conn = soup_connection_manager_get_connection_locked (manager, item);
+        if (conn)
+                soup_message_set_connection (item->msg, conn);
+        g_mutex_unlock (&manager->mutex);
+
+        return conn;
+}
+
 gboolean
 soup_connection_manager_cleanup (SoupConnectionManager *manager,
                                  gboolean               cleanup_idle)
 {
-        GList *conns = NULL;
-        GHashTableIter iter;
-        SoupConnection *conn;
-        SoupHost *host;
-        SoupConnectionState state;
-        GList *c;
+        GList *conns;
 
-        g_hash_table_iter_init (&iter, manager->conns);
-        while (g_hash_table_iter_next (&iter, (gpointer *)&conn, (gpointer *)&host)) {
-                state = soup_connection_get_state (conn);
-                if (state == SOUP_CONNECTION_IDLE && (cleanup_idle || !soup_connection_is_idle_open (conn))) {
-                        conns = g_list_prepend (conns, g_object_ref (conn));
-                        g_hash_table_iter_remove (&iter);
-                        soup_host_remove_connection (host, conn);
-                        soup_connection_manager_drop_connection (manager, conn);
-                }
+        g_mutex_lock (&manager->mutex);
+        conns = soup_connection_manager_cleanup_locked (manager, cleanup_idle);
+        g_mutex_unlock (&manager->mutex);
+
+        if (conns) {
+                soup_connection_list_disconnect_all (conns);
+
+                return TRUE;
         }
 
-        if (!conns)
-                return FALSE;
-
-        for (c = conns; c; c = g_list_next (c)) {
-                conn = (SoupConnection *)c->data;
-                soup_connection_disconnect (conn);
-                g_object_unref (conn);
-        }
-        g_list_free (conns);
-
-        return TRUE;
-
+        return FALSE;
 }
 
 GIOStream *
@@ -459,10 +538,12 @@ soup_connection_manager_steal_connection (SoupConnectionManager *manager,
                 return NULL;
 
         g_object_ref (conn);
+        g_mutex_lock (&manager->mutex);
         host = soup_connection_manager_get_host_for_message (manager, msg);
         g_hash_table_remove (manager->conns, conn);
         soup_host_remove_connection (host, conn);
         soup_connection_manager_drop_connection (manager, conn);
+        g_mutex_unlock (&manager->mutex);
 
         stream = soup_connection_steal_iostream (conn);
         soup_message_set_connection (msg, NULL);
