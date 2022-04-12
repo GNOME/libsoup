@@ -19,8 +19,8 @@ if major == 2:
     # Specific to 3.x dev releases
     versions.append((3, 0))
 else:
-    minor_max = minor if minor != 0 and is_stable(minor) else minor + 1
-    for i in range(0, minor_max):
+    minor_max = minor if is_stable(minor) else minor + 1
+    for i in range(0, minor_max + 1):
         if is_stable(i):
             versions.append((3, i))
 
@@ -37,7 +37,6 @@ for version in versions:
  * Since: {major_version}.{minor_version}
  */
 #define SOUP_VERSION_{major_version}_{minor_version} (G_ENCODE_VERSION ({major_version}, {minor_version}))
-
 '''.format(major_version=version[0], minor_version=version[1])
 
     version_attributes += '''#if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_{major_version}_{minor_version}
