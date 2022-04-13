@@ -1806,7 +1806,7 @@ get_connection_for_host (SoupSession *session,
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	GSocketConnectable *remote_connectable;
-        gboolean force_http1;
+        guint8 force_http_version;
 	SoupConnection *conn;
 	GSList *conns;
 
@@ -1819,10 +1819,7 @@ get_connection_for_host (SoupSession *session,
 		return conn;
 	}
 
-        if (g_getenv ("SOUP_FORCE_HTTP1"))
-                force_http1 = TRUE;
-        else
-                force_http1 = soup_message_get_force_http1 (item->msg);
+        force_http_version = g_getenv ("SOUP_FORCE_HTTP1") ? SOUP_HTTP_1_1 : soup_message_get_force_http_version (item->msg);
 
 	for (conns = host->connections; conns; conns = conns->next) {
                 SoupHTTPVersion http_version;
@@ -1830,7 +1827,7 @@ get_connection_for_host (SoupSession *session,
 		conn = conns->data;
 
                 http_version = soup_connection_get_negotiated_protocol (conn);
-                if (force_http1 && http_version > SOUP_HTTP_1_1)
+                if (force_http_version <= SOUP_HTTP_1_1 && http_version > SOUP_HTTP_1_1)
                         continue;
 
 		switch (soup_connection_get_state (conn)) {
@@ -1849,7 +1846,7 @@ get_connection_for_host (SoupSession *session,
                         /* Always wait if we have a pending connection as it may be
                          * an h2 connection which will be shared. http/1.x connections
                          * will only be slightly delayed. */
-                        if (!force_http1 && !need_new_connection && !item->connect_only)
+                        if (force_http_version > SOUP_HTTP_1_1 && !need_new_connection && !item->connect_only)
                                 return NULL;
 		default:
 			break;
@@ -1884,7 +1881,7 @@ get_connection_for_host (SoupSession *session,
 			     "remote-connectable", remote_connectable,
 			     "ssl", soup_uri_is_https (host->uri),
 			     "socket-properties", priv->socket_props,
-                             "force-http1", force_http1,
+                             "force-http-version", force_http_version,
 			     NULL);
 	g_object_unref (remote_connectable);
 
@@ -3935,7 +3932,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
         /* WebSocket negotiation over HTTP/2 is not currently supported
          * and in practice all websocket servers support HTTP1.x with
          * HTTP/2 not providing a tangible benefit */
-        soup_message_set_force_http1 (msg, TRUE);
+        soup_message_set_force_http_version (msg, SOUP_HTTP_1_1);
 
 	item = soup_session_append_queue_item (session, msg, TRUE, cancellable);
 	item->io_priority = io_priority;

@@ -31,7 +31,7 @@ typedef struct {
 	SoupSocketProperties *socket_props;
         guint64 id;
         GSocketAddress *remote_address;
-        gboolean force_http1;
+        guint8 force_http_version;
 
 	GUri *proxy_uri;
 	gboolean ssl;
@@ -75,7 +75,7 @@ enum {
 	PROP_TLS_CERTIFICATE_ERRORS,
         PROP_TLS_PROTOCOL_VERSION,
         PROP_TLS_CIPHERSUITE_NAME,
-        PROP_FORCE_HTTP1,
+        PROP_FORCE_HTTP_VERSION,
 
 	LAST_PROPERTY
 };
@@ -95,6 +95,7 @@ soup_connection_init (SoupConnection *conn)
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         priv->http_version = SOUP_HTTP_1_1;
+        priv->force_http_version = G_MAXUINT8;
 }
 
 static void
@@ -156,8 +157,8 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	case PROP_ID:
 		priv->id = g_value_get_uint64 (value);
 		break;
-	case PROP_FORCE_HTTP1:
-		priv->force_http1 = g_value_get_boolean (value);
+	case PROP_FORCE_HTTP_VERSION:
+		priv->force_http_version = g_value_get_uchar (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -202,8 +203,8 @@ soup_connection_get_property (GObject *object, guint prop_id,
         case PROP_TLS_CIPHERSUITE_NAME:
                 g_value_set_string (value, soup_connection_get_tls_ciphersuite_name (SOUP_CONNECTION (object)));
                 break;
-	case PROP_FORCE_HTTP1:
-		g_value_set_boolean (value, priv->force_http1);
+	case PROP_FORCE_HTTP_VERSION:
+		g_value_set_uchar (value, priv->force_http_version);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -344,12 +345,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                                      NULL,
                                      G_PARAM_READABLE |
                                      G_PARAM_STATIC_STRINGS);
-        properties[PROP_FORCE_HTTP1] =
-                g_param_spec_boolean ("force-http1",
-                                      "Force HTTP 1.x",
-                                      "Force connection to use HTTP 1.x",
-                                      FALSE, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-                                      G_PARAM_STATIC_STRINGS);
+        properties[PROP_FORCE_HTTP_VERSION] =
+                g_param_spec_uchar ("force-http-version",
+                                    "Force HTTP version",
+                                    "Force connection to use a specific HTTP version",
+                                    0, G_MAXUINT8, G_MAXUINT8,
+                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                    G_PARAM_STATIC_STRINGS);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
@@ -568,11 +570,22 @@ new_tls_connection (SoupConnection    *conn,
         GPtrArray *advertised_protocols = g_ptr_array_sized_new (4);
 
         // https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
-        if (!priv->force_http1)
+        switch (priv->force_http_version) {
+        case SOUP_HTTP_1_0:
+                g_ptr_array_add (advertised_protocols, "http/1.0");
+                break;
+        case SOUP_HTTP_1_1:
+                g_ptr_array_add (advertised_protocols, "http/1.1");
+                break;
+        case SOUP_HTTP_2_0:
                 g_ptr_array_add (advertised_protocols, "h2");
-
-        g_ptr_array_add (advertised_protocols, "http/1.1");
-        g_ptr_array_add (advertised_protocols, "http/1.0");
+                break;
+        default:
+                g_ptr_array_add (advertised_protocols, "h2");
+                g_ptr_array_add (advertised_protocols, "http/1.1");
+                g_ptr_array_add (advertised_protocols, "http/1.0");
+                break;
+        }
         g_ptr_array_add (advertised_protocols, NULL);
 
         tls_interaction = priv->socket_props->tls_interaction ? g_object_ref (priv->socket_props->tls_interaction) : soup_tls_interaction_new (conn);
