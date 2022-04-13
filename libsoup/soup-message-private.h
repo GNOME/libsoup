@@ -147,10 +147,10 @@ void soup_message_update_request_host_if_needed (SoupMessage *msg);
 
 void soup_message_force_keep_alive_if_needed    (SoupMessage *msg);
 
-void soup_message_set_force_http1               (SoupMessage *msg,
-                                                 gboolean     force_http1);
+void     soup_message_set_force_http_version    (SoupMessage *msg,
+                                                 guint8       version);
 
-gboolean soup_message_get_force_http1           (SoupMessage *msg);
+guint8   soup_message_get_force_http_version    (SoupMessage *msg);
 
 void     soup_message_set_is_misdirected_retry  (SoupMessage *msg,
                                                  gboolean     is_misdirected_retry);

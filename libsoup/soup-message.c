@@ -94,9 +94,9 @@ typedef struct {
 	gboolean is_top_level_navigation;
         gboolean is_options_ping;
         gboolean is_preconnect;
-        gboolean force_http1;
         gboolean is_misdirected_retry;
         guint    last_connection_id;
+        guint8   force_http_version;
         GSocketAddress *remote_address;
 
         SoupMessageMetrics *metrics;
@@ -164,6 +164,7 @@ soup_message_init (SoupMessage *msg)
 
 	priv->http_version = priv->orig_http_version = SOUP_HTTP_1_1;
 	priv->priority = SOUP_MESSAGE_PRIORITY_NORMAL;
+        priv->force_http_version = G_MAXUINT8;
 
 	priv->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
 	priv->response_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
@@ -1243,7 +1244,11 @@ soup_message_restarted (SoupMessage *msg)
 void
 soup_message_finished (SoupMessage *msg)
 {
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
 	g_signal_emit (msg, signals[FINISHED], 0);
+
+        priv->force_http_version = G_MAXUINT8;
 }
 
 gboolean
@@ -3219,20 +3224,20 @@ soup_message_force_keep_alive_if_needed (SoupMessage *msg)
 }
 
 void
-soup_message_set_force_http1 (SoupMessage *msg,
-                              gboolean     force_http1)
+soup_message_set_force_http_version (SoupMessage *msg,
+                                     guint8       version)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        priv->force_http1 = force_http1;
+        priv->force_http_version = version;
 }
 
-gboolean
-soup_message_get_force_http1 (SoupMessage *msg)
+guint8
+soup_message_get_force_http_version (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        return priv->force_http1;
+        return priv->force_http_version;
 }
 
 void
