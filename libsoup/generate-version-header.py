@@ -39,7 +39,17 @@ for version in versions:
 #define SOUP_VERSION_{major_version}_{minor_version} (G_ENCODE_VERSION ({major_version}, {minor_version}))
 '''.format(major_version=version[0], minor_version=version[1])
 
-    version_attributes += '''#if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_{major_version}_{minor_version}
+    version_attributes += '''/**
+ * SOUP_DEPRECATED_IN_{major_version}_{minor_version}:
+ * A macro used to indicate a symbol was deprecated in this version.
+ */
+/**
+ * SOUP_DEPRECATED_IN_{major_version}_{minor_version}_FOR:
+ * @f: The recommended replacement function.
+ *
+ * A macro used to indicate a symbol was deprecated in this version with a replacement.
+ */
+#if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_{major_version}_{minor_version}
 # define SOUP_DEPRECATED_IN_{major_version}_{minor_version}                G_DEPRECATED
 # define SOUP_DEPRECATED_IN_{major_version}_{minor_version}_FOR(f)         G_DEPRECATED_FOR(f)
 #else
@@ -47,6 +57,10 @@ for version in versions:
 # define SOUP_DEPRECATED_IN_{major_version}_{minor_version}_FOR(f)
 #endif
 
+/**
+ * SOUP_AVAILABLE_IN_{major_version}_{minor_version}: *
+ * A macro used to indicate a symbol is available in this version or later.
+ */
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_{major_version}_{minor_version}
 # define SOUP_AVAILABLE_IN_{major_version}_{minor_version}                 G_UNAVAILABLE({major_version}, {minor_version}) _SOUP_EXTERN
 #else
