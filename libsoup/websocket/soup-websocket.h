@@ -24,6 +24,12 @@
 
 G_BEGIN_DECLS
 
+/**
+ * soup_websocket_error_quark:
+ * Registers error quark for SoupWebsocket if needed.
+ *
+ * Returns: Error quark for SoupWebsocket.
+ */
 #define SOUP_WEBSOCKET_ERROR (soup_websocket_error_quark ())
 SOUP_AVAILABLE_IN_ALL
 GQuark soup_websocket_error_quark (void) G_GNUC_CONST;

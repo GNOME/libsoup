@@ -16,7 +16,13 @@ const char *soup_tld_get_base_domain         (const char *hostname,
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_tld_domain_is_public_suffix (const char *domain);
 
-/* Errors */
+
+/**
+ * soup_tld_error_quark:
+ * Registers error quark for soup_tld_get_base_domain() if needed.
+ *
+ * Returns: Error quark for Soup TLD functions.
+ */
 SOUP_AVAILABLE_IN_ALL
 GQuark soup_tld_error_quark (void);
 #define SOUP_TLD_ERROR soup_tld_error_quark()

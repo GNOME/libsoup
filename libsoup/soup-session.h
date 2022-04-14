@@ -33,6 +33,12 @@ struct _SoupSessionClass {
         void (*_soup_reserved8) (void);
 };
 
+/**
+ * soup_session_error_quark:
+ * Registers error quark for SoupSession if needed.
+ *
+ * Returns: Error quark for SoupSession.
+ */
 SOUP_AVAILABLE_IN_ALL
 GQuark soup_session_error_quark (void);
 #define SOUP_SESSION_ERROR soup_session_error_quark ()
