@@ -58,7 +58,7 @@ for version in versions:
 #endif
 
 /**
- * SOUP_AVAILABLE_IN_{major_version}_{minor_version}: *
+ * SOUP_AVAILABLE_IN_{major_version}_{minor_version}:
  * A macro used to indicate a symbol is available in this version or later.
  */
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_{major_version}_{minor_version}
