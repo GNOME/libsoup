@@ -33,6 +33,7 @@
  * still be added to a [class@Session], but libsoup will never attempt to
  * actually use this auth type.
  *
+ * Returns: %TRUE if supported otherwise %FALSE
  */
 gboolean
 soup_auth_negotiate_supported (void)
