@@ -74,10 +74,4 @@ SOUP_AVAILABLE_IN_ALL
 void        soup_auth_domain_challenge   (SoupAuthDomain       *domain,
 					  SoupServerMessage    *msg);
 
-/* protected */
-SOUP_AVAILABLE_IN_ALL
-gboolean    soup_auth_domain_try_generic_auth_callback (SoupAuthDomain    *domain,
-							SoupServerMessage *msg,
-							const char        *username);
-
 G_END_DECLS

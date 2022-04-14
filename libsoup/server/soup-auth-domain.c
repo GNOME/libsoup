@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-#include "soup-auth-domain.h"
+#include "soup-auth-domain-private.h"
 #include "soup-message-headers-private.h"
 #include "soup.h"
 #include "soup-path-map.h"
