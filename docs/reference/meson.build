@@ -46,4 +46,15 @@ if gidocgen_dep.found()
     install: true,
     install_dir: docs_dir,
   )
+
+  if get_option('doc_tests')
+    test('docs', gidocgen,
+      args: [
+        'check',
+        '--add-include-path=@0@'.format(meson.current_build_dir() / '../../libsoup'),
+        '--config=@0@'.format(libsoup_toml),
+        soup_gir_gen_sources[0],
+      ]
+    )
+  endif
 endif

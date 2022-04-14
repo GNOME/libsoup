@@ -431,6 +431,7 @@ summary({
     'All tests' : get_option('tests'),
     'Tests requiring Apache' : have_apache,
     'Tests requiring Quart' : quart_found,
+    'Documentation tests' : get_option('doc_tests'),
     'Fuzzing tests' : get_option('fuzzing').enabled(),
     'Autobahn tests' : have_autobahn,
     'PKCS #11 tests' : gnutls_dep.found(),

@@ -53,6 +53,12 @@ option('docs',
   description: 'Enable generating the API reference'
 )
 
+option('doc_tests',
+  type: 'boolean',
+  value: false,
+  description: 'Enable strict validation of API docs'
+)
+
 option('tests',
   type: 'boolean',
   value: true,
