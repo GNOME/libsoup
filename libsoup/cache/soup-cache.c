@@ -1039,6 +1039,10 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 
 	cache_class->get_cacheability = get_cacheability;
 
+        /**
+         * SoupCache:cache-dir:
+         * The directory to store the cache files.
+         */
         properties[PROP_CACHE_DIR] =
                 g_param_spec_string ("cache-dir",
                                      "Cache directory",
@@ -1047,6 +1051,10 @@ soup_cache_class_init (SoupCacheClass *cache_class)
                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
                                      G_PARAM_STATIC_STRINGS);
 
+        /**
+         * SoupCache:cache-type:
+         * Whether the cache is private or shared.
+         */
         properties[PROP_CACHE_TYPE] =
                 g_param_spec_enum ("cache-type",
                                    "Cache type",
