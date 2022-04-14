@@ -52,6 +52,16 @@
  * File-based cache for HTTP resources.
  */
 
+/**
+ * SoupCacheability:
+ * @SOUP_CACHE_CACHEABLE: The message should be cached
+ * @SOUP_CACHE_UNCACHEABLE: The message shouldn't be cached
+ * @SOUP_CACHE_INVALIDATES: The messages cache should be invalidated
+ * @SOUP_CACHE_VALIDATES: The messages cache should be updated
+ *
+ * Indicates if a message should or shouldn't be cached.
+ */
+
 static void soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
 static SoupContentProcessorInterface *soup_cache_default_content_processor_interface;
