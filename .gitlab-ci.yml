@@ -87,12 +87,14 @@ reference:
   stage: docs
   variables:
     MESON_ARGS: >-
-      -Dgtk_doc=true
+      -Ddocs=enabled
+      -Ddoc_tests=true
       -Dvapi=disabled
   script:
     - mkdir -p _reference/libsoup-3.0
     - meson ${MESON_ARGS} _build
-    - ninja -C _build
+    - meson compile -C _build libsoup-doc --verbose
+    - meson test -C _build docs --verbose
     - mv _build/docs/reference/libsoup-3.0/* _reference/libsoup-3.0
     # Add libsoup-2.4 docs.
     - cp -R /usr/share/gtk-doc/html/{glib,gio,gobject,libsoup-2.4} _reference/
