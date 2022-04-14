@@ -402,7 +402,7 @@ subdir('examples')
 subdir('fuzzing')
 if get_option('tests')
   subdir('tests')
- endif
+endif
 
 srcdir = include_directories('libsoup')
 subdir('docs/reference')
@@ -422,7 +422,7 @@ summary({
     'Translations' : xgettext.found(),
     'GIR' : enable_introspection,
     'VAPI' : enable_vapi,
-    'Documentation' : gidocgen_dep.found(),
+    'Documentation' : have_docs,
   },
   section : 'Features'
 )

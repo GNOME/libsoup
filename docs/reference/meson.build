@@ -16,7 +16,15 @@ gidocgen_dep = dependency('gi-docgen', version: '>= 2021.1',
   required: get_option('docs')
 )
 
-if gidocgen_dep.found()
+have_docs = gidocgen_dep.found()
+if not enable_introspection and get_option('docs').auto()
+  have_docs = false
+  warning('Documentation will not be built as introspection was disabled')
+elif not enable_introspection and get_option('docs').enabled()
+  error('Documentation cannot be built without introspection being enabled')
+endif
+
+if have_docs
   libsoup_toml = configure_file(
     input: 'libsoup.toml.in',
     output: 'libsoup.toml',
