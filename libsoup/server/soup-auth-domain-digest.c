@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include "soup-auth-domain-digest.h"
+#include "soup-auth-domain-private.h"
 #include "soup-uri-utils-private.h"
 #include "soup-message-headers-private.h"
 #include "soup.h"

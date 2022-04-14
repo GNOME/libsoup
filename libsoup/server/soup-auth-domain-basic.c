@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-auth-domain-basic.h"
+#include "soup-auth-domain-private.h"
 #include "soup-message-headers-private.h"
 #include "soup.h"
 
