@@ -404,10 +404,8 @@ if get_option('tests')
   subdir('tests')
  endif
 
-if get_option('gtk_doc')
-  srcdir = include_directories('libsoup')
-  subdir('docs/reference')
-endif
+srcdir = include_directories('libsoup')
+subdir('docs/reference')
 
 summary({
     'prefix' : get_option('prefix'),
@@ -424,7 +422,7 @@ summary({
     'Translations' : xgettext.found(),
     'GIR' : enable_introspection,
     'VAPI' : enable_vapi,
-    'Documentation' : get_option('gtk_doc'),
+    'Documentation' : gidocgen_dep.found(),
   },
   section : 'Features'
 )
