@@ -180,7 +180,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
         if (count == 0 && blocking && !priv->completed) {
                 GError *read_error = NULL;
                 g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0,
-                               cancellable, &read_error);
+                               blocking, cancellable, &read_error);
 
                 if (read_error) {
                         g_propagate_error (error, read_error);
@@ -429,5 +429,6 @@ soup_body_input_stream_http2_class_init (SoupBodyInputStreamHttp2Class *klass)
                               NULL, NULL,
                               NULL,
                               G_TYPE_ERROR,
-                              1, G_TYPE_CANCELLABLE);
+                              2, G_TYPE_BOOLEAN,
+                              G_TYPE_CANCELLABLE);
 }
