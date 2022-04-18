@@ -47,6 +47,7 @@ typedef struct {
         GTlsCertificate *tls_client_cert;
 
 	GCancellable *cancellable;
+        GThread *owner;
 } SoupConnectionPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
@@ -96,6 +97,7 @@ soup_connection_init (SoupConnection *conn)
 
         priv->http_version = SOUP_HTTP_1_1;
         priv->force_http_version = G_MAXUINT8;
+        priv->owner = g_thread_self ();
 }
 
 static void
@@ -1136,8 +1138,12 @@ soup_connection_set_in_use (SoupConnection *conn,
 
         if (in_use) {
                 g_atomic_int_inc (&priv->in_use);
-                if (g_atomic_int_compare_and_exchange (&priv->state, SOUP_CONNECTION_IDLE, SOUP_CONNECTION_IN_USE))
+                if (g_atomic_int_compare_and_exchange (&priv->state, SOUP_CONNECTION_IDLE, SOUP_CONNECTION_IN_USE)) {
+                        priv->owner = g_thread_self ();
+                        soup_client_message_io_owner_changed (priv->io_data);
                         g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_STATE]);
+                }
+
                 return;
         }
 
@@ -1349,4 +1355,12 @@ soup_connection_is_reusable (SoupConnection *conn)
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         return priv->io_data && soup_client_message_io_is_reusable (priv->io_data);
+}
+
+GThread *
+soup_connection_get_owner (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->owner;
 }

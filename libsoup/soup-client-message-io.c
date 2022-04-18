@@ -140,3 +140,10 @@ soup_client_message_io_get_cancellable (SoupClientMessageIO *io,
 {
         return io->funcs->get_cancellable (io, msg);
 }
+
+void
+soup_client_message_io_owner_changed (SoupClientMessageIO *io)
+{
+        if (io->funcs->owner_changed)
+                io->funcs->owner_changed (io);
+}

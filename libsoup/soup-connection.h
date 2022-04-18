@@ -85,6 +85,7 @@ guint64              soup_connection_get_id                     (SoupConnection 
 GSocketAddress      *soup_connection_get_remote_address         (SoupConnection *conn);
 SoupHTTPVersion      soup_connection_get_negotiated_protocol    (SoupConnection *conn);
 gboolean             soup_connection_is_reusable                (SoupConnection *conn);
+GThread             *soup_connection_get_owner                  (SoupConnection *conn);
 
 G_END_DECLS
 

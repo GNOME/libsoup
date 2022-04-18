@@ -341,7 +341,6 @@ connection_state_changed (SoupConnection        *conn,
                           GParamSpec            *param,
                           SoupConnectionManager *manager)
 {
-
         if (soup_connection_get_state (conn) != SOUP_CONNECTION_IDLE)
                 return;
 
@@ -387,7 +386,7 @@ soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
 
                         switch (soup_connection_get_state (conn)) {
                         case SOUP_CONNECTION_IN_USE:
-                                if (!need_new_connection && http_version == SOUP_HTTP_2_0 && soup_connection_is_reusable (conn))
+                                if (!need_new_connection && http_version == SOUP_HTTP_2_0 && soup_connection_get_owner (conn) == g_thread_self () && soup_connection_is_reusable (conn))
                                         return conn;
                                 break;
                         case SOUP_CONNECTION_IDLE:
@@ -401,7 +400,7 @@ soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
                                 /* Always wait if we have a pending connection as it may be
                                  * an h2 connection which will be shared. http/1.x connections
                                  * will only be slightly delayed. */
-                                if (force_http_version > SOUP_HTTP_1_1 && !need_new_connection && !item->connect_only && item->async)
+                                if (force_http_version > SOUP_HTTP_1_1 && !need_new_connection && !item->connect_only && item->async && soup_connection_get_owner (conn) == g_thread_self ())
                                         return NULL;
                         default:
                                 break;
