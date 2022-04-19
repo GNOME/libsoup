@@ -419,6 +419,92 @@ do_remove_feature_test (void)
 	g_uri_unref (uri);
 }
 
+typedef struct {
+        SoupSession *session;
+        const char *cookie;
+} ThreadTestData;
+
+static void
+task_sync_function (GTask          *task,
+                    GObject        *source,
+                    ThreadTestData *data,
+                    GCancellable   *cancellable)
+{
+        SoupMessage *msg;
+        GBytes *body;
+
+        msg = soup_message_new_from_uri ("GET", first_party_uri);
+        soup_message_headers_append (soup_message_get_request_headers (msg),
+                                     "Echo-Set-Cookie", data->cookie);
+        body = soup_session_send_and_read (data->session, msg, NULL, NULL);
+        g_assert_nonnull (body);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        g_task_return_boolean (task, TRUE);
+}
+
+static void
+task_finished_cb (SoupSession  *session,
+                  GAsyncResult *result,
+                  guint        *finished_count)
+{
+        g_assert_true (g_task_propagate_boolean (G_TASK (result), NULL));
+        g_atomic_int_inc (finished_count);
+}
+
+static gint
+find_cookie (SoupCookie *cookie,
+             const char *name)
+{
+        return g_strcmp0 (soup_cookie_get_name (cookie), name);
+}
+
+static void
+do_cookies_threads_test (void)
+{
+        SoupSession *session;
+        SoupCookieJar *jar;
+        guint n_msgs = 4;
+        guint finished_count = 0;
+        guint i;
+        const char *values[4] = { "one=1", "two=2", "three=3", "four=4" };
+        GSList *cookies;
+
+        session = soup_test_session_new (NULL);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
+        jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));
+
+        for (i = 0; i < n_msgs; i++) {
+                GTask *task;
+                ThreadTestData *data;
+
+                data = g_new (ThreadTestData, 1);
+                data->session = session;
+                data->cookie = values[i];
+
+                task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_task_data (task, data, g_free);
+                g_task_run_in_thread (task, (GTaskThreadFunc)task_sync_function);
+                g_object_unref (task);
+        }
+
+        while (g_atomic_int_get (&finished_count) != n_msgs)
+                g_main_context_iteration (NULL, TRUE);
+
+        cookies = soup_cookie_jar_get_cookie_list (jar, first_party_uri, TRUE);
+        g_assert_cmpuint (g_slist_length (cookies), ==, 4);
+        g_assert_nonnull (g_slist_find_custom (cookies, "one", (GCompareFunc)find_cookie));
+        g_assert_nonnull (g_slist_find_custom (cookies, "two", (GCompareFunc)find_cookie));
+        g_assert_nonnull (g_slist_find_custom (cookies, "three", (GCompareFunc)find_cookie));
+        g_assert_nonnull (g_slist_find_custom (cookies, "four", (GCompareFunc)find_cookie));
+
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -443,6 +529,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/get-cookies/empty-host", do_get_cookies_empty_host_test);
 	g_test_add_func ("/cookies/remove-feature", do_remove_feature_test);
 	g_test_add_func ("/cookies/secure-cookies", do_cookies_strict_secure_test);
+        g_test_add_func ("/cookies/threads", do_cookies_threads_test);
 
 	ret = g_test_run ();
 

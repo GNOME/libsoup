@@ -53,6 +53,7 @@ enum {
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 typedef struct {
+        GMutex mutex;
 	gboolean constructed, read_only;
 	GHashTable *domains, *serials;
 	guint serial;
@@ -76,6 +77,7 @@ soup_cookie_jar_init (SoupCookieJar *jar)
 					       g_free, NULL);
 	priv->serials = g_hash_table_new (NULL, NULL);
 	priv->accept_policy = SOUP_COOKIE_JAR_ACCEPT_ALWAYS;
+        g_mutex_init (&priv->mutex);
 }
 
 static void
@@ -100,6 +102,7 @@ soup_cookie_jar_finalize (GObject *object)
 		soup_cookies_free (value);
 	g_hash_table_destroy (priv->domains);
 	g_hash_table_destroy (priv->serials);
+        g_mutex_clear (&priv->mutex);
 
 	G_OBJECT_CLASS (soup_cookie_jar_parent_class)->finalize (object);
 }
@@ -342,6 +345,8 @@ get_cookies (SoupCookieJar *jar,
                 next_domain = NULL;
         }
 
+        g_mutex_lock (&priv->mutex);
+
 	do {
 		new_head = domain_cookies = g_hash_table_lookup (priv->domains, cur);
 		while (domain_cookies) {
@@ -377,6 +382,8 @@ get_cookies (SoupCookieJar *jar,
 		soup_cookie_free (cookie);
 	}
 	g_slist_free (cookies_to_remove);
+
+        g_mutex_unlock (&priv->mutex);
 
 	return g_slist_sort_with_data (cookies, compare_cookies, jar);
 }
@@ -515,6 +522,7 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
 	const char *cookie_base_domain;
 	const char *first_party_base_domain;
         const char *first_party_host;
+        gboolean retval;
 
 	if (policy != SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
 	    policy != SOUP_COOKIE_JAR_ACCEPT_GRANDFATHERED_THIRD_PARTY)
@@ -549,7 +557,11 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
 	 * previously visited directly.
 	 */
 	priv = soup_cookie_jar_get_instance_private (jar);
-	return !g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
+        g_mutex_lock (&priv->mutex);
+	retval = !g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
+        g_mutex_unlock (&priv->mutex);
+
+        return retval;
 }
 
 /**
@@ -606,6 +618,8 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 		return;
 	}
 
+        g_mutex_lock (&priv->mutex);
+
 	old_cookies = g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
 	for (oc = old_cookies; oc; oc = oc->next) {
 		old_cookie = oc->data;
@@ -635,6 +649,8 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 				soup_cookie_free (old_cookie);
 			}
 
+                        g_mutex_unlock (&priv->mutex);
+
 			return;
 		}
 		last = oc;
@@ -643,6 +659,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 	/* The new cookie is... a new cookie */
 	if (soup_cookie_get_expires (cookie) && soup_date_time_is_past (soup_cookie_get_expires (cookie))) {
 		soup_cookie_free (cookie);
+                g_mutex_unlock (&priv->mutex);
 		return;
 	}
 
@@ -655,6 +672,8 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 	}
 
 	soup_cookie_jar_changed (jar, NULL, cookie);
+
+        g_mutex_unlock (&priv->mutex);
 }
 
 /**
@@ -882,6 +901,8 @@ soup_cookie_jar_all_cookies (SoupCookieJar *jar)
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
+        g_mutex_lock (&priv->mutex);
+
 	g_hash_table_iter_init (&iter, priv->domains);
 
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
@@ -889,6 +910,8 @@ soup_cookie_jar_all_cookies (SoupCookieJar *jar)
 		for (p = cookies; p; p = p->next)
 			l = g_slist_prepend (l, soup_cookie_copy (p->data));
 	}
+
+        g_mutex_unlock (&priv->mutex);
 
 	return l;
 }
@@ -914,9 +937,13 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
+        g_mutex_lock (&priv->mutex);
+
 	cookies = g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
-	if (cookies == NULL)
+	if (cookies == NULL) {
+                g_mutex_unlock (&priv->mutex);
 		return;
+        }
 
 	for (p = cookies; p; p = p->next ) {
 		SoupCookie *c = (SoupCookie*)p->data;
@@ -927,9 +954,12 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
 					     cookies);
 			soup_cookie_jar_changed (jar, c, NULL);
 			soup_cookie_free (c);
+                        g_mutex_unlock (&priv->mutex);
 			return;
 		}
 	}
+
+        g_mutex_unlock (&priv->mutex);
 }
 
 /**
