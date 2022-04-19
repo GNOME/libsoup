@@ -4,6 +4,7 @@
  */
 
 #include "test-utils.h"
+#include <glib/gstdio.h>
 
 static void
 server_callback (SoupServer        *server,
@@ -861,6 +862,239 @@ do_metrics_test (gconstpointer data)
         g_free (cache_dir);
 }
 
+typedef struct {
+        SoupSession *session;
+        GUri *uri;
+        gboolean must_revalidate;
+        gboolean is_expired;
+        gboolean hit_network;
+        gboolean validated;
+        GError *error;
+} ThreadTestRequest;
+
+static void
+threads_message_starting (SoupMessage       *msg,
+                          ThreadTestRequest *request)
+{
+        SoupMessageHeaders *request_headers;
+
+        if (request->validated)
+                return;
+
+        request_headers = soup_message_get_request_headers (msg);
+        request->validated = !!soup_message_headers_get_one (request_headers, "If-Modified-Since");
+}
+
+static void
+threads_request_queued (SoupSession       *session,
+                        SoupMessage       *msg,
+                        ThreadTestRequest *request)
+{
+        if (soup_message_get_uri (msg) != request->uri)
+                return;
+
+        g_signal_connect (msg, "starting",
+                          G_CALLBACK (threads_message_starting),
+                          request);
+}
+
+static void
+task_async_function (GTask        *task,
+                     GObject      *source,
+                     gpointer      task_data,
+                     GCancellable *cancellable)
+{
+        GMainContext *context;
+        SoupMessage *msg;
+        SoupMessageHeaders *request_headers;
+        GInputStream *stream;
+        ThreadTestRequest *request = (ThreadTestRequest *)task_data;
+
+        context = g_main_context_new ();
+        g_main_context_push_thread_default (context);
+
+        msg = soup_message_new_from_uri ("GET", request->uri);
+        g_signal_connect (request->session, "request-queued",
+                          G_CALLBACK (threads_request_queued),
+                          request);
+        request_headers = soup_message_get_request_headers (msg);
+        if (request->must_revalidate) {
+                soup_message_headers_append (request_headers,
+                                             "Test-Set-Last-Modified",
+                                             request->is_expired ? "Sat, 02 Jan 2010 00:00:00 GMT" : "Fri, 01 Jan 2010 00:00:00 GMT");
+                soup_message_headers_append (request_headers,
+                                             "Test-Set-Expires", "Sat, 02 Jan 2011 00:00:00 GMT");
+                soup_message_headers_append (request_headers,
+                                             "Test-Set-Cache-Control", "must-revalidate");
+        } else {
+                soup_message_headers_append (request_headers,
+                                             "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT");
+        }
+
+        stream = soup_test_request_send (request->session, msg, NULL, 0, &request->error);
+        if (stream) {
+                request->hit_network = is_network_stream (stream);
+                soup_test_request_read_all (stream, NULL, &request->error);
+                g_object_unref (stream);
+        }
+
+        g_signal_handlers_disconnect_by_data (request->session, request);
+
+        g_object_unref (msg);
+
+        /* Continue iterating to ensure the item is unqueued and the connection released */
+        while (g_main_context_pending (context))
+                g_main_context_iteration (context, TRUE);
+
+        /* Cache writes are G_PRIORITY_LOW, so they won't have happened yet */
+        soup_cache_flush ((SoupCache *)soup_session_get_feature (request->session, SOUP_TYPE_CACHE));
+
+        g_task_return_boolean (task, TRUE);
+
+        g_main_context_pop_thread_default (context);
+        g_main_context_unref (context);
+}
+
+static void
+task_finished_cb (SoupSession  *session,
+                  GAsyncResult *result,
+                  guint        *finished_count)
+{
+        g_assert_true (g_task_propagate_boolean (G_TASK (result), NULL));
+        g_atomic_int_inc (finished_count);
+}
+
+static void
+do_threads_test (gconstpointer data)
+{
+        GUri *base_uri = (GUri *)data;
+        SoupSession *session;
+        SoupCache *cache;
+        char *cache_dir;
+        ThreadTestRequest requests[4];
+        guint i;
+        guint finished_count = 0;
+
+        session = soup_test_session_new (NULL);
+
+        cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
+        cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (cache));
+
+        requests[0].session = session;
+        requests[0].uri = g_uri_parse_relative (base_uri, "/1", SOUP_HTTP_URI_FLAGS, NULL);
+        requests[0].must_revalidate = FALSE;
+        requests[0].is_expired = FALSE;
+        requests[1].session = session;
+        requests[1].uri = g_uri_parse_relative (base_uri, "/2", SOUP_HTTP_URI_FLAGS, NULL);
+        requests[1].must_revalidate = TRUE;
+        requests[1].is_expired = FALSE;
+        requests[2].session = session;
+        requests[2].uri = g_uri_parse_relative (base_uri, "/3", SOUP_HTTP_URI_FLAGS, NULL);
+        requests[2].must_revalidate = FALSE;
+        requests[2].is_expired = FALSE;
+        requests[3].session = session;
+        requests[3].uri = g_uri_parse_relative (base_uri, "/4", SOUP_HTTP_URI_FLAGS, NULL);
+        requests[3].must_revalidate = TRUE;
+        requests[3].is_expired = FALSE;
+
+        for (i = 0; i < 4; i++) {
+                GTask *task;
+
+                requests[i].hit_network = FALSE;
+                requests[i].validated = FALSE;
+                requests[i].error = NULL;
+
+                task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_task_data (task, &requests[i], NULL);
+                g_task_run_in_thread (task, (GTaskThreadFunc)task_async_function);
+                g_object_unref (task);
+        }
+
+        while (g_atomic_int_get (&finished_count) != 4)
+                g_main_context_iteration (NULL, TRUE);
+
+        /* Initial requests hit the network */
+        for (i = 0; i < 4; i++) {
+                g_assert_true (requests[i].hit_network);
+                g_assert_false (requests[i].validated);
+                g_assert_no_error (requests[i].error);
+        }
+
+        finished_count = 0;
+        for (i = 0; i < 4; i++) {
+                GTask *task;
+
+                requests[i].hit_network = FALSE;
+                requests[i].validated = FALSE;
+                requests[i].error = NULL;
+
+                task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_task_data (task, &requests[i], NULL);
+                g_task_run_in_thread (task, (GTaskThreadFunc)task_async_function);
+                g_object_unref (task);
+        }
+
+        while (g_atomic_int_get (&finished_count) != 4)
+                g_main_context_iteration (NULL, TRUE);
+
+        /* None of the requests hit the ntwork */
+        for (i = 0; i < 4; i++) {
+                g_assert_false (requests[i].hit_network);
+                g_assert_no_error (requests[i].error);
+        }
+
+        /* The ones including must-revalidate are validated */
+        g_assert_false (requests[0].validated);
+        g_assert_true (requests[1].validated);
+        g_assert_false (requests[2].validated);
+        g_assert_true (requests[3].validated);
+
+        /* Try again making the validations fail */
+        requests[1].is_expired = TRUE;
+        requests[3].is_expired = TRUE;
+
+        finished_count = 0;
+        for (i = 0; i < 4; i++) {
+                GTask *task;
+
+                requests[i].hit_network = FALSE;
+                requests[i].validated = FALSE;
+                requests[i].error = NULL;
+
+                task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_task_data (task, &requests[i], NULL);
+                g_task_run_in_thread (task, (GTaskThreadFunc)task_async_function);
+                g_object_unref (task);
+        }
+
+        while (g_atomic_int_get (&finished_count) != 4)
+                g_main_context_iteration (NULL, TRUE);
+
+        /* None of the requests failed */
+        for (i = 0; i < 4; i++)
+                g_assert_no_error (requests[i].error);
+
+        /* The ones including must-revalidate are validated and hit the network this time */
+        g_assert_false (requests[0].validated);
+        g_assert_false (requests[0].hit_network);
+        g_assert_true (requests[1].validated);
+        g_assert_true (requests[1].hit_network);
+        g_assert_false (requests[2].validated);
+        g_assert_false (requests[2].hit_network);
+        g_assert_true (requests[3].validated);
+        g_assert_true (requests[3].hit_network);
+
+        for (i = 0; i < 4; i++)
+                g_uri_unref (requests[i].uri);
+
+        soup_test_session_abort_unref (session);
+        soup_cache_clear (cache);
+        g_rmdir (cache_dir);
+        g_object_unref (cache);
+        g_free (cache_dir);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -880,6 +1114,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/cache/headers", base_uri, do_headers_test);
 	g_test_add_data_func ("/cache/leaks", base_uri, do_leaks_test);
         g_test_add_data_func ("/cache/metrics", base_uri, do_metrics_test);
+        g_test_add_data_func ("/cache/threads", base_uri, do_threads_test);
 
 	ret = g_test_run ();
 

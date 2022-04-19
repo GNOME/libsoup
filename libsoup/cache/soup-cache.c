@@ -123,6 +123,7 @@ typedef struct _SoupCacheEntry {
 
 typedef struct {
 	char *cache_dir;
+        GMutex mutex;
 	GHashTable *cache;
 	guint n_pending;
 	SoupSession *session;
@@ -543,8 +544,10 @@ soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry, gboolean purge
 	g_assert (!entry->dirty);
 	g_assert (g_list_length (priv->lru_start) == g_hash_table_size (priv->cache));
 
-	if (!g_hash_table_remove (priv->cache, GUINT_TO_POINTER (entry->key)))
+	if (!g_hash_table_remove (priv->cache, GUINT_TO_POINTER (entry->key))) {
+                g_mutex_unlock (&priv->mutex);
 		return FALSE;
+        }
 
 	/* Remove from LRU */
 	lru_item = g_list_find (priv->lru_start, entry);
@@ -712,7 +715,9 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 
         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_REQUEST_START);
 
+        g_mutex_lock (&priv->mutex);
 	entry = soup_cache_entry_lookup (cache, msg);
+        g_mutex_unlock (&priv->mutex);
 	g_return_val_if_fail (entry, NULL);
 
 	file = get_file_from_entry (cache, entry);
@@ -815,6 +820,8 @@ istream_caching_finished (SoupCacheInputStream *istream,
 	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry = helper->entry;
 
+        g_mutex_lock (&priv->mutex);
+
 	--priv->n_pending;
 
 	entry->dirty = FALSE;
@@ -843,6 +850,7 @@ istream_caching_finished (SoupCacheInputStream *istream,
 	}
 
  cleanup:
+        g_mutex_unlock (&priv->mutex);
 	g_object_unref (helper->cache);
 	g_slice_free (StreamHelper, helper);
 }
@@ -862,6 +870,8 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 	StreamHelper *helper;
 	time_t request_time, response_time;
 
+        g_mutex_lock (&priv->mutex);
+
 	/* First of all, check if we should cache the resource. */
 	cacheability = soup_cache_get_cacheability (cache, msg);
 	entry = soup_cache_entry_lookup (cache, msg);
@@ -869,6 +879,7 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 	if (cacheability & SOUP_CACHE_INVALIDATES) {
 		if (entry)
 			soup_cache_entry_remove (cache, entry, TRUE);
+                g_mutex_unlock (&priv->mutex);
 		return NULL;
 	}
 
@@ -880,15 +891,20 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 		 */
 		if (entry)
 			soup_cache_update_from_conditional_request (cache, msg);
+                g_mutex_unlock (&priv->mutex);
 		return NULL;
 	}
 
-	if (!(cacheability & SOUP_CACHE_CACHEABLE))
+	if (!(cacheability & SOUP_CACHE_CACHEABLE)) {
+                g_mutex_unlock (&priv->mutex);
 		return NULL;
+        }
 
 	/* Check if we are already caching this resource */
-	if (entry && (entry->dirty || entry->being_validated))
+	if (entry && (entry->dirty || entry->being_validated)) {
+                g_mutex_unlock (&priv->mutex);
 		return NULL;
+        }
 
 	/* Create a new entry, deleting any old one if present */
 	if (entry)
@@ -903,11 +919,14 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 	/* Do not continue if it can not be stored */
 	if (!soup_cache_entry_insert (cache, entry, TRUE)) {
 		soup_cache_entry_free (entry);
+                g_mutex_unlock (&priv->mutex);
 		return NULL;
 	}
 
 	entry->cancellable = g_cancellable_new ();
 	++priv->n_pending;
+
+        g_mutex_unlock (&priv->mutex);
 
 	helper = g_slice_new (StreamHelper);
 	helper->cache = g_object_ref (cache);
@@ -949,6 +968,8 @@ soup_cache_init (SoupCache *cache)
 	priv->max_size = DEFAULT_MAX_SIZE;
 	priv->max_entry_data_size = priv->max_size / MAX_ENTRY_DATA_PERCENTAGE;
 	priv->size = 0;
+
+        g_mutex_init (&priv->mutex);
 }
 
 static void
@@ -973,6 +994,8 @@ soup_cache_finalize (GObject *object)
 	g_free (priv->cache_dir);
 
 	g_list_free (priv->lru_start);
+
+        g_mutex_clear (&priv->mutex);
 
 	G_OBJECT_CLASS (soup_cache_parent_class)->finalize (object);
 }
@@ -1121,13 +1144,17 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 	int max_age, max_stale, min_fresh;
 	GList *lru_item, *item;
 
+        g_mutex_lock (&priv->mutex);
+
 	entry = soup_cache_entry_lookup (cache, msg);
 
 	/* 1. The presented Request-URI and that of stored response
 	 * match
 	 */
-	if (!entry)
+	if (!entry) {
+                g_mutex_unlock (&priv->mutex);
 		return SOUP_CACHE_RESPONSE_STALE;
+        }
 
 	/* Increase hit count. Take sorting into account */
 	entry->hits++;
@@ -1142,6 +1169,8 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
                 (void)item; // Silence scan-build warning
 		g_list_free (lru_item);
 	}
+
+        g_mutex_unlock (&priv->mutex);
 
 	if (entry->dirty || entry->being_validated)
 		return SOUP_CACHE_RESPONSE_STALE;
@@ -1376,6 +1405,8 @@ clear_cache_files (SoupCache *cache)
  * @cache: a #SoupCache
  *
  * Will remove all entries in the @cache plus all the cache files.
+ *
+ * This is not thread safe and must be called only from the thread that created the #SoupCache
  */
 void
 soup_cache_clear (SoupCache *cache)
@@ -1398,6 +1429,7 @@ soup_cache_clear (SoupCache *cache)
 SoupMessage *
 soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original)
 {
+        SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupMessage *msg;
 	GUri *uri;
 	SoupCacheEntry *entry;
@@ -1408,7 +1440,9 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	g_return_val_if_fail (SOUP_IS_MESSAGE (original), NULL);
 
 	/* Add the validator entries in the header from the cached data */
+        g_mutex_lock (&priv->mutex);
 	entry = soup_cache_entry_lookup (cache, original);
+        g_mutex_unlock (&priv->mutex);
 	g_return_val_if_fail (entry, NULL);
 
 	last_modified = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_LAST_MODIFIED);
@@ -1453,7 +1487,9 @@ soup_cache_cancel_conditional_request (SoupCache   *cache,
 	SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
 	SoupCacheEntry *entry;
 
+        g_mutex_lock (&priv->mutex);
 	entry = soup_cache_entry_lookup (cache, msg);
+        g_mutex_unlock (&priv->mutex);
 	if (entry)
 		entry->being_validated = FALSE;
 
@@ -1464,7 +1500,12 @@ void
 soup_cache_update_from_conditional_request (SoupCache   *cache,
 					    SoupMessage *msg)
 {
-	SoupCacheEntry *entry = soup_cache_entry_lookup (cache, msg);
+        SoupCachePrivate *priv = soup_cache_get_instance_private (cache);
+	SoupCacheEntry *entry;
+
+        g_mutex_lock (&priv->mutex);
+        entry = soup_cache_entry_lookup (cache, msg);
+        g_mutex_unlock (&priv->mutex);
 	if (!entry)
 		return;
 
@@ -1526,6 +1567,8 @@ pack_entry (gpointer data,
  *
  * You must call this before exiting if you want your cache data to
  * persist between sessions.
+ *
+ * This is not thread safe and must be called only from the thread that created the #SoupCache
  */
 void
 soup_cache_dump (SoupCache *cache)
@@ -1587,6 +1630,8 @@ insert_cache_file (SoupCache *cache, const char *name, GHashTable *leaked_entrie
  * @cache: a #SoupCache
  *
  * Loads the contents of @cache's index into memory.
+ *
+ * This is not thread safe and must be called only from the thread that created the #SoupCache
  */
 void
 soup_cache_load (SoupCache *cache)
