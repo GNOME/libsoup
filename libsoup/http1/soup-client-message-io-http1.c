@@ -258,7 +258,10 @@ write_headers (SoupMessage  *msg,
                 uri_string = g_strdup_printf ("%s:%d", uri_host, g_uri_get_port (uri));
                 g_free (uri_host);
         } else {
-                gboolean proxy = soup_connection_is_via_proxy (soup_message_get_connection (msg));
+                SoupConnection *conn = soup_message_get_connection (msg);
+                gboolean proxy = soup_connection_is_via_proxy (conn);
+
+                g_object_unref (conn);
 
                 /* Proxy expects full URI to destination. Otherwise
                  * just the path.

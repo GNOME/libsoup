@@ -64,7 +64,7 @@ typedef struct {
 
         GThread *owner;
         gboolean async;
-        SoupConnection *conn;
+        GWeakRef conn;
         GIOStream *stream;
         GInputStream *istream;
         GOutputStream *ostream;
@@ -469,6 +469,7 @@ io_read_ready (GObject                  *stream,
 {
         GError *error = NULL;
         gboolean progress = TRUE;
+        SoupConnection *conn;
 
         if (io->error) {
                 g_clear_pointer (&io->read_source, g_source_unref);
@@ -478,8 +479,9 @@ io_read_ready (GObject                  *stream,
         /* Mark the connection as in use to make sure it's not disconnected while
          * processing pending messages, for example if a goaway is received.
          */
-        if (io->conn)
-                soup_connection_set_in_use (io->conn, TRUE);
+        conn = g_weak_ref_get (&io->conn);
+        if (conn)
+                soup_connection_set_in_use (conn, TRUE);
 
         while (nghttp2_session_want_read (io->session) && progress) {
                 progress = io_read (io, FALSE, NULL, &error);
@@ -492,8 +494,10 @@ io_read_ready (GObject                  *stream,
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
-                if (io->conn)
-                        soup_connection_set_in_use (io->conn, FALSE);
+                if (conn) {
+                        soup_connection_set_in_use (conn, FALSE);
+                        g_object_unref (conn);
+                }
                 return G_SOURCE_CONTINUE;
         }
 
@@ -507,8 +511,10 @@ io_read_ready (GObject                  *stream,
         io->is_shutdown = TRUE;
 
         g_clear_pointer (&io->read_source, g_source_unref);
-        if (io->conn)
-                soup_connection_set_in_use (io->conn, FALSE);
+        if (conn) {
+                soup_connection_set_in_use (conn, FALSE);
+                g_object_unref (conn);
+        }
         return G_SOURCE_REMOVE;
 }
 
@@ -911,8 +917,12 @@ on_frame_send_callback (nghttp2_session     *session,
         case NGHTTP2_RST_STREAM:
                 h2_debug (io, data, "[SEND] [RST_STREAM] stream_id=%u", frame->hd.stream_id);
                 if (g_hash_table_foreach_remove (io->closed_messages, (GHRFunc)remove_closed_stream, (gpointer)frame)) {
-                        if (io->conn)
-                                soup_connection_set_in_use (io->conn, FALSE);
+                        SoupConnection *conn = g_weak_ref_get (&io->conn);
+
+                        if (conn) {
+                                soup_connection_set_in_use (conn, FALSE);
+                                g_object_unref (conn);
+                        }
                 }
 
                 break;
@@ -1426,6 +1436,8 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
         nghttp2_session_set_stream_user_data (io->session, data->stream_id, NULL);
 
         if (!io->is_shutdown) {
+                SoupConnection *conn;
+
                 NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id,
                                                     completion == SOUP_MESSAGE_IO_COMPLETE ? NGHTTP2_NO_ERROR : NGHTTP2_CANCEL));
                 soup_http2_message_data_close (data);
@@ -1435,8 +1447,11 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
                 if (!g_hash_table_add (io->closed_messages, data))
                         g_warn_if_reached ();
 
-                if (io->conn)
-                        soup_connection_set_in_use (io->conn, TRUE);
+                conn = g_weak_ref_get (&io->conn);
+                if (conn) {
+                        soup_connection_set_in_use (conn, TRUE);
+                        g_object_unref (conn);
+                }
 
                 io_try_write (io, !io->async);
         } else {
@@ -1784,8 +1799,7 @@ soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
                 g_source_unref (io->write_source);
         }
 
-        if (io->conn)
-                g_object_remove_weak_pointer (G_OBJECT (io->conn), (gpointer*)&io->conn);
+        g_weak_ref_clear (&io->conn);
         g_clear_object (&io->stream);
         g_clear_object (&io->close_task);
         g_clear_pointer (&io->session, nghttp2_session_del);
@@ -1883,8 +1897,7 @@ soup_client_message_io_http2_new (SoupConnection *conn)
         SoupClientMessageIOHTTP2 *io = g_new0 (SoupClientMessageIOHTTP2, 1);
         soup_client_message_io_http2_init (io);
 
-        io->conn = conn;
-        g_object_add_weak_pointer (G_OBJECT (io->conn), (gpointer*)&io->conn);
+        g_weak_ref_init (&io->conn, conn);
 
         io->stream = g_object_ref (soup_connection_get_iostream (conn));
         io->istream = g_io_stream_get_input_stream (io->stream);

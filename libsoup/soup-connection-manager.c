@@ -493,6 +493,7 @@ soup_connection_manager_get_connection (SoupConnectionManager *manager,
         conn = soup_message_get_connection (item->msg);
         if (conn) {
                 g_warn_if_fail (soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED);
+                g_object_unref (conn);
                 return conn;
         }
 
@@ -533,10 +534,14 @@ soup_connection_manager_steal_connection (SoupConnectionManager *manager,
         GIOStream *stream;
 
         conn = soup_message_get_connection (msg);
-        if (!conn || soup_connection_get_state (conn) != SOUP_CONNECTION_IN_USE)
+        if (!conn)
                 return NULL;
 
-        g_object_ref (conn);
+        if (soup_connection_get_state (conn) != SOUP_CONNECTION_IN_USE) {
+                g_object_unref (conn);
+                return NULL;
+        }
+
         g_mutex_lock (&manager->mutex);
         host = soup_connection_manager_get_host_for_message (manager, msg);
         g_hash_table_remove (manager->conns, conn);

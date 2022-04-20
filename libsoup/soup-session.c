@@ -1070,7 +1070,13 @@ static int
 lookup_connection (SoupMessageQueueItem *item,
 		   SoupConnection       *conn)
 {
-	return soup_message_get_connection (item->msg) == conn ? 0 : 1;
+        SoupConnection *connection = soup_message_get_connection (item->msg);
+        int retval;
+
+        retval = connection == conn ? 0 : 1;
+        g_clear_object (&connection);
+
+        return retval;
 }
 
 static SoupMessageQueueItem *
@@ -1260,6 +1266,7 @@ message_restarted (SoupMessage *msg, gpointer user_data)
 	     SOUP_STATUS_IS_REDIRECTION (soup_message_get_status (msg)))) {
                 soup_message_set_connection (item->msg, NULL);
 	}
+        g_clear_object (&conn);
 
 	soup_message_cleanup_response (msg);
 }
@@ -1348,6 +1355,7 @@ soup_session_send_queue_item (SoupSession *session,
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageHeaders *request_headers;
 	const char *method;
+        SoupConnection *conn;
 
         g_assert (item->context == soup_thread_default_context ());
 
@@ -1358,7 +1366,9 @@ soup_session_send_queue_item (SoupSession *session,
 	if (priv->accept_language && !soup_message_headers_get_list_common (request_headers, SOUP_HEADER_ACCEPT_LANGUAGE))
 		soup_message_headers_append_common (request_headers, SOUP_HEADER_ACCEPT_LANGUAGE, priv->accept_language);
 
-        soup_message_set_http_version (item->msg, soup_connection_get_negotiated_protocol (soup_message_get_connection (item->msg)));
+        conn = soup_message_get_connection (item->msg);
+        soup_message_set_http_version (item->msg, soup_connection_get_negotiated_protocol (conn));
+        g_object_unref (conn);
 
         soup_message_force_keep_alive_if_needed (item->msg);
         soup_message_update_request_host_if_needed (item->msg);
@@ -1462,7 +1472,10 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 
 	item->error = error;
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status) || item->error) {
-		soup_connection_disconnect (soup_message_get_connection (item->msg));
+                SoupConnection *conn = soup_message_get_connection (item->msg);
+
+		soup_connection_disconnect (conn);
+                g_object_unref (conn);
                 soup_message_set_connection (item->msg, NULL);
 		if (!error && soup_message_get_status (item->msg) == SOUP_STATUS_NONE)
 			soup_message_set_status (item->msg, status, NULL);
@@ -1499,8 +1512,13 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
                 tunnel_item->state = SOUP_MESSAGE_RESTARTING;
 
 	if (tunnel_item->state == SOUP_MESSAGE_RESTARTING) {
+                SoupConnection *conn;
+
 		soup_message_restarted (msg);
-		if (soup_message_get_connection (tunnel_item->msg)) {
+
+                conn = soup_message_get_connection (tunnel_item->msg);
+		if (conn) {
+                        g_object_unref (conn);
 			tunnel_item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, tunnel_item,
 						      (SoupMessageIOCompletionFn)tunnel_message_completed);
@@ -1521,15 +1539,20 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 	}
 
 	if (tunnel_item->async) {
-		soup_connection_tunnel_handshake_async (soup_message_get_connection (item->msg),
+                SoupConnection *conn = soup_message_get_connection (item->msg);
+
+		soup_connection_tunnel_handshake_async (conn,
 							item->io_priority,
 							item->cancellable,
 							(GAsyncReadyCallback)tunnel_handshake_complete,
 							tunnel_item);
+                g_object_unref (conn);
 	} else {
+                SoupConnection *conn = soup_message_get_connection (item->msg);
 		GError *error = NULL;
 
-		soup_connection_tunnel_handshake (soup_message_get_connection (item->msg), item->cancellable, &error);
+		soup_connection_tunnel_handshake (conn, item->cancellable, &error);
+                g_object_unref (conn);
 		tunnel_complete (tunnel_item, SOUP_STATUS_OK, error);
 	}
 }
@@ -1540,6 +1563,7 @@ tunnel_connect (SoupMessageQueueItem *item)
 	SoupSession *session = item->session;
 	SoupMessageQueueItem *tunnel_item;
 	SoupMessage *msg;
+        SoupConnection *conn;
 
 	item->state = SOUP_MESSAGE_TUNNELING;
 
@@ -1551,7 +1575,9 @@ tunnel_connect (SoupMessageQueueItem *item)
 						      item->cancellable);
 	tunnel_item->io_priority = item->io_priority;
 	tunnel_item->related = soup_message_queue_item_ref (item);
-        soup_message_set_connection (tunnel_item->msg, soup_message_get_connection (item->msg));
+        conn = soup_message_get_connection (item->msg);
+        soup_message_set_connection (tunnel_item->msg, conn);
+        g_clear_object (&conn);
 	tunnel_item->state = SOUP_MESSAGE_RUNNING;
 
 	soup_session_send_queue_item (session, tunnel_item,
@@ -1699,13 +1725,16 @@ soup_session_process_queue_item (SoupSession          *session,
 				return;
 			break;
 
-		case SOUP_MESSAGE_CONNECTED:
-			if (soup_connection_is_tunnelled (soup_message_get_connection (item->msg)))
+		case SOUP_MESSAGE_CONNECTED: {
+                        SoupConnection *conn = soup_message_get_connection (item->msg);
+
+			if (soup_connection_is_tunnelled (conn))
 				tunnel_connect (item);
 			else
 				item->state = SOUP_MESSAGE_READY;
+                        g_object_unref (conn);
 			break;
-
+                }
 		case SOUP_MESSAGE_READY:
 			if (item->connect_only) {
 				item->state = SOUP_MESSAGE_FINISHING;

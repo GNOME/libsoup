@@ -71,7 +71,7 @@ typedef struct {
 	GUri              *uri;
 
 	SoupAuth          *auth, *proxy_auth;
-	SoupConnection    *connection;
+	GWeakRef           connection;
 
 	GHashTable        *disabled_features;
 
@@ -168,6 +168,8 @@ soup_message_init (SoupMessage *msg)
 
 	priv->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
 	priv->response_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+
+        g_weak_ref_init (&priv->connection, NULL);
 }
 
 static void
@@ -189,6 +191,7 @@ soup_message_finalize (GObject *object)
         g_clear_object (&priv->pending_tls_cert_password);
 
 	soup_message_set_connection (msg, NULL);
+        g_weak_ref_clear (&priv->connection);
 
 	g_clear_pointer (&priv->uri, g_uri_unref);
 	g_clear_pointer (&priv->first_party, g_uri_unref);
@@ -1452,8 +1455,17 @@ soup_message_get_uri_for_auth (SoupMessage *msg)
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
 	if (priv->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+                SoupConnection *connection = g_weak_ref_get (&priv->connection);
+
 		/* When loaded from the disk cache, the connection is NULL. */
-                return priv->connection ? soup_connection_get_proxy_uri (priv->connection) : NULL;
+                if (connection) {
+                        GUri *uri = soup_connection_get_proxy_uri (connection);
+
+                        g_object_unref (connection);
+                        return uri;
+                }
+
+                return NULL;
 	}
 
 	return priv->uri;
@@ -1524,7 +1536,7 @@ soup_message_get_connection (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-	return priv->connection;
+	return g_weak_ref_get (&priv->connection);
 }
 
 static void
@@ -1671,67 +1683,68 @@ soup_message_set_connection (SoupMessage    *msg,
 			     SoupConnection *conn)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupConnection *connection = g_weak_ref_get (&priv->connection);
 
-        if (priv->connection == conn)
+        if (connection == conn) {
+                g_clear_object (&connection);
                 return;
+        }
 
-	if (priv->connection) {
-		g_signal_handlers_disconnect_by_data (priv->connection, msg);
+	if (connection) {
+		g_signal_handlers_disconnect_by_data (connection, msg);
                 priv->io_data = NULL;
 
                 if (priv->pending_tls_cert_request) {
-                        soup_connection_complete_tls_certificate_request (priv->connection,
+                        soup_connection_complete_tls_certificate_request (connection,
                                                                           priv->tls_client_certificate,
                                                                           g_steal_pointer (&priv->pending_tls_cert_request));
                         g_clear_object (&priv->tls_client_certificate);
                 }
-		g_object_remove_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
-                soup_connection_set_in_use (priv->connection, FALSE);
+                soup_connection_set_in_use (connection, FALSE);
+                g_object_unref (connection);
 	}
 
-	priv->connection = conn;
-	if (!priv->connection)
+        g_weak_ref_set (&priv->connection, conn);
+	if (!conn)
 		return;
 
-        soup_connection_set_in_use (priv->connection, TRUE);
-        priv->last_connection_id = soup_connection_get_id (priv->connection);
+        soup_connection_set_in_use (conn, TRUE);
+        priv->last_connection_id = soup_connection_get_id (conn);
 
-	g_object_add_weak_pointer (G_OBJECT (priv->connection), (gpointer*)&priv->connection);
         soup_message_set_tls_peer_certificate (msg,
-                                               soup_connection_get_tls_certificate (priv->connection),
-                                               soup_connection_get_tls_certificate_errors (priv->connection));
+                                               soup_connection_get_tls_certificate (conn),
+                                               soup_connection_get_tls_certificate_errors (conn));
         soup_message_set_tls_protocol_version (msg, soup_connection_get_tls_protocol_version (conn));
         soup_message_set_tls_ciphersuite_name (msg, soup_connection_get_tls_ciphersuite_name (conn));
-        soup_message_set_remote_address (msg, soup_connection_get_remote_address (priv->connection));
+        soup_message_set_remote_address (msg, soup_connection_get_remote_address (conn));
 
         if (priv->tls_client_certificate) {
-                soup_connection_set_tls_client_certificate (priv->connection,
-                                                            priv->tls_client_certificate);
+                soup_connection_set_tls_client_certificate (conn, priv->tls_client_certificate);
                 g_clear_object (&priv->tls_client_certificate);
         }
 
-	g_signal_connect_object (priv->connection, "event",
+	g_signal_connect_object (conn, "event",
 				 G_CALLBACK (re_emit_connection_event),
 				 msg, G_CONNECT_SWAPPED);
-	g_signal_connect_object (priv->connection, "accept-certificate",
+	g_signal_connect_object (conn, "accept-certificate",
 				 G_CALLBACK (re_emit_accept_certificate),
 				 msg, G_CONNECT_SWAPPED);
-        g_signal_connect_object (priv->connection, "request-certificate",
+        g_signal_connect_object (conn, "request-certificate",
                                  G_CALLBACK (re_emit_request_certificate),
                                  msg, G_CONNECT_SWAPPED);
-        g_signal_connect_object (priv->connection, "request-certificate-password",
+        g_signal_connect_object (conn, "request-certificate-password",
                                  G_CALLBACK (re_emit_request_certificate_password),
                                  msg, G_CONNECT_SWAPPED);
-	g_signal_connect_object (priv->connection, "notify::tls-certificate",
+	g_signal_connect_object (conn, "notify::tls-certificate",
 				 G_CALLBACK (re_emit_tls_certificate_changed),
 				 msg, G_CONNECT_SWAPPED);
-        g_signal_connect_object (priv->connection, "notify::tls-protocol-version",
+        g_signal_connect_object (conn, "notify::tls-protocol-version",
                                  G_CALLBACK (connection_tls_protocol_version_changed),
                                  msg, G_CONNECT_SWAPPED);
-        g_signal_connect_object (priv->connection, "notify::tls-ciphersuite-name",
+        g_signal_connect_object (conn, "notify::tls-ciphersuite-name",
                                  G_CALLBACK (connection_tls_ciphersuite_name_changed),
                                  msg, G_CONNECT_SWAPPED);
-        g_signal_connect_object (priv->connection, "notify::remote-address",
+        g_signal_connect_object (conn, "notify::remote-address",
                                  G_CALLBACK (connection_remote_address_changed),
                                  msg, G_CONNECT_SWAPPED);
 }
@@ -1752,18 +1765,20 @@ soup_message_transfer_connection (SoupMessage *preconnect_msg,
         SoupMessagePrivate *preconnect_priv = soup_message_get_instance_private (preconnect_msg);
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
         GTlsCertificate *client_certificate = NULL;
+        SoupConnection *connection;
 
         g_assert (preconnect_priv->is_preconnect);
-        g_assert (!priv->connection);
+        g_assert (!g_weak_ref_get (&priv->connection));
         client_certificate = g_steal_pointer (&priv->tls_client_certificate);
-        soup_message_set_connection (msg, preconnect_priv->connection);
+        connection = g_weak_ref_get (&preconnect_priv->connection);
+        soup_message_set_connection (msg, connection);
 
         /* If connection has pending interactions, transfer them too */
         g_assert (!priv->pending_tls_cert_request);
         priv->pending_tls_cert_request = g_steal_pointer (&preconnect_priv->pending_tls_cert_request);
         if (priv->pending_tls_cert_request) {
                 if (client_certificate) {
-                        soup_connection_complete_tls_certificate_request (priv->connection,
+                        soup_connection_complete_tls_certificate_request (connection,
                                                                           client_certificate,
                                                                           g_steal_pointer (&priv->pending_tls_cert_request));
                         g_object_unref (client_certificate);
@@ -1776,7 +1791,7 @@ soup_message_transfer_connection (SoupMessage *preconnect_msg,
                                 g_clear_object (&priv->pending_tls_cert_request);
                 }
         } else if (client_certificate) {
-                soup_connection_set_tls_client_certificate (priv->connection, client_certificate);
+                soup_connection_set_tls_client_certificate (connection, client_certificate);
                 g_object_unref (client_certificate);
         }
 
@@ -1792,6 +1807,7 @@ soup_message_transfer_connection (SoupMessage *preconnect_msg,
         }
 
         soup_message_set_connection (preconnect_msg, NULL);
+        g_object_unref (connection);
 }
 
 gboolean
@@ -1824,6 +1840,7 @@ void
 soup_message_cleanup_response (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupConnection *connection;
 
         g_object_freeze_notify (G_OBJECT (msg));
 
@@ -1832,12 +1849,15 @@ soup_message_cleanup_response (SoupMessage *msg)
         soup_message_set_status (msg, SOUP_STATUS_NONE, NULL);
         soup_message_set_http_version (msg, priv->orig_http_version);
 
-        if (!priv->connection) {
+        connection = g_weak_ref_get (&priv->connection);
+        if (!connection) {
                 soup_message_set_tls_peer_certificate (msg, NULL, 0);
                 soup_message_set_tls_protocol_version (msg, G_TLS_PROTOCOL_VERSION_UNKNOWN);
                 soup_message_set_tls_ciphersuite_name (msg, NULL);
                 soup_message_set_remote_address (msg, NULL);
                 priv->last_connection_id = 0;
+        } else {
+                g_object_unref (connection);
         }
 
         g_object_thaw_notify (G_OBJECT (msg));
@@ -2536,22 +2556,25 @@ soup_message_set_tls_client_certificate (SoupMessage     *msg,
                                          GTlsCertificate *certificate)
 {
         SoupMessagePrivate *priv;
+        SoupConnection *connection;
 
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
         g_return_if_fail (certificate == NULL || G_IS_TLS_CERTIFICATE (certificate));
 
         priv = soup_message_get_instance_private (msg);
+        connection = g_weak_ref_get (&priv->connection);
         if (priv->pending_tls_cert_request) {
-                g_assert (SOUP_IS_CONNECTION (priv->connection));
-                soup_connection_complete_tls_certificate_request (priv->connection,
+                g_assert (SOUP_IS_CONNECTION (connection));
+                soup_connection_complete_tls_certificate_request (connection,
                                                                   certificate,
                                                                   g_steal_pointer (&priv->pending_tls_cert_request));
+                g_object_unref (connection);
                 return;
         }
 
-        if (priv->connection) {
-                soup_connection_set_tls_client_certificate (priv->connection,
-                                                            certificate);
+        if (connection) {
+                soup_connection_set_tls_client_certificate (connection, certificate);
+                g_object_unref (connection);
                 return;
         }
 
@@ -2576,6 +2599,7 @@ void
 soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
 {
         SoupMessagePrivate *priv;
+        SoupConnection *connection;
 
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
@@ -2585,9 +2609,11 @@ soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
                 return;
         }
 
-        g_assert (SOUP_IS_CONNECTION (priv->connection));
-        soup_connection_complete_tls_certificate_password_request (priv->connection,
+        connection = g_weak_ref_get (&priv->connection);
+        g_assert (SOUP_IS_CONNECTION (connection));
+        soup_connection_complete_tls_certificate_password_request (connection,
                                                                    g_steal_pointer (&priv->pending_tls_cert_pass_request));
+        g_object_unref (connection);
 }
 
 /**
@@ -2681,7 +2707,12 @@ soup_message_io_finished (SoupMessage *msg)
         if (!priv->io_data)
                 return;
 
-        g_assert (priv->connection != NULL);
+#ifndef G_DISABLE_ASSERT
+        SoupConnection *connection = g_weak_ref_get (&priv->connection);
+
+        g_assert (connection != NULL);
+        g_object_unref (connection);
+#endif
         soup_client_message_io_finished (g_steal_pointer (&priv->io_data), msg);
 }
 
@@ -2797,10 +2828,11 @@ soup_message_send_item (SoupMessage              *msg,
                         gpointer                  user_data)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupConnection *connection = g_weak_ref_get (&priv->connection);
 
-        priv->io_data = soup_connection_setup_message_io (priv->connection, msg);
-        soup_client_message_io_send_item (priv->io_data, item,
-                                          completion_cb, user_data);
+        priv->io_data = soup_connection_setup_message_io (connection, msg);
+        g_object_unref (connection);
+        soup_client_message_io_send_item (priv->io_data, item, completion_cb, user_data);
 }
 
 GInputStream *

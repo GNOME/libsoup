@@ -839,7 +839,7 @@ wrote_body (SoupMessage *msg, gpointer user_data)
 	gboolean restarted;
 	guint msg_id;
 	SoupConnection *conn;
-	GSocket *socket;
+	GSocket *socket = NULL;
 
 	msg_id = soup_logger_get_id (logger, msg);
 	if (msg_id)
@@ -853,7 +853,10 @@ wrote_body (SoupMessage *msg, gpointer user_data)
 		soup_logger_set_id (logger, priv->session);
 
 	conn = soup_message_get_connection (msg);
-	socket = conn ? soup_connection_get_socket (conn) : NULL;
+        if (conn) {
+                socket = soup_connection_get_socket (conn);
+                g_object_unref (conn);
+        }
 	if (socket && !soup_logger_get_id (logger, socket))
 		soup_logger_set_id (logger, socket);
 

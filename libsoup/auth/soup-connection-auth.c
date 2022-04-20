@@ -100,16 +100,17 @@ soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,
 
 	conn = soup_message_get_connection (msg);
 	state = g_hash_table_lookup (priv->conns, conn);
-	if (state)
-		return state;
+	if (!state) {
+                state = SOUP_CONNECTION_AUTH_GET_CLASS (auth)->create_connection_state (auth);
+                if (conn) {
+                        g_signal_connect (conn, "disconnected",
+                                          G_CALLBACK (connection_disconnected), auth);
+                }
 
-	state = SOUP_CONNECTION_AUTH_GET_CLASS (auth)->create_connection_state (auth);
-	if (conn) {
-		g_signal_connect (conn, "disconnected",
-				  G_CALLBACK (connection_disconnected), auth);
-	}
+                g_hash_table_insert (priv->conns, conn, state);
+        }
+        g_clear_object (&conn);
 
-	g_hash_table_insert (priv->conns, conn, state);
 	return state;
 }
 
