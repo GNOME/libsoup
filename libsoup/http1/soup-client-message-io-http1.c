@@ -38,6 +38,9 @@ typedef struct {
 
         SoupMessageMetrics *metrics;
 
+        /* Request body logger */
+        SoupLogger *logger;
+
 #ifdef HAVE_SYSPROF
         gint64 begin_time_nsec;
 #endif
@@ -146,8 +149,11 @@ request_body_stream_wrote_data_cb (SoupMessage *msg,
                         client_io->msg_io->metrics->request_body_size += count;
         }
 
-        if (!is_metadata)
+        if (!is_metadata) {
+                if (client_io->msg_io->logger)
+                        soup_logger_log_request_data (client_io->msg_io->logger, msg, (const char *)buffer, count);
                 soup_message_wrote_body_data (msg, count);
+        }
 }
 
 static void
@@ -354,10 +360,7 @@ io_write (SoupClientMessageIOHTTP1 *client_io,
                 io->write_state = SOUP_MESSAGE_IO_STATE_BODY;
                 logger = soup_session_get_feature_for_message (client_io->msg_io->item->session,
                                                                SOUP_TYPE_LOGGER, msg);
-                if (logger) {
-                        soup_logger_request_body_setup (SOUP_LOGGER (logger), msg,
-                                                        SOUP_BODY_OUTPUT_STREAM (io->body_ostream));
-                }
+                client_io->msg_io->logger = logger ? SOUP_LOGGER (logger) : NULL;
                 break;
 
         case SOUP_MESSAGE_IO_STATE_BODY:

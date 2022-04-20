@@ -94,7 +94,6 @@ typedef struct {
         GMutex              mutex;
 	GHashTable         *ids;
 	GHashTable         *request_bodies;
-	GHashTable         *request_messages;
 	GHashTable         *response_bodies;
 
 	SoupSession        *session;
@@ -124,8 +123,6 @@ enum {
 };
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
-
-static void body_ostream_done (gpointer data, GObject *bostream);
 
 static void soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
@@ -250,14 +247,7 @@ soup_logger_init (SoupLogger *logger)
 	priv->ids = g_hash_table_new (NULL, NULL);
 	priv->request_bodies = g_hash_table_new_full (NULL, NULL, NULL, body_free);
 	priv->response_bodies = g_hash_table_new_full (NULL, NULL, NULL, body_free);
-	priv->request_messages = g_hash_table_new (NULL, NULL);
         g_mutex_init (&priv->mutex);
-}
-
-static void
-body_ostream_drop_ref (gpointer key, gpointer value, gpointer data)
-{
-        g_object_weak_unref (key, body_ostream_done, data);
 }
 
 static void
@@ -266,13 +256,9 @@ soup_logger_finalize (GObject *object)
 	SoupLogger *logger = SOUP_LOGGER (object);
 	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
 
-	g_hash_table_foreach (priv->request_messages,
-	                      body_ostream_drop_ref, priv);
-
 	g_hash_table_destroy (priv->ids);
 	g_hash_table_destroy (priv->request_bodies);
 	g_hash_table_destroy (priv->response_bodies);
-	g_hash_table_destroy (priv->request_messages);
 
 	if (priv->request_filter_dnotify)
 		priv->request_filter_dnotify (priv->request_filter_data);
@@ -843,52 +829,6 @@ got_body (SoupMessage *msg, gpointer user_data)
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
         g_mutex_unlock (&priv->mutex);
-}
-
-static void
-body_stream_wrote_data_cb (GOutputStream *stream,
-                           const void    *buffer,
-                           guint          count,
-                           gboolean       is_metadata,
-                           SoupLogger    *logger)
-{
-        SoupLoggerPrivate *priv;
-        SoupMessage *msg;
-
-        if (is_metadata)
-                return;
-
-        priv = soup_logger_get_instance_private (logger);
-        g_mutex_lock (&priv->mutex);
-        msg = g_hash_table_lookup (priv->request_messages, stream);
-        g_mutex_unlock (&priv->mutex);
-        write_body (logger, buffer, count, msg, priv->request_bodies);
-}
-
-static void
-body_ostream_done (gpointer data, GObject *bostream)
-{
-        SoupLoggerPrivate *priv = data;
-
-        g_mutex_lock (&priv->mutex);
-        g_hash_table_remove (priv->request_messages, bostream);
-        g_mutex_unlock (&priv->mutex);
-}
-
-void
-soup_logger_request_body_setup (SoupLogger           *logger,
-                                SoupMessage          *msg,
-                                SoupBodyOutputStream *stream)
-{
-        SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
-
-        g_mutex_lock (&priv->mutex);
-        g_hash_table_insert (priv->request_messages, stream, msg);
-        g_mutex_unlock (&priv->mutex);
-        g_signal_connect_object (stream, "wrote-data",
-                                 G_CALLBACK (body_stream_wrote_data_cb),
-                                 logger, 0);
-        g_object_weak_ref (G_OBJECT (stream), body_ostream_done, priv);
 }
 
 static void
