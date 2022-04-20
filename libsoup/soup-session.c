@@ -96,7 +96,6 @@ typedef struct {
 	gboolean accept_language_auto;
 
 	GSList *features;
-	GHashTable *features_cache;
 
         SoupConnectionManager *conn_manager;
 } SoupSessionPrivate;
@@ -283,8 +282,6 @@ soup_session_init (SoupSession *session)
                                                           SOUP_SESSION_MAX_CONNS_DEFAULT,
                                                           SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT);
 
-	priv->features_cache = g_hash_table_new (NULL, NULL);
-
 	auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER, NULL);
 	soup_session_feature_add_feature (SOUP_SESSION_FEATURE (auth_manager),
 					  SOUP_TYPE_AUTH_BASIC);
@@ -354,8 +351,6 @@ soup_session_finalize (GObject *object)
 	g_clear_object (&priv->tls_interaction);
 
 	g_clear_object (&priv->local_addr);
-
-	g_hash_table_destroy (priv->features_cache);
 
 	g_clear_object (&priv->proxy_resolver);
 
@@ -2008,7 +2003,6 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
                 return;
 
 	priv->features = g_slist_prepend (priv->features, g_object_ref (feature));
-	g_hash_table_remove_all (priv->features_cache);
 	soup_session_feature_attach (feature, session);
 }
 
@@ -2076,7 +2070,6 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
 	priv = soup_session_get_instance_private (session);
 	if (g_slist_find (priv->features, feature)) {
 		priv->features = g_slist_remove (priv->features, feature);
-		g_hash_table_remove_all (priv->features_cache);
 		soup_session_feature_detach (feature, session);
 		g_object_unref (feature);
 	}
@@ -2203,19 +2196,10 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
 
 	priv = soup_session_get_instance_private (session);
 
-	feature = g_hash_table_lookup (priv->features_cache,
-				       GSIZE_TO_POINTER (feature_type));
-	if (feature)
-		return feature;
-
 	for (f = priv->features; f; f = f->next) {
 		feature = f->data;
-		if (G_TYPE_CHECK_INSTANCE_TYPE (feature, feature_type)) {
-			g_hash_table_insert (priv->features_cache,
-					     GSIZE_TO_POINTER (feature_type),
-					     feature);
+		if (G_TYPE_CHECK_INSTANCE_TYPE (feature, feature_type))
 			return feature;
-		}
 	}
 	return NULL;
 }
