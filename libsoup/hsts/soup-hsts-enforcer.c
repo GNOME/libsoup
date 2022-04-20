@@ -56,6 +56,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct {
 	SoupSession *session;
+        GMutex mutex;
 	GHashTable *host_policies;
 	GHashTable *session_policies;
 } SoupHSTSEnforcerPrivate;
@@ -77,6 +78,7 @@ soup_hsts_enforcer_init (SoupHSTSEnforcer *hsts_enforcer)
 	priv->session_policies = g_hash_table_new_full (soup_str_case_hash,
 								       soup_str_case_equal,
 								       g_free, NULL);
+        g_mutex_init (&priv->mutex);
 }
 
 static void
@@ -95,6 +97,8 @@ soup_hsts_enforcer_finalize (GObject *object)
 	while (g_hash_table_iter_next (&iter, &key, &value))
 		soup_hsts_policy_free (value);
 	g_hash_table_destroy (priv->session_policies);
+
+        g_mutex_clear (&priv->mutex);
 
 	G_OBJECT_CLASS (soup_hsts_enforcer_parent_class)->finalize (object);
 }
@@ -337,21 +341,24 @@ soup_hsts_enforcer_set_policy (SoupHSTSEnforcer *hsts_enforcer,
 	domain = soup_hsts_policy_get_domain (policy);
 	g_return_if_fail (domain != NULL);
 
-	is_session_policy = soup_hsts_policy_is_session_policy (policy);
-	policies = is_session_policy ? priv->session_policies :
-				  priv->host_policies;
+        g_mutex_lock (&priv->mutex);
 
+	is_session_policy = soup_hsts_policy_is_session_policy (policy);
 	if (!is_session_policy && soup_hsts_policy_is_expired (policy)) {
 		soup_hsts_enforcer_remove_host_policy (hsts_enforcer, domain);
+                g_mutex_unlock (&priv->mutex);
 		return;
 	}
 
+        policies = is_session_policy ? priv->session_policies : priv->host_policies;
 	current_policy = g_hash_table_lookup (policies, domain);
 
 	if (current_policy)
 		soup_hsts_enforcer_replace_policy (hsts_enforcer, policy);
 	else
 		soup_hsts_enforcer_insert_policy (hsts_enforcer, policy);
+
+        g_mutex_unlock (&priv->mutex);
 }
 
 /**
@@ -421,18 +428,27 @@ static gboolean
 soup_hsts_enforcer_must_enforce_secure_transport (SoupHSTSEnforcer *hsts_enforcer,
 						  const char *domain)
 {
+        SoupHSTSEnforcerPrivate *priv = soup_hsts_enforcer_get_instance_private (hsts_enforcer);
 	const char *super_domain = domain;
 
 	g_return_val_if_fail (domain != NULL, FALSE);
 
-	if (soup_hsts_enforcer_has_valid_policy (hsts_enforcer, domain))
+        g_mutex_lock (&priv->mutex);
+
+	if (soup_hsts_enforcer_has_valid_policy (hsts_enforcer, domain)) {
+                g_mutex_unlock (&priv->mutex);
 		return TRUE;
+        }
 
 	while ((super_domain = super_domain_of (super_domain)) != NULL) {
 		if (soup_hsts_enforcer_host_includes_subdomains (hsts_enforcer, super_domain) &&
-		    soup_hsts_enforcer_has_valid_policy (hsts_enforcer, super_domain))
+		    soup_hsts_enforcer_has_valid_policy (hsts_enforcer, super_domain)) {
+                        g_mutex_unlock (&priv->mutex);
 			return TRUE;
+                }
 	}
+
+        g_mutex_unlock (&priv->mutex);
 
 	return FALSE;
 }
