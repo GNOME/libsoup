@@ -91,6 +91,7 @@ struct _SoupLogger {
 
 typedef struct {
 	GQuark              tag;
+        GMutex              mutex;
 	GHashTable         *ids;
 	GHashTable         *request_bodies;
 	GHashTable         *request_messages;
@@ -148,12 +149,14 @@ write_body (SoupLogger *logger, const char *buffer, gsize nread,
         if (!nread)
                 return;
 
+        g_mutex_lock (&priv->mutex);
         body = g_hash_table_lookup (bodies, key);
 
         if (!body) {
             body = g_string_new (NULL);
             g_hash_table_insert (bodies, key, body);
         }
+        g_mutex_unlock (&priv->mutex);
 
         if (priv->max_body_size >= 0) {
                 /* longer than max => we've written the extra [...] */
@@ -248,6 +251,7 @@ soup_logger_init (SoupLogger *logger)
 	priv->request_bodies = g_hash_table_new_full (NULL, NULL, NULL, body_free);
 	priv->response_bodies = g_hash_table_new_full (NULL, NULL, NULL, body_free);
 	priv->request_messages = g_hash_table_new (NULL, NULL);
+        g_mutex_init (&priv->mutex);
 }
 
 static void
@@ -276,6 +280,8 @@ soup_logger_finalize (GObject *object)
 		priv->response_filter_dnotify (priv->response_filter_data);
 	if (priv->printer_dnotify)
 		priv->printer_dnotify (priv->printer_data);
+
+        g_mutex_clear (&priv->mutex);
 
 	G_OBJECT_CLASS (soup_logger_parent_class)->finalize (object);
 }
@@ -556,9 +562,11 @@ soup_logger_set_id (SoupLogger *logger, gpointer object)
 	gpointer klass = G_OBJECT_GET_CLASS (object);
 	gpointer id;
 
+        g_mutex_lock (&priv->mutex);
 	id = g_hash_table_lookup (priv->ids, klass);
 	id = (char *)id + 1;
 	g_hash_table_insert (priv->ids, klass, id);
+        g_mutex_unlock (&priv->mutex);
 
 	g_object_set_qdata (object, priv->tag, id);
 	return GPOINTER_TO_UINT (id);
@@ -765,6 +773,7 @@ static void
 finished (SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
+        SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
 
         /* Do not print the response if we didn't print a request. This can happen if
          * msg is a preconnect request, for example.
@@ -772,8 +781,10 @@ finished (SoupMessage *msg, gpointer user_data)
         if (!soup_logger_get_id (logger, msg))
                 return;
 
+        g_mutex_lock (&priv->mutex);
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
+        g_mutex_unlock (&priv->mutex);
 }
 
 static void
@@ -783,6 +794,8 @@ got_informational (SoupMessage *msg, gpointer user_data)
         SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
         SoupLoggerLogLevel log_level;
         GString *body = NULL;
+
+        g_mutex_lock (&priv->mutex);
 
         if (priv->response_filter)
                 log_level = priv->response_filter (logger, msg,
@@ -794,8 +807,10 @@ got_informational (SoupMessage *msg, gpointer user_data)
         print_response (logger, msg);
         soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
-        if (!g_hash_table_steal_extended (priv->response_bodies, msg, NULL, (gpointer *)&body))
+        if (!g_hash_table_steal_extended (priv->response_bodies, msg, NULL, (gpointer *)&body)) {
+                g_mutex_unlock (&priv->mutex);
                 return;
+        }
 
         if (soup_message_get_status (msg) == SOUP_STATUS_CONTINUE) {
                 soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
@@ -810,17 +825,24 @@ got_informational (SoupMessage *msg, gpointer user_data)
         }
 
         g_string_free (body, TRUE);
+
+        g_mutex_unlock (&priv->mutex);
 }
 
 static void
 got_body (SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
+        SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
+
+        g_mutex_lock (&priv->mutex);
 
 	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
+
+        g_mutex_unlock (&priv->mutex);
 }
 
 static void
@@ -837,7 +859,9 @@ body_stream_wrote_data_cb (GOutputStream *stream,
                 return;
 
         priv = soup_logger_get_instance_private (logger);
+        g_mutex_lock (&priv->mutex);
         msg = g_hash_table_lookup (priv->request_messages, stream);
+        g_mutex_unlock (&priv->mutex);
         write_body (logger, buffer, count, msg, priv->request_bodies);
 }
 
@@ -846,7 +870,9 @@ body_ostream_done (gpointer data, GObject *bostream)
 {
         SoupLoggerPrivate *priv = data;
 
+        g_mutex_lock (&priv->mutex);
         g_hash_table_remove (priv->request_messages, bostream);
+        g_mutex_unlock (&priv->mutex);
 }
 
 void
@@ -856,7 +882,9 @@ soup_logger_request_body_setup (SoupLogger           *logger,
 {
         SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
 
+        g_mutex_lock (&priv->mutex);
         g_hash_table_insert (priv->request_messages, stream, msg);
+        g_mutex_unlock (&priv->mutex);
         g_signal_connect_object (stream, "wrote-data",
                                  G_CALLBACK (body_stream_wrote_data_cb),
                                  logger, 0);
@@ -889,8 +917,10 @@ wrote_body (SoupMessage *msg, gpointer user_data)
 	if (socket && !soup_logger_get_id (logger, socket))
 		soup_logger_set_id (logger, socket);
 
+        g_mutex_lock (&priv->mutex);
 	print_request (logger, msg, socket, restarted);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
+        g_mutex_unlock (&priv->mutex);
 }
 
 static void
