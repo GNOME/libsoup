@@ -84,6 +84,7 @@ tests = [
   {'name': 'logger'},
   {'name': 'misc'},
   {'name': 'multipart'},
+  {'name': 'multithread'},
   {'name': 'no-ssl'},
   {'name': 'ntlm'},
   {'name': 'redirect'},
