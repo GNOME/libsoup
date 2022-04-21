@@ -77,13 +77,14 @@ enum {
         PROP_TLS_PROTOCOL_VERSION,
         PROP_TLS_CIPHERSUITE_NAME,
         PROP_FORCE_HTTP_VERSION,
+        PROP_CONTEXT,
 
 	LAST_PROPERTY
 };
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
-static void stop_idle_timer (SoupConnectionPrivate *priv);
+static gboolean idle_timeout (gpointer conn);
 
 /* Number of seconds after which we close a connection that hasn't yet
  * been used.
@@ -135,7 +136,11 @@ soup_connection_dispose (GObject *object)
 	SoupConnection *conn = SOUP_CONNECTION (object);
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	stop_idle_timer (priv);
+        if (priv->idle_timeout_src) {
+                g_source_destroy (priv->idle_timeout_src);
+                g_source_unref (priv->idle_timeout_src);
+                priv->idle_timeout_src = NULL;
+        }
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
 }
@@ -162,6 +167,13 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	case PROP_FORCE_HTTP_VERSION:
 		priv->force_http_version = g_value_get_uchar (value);
 		break;
+        case PROP_CONTEXT:
+                priv->idle_timeout_src = g_timeout_source_new (0);
+                g_source_set_ready_time (priv->idle_timeout_src, -1);
+                g_source_set_name (priv->idle_timeout_src, "Soup connection idle timeout");
+                g_source_set_callback (priv->idle_timeout_src, idle_timeout, object, NULL);
+                g_source_attach (priv->idle_timeout_src, g_value_get_pointer (value));
+                break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -354,6 +366,12 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                                     0, G_MAXUINT8, G_MAXUINT8,
                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
                                     G_PARAM_STATIC_STRINGS);
+        properties[PROP_CONTEXT] =
+                g_param_spec_pointer ("context",
+                                      "Context",
+                                      "The session main context",
+                                      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
+                                      G_PARAM_STATIC_STRINGS);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
@@ -373,7 +391,7 @@ static gboolean
 idle_timeout (gpointer conn)
 {
 	soup_connection_disconnect (conn);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -381,21 +399,14 @@ start_idle_timer (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	if (priv->socket_props->idle_timeout > 0 && !priv->idle_timeout_src) {
-		priv->idle_timeout_src =
-			soup_add_timeout (g_main_context_get_thread_default (),
-					  priv->socket_props->idle_timeout * 1000,
-					  idle_timeout, conn);
-	}
-}
+	if (priv->socket_props->idle_timeout == 0)
+                return;
 
-static void
-stop_idle_timer (SoupConnectionPrivate *priv)
-{
-	if (priv->idle_timeout_src) {
-		g_source_destroy (priv->idle_timeout_src);
-                g_clear_pointer (&priv->idle_timeout_src, g_source_unref);
-	}
+        if (g_source_get_ready_time (priv->idle_timeout_src) >= 0)
+                return;
+
+        g_source_set_ready_time (priv->idle_timeout_src,
+                                 g_get_monotonic_time () + (guint64)priv->socket_props->idle_timeout * G_USEC_PER_SEC);
 }
 
 static void
@@ -1168,7 +1179,7 @@ soup_connection_setup_message_io (SoupConnection *conn,
         g_assert (g_atomic_int_get (&priv->state) == SOUP_CONNECTION_IN_USE);
 
         priv->unused_timeout = 0;
-        stop_idle_timer (priv);
+        g_source_set_ready_time (priv->idle_timeout_src, -1);
 
         if (priv->proxy_uri && soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
                 set_proxy_msg (conn, msg);

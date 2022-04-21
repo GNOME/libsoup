@@ -42,6 +42,8 @@ void     soup_session_kick_queue (SoupSession *session);
 
 SoupSocketProperties *soup_session_ensure_socket_props (SoupSession *session);
 
+GMainContext *soup_session_get_context (SoupSession *session);
+
 G_END_DECLS
 
 #endif /* __SOUP_SESSION_PRIVATE_H__ */

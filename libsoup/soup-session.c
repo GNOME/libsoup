@@ -359,6 +359,14 @@ soup_session_finalize (GObject *object)
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
 }
 
+GMainContext *
+soup_session_get_context (SoupSession *session)
+{
+        SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+
+        return priv->context;
+}
+
 SoupSocketProperties *
 soup_session_ensure_socket_props (SoupSession *session)
 {

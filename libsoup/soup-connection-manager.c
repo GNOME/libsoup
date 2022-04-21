@@ -461,6 +461,7 @@ soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
         socket_props = soup_session_ensure_socket_props (item->session);
         conn = g_object_new (SOUP_TYPE_CONNECTION,
                              "id", ++manager->last_connection_id,
+                             "context", soup_session_get_context (item->session),
                              "remote-connectable", remote_connectable,
                              "ssl", soup_uri_is_https (host->uri),
                              "socket-properties", socket_props,
