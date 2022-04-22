@@ -758,12 +758,14 @@ soup_ntlm_parse_challenge (const char *challenge,
 			return FALSE;
 		}
 
+		g_free (*default_domain);
 		*default_domain = g_convert ((char *)chall + domain.offset,
 					     domain.length, "UTF-8", "UCS-2LE",
 					     NULL, NULL, NULL);
 	}
 
 	if (nonce) {
+		g_free (*nonce);
 		*nonce = g_memdup2 (chall + NTLM_CHALLENGE_NONCE_OFFSET,
 				   NTLM_CHALLENGE_NONCE_LENGTH);
 	}
@@ -777,6 +779,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 			g_free (chall);
 			return FALSE;
 		}
+		g_free (*target_info);
 		*target_info = g_memdup2 (chall + target.offset, target.length);
 		*target_info_sz = target.length;
 	}
