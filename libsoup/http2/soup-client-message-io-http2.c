@@ -960,8 +960,16 @@ on_stream_close_callback (nghttp2_session *session,
 
         data->io->in_callback++;
 
-        if (error_code == NGHTTP2_REFUSED_STREAM && data->state < STATE_READ_DATA)
+        switch (error_code) {
+        case NGHTTP2_REFUSED_STREAM:
+                if (data->state < STATE_READ_DATA)
+                        data->can_be_restarted = TRUE;
+                break;
+        case NGHTTP2_HTTP_1_1_REQUIRED:
+                soup_message_set_force_http_version (data->item->msg, SOUP_HTTP_1_1);
                 data->can_be_restarted = TRUE;
+                break;
+        }
 
         data->io->in_callback--;
         return 0;
