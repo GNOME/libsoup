@@ -558,17 +558,25 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 
 	uri = soup_message_get_uri_for_auth (msg);
 
-	/* If a password is specified explicitly in the URI, use it
+	/* If a user is specified explicitly in the URI, use it
 	 * even if the auth had previously already been authenticated.
 	 */
 	if (g_uri_get_user (uri)) {
 		const char *password = g_uri_get_password (uri);
+
 		soup_auth_authenticate (auth, g_uri_get_user (uri), password ? password : "");
 
-                GUri *new_uri = soup_uri_copy (uri, SOUP_URI_USER, NULL, SOUP_URI_PASSWORD, NULL, SOUP_URI_NONE);
-                soup_message_set_uri (msg, new_uri); // QUESTION: This didn't emit a signal previously
-                g_uri_unref (new_uri);
-	} else if (!soup_auth_is_authenticated (auth) && can_interact) {
+                if (soup_auth_is_authenticated (auth)) {
+                        GUri *new_uri = soup_uri_copy (uri, SOUP_URI_USER, NULL, SOUP_URI_PASSWORD, NULL, SOUP_URI_NONE);
+
+                        soup_message_set_uri (msg, new_uri); // QUESTION: This didn't emit a signal previously
+                        g_uri_unref (new_uri);
+
+                        return;
+                }
+	}
+
+        if (!soup_auth_is_authenticated (auth) && can_interact) {
 		SoupMessage *original_msg;
 		gboolean handled;
 
