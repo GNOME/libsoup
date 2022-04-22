@@ -258,6 +258,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	const char *scheme;
 	GUri *uri;
 	char *authority;
+        SoupAuthClass *auth_class;
 
 	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
@@ -288,7 +289,8 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 
 	priv->realm = g_strdup (g_hash_table_lookup (params, "realm"));
 
-	if (!SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params)) {
+        auth_class = SOUP_AUTH_GET_CLASS (auth);
+	if (!auth_class->update || !auth_class->update (auth, msg, params)) {
 		g_object_unref (auth);
 		auth = NULL;
 	}
@@ -317,6 +319,7 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	GHashTable *params;
 	const char *scheme, *realm;
 	gboolean was_authenticated, success;
+        SoupAuthClass *auth_class;
 	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
@@ -341,7 +344,8 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	}
 
 	was_authenticated = soup_auth_is_authenticated (auth);
-	success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
+        auth_class = SOUP_AUTH_GET_CLASS (auth);
+	success = auth_class->update && auth_class->update (auth, msg, params);
 	if (was_authenticated != soup_auth_is_authenticated (auth))
 		g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
 	soup_header_free_param_list (params);
@@ -364,6 +368,7 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
 {
 	SoupAuthPrivate *priv;
 	gboolean was_authenticated;
+        SoupAuthClass *auth_class;
 
 	g_return_if_fail (SOUP_IS_AUTH (auth));
 	g_return_if_fail (username != NULL);
@@ -373,8 +378,12 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
 	if (priv->cancelled)
 		return;
 
+        auth_class = SOUP_AUTH_GET_CLASS (auth);
+        if (!auth_class->authenticate)
+                return;
+
 	was_authenticated = soup_auth_is_authenticated (auth);
-	SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
+	auth_class->authenticate (auth, username, password);
 	if (was_authenticated != soup_auth_is_authenticated (auth))
 		g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
 }
@@ -521,6 +530,7 @@ gboolean
 soup_auth_is_authenticated (SoupAuth *auth)
 {
 	SoupAuthPrivate *priv;
+        SoupAuthClass *auth_class;
 
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
 
@@ -528,7 +538,8 @@ soup_auth_is_authenticated (SoupAuth *auth)
 	if (priv->cancelled)
 		return FALSE;
 
-	return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
+        auth_class = SOUP_AUTH_GET_CLASS (auth);
+	return auth_class->is_authenticated && auth_class->is_authenticated (auth);
 }
 
 /**
@@ -565,10 +576,13 @@ soup_auth_is_cancelled (SoupAuth *auth)
 char *
 soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
+        SoupAuthClass *auth_class;
+
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 	g_return_val_if_fail (msg != NULL, NULL);
 
-	return SOUP_AUTH_GET_CLASS (auth)->get_authorization (auth, msg);
+        auth_class = SOUP_AUTH_GET_CLASS (auth);
+	return auth_class->get_authorization ? auth_class->get_authorization (auth, msg) : NULL;
 }
 
 /**
@@ -590,6 +604,7 @@ soup_auth_is_ready (SoupAuth    *auth,
 		    SoupMessage *msg)
 {
 	SoupAuthPrivate *priv;
+        SoupAuthClass *auth_class;
 
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), TRUE);
@@ -598,10 +613,14 @@ soup_auth_is_ready (SoupAuth    *auth,
 	if (priv->cancelled)
 		return FALSE;
 
-	if (SOUP_AUTH_GET_CLASS (auth)->is_ready)
-		return SOUP_AUTH_GET_CLASS (auth)->is_ready (auth, msg);
-	else
-		return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
+        auth_class = SOUP_AUTH_GET_CLASS (auth);
+	if (auth_class->is_ready)
+		return auth_class->is_ready (auth, msg);
+
+        if (auth_class->is_authenticated)
+		return auth_class->is_authenticated (auth);
+
+        return FALSE;
 }
 
 /**
@@ -650,7 +669,8 @@ soup_auth_get_protection_space (SoupAuth *auth, GUri *source_uri)
         g_return_val_if_fail (SOUP_URI_IS_VALID (source_uri), NULL);
 
         GUri *source_uri_normalized = soup_uri_copy_with_normalized_flags (source_uri);
-	GSList *ret = SOUP_AUTH_GET_CLASS (auth)->get_protection_space (auth, source_uri_normalized);
+        SoupAuthClass *auth_class = SOUP_AUTH_GET_CLASS (auth);
+	GSList *ret = auth_class->get_protection_space ? auth_class->get_protection_space (auth, source_uri_normalized) : NULL;
         g_uri_unref (source_uri_normalized);
         return ret;
 }
