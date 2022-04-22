@@ -284,3 +284,7 @@ Alias /Digest .
   # test RFC2069-style Digest
   AuthDigestQop none
 </Location>
+
+<Location /client-cert>
+  SSLVerifyClient require
+</Location>
