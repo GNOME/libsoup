@@ -2,6 +2,7 @@ expand_content_md_files = [
     'build-howto.md',
     'client-basic.md',
     'client-advanced.md',
+    'client-thread-safety.md',
     'client-tls.md',
     'server-howto.md',
     'migrating-from-libsoup-2.md',
