@@ -1837,7 +1837,7 @@ get_connection_for_host (SoupSession *session,
 		conn = conns->data;
 
                 http_version = soup_connection_get_negotiated_protocol (conn);
-                if (force_http_version <= SOUP_HTTP_1_1 && http_version > SOUP_HTTP_1_1)
+                if (force_http_version <= SOUP_HTTP_2_0 && http_version != force_http_version)
                         continue;
 
 		switch (soup_connection_get_state (conn)) {
