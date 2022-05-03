@@ -1013,39 +1013,6 @@ do_timeout_test (Test *test, gconstpointer data)
                 g_main_context_iteration (NULL, FALSE);
 }
 
-static void
-message_restarted (SoupMessage *msg,
-                   gboolean    *was_restarted)
-{
-        *was_restarted = TRUE;
-}
-
-static void
-do_http_1_1_required_test (Test *test, gconstpointer data)
-{
-        SoupMessage *msg;
-        GBytes *response;
-        gboolean was_restarted = FALSE;
-        GError *error = NULL;
-
-        SOUP_TEST_SKIP_IF_NO_APACHE;
-
-        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:47525/client-cert");
-        soup_message_set_force_http_version (msg, SOUP_HTTP_2_0);
-        g_signal_connect (msg, "restarted",
-                          G_CALLBACK (message_restarted), &was_restarted);
-        response = soup_test_session_async_send (test->session, msg, NULL, &error);
-        g_assert_no_error (error);
-        g_assert_cmpuint (soup_message_get_status (msg), ==, 403);
-        g_assert_true (was_restarted);
-        g_assert_nonnull (response);
-        g_bytes_unref (response);
-        g_object_unref (msg);
-
-        while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
-}
-
 int
 main (int argc, char **argv)
 {
@@ -1057,8 +1024,6 @@ main (int argc, char **argv)
                 test_cleanup ();
                 return 1;
         }
-
-        apache_init ();
 
         g_test_add ("/http2/basic/async", Test, NULL,
                     setup_session,
@@ -1159,10 +1124,6 @@ main (int argc, char **argv)
         g_test_add ("/http2/timeout", Test, NULL,
                     setup_session,
                     do_timeout_test,
-                    teardown_session);
-        g_test_add ("/http2/http-1-1-required", Test, NULL,
-                    setup_session,
-                    do_http_1_1_required_test,
                     teardown_session);
 
 	ret = g_test_run ();

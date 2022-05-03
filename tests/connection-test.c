@@ -1645,6 +1645,45 @@ do_connection_force_http2_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static void
+message_restarted (SoupMessage *msg,
+                   gboolean    *was_restarted)
+{
+        *was_restarted = TRUE;
+}
+
+static void
+do_connection_http_1_1_required_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *body;
+        gboolean was_restarted = FALSE;
+        GError *error = NULL;
+
+        SOUP_TEST_SKIP_IF_NO_TLS;
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+
+        session = soup_test_session_new (NULL);
+
+        msg = soup_message_new ("GET", "https://127.0.0.1:47525/client-cert");
+        soup_message_set_force_http_version (msg, SOUP_HTTP_2_0);
+        g_signal_connect (msg, "restarted",
+                          G_CALLBACK (message_restarted), &was_restarted);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        g_assert_cmpuint (soup_message_get_status (msg), ==, 403);
+        g_assert_true (was_restarted);
+        g_assert_nonnull (body);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1669,6 +1708,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/connection/preconnect", do_connection_preconnect_test);
         g_test_add_func ("/connection/metrics", do_connection_metrics_test);
         g_test_add_func ("/connection/force-http2", do_connection_force_http2_test);
+        g_test_add_func ("/connection/http2/http-1-1-required", do_connection_http_1_1_required_test);
 
 	ret = g_test_run ();
 
