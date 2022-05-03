@@ -1591,6 +1591,60 @@ do_connection_metrics_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static void
+force_http2_test_network_event (SoupMessage        *msg,
+                                GSocketClientEvent  event,
+                                GIOStream          *connection,
+                                SoupConnection    **conn)
+{
+        if (event != G_SOCKET_CLIENT_RESOLVING)
+                return;
+
+        *conn = soup_message_get_connection (msg);
+}
+
+static void
+do_connection_force_http2_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        SoupConnection *conn1 = NULL;
+        SoupConnection *conn2 = NULL;
+        GBytes *body;
+
+        SOUP_TEST_SKIP_IF_NO_TLS;
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+
+        session = soup_test_session_new (NULL);
+
+        msg = soup_message_new ("GET", HTTPS_SERVER);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (force_http2_test_network_event),
+                          &conn1);
+        body = soup_session_send_and_read (session, msg, NULL, NULL);
+        g_assert_nonnull (conn1);
+        g_assert_cmpint (soup_connection_get_state (conn1), ==, SOUP_CONNECTION_IDLE);
+        g_assert_cmpint (soup_connection_get_negotiated_protocol (conn1), ==, SOUP_HTTP_1_1);
+        g_object_unref (msg);
+        g_bytes_unref (body);
+
+        /* With HTTP/2 forced, a new connection must be created */
+        msg = soup_message_new ("GET", HTTPS_SERVER);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (force_http2_test_network_event),
+                          &conn2);
+        soup_message_set_force_http_version (msg, SOUP_HTTP_2_0);
+        body = soup_session_send_and_read (session, msg, NULL, NULL);
+        g_assert_nonnull (conn2);
+        g_assert_cmpint (soup_connection_get_state (conn2), ==, SOUP_CONNECTION_IDLE);
+        g_assert_cmpint (soup_connection_get_negotiated_protocol (conn2), ==, SOUP_HTTP_2_0);
+        g_assert_false (conn1 == conn2);
+        g_object_unref (msg);
+        g_bytes_unref (body);
+
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1614,6 +1668,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/connection/event", do_connection_event_test);
 	g_test_add_func ("/connection/preconnect", do_connection_preconnect_test);
         g_test_add_func ("/connection/metrics", do_connection_metrics_test);
+        g_test_add_func ("/connection/force-http2", do_connection_force_http2_test);
 
 	ret = g_test_run ();
 
