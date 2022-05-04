@@ -362,9 +362,20 @@ check_server_response (SoupMessage *msg, gpointer auth)
 	auth_headers = soup_message_headers_get_one_common (soup_message_get_response_headers (msg),
                                                             SOUP_HEADER_WWW_AUTHENTICATE);
 	if (!auth_headers || g_ascii_strncasecmp (auth_headers, "Negotiate ", 10) != 0) {
-		g_warning ("Failed to parse auth header");
+		if (soup_message_get_status (msg) == SOUP_STATUS_OK) {
+			/* The server *may* supply final authentication data to
+			 * the client, but doesn't have to. We are not
+			 * authenticating the server, so just ignore missing
+			 * auth data. In practice, this is required for web
+			 * compat.
+			 */
+		        priv->is_authenticated = TRUE;
+		        return;
+		}
+
+		g_warning ("Server bug: missing or invalid WWW-Authenticate header: %s", auth_headers);
 		conn->state = SOUP_NEGOTIATE_FAILED;
-		goto out;
+		return;
 	}
 
 	ret = soup_gss_client_step (conn, auth_headers + 10, &error_message);
@@ -394,7 +405,7 @@ check_server_response (SoupMessage *msg, gpointer auth)
 	default:
 		conn->state = SOUP_NEGOTIATE_FAILED;
 	}
- out:
+
 	g_clear_pointer (&error_message, g_free);
 }
 
