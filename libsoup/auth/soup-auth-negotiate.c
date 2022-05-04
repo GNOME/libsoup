@@ -586,7 +586,7 @@ soup_gss_client_step (SoupNegotiateConnectionState *conn, const gchar *challenge
 					 &conn->context,
 					 conn->server_name,
 					 (gss_OID) &gss_mech_spnego,
-					 GSS_C_MUTUAL_FLAG,
+					 0,
 					 GSS_C_INDEFINITE,
 					 GSS_C_NO_CHANNEL_BINDINGS,
 					 &in,
