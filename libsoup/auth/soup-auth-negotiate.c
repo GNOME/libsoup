@@ -80,7 +80,8 @@ typedef struct {
 /**
  * SoupAuthNegotiate:
  *
- * HTTP-based GSS-Negotiate authentication.
+ * HTTP-based GSS-Negotiate authentication, as defined by
+ * [RFC 4559](https://datatracker.ietf.org/doc/html/rfc4559).
  *
  * [class@Session]s do not support this type by default; if you want to
  * enable support for it, call [method@Session.add_feature_by_type],
