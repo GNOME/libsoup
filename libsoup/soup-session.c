@@ -313,8 +313,6 @@ soup_session_dispose (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
-        g_assert (priv->context == soup_thread_default_context ());
-
 	priv->disposed = TRUE;
 	soup_session_abort (session);
 	g_warn_if_fail (soup_connection_manager_get_num_conns (priv->conn_manager) == 0);
@@ -332,8 +330,6 @@ soup_session_finalize (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-
-        g_assert (priv->context == soup_thread_default_context ());
 
 	g_warn_if_fail (g_queue_is_empty (priv->queue));
 	g_queue_free (priv->queue);
