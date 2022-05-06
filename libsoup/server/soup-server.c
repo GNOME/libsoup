@@ -19,7 +19,7 @@
 #include "soup.h"
 #include "soup-misc.h"
 #include "soup-path-map.h"
-#include "soup-socket.h"
+#include "soup-listener.h"
 #include "soup-uri-utils-private.h"
 #include "websocket/soup-websocket.h"
 #include "websocket/soup-websocket-connection.h"
@@ -185,8 +185,10 @@ static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupServer, soup_server, G_TYPE_OBJECT)
 
-static void start_request (SoupServer        *server,
-			   SoupServerMessage *msg);
+static void request_finished (SoupServerMessage      *msg,
+                              SoupMessageIOCompletion completion,
+                              SoupServer             *server);
+
 static void
 free_handler (SoupServerHandler *handler)
 {
@@ -746,7 +748,7 @@ soup_server_get_listeners (SoupServer *server)
 
 	listeners = NULL;
 	for (iter = priv->listeners; iter; iter = iter->next)
-		listeners = g_slist_prepend (listeners, soup_socket_get_gsocket (iter->data));
+		listeners = g_slist_prepend (listeners, soup_listener_get_socket (iter->data));
 
 	/* priv->listeners has the sockets in reverse order from how
 	 * they were added, so listeners now has them back in the
@@ -831,7 +833,7 @@ got_headers (SoupServer        *server,
 	gboolean rejected = FALSE;
 	char *auth_user;
 	SoupMessageHeaders *headers;
-	SoupSocket *sock;
+	SoupServerConnection *conn;
 
 	/* Add required response headers */
 	headers = soup_server_message_get_response_headers (msg);
@@ -845,10 +847,10 @@ got_headers (SoupServer        *server,
 	if (soup_server_message_get_status (msg) != 0)
 		return;
 
-	sock = soup_server_message_get_soup_socket (msg);
+	conn = soup_server_message_get_connection (msg);
 	uri = soup_server_message_get_uri (msg);
-	if ((soup_socket_is_ssl (sock) && !soup_uri_is_https (uri)) ||
-	    (!soup_socket_is_ssl (sock) && !soup_uri_is_http (uri))) {
+	if ((soup_server_connection_is_ssl (conn) && !soup_uri_is_https (uri)) ||
+	    (!soup_server_connection_is_ssl (conn) && !soup_uri_is_http (uri))) {
 		soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
 		return;
 	}
@@ -996,19 +998,74 @@ client_disconnected (SoupServer        *server,
 		soup_server_message_io_finished (msg);
 }
 
+typedef struct {
+        SoupServer *server;
+        SoupServerMessage *msg;
+} SetupConnectionData;
+
 static void
-soup_server_accept_socket (SoupServer *server,
-			   SoupSocket *sock)
+connection_setup_ready (SoupServerConnection *conn,
+                        GAsyncResult         *result,
+                        SetupConnectionData  *data)
+{
+        SoupServerPrivate *priv = soup_server_get_instance_private (data->server);
+
+        if (soup_server_connection_setup_finish (conn, result, NULL)) {
+                if (g_slist_find (priv->clients, data->msg)) {
+                        soup_server_message_read_request (data->msg,
+                                                          (SoupMessageIOCompletionFn)request_finished,
+                                                          data->server);
+                }
+	} else {
+                soup_server_connection_disconnect (conn);
+	}
+
+        g_object_unref (data->msg);
+        g_object_unref (data->server);
+        g_free (data);
+}
+
+static void
+soup_server_accept_connection (SoupServer           *server,
+                               SoupServerConnection *conn)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	SoupServerMessage *msg;
+        SetupConnectionData *data;
 
-	msg = soup_server_message_new (sock);
+	msg = soup_server_message_new (conn);
 	g_signal_connect_object (msg, "disconnected",
 				 G_CALLBACK (client_disconnected),
 				 server, G_CONNECT_SWAPPED);
+	g_signal_connect_object (msg, "got-headers",
+				 G_CALLBACK (got_headers),
+				 server, G_CONNECT_SWAPPED);
+	g_signal_connect_object (msg, "got-body",
+				 G_CALLBACK (got_body),
+				 server, G_CONNECT_SWAPPED);
+	if (priv->server_header) {
+		SoupMessageHeaders *headers;
+
+		headers = soup_server_message_get_response_headers (msg);
+		soup_message_headers_append_common (headers, SOUP_HEADER_SERVER,
+                                                    priv->server_header);
+	}
+
 	priv->clients = g_slist_prepend (priv->clients, msg);
-	start_request (server, msg);
+
+        g_signal_emit (server, signals[REQUEST_STARTED], 0, msg);
+
+        if (soup_server_connection_is_connected (conn)) {
+                soup_server_message_read_request (msg,
+                                                  (SoupMessageIOCompletionFn)request_finished,
+                                                  server);
+                return;
+        }
+
+        data = g_new (SetupConnectionData, 1);
+        data->server = g_object_ref (server);
+        data->msg = g_object_ref (msg);
+        soup_server_connection_setup_async (conn, NULL, (GAsyncReadyCallback)connection_setup_ready, data);
 }
 
 static void
@@ -1017,7 +1074,7 @@ request_finished (SoupServerMessage      *msg,
 		  SoupServer             *server)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
-	SoupSocket *sock = soup_server_message_get_soup_socket (msg);
+	SoupServerConnection *conn = soup_server_message_get_connection (msg);
 	gboolean failed;
 
 	if (completion == SOUP_MESSAGE_IO_STOLEN) {
@@ -1037,48 +1094,20 @@ request_finished (SoupServerMessage      *msg,
 	}
 
 	if (completion == SOUP_MESSAGE_IO_COMPLETE &&
-	    soup_socket_is_connected (sock) &&
+	    soup_server_connection_is_connected (conn) &&
 	    soup_server_message_is_keepalive (msg) &&
 	    priv->listeners) {
-		g_object_ref (sock);
+		g_object_ref (conn);
 		priv->clients = g_slist_remove (priv->clients, msg);
 		g_object_unref (msg);
 
-		soup_server_accept_socket (server, sock);
-		g_object_unref (sock);
+		soup_server_accept_connection (server, conn);
+		g_object_unref (conn);
 		return;
 	}
 
-	soup_socket_disconnect (sock);
+	soup_server_connection_disconnect (conn);
 	g_object_unref (msg);
-}
-
-static void
-start_request (SoupServer        *server,
-	       SoupServerMessage *msg)
-{
-	SoupServerPrivate *priv = soup_server_get_instance_private (server);
-
-	if (priv->server_header) {
-		SoupMessageHeaders *headers;
-
-		headers = soup_server_message_get_response_headers (msg);
-		soup_message_headers_append_common (headers, SOUP_HEADER_SERVER,
-                                                    priv->server_header);
-	}
-
-	g_signal_connect_object (msg, "got-headers",
-				 G_CALLBACK (got_headers),
-				 server, G_CONNECT_SWAPPED);
-	g_signal_connect_object (msg, "got-body",
-				 G_CALLBACK (got_body),
-				 server, G_CONNECT_SWAPPED);
-
-	g_signal_emit (server, signals[REQUEST_STARTED], 0, msg);
-
-	soup_server_message_read_request (msg,
-					  (SoupMessageIOCompletionFn)request_finished,
-					  server);
 }
 
 /**
@@ -1104,29 +1133,21 @@ soup_server_accept_iostream (SoupServer     *server,
 			     GSocketAddress *remote_addr,
 			     GError        **error)
 {
-	SoupSocket *sock;
+	SoupServerConnection *conn;
 
-	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
-			       "iostream", stream,
-			       "local-address", local_addr,
-			       "remote-connectable", remote_addr,
-			       NULL);
-
-	if (!sock)
-		return FALSE;
-
-	soup_server_accept_socket (server, sock);
-	g_object_unref (sock);
+        conn = soup_server_connection_new_for_connection (stream, local_addr, remote_addr);
+	soup_server_accept_connection (server, conn);
+	g_object_unref (conn);
 
 	return TRUE;
 }
 
 static void
-new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
+new_connection (SoupListener         *listener,
+                SoupServerConnection *conn,
+                SoupServer           *server)
 {
-	SoupServer *server = user_data;
-
-	soup_server_accept_socket (server, sock);
+	soup_server_accept_connection (server, conn);
 }
 
 /**
@@ -1147,7 +1168,7 @@ soup_server_disconnect (SoupServer *server)
 {
 	SoupServerPrivate *priv;
 	GSList *listeners, *clients, *iter;
-	SoupSocket *listener;
+	SoupListener *listener;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = soup_server_get_instance_private (server);
@@ -1160,13 +1181,13 @@ soup_server_disconnect (SoupServer *server)
 	for (iter = clients; iter; iter = iter->next) {
 		SoupServerMessage *msg = iter->data;
 
-		soup_socket_disconnect (soup_server_message_get_soup_socket (msg));
+		soup_server_connection_disconnect (soup_server_message_get_connection (msg));
 	}
 	g_slist_free (clients);
 
 	for (iter = listeners; iter; iter = iter->next) {
 		listener = iter->data;
-		soup_socket_disconnect (listener);
+		soup_listener_disconnect (listener);
 		g_object_unref (listener);
 	}
 	g_slist_free (listeners);
@@ -1189,9 +1210,10 @@ soup_server_disconnect (SoupServer *server)
  */
 
 static gboolean
-soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
+soup_server_listen_internal (SoupServer             *server,
+                             SoupListener           *listener,
 			     SoupServerListenOptions options,
-			     GError **error)
+			     GError                **error)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
@@ -1215,23 +1237,9 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
                                         G_BINDING_SYNC_CREATE);
 	}
 
-	if (soup_socket_get_gsocket (listener) == NULL) {
-		if (!soup_socket_listen (listener, error)) {
-			GInetSocketAddress *addr =  soup_socket_get_local_address (listener);
-			GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
-			char *local_ip = g_inet_address_to_string (inet_addr);
-
-			g_prefix_error (error,
-					_("Could not listen on address %s, port %d: "),
-					local_ip,
-					g_inet_socket_address_get_port (addr));
-			g_free (local_ip);
-			return FALSE;
-		}
-	}
-
-	g_signal_connect (listener, "new_connection",
-			  G_CALLBACK (new_connection), server);
+	g_signal_connect (listener, "new-connection",
+			  G_CALLBACK (new_connection),
+                          server);
 
 	/* Note: soup_server_listen_ipv4_ipv6() below relies on the
 	 * fact that this does g_slist_prepend().
@@ -1274,8 +1282,8 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 		    GError **error)
 {
 	SoupServerPrivate *priv;
-	SoupSocket *listener;
-	gboolean success, ipv6_only;
+	SoupListener *listener;
+	gboolean success;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), FALSE);
 	g_return_val_if_fail (!(options & SOUP_SERVER_LISTEN_IPV4_ONLY) &&
@@ -1284,10 +1292,9 @@ soup_server_listen (SoupServer *server, GSocketAddress *address,
 	priv = soup_server_get_instance_private (server);
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
-        ipv6_only = g_socket_address_get_family (address) == G_SOCKET_FAMILY_IPV6;
-	listener = soup_socket_new ("local-address", address,
-				    "ipv6-only", ipv6_only,
-				    NULL);
+        listener = soup_listener_new_for_address (address, error);
+        if (!listener)
+                return FALSE;
 
 	success = soup_server_listen_internal (server, listener, options, error);
 	g_object_unref (listener);
@@ -1306,7 +1313,7 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 	GSocketAddress *addr4, *addr6;
 	GError *my_error = NULL;
-	SoupSocket *v4sock;
+	SoupListener *v4sock;
 	guint v4port;
 
 	g_return_val_if_fail (iaddr4 != NULL || iaddr6 != NULL, FALSE);
@@ -1323,7 +1330,7 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
 		g_object_unref (addr4);
 
 		v4sock = priv->listeners->data;
-		v4port = g_inet_socket_address_get_port (soup_socket_get_local_address (v4sock));
+		v4port = g_inet_socket_address_get_port (soup_listener_get_address (v4sock));
 	} else {
 		v4sock = NULL;
 		v4port = port;
@@ -1355,7 +1362,7 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
 
 	if (v4sock) {
 		priv->listeners = g_slist_remove (priv->listeners, v4sock);
-		soup_socket_disconnect (v4sock);
+		soup_listener_disconnect (v4sock);
 		g_object_unref (v4sock);
 	}
 
@@ -1493,7 +1500,7 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
 			   GError **error)
 {
 	SoupServerPrivate *priv;
-	SoupSocket *listener;
+	SoupListener *listener;
 	gboolean success;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), FALSE);
@@ -1504,10 +1511,7 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
 	priv = soup_server_get_instance_private (server);
 	g_return_val_if_fail (priv->disposed == FALSE, FALSE);
 
-	listener = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
-				   "gsocket", socket,
-				   "ipv6-only", TRUE,
-				   NULL);
+        listener = soup_listener_new (socket, error);
 	if (!listener)
 		return FALSE;
 
@@ -1539,7 +1543,7 @@ soup_server_get_uris (SoupServer *server)
 {
 	SoupServerPrivate *priv;
 	GSList *uris, *l;
-	SoupSocket *listener;
+	SoupListener *listener;
 	GInetSocketAddress *addr;
 	GInetAddress *inet_addr;
 	char *ip;
@@ -1551,7 +1555,7 @@ soup_server_get_uris (SoupServer *server)
 
 	for (l = priv->listeners, uris = NULL; l; l = l->next) {
 		listener = l->data;
-		addr = soup_socket_get_local_address (listener);
+		addr = soup_listener_get_address (listener);
 		inet_addr = g_inet_socket_address_get_address (addr);
 		ip = g_inet_address_to_string (inet_addr);
                 port = g_inet_socket_address_get_port (addr);
@@ -1560,7 +1564,7 @@ soup_server_get_uris (SoupServer *server)
                         port = -1;
 
                 uri = g_uri_build (SOUP_HTTP_URI_FLAGS,
-                                   soup_socket_is_ssl (listener) ? "https" : "http",
+                                   soup_listener_is_ssl (listener) ? "https" : "http",
                                    NULL, ip, port, "/", NULL, NULL);
 
 		uris = g_slist_prepend (uris, uri);

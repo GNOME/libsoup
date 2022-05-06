@@ -8,14 +8,14 @@
 #include "soup-server-message.h"
 #include "soup-auth-domain.h"
 #include "soup-message-io-data.h"
-#include "soup-socket.h"
+#include "soup-server-connection.h"
 
-SoupServerMessage *soup_server_message_new                 (SoupSocket               *sock);
+SoupServerMessage *soup_server_message_new                 (SoupServerConnection     *conn);
 void               soup_server_message_set_uri             (SoupServerMessage        *msg,
                                                             GUri                     *uri);
 void               soup_server_message_set_method          (SoupServerMessage        *msg,
                                                             const char               *method);
-SoupSocket        *soup_server_message_get_soup_socket     (SoupServerMessage        *msg);
+SoupServerConnection *soup_server_message_get_connection   (SoupServerMessage        *msg);
 void               soup_server_message_set_auth            (SoupServerMessage        *msg,
                                                             SoupAuthDomain           *domain,
                                                             char                     *user);

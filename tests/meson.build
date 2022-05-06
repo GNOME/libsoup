@@ -94,7 +94,6 @@ tests = [
   {'name': 'server-auth'},
   {'name': 'server'},
   {'name': 'sniffing'},
-  {'name': 'socket'},
   {'name': 'ssl',
    'dependencies': [gnutls_dep],
    'depends': mock_pkcs11_module,

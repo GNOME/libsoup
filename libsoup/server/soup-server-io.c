@@ -18,7 +18,6 @@
 #include "soup-server-message-private.h"
 #include "soup-message-headers-private.h"
 #include "soup-misc.h"
-#include "soup-socket.h"
 
 struct _SoupServerMessageIOData {
         SoupMessageIOData base;
@@ -570,7 +569,7 @@ parse_headers (SoupServerMessage *msg,
 {
         char *req_method, *req_path, *url;
         SoupHTTPVersion version;
-	SoupSocket *sock;
+	SoupServerConnection *conn;
         const char *req_host;
         guint status;
         GUri *uri;
@@ -606,12 +605,12 @@ parse_headers (SoupServerMessage *msg,
                 return SOUP_STATUS_BAD_REQUEST;
         }
 
-	sock = soup_server_message_get_soup_socket (msg);
+	conn = soup_server_message_get_connection (msg);
 
 	if (!strcmp (req_path, "*") && req_host) {
 		/* Eg, "OPTIONS * HTTP/1.1" */
 		url = g_strdup_printf ("%s://%s/",
-				       soup_socket_is_ssl (sock) ? "https" : "http",
+				       soup_server_connection_is_ssl (conn) ? "https" : "http",
 				       req_host);
 		uri = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, NULL);
                 soup_server_message_set_options_ping (msg, TRUE);
@@ -624,21 +623,21 @@ parse_headers (SoupServerMessage *msg,
 		uri = g_uri_parse (req_path, SOUP_HTTP_URI_FLAGS, NULL);
 	} else if (req_host) {
 		url = g_strdup_printf ("%s://%s%s",
-				       soup_socket_is_ssl (sock) ? "https" : "http",
+				       soup_server_connection_is_ssl (conn) ? "https" : "http",
 				       req_host, req_path);
 		uri = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, NULL);
 		g_free (url);
 	} else if (soup_server_message_get_http_version (msg) == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
-		GInetSocketAddress *addr = soup_socket_get_local_address (sock);
+		GInetSocketAddress *addr = G_INET_SOCKET_ADDRESS (soup_server_connection_get_local_address (conn));
                 GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
                 char *local_ip = g_inet_address_to_string (inet_addr);
                 int port = g_inet_socket_address_get_port (addr);
                 if (port == 0)
                         port = -1;
 
-                uri = g_uri_build (SOUP_HTTP_URI_FLAGS, 
-                                   soup_socket_is_ssl (sock) ? "https" : "http",
+                uri = g_uri_build (SOUP_HTTP_URI_FLAGS,
+                                   soup_server_connection_is_ssl (conn) ? "https" : "http",
                                    NULL, local_ip, port, req_path, NULL, NULL);
 		g_free (local_ip);
 	} else
@@ -886,14 +885,14 @@ soup_server_message_read_request (SoupServerMessage        *msg,
 				  gpointer                  user_data)
 {
         SoupServerMessageIOData *io;
-	SoupSocket *sock;
+	SoupServerConnection *conn;
 
         io = g_slice_new0 (SoupServerMessageIOData);
         io->base.completion_cb = completion_cb;
         io->base.completion_data = user_data;
 
-	sock = soup_server_message_get_soup_socket (msg);
-        io->iostream = g_object_ref (soup_socket_get_iostream (sock));
+	conn = soup_server_message_get_connection (msg);
+        io->iostream = g_object_ref (soup_server_connection_get_iostream (conn));
         io->istream = g_io_stream_get_input_stream (io->iostream);
         io->ostream = g_io_stream_get_output_stream (io->iostream);
 

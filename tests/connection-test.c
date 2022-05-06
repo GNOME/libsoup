@@ -6,7 +6,7 @@
 #include "test-utils.h"
 
 #include "soup-connection.h"
-#include "soup-socket.h"
+#include "soup-server-connection.h"
 #include "soup-server-message-private.h"
 
 #include <gio/gnetworking.h>
@@ -24,17 +24,17 @@ forget_close (SoupServerMessage *msg,
 }
 
 static void
-close_socket (SoupServerMessage *msg,
-	      SoupSocket        *sock)
+close_socket (SoupServerMessage    *msg,
+	      SoupServerConnection *conn)
 {
-        GSocket *gsocket;
+        GSocket *socket;
 	int sockfd;
 
 	/* Actually calling soup_socket_disconnect() here would cause
 	 * us to leak memory, so just shutdown the socket instead.
 	 */
-        gsocket = soup_socket_get_gsocket (sock); 
-	sockfd = g_socket_get_fd (gsocket);
+        socket = soup_server_connection_get_socket (conn);
+	sockfd = g_socket_get_fd (socket);
 #ifdef G_OS_WIN32
 	shutdown (sockfd, SD_SEND);
 #else
@@ -50,10 +50,10 @@ close_socket (SoupServerMessage *msg,
 }
 
 static gboolean
-timeout_socket (GObject    *pollable,
-		SoupSocket *sock)
+timeout_socket (GObject              *pollable,
+		SoupServerConnection *conn)
 {
-	soup_socket_disconnect (sock);
+	soup_server_connection_disconnect (conn);
 	return FALSE;
 }
 
@@ -62,7 +62,7 @@ timeout_request_started (SoupServer        *server,
 			 SoupServerMessage *msg,
 			 gpointer           user_data)
 {
-	SoupSocket *sock;
+	SoupServerConnection *conn;
 	GMainContext *context = g_main_context_get_thread_default ();
 	GIOStream *iostream;
 	GInputStream *istream;
@@ -70,21 +70,22 @@ timeout_request_started (SoupServer        *server,
 
 	g_signal_handlers_disconnect_by_func (server, timeout_request_started, NULL);
 
-	sock = soup_server_message_get_soup_socket (msg);
-	iostream = soup_socket_get_iostream (sock);
+	conn = soup_server_message_get_connection (msg);
+	iostream = soup_server_connection_get_iostream (conn);
 	istream = g_io_stream_get_input_stream (iostream);
 	source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (istream), NULL);
-	g_source_set_callback (source, (GSourceFunc)timeout_socket, sock, NULL);
+	g_source_set_callback (source, (GSourceFunc)timeout_socket, conn, NULL);
 	g_source_attach (source, g_main_context_get_thread_default ());
 	g_source_unref (source);
 
 	g_mutex_unlock (&server_mutex);
-	while (soup_socket_is_connected (sock))
+	while (soup_server_connection_is_connected (conn))
 		g_main_context_iteration (context, TRUE);
 }
 
 static void
-setup_timeout_persistent (SoupServer *server, SoupSocket *sock)
+setup_timeout_persistent (SoupServer           *server,
+                          SoupServerConnection *conn)
 {
 	/* In order for the test to work correctly, we have to
 	 * close the connection *after* the client side writes
@@ -143,16 +144,16 @@ server_callback (SoupServer        *server,
 					     "Connection", "close");
 
 		if (too_long) {
-			SoupSocket *sock;
+			SoupServerConnection *conn;
 
 			/* soup-message-io will wait for us to add
 			 * another chunk after the first, to fill out
 			 * the declared Content-Length. Instead, we
 			 * forcibly close the socket at that point.
 			 */
-			sock = soup_server_message_get_soup_socket (msg);
+			conn = soup_server_message_get_connection (msg);
 			g_signal_connect (msg, "wrote-chunk",
-					  G_CALLBACK (close_socket), sock);
+					  G_CALLBACK (close_socket), conn);
 		} else if (no_close) {
 			/* Remove the 'Connection: close' after writing
 			 * the headers, so that when we check it after
@@ -166,10 +167,10 @@ server_callback (SoupServer        *server,
 	}
 
 	if (!strcmp (path, "/timeout-persistent")) {
-		SoupSocket *sock;
+		SoupServerConnection *conn;
 
-		sock = soup_server_message_get_soup_socket (msg);
-		setup_timeout_persistent (server, sock);
+		conn = soup_server_message_get_connection (msg);
+		setup_timeout_persistent (server, conn);
 	}
 
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);

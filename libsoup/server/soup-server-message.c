@@ -15,7 +15,6 @@
 #include "soup-connection.h"
 #include "soup-server-message-private.h"
 #include "soup-message-headers-private.h"
-#include "soup-socket.h"
 #include "soup-uri-utils-private.h"
 
 /**
@@ -38,7 +37,7 @@
 struct _SoupServerMessage {
         GObject             parent;
 
-        SoupSocket         *sock;
+        SoupServerConnection *conn;
         GSocket            *gsock;
         SoupAuthDomain     *auth_domain;
         char               *auth_user;
@@ -130,9 +129,9 @@ soup_server_message_finalize (GObject *object)
         g_clear_object (&msg->remote_addr);
         g_clear_object (&msg->local_addr);
 
-        if (msg->sock) {
-                g_signal_handlers_disconnect_by_data (msg->sock, msg);
-                g_object_unref (msg->sock);
+        if (msg->conn) {
+                g_signal_handlers_disconnect_by_data (msg->conn, msg);
+                g_object_unref (msg->conn);
         }
         g_clear_object (&msg->gsock);
         g_clear_pointer (&msg->remote_ip, g_free);
@@ -403,15 +402,15 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
 }
 
 static void
-socket_disconnected (SoupServerMessage *msg)
+connection_disconnected (SoupServerMessage *msg)
 {
         g_signal_emit (msg, signals[DISCONNECTED], 0);
 }
 
 static gboolean
-socket_accept_certificate (SoupServerMessage    *msg,
-                           GTlsCertificate      *tls_certificate,
-                           GTlsCertificateFlags *tls_errors)
+connection_accept_certificate (SoupServerMessage    *msg,
+                               GTlsCertificate      *tls_certificate,
+                               GTlsCertificateFlags *tls_errors)
 {
 	gboolean accept = FALSE;
 
@@ -436,33 +435,33 @@ soup_server_message_set_tls_peer_certificate (SoupServerMessage   *msg,
 }
 
 static void
-re_emit_tls_certificate_changed (SoupServerMessage *msg,
-                                 GParamSpec        *pspec,
-                                 SoupSocket        *sock)
+re_emit_tls_certificate_changed (SoupServerMessage    *msg,
+                                 GParamSpec           *pspec,
+                                 SoupServerConnection *conn)
 {
         soup_server_message_set_tls_peer_certificate (msg,
-                                                      soup_socket_get_tls_certificate (sock),
-                                                      soup_socket_get_tls_certificate_errors (sock));
+                                                      soup_server_connection_get_tls_peer_certificate (conn),
+                                                      soup_server_connection_get_tls_peer_certificate_errors (conn));
 }
 
 SoupServerMessage *
-soup_server_message_new (SoupSocket *sock)
+soup_server_message_new (SoupServerConnection *conn)
 {
         SoupServerMessage *msg;
 
         msg = g_object_new (SOUP_TYPE_SERVER_MESSAGE, NULL);
-        msg->sock = g_object_ref (sock);
-        msg->gsock = soup_socket_get_gsocket (sock);
+        msg->conn = g_object_ref (conn);
+        msg->gsock = soup_server_connection_get_socket (conn);
         if (msg->gsock)
                 g_object_ref (msg->gsock);
 
-        g_signal_connect_object (sock, "disconnected",
-                                 G_CALLBACK (socket_disconnected),
+        g_signal_connect_object (conn, "disconnected",
+                                 G_CALLBACK (connection_disconnected),
                                  msg, G_CONNECT_SWAPPED);
-        g_signal_connect_object (sock, "accept-certificate",
-                                 G_CALLBACK (socket_accept_certificate),
+        g_signal_connect_object (conn, "accept-certificate",
+                                 G_CALLBACK (connection_accept_certificate),
                                  msg, G_CONNECT_SWAPPED);
-        g_signal_connect_object (sock, "notify::tls-certificate",
+        g_signal_connect_object (conn, "notify::tls-certificate",
                                  G_CALLBACK (re_emit_tls_certificate_changed),
                                  msg, G_CONNECT_SWAPPED);
 
@@ -478,10 +477,10 @@ soup_server_message_set_uri (SoupServerMessage *msg,
         msg->uri = soup_uri_copy_with_normalized_flags (uri);
 }
 
-SoupSocket *
-soup_server_message_get_soup_socket (SoupServerMessage *msg)
+SoupServerConnection *
+soup_server_message_get_connection (SoupServerMessage *msg)
 {
-        return msg->sock;
+        return msg->conn;
 }
 
 void
@@ -954,7 +953,7 @@ soup_server_message_get_remote_address (SoupServerMessage *msg)
 
         msg->remote_addr = msg->gsock ?
                 g_socket_get_remote_address (msg->gsock, NULL) :
-                G_SOCKET_ADDRESS (g_object_ref (soup_socket_get_remote_address (msg->sock)));
+                G_SOCKET_ADDRESS (g_object_ref (soup_server_connection_get_remote_address (msg->conn)));
 
         return msg->remote_addr;
 }
@@ -980,7 +979,7 @@ soup_server_message_get_local_address (SoupServerMessage *msg)
 
         msg->local_addr = msg->gsock ?
                 g_socket_get_local_address (msg->gsock, NULL) :
-                G_SOCKET_ADDRESS (g_object_ref (soup_socket_get_local_address (msg->sock)));
+                G_SOCKET_ADDRESS (g_object_ref (soup_server_connection_get_local_address (msg->conn)));
 
         return msg->local_addr;
 }
@@ -1013,7 +1012,7 @@ soup_server_message_get_remote_host (SoupServerMessage *msg)
                 iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
                 msg->remote_ip = g_inet_address_to_string (iaddr);
         } else {
-                GInetSocketAddress *addr = G_INET_SOCKET_ADDRESS (soup_socket_get_remote_address (msg->sock));
+                GInetSocketAddress *addr = G_INET_SOCKET_ADDRESS (soup_server_connection_get_remote_address (msg->conn));
                 GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
                 msg->remote_ip = g_inet_address_to_string (inet_addr);
         }
@@ -1050,13 +1049,13 @@ soup_server_message_steal_connection (SoupServerMessage *msg)
         stream = soup_server_message_io_steal (msg);
         if (stream) {
                 g_object_set_data_full (G_OBJECT (stream), "GSocket",
-                                        soup_socket_steal_gsocket (msg->sock),
+                                        soup_server_connection_steal_socket (msg->conn),
                                         g_object_unref);
         }
 
-        g_signal_handlers_disconnect_by_data (msg, msg->sock);
+        g_signal_handlers_disconnect_by_data (msg, msg->conn);
 
-        socket_disconnected (msg);
+        connection_disconnected (msg);
         g_object_unref (msg);
 
         return stream;
