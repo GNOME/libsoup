@@ -1048,6 +1048,31 @@ on_data_source_read_callback (nghttp2_session     *session,
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
         data->io->in_callback++;
 
+        if (!data->item->async) {
+                gssize read;
+                GError *error = NULL;
+
+                read = g_input_stream_read (source->ptr, buf, length, data->item->cancellable, &error);
+                if (read) {
+                        h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
+                        log_request_data (data, buf, read);
+                }
+
+                if (read < 0) {
+                        set_error_for_data (data, g_steal_pointer (&error));
+                        data->io->in_callback--;
+                        return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+                }
+
+                if (read == 0) {
+                        h2_debug (data->io, data, "[SEND_BODY] EOF");
+                        *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                }
+
+                data->io->in_callback--;
+                return read;
+        }
+
         /* We support pollable streams in the best case because they
          * should perform better with one fewer copy of each buffer and no threading. */
         if (G_IS_POLLABLE_INPUT_STREAM (source->ptr) && g_pollable_input_stream_can_poll (G_POLLABLE_INPUT_STREAM (source->ptr))) {
