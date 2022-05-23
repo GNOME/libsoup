@@ -1260,7 +1260,7 @@ soup_server_listen_internal (SoupServer *server, SoupSocket *listener,
  * After calling this method, @server will begin accepting and processing
  * connections as soon as the appropriate [struct@GLib.MainContext] is run.
  *
- * Note that #SoupServer never makes use of dual IPv4/IPv6 sockets; if
+ * Note that this API does not make use of dual IPv4/IPv6 sockets; if
  * @address is an IPv6 address, it will only accept IPv6 connections.
  * You must configure IPv4 listening separately.
  *
