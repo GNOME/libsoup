@@ -440,15 +440,18 @@ static gboolean
 make_auto_ntlm_auth (SoupAuthManagerPrivate *priv, SoupAuthHost *host)
 {
 	SoupAuth *auth;
+	char *authority;
 
 	if (!priv->auto_ntlm)
 		return FALSE;
 
+	authority = g_strdup_printf ("%s:%d", g_uri_get_host (host->uri), g_uri_get_port (host->uri));
 	auth = g_object_new (SOUP_TYPE_AUTH_NTLM,
-			     "host", g_uri_get_host (host->uri),
+			     "authority", authority,
 			     NULL);
 	record_auth_for_uri (priv, host->uri, auth, FALSE);
 	g_object_unref (auth);
+	g_free (authority);
 	return TRUE;
 }
 
