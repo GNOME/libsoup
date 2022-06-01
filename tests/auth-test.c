@@ -803,6 +803,42 @@ do_async_auth_cancel_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static gboolean
+sync_bad_password_authenticate (SoupMessage *msg,
+                                SoupAuth    *auth,
+                                gboolean     retrying)
+{
+        if (retrying)
+                return FALSE;
+
+        soup_auth_authenticate (auth, "user1", "wrong");
+        return TRUE;
+}
+
+static void
+do_sync_auth_bad_password_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        char *uri;
+
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+
+        session = soup_test_session_new (NULL);
+        uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+
+        msg = soup_message_new ("GET", uri);
+        g_free (uri);
+        g_signal_connect (msg, "authenticate",
+                          G_CALLBACK (sync_bad_password_authenticate),
+                          NULL);
+        soup_test_session_send_message (session, msg);
+        soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
+        g_object_unref (msg);
+
+        soup_test_session_abort_unref (session);
+}
+
 typedef struct {
 	const char *password;
 	struct {
@@ -1849,6 +1885,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/async-auth/bad-password", do_async_auth_bad_password_test);
 	g_test_add_func ("/auth/async-auth/no-password", do_async_auth_no_password_test);
 	g_test_add_func ("/auth/async-auth/cancel", do_async_auth_cancel_test);
+        g_test_add_func ("/auth/sync-auth/bad-password", do_sync_auth_bad_password_test);
 	g_test_add_func ("/auth/select-auth", do_select_auth_test);
 	g_test_add_func ("/auth/auth-close", do_auth_close_test);
 	g_test_add_func ("/auth/infinite-auth", do_infinite_auth_test);
