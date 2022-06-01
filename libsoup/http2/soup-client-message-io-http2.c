@@ -999,14 +999,14 @@ on_data_read (GInputStream *source,
         GError *error = NULL;
         gssize read = g_input_stream_read_finish (source, res, &error);
 
-        h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
-
         /* This operation may have outlived the message data in which
            case this will have been cancelled. */
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
                 g_error_free (error);
                 return;
         }
+
+        h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
 
         if (read < 0) {
                 g_byte_array_set_size (data->data_source_buffer, 0);
