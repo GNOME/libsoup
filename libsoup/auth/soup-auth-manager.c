@@ -44,13 +44,6 @@
  **/
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
-enum {
-	AUTHENTICATE,
-	LAST_SIGNAL
-};
-
-static guint signals[LAST_SIGNAL] = { 0 };
-
 struct _SoupAuthManager {
         GObject parent_instance;
 };
@@ -112,33 +105,6 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_manager_class);
 
 	object_class->finalize = soup_auth_manager_finalize;
-
-	/**
-	 * SoupAuthManager::authenticate:
-	 * @manager: the #SoupAuthManager
-	 * @msg: the #SoupMessage being sent
-	 * @auth: the #SoupAuth to authenticate
-	 * @retrying: %TRUE if this is the second (or later) attempt
-	 *
-	 * Emitted when the manager requires the application to
-	 * provide authentication credentials.
-	 *
-	 * [class@Message] connects to this signal and emits its own
-	 * [signal@Message::authenticate] signal when it is emitted, so
-	 * you shouldn't need to use this signal directly.
-	 */
-	signals[AUTHENTICATE] =
-		g_signal_new ("authenticate",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0,
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 3,
-			      SOUP_TYPE_MESSAGE,
-			      SOUP_TYPE_AUTH,
-			      G_TYPE_BOOLEAN);
-
 }
 
 static int
