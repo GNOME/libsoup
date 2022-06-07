@@ -3194,8 +3194,10 @@ soup_message_update_request_host_if_needed (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        if (priv->http_version == SOUP_HTTP_2_0)
+        if (priv->http_version == SOUP_HTTP_2_0) {
+                soup_message_headers_remove_common (priv->request_headers, SOUP_HEADER_HOST);
                 return;
+        }
 
         if (soup_message_headers_get_one_common (priv->request_headers, SOUP_HEADER_HOST))
                 return;
@@ -3208,8 +3210,10 @@ soup_message_force_keep_alive_if_needed (SoupMessage *msg)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
 
-        if (priv->http_version == SOUP_HTTP_2_0)
+        if (priv->http_version == SOUP_HTTP_2_0) {
+                soup_message_headers_remove_common (priv->request_headers, SOUP_HEADER_CONNECTION);
                 return;
+        }
 
         /* Force keep alive connections for HTTP 1.0. Performance will
          * improve when issuing multiple requests to the same host in
