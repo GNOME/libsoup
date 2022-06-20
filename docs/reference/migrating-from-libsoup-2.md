@@ -156,7 +156,8 @@ buffer.
 In libsoup 2 there was an attempt at making various APIs of the library
 thread-safe. However this was never well tested, maintained, or documented.
 
-In libsoup 3 it now behaves in line with other GObject libraries. Once you
+
+libsoup 3 was initially designed to behave in line with other GObject libraries. Once you
 create a [class@Session] all usage of that session must happen on the same
-thread. You may create separate sessions per thread but in most use-cases you
-should be using the async APIs which handle non-blocking IO for you.
+thread. However, in version 3.2 thread safety support was introduced
+again, with the same approach as libsoup2.
