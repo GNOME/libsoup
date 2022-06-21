@@ -685,7 +685,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         io->in_callback++;
 
         if (frame->hd.stream_id == 0) {
-                h2_debug (io, NULL, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
+                h2_debug (io, NULL, "[RECV] [%s] Received (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
 
                 switch (frame->hd.type) {
                 case NGHTTP2_GOAWAY:
@@ -708,7 +708,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         }
 
         data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
-        h2_debug (io, data, "[RECV] [%s] Recieved (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
+        h2_debug (io, data, "[RECV] [%s] Received (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
 
         if (!data) {
                 if (!(frame->hd.flags & NGHTTP2_FLAG_END_STREAM) && frame->hd.type != NGHTTP2_RST_STREAM)
@@ -816,7 +816,7 @@ on_data_chunk_recv_callback (nghttp2_session *session,
 
         io->in_callback++;
 
-        h2_debug (io, msgdata, "[DATA] Recieved chunk, len=%zu, flags=%u, paused=%d", len, flags, msgdata->paused);
+        h2_debug (io, msgdata, "[DATA] Received chunk, len=%zu, flags=%u, paused=%d", len, flags, msgdata->paused);
 
         g_assert (msgdata->body_istream != NULL);
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (msgdata->body_istream), data, len);
