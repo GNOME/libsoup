@@ -36,7 +36,4 @@ threads:
 
  - The sync API doesn't need any main context at all.
 
- - All internal session features are thread safe. Any third party
-   feature must be thread safe too in order to work with multiple
-   threads.
 
