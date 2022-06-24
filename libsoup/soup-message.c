@@ -3107,7 +3107,7 @@ soup_message_get_connection_id (SoupMessage *msg)
  * yet, or the resource was loaded from the disk cache. In case of proxy
  * connections, the remote address returned is a [class@Gio.ProxyAddress]. If
  * [property@Session:remote-connectable] is set the returned address id for the
- * connection ot the session's remote connectable.
+ * connection to the session's remote connectable.
  *
  * Returns: (transfer none) (nullable): a #GSocketAddress or %NULL if the connection
  *     hasn't been established
