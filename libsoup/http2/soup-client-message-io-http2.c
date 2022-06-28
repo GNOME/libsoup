@@ -949,16 +949,44 @@ on_frame_send_callback (nghttp2_session     *session,
         return 0;
 }
 
+static gboolean
+update_connection_in_use (gpointer        key,
+                          gpointer        value,
+                          SoupConnection *conn)
+{
+        soup_connection_set_in_use (conn, FALSE);
+
+        return TRUE;
+}
+
+static void
+process_pending_closed_messages (SoupClientMessageIOHTTP2 *io)
+{
+        SoupConnection *conn = g_weak_ref_get (&io->conn);
+
+        if (!conn) {
+                g_hash_table_remove_all (io->closed_messages);
+                return;
+        }
+
+        g_hash_table_foreach_remove (io->closed_messages, (GHRFunc)update_connection_in_use, conn);
+        g_object_unref (conn);
+}
+
 static int
 on_frame_not_send_callback (nghttp2_session     *session,
                             const nghttp2_frame *frame,
                             int                  lib_error_code,
                             void                *user_data)
 {
+        SoupClientMessageIOHTTP2 *io = user_data;
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
 
-        h2_debug (user_data, data, "[SEND] [%s] Failed: %s", frame_type_to_string (frame->hd.type),
+        h2_debug (io, data, "[SEND] [%s] Failed: %s", frame_type_to_string (frame->hd.type),
                   nghttp2_strerror (lib_error_code));
+
+        if (lib_error_code == NGHTTP2_ERR_SESSION_CLOSING)
+                process_pending_closed_messages (io);
 
         return 0;
 }
