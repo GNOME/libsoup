@@ -661,6 +661,9 @@ handle_goaway (SoupClientMessageIOHTTP2 *io,
         GHashTableIter iter;
         SoupHTTP2MessageData *data;
 
+        if (last_stream_id == G_MAXINT32)
+                return;
+
         g_hash_table_iter_init (&iter, io->messages);
         while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&data)) {
                 /* If there is no error it is a graceful shutdown and
