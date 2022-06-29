@@ -594,7 +594,8 @@ new_tls_connection (SoupConnection    *conn,
                 g_ptr_array_add (advertised_protocols, "h2");
                 break;
         default:
-                g_ptr_array_add (advertised_protocols, "h2");
+                if (!priv->remote_address || !G_IS_PROXY_ADDRESS (priv->remote_address))
+                        g_ptr_array_add (advertised_protocols, "h2");
                 g_ptr_array_add (advertised_protocols, "http/1.1");
                 g_ptr_array_add (advertised_protocols, "http/1.0");
                 break;
