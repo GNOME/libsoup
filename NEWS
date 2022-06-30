@@ -1,3 +1,23 @@
+Changes in libsoup from 3.0.7 to 3.1.1:
+
+* Reintroduce some thread-safety to SoupSession (see https://libsoup.org/libsoup-3.0/client-thread-safety.html) [Carlos Garcia Campos]
+* Add SoupServerMessage:tls-peer-certificate and SoupServerMessage:tls-peer-certificate-errors [Ignacio Casal Quinteiro]
+* Port docs to gi-docgen [Maximiliano Sandoval R]
+* Update documentation [Patrick Griffis]
+
+Changes in libsoup from 3.0.6 to 3.0.7:
+
+* Fix leak in SoupAuthNTLM [Milan Crha]
+* Fix constructing SoupAuthNTLM objects [Milan Crha]
+* Disable mutual negotiation in SoupAuthNegotiate [Michael Catanzaro]
+* http2: Do not advertise the `h2` protocool for proxy connections [Carlos Garcia Campos]
+* http2: Remove left-over headers when HTTP/1 redirects to HTTP/2 [Carlos Garcia Campos]
+* http2: Handle HTTP_1_1_REQUIRED error [Carlos Garcia Campos]
+* http2: Read request bodies synchronously for sync requests [Carlos Garcia Campos]
+* http2: Properly handle server sending shut down GOAWAY [Carlos Garcia Campos]
+* tests: Remove dependency on Apache's PHP module [Carlos Garcia Campos]
+* tests: Depend upon Apache's http2 module [Carlos Garcia Campos]
+
 Changes in libsoup from 3.0.5 to 3.0.6:
 
 * Misc HTTP/2 fixes [Carlos Garcia Campos]
