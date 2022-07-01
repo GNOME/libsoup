@@ -38,13 +38,10 @@ struct _SoupServerMessage {
         GObject             parent;
 
         SoupServerConnection *conn;
-        GSocket            *gsock;
         SoupAuthDomain     *auth_domain;
         char               *auth_user;
 
-        GSocketAddress     *remote_addr;
         char               *remote_ip;
-        GSocketAddress     *local_addr;
 
         const char         *method;
         SoupHTTPVersion     http_version;
@@ -126,14 +123,11 @@ soup_server_message_finalize (GObject *object)
 
         g_clear_object (&msg->auth_domain);
         g_clear_pointer (&msg->auth_user, g_free);
-        g_clear_object (&msg->remote_addr);
-        g_clear_object (&msg->local_addr);
 
         if (msg->conn) {
                 g_signal_handlers_disconnect_by_data (msg->conn, msg);
                 g_object_unref (msg->conn);
         }
-        g_clear_object (&msg->gsock);
         g_clear_pointer (&msg->remote_ip, g_free);
 
         g_clear_pointer (&msg->uri, g_uri_unref);
@@ -451,9 +445,6 @@ soup_server_message_new (SoupServerConnection *conn)
 
         msg = g_object_new (SOUP_TYPE_SERVER_MESSAGE, NULL);
         msg->conn = g_object_ref (conn);
-        msg->gsock = soup_server_connection_get_socket (conn);
-        if (msg->gsock)
-                g_object_ref (msg->gsock);
 
         g_signal_connect_object (conn, "disconnected",
                                  G_CALLBACK (connection_disconnected),
@@ -929,7 +920,7 @@ soup_server_message_get_socket (SoupServerMessage *msg)
 {
         g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), NULL);
 
-        return msg->gsock;
+        return soup_server_connection_get_socket (msg->conn);
 }
 
 /**
@@ -948,14 +939,7 @@ soup_server_message_get_remote_address (SoupServerMessage *msg)
 {
         g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), NULL);
 
-        if (msg->remote_addr)
-                return msg->remote_addr;
-
-        msg->remote_addr = msg->gsock ?
-                g_socket_get_remote_address (msg->gsock, NULL) :
-                G_SOCKET_ADDRESS (g_object_ref (soup_server_connection_get_remote_address (msg->conn)));
-
-        return msg->remote_addr;
+        return soup_server_connection_get_remote_address (msg->conn);
 }
 
 /**
@@ -974,14 +958,7 @@ soup_server_message_get_local_address (SoupServerMessage *msg)
 {
         g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), NULL);
 
-        if (msg->local_addr)
-                return msg->local_addr;
-
-        msg->local_addr = msg->gsock ?
-                g_socket_get_local_address (msg->gsock, NULL) :
-                G_SOCKET_ADDRESS (g_object_ref (soup_server_connection_get_local_address (msg->conn)));
-
-        return msg->local_addr;
+        return soup_server_connection_get_local_address (msg->conn);
 }
 
 /**
@@ -1000,21 +977,15 @@ soup_server_message_get_remote_host (SoupServerMessage *msg)
 {
         g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (msg), NULL);
 
-        if (msg->remote_ip)
-                return msg->remote_ip;
-
-        if (msg->gsock) {
-                GSocketAddress *addr = soup_server_message_get_remote_address (msg);
+        if (!msg->remote_ip) {
+                GSocketAddress *addr = soup_server_connection_get_remote_address (msg->conn);
                 GInetAddress *iaddr;
 
                 if (!addr || !G_IS_INET_SOCKET_ADDRESS (addr))
                         return NULL;
+
                 iaddr = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (addr));
                 msg->remote_ip = g_inet_address_to_string (iaddr);
-        } else {
-                GInetSocketAddress *addr = G_INET_SOCKET_ADDRESS (soup_server_connection_get_remote_address (msg->conn));
-                GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
-                msg->remote_ip = g_inet_address_to_string (inet_addr);
         }
 
         return msg->remote_ip;

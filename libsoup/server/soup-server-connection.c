@@ -466,6 +466,10 @@ soup_server_connection_steal_socket (SoupServerConnection *conn)
 
         priv = soup_server_connection_get_instance_private (conn);
 
+        /* Cache local and remote address */
+        soup_server_connection_get_local_address (conn);
+        soup_server_connection_get_remote_address (conn);
+
         socket = g_steal_pointer (&priv->socket);
         g_clear_object (&priv->conn);
         g_clear_object (&priv->iostream);
