@@ -259,6 +259,15 @@ do_multithread_basic_test (Test         *test,
 }
 
 static void
+do_multithread_basic_proxy_test (Test         *test,
+                                 gconstpointer data)
+{
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+
+        do_multithread_basic_test (test, data);
+}
+
+static void
 do_multithread_basic_ssl_test (Test         *test,
                                gconstpointer data)
 {
@@ -465,12 +474,12 @@ main (int argc, char **argv)
         g_test_add ("/multithread/basic-proxy/async", Test,
                     GUINT_TO_POINTER (BASIC_PROXY),
                     test_setup,
-                    do_multithread_basic_test,
+                    do_multithread_basic_proxy_test,
                     test_teardown);
         g_test_add ("/multithread/basic-proxy/sync", Test,
                     GUINT_TO_POINTER (BASIC_PROXY | BASIC_SYNC),
                     test_setup,
-                    do_multithread_basic_test,
+                    do_multithread_basic_proxy_test,
                     test_teardown);
         g_test_add ("/multithread/basic-no-main-thread/async", Test,
                     GUINT_TO_POINTER (BASIC_NO_MAIN_THREAD),
