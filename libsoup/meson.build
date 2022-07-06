@@ -201,6 +201,7 @@ libsoup_includes = [
     'http1',
     'http2',
     'server',
+    'server/http1',
     'websocket',
     '.'
   ]),

@@ -22,6 +22,8 @@
 typedef struct {
         SoupMessageIOData base;
 
+        SoupServerMessage *msg;
+
         GBytes  *write_chunk;
 	goffset  write_body_offset;
 
@@ -52,6 +54,8 @@ soup_message_io_http1_free (SoupMessageIOHTTP1 *msg_io)
                 msg_io->unpause_source = NULL;
         }
 
+        soup_server_message_set_io_data (msg_io->msg, NULL);
+        g_clear_object (&msg_io->msg);
         g_clear_pointer (&msg_io->async_context, g_main_context_unref);
         g_clear_pointer (&msg_io->write_chunk, g_bytes_unref);
 
@@ -92,6 +96,7 @@ soup_server_message_io_finished (SoupServerMessage *msg)
 		completion = SOUP_MESSAGE_IO_INTERRUPTED;
 
         g_object_ref (msg);
+        g_clear_pointer (&io->msg_io, soup_message_io_http1_free);
         soup_server_message_set_io_data (msg, NULL);
 	if (completion_cb)
                 completion_cb (G_OBJECT (msg), completion, completion_data);
@@ -115,7 +120,7 @@ soup_server_message_io_steal (SoupServerMessage *msg)
 	completion_data = io->msg_io->base.completion_data;
 
         g_object_ref (msg);
-	soup_server_message_set_io_data (msg, NULL);
+        g_clear_pointer (&io->msg_io, soup_message_io_http1_free);
         if (completion_cb)
                 completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_STOLEN, completion_data);
         g_object_unref (msg);
@@ -903,18 +908,16 @@ soup_server_message_io_http1_new (GIOStream *iostream)
 }
 
 void
-soup_server_message_read_request (SoupServerMessage        *msg,
-                                  SoupMessageIOCompletionFn completion_cb,
-                                  gpointer                  user_data)
+soup_server_message_io_read_request (SoupServerMessageIOData  *io,
+                                     SoupServerMessage        *msg,
+                                     SoupMessageIOCompletionFn completion_cb,
+                                     gpointer                  user_data)
 {
-        SoupServerMessageIOData *io;
-        SoupServerConnection *conn;
         SoupMessageIOHTTP1 *msg_io;
 
-        conn = soup_server_message_get_connection (msg);
-        io = soup_server_message_io_http1_new (soup_server_connection_get_iostream (conn));
-
         msg_io = g_new0 (SoupMessageIOHTTP1, 1);
+        msg_io->msg = g_object_ref (msg);
+
         msg_io->base.completion_cb = completion_cb;
         msg_io->base.completion_data = user_data;
 
@@ -926,8 +929,6 @@ soup_server_message_read_request (SoupServerMessage        *msg,
 
         msg_io->async_context = g_main_context_ref_thread_default ();
         io->msg_io = msg_io;
-
-        soup_server_message_set_io_data (msg, io);
 
         io_run (msg);
 }

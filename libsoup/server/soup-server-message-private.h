@@ -40,13 +40,18 @@ void               soup_server_message_finished            (SoupServerMessage   
 void               soup_server_message_read_request        (SoupServerMessage        *msg,
                                                             SoupMessageIOCompletionFn completion_cb,
                                                             gpointer                  user_data);
+
 void               soup_server_message_set_options_ping    (SoupServerMessage        *msg,
                                                             gboolean                  is_options_ping);
 
 typedef struct _SoupServerMessageIOData SoupServerMessageIOData;
-void                     soup_server_message_io_data_free  (SoupServerMessageIOData *io);
+void                     soup_server_message_io_data_free  (SoupServerMessageIOData  *io);
 void                     soup_server_message_set_io_data   (SoupServerMessage        *msg,
                                                             SoupServerMessageIOData  *io);
 SoupServerMessageIOData *soup_server_message_get_io_data   (SoupServerMessage        *msg);
+void                    soup_server_message_io_read_request(SoupServerMessageIOData  *io,
+                                                            SoupServerMessage        *msg,
+                                                            SoupMessageIOCompletionFn completion_cb,
+                                                            gpointer                  user_data);
 
 #endif /* __SOUP_SERVER_MESSAGE_PRIVATE_H__ */

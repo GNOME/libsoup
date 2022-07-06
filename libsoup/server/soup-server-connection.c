@@ -18,6 +18,8 @@
 #include "soup-server-connection.h"
 #include "soup.h"
 #include "soup-io-stream.h"
+#include "soup-server-message-private.h"
+#include "soup-server-message-io-http1.h"
 
 enum {
         DISCONNECTED,
@@ -53,6 +55,7 @@ typedef struct {
         GSocket *socket;
         GIOStream *conn;
         GIOStream *iostream;
+        SoupServerMessageIOData *io_data;
 
         GSocketAddress *local_addr;
         GSocketAddress *remote_addr;
@@ -79,6 +82,8 @@ disconnect_internal (SoupServerConnection *conn)
         g_io_stream_close (priv->conn, NULL, NULL);
         g_signal_handlers_disconnect_by_data (priv->conn, conn);
         g_clear_object (&priv->conn);
+
+        g_clear_pointer (&priv->io_data, soup_server_message_io_data_free);
 }
 
 static void
@@ -89,6 +94,8 @@ soup_server_connection_finalize (GObject *object)
 
         if (priv->conn)
                 disconnect_internal (conn);
+
+        g_clear_pointer (&priv->io_data, soup_server_message_io_data_free);
 
         g_clear_object (&priv->iostream);
 
@@ -116,8 +123,10 @@ soup_server_connection_set_property (GObject      *object,
                 break;
         case PROP_CONNECTION:
                 priv->conn = g_value_dup_object (value);
-                if (priv->conn)
+                if (priv->conn) {
                         priv->iostream = soup_io_stream_new (priv->conn, FALSE);
+                        priv->io_data = soup_server_message_io_http1_new (priv->iostream);
+                }
                 break;
         case PROP_LOCAL_ADDRESS:
                 priv->local_addr = g_value_dup_object (value);
@@ -328,6 +337,23 @@ soup_server_connection_new_for_connection (GIOStream      *connection,
                              NULL);
 }
 
+SoupServerMessageIOData *
+soup_server_connection_get_io_data (SoupServerConnection *conn)
+{
+        SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
+
+        return priv->io_data;
+}
+
+static void
+soup_server_connection_create_io_data (SoupServerConnection *conn)
+{
+        SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
+
+        g_assert (!priv->io_data);
+        priv->io_data = soup_server_message_io_http1_new (priv->iostream);
+}
+
 static gboolean
 tls_connection_accept_certificate (SoupServerConnection *conn,
                                    GTlsCertificate      *tls_certificate,
@@ -441,7 +467,12 @@ soup_server_connection_setup_finish (SoupServerConnection *conn,
                                      GAsyncResult         *result,
                                      GError              **error)
 {
-        return g_task_propagate_boolean (G_TASK (result), error);
+        GTask *task = G_TASK (result);
+
+        if (!g_task_had_error (task))
+                soup_server_connection_create_io_data (conn);
+
+        return g_task_propagate_boolean (task, error);
 }
 
 GSocket *

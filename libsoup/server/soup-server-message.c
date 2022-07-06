@@ -119,8 +119,6 @@ soup_server_message_finalize (GObject *object)
 {
         SoupServerMessage *msg = SOUP_SERVER_MESSAGE (object);
 
-        soup_server_message_io_data_free (msg->io_data);
-
         g_clear_object (&msg->auth_domain);
         g_clear_pointer (&msg->auth_user, g_free);
 
@@ -526,10 +524,18 @@ soup_server_message_is_keepalive (SoupServerMessage *msg)
 }
 
 void
+soup_server_message_read_request (SoupServerMessage        *msg,
+                                  SoupMessageIOCompletionFn completion_cb,
+                                  gpointer                  user_data)
+{
+        soup_server_message_set_io_data (msg, soup_server_connection_get_io_data (msg->conn));
+        soup_server_message_io_read_request (msg->io_data, msg, completion_cb, user_data);
+}
+
+void
 soup_server_message_set_io_data (SoupServerMessage       *msg,
                                  SoupServerMessageIOData *io)
 {
-        soup_server_message_io_data_free (msg->io_data);
         msg->io_data = io;
 }
 
