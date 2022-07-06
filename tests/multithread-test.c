@@ -106,11 +106,13 @@ message_send_and_read_ready_cb (SoupSession  *session,
 {
         GBytes *body;
         GBytes *index = soup_test_get_index ();
+        GError *error = NULL;
 
         if (loop)
                 g_assert_true (g_main_loop_get_context (loop) == g_main_context_get_thread_default ());
 
-        body = soup_session_send_and_read_finish (session, result, NULL);
+        body = soup_session_send_and_read_finish (session, result, &error);
+        g_assert_no_error (error);
         g_assert_nonnull (body);
         g_assert_cmpmem (g_bytes_get_data (body, NULL), g_bytes_get_size (body), g_bytes_get_data (index, NULL), g_bytes_get_size (index));
         g_bytes_unref (body);
@@ -164,6 +166,7 @@ task_sync_function (GTask        *task,
         SoupMessage *msg;
         GBytes *body;
         GBytes *index = soup_test_get_index ();
+        GError *error = NULL;
 
         if (test->flags & BASIC_SSL)
                 msg = soup_message_new ("GET", HTTPS_SERVER);
@@ -172,7 +175,8 @@ task_sync_function (GTask        *task,
         if (test->flags & BASIC_HTTP2)
                 soup_message_set_force_http_version (msg, SOUP_HTTP_2_0);
         connect_message_signals_to_check_thread (msg, g_thread_self ());
-        body = soup_session_send_and_read (test->session, msg, NULL, NULL);
+        body = soup_session_send_and_read (test->session, msg, NULL, &error);
+        g_assert_no_error (error);
         g_assert_nonnull (body);
         g_assert_cmpmem (g_bytes_get_data (body, NULL), g_bytes_get_size (body), g_bytes_get_data (index, NULL), g_bytes_get_size (index));
         g_bytes_unref (body);
