@@ -42,6 +42,7 @@ soup_sources = [
   'http2/soup-client-message-io-http2.c',
   'http2/soup-body-input-stream-http2.c',
 
+  'server/http1/soup-server-message-io-http1.c',
   'server/soup-auth-domain.c',
   'server/soup-auth-domain-basic.c',
   'server/soup-auth-domain-digest.c',
@@ -50,7 +51,6 @@ soup_sources = [
   'server/soup-path-map.c',
   'server/soup-server.c',
   'server/soup-server-connection.c',
-  'server/soup-server-io.c',
   'server/soup-server-message.c',
 
   'websocket/soup-websocket.c',
