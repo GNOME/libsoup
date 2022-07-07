@@ -993,9 +993,6 @@ client_disconnected (SoupServer        *server,
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
 	priv->clients = g_slist_remove (priv->clients, msg);
-
-	if (soup_server_message_get_status (msg) != 0)
-		soup_server_message_io_finished (msg);
 }
 
 typedef struct {
@@ -1915,7 +1912,8 @@ soup_server_pause_message (SoupServer        *server,
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
 
-	soup_server_message_io_pause (msg);
+        /* FIXME: make this public and deprecate soup_server_pause_message */
+	soup_server_message_pause (msg);
 }
 
 /**
@@ -1942,7 +1940,8 @@ soup_server_unpause_message (SoupServer        *server,
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
 
-	soup_server_message_io_unpause (msg);
+        /* FIXME: make this public and deprecate soup_server_unpause_message */
+	soup_server_message_unpause (msg);
 }
 
 /**

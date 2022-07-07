@@ -7,11 +7,10 @@
 #pragma once
 
 #include "soup-types.h"
+#include "soup-server-message-io.h"
 #include <gio/gio.h>
 
 G_BEGIN_DECLS
-
-typedef struct _SoupServerMessageIOData SoupServerMessageIOData;
 
 #define SOUP_TYPE_SERVER_CONNECTION (soup_server_connection_get_type ())
 G_DECLARE_FINAL_TYPE (SoupServerConnection, soup_server_connection, SOUP, SERVER_CONNECTION, GObject)
@@ -30,7 +29,7 @@ void                  soup_server_connection_setup_async                     (So
 gboolean              soup_server_connection_setup_finish                    (SoupServerConnection  *conn,
                                                                               GAsyncResult          *result,
                                                                               GError               **error);
-SoupServerMessageIOData *soup_server_connection_get_io_data                  (SoupServerConnection  *conn);
+SoupServerMessageIO  *soup_server_connection_get_io_data                     (SoupServerConnection  *conn);
 gboolean              soup_server_connection_is_ssl                          (SoupServerConnection  *conn);
 void                  soup_server_connection_disconnect                      (SoupServerConnection  *conn);
 gboolean              soup_server_connection_is_connected                    (SoupServerConnection  *conn);

@@ -52,6 +52,7 @@ soup_sources = [
   'server/soup-server.c',
   'server/soup-server-connection.c',
   'server/soup-server-message.c',
+  'server/soup-server-message-io.c',
 
   'websocket/soup-websocket.c',
   'websocket/soup-websocket-connection.c',

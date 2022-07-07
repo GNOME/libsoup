@@ -58,7 +58,7 @@ struct _SoupServerMessage {
         SoupMessageBody    *response_body;
         SoupMessageHeaders *response_headers;
 
-        SoupServerMessageIOData *io_data;
+        SoupServerMessageIO *io_data;
 
         gboolean                 options_ping;
 
@@ -396,6 +396,7 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
 static void
 connection_disconnected (SoupServerMessage *msg)
 {
+        msg->io_data = NULL;
         g_signal_emit (msg, signals[DISCONNECTED], 0);
 }
 
@@ -528,21 +529,45 @@ soup_server_message_read_request (SoupServerMessage        *msg,
                                   SoupMessageIOCompletionFn completion_cb,
                                   gpointer                  user_data)
 {
-        soup_server_message_set_io_data (msg, soup_server_connection_get_io_data (msg->conn));
+        msg->io_data = soup_server_connection_get_io_data (msg->conn);
         soup_server_message_io_read_request (msg->io_data, msg, completion_cb, user_data);
 }
 
-void
-soup_server_message_set_io_data (SoupServerMessage       *msg,
-                                 SoupServerMessageIOData *io)
-{
-        msg->io_data = io;
-}
-
-SoupServerMessageIOData *
+SoupServerMessageIO *
 soup_server_message_get_io_data (SoupServerMessage *msg)
 {
         return msg->io_data;
+}
+
+void
+soup_server_message_pause (SoupServerMessage *msg)
+{
+        g_return_if_fail (msg->io_data != NULL);
+
+        soup_server_message_io_pause (msg->io_data, msg);
+}
+
+void
+soup_server_message_unpause (SoupServerMessage *msg)
+{
+        g_return_if_fail (msg->io_data != NULL);
+
+        soup_server_message_io_unpause (msg->io_data, msg);
+}
+
+gboolean
+soup_server_message_is_io_paused (SoupServerMessage *msg)
+{
+        return msg->io_data && soup_server_message_io_is_paused (msg->io_data, msg);
+}
+
+void
+soup_server_message_finish (SoupServerMessage *msg)
+{
+        if (!msg->io_data)
+                return;
+
+        soup_server_message_io_finished (g_steal_pointer (&msg->io_data), msg);
 }
 
 void
@@ -1023,7 +1048,7 @@ soup_server_message_steal_connection (SoupServerMessage *msg)
         GIOStream *stream;
 
         g_object_ref (msg);
-        stream = soup_server_message_io_steal (msg);
+        stream = msg->io_data ? soup_server_message_io_steal (g_steal_pointer (&msg->io_data)) : NULL;
         if (stream) {
                 g_object_set_data_full (G_OBJECT (stream), "GSocket",
                                         soup_server_connection_steal_socket (msg->conn),

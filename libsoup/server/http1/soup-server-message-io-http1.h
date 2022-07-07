@@ -5,6 +5,7 @@
 
 #pragma once
 
-#include "soup-server-message-private.h"
+#include "soup-server-connection.h"
+#include "soup-server-message-io.h"
 
-SoupServerMessageIOData *soup_server_message_io_http1_new (GIOStream *iostream);
+SoupServerMessageIO *soup_server_message_io_http1_new (SoupServerConnection *conn);

@@ -55,7 +55,7 @@ typedef struct {
         GSocket *socket;
         GIOStream *conn;
         GIOStream *iostream;
-        SoupServerMessageIOData *io_data;
+        SoupServerMessageIO *io_data;
 
         GSocketAddress *local_addr;
         GSocketAddress *remote_addr;
@@ -83,7 +83,7 @@ disconnect_internal (SoupServerConnection *conn)
         g_signal_handlers_disconnect_by_data (priv->conn, conn);
         g_clear_object (&priv->conn);
 
-        g_clear_pointer (&priv->io_data, soup_server_message_io_data_free);
+        g_clear_pointer (&priv->io_data, soup_server_message_io_destroy);
 }
 
 static void
@@ -95,7 +95,7 @@ soup_server_connection_finalize (GObject *object)
         if (priv->conn)
                 disconnect_internal (conn);
 
-        g_clear_pointer (&priv->io_data, soup_server_message_io_data_free);
+        g_clear_pointer (&priv->io_data, soup_server_message_io_destroy);
 
         g_clear_object (&priv->iostream);
 
@@ -125,7 +125,7 @@ soup_server_connection_set_property (GObject      *object,
                 priv->conn = g_value_dup_object (value);
                 if (priv->conn) {
                         priv->iostream = soup_io_stream_new (priv->conn, FALSE);
-                        priv->io_data = soup_server_message_io_http1_new (priv->iostream);
+                        priv->io_data = soup_server_message_io_http1_new (conn);
                 }
                 break;
         case PROP_LOCAL_ADDRESS:
@@ -337,7 +337,7 @@ soup_server_connection_new_for_connection (GIOStream      *connection,
                              NULL);
 }
 
-SoupServerMessageIOData *
+SoupServerMessageIO *
 soup_server_connection_get_io_data (SoupServerConnection *conn)
 {
         SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
@@ -351,7 +351,7 @@ soup_server_connection_create_io_data (SoupServerConnection *conn)
         SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
 
         g_assert (!priv->io_data);
-        priv->io_data = soup_server_message_io_http1_new (priv->iostream);
+        priv->io_data = soup_server_message_io_http1_new (conn);
 }
 
 static gboolean

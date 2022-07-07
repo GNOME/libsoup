@@ -20,11 +20,10 @@ void               soup_server_message_set_auth            (SoupServerMessage   
                                                             SoupAuthDomain           *domain,
                                                             char                     *user);
 gboolean           soup_server_message_is_keepalive        (SoupServerMessage        *msg);
-GIOStream         *soup_server_message_io_steal            (SoupServerMessage        *msg);
-void               soup_server_message_io_pause            (SoupServerMessage        *msg);
-void               soup_server_message_io_unpause          (SoupServerMessage        *msg);
+void               soup_server_message_pause               (SoupServerMessage        *msg);
+void               soup_server_message_unpause             (SoupServerMessage        *msg);
 gboolean           soup_server_message_is_io_paused        (SoupServerMessage        *msg);
-void               soup_server_message_io_finished         (SoupServerMessage        *msg);
+void               soup_server_message_finish              (SoupServerMessage        *msg);
 void               soup_server_message_cleanup_response    (SoupServerMessage        *msg);
 void               soup_server_message_wrote_informational (SoupServerMessage        *msg);
 void               soup_server_message_wrote_headers       (SoupServerMessage        *msg);
@@ -44,14 +43,7 @@ void               soup_server_message_read_request        (SoupServerMessage   
 void               soup_server_message_set_options_ping    (SoupServerMessage        *msg,
                                                             gboolean                  is_options_ping);
 
-typedef struct _SoupServerMessageIOData SoupServerMessageIOData;
-void                     soup_server_message_io_data_free  (SoupServerMessageIOData  *io);
-void                     soup_server_message_set_io_data   (SoupServerMessage        *msg,
-                                                            SoupServerMessageIOData  *io);
-SoupServerMessageIOData *soup_server_message_get_io_data   (SoupServerMessage        *msg);
-void                    soup_server_message_io_read_request(SoupServerMessageIOData  *io,
-                                                            SoupServerMessage        *msg,
-                                                            SoupMessageIOCompletionFn completion_cb,
-                                                            gpointer                  user_data);
+SoupServerMessageIO *soup_server_message_get_io_data       (SoupServerMessage        *msg);
+
 
 #endif /* __SOUP_SERVER_MESSAGE_PRIVATE_H__ */
