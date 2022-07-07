@@ -1,8 +1,9 @@
 [library]
+namespace = "Soup"
 version = "@VERSION@"
 browse_url = "https://gitlab.gnome.org/GNOME/libsoup"
 repository_url = "https://gitlab.gnome.org/GNOME/libsoup.git"
-docs_url = "https://gnome.pages.gitlab.gnome.org/libsoup/libsoup-3.0/"
+docs_url = "https://libsoup.org/libsoup-3.0/"
 website_url = "https://libsoup.org/"
 authors = "Dan Winship, Claudio Saavedra, Patrick Griffis, and Carlos Garcia Campos"
 license = "LGPL-2.0-or-later"
