@@ -25,6 +25,7 @@ enum {
         CONNECTED,
         DISCONNECTED,
         ACCEPT_CERTIFICATE,
+        REQUEST_STARTED,
         LAST_SIGNAL
 };
 
@@ -56,6 +57,7 @@ typedef struct {
         GSocket *socket;
         GIOStream *conn;
         GIOStream *iostream;
+        SoupServerMessage *initial_msg;
         SoupServerMessageIO *io_data;
 
         GSocketAddress *local_addr;
@@ -67,6 +69,13 @@ typedef struct {
 } SoupServerConnectionPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupServerConnection, soup_server_connection, G_TYPE_OBJECT)
+
+static void
+request_started_cb (SoupServerMessage    *msg,
+                    SoupServerConnection *conn)
+{
+        g_signal_emit (conn, signals[REQUEST_STARTED], 0, msg);
+}
 
 static void
 soup_server_connection_init (SoupServerConnection *conn)
@@ -124,10 +133,8 @@ soup_server_connection_set_property (GObject      *object,
                 break;
         case PROP_CONNECTION:
                 priv->conn = g_value_dup_object (value);
-                if (priv->conn) {
+                if (priv->conn)
                         priv->iostream = soup_io_stream_new (priv->conn, FALSE);
-                        priv->io_data = soup_server_message_io_http1_new (conn);
-                }
                 break;
         case PROP_LOCAL_ADDRESS:
                 priv->local_addr = g_value_dup_object (value);
@@ -236,6 +243,15 @@ soup_server_connection_class_init (SoupServerConnectionClass *conn_class)
                               G_TYPE_BOOLEAN, 2,
                               G_TYPE_TLS_CERTIFICATE,
                               G_TYPE_TLS_CERTIFICATE_FLAGS);
+        signals[REQUEST_STARTED] =
+                g_signal_new ("request-started",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 1,
+                              SOUP_TYPE_SERVER_MESSAGE);
 
         /* properties */
         properties[PROP_SOCKET] =
@@ -361,7 +377,10 @@ soup_server_connection_create_io_data (SoupServerConnection *conn)
         SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
 
         g_assert (!priv->io_data);
-        priv->io_data = soup_server_message_io_http1_new (conn);
+        priv->io_data = soup_server_message_io_http1_new (conn,
+                                                          g_steal_pointer (&priv->initial_msg),
+                                                          (SoupMessageIOStartedFn)request_started_cb,
+                                                          conn);
 }
 
 static gboolean
@@ -413,11 +432,26 @@ soup_server_connection_setup_async (SoupServerConnection *conn,
 
         task = g_task_new (conn, cancellable, callback, user_data);
         if (priv->conn || !priv->socket) {
+                SoupServerMessage *msg;
+
+                msg = soup_server_message_new (conn);
+                g_signal_emit (conn, signals[REQUEST_STARTED], 0, msg);
+                priv->io_data = soup_server_message_io_http1_new (conn, msg,
+                                                                  (SoupMessageIOStartedFn)request_started_cb,
+                                                                  conn);
+                g_signal_emit (conn, signals[CONNECTED], 0);
                 g_task_return_boolean (task, TRUE);
                 g_object_unref (task);
 
                 return;
         }
+
+        /* We need to create the first message earlier here because SoupServerMessage is used
+         * to accept the TLS certificate.
+         */
+        g_assert (!priv->initial_msg);
+        priv->initial_msg = soup_server_message_new (conn);
+        g_signal_emit (conn, signals[REQUEST_STARTED], 0, priv->initial_msg);
 
         connection = (GIOStream *)g_socket_connection_factory_create_connection (priv->socket);
         g_socket_set_option (priv->socket, IPPROTO_TCP, TCP_NODELAY, TRUE, NULL);

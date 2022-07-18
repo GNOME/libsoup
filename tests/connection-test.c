@@ -58,9 +58,9 @@ timeout_socket (GObject              *pollable,
 }
 
 static void
-timeout_request_started (SoupServer        *server,
-			 SoupServerMessage *msg,
-			 gpointer           user_data)
+timeout_request_finished (SoupServer        *server,
+                          SoupServerMessage *msg,
+                          gpointer           user_data)
 {
 	SoupServerConnection *conn;
 	GMainContext *context = g_main_context_get_thread_default ();
@@ -68,7 +68,7 @@ timeout_request_started (SoupServer        *server,
 	GInputStream *istream;
 	GSource *source;
 
-	g_signal_handlers_disconnect_by_func (server, timeout_request_started, NULL);
+	g_signal_handlers_disconnect_by_func (server, timeout_request_finished, NULL);
 
 	conn = soup_server_message_get_connection (msg);
 	iostream = soup_server_connection_get_iostream (conn);
@@ -102,8 +102,8 @@ setup_timeout_persistent (SoupServer           *server,
 	 *   3. Close the socket.
 	 */
 	g_mutex_lock (&server_mutex);
-	g_signal_connect (server, "request-started",
-			  G_CALLBACK (timeout_request_started), NULL);
+	g_signal_connect (server, "request-finished",
+			  G_CALLBACK (timeout_request_finished), NULL);
 }
 
 static void

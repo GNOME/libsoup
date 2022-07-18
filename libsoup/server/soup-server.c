@@ -987,39 +987,65 @@ got_body (SoupServer        *server,
 }
 
 static void
-client_disconnected (SoupServer        *server,
-		     SoupServerMessage *msg)
+message_connected (SoupServer        *server,
+                   SoupServerMessage *msg)
+{
+        soup_server_message_read_request (msg,
+                                          (SoupMessageIOCompletionFn)request_finished,
+                                          server);
+}
+
+static void
+client_disconnected (SoupServer           *server,
+		     SoupServerConnection *conn)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
-	priv->clients = g_slist_remove (priv->clients, msg);
+	priv->clients = g_slist_remove (priv->clients, conn);
+        g_object_unref (conn);
 }
 
-typedef struct {
-        SoupServer *server;
-        SoupServerMessage *msg;
-} SetupConnectionData;
+static void
+request_started_cb (SoupServer           *server,
+                    SoupServerMessage    *msg,
+                    SoupServerConnection *conn)
+{
+        SoupServerPrivate *priv = soup_server_get_instance_private (server);
+
+        g_signal_connect_object (msg, "got-headers",
+                                 G_CALLBACK (got_headers),
+                                 server, G_CONNECT_SWAPPED);
+        g_signal_connect_object (msg, "got-body",
+                                 G_CALLBACK (got_body),
+                                 server, G_CONNECT_SWAPPED);
+
+        if (priv->server_header) {
+                SoupMessageHeaders *headers;
+
+                headers = soup_server_message_get_response_headers (msg);
+                soup_message_headers_append_common (headers, SOUP_HEADER_SERVER,
+                                                    priv->server_header);
+        }
+
+        g_signal_emit (server, signals[REQUEST_STARTED], 0, msg);
+
+        if (soup_server_message_get_io_data (msg)) {
+                message_connected (server, msg);
+                return;
+        }
+
+        g_signal_connect_object (msg, "connected",
+                                 G_CALLBACK (message_connected),
+                                 server, G_CONNECT_SWAPPED);
+}
 
 static void
 connection_setup_ready (SoupServerConnection *conn,
                         GAsyncResult         *result,
-                        SetupConnectionData  *data)
+                        gpointer              user_data)
 {
-        SoupServerPrivate *priv = soup_server_get_instance_private (data->server);
-
-        if (soup_server_connection_setup_finish (conn, result, NULL)) {
-                if (g_slist_find (priv->clients, data->msg)) {
-                        soup_server_message_read_request (data->msg,
-                                                          (SoupMessageIOCompletionFn)request_finished,
-                                                          data->server);
-                }
-	} else {
+        if (!soup_server_connection_setup_finish (conn, result, NULL))
                 soup_server_connection_disconnect (conn);
-	}
-
-        g_object_unref (data->msg);
-        g_object_unref (data->server);
-        g_free (data);
 }
 
 static void
@@ -1027,42 +1053,16 @@ soup_server_accept_connection (SoupServer           *server,
                                SoupServerConnection *conn)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
-	SoupServerMessage *msg;
-        SetupConnectionData *data;
 
-	msg = soup_server_message_new (conn);
-	g_signal_connect_object (msg, "disconnected",
-				 G_CALLBACK (client_disconnected),
-				 server, G_CONNECT_SWAPPED);
-	g_signal_connect_object (msg, "got-headers",
-				 G_CALLBACK (got_headers),
-				 server, G_CONNECT_SWAPPED);
-	g_signal_connect_object (msg, "got-body",
-				 G_CALLBACK (got_body),
-				 server, G_CONNECT_SWAPPED);
-	if (priv->server_header) {
-		SoupMessageHeaders *headers;
+        priv->clients = g_slist_prepend (priv->clients, g_object_ref (conn));
+        g_signal_connect_object (conn, "disconnected",
+                                 G_CALLBACK (client_disconnected),
+                                 server, G_CONNECT_SWAPPED);
+        g_signal_connect_object (conn, "request-started",
+                                 G_CALLBACK (request_started_cb),
+                                 server, G_CONNECT_SWAPPED);
 
-		headers = soup_server_message_get_response_headers (msg);
-		soup_message_headers_append_common (headers, SOUP_HEADER_SERVER,
-                                                    priv->server_header);
-	}
-
-	priv->clients = g_slist_prepend (priv->clients, msg);
-
-        g_signal_emit (server, signals[REQUEST_STARTED], 0, msg);
-
-        if (soup_server_connection_is_connected (conn)) {
-                soup_server_message_read_request (msg,
-                                                  (SoupMessageIOCompletionFn)request_finished,
-                                                  server);
-                return;
-        }
-
-        data = g_new (SetupConnectionData, 1);
-        data->server = g_object_ref (server);
-        data->msg = g_object_ref (msg);
-        soup_server_connection_setup_async (conn, NULL, (GAsyncReadyCallback)connection_setup_ready, data);
+        soup_server_connection_setup_async (conn, NULL, (GAsyncReadyCallback)connection_setup_ready, NULL);
 }
 
 static void
@@ -1074,10 +1074,8 @@ request_finished (SoupServerMessage      *msg,
 	SoupServerConnection *conn = soup_server_message_get_connection (msg);
 	gboolean failed;
 
-	if (completion == SOUP_MESSAGE_IO_STOLEN) {
-		g_object_unref (msg);
+	if (completion == SOUP_MESSAGE_IO_STOLEN)
 		return;
-	}
 
 	/* Complete the message, assuming it actually really started. */
 	if (soup_server_message_get_method (msg)) {
@@ -1093,18 +1091,10 @@ request_finished (SoupServerMessage      *msg,
 	if (completion == SOUP_MESSAGE_IO_COMPLETE &&
 	    soup_server_connection_is_connected (conn) &&
 	    soup_server_message_is_keepalive (msg) &&
-	    priv->listeners) {
-		g_object_ref (conn);
-		priv->clients = g_slist_remove (priv->clients, msg);
-		g_object_unref (msg);
-
-		soup_server_accept_connection (server, conn);
-		g_object_unref (conn);
+	    priv->listeners)
 		return;
-	}
 
 	soup_server_connection_disconnect (conn);
-	g_object_unref (msg);
 }
 
 /**
@@ -1176,9 +1166,9 @@ soup_server_disconnect (SoupServer *server)
 	priv->listeners = NULL;
 
 	for (iter = clients; iter; iter = iter->next) {
-		SoupServerMessage *msg = iter->data;
+		SoupServerConnection *conn = iter->data;
 
-		soup_server_connection_disconnect (soup_server_message_get_connection (msg));
+		soup_server_connection_disconnect (conn);
 	}
 	g_slist_free (clients);
 

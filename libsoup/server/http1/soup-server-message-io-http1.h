@@ -8,4 +8,7 @@
 #include "soup-server-connection.h"
 #include "soup-server-message-io.h"
 
-SoupServerMessageIO *soup_server_message_io_http1_new (SoupServerConnection *conn);
+SoupServerMessageIO *soup_server_message_io_http1_new (SoupServerConnection  *conn,
+                                                       SoupServerMessage     *msg,
+                                                       SoupMessageIOStartedFn started_cb,
+                                                       gpointer               user_data);

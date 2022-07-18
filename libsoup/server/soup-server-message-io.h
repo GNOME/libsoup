@@ -31,6 +31,9 @@ struct _SoupServerMessageIO {
         const SoupServerMessageIOFuncs *funcs;
 };
 
+typedef void (* SoupMessageIOStartedFn) (SoupServerMessage *msg,
+                                         gpointer           user_data);
+
 void       soup_server_message_io_destroy      (SoupServerMessageIO       *io);
 void       soup_server_message_io_finished     (SoupServerMessageIO       *io,
                                                 SoupServerMessage         *msg);
