@@ -83,6 +83,7 @@ enum {
         GOT_CHUNK,
         GOT_BODY,
 
+        CONNECTED,
         DISCONNECTED,
         FINISHED,
 
@@ -318,6 +319,20 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
                               NULL, NULL,
                               NULL,
                               G_TYPE_NONE, 0);
+        /**
+         * SoupServerMessage::connected:
+         * @msg: the message
+         *
+         * Emitted when the @msg's socket is connected and the TLS handshake completed.
+         */
+        signals[CONNECTED] =
+                g_signal_new ("connected",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 0);
 
         /**
          * SoupServerMessage::disconnected:
@@ -394,6 +409,14 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
 }
 
 static void
+connection_connected (SoupServerMessage *msg)
+{
+        g_assert (!msg->io_data);
+        msg->io_data = soup_server_connection_get_io_data (msg->conn);
+        g_signal_emit (msg, signals[CONNECTED], 0);
+}
+
+static void
 connection_disconnected (SoupServerMessage *msg)
 {
         msg->io_data = NULL;
@@ -444,7 +467,11 @@ soup_server_message_new (SoupServerConnection *conn)
 
         msg = g_object_new (SOUP_TYPE_SERVER_MESSAGE, NULL);
         msg->conn = g_object_ref (conn);
+        msg->io_data = soup_server_connection_get_io_data (msg->conn);
 
+        g_signal_connect_object (conn, "connected",
+                                 G_CALLBACK (connection_connected),
+                                 msg, G_CONNECT_SWAPPED);
         g_signal_connect_object (conn, "disconnected",
                                  G_CALLBACK (connection_disconnected),
                                  msg, G_CONNECT_SWAPPED);
@@ -529,7 +556,6 @@ soup_server_message_read_request (SoupServerMessage        *msg,
                                   SoupMessageIOCompletionFn completion_cb,
                                   gpointer                  user_data)
 {
-        msg->io_data = soup_server_connection_get_io_data (msg->conn);
         soup_server_message_io_read_request (msg->io_data, msg, completion_cb, user_data);
 }
 

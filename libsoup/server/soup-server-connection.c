@@ -22,6 +22,7 @@
 #include "soup-server-message-io-http1.h"
 
 enum {
+        CONNECTED,
         DISCONNECTED,
         ACCEPT_CERTIFICATE,
         LAST_SIGNAL
@@ -200,6 +201,15 @@ soup_server_connection_class_init (SoupServerConnectionClass *conn_class)
         object_class->finalize = soup_server_connection_finalize;
         object_class->set_property = soup_server_connection_set_property;
         object_class->get_property = soup_server_connection_get_property;
+
+        signals[CONNECTED] =
+                g_signal_new ("connected",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 0);
 
         /**
          * SoupServerConnection::disconnected:
@@ -469,8 +479,10 @@ soup_server_connection_setup_finish (SoupServerConnection *conn,
 {
         GTask *task = G_TASK (result);
 
-        if (!g_task_had_error (task))
+        if (!g_task_had_error (task)) {
                 soup_server_connection_create_io_data (conn);
+                g_signal_emit (conn, signals[CONNECTED], 0);
+        }
 
         return g_task_propagate_boolean (task, error);
 }
