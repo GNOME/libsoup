@@ -372,7 +372,7 @@ soup_server_connection_get_io_data (SoupServerConnection *conn)
 }
 
 static void
-soup_server_connection_create_io_data (SoupServerConnection *conn)
+soup_server_connection_connected (SoupServerConnection *conn)
 {
         SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
 
@@ -381,6 +381,7 @@ soup_server_connection_create_io_data (SoupServerConnection *conn)
                                                           g_steal_pointer (&priv->initial_msg),
                                                           (SoupMessageIOStartedFn)request_started_cb,
                                                           conn);
+        g_signal_emit (conn, signals[CONNECTED], 0);
 }
 
 static gboolean
@@ -402,49 +403,25 @@ tls_connection_peer_certificate_changed (SoupServerConnection *conn)
 }
 
 static void
-tls_connection_handshake_ready_cb (GTlsConnection *conn,
-                                   GAsyncResult   *result,
-                                   GTask          *task)
+tls_connection_handshake_ready_cb (GTlsConnection       *tls_conn,
+                                   GAsyncResult         *result,
+                                   SoupServerConnection *conn)
 {
-        GError *error = NULL;
-
-        if (g_tls_connection_handshake_finish (conn, result, &error))
-                g_task_return_boolean (task, TRUE);
+        if (g_tls_connection_handshake_finish (tls_conn, result, NULL))
+                soup_server_connection_connected (conn);
         else
-                g_task_return_error (task, error);
-        g_object_unref (task);
+                soup_server_connection_disconnect (conn);
 }
 
 void
-soup_server_connection_setup_async (SoupServerConnection *conn,
-                                    GCancellable         *cancellable,
-                                    GAsyncReadyCallback   callback,
-                                    gpointer              user_data)
+soup_server_connection_accepted (SoupServerConnection *conn)
 {
-        GTask *task;
         SoupServerConnectionPrivate *priv;
         GIOStream *connection;
 
         g_return_if_fail (SOUP_IS_SERVER_CONNECTION (conn));
-        g_return_if_fail (!cancellable || G_IS_CANCELLABLE (cancellable));
 
         priv = soup_server_connection_get_instance_private (conn);
-
-        task = g_task_new (conn, cancellable, callback, user_data);
-        if (priv->conn || !priv->socket) {
-                SoupServerMessage *msg;
-
-                msg = soup_server_message_new (conn);
-                g_signal_emit (conn, signals[REQUEST_STARTED], 0, msg);
-                priv->io_data = soup_server_message_io_http1_new (conn, msg,
-                                                                  (SoupMessageIOStartedFn)request_started_cb,
-                                                                  conn);
-                g_signal_emit (conn, signals[CONNECTED], 0);
-                g_task_return_boolean (task, TRUE);
-                g_object_unref (task);
-
-                return;
-        }
 
         /* We need to create the first message earlier here because SoupServerMessage is used
          * to accept the TLS certificate.
@@ -453,12 +430,16 @@ soup_server_connection_setup_async (SoupServerConnection *conn,
         priv->initial_msg = soup_server_message_new (conn);
         g_signal_emit (conn, signals[REQUEST_STARTED], 0, priv->initial_msg);
 
+        if (priv->conn || !priv->socket) {
+                soup_server_connection_connected (conn);
+                return;
+        }
+
         connection = (GIOStream *)g_socket_connection_factory_create_connection (priv->socket);
         g_socket_set_option (priv->socket, IPPROTO_TCP, TCP_NODELAY, TRUE, NULL);
 
         if (priv->tls_certificate) {
                 GPtrArray *advertised_protocols;
-                GError *error = NULL;
 
                 advertised_protocols = g_ptr_array_sized_new (3);
                 g_ptr_array_add (advertised_protocols, "http/1.1");
@@ -466,7 +447,7 @@ soup_server_connection_setup_async (SoupServerConnection *conn,
                 g_ptr_array_add (advertised_protocols, NULL);
 
                 priv->conn = g_initable_new (g_tls_backend_get_server_connection_type (g_tls_backend_get_default ()),
-                                             cancellable, &error,
+                                             NULL, NULL,
                                              "base-io-stream", connection,
                                              "certificate", priv->tls_certificate,
                                              "database", priv->tls_database,
@@ -477,9 +458,7 @@ soup_server_connection_setup_async (SoupServerConnection *conn,
                 g_ptr_array_unref (advertised_protocols);
                 g_object_unref (connection);
                 if (!priv->conn) {
-                        g_task_return_error (task, error);
-                        g_object_unref (task);
-
+                        soup_server_connection_disconnect (conn);
                         return;
                 }
 
@@ -495,30 +474,13 @@ soup_server_connection_setup_async (SoupServerConnection *conn,
                 g_tls_connection_handshake_async (G_TLS_CONNECTION (priv->conn),
                                                   G_PRIORITY_DEFAULT, NULL,
                                                   (GAsyncReadyCallback)tls_connection_handshake_ready_cb,
-                                                  task);
+                                                  conn);
                 return;
         }
 
         priv->conn = connection;
         priv->iostream = soup_io_stream_new (priv->conn, FALSE);
-
-        g_task_return_boolean (task, TRUE);
-        g_object_unref (task);
-}
-
-gboolean
-soup_server_connection_setup_finish (SoupServerConnection *conn,
-                                     GAsyncResult         *result,
-                                     GError              **error)
-{
-        GTask *task = G_TASK (result);
-
-        if (!g_task_had_error (task)) {
-                soup_server_connection_create_io_data (conn);
-                g_signal_emit (conn, signals[CONNECTED], 0);
-        }
-
-        return g_task_propagate_boolean (task, error);
+        soup_server_connection_connected (conn);
 }
 
 GSocket *

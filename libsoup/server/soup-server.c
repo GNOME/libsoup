@@ -1040,15 +1040,6 @@ request_started_cb (SoupServer           *server,
 }
 
 static void
-connection_setup_ready (SoupServerConnection *conn,
-                        GAsyncResult         *result,
-                        gpointer              user_data)
-{
-        if (!soup_server_connection_setup_finish (conn, result, NULL))
-                soup_server_connection_disconnect (conn);
-}
-
-static void
 soup_server_accept_connection (SoupServer           *server,
                                SoupServerConnection *conn)
 {
@@ -1062,7 +1053,7 @@ soup_server_accept_connection (SoupServer           *server,
                                  G_CALLBACK (request_started_cb),
                                  server, G_CONNECT_SWAPPED);
 
-        soup_server_connection_setup_async (conn, NULL, (GAsyncReadyCallback)connection_setup_ready, NULL);
+        soup_server_connection_accepted (conn);
 }
 
 static void
