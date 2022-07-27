@@ -81,6 +81,12 @@ SOUP_AVAILABLE_IN_ALL
 gboolean            soup_server_message_is_options_ping       (SoupServerMessage *msg);
 
 SOUP_AVAILABLE_IN_3_2
+void                 soup_server_message_pause                (SoupServerMessage *msg);
+
+SOUP_AVAILABLE_IN_3_2
+void                 soup_server_message_unpause              (SoupServerMessage *msg);
+
+SOUP_AVAILABLE_IN_3_2
 GTlsCertificate     *soup_server_message_get_tls_peer_certificate          (SoupServerMessage *msg);
 
 SOUP_AVAILABLE_IN_3_2

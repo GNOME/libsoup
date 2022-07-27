@@ -150,10 +150,10 @@ void            soup_server_remove_auth_domain (SoupServer         *server,
 					        SoupAuthDomain     *auth_domain);
 
 /* I/O */
-SOUP_AVAILABLE_IN_ALL
+SOUP_DEPRECATED_IN_3_2_FOR(soup_server_message_pause)
 void            soup_server_pause_message   (SoupServer        *server,
 					     SoupServerMessage *msg);
-SOUP_AVAILABLE_IN_ALL
+SOUP_DEPRECATED_IN_3_2_FOR(soup_server_message_unpause)
 void            soup_server_unpause_message (SoupServer        *server,
 					     SoupServerMessage *msg);
 

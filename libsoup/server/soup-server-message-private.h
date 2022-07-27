@@ -20,8 +20,6 @@ void               soup_server_message_set_auth            (SoupServerMessage   
                                                             SoupAuthDomain           *domain,
                                                             char                     *user);
 gboolean           soup_server_message_is_keepalive        (SoupServerMessage        *msg);
-void               soup_server_message_pause               (SoupServerMessage        *msg);
-void               soup_server_message_unpause             (SoupServerMessage        *msg);
 gboolean           soup_server_message_is_io_paused        (SoupServerMessage        *msg);
 void               soup_server_message_finish              (SoupServerMessage        *msg);
 void               soup_server_message_cleanup_response    (SoupServerMessage        *msg);

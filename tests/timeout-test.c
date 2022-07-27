@@ -179,9 +179,7 @@ do_sync_timeout_tests (gconstpointer data)
 static gboolean
 timeout_finish_message (gpointer msg)
 {
-	SoupServer *server = g_object_get_data (G_OBJECT (msg), "server");
-
-	soup_server_unpause_message (server, msg);
+	soup_server_message_unpause (msg);
 	return FALSE;
 }
 
@@ -199,8 +197,7 @@ server_handler (SoupServer        *server,
 
 	if (!strcmp (path, "/slow")) {
                 GSource *timeout;
-		soup_server_pause_message (server, msg);
-		g_object_set_data (G_OBJECT (msg), "server", server);
+		soup_server_message_pause (msg);
 		timeout = soup_add_timeout (g_main_context_get_thread_default (),
                                             4000, timeout_finish_message, msg);
                 g_source_unref (timeout);

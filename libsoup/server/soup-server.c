@@ -84,7 +84,7 @@
  * %SOUP_STATUS_BAD_REQUEST accordingly.
  *
  * If the message still has no status code at this point (and has not
- * been paused with [method@Server.pause_message]), then it will be
+ * been paused with [method@ServerMessage.pause]), then it will be
  * given a status of %SOUP_STATUS_INTERNAL_SERVER_ERROR (because at
  * least one handler ran, but returned without assigning a status).
  *
@@ -1633,16 +1633,16 @@ get_or_create_handler (SoupServer *server, const char *exact_path)
  *
  * If the callback cannot fully fill in the response before returning
  * (eg, if it needs to wait for information from a database, or
- * another network server), it should call [method@Server.pause_message]
+ * another network server), it should call [method@ServerMessage.pause]
  * to tell @server to not send the response right away. When the
- * response is ready, call [method@Server.unpause_message] to cause it
+ * response is ready, call [method@ServerMessage.unpause] to cause it
  * to be sent.
  *
  * To send the response body a bit at a time using "chunked" encoding, first
  * call [method@MessageHeaders.set_encoding] to set %SOUP_ENCODING_CHUNKED on
  * the response-headers. Then call [method@MessageBody.append] (or
  * [method@MessageBody.append_bytes])) to append each chunk as it becomes ready,
- * and [method@Server.unpause_message] to make sure it's running. (The server
+ * and [method@ServerMessage.unpause] to make sure it's running. (The server
  * will automatically pause the message if it is using chunked encoding but no
  * more chunks are available.) When you are done, call
  * [method@MessageBody.complete] to indicate that no more chunks are coming.
@@ -1885,15 +1885,15 @@ soup_server_remove_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
  * #SoupServer and are currently doing I/O, such as those passed into a
  * [callback@ServerCallback] or emitted in a [signal@Server::request-read]
  * signal.
+ *
+ * Deprecated: 3.2: Use soup_server_message_pause() instead.
  **/
 void
 soup_server_pause_message (SoupServer        *server,
 			   SoupServerMessage *msg)
 {
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
 
-        /* FIXME: make this public and deprecate soup_server_pause_message */
 	soup_server_message_pause (msg);
 }
 
@@ -1913,15 +1913,15 @@ soup_server_pause_message (SoupServer        *server,
  * #SoupServer and are currently doing I/O, such as those passed into a
  * [callback@ServerCallback] or emitted in a [signal@Server::request-read]
  * signal.
+ *
+ * Deprecated: 3.2: Use soup_server_message_unpause() instead.
  **/
 void
 soup_server_unpause_message (SoupServer        *server,
 			     SoupServerMessage *msg)
 {
 	g_return_if_fail (SOUP_IS_SERVER (server));
-	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
 
-        /* FIXME: make this public and deprecate soup_server_unpause_message */
 	soup_server_message_unpause (msg);
 }
 

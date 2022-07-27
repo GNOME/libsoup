@@ -190,7 +190,7 @@ tunnel_connected_cb (GObject      *object,
 					          SOUP_MEMORY_COPY,
 					          error->message, strlen (error->message));
 		g_error_free (error);
-		soup_server_unpause_message (tunnel->self, tunnel->msg);
+		soup_server_message_unpause (tunnel->msg);
 		tunnel_close (tunnel);
 		return;
 	}
@@ -199,7 +199,7 @@ tunnel_connected_cb (GObject      *object,
 	tunnel->server.ostream = g_io_stream_get_output_stream (tunnel->server.iostream);
 
 	soup_server_message_set_status (tunnel->msg, SOUP_STATUS_OK, NULL);
-	soup_server_unpause_message (tunnel->self, tunnel->msg);
+	soup_server_message_unpause (tunnel->msg);
 	g_signal_connect (tunnel->msg, "finished",
 			  G_CALLBACK (start_tunnel), tunnel);
 }
@@ -211,7 +211,7 @@ try_tunnel (SoupServer *server, SoupServerMessage *msg)
 	GUri *dest_uri;
 	GSocketClient *sclient;
 
-	soup_server_pause_message (server, msg);
+	soup_server_message_pause (msg);
 
 	tunnel = g_new0 (Tunnel, 1);
 	tunnel->self = g_object_ref (server);
@@ -241,7 +241,7 @@ send_headers (SoupMessage *from, SoupServerMessage *to)
 	soup_message_headers_foreach (soup_message_get_response_headers (from), copy_header,
 				      soup_server_message_get_response_headers (to));
 	soup_message_headers_remove (soup_server_message_get_response_headers (to), "Content-Length");
-	soup_server_unpause_message (server, to);
+	soup_server_message_unpause (to);
 }
 
 static void
@@ -262,7 +262,7 @@ stream_read (GObject *source, GAsyncResult *result, gpointer user_data)
         if (error) {
                 g_print ("[%p]  failed to read body: %s\n\n", server_msg, error->message);
                 soup_server_message_set_status (server_msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
-                soup_server_unpause_message (server, server_msg);
+                soup_server_message_unpause (server_msg);
                 g_error_free (error);
                 return;
         }
@@ -274,7 +274,7 @@ stream_read (GObject *source, GAsyncResult *result, gpointer user_data)
                 g_signal_handlers_disconnect_by_func (server_msg, client_msg_failed, client_cancellable);
 
                 soup_message_body_complete (soup_server_message_get_response_body (server_msg));
-                soup_server_unpause_message (server, server_msg);
+                soup_server_message_unpause (server_msg);
                 g_object_unref (server_msg);
                 return;
         }
@@ -284,7 +284,7 @@ stream_read (GObject *source, GAsyncResult *result, gpointer user_data)
 
         SoupMessageBody *body = soup_server_message_get_response_body (server_msg);
         soup_message_body_append_bytes (body, bytes);
-        soup_server_unpause_message (server, server_msg);
+        soup_server_message_unpause (server_msg);
 
         g_bytes_unref (bytes);
 
@@ -303,7 +303,7 @@ client_message_sent (GObject *source, GAsyncResult *result, gpointer user_data)
         if (error) {
                 g_print ("[%p]  failed to read body: %s\n\n", server_msg, error->message);
                 soup_server_message_set_status (server_msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
-                soup_server_unpause_message (server, server_msg);
+                soup_server_message_unpause (server_msg);
                 g_error_free (error);
                 return;
         }
@@ -365,7 +365,7 @@ server_callback (SoupServer *server, SoupServerMessage *msg,
 
         // Keep the server message alive until the client one is finished
 	g_object_ref (msg);
-	soup_server_pause_message (server, msg);
+	soup_server_message_pause (msg);
 }
 
 static gboolean

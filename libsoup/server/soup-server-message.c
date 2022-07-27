@@ -565,17 +565,43 @@ soup_server_message_get_io_data (SoupServerMessage *msg)
         return msg->io_data;
 }
 
+/**
+ * soup_server_message_pause:
+ * @msg: a SoupServerMessage
+ *
+ * Pauses I/O on @msg.
+ *
+ * This can be used when you need to return from the server handler without
+ * having the full response ready yet. Use [method@ServerMessage.unpause] to
+ * resume I/O.
+ *
+ * Since: 3.2
+ */
 void
 soup_server_message_pause (SoupServerMessage *msg)
 {
+        g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
         g_return_if_fail (msg->io_data != NULL);
 
         soup_server_message_io_pause (msg->io_data, msg);
 }
 
+/**
+ * soup_server_message_unpause:
+ * @msg: a SoupServerMessage
+ *
+ * Resumes I/O on @msg.
+ *
+ * Use this to resume after calling [method@ServerMessage.pause], or after
+ * adding a new chunk to a chunked response. I/O won't actually resume until you
+ * return to the main loop.
+ *
+ * Since: 3.2
+ */
 void
 soup_server_message_unpause (SoupServerMessage *msg)
 {
+        g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
         g_return_if_fail (msg->io_data != NULL);
 
         soup_server_message_io_unpause (msg->io_data, msg);

@@ -9,7 +9,6 @@
 static char *base_uri;
 
 typedef struct {
-	SoupServer *server;
 	SoupServerMessage *msg;
 	GSource *timeout;
 } SlowData;
@@ -35,7 +34,7 @@ add_body_chunk (gpointer data)
 	soup_message_body_append (response_body,
 				  SOUP_MEMORY_STATIC, "OK\r\n", 4);
 	soup_message_body_complete (response_body);
-	soup_server_unpause_message (sd->server, sd->msg);
+	soup_server_message_unpause (sd->msg);
 	g_object_unref (sd->msg);
 
 	return FALSE;
@@ -67,10 +66,9 @@ server_callback (SoupServer        *server,
 	soup_message_headers_set_encoding (response_headers,
 					   SOUP_ENCODING_CHUNKED);
 	g_object_ref (msg);
-	soup_server_pause_message (server, msg);
+	soup_server_message_pause (msg);
 
 	sd = g_new (SlowData, 1);
-	sd->server = server;
 	sd->msg = msg;
 	sd->timeout = soup_add_timeout (
 		g_main_context_get_thread_default (),

@@ -770,7 +770,6 @@ do_iostream_accept_test (void)
 }
 
 typedef struct {
-	SoupServer *server;
 	SoupServerMessage *smsg;
 	gboolean handler_called;
 	gboolean paused;
@@ -781,7 +780,7 @@ idle_unpause_message (gpointer user_data)
 {
 	UnhandledServerData *usd = user_data;
 
-	soup_server_unpause_message (usd->server, usd->smsg);
+	soup_server_message_unpause (usd->smsg);
 	return FALSE;
 }
 
@@ -798,9 +797,8 @@ unhandled_server_callback (SoupServer        *server,
 
 	if (soup_message_headers_get_one (soup_server_message_get_request_headers (msg), "X-Test-Server-Pause")) {
 		usd->paused = TRUE;
-		usd->server = server;
 		usd->smsg = msg;
-		soup_server_pause_message (server, msg);
+		soup_server_message_pause (msg);
 		g_idle_add (idle_unpause_message, usd);
 	}
 }
@@ -1237,7 +1235,7 @@ tunnel_connected_cb (GObject      *object,
 						  SOUP_MEMORY_COPY,
 						  error->message, strlen (error->message));
 		g_error_free (error);
-		soup_server_unpause_message (tunnel->self, tunnel->msg);
+		soup_server_message_unpause (tunnel->msg);
 		tunnel_close (tunnel);
 		return;
 	}
@@ -1246,7 +1244,7 @@ tunnel_connected_cb (GObject      *object,
 	tunnel->server.ostream = g_io_stream_get_output_stream (tunnel->server.iostream);
 
 	soup_server_message_set_status (tunnel->msg, SOUP_STATUS_OK, NULL);
-	soup_server_unpause_message (tunnel->self, tunnel->msg);
+	soup_server_message_unpause (tunnel->msg);
 	g_signal_connect (tunnel->msg, "wrote-body",
 			  G_CALLBACK (start_tunnel), tunnel);
 }
@@ -1267,7 +1265,7 @@ proxy_server_callback (SoupServer        *server,
 		return;
 	}
 
-	soup_server_pause_message (server, msg);
+	soup_server_message_pause (msg);
 
 	tunnel = g_new0 (Tunnel, 1);
 	tunnel->self = g_object_ref (server);
