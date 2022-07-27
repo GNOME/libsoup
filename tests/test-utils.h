@@ -47,9 +47,6 @@ void apache_cleanup (void);
 	} G_STMT_END
 #endif
 
-gboolean quart_init    (void);
-void     quart_cleanup (void);
-
 gboolean have_curl (void);
 
 typedef enum {
@@ -74,7 +71,8 @@ typedef enum {
 	SOUP_TEST_SERVER_DEFAULT             = 0,
 	SOUP_TEST_SERVER_IN_THREAD           = (1 << 0),
 	SOUP_TEST_SERVER_NO_DEFAULT_LISTENER = (1 << 1),
-	SOUP_TEST_SERVER_UNIX_SOCKET         = (1 << 2)
+	SOUP_TEST_SERVER_UNIX_SOCKET         = (1 << 2),
+        SOUP_TEST_SERVER_HTTP2               = (1 << 3)
 } SoupTestServerOptions;
 
 SoupServer  *soup_test_server_new            (SoupTestServerOptions  options);

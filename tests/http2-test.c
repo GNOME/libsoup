@@ -20,12 +20,17 @@
 #include "test-utils.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
+#include "soup-server-message-private.h"
 #include "soup-body-input-stream-http2.h"
+
+static GUri *base_uri;
 
 typedef struct {
         SoupSession *session;
-        SoupMessage *msg;
 } Test;
+
+#define LARGE_N_CHARS 24
+#define LARGE_CHARS_REPEAT 1024
 
 static void
 setup_session (Test *test, gconstpointer data)
@@ -42,55 +47,73 @@ teardown_session (Test *test, gconstpointer data)
 static void
 do_basic_async_test (Test *test, gconstpointer data)
 {
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        SoupMessage *msg;
+        GBytes *response;
         GError *error = NULL;
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
 
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+        g_assert_cmpuint (soup_message_get_http_version (msg), ==, SOUP_HTTP_1_1);
+
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
         g_assert_no_error (error);
+        g_assert_cmpuint (soup_message_get_http_version (msg), ==, SOUP_HTTP_2_0);
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Hello world");
 
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
 }
 
 static void
 do_basic_sync_test (Test *test, gconstpointer data)
 {
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        SoupMessage *msg;
+        GBytes *response;
         GError *error = NULL;
 
-        GBytes *response = soup_session_send_and_read (test->session, test->msg, NULL, &error);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+        g_assert_cmpuint (soup_message_get_http_version (msg), ==, SOUP_HTTP_1_1);
 
+        response = soup_session_send_and_read (test->session, msg, NULL, &error);
         g_assert_no_error (error);
+        g_assert_cmpuint (soup_message_get_http_version (msg), ==, SOUP_HTTP_2_0);
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Hello world");
 
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
 }
 
 static void
 do_no_content_async_test (Test *test, gconstpointer data)
 {
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/no-content");
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
         GError *error = NULL;
 
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
+        uri = g_uri_parse_relative (base_uri, "/no-content", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
 
         g_assert_no_error (error);
-        g_assert_cmpuint (soup_message_get_status (test->msg), ==, 204);
+        g_assert_cmpuint (soup_message_get_status (msg), ==, 204);
         g_assert_cmpuint (g_bytes_get_size (response), ==, 0);
 
+        g_uri_unref (uri);
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
 }
 
 static void
 do_large_test (Test *test, gconstpointer data)
 {
         gboolean async = GPOINTER_TO_INT (data);
-        SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        GUri *uri;
+        SoupMessage *msg;
         GBytes *response;
         GError *error = NULL;
+
+        uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
 
         /* This is both large and read in chunks */
         if (async)
@@ -99,9 +122,9 @@ do_large_test (Test *test, gconstpointer data)
                 response = soup_session_send_and_read (test->session, msg, NULL, &error);
 
         g_assert_no_error (error);
-        /* Size hardcoded to match http2-server.py's response */
-        g_assert_cmpuint (g_bytes_get_size (response), ==, (1024 * 24) + 1);
+        g_assert_cmpuint (g_bytes_get_size (response), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
 
+        g_uri_unref (uri);
         g_bytes_unref (response);
         g_object_unref (msg);
 }
@@ -144,15 +167,18 @@ static void
 do_multi_message_async_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context = g_main_context_ref_thread_default ();
-
-        SoupMessage *msg1 = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/echo_query?body%201");
-        soup_message_set_http_version (msg1, SOUP_HTTP_2_0);
-
-        SoupMessage *msg2 = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/echo_query?body%202");
-        soup_message_set_http_version (msg2, SOUP_HTTP_2_0);
-
+        GUri *uri1, *uri2;
+        SoupMessage *msg1, *msg2;
         GBytes *response1 = NULL;
         GBytes *response2 = NULL;
+
+        uri1 = g_uri_parse_relative (base_uri, "echo_query?body%201", SOUP_HTTP_URI_FLAGS, NULL);
+        msg1 = soup_message_new_from_uri (SOUP_METHOD_GET, uri1);
+        soup_message_set_http_version (msg1, SOUP_HTTP_2_0);
+
+        uri2 = g_uri_parse_relative (base_uri, "echo_query?body%202", SOUP_HTTP_URI_FLAGS, NULL);
+        msg2 = soup_message_new_from_uri (SOUP_METHOD_GET, uri2);
+        soup_message_set_http_version (msg2, SOUP_HTTP_2_0);
         soup_session_send_async (test->session, msg1, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response1);
         soup_session_send_async (test->session, msg2, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response2);
 
@@ -173,6 +199,8 @@ do_multi_message_async_test (Test *test, gconstpointer data)
         g_bytes_unref (response2);
         g_object_unref (msg1);
         g_object_unref (msg2);
+        g_uri_unref (uri1);
+        g_uri_unref (uri2);
         g_main_context_unref (async_context);
 }
 
@@ -208,18 +236,20 @@ on_send_and_read_complete (SoupSession  *session,
 static void
 do_cancellation_test (Test *test, gconstpointer data)
 {
+        GUri *uri;
         SoupMessage *msg;
         GMainContext *async_context = g_main_context_ref_thread_default ();
         GCancellable *cancellable = g_cancellable_new ();
         gboolean done = FALSE;
 
-        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
         soup_session_send_and_read_async (test->session, msg, G_PRIORITY_DEFAULT, cancellable,
                                           (GAsyncReadyCallback)on_send_and_read_cancelled_complete, &done);
 
         /* Just iterate until a partial read is happening */
-        for (guint i = 100000; i; i--)
-                g_main_context_iteration (async_context, FALSE);
+        for (guint i = 10; i; i--)
+                g_main_context_iteration (async_context, TRUE);
 
         /* Then cancel everything */
         g_cancellable_cancel (cancellable);
@@ -230,13 +260,14 @@ do_cancellation_test (Test *test, gconstpointer data)
         g_object_unref (msg);
 
         done = FALSE;
-        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/large");
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
         soup_session_send_and_read_async (test->session, msg, G_PRIORITY_DEFAULT, NULL,
                                           (GAsyncReadyCallback)on_send_and_read_complete, &done);
 
         while (!done)
                 g_main_context_iteration (async_context, FALSE);
 
+        g_uri_unref (uri);
         g_object_unref (msg);
         g_object_unref (cancellable);
         g_main_context_unref (async_context);
@@ -258,7 +289,7 @@ do_one_cancel_after_send_request_test (SoupSession *session,
         if (cancelled_by_session)
                 flags |= SOUP_TEST_REQUEST_CANCEL_BY_SESSION;
 
-        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
         cancellable = g_cancellable_new ();
         istream = soup_test_request_send (session, msg, cancellable, flags, &error);
         g_assert_no_error (error);
@@ -307,13 +338,17 @@ do_cancellation_after_send_test (Test *test, gconstpointer data)
 static void
 do_post_sync_test (Test *test, gconstpointer data)
 {
+        GUri *uri;
+        SoupMessage *msg;
+        GInputStream *response;
         GBytes *bytes = g_bytes_new_static ("body 1", sizeof ("body 1"));
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
-
         GError *error = NULL;
-        GInputStream *response = soup_session_send (test->session, test->msg, NULL, &error);
 
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
+
+        response = soup_session_send (test->session, msg, NULL, &error);
         g_assert_no_error (error);
         g_assert_nonnull (response);
 
@@ -323,27 +358,31 @@ do_post_sync_test (Test *test, gconstpointer data)
         g_bytes_unref (response_bytes);
         g_object_unref (response);
         g_bytes_unref (bytes);
-        g_object_unref (test->msg);
-
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
 do_post_large_sync_test (Test *test, gconstpointer data)
 {
-        guint large_size = 1000000;
+        GUri *uri;
+        SoupMessage *msg;
+        GInputStream *response;
+        guint large_size = 10000;
         char *large_data;
         unsigned int i;
+        GError *error = NULL;
 
         large_data = g_malloc (large_size);
         for (i = 0; i < large_size; i++)
                 large_data[i] = i & 0xFF;
         GBytes *bytes = g_bytes_new_take (large_data, large_size);
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
 
-        GError *error = NULL;
-        GInputStream *response = soup_session_send (test->session, test->msg, NULL, &error);
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
 
+        response = soup_session_send (test->session, msg, NULL, &error);
         g_assert_no_error (error);
         g_assert_nonnull (response);
 
@@ -353,24 +392,27 @@ do_post_large_sync_test (Test *test, gconstpointer data)
         g_bytes_unref (response_bytes);
         g_object_unref (response);
         g_bytes_unref (bytes);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
 do_post_async_test (Test *test, gconstpointer data)
 {
-        GMainContext *async_context = g_main_context_ref_thread_default ();
-
-        GBytes *bytes = g_bytes_new_static ("body 1", sizeof ("body 1"));
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
-
+        GUri *uri;
+        SoupMessage *msg;
         GBytes *response = NULL;
-        soup_session_send_async (test->session, test->msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        GMainContext *async_context = g_main_context_ref_thread_default ();
+        GBytes *bytes = g_bytes_new_static ("body 1", sizeof ("body 1"));
 
-        while (!response) {
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
+
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+
+        while (!response)
                 g_main_context_iteration (async_context, TRUE);
-        }
 
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "body 1");
 
@@ -380,14 +422,18 @@ do_post_async_test (Test *test, gconstpointer data)
         g_bytes_unref (response);
         g_bytes_unref (bytes);
         g_main_context_unref (async_context);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
 do_post_large_async_test (Test *test, gconstpointer data)
 {
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response = NULL;
         GMainContext *async_context = g_main_context_ref_thread_default ();
-        guint large_size = 1000000;
+        guint large_size = 10000;
         char *large_data;
         unsigned int i;
 
@@ -395,15 +441,15 @@ do_post_large_async_test (Test *test, gconstpointer data)
         for (i = 0; i < large_size; i++)
                 large_data[i] = i & 0xFF;
         GBytes *bytes = g_bytes_new_take (large_data, large_size);
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
 
-        GBytes *response = NULL;
-        soup_session_send_async (test->session, test->msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
 
-        while (!response) {
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+
+        while (!response)
                 g_main_context_iteration (async_context, TRUE);
-        }
 
         g_assert_true (g_bytes_equal (bytes, response));
 
@@ -413,22 +459,26 @@ do_post_large_async_test (Test *test, gconstpointer data)
         g_bytes_unref (response);
         g_bytes_unref (bytes);
         g_main_context_unref (async_context);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
 do_post_blocked_async_test (Test *test, gconstpointer data)
 {
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response = NULL;
         GMainContext *async_context = g_main_context_ref_thread_default ();
 
         GInputStream *in_stream = soup_body_input_stream_http2_new ();
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (in_stream), (guint8*)"Part 1 -", 8);
 
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body (test->msg, "text/plain", in_stream, 8 + 8);
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body (msg, "text/plain", in_stream, 8 + 8);
 
-        GBytes *response = NULL;
-        soup_session_send_async (test->session, test->msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
 
         while (!response) {
                 // Let it iterate for a bit waiting on blocked data
@@ -447,23 +497,27 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
         g_bytes_unref (response);
         g_object_unref (in_stream);
         g_main_context_unref (async_context);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
 do_post_file_async_test (Test *test, gconstpointer data)
 {
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response = NULL;
         GMainContext *async_context = g_main_context_ref_thread_default ();
 
         GFile *in_file = g_file_new_for_path (g_test_get_filename (G_TEST_DIST, "test-cert.pem", NULL));
         GFileInputStream *in_stream = g_file_read (in_file, NULL, NULL);
         g_assert_nonnull (in_stream);
 
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body (test->msg, "application/x-x509-ca-cert", G_INPUT_STREAM (in_stream), -1);
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body (msg, "application/x-x509-ca-cert", G_INPUT_STREAM (in_stream), -1);
 
-        GBytes *response = NULL;
-        soup_session_send_async (test->session, test->msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
 
         while (!response)
                 g_main_context_iteration (async_context, TRUE);
@@ -477,7 +531,8 @@ do_post_file_async_test (Test *test, gconstpointer data)
         g_object_unref (in_stream);
         g_object_unref (in_file);
         g_main_context_unref (async_context);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static gboolean
@@ -500,18 +555,22 @@ on_authenticate (SoupMessage *msg, SoupAuth *auth, gboolean retrying, gpointer u
 static void
 do_paused_async_test (Test *test, gconstpointer data)
 {
-
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/auth");
-        g_signal_connect (test->msg, "authenticate", G_CALLBACK (on_authenticate), NULL);
-
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
         GError *error = NULL;
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
+
+        uri = g_uri_parse_relative (base_uri, "/auth", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        g_signal_connect (msg, "authenticate", G_CALLBACK (on_authenticate), NULL);
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
 
         g_assert_no_error (error);
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Authenticated");
 
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static SoupConnection *last_connection;
@@ -556,6 +615,7 @@ do_connections_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context;
         guint complete_count = 0;
+        GUri *uri;
 
         if (g_getenv ("ASAN_OPTIONS")) {
                 g_test_skip ("Flakey on asan GitLab runner");
@@ -564,10 +624,11 @@ do_connections_test (Test *test, gconstpointer data)
 
         async_context = g_main_context_ref_thread_default ();
 
+        uri = g_uri_parse_relative (base_uri, "/slow", SOUP_HTTP_URI_FLAGS, NULL);
 #define N_TESTS 100
 
         for (unsigned int i = 0; i < N_TESTS; ++i) {
-                SoupMessage *msg = soup_message_new ("GET", "https://127.0.0.1:5000/slow");
+                SoupMessage *msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
                 soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_ready, &complete_count);
                 g_object_unref (msg);
         }
@@ -581,7 +642,7 @@ do_connections_test (Test *test, gconstpointer data)
 
         /* After no messages reference the connection it should be IDLE and reusable */
         g_assert_cmpuint (soup_connection_get_state (last_connection), ==, SOUP_CONNECTION_IDLE);
-        SoupMessage *msg = soup_message_new ("GET", "https://127.0.0.1:5000/slow");
+        SoupMessage *msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
         soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_ready, &complete_count);
         g_object_unref (msg);
 
@@ -591,22 +652,28 @@ do_connections_test (Test *test, gconstpointer data)
         while (g_main_context_pending (async_context))
                 g_main_context_iteration (async_context, FALSE);
 
+        g_uri_unref (uri);
         g_main_context_unref (async_context);
 }
 
 static void
 do_misdirected_request_test (Test *test, gconstpointer data)
 {
-        test->msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/misdirected_request");
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
         GError *error = NULL;
 
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
+        uri = g_uri_parse_relative (base_uri, "/misdirected_request", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
 
         g_assert_no_error (error);
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Success!");
 
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
@@ -627,42 +694,50 @@ log_printer (SoupLogger *logger,
 static void
 do_logging_test (Test *test, gconstpointer data)
 {
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
+        GError *error = NULL;
+        GBytes *bytes = g_bytes_new_static ("Test", sizeof ("Test"));
         gboolean has_logged_body = FALSE;
 
         SoupLogger *logger = soup_logger_new (SOUP_LOGGER_LOG_BODY);
         soup_logger_set_printer (logger, log_printer, &has_logged_body, NULL);
         soup_session_add_feature (test->session, SOUP_SESSION_FEATURE (logger));
 
-        GBytes *bytes = g_bytes_new_static ("Test", sizeof ("Test"));
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
-        GError *error = NULL;
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
 
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
-
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
         g_assert_no_error (error);
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Test");
         g_assert_true (has_logged_body);
 
         g_bytes_unref (response);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
 do_metrics_size_test (Test *test, gconstpointer data)
 {
-        GBytes *bytes = g_bytes_new_static ("Test", sizeof ("Test"));
-        test->msg = soup_message_new (SOUP_METHOD_POST, "https://127.0.0.1:5000/echo_post");
-        soup_message_set_request_body_from_bytes (test->msg, "text/plain", bytes);
-        soup_message_add_flags (test->msg, SOUP_MESSAGE_COLLECT_METRICS);
-
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
         GError *error = NULL;
-        GBytes *response = soup_test_session_async_send (test->session, test->msg, NULL, &error);
+        GBytes *bytes = g_bytes_new_static ("Test", sizeof ("Test"));
 
+        uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
+        soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
+
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
         g_assert_no_error (error);
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Test");
 
-        SoupMessageMetrics *metrics = soup_message_get_metrics (test->msg);
+        SoupMessageMetrics *metrics = soup_message_get_metrics (msg);
         g_assert_nonnull (metrics);
 
         g_assert_cmpuint (soup_message_metrics_get_request_header_bytes_sent (metrics), >, 0);
@@ -675,7 +750,8 @@ do_metrics_size_test (Test *test, gconstpointer data)
 
         g_bytes_unref (response);
         g_bytes_unref (bytes);
-        g_object_unref (test->msg);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
@@ -765,7 +841,7 @@ do_one_metrics_time_test (SoupSession *session,
         gboolean got_body_called = FALSE;
         guint network_event_called = 0;
 
-        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
         soup_message_add_flags (msg, SOUP_MESSAGE_COLLECT_METRICS);
         g_signal_connect (msg, "starting",
                           G_CALLBACK (metrics_test_message_starting_cb),
@@ -837,7 +913,7 @@ static void
 do_preconnect_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context = g_main_context_ref_thread_default ();
-        SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        SoupMessage *msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
         GError *error = NULL;
         SoupConnection *conn = NULL;
         guint32 connection_id;
@@ -853,7 +929,7 @@ do_preconnect_test (Test *test, gconstpointer data)
         g_assert_cmpuint (soup_connection_get_state (conn), ==, SOUP_CONNECTION_IDLE);
         g_object_unref (msg);
 
-        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
         GBytes *response = soup_test_session_async_send (test->session, msg, NULL, &error);
 
         g_assert_no_error (error);
@@ -877,7 +953,7 @@ do_invalid_header_test (Test *test, gconstpointer data)
                 GBytes *body;
                 GError *error = NULL;
 
-                msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/");
+                msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
                 request_headers = soup_message_get_request_headers (msg);
                 soup_message_headers_append (request_headers, invalid_headers[i], "Value");
                 body = soup_test_session_async_send (test->session, msg, NULL, &error);
@@ -922,16 +998,18 @@ sniffer_test_send_ready_cb (SoupSession   *session,
 
 static void
 do_one_sniffer_test (SoupSession  *session,
-                     const char   *uri,
+                     const char   *path,
                      gsize         expected_size,
                      gboolean      should_sniff,
                      GMainContext *async_context)
 {
+        GUri *uri;
         SoupMessage *msg;
         GInputStream *stream = NULL;
         GBytes *bytes;
 
-        msg = soup_message_new (SOUP_METHOD_GET, uri);
+        uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
         g_object_connect (msg,
                           "signal::got-headers", got_headers, NULL,
                           "signal::content-sniffed", content_sniffed, NULL,
@@ -965,6 +1043,7 @@ do_one_sniffer_test (SoupSession  *session,
         g_object_unref (stream);
         g_bytes_unref (bytes);
         g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
@@ -974,9 +1053,9 @@ do_sniffer_async_test (Test *test, gconstpointer data)
 
         soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
 
-        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/", 11, TRUE, async_context);
-        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/large", (1024 * 24) + 1, TRUE, async_context);
-        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/no-content", 0, FALSE, async_context);
+        do_one_sniffer_test (test->session, "/", 11, TRUE, async_context);
+        do_one_sniffer_test (test->session, "/large", (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1, TRUE, async_context);
+        do_one_sniffer_test (test->session, "/no-content", 0, FALSE, async_context);
 
         while (g_main_context_pending (async_context))
                 g_main_context_iteration (async_context, FALSE);
@@ -989,41 +1068,158 @@ do_sniffer_sync_test (Test *test, gconstpointer data)
 {
         soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
 
-        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/", 11, TRUE, NULL);
-        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/large", (1024 * 24) + 1, TRUE, NULL);
-        do_one_sniffer_test (test->session, "https://127.0.0.1:5000/no-content", 0, FALSE, NULL);
+        do_one_sniffer_test (test->session, "/", 11, TRUE, NULL);
+        do_one_sniffer_test (test->session, "/large", (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1, TRUE, NULL);
+        do_one_sniffer_test (test->session, "/no-content", 0, FALSE, NULL);
 }
 
 static void
 do_timeout_test (Test *test, gconstpointer data)
 {
+        GUri *uri;
         SoupMessage *msg;
         GBytes *response;
         GError *error = NULL;
 
         soup_session_set_timeout (test->session, 2);
 
-        msg = soup_message_new (SOUP_METHOD_GET, "https://127.0.0.1:5000/timeout");
+        uri = g_uri_parse_relative (base_uri, "/timeout", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
         response = soup_test_session_async_send (test->session, msg, NULL, &error);
         g_assert_null (response);
         g_assert_error (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT);
         g_object_unref (msg);
+        g_uri_unref (uri);
 
         while (g_main_context_pending (NULL))
                 g_main_context_iteration (NULL, FALSE);
 }
 
+static gboolean
+unpause_message (SoupServerMessage *msg)
+{
+        soup_server_message_unpause (msg);
+        return FALSE;
+}
+
+static void
+server_handler (SoupServer        *server,
+                SoupServerMessage *msg,
+                const char        *path,
+                GHashTable        *query,
+                gpointer           user_data)
+{
+        g_assert_cmpuint (soup_server_message_get_http_version (msg), ==, SOUP_HTTP_2_0);
+
+        if (strcmp (path, "/") == 0 || strcmp (path, "/slow") == 0 || strcmp (path, "/timeout") == 0) {
+                gboolean is_slow = path[1] == 's';
+                gboolean is_timeout = path[1] == 't';
+
+                soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+                soup_server_message_set_response (msg, "text/plain",
+                                                  SOUP_MEMORY_STATIC,
+                                                  "Hello world", 11);
+                if (is_slow || is_timeout) {
+                        GSource *timeout;
+
+                        soup_server_message_pause (msg);
+                        timeout = soup_add_timeout (g_main_context_get_thread_default (),
+                                                    is_timeout ? 4000 : 1000,
+                                                    (GSourceFunc)unpause_message, msg);
+                        g_source_unref (timeout);
+                }
+        } else if (strcmp (path, "/no-content") == 0) {
+                soup_server_message_set_status (msg, SOUP_STATUS_NO_CONTENT, NULL);
+        } else if (strcmp (path, "/large") == 0) {
+                int i, j;
+                SoupMessageBody *response_body;
+                char letter = 'A';
+
+                /* Send increasing letters just to aid debugging */
+                response_body = soup_server_message_get_response_body (msg);
+                for (i = 0; i < LARGE_N_CHARS; i++, letter++) {
+                        GString *chunk = g_string_new (NULL);
+
+                        for (j = 0; j < LARGE_CHARS_REPEAT; j++)
+                                chunk = g_string_append_c (chunk, letter);
+                        soup_message_body_append_bytes (response_body, g_string_free_to_bytes (chunk));
+                }
+                soup_message_body_append (response_body, SOUP_MEMORY_STATIC, "\0", 1);
+
+                soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+        } else if (strcmp (path, "/echo_query") == 0) {
+                const char *query_str = g_uri_get_query (soup_server_message_get_uri (msg));
+
+                soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+                soup_server_message_set_response (msg, "text/plain",
+                                                  SOUP_MEMORY_STATIC,
+                                                  query_str, strlen (query_str));
+        } else if (strcmp (path, "/echo_post") == 0) {
+                SoupMessageBody *request_body;
+
+                request_body = soup_server_message_get_request_body (msg);
+                soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+                soup_server_message_set_response (msg, "text/plain",
+                                                  SOUP_MEMORY_COPY,
+                                                  request_body->data,
+                                                  request_body->length);
+        } else if (strcmp (path, "/misdirected_request") == 0) {
+                static SoupServerConnection *conn = NULL;
+
+                if (!conn) {
+                        conn = soup_server_message_get_connection (msg);
+                        soup_server_message_set_status (msg, SOUP_STATUS_MISDIRECTED_REQUEST, NULL);
+                } else {
+                        /* Message is retried on a different connection */
+                        g_assert_false (conn == soup_server_message_get_connection (msg));
+                        soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+                        soup_server_message_set_response (msg, "text/plain",
+                                                          SOUP_MEMORY_STATIC,
+                                                          "Success!", 8);
+                }
+        } else if (strcmp (path, "/auth") == 0) {
+                soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+                soup_server_message_set_response (msg, "text/plain",
+                                                  SOUP_MEMORY_STATIC,
+                                                  "Authenticated", 13);
+        }
+}
+
+static gboolean
+server_basic_auth_callback (SoupAuthDomain    *auth_domain,
+                            SoupServerMessage *msg,
+                            const char        *username,
+                            const char        *password,
+                            gpointer           data)
+{
+        if (strcmp (username, "username") != 0)
+                return FALSE;
+
+        return strcmp (password, "password") == 0;
+}
+
 int
 main (int argc, char **argv)
 {
+        SoupServer *server;
+        SoupAuthDomain *auth;
 	int ret;
 
 	test_init (argc, argv, NULL);
 
-        if (!quart_init ()) {
-                test_cleanup ();
-                return 1;
-        }
+        if (!tls_available)
+                return 0;
+
+        server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD | SOUP_TEST_SERVER_HTTP2);
+        auth = soup_auth_domain_basic_new ("realm", "http2-test",
+                                           "auth-callback", server_basic_auth_callback,
+                                           NULL);
+        soup_auth_domain_add_path (auth, "/auth");
+        soup_server_add_auth_domain (server, auth);
+        g_object_unref (auth);
+
+        soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
+        base_uri = soup_test_server_get_uri (server, "https", "127.0.0.1");
 
         g_test_add ("/http2/basic/async", Test, NULL,
                     setup_session,
@@ -1127,6 +1323,9 @@ main (int argc, char **argv)
                     teardown_session);
 
 	ret = g_test_run ();
+
+        g_uri_unref (base_uri);
+        soup_test_server_quit_unref (server);
 
         test_cleanup ();
 

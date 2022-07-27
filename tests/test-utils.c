@@ -3,6 +3,7 @@
 #include "test-utils.h"
 #include "soup-misc.h"
 #include "soup-session-private.h"
+#include "soup-server-private.h"
 
 #include <glib/gprintf.h>
 #ifdef G_OS_UNIX
@@ -113,8 +114,6 @@ test_cleanup (void)
 	if (apache_running)
 		apache_cleanup ();
 #endif
-
-        quart_cleanup ();
 
 	if (logger)
 		g_object_unref (logger);
@@ -273,75 +272,6 @@ apache_cleanup (void)
 }
 
 #endif /* HAVE_APACHE */
-
-static GSubprocess *quart_proc;
-
-gboolean
-quart_init (void)
-{
-        if (quart_proc)
-                return TRUE;
-
-        GSubprocessLauncher *launcher = g_subprocess_launcher_new (G_SUBPROCESS_FLAGS_STDOUT_PIPE); // | G_SUBPROCESS_FLAGS_STDERR_SILENCE
-        g_subprocess_launcher_set_cwd (launcher, g_test_get_dir (G_TEST_DIST));
-
-        GError *error = NULL;
-        char *script = soup_test_build_filename_abs (G_TEST_DIST, "http2-server.py", NULL);
-        quart_proc = g_subprocess_launcher_spawn (launcher, &error, script, NULL);
-        g_free (script);
-        g_object_unref (launcher);
-
-        if (error) {
-                g_test_message ("Failed to start quart server: %s", error->message);
-                g_error_free (error);
-                return FALSE;
-        }
-
-        GDataInputStream *in_stream = g_data_input_stream_new (g_subprocess_get_stdout_pipe (quart_proc));
-
-        // We don't own the stream, don't break the pipe
-        g_filter_input_stream_set_close_base_stream (G_FILTER_INPUT_STREAM (in_stream), FALSE);
-
-        // Read stdout until the server says it is running
-        while (TRUE) {
-                char *line = g_data_input_stream_read_line_utf8 (in_stream, NULL, NULL, &error);
-
-                if (error) {
-                        g_test_message ("Failed to start quart server: %s", error->message);
-                        g_error_free (error);
-                        g_object_unref (in_stream);
-                        return FALSE;
-                } else if (line == NULL) {
-                        g_test_message ("Failed to start quart server (not installed?)");
-                        g_object_unref (in_stream);
-                        return FALSE;
-                }
-
-                if (g_str_has_prefix (line, " * Running")) {
-                        g_test_message ("Started quart server: %s", line + 3);
-                        g_free (line);
-                        g_object_unref (in_stream);
-                        return TRUE;
-                }
-                g_free (line);
-        }
-}
-
-void
-quart_cleanup (void)
-{
-        if (quart_proc) {
-                GError *error = NULL;
-                g_subprocess_force_exit (quart_proc);
-                g_subprocess_wait (quart_proc, NULL, &error);
-                if (error) {
-                        g_test_message ("Failed to stop quart server: %s", error->message);
-                        g_error_free (error);
-                }
-        }
-
-        g_clear_object (&quart_proc);
-}
 
 SoupSession *
 soup_test_session_new (const char *propname, ...)
@@ -566,6 +496,8 @@ soup_test_server_new (SoupTestServerOptions options)
 	server = soup_server_new ("tls-certificate", cert,
 				  NULL);
 	g_clear_object (&cert);
+
+        soup_server_set_http2_enabled (server, options & SOUP_TEST_SERVER_HTTP2);
 
 	g_object_set_data (G_OBJECT (server), "options", GUINT_TO_POINTER (options));
 

@@ -285,27 +285,9 @@ else
   have_autobahn = find_program('wstest', required: get_option('autobahn')).found()
 endif
 
-# Quart server used for HTTP/2 tests
-quart_found = false
-
-if not get_option('http2_tests').disabled()
-  pymod = import('python')
-  python = pymod.find_installation('python3')
-  if python.found()
-    ret = run_command(python, '-c', 'import importlib\nassert(importlib.find_loader("quart"))', check: false)
-    if ret.returncode() == 0
-      quart_found = true
-    endif
-  endif
-  message('Python module quart found: @0@'.format(quart_found.to_string('YES', 'NO')))
-  if get_option('http2_tests').enabled() and not quart_found
-    error('quart is required for http2 tests')
-  endif
-endif
-
 gnutls_dep = dependency('gnutls', version: '>= 3.6.0', required : get_option('pkcs11_tests'))
 
-if not have_apache or not quart_found or not have_autobahn or not gnutls_dep.found()
+if not have_apache or not have_autobahn or not gnutls_dep.found()
   warning('Some regression tests will not be compiled due to missing libraries or modules. Please check the logs for more details.')
 endif
 
@@ -431,7 +413,6 @@ summary({
 summary({
     'All tests' : get_option('tests'),
     'Tests requiring Apache' : have_apache,
-    'Tests requiring Quart' : quart_found,
     'Documentation tests' : get_option('doc_tests'),
     'Fuzzing tests' : get_option('fuzzing').enabled(),
     'Autobahn tests' : have_autobahn,

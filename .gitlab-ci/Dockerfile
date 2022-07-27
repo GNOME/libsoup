@@ -33,7 +33,7 @@ RUN dnf update -y \
     && dnf clean all \
     && python2.7 -m ensurepip \
     && pip2.7 install virtualenv autobahntestsuite \
-    && pip3 install quart gi-docgen
+    && pip3 install gi-docgen
 
 # We need glib 2.70
 RUN git clone https://gitlab.gnome.org/GNOME/glib.git \

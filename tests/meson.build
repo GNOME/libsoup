@@ -78,6 +78,7 @@ tests = [
   {'name': 'date'},
   {'name': 'forms'},
   {'name': 'header-parsing'},
+  {'name': 'http2'},
   {'name': 'http2-body-stream'},
   {'name': 'hsts'},
   {'name': 'hsts-db'},
@@ -106,16 +107,6 @@ tests = [
   {'name': 'websocket',
    'dependencies': [libz_dep]},
 ]
-
-if quart_found
-  configure_file(input : 'http2-server.py',
-    output : 'http2-server.py',
-    copy : true,
-    install : installed_tests_enabled,
-    install_dir : installed_tests_execdir)
-
-  tests += [{'name': 'http2'}]
-endif
 
 if brotlidec_dep.found()
   tests += [{'name': 'brotli-decompressor'}]
