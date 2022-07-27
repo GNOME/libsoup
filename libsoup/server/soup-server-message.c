@@ -517,6 +517,9 @@ soup_server_message_set_auth (SoupServerMessage *msg,
 gboolean
 soup_server_message_is_keepalive (SoupServerMessage *msg)
 {
+        if (msg->http_version == SOUP_HTTP_2_0)
+                return TRUE;
+
         if (msg->status_code == SOUP_STATUS_OK && msg->method == SOUP_METHOD_CONNECT)
                 return TRUE;
 

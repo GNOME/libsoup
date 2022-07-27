@@ -43,6 +43,7 @@ soup_sources = [
   'http2/soup-body-input-stream-http2.c',
 
   'server/http1/soup-server-message-io-http1.c',
+  'server/http2/soup-server-message-io-http2.c',
   'server/soup-auth-domain.c',
   'server/soup-auth-domain-basic.c',
   'server/soup-auth-domain-digest.c',
@@ -203,6 +204,7 @@ libsoup_includes = [
     'http2',
     'server',
     'server/http1',
+    'server/http2',
     'websocket',
     '.'
   ]),

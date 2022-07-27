@@ -13,7 +13,7 @@
 
 #include <glib/gi18n-lib.h>
 
-#include "soup-server.h"
+#include "soup-server-private.h"
 #include "soup-server-message-private.h"
 #include "soup-message-headers-private.h"
 #include "soup.h"
@@ -164,6 +164,7 @@ typedef struct {
 	GPtrArray         *websocket_extension_types;
 
 	gboolean           disposed;
+        gboolean           http2_enabled;
 
 } SoupServerPrivate;
 
@@ -210,6 +211,7 @@ soup_server_init (SoupServer *server)
 {
 	SoupServerPrivate *priv = soup_server_get_instance_private (server);
 
+        priv->http2_enabled = !!g_getenv ("SOUP_SERVER_HTTP2");
 	priv->handlers = soup_path_map_new ((GDestroyNotify)free_handler);
 
 	priv->websocket_extension_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
@@ -1085,7 +1087,8 @@ request_finished (SoupServerMessage      *msg,
 	    priv->listeners)
 		return;
 
-	soup_server_connection_disconnect (conn);
+        if (soup_server_message_get_http_version (msg) < SOUP_HTTP_2_0)
+                soup_server_connection_disconnect (conn);
 }
 
 /**
@@ -1125,6 +1128,9 @@ new_connection (SoupListener         *listener,
                 SoupServerConnection *conn,
                 SoupServer           *server)
 {
+        SoupServerPrivate *priv = soup_server_get_instance_private (server);
+
+        soup_server_connection_set_advertise_http2 (conn, priv->http2_enabled);
 	soup_server_accept_connection (server, conn);
 }
 
@@ -1985,4 +1991,13 @@ soup_server_remove_websocket_extension (SoupServer *server, GType extension_type
                         break;
                 }
         }
+}
+
+void
+soup_server_set_http2_enabled (SoupServer *server,
+                               gboolean    enabled)
+{
+        SoupServerPrivate *priv = soup_server_get_instance_private (server);
+
+        priv->http2_enabled = enabled;
 }

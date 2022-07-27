@@ -20,6 +20,7 @@
 #include "soup-io-stream.h"
 #include "soup-server-message-private.h"
 #include "soup-server-message-io-http1.h"
+#include "soup-server-message-io-http2.h"
 
 enum {
         CONNECTED,
@@ -58,6 +59,8 @@ typedef struct {
         GIOStream *conn;
         GIOStream *iostream;
         SoupServerMessage *initial_msg;
+        gboolean advertise_http2;
+        SoupHTTPVersion http_version;
         SoupServerMessageIO *io_data;
 
         GSocketAddress *local_addr;
@@ -80,6 +83,9 @@ request_started_cb (SoupServerMessage    *msg,
 static void
 soup_server_connection_init (SoupServerConnection *conn)
 {
+        SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
+
+        priv->http_version = SOUP_HTTP_1_1;
 }
 
 static void
@@ -377,10 +383,21 @@ soup_server_connection_connected (SoupServerConnection *conn)
         SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
 
         g_assert (!priv->io_data);
-        priv->io_data = soup_server_message_io_http1_new (conn,
-                                                          g_steal_pointer (&priv->initial_msg),
-                                                          (SoupMessageIOStartedFn)request_started_cb,
-                                                          conn);
+        switch (priv->http_version) {
+        case SOUP_HTTP_1_0:
+        case SOUP_HTTP_1_1:
+                priv->io_data = soup_server_message_io_http1_new (conn,
+                                                                  g_steal_pointer (&priv->initial_msg),
+                                                                  (SoupMessageIOStartedFn)request_started_cb,
+                                                                  conn);
+                break;
+        case SOUP_HTTP_2_0:
+                priv->io_data = soup_server_message_io_http2_new (conn,
+                                                                  g_steal_pointer (&priv->initial_msg),
+                                                                  (SoupMessageIOStartedFn)request_started_cb,
+                                                                  conn);
+                break;
+        }
         g_signal_emit (conn, signals[CONNECTED], 0);
 }
 
@@ -407,10 +424,34 @@ tls_connection_handshake_ready_cb (GTlsConnection       *tls_conn,
                                    GAsyncResult         *result,
                                    SoupServerConnection *conn)
 {
-        if (g_tls_connection_handshake_finish (tls_conn, result, NULL))
+        SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
+
+        if (g_tls_connection_handshake_finish (tls_conn, result, NULL)) {
+                const char *protocol = g_tls_connection_get_negotiated_protocol (tls_conn);
+
+                if (g_strcmp0 (protocol, "h2") == 0)
+                        priv->http_version = SOUP_HTTP_2_0;
+                else if (g_strcmp0 (protocol, "http/1.0") == 0)
+                        priv->http_version = SOUP_HTTP_1_0;
+                else if (g_strcmp0 (protocol, "http/1.1") == 0)
+                        priv->http_version = SOUP_HTTP_1_1;
+
                 soup_server_connection_connected (conn);
-        else
+        } else {
                 soup_server_connection_disconnect (conn);
+        }
+}
+
+void
+soup_server_connection_set_advertise_http2 (SoupServerConnection *conn,
+                                            gboolean              advertise_http2)
+{
+        SoupServerConnectionPrivate *priv;
+
+        g_return_if_fail (SOUP_IS_SERVER_CONNECTION (conn));
+
+        priv = soup_server_connection_get_instance_private (conn);
+        priv->advertise_http2 = advertise_http2;
 }
 
 void
@@ -441,7 +482,9 @@ soup_server_connection_accepted (SoupServerConnection *conn)
         if (priv->tls_certificate) {
                 GPtrArray *advertised_protocols;
 
-                advertised_protocols = g_ptr_array_sized_new (3);
+                advertised_protocols = g_ptr_array_sized_new (4);
+                if (priv->advertise_http2 && priv->tls_auth_mode == G_TLS_AUTHENTICATION_NONE)
+                        g_ptr_array_add (advertised_protocols, "h2");
                 g_ptr_array_add (advertised_protocols, "http/1.1");
                 g_ptr_array_add (advertised_protocols, "http/1.0");
                 g_ptr_array_add (advertised_protocols, NULL);

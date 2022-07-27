@@ -22,6 +22,8 @@ SoupServerConnection *soup_server_connection_new                             (GS
 SoupServerConnection *soup_server_connection_new_for_connection              (GIOStream             *connection,
                                                                               GSocketAddress        *local_addr,
                                                                               GSocketAddress        *remote_addr);
+void                  soup_server_connection_set_advertise_http2             (SoupServerConnection *conn,
+                                                                              gboolean              advertise_http2);
 void                  soup_server_connection_accepted                        (SoupServerConnection  *conn);
 SoupServerMessageIO  *soup_server_connection_get_io_data                     (SoupServerConnection  *conn);
 gboolean              soup_server_connection_is_ssl                          (SoupServerConnection  *conn);
