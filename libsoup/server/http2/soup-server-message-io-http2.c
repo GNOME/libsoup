@@ -20,18 +20,7 @@
 #include "soup-message-headers-private.h"
 #include "soup-server-message-private.h"
 #include "soup-misc.h"
-
-#include <nghttp2/nghttp2.h>
-
-typedef enum {
-        STATE_NONE,
-        STATE_READ_HEADERS,
-        STATE_READ_DATA,
-        STATE_READ_DONE,
-        STATE_WRITE_HEADERS,
-        STATE_WRITE_DATA,
-        STATE_WRITE_DONE,
-} SoupHTTP2IOState;
+#include "soup-http2-utils.h"
 
 typedef struct {
         SoupServerMessage *msg;
@@ -79,30 +68,6 @@ typedef struct {
 static void soup_server_message_io_http2_send_response (SoupServerMessageIOHTTP2 *io,
                                                         SoupMessageIOHTTP2       *msg_io);
 
-static const char *
-state_to_string (SoupHTTP2IOState state)
-{
-        switch (state) {
-        case STATE_NONE:
-                return "NONE";
-        case STATE_READ_HEADERS:
-                return "READ_HEADERS";
-        case STATE_READ_DATA:
-                return "READ_DATA";
-        case STATE_READ_DONE:
-                return "READ_DONE";
-        case STATE_WRITE_HEADERS:
-                return "WRITE_HEADERS";
-        case STATE_WRITE_DATA:
-                return "WRITE_DATA";
-        case STATE_WRITE_DONE:
-                return "WRITE_DONE";
-        default:
-                g_assert_not_reached ();
-                return "";
-        }
-}
-
 static void
 advance_state_from (SoupMessageIOHTTP2 *msg_io,
                     SoupHTTP2IOState    from,
@@ -110,16 +75,8 @@ advance_state_from (SoupMessageIOHTTP2 *msg_io,
 {
         if (msg_io->state != from) {
                 g_warning ("Unexpected state changed %s -> %s, expected to be from %s",
-                           state_to_string (msg_io->state), state_to_string (to),
-                           state_to_string (from));
-        }
-
-        /* State never goes backwards */
-        if (to < msg_io->state) {
-                g_warning ("Unexpected state changed %s -> %s, expected %s -> %s\n",
-                           state_to_string (msg_io->state), state_to_string (to),
-                           state_to_string (from), state_to_string (to));
-                return;
+                           soup_http2_io_state_to_string (msg_io->state), soup_http2_io_state_to_string (to),
+                           soup_http2_io_state_to_string (from));
         }
 
         msg_io->state = to;
@@ -183,7 +140,7 @@ soup_server_message_io_http2_finished (SoupServerMessageIO *iface,
         SoupMessageIOCompletion completion;
 
         g_hash_table_steal_extended (io->messages, msg, NULL, (gpointer *)&msg_io);
-        completion = msg_io->state < STATE_WRITE_DONE ? SOUP_MESSAGE_IO_INTERRUPTED : SOUP_MESSAGE_IO_COMPLETE;
+        completion = msg_io->state != STATE_WRITE_DONE ? SOUP_MESSAGE_IO_INTERRUPTED : SOUP_MESSAGE_IO_COMPLETE;
 
         completion_cb = msg_io->completion_cb;
         completion_data = msg_io->completion_data;
@@ -588,24 +545,6 @@ on_data_source_read_callback (nghttp2_session     *session,
         return bytes_written;
 }
 
-#define MAKE_NV(NAME, VALUE, VALUELEN)                                      \
-        {                                                                   \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), VALUELEN, \
-                    NGHTTP2_NV_FLAG_NONE                                    \
-        }
-
-#define MAKE_NV2(NAME, VALUE)                                                     \
-        {                                                                         \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), strlen (VALUE), \
-                    NGHTTP2_NV_FLAG_NONE                                          \
-        }
-
-#define MAKE_NV3(NAME, VALUE, FLAGS)                                              \
-        {                                                                         \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), strlen (VALUE), \
-                    FLAGS                                                         \
-        }
-
 static void
 soup_server_message_io_http2_send_response (SoupServerMessageIOHTTP2 *io,
                                             SoupMessageIOHTTP2       *msg_io)
@@ -746,6 +685,8 @@ static void
 soup_server_message_io_http2_init (SoupServerMessageIOHTTP2 *io)
 {
         nghttp2_session_callbacks *callbacks;
+
+        soup_http2_debug_init ();
 
         nghttp2_session_callbacks_new (&callbacks);
         nghttp2_session_callbacks_set_on_begin_headers_callback (callbacks, on_begin_headers_callback);

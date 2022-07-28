@@ -70,6 +70,7 @@ soup_sources = [
   'soup-form.c',
   'soup-headers.c',
   'soup-header-names.c',
+  'soup-http2-utils.c',
   'soup-init.c',
   'soup-io-stream.c',
   'soup-logger.c',

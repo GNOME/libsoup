@@ -40,24 +40,12 @@
 #include "soup-client-input-stream.h"
 #include "soup-logger-private.h"
 #include "soup-uri-utils-private.h"
+#include "soup-http2-utils.h"
 
 #include "content-decoder/soup-content-decoder.h"
 #include "soup-body-input-stream-http2.h"
 
-#include <nghttp2/nghttp2.h>
-
 #define FRAME_HEADER_SIZE 9
-
-typedef enum {
-        STATE_NONE,
-        STATE_WRITE_HEADERS,
-        STATE_WRITE_DATA,
-        STATE_WRITE_DONE,
-        STATE_READ_HEADERS,
-        STATE_READ_DATA_START,
-        STATE_READ_DATA,
-        STATE_READ_DONE,
-} SoupHTTP2IOState;
 
 typedef struct {
         SoupClientMessageIO iface;
@@ -127,93 +115,6 @@ typedef struct {
 static void soup_client_message_io_http2_finished (SoupClientMessageIO *iface, SoupMessage *msg);
 static ssize_t on_data_source_read_callback (nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data);
 
-static void
-NGCHECK (int return_code)
-{
-        if (return_code == NGHTTP2_ERR_NOMEM)
-                g_abort ();
-        else if (return_code < 0)
-                g_debug ("Unhandled NGHTTP2 Error: %s", nghttp2_strerror (return_code));
-}
-
-static const char *
-frame_type_to_string (nghttp2_frame_type type)
-{
-        switch (type) {
-        case NGHTTP2_DATA:
-                return "DATA";
-        case NGHTTP2_HEADERS:
-                return "HEADERS";
-        case NGHTTP2_PRIORITY:
-                return "PRIORITY";
-        case NGHTTP2_RST_STREAM:
-                return "RST_STREAM";
-        case NGHTTP2_SETTINGS:
-                return "SETTINGS";
-        case NGHTTP2_PING:
-                return "PING";
-        case NGHTTP2_GOAWAY:
-                return "GOAWAY";
-        case NGHTTP2_WINDOW_UPDATE:
-                return "WINDOW_UPDATE";
-        /* LCOV_EXCL_START */
-        case NGHTTP2_PUSH_PROMISE:
-                return "PUSH_PROMISE";
-        case NGHTTP2_CONTINUATION:
-                return "CONTINUATION";
-        case NGHTTP2_ALTSVC:
-                return "ALTSVC";
-        case NGHTTP2_ORIGIN:
-                return "ORIGIN";
-        default:
-                g_warn_if_reached ();
-                return "UNKNOWN";
-        /* LCOV_EXCL_STOP */
-        }
-}
-
-static const char *
-headers_category_to_string (nghttp2_headers_category catergory)
-{
-        switch (catergory) {
-        case NGHTTP2_HCAT_REQUEST:
-                return "REQUEST";
-        case NGHTTP2_HCAT_RESPONSE:
-                return "RESPONSE";
-        case NGHTTP2_HCAT_PUSH_RESPONSE:
-                return "PUSH_RESPONSE";
-        case NGHTTP2_HCAT_HEADERS:
-                return "HEADERS";
-        }
-        g_assert_not_reached ();
-}
-
-static const char *
-state_to_string (SoupHTTP2IOState state)
-{
-        switch (state) {
-        case STATE_NONE:
-                return "NONE";
-        case STATE_WRITE_HEADERS:
-                return "WRITE_HEADERS";
-        case STATE_WRITE_DATA:
-                return "WRITE_DATA";
-        case STATE_WRITE_DONE:
-                return "WRITE_DONE";
-        case STATE_READ_HEADERS:
-                return "READ_HEADERS";
-        case STATE_READ_DATA_START:
-                return "READ_DATA_START";
-        case STATE_READ_DATA:
-                return "READ_DATA";
-        case STATE_READ_DONE:
-                return "READ_DONE";
-        default:
-                g_assert_not_reached ();
-                return "";
-        }
-}
-
 G_GNUC_PRINTF(3, 0)
 static void
 h2_debug (SoupClientMessageIOHTTP2   *io,
@@ -236,7 +137,7 @@ h2_debug (SoupClientMessageIOHTTP2   *io,
                 stream_id = data->stream_id;
 
         g_assert (io);
-        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[C%" G_GUINT64_FORMAT "-S%u] [%s] %s", io->connection_id, stream_id, data ? state_to_string (data->state) : "-", message);
+        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[C%" G_GUINT64_FORMAT "-S%u] [%s] %s", io->connection_id, stream_id, data ? soup_http2_io_state_to_string (data->state) : "-", message);
 
         g_free (message);
 }
@@ -288,20 +189,20 @@ advance_state_from (SoupHTTP2MessageData *data,
 {
         if (data->state != from) {
                 g_warning ("Unexpected state changed %s -> %s, expected to be from %s",
-                           state_to_string (data->state), state_to_string (to),
-                           state_to_string (from));
+                           soup_http2_io_state_to_string (data->state), soup_http2_io_state_to_string (to),
+                           soup_http2_io_state_to_string (from));
         }
 
         /* State never goes backwards */
         if (to < data->state) {
                 g_warning ("Unexpected state changed %s -> %s, expected %s -> %s\n",
-                           state_to_string (data->state), state_to_string (to),
-                           state_to_string (from), state_to_string (to));
+                           soup_http2_io_state_to_string (data->state), soup_http2_io_state_to_string (to),
+                           soup_http2_io_state_to_string (from), soup_http2_io_state_to_string (to));
                 return;
         }
 
         h2_debug (data->io, data, "[SESSION] State %s -> %s",
-                  state_to_string (data->state), state_to_string (to));
+                  soup_http2_io_state_to_string (data->state), soup_http2_io_state_to_string (to));
         data->state = to;
 }
 
@@ -617,7 +518,7 @@ on_begin_frame_callback (nghttp2_session        *session,
 {
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, hd->stream_id);
 
-        h2_debug (user_data, data, "[RECV] [%s] Beginning", frame_type_to_string (hd->type));
+        h2_debug (user_data, data, "[RECV] [%s] Beginning", soup_http2_frame_type_to_string (hd->type));
 
         if (!data)
                 return 0;
@@ -688,7 +589,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         io->in_callback++;
 
         if (frame->hd.stream_id == 0) {
-                h2_debug (io, NULL, "[RECV] [%s] Received (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
+                h2_debug (io, NULL, "[RECV] [%s] Received (%u)", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.flags);
 
                 switch (frame->hd.type) {
                 case NGHTTP2_GOAWAY:
@@ -711,7 +612,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         }
 
         data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
-        h2_debug (io, data, "[RECV] [%s] Received (%u)", frame_type_to_string (frame->hd.type), frame->hd.flags);
+        h2_debug (io, data, "[RECV] [%s] Received (%u)", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.flags);
 
         if (!data) {
                 if (!(frame->hd.flags & NGHTTP2_FLAG_END_STREAM) && frame->hd.type != NGHTTP2_RST_STREAM)
@@ -728,7 +629,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                         data->metrics->response_header_bytes_received += frame->hd.length + FRAME_HEADER_SIZE;
 
                 h2_debug (io, data, "[HEADERS] category=%s status=%u",
-                          headers_category_to_string (frame->headers.cat), status);
+                          soup_http2_headers_category_to_string (frame->headers.cat), status);
                 switch (frame->headers.cat) {
                 case NGHTTP2_HCAT_HEADERS:
                         if (!(frame->hd.flags & NGHTTP2_FLAG_END_HEADERS)) {
@@ -885,7 +786,7 @@ on_frame_send_callback (nghttp2_session     *session,
         case NGHTTP2_HEADERS:
                 g_assert (data);
                 h2_debug (io, data, "[SEND] [HEADERS] category=%s finished=%d",
-                          headers_category_to_string (frame->headers.cat),
+                          soup_http2_headers_category_to_string (frame->headers.cat),
                           (frame->hd.flags & NGHTTP2_FLAG_END_HEADERS) ? 1 : 0);
 
                 if (data->metrics)
@@ -930,7 +831,7 @@ on_frame_send_callback (nghttp2_session     *session,
 
                 break;
         case NGHTTP2_GOAWAY:
-                h2_debug (io, data, "[SEND] [%s]", frame_type_to_string (frame->hd.type));
+                h2_debug (io, data, "[SEND] [%s]", soup_http2_frame_type_to_string (frame->hd.type));
                 io->goaway_sent = TRUE;
                 if (io->close_task) {
                         GSource *source;
@@ -944,7 +845,7 @@ on_frame_send_callback (nghttp2_session     *session,
                 }
                 break;
         default:
-                h2_debug (io, data, "[SEND] [%s]", frame_type_to_string (frame->hd.type));
+                h2_debug (io, data, "[SEND] [%s]", soup_http2_frame_type_to_string (frame->hd.type));
                 break;
         }
 
@@ -985,7 +886,7 @@ on_frame_not_send_callback (nghttp2_session     *session,
         SoupClientMessageIOHTTP2 *io = user_data;
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
 
-        h2_debug (io, data, "[SEND] [%s] Failed: %s", frame_type_to_string (frame->hd.type),
+        h2_debug (io, data, "[SEND] [%s] Failed: %s", soup_http2_frame_type_to_string (frame->hd.type),
                   nghttp2_strerror (lib_error_code));
 
         if (lib_error_code == NGHTTP2_ERR_SESSION_CLOSING)
@@ -1326,24 +1227,6 @@ request_header_is_valid (const char *name)
 
         return !g_hash_table_contains (invalid_request_headers, name);
 }
-
-#define MAKE_NV(NAME, VALUE, VALUELEN)                                      \
-        {                                                                   \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), VALUELEN, \
-                    NGHTTP2_NV_FLAG_NONE                                    \
-        }
-
-#define MAKE_NV2(NAME, VALUE)                                                     \
-        {                                                                         \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), strlen (VALUE), \
-                    NGHTTP2_NV_FLAG_NONE                                          \
-        }
-
-#define MAKE_NV3(NAME, VALUE, FLAGS)                                              \
-        {                                                                         \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), strlen (VALUE), \
-                    FLAGS                                                         \
-        }
 
 static void
 send_message_request (SoupMessage          *msg,
@@ -1871,33 +1754,10 @@ static const SoupClientMessageIOFuncs io_funcs = {
         soup_client_message_io_http2_owner_changed
 };
 
-G_GNUC_PRINTF(1, 0)
-static void
-debug_nghttp2 (const char *format,
-               va_list     args)
-{
-        char *message;
-        gsize len;
-
-        if (g_log_writer_default_would_drop (G_LOG_LEVEL_DEBUG, "nghttp2"))
-                return;
-
-        message = g_strdup_vprintf (format, args);
-        len = strlen (message);
-        if (len >= 1 && message[len - 1] == '\n')
-                message[len - 1] = '\0';
-        g_log ("nghttp2", G_LOG_LEVEL_DEBUG, "[NGHTTP2] %s", message);
-        g_free (message);
-}
-
 static void
 soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
 {
-        static gsize nghttp2_debug_init = 0;
-        if (g_once_init_enter (&nghttp2_debug_init)) {
-                nghttp2_set_debug_vprintf_callback(debug_nghttp2);
-                g_once_init_leave (&nghttp2_debug_init, 1);
-        }
+        soup_http2_debug_init ();
 
         nghttp2_session_callbacks *callbacks;
         NGCHECK (nghttp2_session_callbacks_new (&callbacks));
