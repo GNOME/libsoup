@@ -501,7 +501,7 @@ soup_session_get_property (GObject *object, guint prop_id,
  *
  * Creates a #SoupSession with the default options.
  *
- * Returns: the new session.
+ * Returns: (transfer full): the new session.
  */
 SoupSession *
 soup_session_new (void)
