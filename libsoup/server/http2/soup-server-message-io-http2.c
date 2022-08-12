@@ -9,6 +9,9 @@
 #include "config.h"
 #endif
 
+#undef G_LOG_DOMAIN
+#define G_LOG_DOMAIN "libsoup-server-http2"
+
 #include <glib/gi18n-lib.h>
 
 #include "soup-server-message-io-http2.h"
@@ -68,6 +71,31 @@ typedef struct {
 static void soup_server_message_io_http2_send_response (SoupServerMessageIOHTTP2 *io,
                                                         SoupMessageIOHTTP2       *msg_io);
 
+G_GNUC_PRINTF(3, 0)
+static void
+h2_debug (SoupServerMessageIOHTTP2 *io,
+          SoupMessageIOHTTP2       *msg_io,
+          const char               *format,
+          ...)
+{
+	va_list args;
+        char *message;
+        SoupServerConnection *conn;
+
+        if (g_log_writer_default_would_drop (G_LOG_LEVEL_DEBUG, G_LOG_DOMAIN))
+                return;
+
+        va_start (args, format);
+        message = g_strdup_vprintf (format, args);
+        va_end (args);
+
+        conn = io ? io->conn : msg_io ? soup_server_message_get_connection (msg_io->msg) : NULL;
+        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[SERVER] [C%p-S%u] [%s] %s", conn, msg_io ? msg_io->stream_id : 0, msg_io ? soup_http2_io_state_to_string (msg_io->state) : "-", message);
+
+        g_free (message);
+}
+
+
 static void
 advance_state_from (SoupMessageIOHTTP2 *msg_io,
                     SoupHTTP2IOState    from,
@@ -78,6 +106,8 @@ advance_state_from (SoupMessageIOHTTP2 *msg_io,
                            soup_http2_io_state_to_string (msg_io->state), soup_http2_io_state_to_string (to),
                            soup_http2_io_state_to_string (from));
         }
+
+        h2_debug (NULL, msg_io, "[SESSION] State %s -> %s", soup_http2_io_state_to_string (msg_io->state), soup_http2_io_state_to_string (to));
 
         msg_io->state = to;
 }
@@ -142,6 +172,8 @@ soup_server_message_io_http2_finished (SoupServerMessageIO *iface,
         g_hash_table_steal_extended (io->messages, msg, NULL, (gpointer *)&msg_io);
         completion = msg_io->state != STATE_WRITE_DONE ? SOUP_MESSAGE_IO_INTERRUPTED : SOUP_MESSAGE_IO_COMPLETE;
 
+        h2_debug (io, msg_io, "Finished: %s", completion == SOUP_MESSAGE_IO_COMPLETE ? "completed" : "interrupted");
+
         completion_cb = msg_io->completion_cb;
         completion_data = msg_io->completion_data;
 
@@ -173,6 +205,8 @@ soup_server_message_io_http2_read_request (SoupServerMessageIO      *iface,
         msg_io = g_hash_table_lookup (io->messages, msg);
         g_assert (msg_io);
 
+        h2_debug (io, msg_io, "[SESSION] Read request");
+
         msg_io->completion_cb = completion_cb;
         msg_io->completion_data = user_data;
 }
@@ -186,6 +220,8 @@ soup_server_message_io_http2_pause (SoupServerMessageIO *iface,
 
         msg_io = g_hash_table_lookup (io->messages, msg);
         g_assert (msg_io);
+
+        h2_debug (io, msg_io, "[SESSION] Paused");
 
         if (msg_io->paused)
                 g_warn_if_reached ();
@@ -236,6 +272,8 @@ soup_server_message_io_http2_unpause (SoupServerMessageIO *iface,
 
         msg_io = g_hash_table_lookup (io->messages, msg);
         g_assert (msg_io);
+
+        h2_debug (io, msg_io, "[SESSION] Unpaused");
 
         if (!msg_io->paused)
                 g_warn_if_reached ();
@@ -422,6 +460,8 @@ on_begin_headers_callback (nghttp2_session     *session,
                 return 0;
 
         msg_io = soup_server_message_io_http2_get_or_create_msg_io (io, frame->hd.stream_id);
+        h2_debug (io, msg_io, "[SESSION] Message IO created");
+
         nghttp2_session_set_stream_user_data (session, frame->hd.stream_id, msg_io);
 
         if (!msg_io->completion_cb)
@@ -490,6 +530,8 @@ on_data_chunk_recv_callback (nghttp2_session *session,
         if (!msg_io)
                 return NGHTTP2_ERR_CALLBACK_FAILURE;
 
+        h2_debug (user_data, msg_io, "[DATA] Received chunk, len=%zu, flags=%u, paused=%d", len, flags, msg_io->paused);
+
         bytes = g_bytes_new (data, len);
         soup_message_body_got_chunk (soup_server_message_get_request_body (msg_io->msg), bytes);
         soup_server_message_got_chunk (msg_io->msg, bytes);
@@ -513,6 +555,8 @@ on_data_source_read_callback (nghttp2_session     *session,
 
         msg_io = nghttp2_session_get_stream_user_data (session, stream_id);
 
+        h2_debug (user_data, msg_io, "[SEND_BODY] paused=%d", msg_io->paused);
+
         while (bytes_written < length && msg_io->write_offset < response_body->length) {
                 gconstpointer data;
                 gsize data_length;
@@ -527,6 +571,7 @@ on_data_source_read_callback (nghttp2_session     *session,
                 bytes_written += bytes_to_write;
                 msg_io->chunk_written += bytes_to_write;
                 msg_io->write_offset += bytes_to_write;
+                h2_debug (user_data, msg_io, "[SEND_BODY] wrote %zd %u/%u", bytes_to_write, msg_io->write_offset, response_body->length);
                 soup_server_message_wrote_body_data (msg_io->msg, bytes_to_write);
 
                 if (msg_io->chunk_written == data_length) {
@@ -539,6 +584,7 @@ on_data_source_read_callback (nghttp2_session     *session,
 
         if (msg_io->write_offset == response_body->length) {
                 soup_server_message_wrote_body (msg_io->msg);
+                h2_debug (user_data, msg_io, "[SEND_BODY] EOF");
                 *data_flags |= NGHTTP2_DATA_FLAG_EOF;
         }
 
@@ -549,6 +595,7 @@ static void
 soup_server_message_io_http2_send_response (SoupServerMessageIOHTTP2 *io,
                                             SoupMessageIOHTTP2       *msg_io)
 {
+        h2_debug (io, msg_io, "[SESSION] Send response, paused=%d", msg_io->paused);
         if (msg_io->paused)
                 return;
 
@@ -601,6 +648,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         SoupMessageIOHTTP2 *msg_io;
 
         msg_io = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
+        h2_debug (io, msg_io, "[RECV] [%s] Received (%u)", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.flags);
         if (!msg_io)
                 return 0;
 
@@ -643,6 +691,8 @@ on_frame_send_callback (nghttp2_session     *session,
 
         msg_io = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
 
+        h2_debug (user_data, msg_io, "[SEND] [%s]", soup_http2_frame_type_to_string (frame->hd.type));
+
         switch (frame->hd.type) {
         case NGHTTP2_HEADERS:
                 if (frame->hd.flags & NGHTTP2_FLAG_END_HEADERS) {
@@ -672,6 +722,7 @@ on_stream_close_callback (nghttp2_session *session,
         SoupMessageIOHTTP2 *msg_io;
 
         msg_io = nghttp2_session_get_stream_user_data (session, stream_id);
+        h2_debug (user_data, msg_io, "[SESSION] Closed %u, error: %s", stream_id, nghttp2_http2_strerror (error_code));
         if (!msg_io)
                 return 0;
 
