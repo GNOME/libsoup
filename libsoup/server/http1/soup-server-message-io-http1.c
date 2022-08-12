@@ -908,6 +908,7 @@ io_run (SoupServerMessageIOHTTP1 *server_io)
 {
         SoupServerMessage *msg = server_io->msg_io->msg;
 	SoupMessageIOData *io = &server_io->msg_io->base;
+        gboolean success;
         GError *error = NULL;
 
         g_assert (!server_io->in_io_run);
@@ -920,10 +921,13 @@ io_run (SoupServerMessageIOHTTP1 *server_io)
         }
 
         g_object_ref (msg);
-        if (io_run_until (server_io,
-                          SOUP_MESSAGE_IO_STATE_DONE,
-                          SOUP_MESSAGE_IO_STATE_DONE,
-                          &error)) {
+        success = io_run_until (server_io,
+                                SOUP_MESSAGE_IO_STATE_DONE,
+                                SOUP_MESSAGE_IO_STATE_DONE,
+                                &error);
+        server_io->in_io_run = FALSE;
+
+        if (success) {
                 soup_server_message_finish (msg);
         } else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
@@ -940,8 +944,6 @@ io_run (SoupServerMessageIOHTTP1 *server_io)
 	}
 	g_object_unref (msg);
 	g_clear_error (&error);
-
-        server_io->in_io_run = FALSE;
 }
 
 static void
