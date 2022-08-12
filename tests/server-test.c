@@ -6,6 +6,7 @@
 #include "test-utils.h"
 #include "soup-message-private.h"
 #include "soup-uri-utils-private.h"
+#include "soup-misc.h"
 
 #include <gio/gnetworking.h>
 
@@ -799,7 +800,8 @@ unhandled_server_callback (SoupServer        *server,
 		usd->paused = TRUE;
 		usd->smsg = msg;
 		soup_server_message_pause (msg);
-		g_idle_add (idle_unpause_message, usd);
+                soup_add_completion (g_main_context_get_thread_default (),
+                                     idle_unpause_message, usd);
 	}
 }
 
