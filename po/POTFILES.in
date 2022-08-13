@@ -7,9 +7,9 @@ libsoup/http1/soup-client-message-io-http1.c
 libsoup/http1/soup-message-io-data.c
 libsoup/http2/soup-body-input-stream-http2.c
 libsoup/http2/soup-client-message-io-http2.c
+libsoup/server/http1/soup-server-message-io-http1.c
+libsoup/server/soup-listener.c
 libsoup/server/soup-server.c
-libsoup/server/soup-server-io.c
-libsoup/server/soup-socket.c
 libsoup/soup-session.c
 libsoup/soup-tld.c
 libsoup/websocket/soup-websocket.c
