@@ -91,6 +91,52 @@ G_BEGIN_DECLS
 #error "SOUP_VERSION_MIN_REQUIRED must be >= SOUP_VERSION_3_0"
 #endif
 
+/**
+ * SOUP_DISABLE_DEPRECATION_WARNINGS:
+ *
+ * A macro that should be defined before including the `soup.h` header.
+ *
+ * If this symbol is defined, no compiler warnings will be produced for
+ * uses of deprecated libsoup APIs.
+ */
+
+/**
+ * SOUP_DEPRECATED:
+ *
+ * Marks a symbol as deprecated.
+ *
+ * You should use `SOUP_DEPRECATED_IN_*` in order to handle versioning.
+ */
+
+/**
+ * SOUP_DEPRECATED_FOR:
+ * @f: the symbol that replaces the deprecated one
+ *
+ * Marks a symbol as deprecated in favor of another symbol.
+ *
+ * You should use `SOUP_DEPRECATED_FOR_IN_*` in order to handle versioning.
+ */
+
+/**
+ * SOUP_UNAVAILABLE
+ * @maj: the major version that introduced the symbol
+ * @min: the minor version that introduced the symbol
+ *
+ * Marks a symbol unavailable before the given major and minor version.
+ *
+ * You should use `SOUP_AVAILABLE_IN_*` in order to handle versioning.
+ */
+
+#ifdef SOUP_DISABLE_DEPRECATION_WARNINGS
+#define SOUP_DEPRECATED _SOUP_EXTERN
+#define SOUP_DEPRECATED_FOR(f) _SOUP_EXTERN
+#define SOUP_UNAVAILABLE(maj,min) _SOUP_EXTERN
+#else
+#define SOUP_DEPRECATED G_DEPRECATED _SOUP_EXTERN
+#define SOUP_DEPRECATED_FOR(f) G_DEPRECATED_FOR(f) _SOUP_EXTERN
+#define SOUP_UNAVAILABLE(maj,min) G_UNAVAILABLE(maj,min) _SOUP_EXTERN
+#endif
+
 #define SOUP_AVAILABLE_IN_ALL                   _SOUP_EXTERN
 
 {version_attributes}
