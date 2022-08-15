@@ -1,3 +1,8 @@
+Changes in libsoup from 3.1.1 to 3.1.2:
+
+* Replace HTTP/2 tests using Quart with internal HTTP/2 server tests [Carlos Garcia Campos]
+* Improve version macros including adding ability to define `SOUP_DISABLE_DEPRECATION_WARNINGS` [Emmanuele Bassi]
+
 Changes in libsoup from 3.0.7 to 3.1.1:
 
 * Reintroduce some thread-safety to SoupSession (see https://libsoup.org/libsoup-3.0/client-thread-safety.html) [Carlos Garcia Campos]
