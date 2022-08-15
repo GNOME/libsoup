@@ -11,23 +11,25 @@ gnome = import('gnome')
 
 soup_version = meson.project_version()
 
-# Before making a release, the libversion string should be modified.
-#
-#  * Bump the first component if binary compatibility has been broken; or
-#  * Bump the second component if new APIs are added; or
-#  * Bump the third component otherwise.
-#
-# When bumping the first component version, set the second and third components
-# to 0. When bumping the second version, set the third one to zero.
-libversion = '0.0.5'
+# Before making a release, the soversion string should be modified.
+# The string is of the form [C, R, A].
+# - If interfaces have been changed or added, but binary compatibility has
+#   been preserved, change to [C+1, 0, A+1].
+# - If binary compatibility has been broken (eg removed or changed interfaces)
+#   change to [C+1, 0, 0]
+# - If the interface is the same as the previous version, use [C, R+1, A].
+soup_version_info = [6, 0, 6]
+
+# Turn [C, R, A] into an actual usable *soversion*.
+soup_soversion_major = soup_version_info[0] - soup_version_info[2] # Current-Age
+soup_soversion_minor = soup_version_info[2] # Age
+soup_soversion_micro = soup_version_info[1] # Revision
+libversion = '@0@.@1@.@2@'.format(soup_soversion_major, soup_soversion_minor, soup_soversion_micro)
+
+darwin_versions = [soup_soversion_major + soup_soversion_minor + 1, '@0@.@1@'.format(soup_soversion_major + soup_soversion_minor + 1, soup_soversion_micro)]
+
 apiversion = '3.0'
-soversion = libversion.split('.')[0]
 libsoup_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
-libversion_arr = libversion.split('.')
-darwin_version_major = libversion_arr[0].to_int()
-darwin_version_minor = libversion_arr[1].to_int()
-darwin_version_micro = libversion_arr[2].to_int()
-darwin_versions = [darwin_version_major + darwin_version_minor + 1, '@0@.@1@'.format(darwin_version_major + darwin_version_minor + 1, darwin_version_micro)]
 
 host_system = host_machine.system()
 
