@@ -62,7 +62,7 @@ for version in versions:
  * A macro used to indicate a symbol is available in this version or later.
  */
 #if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_{major_version}_{minor_version}
-# define SOUP_AVAILABLE_IN_{major_version}_{minor_version}                 SOUP_UNAVAILABLE({major_version}, {minor_version}) _SOUP_EXTERN
+# define SOUP_AVAILABLE_IN_{major_version}_{minor_version}                 SOUP_UNAVAILABLE({major_version}, {minor_version})
 #else
 # define SOUP_AVAILABLE_IN_{major_version}_{minor_version}                 _SOUP_EXTERN
 #endif
