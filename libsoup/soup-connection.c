@@ -514,13 +514,14 @@ new_socket_client (SoupConnection *conn)
                                  G_CALLBACK (re_emit_socket_event),
                                  conn, 0);
 
-	if (!props->proxy_use_default) {
-		if (props->proxy_resolver) {
-			g_socket_client_set_proxy_resolver (client, props->proxy_resolver);
-			g_socket_client_add_application_proxy (client, "http");
-		} else
-			g_socket_client_set_enable_proxy (client, FALSE);
-	}
+        if (!props->proxy_use_default && !props->proxy_resolver) {
+                g_socket_client_set_enable_proxy (client, FALSE);
+        } else {
+                if (props->proxy_resolver)
+                        g_socket_client_set_proxy_resolver (client, props->proxy_resolver);
+                g_socket_client_add_application_proxy (client, "http");
+        }
+
         if (props->io_timeout)
                 g_socket_client_set_timeout (client, props->io_timeout);
         if (props->local_addr)
