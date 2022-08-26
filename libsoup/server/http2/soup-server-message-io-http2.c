@@ -347,17 +347,25 @@ static gboolean
 io_write_ready (GObject                  *stream,
                 SoupServerMessageIOHTTP2 *io)
 {
+        SoupServerConnection *conn = io->conn;
         GError *error = NULL;
 
-        while (nghttp2_session_want_write (io->session) && !error)
+        g_object_ref (conn);
+
+        while (!error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && nghttp2_session_want_write (io->session))
                 io_write (io, &error);
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
+                g_object_unref (conn);
                 return G_SOURCE_CONTINUE;
         }
 
+        if (error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io)
+                h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+
         g_clear_error (&error);
+        g_object_unref (conn);
         g_clear_pointer (&io->write_source, g_source_unref);
 
         return G_SOURCE_REMOVE;
@@ -366,12 +374,15 @@ io_write_ready (GObject                  *stream,
 static void
 io_try_write (SoupServerMessageIOHTTP2 *io)
 {
+        SoupServerConnection *conn = io->conn;
         GError *error = NULL;
 
         if (io->write_source)
                 return;
 
-        while (nghttp2_session_want_write (io->session) && !error)
+        g_object_ref (conn);
+
+        while (!error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && nghttp2_session_want_write (io->session))
                 io_write (io, &error);
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
@@ -382,7 +393,11 @@ io_try_write (SoupServerMessageIOHTTP2 *io)
                 g_source_attach (io->write_source, g_main_context_get_thread_default ());
         }
 
+        if (error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io)
+		h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+
         g_clear_error (&error);
+        g_object_unref (conn);
 }
 
 static gboolean
@@ -402,18 +417,26 @@ static gboolean
 io_read_ready (GObject                  *stream,
                SoupServerMessageIOHTTP2 *io)
 {
+        SoupServerConnection *conn = io->conn;
         gboolean progress = TRUE;
         GError *error = NULL;
 
-        while (nghttp2_session_want_read (io->session) && progress)
+        g_object_ref (conn);
+
+        while (progress && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && nghttp2_session_want_read (io->session))
                 progress = io_read (io, &error);
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
+                g_object_unref (conn);
                 return G_SOURCE_CONTINUE;
         }
 
+        if (error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io)
+                h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+
         g_clear_error (&error);
+        g_object_unref (conn);
 
         return G_SOURCE_REMOVE;
 }
