@@ -456,10 +456,17 @@ io_read (SoupClientMessageIOHTTP2  *io,
                                             blocking, cancellable, error)) < 0)
             return FALSE;
 
+        if (read == 0) {
+                g_set_error_literal (error, G_IO_ERROR,
+                                     G_IO_ERROR_PARTIAL_INPUT,
+                                     _("Connection terminated unexpectedly"));
+                return FALSE;
+        }
+
         g_warn_if_fail (io->in_callback == 0);
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
         NGCHECK (ret);
-        return ret != 0;
+        return ret > 0;
 }
 
 static gboolean
