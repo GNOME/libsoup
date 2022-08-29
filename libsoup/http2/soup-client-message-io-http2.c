@@ -1566,10 +1566,12 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
                 progress = io_run (data, cancellable, &my_error);
 
         if (my_error) {
-                g_propagate_error (error, my_error);
-                g_object_unref (msg);
-                return FALSE;
+                io->is_shutdown = TRUE;
+                set_io_error (io, my_error);
         }
+
+        if (io->error && !data->error)
+                data->error = g_error_copy (io->error);
 
 	if (data->error) {
                 g_propagate_error (error, g_steal_pointer (&data->error));
@@ -1707,7 +1709,7 @@ soup_client_message_io_http2_close_async (SoupClientMessageIO *iface,
 
         soup_client_message_io_http2_terminate_session (io);
         if (!io->async) {
-                g_assert (io->goaway_sent);
+                g_assert (io->goaway_sent || io->error);
                 return FALSE;
         }
 
