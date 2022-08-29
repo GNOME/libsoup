@@ -180,6 +180,11 @@ set_io_error (SoupClientMessageIOHTTP2 *io,
                 io->error = error;
         else
                 g_error_free (error);
+
+        if (io->close_task && !io->goaway_sent) {
+                g_task_return_boolean (io->close_task, TRUE);
+                g_clear_object (&io->close_task);
+        }
 }
 
 static void
