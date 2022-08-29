@@ -406,11 +406,25 @@ io_read (SoupServerMessageIOHTTP2 *io,
 {
         guint8 buffer[8192];
         gssize read;
+        int ret;
 
         if ((read = g_pollable_stream_read (io->istream, buffer, sizeof (buffer), FALSE, NULL, error)) < 0)
                 return FALSE;
 
-        return nghttp2_session_mem_recv (io->session, buffer, read) != 0;
+        if (read == 0) {
+                g_set_error_literal (error, G_IO_ERROR,
+                                     G_IO_ERROR_PARTIAL_INPUT,
+                                     _("Connection terminated unexpectedly"));
+                return FALSE;
+        }
+
+        ret = nghttp2_session_mem_recv (io->session, buffer, read);
+        if (ret < 0) {
+                g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP/2 IO error: %s", nghttp2_strerror (ret));
+                return FALSE;
+        }
+
+        return TRUE;
 }
 
 static gboolean
