@@ -2,8 +2,9 @@
  * Copyright 2022 Igalia, S.L.
  */
 
-#include "soup-http2-utils.h"
 #include <glib.h>
+
+#include "soup-http2-utils.h"
 
 const char *
 soup_http2_io_state_to_string (SoupHTTP2IOState state)
