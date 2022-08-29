@@ -398,7 +398,7 @@ io_write_ready (GObject                  *stream,
                 return G_SOURCE_REMOVE;
         }
 
-        while (nghttp2_session_want_write (io->session) && !error)
+        while (!error && nghttp2_session_want_write (io->session))
                 io_write (io, FALSE, NULL, &error);
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
@@ -426,7 +426,7 @@ io_try_write (SoupClientMessageIOHTTP2 *io,
                 if (blocking || !nghttp2_session_want_write (io->session))
                         return;
         } else {
-                while (nghttp2_session_want_write (io->session) && !error)
+                while (!error && nghttp2_session_want_write (io->session))
                         io_write (io, blocking, NULL, &error);
         }
 
@@ -480,7 +480,7 @@ io_read_ready (GObject                  *stream,
         if (io->conn)
                 soup_connection_set_in_use (io->conn, TRUE);
 
-        while (nghttp2_session_want_read (io->session) && progress) {
+        while (progress && nghttp2_session_want_read (io->session)) {
                 progress = io_read (io, FALSE, NULL, &error);
                 if (progress) {
                         g_list_foreach (io->pending_io_messages,
