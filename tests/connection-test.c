@@ -13,6 +13,7 @@
 
 static SoupServer *server;
 static GUri *base_uri;
+static GUri *base_https_uri;
 static GMutex server_mutex;
 
 static void
@@ -63,7 +64,6 @@ timeout_request_finished (SoupServer        *server,
                           gpointer           user_data)
 {
 	SoupServerConnection *conn;
-	GMainContext *context = g_main_context_get_thread_default ();
 	GIOStream *iostream;
 	GInputStream *istream;
 	GSource *source;
@@ -79,8 +79,6 @@ timeout_request_finished (SoupServer        *server,
 	g_source_unref (source);
 
 	g_mutex_unlock (&server_mutex);
-	while (soup_server_connection_is_connected (conn))
-		g_main_context_iteration (context, TRUE);
 }
 
 static void
@@ -261,13 +259,16 @@ request_queued_socket_collector (SoupSession *session,
 }
 
 static void
-do_timeout_test_for_session (SoupSession *session)
+do_timeout_test_for_base_uri (GUri *base_uri)
 {
+        SoupSession *session;
 	SoupMessage *msg;
 	GSocket *sockets[4] = { NULL, NULL, NULL, NULL };
 	GUri *timeout_uri;
 	int i;
 	GBytes *body;
+
+        session = soup_test_session_new (NULL);
 
 	g_signal_connect (session, "request-queued",
 			  G_CALLBACK (request_queued_socket_collector),
@@ -311,23 +312,24 @@ do_timeout_test_for_session (SoupSession *session)
 
 	for (i = 0; sockets[i]; i++)
 		g_object_unref (sockets[i]);
+
+        soup_test_session_abort_unref (session);
 }
 
 static void
 do_persistent_connection_timeout_test (void)
 {
-	SoupSession *session;
-
 	g_test_bug ("631525");
 
-	debug_printf (1, "  Normal session, message API\n");
-	session = soup_test_session_new (NULL);
-	do_timeout_test_for_session (session);
-	soup_test_session_abort_unref (session);
+        debug_printf (1, "  HTTP/1\n");
+        do_timeout_test_for_base_uri (base_uri);
+
+        debug_printf (1, "  HTTP/2\n");
+        do_timeout_test_for_base_uri (base_https_uri);
 }
 
 static void
-do_persistent_connection_timeout_test_with_cancellation (void)
+do_persistent_connection_timeout_test_with_cancellation_for_base_uri (GUri *base_uri)
 {
 	SoupSession *session;
 	SoupMessage *msg;
@@ -408,6 +410,16 @@ do_persistent_connection_timeout_test_with_cancellation (void)
 	g_object_unref (cancellable);
 
 	soup_test_session_abort_unref (session);
+}
+
+static void
+do_persistent_connection_timeout_test_with_cancellation (void)
+{
+        debug_printf (1, "  HTTP/1\n");
+        do_persistent_connection_timeout_test_with_cancellation_for_base_uri (base_uri);
+
+        debug_printf (1, "  HTTP/2\n");
+        do_persistent_connection_timeout_test_with_cancellation_for_base_uri (base_https_uri);
 }
 
 static GMainLoop *max_conns_loop;
@@ -1693,9 +1705,10 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 	apache_init ();
 
-	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
-	soup_server_add_handler (server, NULL, server_callback, "http", NULL);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD | SOUP_TEST_SERVER_HTTP2);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
+        base_https_uri = soup_test_server_get_uri (server, "https", NULL);
 
 	g_test_add_func ("/connection/content-length-framing", do_content_length_framing_test);
 	g_test_add_func ("/connection/persistent-connection-timeout", do_persistent_connection_timeout_test);

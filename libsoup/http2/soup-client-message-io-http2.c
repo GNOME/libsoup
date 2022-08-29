@@ -211,6 +211,21 @@ advance_state_from (SoupHTTP2MessageData *data,
         data->state = to;
 }
 
+static gboolean
+soup_http2_message_data_can_be_restarted (SoupHTTP2MessageData *data,
+                                          GError               *error)
+{
+        if (data->can_be_restarted)
+                return TRUE;
+
+        return data->state < STATE_READ_DATA_START &&
+                !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
+                !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
+                !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
+                error->domain != G_TLS_ERROR &&
+                SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (data->msg));
+}
+
 static void
 soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
 {
@@ -237,7 +252,7 @@ soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
         if (data->error) {
                 GError *error = g_steal_pointer (&data->error);
 
-                if (data->can_be_restarted)
+                if (soup_http2_message_data_can_be_restarted (data, error))
                         data->item->state = SOUP_MESSAGE_RESTARTING;
                 else
                         soup_message_set_metrics_timestamp (data->msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
@@ -924,7 +939,7 @@ on_stream_close_callback (nghttp2_session *session,
 
         switch (error_code) {
         case NGHTTP2_REFUSED_STREAM:
-                if (data->state < STATE_READ_DATA)
+                if (data->state < STATE_READ_DATA_START)
                         data->can_be_restarted = TRUE;
                 break;
         case NGHTTP2_HTTP_1_1_REQUIRED:
@@ -1601,18 +1616,21 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
+        GError *my_error = NULL;
 
-        if (io_run_until (io, msg, STATE_READ_DATA, cancellable, error))
+        if (io_run_until (io, msg, STATE_READ_DATA, cancellable, &my_error))
                 return TRUE;
 
         if (get_io_data (msg) == io) {
-                if (data->can_be_restarted)
+                if (soup_http2_message_data_can_be_restarted (data, my_error))
                         data->item->state = SOUP_MESSAGE_RESTARTING;
                 else
                         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
 
                 soup_client_message_io_http2_finished (iface, msg);
         }
+
+        g_propagate_error (error, my_error);
 
         return FALSE;
 }
