@@ -217,6 +217,7 @@ soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
         if (g_cancellable_set_error_if_cancelled (g_task_get_cancellable (task), &error)) {
                 io->pending_io_messages = g_list_remove (io->pending_io_messages, data);
                 data->task = NULL;
+                soup_client_message_io_http2_finished ((SoupClientMessageIO *)io, msg);
                 g_task_return_error (task, error);
                 g_object_unref (task);
                 return;
