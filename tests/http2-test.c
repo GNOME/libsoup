@@ -217,12 +217,8 @@ do_cancellation_test (Test *test, gconstpointer data)
         soup_session_send_and_read_async (test->session, msg, G_PRIORITY_DEFAULT, cancellable,
                                           (GAsyncReadyCallback)on_send_and_read_cancelled_complete, &done);
 
-        /* Just iterate until a partial read is happening */
-        for (guint i = 100000; i; i--)
-                g_main_context_iteration (async_context, FALSE);
-
-        /* Then cancel everything */
-        g_cancellable_cancel (cancellable);
+        /* Cancel right after getting the headers */
+        g_signal_connect_swapped (msg, "got-headers", G_CALLBACK (g_cancellable_cancel), cancellable);
 
         while (!done)
                 g_main_context_iteration (async_context, FALSE);
