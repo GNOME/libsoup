@@ -66,6 +66,8 @@ typedef struct {
         gpointer started_user_data;
 
         GHashTable *messages;
+
+        guint in_callback;
 } SoupServerMessageIOHTTP2;
 
 static void soup_server_message_io_http2_send_response (SoupServerMessageIOHTTP2 *io,
@@ -324,6 +326,7 @@ io_write (SoupServerMessageIOHTTP2 *io,
 
         if (io->write_buffer == NULL) {
                 io->written_bytes = 0;
+                g_assert (io->in_callback == 0);
                 io->write_buffer_size = nghttp2_session_mem_send (io->session, (const guint8**)&io->write_buffer);
                 if (io->write_buffer_size == 0) {
                         /* Done */
@@ -382,10 +385,10 @@ io_try_write (SoupServerMessageIOHTTP2 *io)
 
         g_object_ref (conn);
 
-        while (!error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && nghttp2_session_want_write (io->session))
+        while (!error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && !io->in_callback && nghttp2_session_want_write (io->session))
                 io_write (io, &error);
 
-        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+        if (io->in_callback || g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
                 io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
                 g_source_set_name (io->write_source, "Soup server HTTP/2 write source");
@@ -418,6 +421,7 @@ io_read (SoupServerMessageIOHTTP2 *io,
                 return FALSE;
         }
 
+        g_assert (io->in_callback == 0);
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
         if (ret < 0) {
                 g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP/2 IO error: %s", nghttp2_strerror (ret));
@@ -496,6 +500,8 @@ on_begin_headers_callback (nghttp2_session     *session,
         if (frame->hd.type != NGHTTP2_HEADERS || frame->headers.cat != NGHTTP2_HCAT_REQUEST)
                 return 0;
 
+        io->in_callback++;
+
         msg_io = soup_server_message_io_http2_get_or_create_msg_io (io, frame->hd.stream_id);
         h2_debug (io, msg_io, "[SESSION] Message IO created");
 
@@ -505,6 +511,8 @@ on_begin_headers_callback (nghttp2_session     *session,
                 io->started_cb (msg_io->msg, io->started_user_data);
 
         advance_state_from (msg_io, STATE_NONE, STATE_READ_HEADERS);
+
+        io->in_callback--;
 
         return 0;
 }
@@ -519,6 +527,7 @@ on_header_callback (nghttp2_session     *session,
                     uint8_t              flags,
                     void                *user_data)
 {
+        SoupServerMessageIOHTTP2 *io = (SoupServerMessageIOHTTP2 *)user_data;
         SoupMessageIOHTTP2 *msg_io;
         SoupServerMessage *msg;
 
@@ -532,6 +541,8 @@ on_header_callback (nghttp2_session     *session,
         if (!msg_io)
                 return 0;
 
+        io->in_callback++;
+
         msg = msg_io->msg;
         if (name[0] == ':') {
                 if (strcmp ((char *)name, ":method") == 0)
@@ -544,11 +555,14 @@ on_header_callback (nghttp2_session     *session,
                         msg_io->path = g_strndup ((char *)value, valuelen);
                 else
                         g_debug ("Unknown header: %s = %s", name, value);
+                io->in_callback--;
                 return 0;
         }
 
         soup_message_headers_append_untrusted_data (soup_server_message_get_request_headers (msg),
                                                     (const char*)name, (const char*)value);
+
+        io->in_callback--;
         return 0;
 }
 
@@ -560,6 +574,7 @@ on_data_chunk_recv_callback (nghttp2_session *session,
                              size_t           len,
                              void            *user_data)
 {
+        SoupServerMessageIOHTTP2 *io = (SoupServerMessageIOHTTP2 *)user_data;
         SoupMessageIOHTTP2 *msg_io;
         GBytes *bytes;
 
@@ -569,10 +584,14 @@ on_data_chunk_recv_callback (nghttp2_session *session,
 
         h2_debug (user_data, msg_io, "[DATA] Received chunk, len=%zu, flags=%u, paused=%d", len, flags, msg_io->paused);
 
+        io->in_callback++;
+
         bytes = g_bytes_new (data, len);
         soup_message_body_got_chunk (soup_server_message_get_request_body (msg_io->msg), bytes);
         soup_server_message_got_chunk (msg_io->msg, bytes);
         g_bytes_unref (bytes);
+
+        io->in_callback--;
 
         return 0;
 }
@@ -586,9 +605,12 @@ on_data_source_read_callback (nghttp2_session     *session,
                               nghttp2_data_source *source,
                               void                *user_data)
 {
+        SoupServerMessageIOHTTP2 *io = (SoupServerMessageIOHTTP2 *)user_data;
         SoupMessageIOHTTP2 *msg_io;
         gsize bytes_written = 0;
         SoupMessageBody *response_body = (SoupMessageBody *)source->ptr;
+
+        io->in_callback++;
 
         msg_io = nghttp2_session_get_stream_user_data (session, stream_id);
 
@@ -624,6 +646,8 @@ on_data_source_read_callback (nghttp2_session     *session,
                 h2_debug (user_data, msg_io, "[SEND_BODY] EOF");
                 *data_flags |= NGHTTP2_DATA_FLAG_EOF;
         }
+
+        io->in_callback--;
 
         return bytes_written;
 }
@@ -689,6 +713,8 @@ on_frame_recv_callback (nghttp2_session     *session,
         if (!msg_io)
                 return 0;
 
+        io->in_callback++;
+
         switch (frame->hd.type) {
         case NGHTTP2_HEADERS: {
                 char *uri_string;
@@ -707,6 +733,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         case NGHTTP2_DATA:
                 break;
         default:
+                io->in_callback--;
                 return 0;
         }
 
@@ -716,6 +743,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                 soup_server_message_io_http2_send_response (io, msg_io);
         }
 
+        io->in_callback--;
         return 0;
 }
 
@@ -724,7 +752,10 @@ on_frame_send_callback (nghttp2_session     *session,
                         const nghttp2_frame *frame,
                         void                *user_data)
 {
+        SoupServerMessageIOHTTP2 *io = (SoupServerMessageIOHTTP2 *)user_data;
         SoupMessageIOHTTP2 *msg_io;
+
+        io->in_callback++;
 
         msg_io = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
 
@@ -747,6 +778,7 @@ on_frame_send_callback (nghttp2_session     *session,
                 break;
         }
 
+        io->in_callback--;
         return 0;
 }
 
@@ -756,6 +788,7 @@ on_stream_close_callback (nghttp2_session *session,
                           uint32_t         error_code,
                           void            *user_data)
 {
+        SoupServerMessageIOHTTP2 *io = (SoupServerMessageIOHTTP2 *)user_data;
         SoupMessageIOHTTP2 *msg_io;
 
         msg_io = nghttp2_session_get_stream_user_data (session, stream_id);
@@ -763,9 +796,12 @@ on_stream_close_callback (nghttp2_session *session,
         if (!msg_io)
                 return 0;
 
+        io->in_callback++;
+
         if (!msg_io->paused)
                 soup_server_message_finish (msg_io->msg);
 
+        io->in_callback--;
         return 0;
 }
 
