@@ -1336,6 +1336,7 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 	SoupMessageIOCompletionFn completion_cb;
 	gpointer completion_data;
         SoupMessageIOCompletion completion;
+        gboolean is_closed;
 
         data = get_data_for_message (io, msg);
 
@@ -1348,9 +1349,10 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
 	g_object_ref (msg);
 
+        is_closed = nghttp2_session_get_stream_user_data (io->session, data->stream_id) == NULL;
         nghttp2_session_set_stream_user_data (io->session, data->stream_id, NULL);
 
-        if (!io->is_shutdown) {
+        if (!io->is_shutdown && !is_closed) {
                 SoupConnection *conn;
 
                 NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id,
