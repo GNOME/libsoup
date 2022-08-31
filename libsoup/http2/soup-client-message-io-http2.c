@@ -373,6 +373,8 @@ io_try_write (SoupClientMessageIOHTTP2 *io,
                 g_clear_error (&error);
                 io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
                 g_source_set_name (io->write_source, "Soup HTTP/2 write source");
+                /* Give write more priority than read */
+                g_source_set_priority (io->write_source, G_PRIORITY_DEFAULT - 1);
                 g_source_set_callback (io->write_source, (GSourceFunc)io_write_ready, io, NULL);
                 g_source_attach (io->write_source, g_main_context_get_thread_default ());
         }
@@ -390,6 +392,9 @@ io_read (SoupClientMessageIOHTTP2  *io,
         guint8 buffer[8192];
         gssize read;
         int ret;
+
+        /* Always try to write before read, in case there's a pending reset stream after an error. */
+        io_try_write (io, blocking);
 
         if ((read = g_pollable_stream_read (io->istream, buffer, sizeof (buffer),
                                             blocking, cancellable, error)) < 0)
@@ -1723,6 +1728,7 @@ soup_client_message_io_http2_set_owner (SoupClientMessageIOHTTP2 *io,
 
         io->read_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), NULL);
         g_source_set_name (io->read_source, "Soup HTTP/2 read source");
+        g_source_set_priority (io->read_source, G_PRIORITY_DEFAULT);
         g_source_set_callback (io->read_source, (GSourceFunc)io_read_ready, io, NULL);
         g_source_attach (io->read_source, g_main_context_get_thread_default ());
 }
