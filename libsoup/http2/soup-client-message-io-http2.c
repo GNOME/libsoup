@@ -116,6 +116,7 @@ typedef struct {
         gpointer completion_data;
         SoupHTTP2IOState state;
         GError *error;
+        uint32_t http2_error;
         gboolean paused;
         guint32 stream_id;
         gboolean can_be_restarted;
@@ -268,6 +269,20 @@ set_error_for_data (SoupHTTP2MessageData *data,
 }
 
 static void
+set_http2_error_for_data (SoupHTTP2MessageData *data,
+                          uint32_t              error_code)
+{
+        h2_debug (data->io, data, "[SESSION] Error: %s", nghttp2_http2_strerror (error_code));
+
+        if (data->error)
+                return;
+
+        data->http2_error = error_code;
+        data->error = g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED,
+                                   "HTTP/2 Error: %s", nghttp2_http2_strerror (error_code));
+}
+
+static void
 set_io_error (SoupClientMessageIOHTTP2 *io,
               GError                   *error)
 {
@@ -320,6 +335,7 @@ soup_http2_message_data_can_be_restarted (SoupHTTP2MessageData *data,
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
                 error->domain != G_TLS_ERROR &&
+                data->http2_error == NGHTTP2_NO_ERROR &&
                 SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (data->msg));
 }
 
@@ -691,8 +707,7 @@ handle_goaway (SoupClientMessageIOHTTP2 *io,
                 if ((error_code == 0 && (int32_t)data->stream_id > last_stream_id) ||
                      data->state < STATE_READ_DONE) {
                         /* TODO: We can restart unfinished messages */
-                        set_error_for_data (data, g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED,
-                                            "HTTP/2 Error: %s", nghttp2_http2_strerror (error_code)));
+                        set_http2_error_for_data (data, error_code);
                 }
         }
 }
@@ -806,10 +821,8 @@ on_frame_recv_callback (nghttp2_session     *session,
                 }
                 break;
         case NGHTTP2_RST_STREAM:
-                if (frame->rst_stream.error_code != NGHTTP2_NO_ERROR) {
-                        set_error_for_data (data, g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
-                                                                       nghttp2_http2_strerror (frame->rst_stream.error_code)));
-                }
+                if (frame->rst_stream.error_code != NGHTTP2_NO_ERROR)
+                        set_http2_error_for_data (data, frame->rst_stream.error_code);
                 break;
         case NGHTTP2_WINDOW_UPDATE:
                 h2_debug (io, data, "[RECV] WINDOW_UPDATE: increment=%d, total=%d", frame->window_update.window_size_increment,
@@ -993,6 +1006,8 @@ on_stream_close_callback (nghttp2_session *session,
         data->io->in_callback++;
 
         switch (error_code) {
+        case NGHTTP2_NO_ERROR:
+                break;
         case NGHTTP2_REFUSED_STREAM:
                 if (data->state < STATE_READ_DATA_START)
                         data->can_be_restarted = TRUE;
@@ -1000,6 +1015,9 @@ on_stream_close_callback (nghttp2_session *session,
         case NGHTTP2_HTTP_1_1_REQUIRED:
                 soup_message_set_force_http_version (data->item->msg, SOUP_HTTP_1_1);
                 data->can_be_restarted = TRUE;
+                break;
+        default:
+                set_http2_error_for_data (data, error_code);
                 break;
         }
 
