@@ -20,6 +20,7 @@
 #include "test-utils.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
+#include "soup-message-headers-private.h"
 #include "soup-server-message-private.h"
 #include "soup-body-input-stream-http2.h"
 
@@ -961,6 +962,31 @@ do_invalid_header_test (Test *test, gconstpointer data)
 }
 
 static void
+do_invalid_header_received_test (Test *test, gconstpointer data)
+{
+        gboolean async = GPOINTER_TO_INT (data);
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
+        GError *error = NULL;
+
+        uri = g_uri_parse_relative (base_uri, "/invalid-header", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+
+        if (async)
+                response = soup_test_session_async_send (test->session, msg, NULL, &error);
+        else
+                response = soup_session_send_and_read (test->session, msg, NULL, &error);
+
+        g_assert_null (response);
+        g_error_matches (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+        g_assert_cmpstr (error->message, ==, "HTTP/2 Error: PROTOCOL_ERROR");
+        g_clear_error (&error);
+        g_uri_unref (uri);
+        g_object_unref (msg);
+}
+
+static void
 content_sniffed (SoupMessage *msg,
                  char        *content_type,
                  GHashTable  *params)
@@ -1178,6 +1204,13 @@ server_handler (SoupServer        *server,
                 soup_server_message_set_response (msg, "text/plain",
                                                   SOUP_MEMORY_STATIC,
                                                   "Authenticated", 13);
+        } else if (strcmp (path, "/invalid-header") == 0) {
+                SoupMessageHeaders *response_headers;
+
+                response_headers = soup_server_message_get_response_headers (msg);
+                /* Use soup_message_headers_append_common to skip the validation check. */
+                soup_message_headers_append_common (response_headers, SOUP_HEADER_CONTENT_TYPE, "\r");
+                soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
         }
 }
 
@@ -1304,6 +1337,14 @@ main (int argc, char **argv)
         g_test_add ("/http2/invalid-header", Test, NULL,
                     setup_session,
                     do_invalid_header_test,
+                    teardown_session);
+        g_test_add ("/http2/invalid-header-received/async", Test, GINT_TO_POINTER (TRUE),
+                    setup_session,
+                    do_invalid_header_received_test,
+                    teardown_session);
+        g_test_add ("/http2/invalid-header-received/sync", Test, GINT_TO_POINTER (FALSE),
+                    setup_session,
+                    do_invalid_header_received_test,
                     teardown_session);
         g_test_add ("/http2/sniffer/async", Test, NULL,
                     setup_session,
