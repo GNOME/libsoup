@@ -1,3 +1,9 @@
+Changes in libsoup from 3.1.3 to 3.1.4:
+
+* Numerous improvements to HTTP/2 reliablity [Carlos Garcia Campos]
+* Fix `http` proxy authentication with default proxy resolver [Carlos Garcia Campos]
+* Fix undefined ``ssize_t`` with MSVC [Patrick Griffis]
+
 Changes in libsoup from 3.1.2 to 3.1.3:
 
 * Fix compile error when `SOUP_VERSION_MAX_ALLOWED` is defined [Patrick Griffis]
