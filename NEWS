@@ -1,3 +1,8 @@
+Changes in libsoup from 3.0.7 to 3.0.8:
+
+* Fix `http` proxy authentication with default proxy resolver [Carlos Garcia Campos]
+* Numerous improvments to HTTP/2 reliability [Carlos Garcia Campos]
+
 Changes in libsoup from 3.0.6 to 3.0.7:
 
 * Fix leak in SoupAuthNTLM [Milan Crha]
