@@ -567,7 +567,7 @@ on_begin_frame_callback (nghttp2_session        *session,
 {
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, hd->stream_id);
 
-        h2_debug (user_data, data, "[RECV] [%s] Beginning", soup_http2_frame_type_to_string (hd->type));
+        h2_debug (user_data, data, "[RECV] [%s] Beginning: stream_id=%u", soup_http2_frame_type_to_string (hd->type), hd->stream_id);
 
         if (!data)
                 return 0;
@@ -637,7 +637,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         io->in_callback++;
 
         if (frame->hd.stream_id == 0) {
-                h2_debug (io, NULL, "[RECV] [%s] Received (%u)", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.flags);
+                h2_debug (io, NULL, "[RECV] [%s] Received: stream_id=%u, flags=%u", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.stream_id, frame->hd.flags);
 
                 switch (frame->hd.type) {
                 case NGHTTP2_GOAWAY:
@@ -660,11 +660,10 @@ on_frame_recv_callback (nghttp2_session     *session,
         }
 
         data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
-        h2_debug (io, data, "[RECV] [%s] Received (%u)", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.flags);
+        h2_debug (io, data, "[RECV] [%s] Received: stream_id=%u, flags=%u", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.stream_id, frame->hd.flags);
 
         if (!data) {
-                if (!(frame->hd.flags & NGHTTP2_FLAG_END_STREAM) && frame->hd.type != NGHTTP2_RST_STREAM)
-                        g_warn_if_reached ();
+                /* This can happen in case of cancellation */
                 io->in_callback--;
                 return 0;
         }
@@ -761,12 +760,14 @@ on_data_chunk_recv_callback (nghttp2_session *session,
         SoupClientMessageIOHTTP2 *io = user_data;
         SoupHTTP2MessageData *msgdata = nghttp2_session_get_stream_user_data (session, stream_id);
 
-        if (!msgdata)
-                return NGHTTP2_ERR_CALLBACK_FAILURE;
+        h2_debug (io, msgdata, "[DATA] Received chunk, stream_id=%u len=%zu, flags=%u, paused=%d", stream_id, len, flags, msgdata ? msgdata->paused : 0);
+
+        if (!msgdata) {
+                /* This can happen in case of cancellation */
+                return 0;
+        }
 
         io->in_callback++;
-
-        h2_debug (io, msgdata, "[DATA] Received chunk, len=%zu, flags=%u, paused=%d", len, flags, msgdata->paused);
 
         g_assert (msgdata->body_istream != NULL);
         soup_body_input_stream_http2_add_data (SOUP_BODY_INPUT_STREAM_HTTP2 (msgdata->body_istream), data, len);
@@ -830,10 +831,15 @@ on_frame_send_callback (nghttp2_session     *session,
 
         switch (frame->hd.type) {
         case NGHTTP2_HEADERS:
-                g_assert (data);
-                h2_debug (io, data, "[SEND] [HEADERS] category=%s finished=%d",
-                          soup_http2_headers_category_to_string (frame->headers.cat),
+                h2_debug (io, data, "[SEND] [HEADERS] stream_id=%u, category=%s finished=%d",
+                          frame->hd.stream_id, soup_http2_headers_category_to_string (frame->headers.cat),
                           (frame->hd.flags & NGHTTP2_FLAG_END_HEADERS) ? 1 : 0);
+
+                if (!data) {
+                        /* This can happen in case of cancellation */
+                        io->in_callback--;
+                        return 0;
+                }
 
                 if (data->metrics)
                         data->metrics->request_header_bytes_sent += frame->hd.length + FRAME_HEADER_SIZE;
@@ -847,12 +853,17 @@ on_frame_send_callback (nghttp2_session     *session,
                 }
                 break;
         case NGHTTP2_DATA:
-                g_assert (data);
+                if (!data) {
+                        /* This can happen in case of cancellation */
+                        io->in_callback--;
+                        return 0;
+                }
+
                 if (data->state < STATE_WRITE_DATA)
                         advance_state_from (data, STATE_WRITE_HEADERS, STATE_WRITE_DATA);
 
-                h2_debug (io, data, "[SEND] [DATA] bytes=%zu, finished=%d",
-                          frame->data.hd.length, frame->hd.flags & NGHTTP2_FLAG_END_STREAM);
+                h2_debug (io, data, "[SEND] [DATA] stream_id=%u, bytes=%zu, finished=%d",
+                          frame->hd.stream_id, frame->data.hd.length, frame->hd.flags & NGHTTP2_FLAG_END_STREAM);
                 if (data->metrics) {
                         data->metrics->request_body_bytes_sent += frame->hd.length + FRAME_HEADER_SIZE;
                         data->metrics->request_body_size += frame->data.hd.length;
@@ -891,7 +902,7 @@ on_frame_send_callback (nghttp2_session     *session,
                 }
                 break;
         default:
-                h2_debug (io, data, "[SEND] [%s]", soup_http2_frame_type_to_string (frame->hd.type));
+                h2_debug (io, data, "[SEND] [%s] stream_id=%u", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.stream_id);
                 break;
         }
 
@@ -932,8 +943,8 @@ on_frame_not_send_callback (nghttp2_session     *session,
         SoupClientMessageIOHTTP2 *io = user_data;
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
 
-        h2_debug (io, data, "[SEND] [%s] Failed: %s", soup_http2_frame_type_to_string (frame->hd.type),
-                  nghttp2_strerror (lib_error_code));
+        h2_debug (io, data, "[SEND] [%s] Failed stream %u: %s", soup_http2_frame_type_to_string (frame->hd.type),
+                  frame->hd.stream_id, nghttp2_strerror (lib_error_code));
 
         if (lib_error_code == NGHTTP2_ERR_SESSION_CLOSING)
                 process_pending_closed_messages (io);
@@ -949,7 +960,7 @@ on_stream_close_callback (nghttp2_session *session,
 {
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
 
-        h2_debug (user_data, data, "[SESSION] Closed: %s", nghttp2_http2_strerror (error_code));
+        h2_debug (user_data, data, "[SESSION] Closed stream %u: %s", stream_id, nghttp2_http2_strerror (error_code));
         if (!data)
                 return 0;
 
@@ -1392,7 +1403,7 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
         completion = data->state < STATE_READ_DONE ? SOUP_MESSAGE_IO_INTERRUPTED : SOUP_MESSAGE_IO_COMPLETE;
 
-        h2_debug (io, data, "Finished: %s", completion == SOUP_MESSAGE_IO_COMPLETE ? "completed" : "interrupted");
+        h2_debug (io, data, "Finished stream %u: %s", data->stream_id, completion == SOUP_MESSAGE_IO_COMPLETE ? "completed" : "interrupted");
 
 	completion_cb = data->completion_cb;
 	completion_data = data->completion_data;
