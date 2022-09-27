@@ -35,7 +35,7 @@ server_callback (SoupServer        *server,
 	const char *method = soup_server_message_get_method (msg);
 	GUri *uri = soup_server_message_get_uri (msg);
 
-	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST) {
+	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_POST && method != SOUP_METHOD_PUT) {
 		soup_server_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED, NULL);
 		return;
 	}
@@ -44,6 +44,25 @@ server_callback (SoupServer        *server,
 		soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
 		return;
 	}
+
+        if (!strcmp (path, "/session")) {
+                SoupMessageHeaders *request_headers;
+                const char *session_id;
+
+                request_headers = soup_server_message_get_request_headers (msg);
+                session_id = soup_message_headers_get_one (request_headers, "X-SoupTest-Session-Id");
+                if (!session_id) {
+                        SoupMessageHeaders *response_headers;
+
+                        response_headers = soup_server_message_get_response_headers (msg);
+                        soup_message_headers_replace (response_headers, "X-SoupTest-Session-Id", "session-1");
+                        soup_server_message_set_status (msg, SOUP_STATUS_CONFLICT, NULL);
+                } else {
+                        soup_server_message_set_status (msg, SOUP_STATUS_CREATED, NULL);
+                }
+
+                return;
+        }
 
 	if (!strcmp (path, "/slow")) {
                 GSource *timeout;
@@ -868,6 +887,141 @@ do_new_request_on_redirect_test (void)
         soup_test_session_abort_unref (session);
 }
 
+typedef struct {
+        SoupSession *session;
+        GCancellable *cancellable;
+        GBytes *body;
+        guint64 connections[2];
+        gboolean done;
+} ConflictTestData;
+
+static void
+conflict_test_send_ready_cb (SoupSession      *session,
+                             GAsyncResult     *result,
+                             ConflictTestData *data)
+{
+        GInputStream *stream;
+        SoupMessage *msg = soup_session_get_async_result_message (session, result);
+        GError *error = NULL;
+
+        stream = soup_session_send_finish (session, result, &error);
+        if (stream) {
+                guint status = soup_message_get_status (msg);
+
+                soup_test_request_read_all (stream, NULL, NULL);
+                g_object_unref (stream);
+
+                if (status != SOUP_STATUS_CONFLICT) {
+                        g_assert_cmpuint (status, ==, SOUP_STATUS_CREATED);
+                        data->connections[1] = soup_message_get_connection_id (msg);
+                        data->done = TRUE;
+                }
+        } else {
+                g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+                g_error_free (error);
+        }
+}
+
+static void
+conflict_test_on_conflict_cb (SoupMessage      *msg,
+                              ConflictTestData *data)
+{
+        SoupMessageHeaders *response_headers;
+        SoupMessageHeaders *request_headers;
+        const gchar *session_id;
+        SoupMessage *new_msg;
+
+        g_cancellable_cancel (data->cancellable);
+        g_clear_object (&data->cancellable);
+
+        data->connections[0] = soup_message_get_connection_id (msg);
+        response_headers = soup_message_get_response_headers (msg);
+        session_id = soup_message_headers_get_one (response_headers, "X-SoupTest-Session-Id");
+        new_msg = soup_message_new_from_uri (SOUP_METHOD_PUT, soup_message_get_uri (msg));
+        request_headers = soup_message_get_request_headers (new_msg);
+        soup_message_headers_replace (request_headers, "X-SoupTest-Session-Id", session_id);
+
+        data->cancellable = g_cancellable_new ();
+        soup_message_set_request_body_from_bytes (new_msg, "text/plain", data->body);
+        soup_session_send_async (data->session, new_msg, G_PRIORITY_DEFAULT, data->cancellable,
+                                 (GAsyncReadyCallback)conflict_test_send_ready_cb, data);
+        g_object_unref (new_msg);
+}
+
+static void
+conflict_test_on_got_body_cb (SoupMessage      *msg,
+                              ConflictTestData *data)
+{
+        if (soup_message_get_status (msg) == SOUP_STATUS_CONFLICT)
+                conflict_test_on_conflict_cb (msg, data);
+}
+
+static void
+do_new_request_on_conflict_test (void)
+{
+        GUri *uri;
+        SoupMessage *msg;
+        ConflictTestData data;
+        static const char *body = "conflict test body";
+
+        data.session = soup_test_session_new (NULL);
+        data.cancellable = g_cancellable_new ();
+        data.body = g_bytes_new_static (body, strlen (body));
+        data.connections[0] = data.connections[1] = 0;
+        data.done = FALSE;
+
+        /* First try with restarting on got-headers */
+        uri = g_uri_parse_relative (base_uri, "/session", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_PUT, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", data.body);
+        soup_message_add_status_code_handler (msg, "got-headers", SOUP_STATUS_CONFLICT,
+                                              G_CALLBACK (conflict_test_on_conflict_cb),
+                                              &data);
+        soup_session_send_async (data.session, msg, G_PRIORITY_DEFAULT, data.cancellable,
+                                 (GAsyncReadyCallback)conflict_test_send_ready_cb, &data);
+
+        while (!data.done)
+                g_main_context_iteration (NULL, TRUE);
+
+        g_assert_cmpuint (data.connections[0], >, 0);
+        g_assert_cmpuint (data.connections[1], >, 0);
+        g_assert_cmpuint (data.connections[0], !=, data.connections[1]);
+
+        g_object_unref (msg);
+        g_object_unref (data.cancellable);
+
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+
+        data.cancellable = g_cancellable_new ();
+        data.connections[0] = data.connections[1] = 0;
+        data.done = FALSE;
+
+        /* Now try with the restarting on got-body */
+        msg = soup_message_new_from_uri (SOUP_METHOD_PUT, uri);
+        soup_message_set_request_body_from_bytes (msg, "text/plain", data.body);
+        g_signal_connect (msg, "got-body", G_CALLBACK (conflict_test_on_got_body_cb), &data);
+        soup_session_send_async (data.session, msg, G_PRIORITY_DEFAULT, data.cancellable,
+                                 (GAsyncReadyCallback)conflict_test_send_ready_cb, &data);
+
+        while (!data.done)
+                g_main_context_iteration (NULL, TRUE);
+
+        g_assert_cmpuint (data.connections[0], >, 0);
+        g_assert_cmpuint (data.connections[1], >, 0);
+        g_assert_cmpuint (data.connections[0], ==, data.connections[1]);
+
+        g_object_unref (msg);
+        g_object_unref (data.cancellable);
+
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+
+        g_uri_unref (uri);
+        g_bytes_unref (data.body);
+        soup_test_session_abort_unref (data.session);
+}
+
 static void
 wrote_informational_check_content_length (SoupServerMessage *msg,
                                           gpointer           user_data)
@@ -1003,6 +1157,7 @@ main (int argc, char **argv)
         g_test_add_func ("/misc/connection-id", do_connection_id_test);
         g_test_add_func ("/misc/remote-address", do_remote_address_test);
         g_test_add_func ("/misc/new-request-on-redirect", do_new_request_on_redirect_test);
+        g_test_add_func ("/misc/new-request-on-conflict", do_new_request_on_conflict_test);
         g_test_add_func ("/misc/response/informational/content-length", do_response_informational_content_length_test);
         g_test_add_func ("/misc/invalid-utf8-headers", do_invalid_utf8_headers_test);
 
