@@ -440,11 +440,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * SoupMessage::got-body:
 	 * @msg: the message
 	 *
-	 * Emitted after receiving the complete message request body.
-	 *
-	 * See also [method@Message.add_header_handler] and
-	 * [method@Message.add_status_code_handler], which can be used
-	 * to connect to a subset of emissions of this signal.
+	 * Emitted after receiving the complete message response body.
 	 **/
 	signals[GOT_BODY] =
 		g_signal_new ("got-body",
