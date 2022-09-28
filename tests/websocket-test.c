@@ -907,6 +907,11 @@ test_protocol_client_any_soup (Test *test,
 	g_assert_cmpstr (soup_message_headers_get_one (soup_message_get_response_headers (test->msg), "Sec-WebSocket-Protocol"), ==, NULL);
 }
 
+typedef enum {
+        CLOSE_TEST_FLAG_SERVER = 1 << 0,
+        CLOSE_TEST_FLAG_CLIENT = 1 << 1
+} CloseTestFlags;
+
 static const struct {
 	gushort code;
 	const char *reason;
@@ -914,11 +919,16 @@ static const struct {
 	const char *expected_sender_reason;
 	gushort expected_receiver_code;
 	const char *expected_receiver_reason;
+        CloseTestFlags flags;
 } close_clean_tests[] = {
-	{ SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL", SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL", SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL" },
-	{ SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY", SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY", SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY" },
-	{ SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL },
-	{ SOUP_WEBSOCKET_CLOSE_NO_STATUS, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NO_STATUS, NULL },
+	{ SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL", SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL", SOUP_WEBSOCKET_CLOSE_NORMAL, "NORMAL", CLOSE_TEST_FLAG_SERVER | CLOSE_TEST_FLAG_CLIENT },
+	{ SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY", SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY", SOUP_WEBSOCKET_CLOSE_GOING_AWAY, "GOING_AWAY", CLOSE_TEST_FLAG_SERVER | CLOSE_TEST_FLAG_CLIENT },
+	{ SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, CLOSE_TEST_FLAG_SERVER | CLOSE_TEST_FLAG_CLIENT },
+	{ SOUP_WEBSOCKET_CLOSE_NO_STATUS, NULL, SOUP_WEBSOCKET_CLOSE_NORMAL, NULL, SOUP_WEBSOCKET_CLOSE_NO_STATUS, NULL, CLOSE_TEST_FLAG_SERVER | CLOSE_TEST_FLAG_CLIENT },
+        { 2999, NULL, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR, NULL, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR, NULL, CLOSE_TEST_FLAG_CLIENT },
+        { 2999, NULL, 0, NULL, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR, NULL, CLOSE_TEST_FLAG_SERVER },
+        { 5000, NULL, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR, NULL, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR, NULL, CLOSE_TEST_FLAG_CLIENT },
+        { 5000, NULL, 0, NULL, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR, NULL, CLOSE_TEST_FLAG_SERVER },
 };
 
 static void
@@ -958,6 +968,9 @@ test_close_clean_client_soup (Test *test,
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+                if (!(close_clean_tests[i].flags & CLOSE_TEST_FLAG_CLIENT))
+                        continue;
+
 		setup_soup_connection (test, data);
 
 		do_close_clean_client (test,
@@ -979,6 +992,9 @@ test_close_clean_client_direct (Test *test,
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+                if (!(close_clean_tests[i].flags & CLOSE_TEST_FLAG_CLIENT))
+                        continue;
+
 		setup_direct_connection (test, data);
 
 		do_close_clean_client (test,
@@ -1030,6 +1046,9 @@ test_close_clean_server_soup (Test *test,
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+                if (!(close_clean_tests[i].flags & CLOSE_TEST_FLAG_SERVER))
+                        continue;
+
 		setup_direct_connection (test, data);
 
 		do_close_clean_server (test,
@@ -1051,6 +1070,9 @@ test_close_clean_server_direct (Test *test,
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (close_clean_tests); i++) {
+                if (!(close_clean_tests[i].flags & CLOSE_TEST_FLAG_SERVER))
+                        continue;
+
 		setup_direct_connection (test, data);
 
 		do_close_clean_server (test,

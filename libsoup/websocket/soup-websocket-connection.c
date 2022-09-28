@@ -719,7 +719,7 @@ close_connection (SoupWebsocketConnection *self,
 		code = 0;
 		break;
 	default:
-		if (code < 3000) {
+		if (code < 3000 || code >= 5000) {
 			g_debug ("Wrong closing code %d received", code);
 			protocol_error_and_close (self);
 			return;
@@ -765,6 +765,18 @@ receive_close (SoupWebsocketConnection *self,
 		priv->peer_close_code = (guint16)data[0] << 8 | data[1];
 		break;
 	}
+
+        /* 1005, 1006 and 1015 are reserved values and MUST NOT be set as a status code in a Close control frame by an endpoint */
+        switch (priv->peer_close_code) {
+        case SOUP_WEBSOCKET_CLOSE_NO_STATUS:
+        case SOUP_WEBSOCKET_CLOSE_ABNORMAL:
+        case SOUP_WEBSOCKET_CLOSE_TLS_HANDSHAKE:
+                g_debug ("received a broken close frame containing reserved status code %u", priv->peer_close_code);
+                protocol_error_and_close (self);
+                return;
+        default:
+                break;
+        }
 
 	if (len > 2) {
 		data += 2;
