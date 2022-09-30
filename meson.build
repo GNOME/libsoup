@@ -1,5 +1,5 @@
 project('libsoup', 'c',
-        version: '3.2.0',
+        version: '3.3.0',
         meson_version : '>= 0.54',
         license : 'LGPL-2.0-or-later',
         default_options : [
@@ -18,7 +18,7 @@ soup_version = meson.project_version()
 # - If binary compatibility has been broken (eg removed or changed interfaces)
 #   change to [C+1, 0, 0]
 # - If the interface is the same as the previous version, use [C, R+1, A].
-soup_version_info = [6, 0, 6]
+soup_version_info = [7, 0, 7]
 
 # Turn [C, R, A] into an actual usable *soversion*.
 soup_soversion_major = soup_version_info[0] - soup_version_info[2] # Current-Age
