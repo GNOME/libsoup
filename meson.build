@@ -110,7 +110,12 @@ gio_dep = dependency('gio-2.0', version : glib_required_version,
 
 glib_deps = [glib_dep, gmodule_dep, gobject_dep, gio_dep]
 
+cdata = configuration_data()
+
 libnghttp2_dep = dependency('libnghttp2')
+if cc.has_function('nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation', prefix : '#include <nghttp2/nghttp2.h>', dependencies : libnghttp2_dep)
+    cdata.set('HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION', '1')
+endif
 
 sqlite_dep = dependency('sqlite3', required: false)
 
@@ -125,8 +130,6 @@ if not sqlite_dep.found()
   # Allows fallback to subproject
   sqlite_dep = dependency('sqlite3')
 endif
-
-cdata = configuration_data()
 
 brotlidec_dep = dependency('libbrotlidec', required : get_option('brotli'))
 if brotlidec_dep.found()
