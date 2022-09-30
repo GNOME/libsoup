@@ -545,6 +545,22 @@ on_header_callback (nghttp2_session     *session,
         return 0;
 }
 
+static int
+on_invalid_header_callback (nghttp2_session     *session,
+                            const nghttp2_frame *frame,
+                            const uint8_t       *name,
+                            size_t               namelen,
+                            const uint8_t       *value,
+                            size_t               valuelen,
+                            uint8_t              flags,
+                            void                *user_data)
+{
+        SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, frame->hd.stream_id);
+
+        h2_debug (user_data, data, "[HEADERS] Invalid header received: name=[%.*s] value=[%.*s]", namelen, name, valuelen, value);
+        return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+}
+
 static GError *
 memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
                                        gboolean                  blocking,
@@ -1832,6 +1848,7 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
         nghttp2_session_callbacks *callbacks;
         NGCHECK (nghttp2_session_callbacks_new (&callbacks));
         nghttp2_session_callbacks_set_on_header_callback (callbacks, on_header_callback);
+        nghttp2_session_callbacks_set_on_invalid_header_callback (callbacks, on_invalid_header_callback);
         nghttp2_session_callbacks_set_on_frame_recv_callback (callbacks, on_frame_recv_callback);
         nghttp2_session_callbacks_set_on_data_chunk_recv_callback (callbacks, on_data_chunk_recv_callback);
         nghttp2_session_callbacks_set_on_begin_frame_callback (callbacks, on_begin_frame_callback);
@@ -1840,7 +1857,17 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
         nghttp2_session_callbacks_set_on_frame_send_callback (callbacks, on_frame_send_callback);
         nghttp2_session_callbacks_set_on_stream_close_callback (callbacks, on_stream_close_callback);
 
+#ifdef HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION
+        nghttp2_option *option;
+
+        nghttp2_option_new (&option);
+        nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation (option, 1);
+        NGCHECK (nghttp2_session_client_new2 (&io->session, callbacks, io, option));
+        nghttp2_option_del (option);
+#else
         NGCHECK (nghttp2_session_client_new (&io->session, callbacks, io));
+#endif
+
         nghttp2_session_callbacks_del (callbacks);
 
         io->messages = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)soup_http2_message_data_free);

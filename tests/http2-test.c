@@ -986,6 +986,32 @@ do_invalid_header_received_test (Test *test, gconstpointer data)
         g_object_unref (msg);
 }
 
+#ifdef HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION
+static void
+do_invalid_header_rfc9113_received_test (Test *test, gconstpointer data)
+{
+        gboolean async = GPOINTER_TO_INT (data);
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
+        GError *error = NULL;
+
+        uri = g_uri_parse_relative (base_uri, "/invalid-header-rfc9113", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+
+        if (async)
+                response = soup_test_session_async_send (test->session, msg, NULL, &error);
+        else
+                response = soup_session_send_and_read (test->session, msg, NULL, &error);
+
+        g_assert_nonnull (response);
+        g_assert_no_error (error);
+        g_clear_error (&error);
+        g_object_unref (msg);
+        g_uri_unref (uri);
+}
+#endif
+
 static void
 content_sniffed (SoupMessage *msg,
                  char        *content_type,
@@ -1211,6 +1237,15 @@ server_handler (SoupServer        *server,
                 /* Use soup_message_headers_append_common to skip the validation check. */
                 soup_message_headers_append_common (response_headers, SOUP_HEADER_CONTENT_TYPE, "\r");
                 soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+        } else if (strcmp (path, "/invalid-header-rfc9113") == 0) {
+                SoupMessageHeaders *response_headers;
+
+                response_headers = soup_server_message_get_response_headers (msg);
+                soup_message_headers_append (response_headers, "Invalid-Header-Value", "foo ");
+                soup_server_message_set_response (msg, "text/plain",
+                                                  SOUP_MEMORY_STATIC,
+                                                  "Success!", 8);
+                soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
         }
 }
 
@@ -1346,6 +1381,16 @@ main (int argc, char **argv)
                     setup_session,
                     do_invalid_header_received_test,
                     teardown_session);
+#ifdef HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION
+        g_test_add ("/http2/invalid-header-rfc9113-received/async", Test, GINT_TO_POINTER (TRUE),
+                    setup_session,
+                    do_invalid_header_rfc9113_received_test,
+                    teardown_session);
+        g_test_add ("/http2/invalid-header-rfc9113-received/sync", Test, GINT_TO_POINTER (FALSE),
+                    setup_session,
+                    do_invalid_header_rfc9113_received_test,
+                    teardown_session);
+#endif
         g_test_add ("/http2/sniffer/async", Test, NULL,
                     setup_session,
                     do_sniffer_async_test,
