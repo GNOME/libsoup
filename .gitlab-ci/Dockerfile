@@ -29,7 +29,7 @@ RUN dnf update -y \
                       vala \
                       valgrind \
                       which \
-    && dnf builddep -y glib2 vala \
+    && dnf builddep -y glib2 nghttp2 vala \
     && dnf clean all \
     && python2.7 -m ensurepip \
     && pip2.7 install virtualenv autobahntestsuite \
@@ -70,6 +70,16 @@ RUN git clone https://gitlab.gnome.org/GNOME/libsoup.git \
     && cp -R _build/docs/reference/html /usr/share/gtk-doc/html/libsoup-2.4 \
     && popd \
     && rm -rf libsoup
+
+# Update libnghttp2 for do_invalid_header_rfc9113_received_test()
+RUN git clone https://github.com/nghttp2/nghttp2.git \
+    && pushd nghttp2 \
+    && git checkout v1.50.0 \
+    && autoreconf --install --symlink \
+    && ./configure --prefix=/usr --disable-static --disable-examples \
+    && make -j $(nproc) install \
+    && popd \
+    && rm -rf nghttp2
 
 ARG HOST_USER_ID=5555
 ENV HOST_USER_ID ${HOST_USER_ID}

@@ -2,7 +2,7 @@
 
 set -e
 
-TAG="registry.gitlab.gnome.org/gnome/libsoup/master:v16"
+TAG="registry.gitlab.gnome.org/gnome/libsoup/master:v17"
 
 SUDO_CMD="sudo"
 if docker -v |& grep -q podman; then
