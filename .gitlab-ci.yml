@@ -17,7 +17,7 @@ fedora-test:
   extends: .build
   script:
     - cp .gitlab-ci/lcovrc ~/.lcovrc
-    - meson _build -Db_coverage=true -Dauto_features=enabled
+    - meson _build -Db_coverage=true --auto-features=enabled
     - meson compile -C _build
     - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose
     - ninja -C _build coverage-html
@@ -36,7 +36,7 @@ fedora-test:
 fedora-autobahn-quick:
   extends: .build
   script:
-    - meson _build -Dauto-features=enabled -Dautobahn=enabled
+    - meson _build --auto-features=enabled -Dautobahn=enabled
     - meson test -C _build --suite autobahn-quick --verbose
   artifacts:
     paths:
@@ -46,7 +46,7 @@ fedora-autobahn-quick:
 fedora-scan:
   extends: .build
   script:
-    - meson _build -Dauto_features=enabled
+    - meson _build --auto-features=enabled
     - ninja -C _build scan-build
     - bash -c 'if [[ -n "$(ls -A _build/meson-logs/scanbuild/)" ]]; then echo "Scan build log found, assuming defects exist"; exit 1; fi'
   artifacts:
@@ -63,7 +63,7 @@ fedora-asan:
     SOUP_TEST_NO_IPV6: 1
   script:
     # Introspection doesn't work when linking to libasan, the NTLM tests fail most likely due to unsafe usage of setenv()
-    - meson _build -Dauto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled -Dntlm=disabled
+    - meson _build --auto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled -Dntlm=disabled -Ddocs=disabled
     - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose --timeout-multiplier=10
   artifacts:
     when: on_failure
@@ -76,7 +76,7 @@ fedora-asan:
 #   variables:
 #     CC: clang
 #   script:
-#     - meson _build -Dauto-features=enabled -Dfuzzing=enabled -Dintrospection=disabled -Dvapi=disabled
+#     - meson _build --auto-features=enabled -Dfuzzing=enabled -Dintrospection=disabled -Dvapi=disabled
 #     - meson test -C _build --suite=fuzzing --timeout-multiplier=10
 #   artifacts:
 #     when: on_failure
