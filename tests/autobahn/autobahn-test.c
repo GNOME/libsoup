@@ -268,22 +268,23 @@ int main (int argc, char *argv[])
         int ret = 0;
         guint64 num_case = 1, num_cases;
         SoupSession *session;
+        const char *num_cases_env, *num_case_env, *timeout_env;
 
         test_init (argc, argv, NULL);
 
         if (!autobahn_server ("--start", &num_cases))
                 exit (1);
 
-        if (getenv ("AUTOBAHN_NUM_CASES"))
-                num_cases = atol (getenv ("AUTOBAHN_NUM_CASES"));
+        if ((num_cases_env = g_getenv ("AUTOBAHN_NUM_CASES")))
+                num_cases = atol (num_cases_env);
 
-        if (getenv ("AUTOBAHN_NUM_CASE")) {
-                num_case = atol (getenv ("AUTOBAHN_NUM_CASE"));
+        if ((num_case_env = g_getenv ("AUTOBAHN_NUM_CASE"))) {
+                num_case = atol (num_case_env);
                 num_cases = num_case;
         }
 
-        if (getenv ("AUTOBAHN_TEST_TIMEOUT"))
-                AUTOBAHN_TEST_TIMEOUT = atol (getenv ("AUTOBAHN_TEST_TIMEOUT"));
+        if ((timeout_env = g_getenv ("AUTOBAHN_TEST_TIMEOUT")))
+                AUTOBAHN_TEST_TIMEOUT = atol (timeout_env);
 
         session = soup_session_new ();
         soup_session_add_feature_by_type (session, SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER);
