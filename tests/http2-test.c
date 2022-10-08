@@ -1117,6 +1117,47 @@ do_timeout_test (Test *test, gconstpointer data)
                 g_main_context_iteration (NULL, FALSE);
 }
 
+static gpointer
+thread_read_body (gpointer data)
+{
+        GInputStream *stream = data;
+        guint8 buffer[1024];
+        GError *error = NULL;
+
+        /* We don't care about the data, we simply want to ensure no criticals are hit. */
+        while ((g_input_stream_read (stream, buffer, sizeof (buffer),
+                                           NULL, &error)) > 0);
+
+        g_assert_no_error (error);
+        g_object_unref (stream);
+        return NULL;
+}
+
+static void
+do_threaded_body_read_test (Test *test, gconstpointer data)
+{
+        GUri *uri;
+        SoupMessage *msg;
+        GInputStream *stream;
+        GThread *threads[20];
+
+        uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
+
+        for (uint i = 0; i < G_N_ELEMENTS (threads); i++) {
+                msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+                stream = soup_session_send (test->session, msg, NULL, NULL);
+                g_assert_nonnull (stream);
+                g_object_unref (msg);
+
+                threads[i] = g_thread_new (NULL, thread_read_body, stream);
+        }
+
+        for (uint i = G_N_ELEMENTS (threads) - 1; i > 0; i--)
+                (void)g_thread_join (threads[i]);
+
+        g_uri_unref (uri);
+}
+
 static gboolean
 unpause_message (SoupServerMessage *msg)
 {
@@ -1357,6 +1398,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/timeout", Test, NULL,
                     setup_session,
                     do_timeout_test,
+                    teardown_session);
+        g_test_add ("/http2/threaded-body-read", Test, NULL,
+                    setup_session,
+                    do_threaded_body_read_test,
                     teardown_session);
 
 	ret = g_test_run ();
