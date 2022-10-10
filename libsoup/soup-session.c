@@ -1824,7 +1824,9 @@ async_run_queue (SoupSession *session)
         g_queue_foreach (priv->queue, (GFunc)collect_queue_item, &items);
         g_mutex_unlock (&priv->queue_mutex);
 
-        for (i = g_list_reverse (items); i != NULL; i = g_list_next (i)) {
+        items = g_list_reverse (items);
+
+        for (i = items; i != NULL; i = g_list_next (i)) {
                 SoupMessageQueueItem *item = (SoupMessageQueueItem *)i->data;
                 soup_session_process_queue_item (item->session, item, TRUE);
         }
