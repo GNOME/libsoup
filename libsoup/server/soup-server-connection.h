@@ -30,7 +30,7 @@ gboolean              soup_server_connection_is_ssl                          (So
 void                  soup_server_connection_disconnect                      (SoupServerConnection  *conn);
 gboolean              soup_server_connection_is_connected                    (SoupServerConnection  *conn);
 GSocket              *soup_server_connection_get_socket                      (SoupServerConnection  *conn);
-GSocket              *soup_server_connection_steal_socket                    (SoupServerConnection  *conn);
+GIOStream            *soup_server_connection_steal                           (SoupServerConnection  *conn);
 GIOStream            *soup_server_connection_get_iostream                    (SoupServerConnection  *conn);
 GSocketAddress       *soup_server_connection_get_local_address               (SoupServerConnection  *conn);
 GSocketAddress       *soup_server_connection_get_remote_address              (SoupServerConnection  *conn);

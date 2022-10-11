@@ -538,25 +538,31 @@ soup_server_connection_get_socket (SoupServerConnection *conn)
         return priv->socket;
 }
 
-GSocket *
-soup_server_connection_steal_socket (SoupServerConnection *conn)
+GIOStream *
+soup_server_connection_steal (SoupServerConnection *conn)
 {
         SoupServerConnectionPrivate *priv;
-        GSocket *socket;
+        GIOStream *stream;
 
         g_return_val_if_fail (SOUP_IS_SERVER_CONNECTION (conn), NULL);
 
         priv = soup_server_connection_get_instance_private (conn);
 
+        stream = priv->io_data ? soup_server_message_io_steal (priv->io_data) : NULL;
+        if (stream) {
+                g_object_set_data_full (G_OBJECT (stream), "GSocket",
+                                        priv->socket, g_object_unref);
+        }
+
         /* Cache local and remote address */
         soup_server_connection_get_local_address (conn);
         soup_server_connection_get_remote_address (conn);
 
-        socket = g_steal_pointer (&priv->socket);
+        g_clear_pointer (&priv->io_data, soup_server_message_io_destroy);
         g_clear_object (&priv->conn);
         g_clear_object (&priv->iostream);
 
-        return socket;
+        return stream;
 }
 
 GIOStream *
