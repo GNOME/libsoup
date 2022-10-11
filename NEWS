@@ -1,3 +1,10 @@
+Changes in libsoup from 3.2.0 to 3.2.1:
+
+* When built against nghttp2 1.50.0+ be relaxed about header whitespace [Carlos Garcia Campos]
+* Fix possible crash when cancelling an HTTP/2 message [Carlos Garcia Campos]
+* Fix regresion where soup_server_message_get_socket() could return NULL [Carlos Garcia Campos]
+* Fix minor memory leak [Milan Crha]
+
 Changes in libsoup from 3.1.4 to 3.2.0:
 
 Changes in libsoup from 3.1.3 to 3.1.4:
