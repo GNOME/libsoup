@@ -1103,15 +1103,8 @@ soup_server_message_steal_connection (SoupServerMessage *msg)
         GIOStream *stream;
 
         g_object_ref (msg);
-        stream = msg->io_data ? soup_server_message_io_steal (g_steal_pointer (&msg->io_data)) : NULL;
-        if (stream) {
-                g_object_set_data_full (G_OBJECT (stream), "GSocket",
-                                        soup_server_connection_steal_socket (msg->conn),
-                                        g_object_unref);
-        }
-
+        stream = soup_server_connection_steal (msg->conn);
         g_signal_handlers_disconnect_by_data (msg, msg->conn);
-
         connection_disconnected (msg);
         g_object_unref (msg);
 

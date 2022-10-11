@@ -1571,6 +1571,8 @@ test_client_context_got_server_connection (SoupServer              *server,
 	g_assert_cmpstr (remote_ip, ==, str);
 	g_free (str);
 
+        g_assert_nonnull (soup_server_message_get_socket (msg));
+
 	test->server = g_object_ref (connection);
 }
 
