@@ -119,7 +119,8 @@ if not libxml_dep.found()
 endif
 
 if not libxml_dep.found()
-  libxml_dep = subproject('libxml2').get_variable('xml2lib_dep')
+  # Allows fallback to subproject
+  libxml_dep = dependency('libxml-2.0')
 endif
 
 cdata = configuration_data()
