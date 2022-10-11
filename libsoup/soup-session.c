@@ -1518,6 +1518,7 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
                 conn = soup_message_get_connection (tunnel_item->msg);
 		if (conn) {
                         g_object_unref (conn);
+                        g_clear_object (&tunnel_item->error);
 			tunnel_item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, tunnel_item,
 						      (SoupMessageIOCompletionFn)tunnel_message_completed);
@@ -1532,8 +1533,8 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
 	soup_session_unqueue_item (session, tunnel_item);
 
 	status = soup_message_get_status (tunnel_item->msg);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status) || item->state == SOUP_MESSAGE_RESTARTING) {
-		tunnel_complete (tunnel_item, status, NULL);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status) || tunnel_item->error || item->state == SOUP_MESSAGE_RESTARTING) {
+		tunnel_complete (tunnel_item, status, g_steal_pointer (&tunnel_item->error));
 		return;
 	}
 

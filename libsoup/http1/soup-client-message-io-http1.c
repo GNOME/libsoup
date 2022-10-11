@@ -860,9 +860,12 @@ soup_client_message_io_http1_run (SoupClientMessageIO *iface,
                                        soup_client_message_io_http1_get_priority (client_io));
                 g_source_attach (io->io_source, g_main_context_get_thread_default ());
         } else {
-                if ((SoupClientMessageIOHTTP1 *)soup_message_get_io_data (msg) == client_io)
-                        soup_message_io_finish (msg, error);
-                g_error_free (error);
+                if ((SoupClientMessageIOHTTP1 *)soup_message_get_io_data (msg) == client_io) {
+                        g_assert (!client_io->msg_io->item->error);
+                        client_io->msg_io->item->error = g_steal_pointer (&error);
+                        soup_message_io_finish (msg, client_io->msg_io->item->error);
+                }
+                g_clear_error (&error);
 
         }
 
