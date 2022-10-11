@@ -340,11 +340,43 @@ do_proxy_auth_cache_test (void)
 	g_object_unref (cache);
 }
 
+static void
+do_proxy_connect_error_test (gconstpointer data)
+{
+        GUri *base_uri = (GUri *)data;
+        GUri *proxy_uri;
+        char *proxy_uri_str;
+        SoupSession *session;
+        SoupMessage *msg;
+        GProxyResolver *resolver;
+        GBytes *body;
+        GError *error = NULL;
+
+        /* Proxy connection will success, but CONNECT message to https will fail due to TLS errors */
+        proxy_uri = soup_uri_copy (base_uri, SOUP_URI_SCHEME, "http", NULL);
+        proxy_uri_str = g_uri_to_string (proxy_uri);
+        g_uri_unref (proxy_uri);
+
+        resolver = g_simple_proxy_resolver_new (proxy_uri_str, (char **)ignore_hosts);
+        g_free (proxy_uri_str);
+        session = soup_test_session_new ("proxy-resolver", resolver, NULL);
+        g_object_unref (resolver);
+
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+        body = soup_test_session_async_send (session, msg, NULL, &error);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+
+        g_error_free (error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	GUri *base_uri;
+	GUri *base_uri, *base_https_uri;
 	char *path;
 	int i, ret;
 
@@ -359,6 +391,7 @@ main (int argc, char **argv)
 	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
+        base_https_uri = soup_test_server_get_uri (server, "https", NULL);
 
 	for (i = 0; i < ntests; i++) {
 		path = g_strdup_printf ("/proxy/%s", tests[i].explanation);
@@ -369,10 +402,12 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/proxy/fragment", base_uri, do_proxy_fragment_test);
 	g_test_add_func ("/proxy/redirect", do_proxy_redirect_test);
 	g_test_add_func ("/proxy/auth-cache", do_proxy_auth_cache_test);
+        g_test_add_data_func ("/proxy/connect-error", base_https_uri, do_proxy_connect_error_test);
 
 	ret = g_test_run ();
 
 	g_uri_unref (base_uri);
+        g_uri_unref (base_https_uri);
 	soup_test_server_quit_unref (server);
 	for (i = 0; i < 3; i++)
 		g_object_unref (proxy_resolvers[i]);
