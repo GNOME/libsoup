@@ -1,3 +1,13 @@
+Changes in libsoup from 2.74.2 to 2.74.3:
+
+    * Add missing g-i annotations to `soup_address_get_sockaddr()` and `soup_socket_read_until()` [Rico Tzschichholz]
+
+    * Add missing `extern` when building on Windows [Melroy van den Berg]
+
+    * Update libxml2 fallback for meson wrap [Xavier Claessens]
+
+    * Improvements when using libsoup with meson wraps [Nirbheek Chauhan]
+
 Changes in libsoup from 2.74.1 to 2.74.2:
 
     * Error when libsoup3 is already loaded before libsoup2 [Patrick Griffis]
