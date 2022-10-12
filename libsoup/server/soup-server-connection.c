@@ -549,9 +549,10 @@ soup_server_connection_steal (SoupServerConnection *conn)
         priv = soup_server_connection_get_instance_private (conn);
 
         stream = priv->io_data ? soup_server_message_io_steal (priv->io_data) : NULL;
-        if (stream) {
+        if (stream && priv->socket) {
                 g_object_set_data_full (G_OBJECT (stream), "GSocket",
-                                        priv->socket, g_object_unref);
+                                        g_object_ref (priv->socket),
+                                        g_object_unref);
         }
 
         /* Cache local and remote address */
