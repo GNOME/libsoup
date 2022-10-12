@@ -130,11 +130,11 @@ message_send_cb (SoupSession  *session,
 		 GAsyncResult *result,
 		 GMainContext *async_context)
 {
-	GInputStream *stream;
+        GBytes *body;
 
 	g_assert_true (async_context == g_main_context_get_thread_default ());
-	stream = soup_session_send_finish (session, result, NULL);
-	g_clear_object (&stream);
+	body = soup_session_send_and_read_finish (session, result, NULL);
+	g_clear_pointer (&body, g_bytes_unref);
 }
 
 static void
@@ -176,9 +176,9 @@ test1_thread (gpointer user_data)
 	msg = soup_message_new ("GET", uri);
 	loop = g_main_loop_new (async_context, FALSE);
 	g_signal_connect (msg, "finished", G_CALLBACK (message_finished), loop);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
-				 (GAsyncReadyCallback)message_send_cb,
-				 async_context);
+        soup_session_send_and_read_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                          (GAsyncReadyCallback)message_send_cb,
+                                          async_context);
 	g_main_loop_run (loop);
 	/* We need one more iteration, because SoupMessage::finished is emitted
          * right before the message is unqueued.
@@ -215,7 +215,7 @@ do_test2 (void)
 	SoupSession *session;
 	char *uri;
 	SoupMessage *msg;
-	GInputStream *stream;
+        GBytes *body;
 	GMainLoop *loop;
 
 	idle = g_idle_add_full (G_PRIORITY_HIGH, idle_test2_fail, NULL, NULL);
@@ -229,18 +229,18 @@ do_test2 (void)
 
 	debug_printf (1, "  send_message\n");
 	msg = soup_message_new ("GET", uri);
-	stream = soup_session_send (session, msg, NULL, NULL);
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_object_unref (stream);
+	g_bytes_unref (body);
 	g_object_unref (msg);
 
 	debug_printf (1, "  queue_message\n");
 	msg = soup_message_new ("GET", uri);
 	loop = g_main_loop_new (async_context, FALSE);
 	g_signal_connect (msg, "finished", G_CALLBACK (message_finished), loop);
-	soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
-				 (GAsyncReadyCallback)message_send_cb,
-				 async_context);
+	soup_session_send_and_read_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                          (GAsyncReadyCallback)message_send_cb,
+                                          async_context);
 	g_main_loop_run (loop);
 	/* We need one more iteration, because SoupMessage::finished is emitted
          * right before the message is unqueued.
