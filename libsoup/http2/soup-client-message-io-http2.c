@@ -1416,6 +1416,7 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 	gpointer completion_data;
         SoupMessageIOCompletion completion;
         gboolean is_closed;
+        SoupConnection *conn;
 
         data = get_data_for_message (io, msg);
 
@@ -1431,9 +1432,9 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
         is_closed = nghttp2_session_get_stream_user_data (io->session, data->stream_id) == NULL;
         nghttp2_session_set_stream_user_data (io->session, data->stream_id, NULL);
 
-        if (!io->is_shutdown && !is_closed) {
-                SoupConnection *conn;
+        conn = g_weak_ref_get (&io->conn);
 
+        if (!io->is_shutdown && !is_closed) {
                 NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id,
                                                     completion == SOUP_MESSAGE_IO_COMPLETE ? NGHTTP2_NO_ERROR : NGHTTP2_CANCEL));
                 soup_http2_message_data_close (data);
@@ -1443,11 +1444,8 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
                 if (!g_hash_table_add (io->closed_messages, data))
                         g_warn_if_reached ();
 
-                conn = g_weak_ref_get (&io->conn);
-                if (conn) {
+                if (conn)
                         soup_connection_set_in_use (conn, TRUE);
-                        g_object_unref (conn);
-                }
 
                 io_try_write (io, !io->async);
         } else {
@@ -1462,6 +1460,8 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
         if (io->is_shutdown)
                 soup_client_message_io_http2_terminate_session (io);
+
+        g_clear_object (&conn);
 }
 
 static void

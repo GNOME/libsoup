@@ -23,6 +23,7 @@
 #include "soup-message-headers-private.h"
 #include "soup-server-message-private.h"
 #include "soup-body-input-stream-http2.h"
+#include <gio/gnetworking.h>
 
 static GUri *base_uri;
 
@@ -1143,6 +1144,24 @@ do_timeout_test (Test *test, gconstpointer data)
                 g_main_context_iteration (NULL, FALSE);
 }
 
+static void
+do_connection_closed_test (Test *test, gconstpointer data)
+{
+        GUri *uri;
+        SoupMessage *msg;
+        GInputStream *stream;
+        GError *error = NULL;
+
+        uri = g_uri_parse_relative (base_uri, "/close", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        stream = soup_session_send (test->session, msg, NULL, &error);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
+        g_clear_error (&error);
+        g_clear_object (&stream);
+        g_object_unref (msg);
+        g_uri_unref (uri);
+}
+
 static gboolean
 unpause_message (SoupServerMessage *msg)
 {
@@ -1246,6 +1265,21 @@ server_handler (SoupServer        *server,
                                                   SOUP_MEMORY_STATIC,
                                                   "Success!", 8);
                 soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+        } else if (strcmp (path, "/close") == 0) {
+                SoupServerConnection *conn;
+                int fd;
+
+                conn = soup_server_message_get_connection (msg);
+                fd = g_socket_get_fd (soup_server_connection_get_socket (conn));
+#ifdef G_OS_WIN32
+                shutdown (fd, SD_SEND);
+#else
+                shutdown (fd, SHUT_WR);
+#endif
+
+                soup_server_message_set_response (msg, "text/plain",
+                                                  SOUP_MEMORY_STATIC,
+                                                  "Success!", 8);
         }
 }
 
@@ -1402,6 +1436,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/timeout", Test, NULL,
                     setup_session,
                     do_timeout_test,
+                    teardown_session);
+        g_test_add ("/http2/connection-closed", Test, NULL,
+                    setup_session,
+                    do_connection_closed_test,
                     teardown_session);
 
 	ret = g_test_run ();
