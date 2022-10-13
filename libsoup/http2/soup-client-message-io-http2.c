@@ -77,6 +77,7 @@ typedef struct {
         GTask *close_task;
         gboolean session_terminated;
         gboolean goaway_sent;
+        gboolean ever_used;
 
         guint in_callback;
 } SoupClientMessageIOHTTP2;
@@ -234,6 +235,7 @@ soup_http2_message_data_can_be_restarted (SoupHTTP2MessageData *data,
                 return TRUE;
 
         return data->state < STATE_READ_DATA_START &&
+                data->io->ever_used &&
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
                 !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
@@ -1563,6 +1565,7 @@ client_stream_eof (SoupClientInputStream *stream,
         h2_debug (io, data, "Client stream EOF");
         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
         advance_state_from (data, STATE_READ_DATA, STATE_READ_DONE);
+        io->ever_used = TRUE;
         g_signal_handlers_disconnect_by_func (stream, client_stream_eof, msg);
         soup_message_got_body (data->msg);
 }
