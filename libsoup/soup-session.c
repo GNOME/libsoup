@@ -69,8 +69,6 @@
  **/
 
 typedef struct {
-	gboolean disposed;
-
 	GTlsDatabase *tlsdb;
 	GTlsInteraction *tls_interaction;
 	gboolean tlsdb_use_default;
@@ -313,7 +311,6 @@ soup_session_dispose (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
-	priv->disposed = TRUE;
 	soup_session_abort (session);
 	g_warn_if_fail (soup_connection_manager_get_num_conns (priv->conn_manager) == 0);
 
