@@ -167,7 +167,7 @@ G_DEFINE_QUARK (soup-session-error-quark, soup_session_error)
 
 typedef struct {
 	GSource source;
-	SoupSession* session;
+        GWeakRef session;
         guint num_items;
 } SoupMessageQueueSource;
 
@@ -176,18 +176,33 @@ queue_dispatch (GSource    *source,
 		GSourceFunc callback,
 		gpointer    user_data)
 {
-	SoupSession *session = ((SoupMessageQueueSource *)source)->session;
+        SoupMessageQueueSource *queue_source = (SoupMessageQueueSource *)source;
+        SoupSession *session = g_weak_ref_get (&queue_source->session);
+
+        if (!session)
+                return G_SOURCE_REMOVE;
 
 	g_source_set_ready_time (source, -1);
 	async_run_queue (session);
+        g_object_unref (session);
+
 	return G_SOURCE_CONTINUE;
+}
+
+static void
+queue_finalize (GSource *source)
+{
+        SoupMessageQueueSource *queue_source = (SoupMessageQueueSource *)source;
+
+        g_weak_ref_clear (&queue_source->session);
 }
 
 static GSourceFuncs queue_source_funcs = {
 	NULL, //queue_prepare,
 	NULL, //queue_check,
 	queue_dispatch,
-	NULL, NULL, NULL
+        queue_finalize,
+	NULL, NULL
 };
 
 static void
@@ -203,7 +218,7 @@ soup_session_add_queue_source (SoupSession  *session,
 
                 source = g_source_new (&queue_source_funcs, sizeof (SoupMessageQueueSource));
                 queue_source = (SoupMessageQueueSource *)source;
-                queue_source->session = session;
+                g_weak_ref_init (&queue_source->session, session);
                 queue_source->num_items = 0;
                 g_source_set_name (source, "SoupMessageQueue");
                 g_source_set_can_recurse (source, TRUE);
@@ -212,7 +227,6 @@ soup_session_add_queue_source (SoupSession  *session,
         }
 
         queue_source->num_items++;
-
 }
 
 static void
@@ -1814,7 +1828,6 @@ async_run_queue (SoupSession *session)
         GList *items = NULL;
         GList *i;
 
-	g_object_ref (session);
         g_atomic_int_inc (&priv->in_async_run_queue);
 	soup_connection_manager_cleanup (priv->conn_manager, FALSE);
 
@@ -1837,8 +1850,6 @@ async_run_queue (SoupSession *session)
                 g_mutex_unlock (&priv->queue_mutex);
                 g_atomic_int_set (&priv->needs_queue_sort, FALSE);
         }
-
-	g_object_unref (session);
 }
 
 /**
