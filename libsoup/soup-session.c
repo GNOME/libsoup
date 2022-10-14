@@ -86,6 +86,7 @@ typedef struct {
 	GQueue *queue;
         GMutex queue_sources_mutex;
 	GHashTable *queue_sources;
+        gint num_async_items;
         guint in_async_run_queue;
         gboolean needs_queue_sort;
 
@@ -1338,6 +1339,9 @@ soup_session_append_queue_item (SoupSession        *session,
 
         soup_session_add_queue_source_for_item (session, item);
 
+        if (async)
+                g_atomic_int_inc (&priv->num_async_items);
+
 	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_header_handler (
 			msg, "got_body", "Location",
@@ -1425,6 +1429,9 @@ soup_session_unqueue_item (SoupSession          *session,
         g_mutex_unlock (&priv->queue_mutex);
 
         soup_session_remove_queue_source_for_item (session, item);
+
+        if (item->async)
+                g_atomic_int_dec_and_test (&priv->num_async_items);
 
 	/* g_signal_handlers_disconnect_by_func doesn't work if you
 	 * have a metamarshal, meaning it doesn't work with
@@ -1910,6 +1917,9 @@ void
 soup_session_kick_queue (SoupSession *session)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+
+        if (g_atomic_int_get (&priv->num_async_items) <= 0)
+                return;
 
         g_mutex_lock (&priv->queue_sources_mutex);
         if (priv->queue_sources)
