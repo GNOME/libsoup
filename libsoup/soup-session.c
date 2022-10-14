@@ -235,6 +235,9 @@ soup_session_add_queue_source_for_item (SoupSession          *session,
 {
         SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
+        if (!item->async)
+                return;
+
         if (item->context == priv->context)
                 return;
 
@@ -266,6 +269,9 @@ soup_session_remove_queue_source_for_item (SoupSession          *session,
                                            SoupMessageQueueItem *item)
 {
         SoupSessionPrivate *priv = soup_session_get_instance_private (session);
+
+        if (!item->async)
+                return;
 
         if (item->context == priv->context)
                 return;
