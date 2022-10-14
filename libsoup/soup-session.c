@@ -212,6 +212,9 @@ soup_session_add_queue_source (SoupSession  *session,
         SoupSessionPrivate *priv = soup_session_get_instance_private (session);
         SoupMessageQueueSource *queue_source;
 
+        if (!priv->queue_sources)
+                priv->queue_sources = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify)g_source_unref);
+
         queue_source = g_hash_table_lookup (priv->queue_sources, context);
         if (!queue_source) {
                 GSource *source;
@@ -236,9 +239,6 @@ soup_session_add_queue_source_for_item (SoupSession          *session,
         SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
         if (!item->async)
-                return;
-
-        if (item->context == priv->context)
                 return;
 
         g_mutex_lock (&priv->queue_sources_mutex);
@@ -291,8 +291,6 @@ soup_session_init (SoupSession *session)
         g_mutex_init (&priv->queue_mutex);
 	priv->queue = g_queue_new ();
         g_mutex_init (&priv->queue_sources_mutex);
-        priv->queue_sources = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify)g_source_unref);
-        soup_session_add_queue_source (session, priv->context);
 
         priv->io_timeout = priv->idle_timeout = 60;
 
@@ -337,7 +335,8 @@ soup_session_dispose (GObject *object)
 	while (priv->features)
 		soup_session_remove_feature (session, priv->features->data);
 
-        g_hash_table_foreach (priv->queue_sources, (GHFunc)destroy_queue_source, NULL);
+        if (priv->queue_sources)
+                g_hash_table_foreach (priv->queue_sources, (GHFunc)destroy_queue_source, NULL);
 
 	G_OBJECT_CLASS (soup_session_parent_class)->dispose (object);
 }
@@ -351,7 +350,7 @@ soup_session_finalize (GObject *object)
 	g_warn_if_fail (g_queue_is_empty (priv->queue));
 	g_queue_free (priv->queue);
         g_mutex_clear (&priv->queue_mutex);
-        g_hash_table_destroy (priv->queue_sources);
+        g_clear_pointer (&priv->queue_sources, g_hash_table_destroy);
         g_mutex_clear (&priv->queue_sources_mutex);
         g_main_context_unref (priv->context);
 
@@ -1913,7 +1912,8 @@ soup_session_kick_queue (SoupSession *session)
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
         g_mutex_lock (&priv->queue_sources_mutex);
-        g_hash_table_foreach (priv->queue_sources, (GHFunc)kick_queue_source, NULL);
+        if (priv->queue_sources)
+                g_hash_table_foreach (priv->queue_sources, (GHFunc)kick_queue_source, NULL);
         g_mutex_unlock (&priv->queue_sources_mutex);
 }
 
