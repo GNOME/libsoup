@@ -1074,7 +1074,16 @@ on_data_source_read_callback (nghttp2_session     *session,
                               nghttp2_data_source *source,
                               void                *user_data)
 {
+        SoupClientMessageIOHTTP2 *io = user_data;
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
+
+        h2_debug (io, data, "[SEND_BODY] stream_id=%u, paused=%d", stream_id, data ? data->paused : 0);
+
+        if (!data) {
+                /* This can happen in case of cancellation */
+                return 0;
+        }
+
         data->io->in_callback++;
 
         if (!data->item->async) {
