@@ -1015,13 +1015,12 @@ do_invalid_header_rfc9113_received_test (Test *test, gconstpointer data)
 
 static void
 content_sniffed (SoupMessage *msg,
-                 char        *content_type,
-                 GHashTable  *params)
+                 const char  *content_type,
+                 GHashTable  *params,
+                 char       **sniffed_type)
 {
-        soup_test_assert (g_object_get_data (G_OBJECT (msg), "got-chunk") == NULL,
-                          "got-chunk got emitted before content-sniffed");
-
         g_object_set_data (G_OBJECT (msg), "content-sniffed", GINT_TO_POINTER (TRUE));
+        *sniffed_type = g_strdup (content_type);
 }
 
 static void
@@ -1056,12 +1055,13 @@ do_one_sniffer_test (SoupSession  *session,
         SoupMessage *msg;
         GInputStream *stream = NULL;
         GBytes *bytes;
+        char *sniffed_type = NULL;
 
         uri = g_uri_parse_relative (base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
         msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
         g_object_connect (msg,
                           "signal::got-headers", got_headers, NULL,
-                          "signal::content-sniffed", content_sniffed, NULL,
+                          "signal::content-sniffed", content_sniffed, &sniffed_type,
                           NULL);
         if (async_context) {
                 soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
@@ -1081,14 +1081,17 @@ do_one_sniffer_test (SoupSession  *session,
         if (should_sniff) {
                 soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") != NULL,
                                   "content-sniffed did not get emitted");
+                g_assert_cmpstr (sniffed_type, ==, "text/plain");
         } else {
                 soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") == NULL,
                                   "content-sniffed got emitted without a sniffer");
+                g_assert_null (sniffed_type);
         }
 
         bytes = read_stream_to_bytes_sync (stream);
         g_assert_cmpuint (g_bytes_get_size (bytes), ==, expected_size);
 
+        g_free (sniffed_type);
         g_object_unref (stream);
         g_bytes_unref (bytes);
         g_object_unref (msg);
@@ -1099,12 +1102,14 @@ static void
 do_sniffer_async_test (Test *test, gconstpointer data)
 {
         GMainContext *async_context = g_main_context_ref_thread_default ();
+        gboolean should_content_sniff = GPOINTER_TO_INT (data);
 
-        soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
+        if (should_content_sniff)
+                soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
 
-        do_one_sniffer_test (test->session, "/", 11, TRUE, async_context);
-        do_one_sniffer_test (test->session, "/large", (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1, TRUE, async_context);
-        do_one_sniffer_test (test->session, "/no-content", 0, FALSE, async_context);
+        do_one_sniffer_test (test->session, "/", 11, should_content_sniff, async_context);
+        do_one_sniffer_test (test->session, "/large", (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1, should_content_sniff, async_context);
+        do_one_sniffer_test (test->session, "/no-content", 0, should_content_sniff, async_context);
 
         while (g_main_context_pending (async_context))
                 g_main_context_iteration (async_context, FALSE);
@@ -1115,11 +1120,14 @@ do_sniffer_async_test (Test *test, gconstpointer data)
 static void
 do_sniffer_sync_test (Test *test, gconstpointer data)
 {
-        soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
+        gboolean should_content_sniff = GPOINTER_TO_INT (data);
 
-        do_one_sniffer_test (test->session, "/", 11, TRUE, NULL);
-        do_one_sniffer_test (test->session, "/large", (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1, TRUE, NULL);
-        do_one_sniffer_test (test->session, "/no-content", 0, FALSE, NULL);
+        if (should_content_sniff)
+                soup_session_add_feature_by_type (test->session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        do_one_sniffer_test (test->session, "/", 11, should_content_sniff, NULL);
+        do_one_sniffer_test (test->session, "/large", (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1, should_content_sniff, NULL);
+        do_one_sniffer_test (test->session, "/no-content", 0, should_content_sniff, NULL);
 }
 
 static void
@@ -1425,11 +1433,19 @@ main (int argc, char **argv)
                     do_invalid_header_rfc9113_received_test,
                     teardown_session);
 #endif
-        g_test_add ("/http2/sniffer/async", Test, NULL,
+        g_test_add ("/http2/sniffer/with-sniffer/async", Test, GINT_TO_POINTER (TRUE),
                     setup_session,
                     do_sniffer_async_test,
                     teardown_session);
-        g_test_add ("/http2/sniffer/sync", Test, NULL,
+        g_test_add ("/http2/sniffer/no-sniffer/async", Test, GINT_TO_POINTER (FALSE),
+                    setup_session,
+                    do_sniffer_async_test,
+                    teardown_session);
+        g_test_add ("/http2/sniffer/with-sniffer/sync", Test, GINT_TO_POINTER (TRUE),
+                    setup_session,
+                    do_sniffer_sync_test,
+                    teardown_session);
+        g_test_add ("/http2/sniffer/no-sniffer/sync", Test, GINT_TO_POINTER (FALSE),
                     setup_session,
                     do_sniffer_sync_test,
                     teardown_session);
