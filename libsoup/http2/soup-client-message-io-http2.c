@@ -726,12 +726,15 @@ on_frame_recv_callback (nghttp2_session     *session,
                         g_assert_not_reached ();
                 }
 
-                if (soup_message_get_status (data->msg) == SOUP_STATUS_NO_CONTENT || frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-                        h2_debug (io, data, "Stream done");
-                        advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA);
-                }
                 soup_message_got_headers (data->msg);
 
+                if (soup_message_get_status (data->msg) == SOUP_STATUS_NO_CONTENT || frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+                        h2_debug (io, data, "Stream done");
+                        advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA_START);
+                        if (soup_message_has_content_sniffer (data->msg))
+                                soup_message_content_sniffed (data->msg, "text/plain", NULL);
+                        advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
+                }
                 break;
         }
         case NGHTTP2_DATA:
