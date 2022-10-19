@@ -98,7 +98,7 @@ endif
 
 add_project_arguments(common_flags, language : 'c')
 
-glib_required_version = '>= 2.69.1'
+glib_required_version = '>= 2.69.1' # Note this string is included in the pkg-config file.
 glib_dep = dependency('glib-2.0', version : glib_required_version,
                        fallback: ['glib', 'libglib_dep'])
 gmodule_dep = dependency('gmodule-2.0', version : glib_required_version,
@@ -107,8 +107,6 @@ gobject_dep = dependency('gobject-2.0', version : glib_required_version,
                        fallback: ['glib', 'libgobject_dep'])
 gio_dep = dependency('gio-2.0', version : glib_required_version,
                        fallback: ['glib', 'libgio_dep'])
-
-glib_deps = [glib_dep, gmodule_dep, gobject_dep, gio_dep]
 
 cdata = configuration_data()
 
@@ -193,7 +191,7 @@ if enable_tls_check
     }
     '''
 
-    rres = cc.run(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : glib_deps)
+    rres = cc.run(check_gio_tls_src, name : 'GIO has real TLS support', dependencies : gio_dep)
     assert(rres.compiled() and rres.returncode() == 0, 'libsoup requires glib-networking for TLS support')
   endif
 endif

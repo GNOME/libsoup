@@ -1,8 +1,6 @@
 includedir = join_paths(libsoup_api_name, meson.project_name())
 subdir('include')
 
-pkg = import('pkgconfig')
-
 soup_sources = [
   'auth/soup-auth.c',
   'auth/soup-auth-basic.c',
@@ -182,16 +180,24 @@ libsoup_c_args  = [
   '-DLIBSOUP_COMPILATION'
 ]
 
-deps = [
+# These are dependencies that are *not* part of our public API
+internal_deps = [
   libsysprof_capture_dep,
-  glib_deps,
   sqlite_dep,
   libpsl_dep,
   brotlidec_dep,
-  platform_deps,
   gssapi_dep,
   libz_dep,
   libnghttp2_dep,
+  gmodule_dep,
+]
+
+deps = [
+  glib_dep,
+  gobject_dep,
+  gio_dep,
+  platform_deps,
+  internal_deps,
 ]
 
 libsoup_includes = [
@@ -236,18 +242,39 @@ libsoup_static = static_library('soup-@0@-static'.format(apiversion),
   dependencies : deps,
 )
 
-pkg.generate(libsoup,
-  libraries : glib_deps,
-  name : meson.project_name(),
-  description : 'A glib-based HTTP library',
-  filebase : libsoup_api_name,
-  subdirs: libsoup_api_name,
-  variables: 'exec_prefix=${prefix}')
+# We generate our own pkg-config file instead of using the pkgconfig module
+# to set the Requires.internal property instead of Requires.private.
+# This is supported by `pkgconf` and correctly expresses what these
+# dependencies are since we do not actually depend on them for public
+# API and they are only ever necessary for static linking.
+pkgconfig_data = configuration_data()
+
+required_internal_deps = []
+foreach dep : internal_deps
+  if dep.found()
+    required_internal_deps += '@0@ >= @1@'.format(dep.name(), dep.version())
+  endif
+endforeach
+
+pkgconfig_data.set('REQUIRES', 'gio-2.0 @0@'.format(glib_required_version))
+pkgconfig_data.set('REQUIRES_INTERNAL', ', '.join(required_internal_deps))
+pkgconfig_data.set('VERSION', meson.project_version())
+pkgconfig_data.set('PREFIX', get_option('prefix'))
+pkgconfig_data.set('LIBDIR', get_option('prefix') / get_option('libdir'))
+pkgconfig_data.set('INCLUDEDIR', get_option('prefix') / get_option('includedir'))
+
+configure_file(
+  input: 'libsoup-3.0.pc.in',
+  output: 'libsoup-3.0.pc',
+  configuration: pkgconfig_data,
+  install: true,
+  install_dir: get_option('libdir') / 'pkgconfig'
+)
 
 libsoup_dep = declare_dependency(link_with : libsoup,
   include_directories : libsoup_includes,
   sources : soup_enum_h,
-  dependencies : [ platform_deps, gssapi_dep, glib_deps ]
+  dependencies : [ platform_deps, glib_dep, gobject_dep, gio_dep ]
 )
 
 meson.override_dependency('libsoup-3.0', libsoup_dep)
@@ -255,7 +282,7 @@ meson.override_dependency('libsoup-3.0', libsoup_dep)
 libsoup_static_dep = declare_dependency(link_with : libsoup_static,
   include_directories : libsoup_includes,
   sources : soup_enum_h,
-  dependencies : [ platform_deps, gssapi_dep, glib_deps ]
+  dependencies : [ platform_deps, glib_dep, gobject_dep, gio_dep ]
 )
 
 if enable_introspection or enable_vapi

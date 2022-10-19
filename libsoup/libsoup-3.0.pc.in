@@ -1,0 +1,14 @@
+prefix=@PREFIX@
+includedir=@INCLUDEDIR@
+libdir=@LIBDIR@
+exec_prefix=${prefix}
+
+Name: libsoup
+Description: A glib-based HTTP library
+Version: @VERSION@
+URL: https://libsoup.org
+Conflicts: libsoup-2.4
+Requires: @REQUIRES@
+Requires.internal: @REQUIRES_INTERNAL@
+Libs: -L${libdir} -lsoup-3.0
+Cflags: -I${includedir}/libsoup-3.0

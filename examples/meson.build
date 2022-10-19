@@ -1,7 +1,4 @@
-deps = [
-  glib_deps,
-  libsoup_dep
-]
+example_deps = [libsoup_dep]
 
 examples = [
   'get',
@@ -12,9 +9,11 @@ examples = [
 if unix_socket_dep.found()
   examples += [ 'unix-socket-client' ]
   examples += [ 'unix-socket-server' ]
-  deps += [ unix_socket_dep ]
+  example_deps += [ unix_socket_dep ]
 endif
 
 foreach example: examples
-  executable(example, example + '.c', dependencies: deps)
+  executable(example, example + '.c',
+    dependencies: example_deps,
+  )
 endforeach
