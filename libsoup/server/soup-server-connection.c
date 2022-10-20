@@ -108,10 +108,12 @@ soup_server_connection_finalize (GObject *object)
         SoupServerConnection *conn = SOUP_SERVER_CONNECTION (object);
         SoupServerConnectionPrivate *priv = soup_server_connection_get_instance_private (conn);
 
-        if (priv->conn)
+        if (priv->conn) {
                 disconnect_internal (conn);
-
-        g_clear_pointer (&priv->io_data, soup_server_message_io_destroy);
+        } else {
+                g_clear_object (&priv->socket);
+                g_clear_pointer (&priv->io_data, soup_server_message_io_destroy);
+        }
 
         g_clear_object (&priv->iostream);
 
