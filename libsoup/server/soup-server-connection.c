@@ -565,6 +565,8 @@ soup_server_connection_steal (SoupServerConnection *conn)
         g_clear_object (&priv->conn);
         g_clear_object (&priv->iostream);
 
+        g_signal_emit (conn, signals[DISCONNECTED], 0);
+
         return stream;
 }
 
