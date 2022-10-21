@@ -925,6 +925,14 @@ io_run (SoupServerMessageIOHTTP1 *server_io)
                                 SOUP_MESSAGE_IO_STATE_DONE,
                                 SOUP_MESSAGE_IO_STATE_DONE,
                                 &error);
+
+        if (soup_server_message_get_io_data (msg) != (SoupServerMessageIO *)server_io) {
+                g_object_unref (msg);
+                g_clear_error (&error);
+
+                return;
+        }
+
         server_io->in_io_run = FALSE;
 
         if (success) {
