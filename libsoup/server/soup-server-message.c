@@ -1105,7 +1105,6 @@ soup_server_message_steal_connection (SoupServerMessage *msg)
         g_object_ref (msg);
         stream = soup_server_connection_steal (msg->conn);
         g_signal_handlers_disconnect_by_data (msg, msg->conn);
-        connection_disconnected (msg);
         g_object_unref (msg);
 
         return stream;
