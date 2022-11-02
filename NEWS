@@ -1,3 +1,9 @@
+Changes in libsoup from 3.2.1 to 3.2.2:
+
+* Various HTTP/2 Fixes: [Carlos Garcia Campos]
+    * Fix `content-sniffed` not being emitted for resources without content
+    * Fix leak of SoupServerConnection when stolen
+
 Changes in libsoup from 3.2.0 to 3.2.1:
 
 * When built against nghttp2 1.50.0+ be relaxed about header whitespace [Carlos Garcia Campos]
