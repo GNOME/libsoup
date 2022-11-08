@@ -10,5 +10,6 @@
 
 void soup_server_set_http2_enabled (SoupServer *server,
                                     gboolean    enabled);
+GSList *soup_server_get_clients (SoupServer *server);
 
 #endif /* __SOUP_SERVER_PRIVATE_H__ */

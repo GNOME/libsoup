@@ -6,6 +6,7 @@
 #include "test-utils.h"
 #include "soup-message-private.h"
 #include "soup-uri-utils-private.h"
+#include "soup-server-private.h"
 #include "soup-misc.h"
 
 #include <gio/gnetworking.h>
@@ -1315,6 +1316,32 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 	g_free (proxy_uri_str);
 }
 
+static void
+do_idle_connection_closed_test (ServerData *sd, gconstpointer test_data)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *body;
+        GError *error = NULL;
+        GSList *clients;
+
+        session = soup_test_session_new (NULL);
+
+        msg = soup_message_new_from_uri ("GET", sd->base_uri);
+        body = soup_session_send_and_read (session, msg, NULL, &error);
+        g_assert_no_error (error);
+        g_bytes_unref (body);
+        g_object_unref (msg);
+
+        clients = soup_server_get_clients (sd->server);
+        g_assert_cmpuint (g_slist_length (clients), ==, 1);
+
+        soup_test_session_abort_unref (session);
+
+        while (soup_server_get_clients (sd->server))
+                g_main_context_iteration (NULL, FALSE);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1330,6 +1357,8 @@ main (int argc, char **argv)
 		    server_setup, do_invalid_percent_encoding_paths_test, server_teardown);
 	g_test_add ("/server/ipv6", ServerData, NULL,
 		    NULL, do_ipv6_test, server_teardown);
+        g_test_add ("/server/idle-connection-closed", ServerData, NULL,
+                    server_setup, do_idle_connection_closed_test, server_teardown);
 	g_test_add ("/server/multi/port", ServerData, NULL,
 		    NULL, do_multi_port_test, server_teardown);
 	g_test_add ("/server/multi/scheme", ServerData, NULL,

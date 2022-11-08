@@ -759,6 +759,14 @@ soup_server_get_listeners (SoupServer *server)
 	return listeners;
 }
 
+GSList *
+soup_server_get_clients (SoupServer *server)
+{
+        SoupServerPrivate *priv = soup_server_get_instance_private (server);
+
+        return priv->clients;
+}
+
 /* "" was never documented as meaning the same thing as "/", but it
  * effectively was. We have to special case it now or otherwise it
  * would match "*" too.
