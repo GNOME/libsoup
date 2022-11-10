@@ -605,9 +605,9 @@ void
 soup_server_message_unpause (SoupServerMessage *msg)
 {
         g_return_if_fail (SOUP_IS_SERVER_MESSAGE (msg));
-        g_return_if_fail (msg->io_data != NULL);
 
-        soup_server_message_io_unpause (msg->io_data, msg);
+        if (msg->io_data)
+                soup_server_message_io_unpause (msg->io_data, msg);
 }
 
 gboolean

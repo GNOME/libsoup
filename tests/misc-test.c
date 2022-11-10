@@ -22,6 +22,7 @@ static gboolean
 timeout_finish_message (gpointer msg)
 {
 	soup_server_message_unpause (msg);
+        g_object_unref (msg);
 	return FALSE;
 }
 
@@ -68,7 +69,7 @@ server_callback (SoupServer        *server,
                 GSource *timeout;
 		soup_server_message_pause (msg);
 		timeout = soup_add_timeout (g_main_context_get_thread_default (),
-                                            1000, timeout_finish_message, msg);
+                                            1000, timeout_finish_message, g_object_ref (msg));
                 g_source_unref (timeout);
 	}
 
