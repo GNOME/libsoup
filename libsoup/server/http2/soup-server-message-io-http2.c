@@ -364,12 +364,18 @@ io_write_ready (GObject                  *stream,
                 return G_SOURCE_CONTINUE;
         }
 
-        if (error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io)
-                h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+        if (soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io) {
+                if (error)
+                        h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+
+                g_clear_pointer (&io->write_source, g_source_unref);
+
+                if (error || (!nghttp2_session_want_read (io->session) && !nghttp2_session_want_write (io->session)))
+                        soup_server_connection_disconnect (conn);
+        }
 
         g_clear_error (&error);
         g_object_unref (conn);
-        g_clear_pointer (&io->write_source, g_source_unref);
 
         return G_SOURCE_REMOVE;
 }
@@ -388,16 +394,21 @@ io_try_write (SoupServerMessageIOHTTP2 *io)
         while (!error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && !io->in_callback && nghttp2_session_want_write (io->session))
                 io_write (io, &error);
 
-        if (io->in_callback || g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
-                g_clear_error (&error);
-                io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
-                g_source_set_name (io->write_source, "Soup server HTTP/2 write source");
-                g_source_set_callback (io->write_source, (GSourceFunc)io_write_ready, io, NULL);
-                g_source_attach (io->write_source, g_main_context_get_thread_default ());
-        }
+        if (soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io) {
+                if (io->in_callback || g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+                        g_clear_error (&error);
+                        io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
+                        g_source_set_name (io->write_source, "S oup server HTTP/2 write source");
+                        g_source_set_callback (io->write_source, (GSourceFunc)io_write_ready, io, NULL);
+                        g_source_attach (io->write_source, g_main_context_get_thread_default ());
+                }
 
-        if (error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io)
-		h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+                if (error)
+                        h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+
+                if (error || (!nghttp2_session_want_read (io->session) && !nghttp2_session_want_write (io->session)))
+                        soup_server_connection_disconnect (conn);
+        }
 
         g_clear_error (&error);
         g_object_unref (conn);
@@ -450,8 +461,13 @@ io_read_ready (GObject                  *stream,
                 return G_SOURCE_CONTINUE;
         }
 
-        if (error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io)
-                h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+        if (soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io) {
+                if (error)
+                        h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
+
+                if (error || (!nghttp2_session_want_read (io->session) && !nghttp2_session_want_write (io->session)))
+                        soup_server_connection_disconnect (conn);
+        }
 
         g_clear_error (&error);
         g_object_unref (conn);

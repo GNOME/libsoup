@@ -1325,6 +1325,8 @@ do_idle_connection_closed_test (ServerData *sd, gconstpointer test_data)
         GError *error = NULL;
         GSList *clients;
 
+        soup_server_set_http2_enabled (sd->server, tls_available);
+
         session = soup_test_session_new (NULL);
 
         msg = soup_message_new_from_uri ("GET", sd->base_uri);
@@ -1335,6 +1337,17 @@ do_idle_connection_closed_test (ServerData *sd, gconstpointer test_data)
 
         clients = soup_server_get_clients (sd->server);
         g_assert_cmpuint (g_slist_length (clients), ==, 1);
+
+        if (tls_available) {
+                msg = soup_message_new_from_uri ("GET", sd->ssl_base_uri);
+                body = soup_session_send_and_read (session, msg, NULL, &error);
+                g_assert_no_error (error);
+                g_bytes_unref (body);
+                g_object_unref (msg);
+
+                clients = soup_server_get_clients (sd->server);
+                g_assert_cmpuint (g_slist_length (clients), ==, 2);
+        }
 
         soup_test_session_abort_unref (session);
 
