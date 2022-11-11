@@ -25,7 +25,7 @@
  * An event can be 0 because it hasn't happened yet, because it's optional or
  * because the load failed before the event reached.
  *
- * Size metrics are expressed in bytes and aree updated while the [class@Message] is
+ * Size metrics are expressed in bytes and are updated while the [class@Message] is
  * being loaded. You can connect to different [class@Message] signals to get the
  * final result of every value.
  */
