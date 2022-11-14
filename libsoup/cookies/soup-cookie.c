@@ -1080,5 +1080,5 @@ soup_cookie_equal (SoupCookie *cookie1, SoupCookie *cookie2)
 
 	return (!strcmp (cookie1->name, cookie2->name) &&
 		!strcmp (cookie1->value, cookie2->value) &&
-		!strcmp (cookie1->path, cookie2->path));
+		!g_strcmp0 (cookie1->path, cookie2->path));
 }
