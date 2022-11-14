@@ -56,6 +56,7 @@ struct _SoupCookie {
 	GDateTime *expires;
 	gboolean   secure;
 	gboolean   http_only;
+	SoupSameSitePolicy same_site_policy;
 };
 
 G_DEFINE_BOXED_TYPE (SoupCookie, soup_cookie, soup_cookie_copy, soup_cookie_free)
@@ -81,7 +82,7 @@ soup_cookie_copy (SoupCookie *cookie)
 		copy->expires = g_date_time_ref (cookie->expires);
 	copy->secure = cookie->secure;
 	copy->http_only = cookie->http_only;
-	soup_cookie_set_same_site_policy (copy, soup_cookie_get_same_site_policy (cookie));
+	copy->same_site_policy = cookie->same_site_policy;
 
 	return copy;
 }
@@ -741,10 +742,6 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 		g_string_append (header, "; HttpOnly");
 }
 
-static GQuark soup_same_site_policy_quark (void);
-G_DEFINE_QUARK (soup-same-site-policy, soup_same_site_policy)
-#define SAME_SITE_POLICY_QUARK (soup_same_site_policy_quark())
-
 /**
  * soup_cookie_set_same_site_policy:
  * @cookie: a #SoupCookie
@@ -762,7 +759,7 @@ soup_cookie_set_same_site_policy (SoupCookie         *cookie,
 	case SOUP_SAME_SITE_POLICY_NONE:
 	case SOUP_SAME_SITE_POLICY_STRICT:
 	case SOUP_SAME_SITE_POLICY_LAX:
-		g_dataset_id_set_data (cookie, SAME_SITE_POLICY_QUARK, GUINT_TO_POINTER (policy));
+                cookie->same_site_policy = policy;
 		break;
 	default:
 		g_return_if_reached ();
@@ -780,7 +777,7 @@ soup_cookie_set_same_site_policy (SoupCookie         *cookie,
 SoupSameSitePolicy
 soup_cookie_get_same_site_policy (SoupCookie *cookie)
 {
-	return GPOINTER_TO_UINT (g_dataset_id_get_data (cookie, SAME_SITE_POLICY_QUARK));
+        return cookie->same_site_policy;
 }
 
 /**
