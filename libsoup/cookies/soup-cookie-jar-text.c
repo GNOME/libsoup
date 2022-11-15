@@ -137,7 +137,7 @@ string_to_same_site_policy (const char *string)
 	else if (strcmp (string, "None") == 0)
 		return SOUP_SAME_SITE_POLICY_NONE;
 	else
-		g_return_val_if_reached (SOUP_SAME_SITE_POLICY_NONE);
+		g_return_val_if_reached (SOUP_SAME_SITE_POLICY_LAX);
 }
 
 static const char *
@@ -152,7 +152,7 @@ same_site_policy_to_string (SoupSameSitePolicy policy)
 		return "None";
 	}
 
-	g_return_val_if_reached ("None");
+	g_return_val_if_reached ("Lax");
 }
 
 static SoupCookie*

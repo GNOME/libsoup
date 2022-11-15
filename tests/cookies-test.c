@@ -332,11 +332,12 @@ do_cookies_parsing_test (void)
 			got1 = TRUE;
 			g_assert_true (soup_cookie_get_http_only (cookie));
 			g_assert_true (soup_cookie_get_expires (cookie) != NULL);
+			g_assert_cmpint (soup_cookie_get_same_site_policy (cookie), ==, SOUP_SAME_SITE_POLICY_LAX);
 		} else if (!strcmp (soup_cookie_get_name (cookie), "two")) {
 			got2 = TRUE;
 			g_assert_true (soup_cookie_get_http_only (cookie));
 			g_assert_true (soup_cookie_get_expires (cookie) != NULL);
-			g_assert_cmpint (soup_cookie_get_same_site_policy (cookie), ==, SOUP_SAME_SITE_POLICY_NONE);
+			g_assert_cmpint (soup_cookie_get_same_site_policy (cookie), ==, SOUP_SAME_SITE_POLICY_LAX);
 		} else if (!strcmp (soup_cookie_get_name (cookie), "three")) {
 			got3 = TRUE;
 			g_assert_true (soup_cookie_get_http_only (cookie));

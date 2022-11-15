@@ -13,21 +13,24 @@ static void
 same_site_setup (SameSiteFixture *fixture,
                  gconstpointer    data)
 {
-	SoupCookie *cookie_none, *cookie_lax, *cookie_strict;
+	SoupCookie *cookie_none, *cookie_lax, *cookie_strict, *cookie_default;
 
 	fixture->origin_uri = g_uri_parse ("http://127.0.0.1", SOUP_HTTP_URI_FLAGS, NULL);
 	fixture->cross_uri = g_uri_parse ("http://localhost", SOUP_HTTP_URI_FLAGS, NULL);
 	fixture->jar = soup_cookie_jar_new ();
 
 	cookie_none = soup_cookie_new ("none", "1", "127.0.0.1", "/", 1000);
+	soup_cookie_set_same_site_policy (cookie_none, SOUP_SAME_SITE_POLICY_NONE);
 	cookie_lax = soup_cookie_new ("lax", "1", "127.0.0.1", "/", 1000);
 	soup_cookie_set_same_site_policy (cookie_lax, SOUP_SAME_SITE_POLICY_LAX);
 	cookie_strict = soup_cookie_new ("strict", "1", "127.0.0.1", "/", 1000);
 	soup_cookie_set_same_site_policy (cookie_strict, SOUP_SAME_SITE_POLICY_STRICT);
+	cookie_default = soup_cookie_new ("default", "1", "127.0.0.1", "/", 1000);
 
 	soup_cookie_jar_add_cookie_with_first_party (fixture->jar, fixture->origin_uri, cookie_none);
 	soup_cookie_jar_add_cookie_with_first_party (fixture->jar, fixture->origin_uri, cookie_lax);
 	soup_cookie_jar_add_cookie_with_first_party (fixture->jar, fixture->origin_uri, cookie_strict);
+	soup_cookie_jar_add_cookie_with_first_party (fixture->jar, fixture->origin_uri, cookie_default);
 }
 
 static void
@@ -52,10 +55,10 @@ assert_highest_policy_visible (GSList *cookies, SoupSameSitePolicy policy)
 
 	switch (policy) {
 	case SOUP_SAME_SITE_POLICY_STRICT:
-		expected_count = 3;
+		expected_count = 4;
 		break;
 	case SOUP_SAME_SITE_POLICY_LAX:
-		expected_count = 2;
+		expected_count = 3;
 		break;
 	case SOUP_SAME_SITE_POLICY_NONE:
 		expected_count = 1;

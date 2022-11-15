@@ -170,6 +170,7 @@ parse_one_cookie (const char *header, GUri *origin)
 	SoupCookie *cookie;
 
 	cookie = g_slice_new0 (SoupCookie);
+	soup_cookie_set_same_site_policy (cookie, SOUP_SAME_SITE_POLICY_LAX);
 
 	/* Parse the NAME */
 	start = skip_lws (header);
@@ -233,15 +234,15 @@ parse_one_cookie (const char *header, GUri *origin)
 		} else if (MATCH_NAME ("samesite")) {
 			if (has_value) {
 				char *policy = parse_value (&p, TRUE);
-				if (g_ascii_strcasecmp (policy, "Lax") == 0)
-					soup_cookie_set_same_site_policy (cookie, SOUP_SAME_SITE_POLICY_LAX);
+				if (g_ascii_strcasecmp (policy, "None") == 0)
+					soup_cookie_set_same_site_policy (cookie, SOUP_SAME_SITE_POLICY_NONE);
 				else if (g_ascii_strcasecmp (policy, "Strict") == 0)
 					soup_cookie_set_same_site_policy (cookie, SOUP_SAME_SITE_POLICY_STRICT);
-				/* There is an explicit "None" value which is the default. */
+				/* There is an explicit "Lax" value which is the default */
 				g_free (policy);
 			}
 			/* Note that earlier versions of the same-site RFC treated invalid values as strict but
-			   the latest revision simply ignores them. */
+			   the latest revision assigns invalid SameSite values to Lax. */
 		} else {
 			/* Ignore unknown attributes, but we still have
 			 * to skip over the value.
@@ -328,6 +329,7 @@ cookie_new_internal (const char *name, const char *value,
 	cookie->domain = g_strdup (domain);
 	cookie->path = g_strdup (path);
 	soup_cookie_set_max_age (cookie, max_age);
+	cookie->same_site_policy = SOUP_SAME_SITE_POLICY_LAX;
 
 	return cookie;
 }
@@ -358,6 +360,9 @@ cookie_new_internal (const char *name, const char *value,
  * multiples thereof) to calculate this value. (If you really care
  * about setting the exact time that the cookie will expire, use
  * [method@Cookie.set_expires].)
+ *
+ * As of version 3.4.0 the default value of a cookie's same-site-policy
+ * is %SOUP_SAME_SITE_POLICY_LAX.
  *
  * Returns: a new #SoupCookie.
  **/
@@ -396,6 +401,9 @@ soup_cookie_new (const char *name, const char *value,
  * valid state for a #SoupCookie, and you will need to fill in some
  * appropriate string for the domain if you want to actually make use
  * of the cookie.
+ *
+ * As of version 3.4.0 the default value of a cookie's same-site-policy
+ * is %SOUP_SAME_SITE_POLICY_LAX.
  *
  * Returns: (nullable): a new #SoupCookie, or %NULL if it could
  *   not be parsed, or contained an illegal "domain" attribute for a
