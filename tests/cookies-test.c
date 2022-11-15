@@ -368,6 +368,20 @@ do_cookies_parsing_nopath_nullorigin (void)
 }
 
 static void
+do_cookies_equal_nullpath (void)
+{
+	SoupCookie *cookie1, *cookie2;
+
+	cookie1 = soup_cookie_new ("one", "1", "127.0.0.1", NULL, 1000);
+	cookie2 = soup_cookie_new ("two", "1", "127.0.0.1", NULL, 1000);
+
+	g_assert_false (soup_cookie_equal(cookie1, cookie2));
+
+	soup_cookie_free (cookie1);
+	soup_cookie_free (cookie2);
+}
+
+static void
 do_get_cookies_empty_host_test (void)
 {
 	SoupCookieJar *jar;
@@ -526,6 +540,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/accept-policy-subdomains", do_cookies_subdomain_policy_test);
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
 	g_test_add_func ("/cookies/parsing/no-path-null-origin", do_cookies_parsing_nopath_nullorigin);
+	g_test_add_func ("/cookies/parsing/equal-nullpath", do_cookies_equal_nullpath);
 	g_test_add_func ("/cookies/get-cookies/empty-host", do_get_cookies_empty_host_test);
 	g_test_add_func ("/cookies/remove-feature", do_remove_feature_test);
 	g_test_add_func ("/cookies/secure-cookies", do_cookies_strict_secure_test);
