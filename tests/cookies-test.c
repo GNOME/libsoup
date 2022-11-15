@@ -373,9 +373,9 @@ do_cookies_equal_nullpath (void)
 	SoupCookie *cookie1, *cookie2;
 
 	cookie1 = soup_cookie_new ("one", "1", "127.0.0.1", NULL, 1000);
-	cookie2 = soup_cookie_new ("two", "1", "127.0.0.1", NULL, 1000);
+	cookie2 = soup_cookie_new ("one", "1", "127.0.0.1", "/foo", 1000);
 
-	g_assert_false (soup_cookie_equal(cookie1, cookie2));
+	g_assert_false (soup_cookie_equal (cookie1, cookie2));
 
 	soup_cookie_free (cookie1);
 	soup_cookie_free (cookie2);
