@@ -330,8 +330,8 @@ soup_multipart_append_form_string (SoupMultipart *multipart,
  * soup_multipart_append_form_file:
  * @multipart: a multipart (presumably of type "multipart/form-data")
  * @control_name: the name of the control associated with this file
- * @filename: the name of the file, or %NULL if not known
- * @content_type: the MIME type of the file, or %NULL if not known
+ * @filename: (nullable): the name of the file, or %NULL if not known
+ * @content_type: (nullable): the MIME type of the file, or %NULL if not known
  * @body: the file data
  *
  * Adds a new MIME part containing @body to @multipart
