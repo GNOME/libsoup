@@ -209,7 +209,7 @@ choose_subprotocol (SoupServerMessage *msg,
 	client_protocols = g_strsplit_set (client_protocols_str, ", ", -1);
 	if (!client_protocols || !client_protocols[0]) {
 		g_strfreev (client_protocols);
-		return TRUE;
+		return FALSE;
 	}
 
 	for (i = 0; server_protocols[i] != NULL; i++) {
@@ -273,12 +273,13 @@ soup_websocket_client_prepare_handshake (SoupMessage *msg,
 	if (origin)
 		soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_ORIGIN, origin);
 
-	if (protocols) {
+	if (protocols && *protocols) {
 		char *protocols_str;
 
 		protocols_str = g_strjoinv (", ", protocols);
-		soup_message_headers_replace_common (soup_message_get_request_headers (msg),
-                                                     SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL, protocols_str);
+		if (*protocols_str)
+			soup_message_headers_replace_common (soup_message_get_request_headers (msg),
+                                                         SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL, protocols_str);
 		g_free (protocols_str);
 	}
 

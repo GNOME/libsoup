@@ -907,6 +907,58 @@ test_protocol_client_any_soup (Test *test,
 	g_assert_cmpstr (soup_message_headers_get_one (soup_message_get_response_headers (test->msg), "Sec-WebSocket-Protocol"), ==, NULL);
 }
 
+static const char *invalid_protocols[] = { "", NULL };
+
+static void
+test_soup_websocket_client_prepare_handshake_ignores_invalid_protocols (Test *test,
+				 gconstpointer unused)
+{
+	SoupMessage *msg;
+	char *protocol;
+	msg = soup_message_new ("GET", "http://127.0.0.1");
+	soup_websocket_client_prepare_handshake (msg, NULL, (char **) invalid_protocols, NULL);
+
+	protocol = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Sec-WebSocket-Protocol");
+	g_assert_cmpstr (protocol, ==, NULL);
+}
+
+static void
+test_protocol_client_invalid_direct (Test *test,
+				 gconstpointer unused)
+{
+	SoupMessage *msg;
+	SoupServerMessage *server_msg;
+	SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
+	gboolean ok;
+	const char *protocol;
+	GError *error = NULL;
+
+	msg = soup_message_new ("GET", "http://127.0.0.1");
+	soup_websocket_client_prepare_handshake (msg, NULL, NULL, NULL);
+	soup_message_headers_append (soup_message_get_request_headers (msg), "Sec-WebSocket-Protocol", "");
+
+	server_msg = g_object_new (SOUP_TYPE_SERVER_MESSAGE, NULL);
+	soup_server_message_set_method (server_msg, soup_message_get_method (msg));
+	soup_server_message_set_uri (server_msg, soup_message_get_uri (msg));
+	request_headers = soup_server_message_get_request_headers (server_msg);
+	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
+	while (soup_message_headers_iter_next (&iter, &name, &value))
+		soup_message_headers_append (request_headers, name, value);
+	ok = soup_websocket_server_check_handshake (server_msg, NULL, (char **) all_protocols, NULL, &error);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE);
+	g_assert_false (ok);
+
+	ok = soup_websocket_server_process_handshake (server_msg, NULL, (char **) all_protocols, NULL, NULL);
+	g_assert_false (ok);
+
+
+	g_object_unref (msg);
+	g_object_unref (server_msg);
+}
+
 typedef enum {
         CLOSE_TEST_FLAG_SERVER = 1 << 0,
         CLOSE_TEST_FLAG_CLIENT = 1 << 1
@@ -2166,6 +2218,12 @@ main (int argc,
 		    test_protocol_client_any_soup,
 		    teardown_soup_connection);
 
+	g_test_add ("/websocket/direct/invalid-protocols-ignored", Test, NULL, NULL,
+		    test_soup_websocket_client_prepare_handshake_ignores_invalid_protocols,
+		    NULL);
+	g_test_add ("/websocket/direct/invalid-protocols-rejected", Test, NULL, NULL,
+		    test_protocol_client_invalid_direct,
+		    NULL);
 
 	g_test_add ("/websocket/direct/receive-fragmented", Test, NULL,
 		    setup_half_direct_connection,
