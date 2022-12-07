@@ -378,6 +378,7 @@ static SoupConnection *
 soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
                                                SoupMessageQueueItem  *item)
 {
+        static gchar env_force_http1 = -1;
         SoupMessage *msg = item->msg;
         gboolean need_new_connection;
         SoupConnection *conn;
@@ -388,6 +389,9 @@ soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
         GSocketConnectable *remote_connectable;
         gboolean try_cleanup = TRUE;
 
+        if (env_force_http1 == -1)
+                env_force_http1 = g_getenv ("SOUP_FORCE_HTTP1") != NULL ? 1 : 0;
+
         need_new_connection =
                 (soup_message_query_flags (msg, SOUP_MESSAGE_NEW_CONNECTION)) ||
                 (soup_message_is_misdirected_retry (msg)) ||
@@ -396,7 +400,7 @@ soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
 
         host = soup_connection_manager_get_or_create_host_for_item (manager, item);
 
-        force_http_version = g_getenv ("SOUP_FORCE_HTTP1") ? SOUP_HTTP_1_1 : soup_message_get_force_http_version (msg);
+        force_http_version = env_force_http1 ? SOUP_HTTP_1_1 : soup_message_get_force_http_version (msg);
         while (TRUE) {
                 for (l = host->conns; l && l->data; l = g_list_next (l)) {
                         SoupHTTPVersion http_version;
