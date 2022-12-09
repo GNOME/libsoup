@@ -3316,3 +3316,42 @@ soup_message_is_misdirected_retry (SoupMessage *msg)
 
         return priv->is_misdirected_retry;
 }
+
+/**
+ * soup_message_set_force_http1:
+ * @msg: The #SoupMessage
+ * @value: value to set
+ *
+ * Sets whether HTTP/1 version should be used when sending this message.
+ * Some connections can still override it, if needed.
+ *
+ * Note the value is unset after the message send is finished.
+ *
+ * Since: 3.4
+ */
+void
+soup_message_set_force_http1 (SoupMessage *msg,
+			      gboolean value)
+{
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	soup_message_set_force_http_version (msg, value ? SOUP_HTTP_1_1 : G_MAXUINT8);
+}
+
+/**
+ * soup_message_get_force_http1:
+ * @msg: The #SoupMessage
+ *
+ * Returns whether HTTP/1 version is currently demanded for the @msg send.
+ *
+ * Returns: %TRUE, when HTTP/1 is demanded, %FALSE otherwise.
+ *
+ * Since: 3.4
+ */
+gboolean
+soup_message_get_force_http1 (SoupMessage *msg)
+{
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+
+	return soup_message_get_force_http_version (msg) == SOUP_HTTP_1_1;
+}
