@@ -98,6 +98,7 @@ disconnect_internal (SoupServerConnection *conn)
         g_io_stream_close (priv->conn, NULL, NULL);
         g_signal_handlers_disconnect_by_data (priv->conn, conn);
         g_clear_object (&priv->conn);
+        g_clear_object (&priv->initial_msg);
 
         g_clear_pointer (&priv->io_data, soup_server_message_io_destroy);
 }
