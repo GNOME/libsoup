@@ -28,17 +28,13 @@ static const gchar *input_file_path;
 #define OUTPUT_BUFFER_SIZE 8192
 
 static void
-on_stream_splice (GObject *source, GAsyncResult *result, gpointer user_data)
+on_request_spliced (GObject *source, GAsyncResult *result, gpointer user_data)
 {
         GError *error = NULL;
-        g_output_stream_splice_finish (G_OUTPUT_STREAM (source),
-                                       result,
-                                       &error);
-        if (error) {
-                g_printerr ("Failed to download: %s\n", error->message);
+
+        if (soup_session_send_and_splice_finish (SOUP_SESSION (source), result, &error) == -1) {
+                g_printerr ("Failed to send request: %s\n", error->message);
                 g_error_free (error);
-                g_main_loop_quit (loop);
-                return;
         }
 
         g_main_loop_quit (loop);
@@ -76,6 +72,7 @@ on_read_ready (GObject *source, GAsyncResult *result, gpointer user_data)
 static void
 on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
 {
+        char *output_buffer;
         GError *error = NULL;
         GInputStream *in = soup_session_send_finish (SOUP_SESSION (source), result, &error);
 
@@ -86,34 +83,9 @@ on_request_sent (GObject *source, GAsyncResult *result, gpointer user_data)
                 return;
         }
 
-        if (output_file_path) {
-                GFile *output_file = g_file_new_for_commandline_arg (output_file_path);
-                GOutputStream *out = G_OUTPUT_STREAM (g_file_create (output_file, G_FILE_CREATE_NONE,
-                                                      NULL, &error));
-                if (error) {
-                        g_print ("Failed to create \"%s\": %s\n", output_file_path, error->message);
-                        g_error_free (error);
-                        g_object_unref (in);
-                        g_object_unref (output_file);
-                        g_main_loop_quit (loop);
-                        return;
-                }
-
-                /* Start downloading to the file */
-                g_output_stream_splice_async (G_OUTPUT_STREAM (out), in,
-                                        G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-                                        G_PRIORITY_DEFAULT,
-                                        NULL,
-                                        on_stream_splice,
-                                        NULL);
-
-                g_object_unref (out);
-	} else {
-                char *output_buffer = g_new (char, OUTPUT_BUFFER_SIZE);
-                g_input_stream_read_all_async (in, output_buffer, OUTPUT_BUFFER_SIZE,
-                                               G_PRIORITY_DEFAULT, NULL, on_read_ready, output_buffer);
-        }
-
+        output_buffer = g_new (char, OUTPUT_BUFFER_SIZE);
+        g_input_stream_read_all_async (in, output_buffer, OUTPUT_BUFFER_SIZE,
+                                       G_PRIORITY_DEFAULT, NULL, on_read_ready, output_buffer);
         g_object_unref (in);
 }
 
@@ -334,8 +306,30 @@ main (int argc, char **argv)
 
         /* Send the request */
         soup_message_set_tls_client_certificate (msg, client_cert);
-        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
-				 on_request_sent, NULL);
+        if (output_file_path) {
+                GFile *output_file = g_file_new_for_commandline_arg (output_file_path);
+                GOutputStream *out = G_OUTPUT_STREAM (g_file_create (output_file, G_FILE_CREATE_NONE,
+                                                                     NULL, &error));
+
+                if (error) {
+                        g_print ("Failed to create \"%s\": %s\n", output_file_path, error->message);
+                        g_error_free (error);
+                        g_object_unref (output_file);
+                        g_object_unref (msg);
+                        g_object_unref (session);
+                        exit (1);
+                }
+                soup_session_send_and_splice_async (session, msg, out,
+                                                    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+                                                    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                                    G_PRIORITY_DEFAULT,
+                                                    NULL, on_request_spliced, NULL);
+                g_object_unref (output_file);
+                g_object_unref (out);
+        } else {
+                soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                         on_request_sent, NULL);
+        }
 	g_object_unref (msg);
 
         /* Run the loop */

@@ -3272,54 +3272,28 @@ soup_session_send (SoupSession   *session,
 }
 
 static void
-send_and_read_splice_ready_cb (GOutputStream *ostream,
-			       GAsyncResult  *result,
-			       GTask         *task)
-{
-	GError *error = NULL;
-
-	if (g_output_stream_splice_finish (ostream, result, &error) != -1) {
-		g_task_return_pointer (task,
-				       g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream)),
-				       (GDestroyNotify)g_bytes_unref);
-	} else {
-		g_task_return_error (task, error);
-	}
-	g_object_unref (task);
-}
-
-static void
-send_and_read_stream_ready_cb (SoupSession  *session,
+send_and_read_splice_ready_cb (SoupSession  *session,
 			       GAsyncResult *result,
 			       GTask        *task)
 {
-	GInputStream *stream;
 	GOutputStream *ostream;
 	GError *error = NULL;
+
+        ostream = g_task_get_task_data (task);
 
         // In order for soup_session_get_async_result_message() to work it must
         // have the task data for the task it wrapped
         SoupMessageQueueItem *item = g_task_get_task_data (G_TASK (result));
         g_task_set_task_data (task, soup_message_queue_item_ref (item), (GDestroyNotify)soup_message_queue_item_unref);
 
-	stream = soup_session_send_finish (session, result, &error);
-	if (!stream) {
-		g_task_return_error (task, error);
-		g_object_unref (task);
-		return;
-	}
-
-	ostream = g_memory_output_stream_new_resizable ();
-	g_output_stream_splice_async (ostream,
-				      stream,
-				      G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
-				      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-				      g_task_get_priority (task),
-				      g_task_get_cancellable (task),
-				      (GAsyncReadyCallback)send_and_read_splice_ready_cb,
-				      task);
-	g_object_unref (ostream);
-	g_object_unref (stream);
+        if (soup_session_send_and_splice_finish (session, result, &error) != -1) {
+                g_task_return_pointer (task,
+                                       g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream)),
+                                       (GDestroyNotify)g_bytes_unref);
+        } else {
+                g_task_return_error (task, error);
+        }
+        g_object_unref (task);
 }
 
 /**
@@ -3350,18 +3324,23 @@ soup_session_send_and_read_async (SoupSession        *session,
 				  gpointer            user_data)
 {
 	GTask *task;
+        GOutputStream *ostream;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
+        ostream = g_memory_output_stream_new_resizable ();
 	task = g_task_new (session, cancellable, callback, user_data);
 	g_task_set_priority (task, io_priority);
+        g_task_set_task_data (task, ostream, g_object_unref);
 
-	soup_session_send_async (session, msg,
-				 g_task_get_priority (task),
-				 g_task_get_cancellable (task),
-				 (GAsyncReadyCallback)send_and_read_stream_ready_cb,
-				 task);
+        soup_session_send_and_splice_async (session, msg, ostream,
+                                            G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+                                            G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                            g_task_get_priority (task),
+                                            g_task_get_cancellable (task),
+                                            (GAsyncReadyCallback)send_and_read_splice_ready_cb,
+                                            task);
 }
 
 /**
@@ -3410,26 +3389,191 @@ soup_session_send_and_read (SoupSession  *session,
 			    GCancellable *cancellable,
 			    GError      **error)
 {
-	GInputStream *stream;
 	GOutputStream *ostream;
 	GBytes *bytes = NULL;
 
-	stream = soup_session_send (session, msg, cancellable, error);
-	if (!stream)
-		return NULL;
-
-	ostream = g_memory_output_stream_new_resizable ();
-	if (g_output_stream_splice (ostream,
-				    stream,
-				    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
-				    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-				    cancellable, error) != -1) {
-		bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
-	}
-	g_object_unref (ostream);
-	g_object_unref (stream);
+        ostream = g_memory_output_stream_new_resizable ();
+        if (soup_session_send_and_splice (session, msg, ostream,
+                                          G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+                                          G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                          cancellable, error) != -1)
+                bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (ostream));
+        g_object_unref (ostream);
 
 	return bytes;
+}
+
+typedef struct {
+        GOutputStream *out_stream;
+        GOutputStreamSpliceFlags flags;
+        GTask *task;
+} SendAndSpliceAsyncData;
+
+static void
+send_and_splice_async_data_free (SendAndSpliceAsyncData *data)
+{
+        g_clear_object (&data->out_stream);
+        g_clear_object (&data->task);
+
+        g_free (data);
+}
+
+static void
+send_and_splice_ready_cb (GOutputStream *ostream,
+                          GAsyncResult  *result,
+                          GTask         *task)
+{
+        GError *error = NULL;
+        gssize retval;
+
+        retval = g_output_stream_splice_finish (ostream, result, &error);
+        if (retval != -1)
+                g_task_return_int (task, retval);
+        else
+                g_task_return_error (task, error);
+        g_object_unref (task);
+}
+
+static void
+send_and_splice_stream_ready_cb (SoupSession            *session,
+                                 GAsyncResult           *result,
+                                 SendAndSpliceAsyncData *data)
+{
+        GInputStream *stream;
+        GTask *task;
+        GError *error = NULL;
+
+        // In order for soup_session_get_async_result_message() to work it must
+        // have the task data for the task it wrapped
+        SoupMessageQueueItem *item = g_task_get_task_data (G_TASK (result));
+        g_task_set_task_data (data->task, soup_message_queue_item_ref (item), (GDestroyNotify)soup_message_queue_item_unref);
+
+        stream = soup_session_send_finish (session, result, &error);
+        if (!stream) {
+                g_task_return_error (data->task, error);
+                send_and_splice_async_data_free (data);
+                return;
+        }
+
+        task = g_steal_pointer (&data->task);
+        g_output_stream_splice_async (data->out_stream, stream, data->flags,
+                                      g_task_get_priority (task),
+                                      g_task_get_cancellable (task),
+                                      (GAsyncReadyCallback)send_and_splice_ready_cb,
+                                      task);
+        g_object_unref (stream);
+        send_and_splice_async_data_free (data);
+}
+
+/**
+ * soup_session_send_and_splice_async:
+ * @session: a #SoupSession
+ * @msg: (transfer none): a #SoupMessage
+ * @out_stream: (transfer none): a #GOutputStream
+ * @flags: a set of #GOutputStreamSpliceFlags
+ * @io_priority: the I/O priority of the request
+ * @cancellable: (nullable): a #GCancellable
+ * @callback: (scope async): the callback to invoke
+ * @user_data: data for @callback
+ *
+ * Asynchronously sends @msg and splices the response body stream into @out_stream.
+ * When @callback is called, then either @msg has been sent and its response body
+ * spliced, or else an error has occurred.
+ *
+ * See [method@Session.send] for more details on the general semantics.
+ *
+ * Since: 3.4
+ */
+void
+soup_session_send_and_splice_async (SoupSession             *session,
+                                    SoupMessage             *msg,
+                                    GOutputStream           *out_stream,
+                                    GOutputStreamSpliceFlags flags,
+                                    int                      io_priority,
+                                    GCancellable            *cancellable,
+                                    GAsyncReadyCallback      callback,
+                                    gpointer                 user_data)
+{
+        SendAndSpliceAsyncData *data;
+
+        g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+        g_return_if_fail (G_IS_OUTPUT_STREAM (out_stream));
+
+        data = g_new (SendAndSpliceAsyncData, 1);
+        data->out_stream = g_object_ref (out_stream);
+        data->flags = flags;
+        data->task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_priority (data->task, io_priority);
+
+        soup_session_send_async (session, msg,
+                                 g_task_get_priority (data->task),
+                                 g_task_get_cancellable (data->task),
+                                 (GAsyncReadyCallback)send_and_splice_stream_ready_cb,
+                                 data);
+}
+
+/**
+ * soup_session_send_and_splice_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ * @error: return location for a #GError, or %NULL
+ *
+ * Gets the response to a [method@Session.send_and_splice_async].
+ *
+ * Returns: a #gssize containing the size of the data spliced, or -1 if an error occurred.
+ *
+ * Since: 3.4
+ */
+gssize
+soup_session_send_and_splice_finish (SoupSession  *session,
+                                     GAsyncResult *result,
+                                     GError      **error)
+{
+        g_return_val_if_fail (SOUP_IS_SESSION (session), -1);
+        g_return_val_if_fail (g_task_is_valid (result, session), -1);
+
+        return g_task_propagate_int (G_TASK (result), error);
+}
+
+/**
+ * soup_session_send_and_splice:
+ * @session: a #SoupSession
+ * @msg: (transfer none): a #SoupMessage
+ * @out_stream: (transfer none): a #GOutputStream
+ * @flags: a set of #GOutputStreamSpliceFlags
+ * @cancellable: (nullable): a #GCancellable
+ * @error: return location for a #GError, or %NULL
+ *
+ * Synchronously sends @msg and splices the response body stream into @out_stream.
+ *
+ * See [method@Session.send] for more details on the general semantics.
+ *
+ * Returns: a #gssize containing the size of the data spliced, or -1 if an error occurred.
+ *
+ * Since: 3.4
+ */
+gssize
+soup_session_send_and_splice (SoupSession             *session,
+                              SoupMessage             *msg,
+                              GOutputStream           *out_stream,
+                              GOutputStreamSpliceFlags flags,
+                              GCancellable            *cancellable,
+                              GError                 **error)
+{
+        GInputStream *stream;
+        gssize retval;
+
+        g_return_val_if_fail (G_IS_OUTPUT_STREAM (out_stream), -1);
+
+        stream = soup_session_send (session, msg, cancellable, error);
+        if (!stream)
+                return -1;
+
+        retval = g_output_stream_splice (out_stream, stream, flags, cancellable, error);
+        g_object_unref (stream);
+
+        return retval;
 }
 
 /**
