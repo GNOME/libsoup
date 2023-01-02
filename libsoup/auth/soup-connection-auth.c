@@ -20,6 +20,7 @@
 
 typedef struct {
 	GHashTable *conns;
+	GMutex lock;
 } SoupConnectionAuthPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupConnectionAuth, soup_connection_auth, SOUP_TYPE_AUTH)
@@ -29,6 +30,7 @@ soup_connection_auth_init (SoupConnectionAuth *auth)
 {
 	SoupConnectionAuthPrivate *priv = soup_connection_auth_get_instance_private (auth);
 
+	g_mutex_init (&priv->lock);
 	priv->conns = g_hash_table_new (NULL, NULL);
 }
 
@@ -50,8 +52,10 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
         SoupConnectionAuthPrivate *priv = soup_connection_auth_get_instance_private (auth);
 	gpointer state;
 
+	g_mutex_lock (&priv->lock);
 	state = g_hash_table_lookup (priv->conns, conn);
 	g_hash_table_remove (priv->conns, conn);
+	g_mutex_unlock (&priv->lock);
 	soup_connection_auth_free_connection_state (auth, conn, state);
 }
 
@@ -63,12 +67,15 @@ soup_connection_auth_finalize (GObject *object)
 	GHashTableIter iter;
 	gpointer conn, state;
 
+	g_mutex_lock (&priv->lock);
 	g_hash_table_iter_init (&iter, priv->conns);
 	while (g_hash_table_iter_next (&iter, &conn, &state)) {
 		soup_connection_auth_free_connection_state (auth, conn, state);
 		g_hash_table_iter_remove (&iter);
 	}
 	g_hash_table_destroy (priv->conns);
+	g_mutex_unlock (&priv->lock);
+	g_mutex_clear (&priv->lock);
 
 	G_OBJECT_CLASS (soup_connection_auth_parent_class)->finalize (object);
 }
@@ -99,16 +106,19 @@ soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	conn = soup_message_get_connection (msg);
+	g_mutex_lock (&priv->lock);
 	state = g_hash_table_lookup (priv->conns, conn);
 	if (!state) {
                 state = SOUP_CONNECTION_AUTH_GET_CLASS (auth)->create_connection_state (auth);
+                g_hash_table_insert (priv->conns, conn, state);
+                g_mutex_unlock (&priv->lock);
                 if (conn) {
                         g_signal_connect (conn, "disconnected",
                                           G_CALLBACK (connection_disconnected), auth);
                 }
-
-                g_hash_table_insert (priv->conns, conn, state);
-        }
+        } else {
+                g_mutex_unlock (&priv->lock);
+	}
         g_clear_object (&conn);
 
 	return state;
