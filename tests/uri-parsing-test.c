@@ -51,10 +51,12 @@ static void
 do_copy_tests (void)
 {
         GUri *uri;
+        GUri *uri2;
         GUri *copy;
         char *str;
 
         uri = g_uri_parse ("http://127.0.0.1:1234/foo#bar", SOUP_HTTP_URI_FLAGS, NULL);
+        uri2 = g_uri_parse ("http://127.0.0.1", SOUP_HTTP_URI_FLAGS, NULL);
 
         /* Exact copy */
         copy = soup_uri_copy (uri, SOUP_URI_NONE);
@@ -91,6 +93,13 @@ do_copy_tests (void)
         g_free (str);
         g_uri_unref (copy);
 
+        /* Switch protocols without explicit port */
+        copy = soup_uri_copy (uri2, SOUP_URI_SCHEME, "https", SOUP_URI_NONE);
+        str = g_uri_to_string (copy);
+        g_assert_cmpstr (str, ==, "https://127.0.0.1/");
+        g_free (str);
+        g_uri_unref (copy);
+
         /* Update everything */
         copy = soup_uri_copy (uri,
                               SOUP_URI_SCHEME, "https",
@@ -114,6 +123,7 @@ do_copy_tests (void)
         g_uri_unref (copy);
 
         g_uri_unref (uri);
+        g_uri_unref (uri2);
 }
 
 #define CONTENT_TYPE_DEFAULT "text/plain;charset=US-ASCII"

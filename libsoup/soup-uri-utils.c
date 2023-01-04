@@ -363,6 +363,26 @@ soup_uri_decode_data_uri (const char *uri,
  * the URI that should be updated with the given values.
  */
 
+static int
+get_maybe_default_port (GUri *uri)
+{
+        const char *scheme = g_uri_get_scheme (uri);
+        int port = g_uri_get_port (uri);
+
+        switch (port) {
+        case 80:
+                if (!strcmp (scheme, "http") || !strcmp (scheme, "ws"))
+                        return -1;
+                break;
+        case 443:
+                if (!strcmp (scheme, "https") || !strcmp (scheme, "wss"))
+                        return -1;
+                break;
+        }
+
+        return port;
+}
+
 /**
  * soup_uri_copy: (skip)
  * @uri: the #GUri to copy
@@ -370,6 +390,11 @@ soup_uri_decode_data_uri (const char *uri,
  * @...: value of @first_component  followed by additional
  *    components and values, terminated by %SOUP_URI_NONE
  *
+ * As of 3.4.0 this will detect the default ports of HTTP(s) and WS(S)
+ * URIs when copying and set it to the default port of the new scheme.
+ * So for example copying `http://localhost:80` while changing the scheme to https
+ * will result in `https://localhost:443`.
+ * 
  * Return a copy of @uri with the given components updated.
  *
  * Returns: (transfer full): a new #GUri
@@ -417,7 +442,7 @@ soup_uri_copy (GUri            *uri,
                 values_to_set[SOUP_URI_PASSWORD] ? values[SOUP_URI_PASSWORD] : g_uri_get_password (uri),
                 values_to_set[SOUP_URI_AUTH_PARAMS] ? values[SOUP_URI_AUTH_PARAMS] : g_uri_get_auth_params (uri),
                 values_to_set[SOUP_URI_HOST] ? values[SOUP_URI_HOST] : g_uri_get_host (uri),
-                values_to_set[SOUP_URI_PORT] ? GPOINTER_TO_INT (values[SOUP_URI_PORT]) : g_uri_get_port (uri),
+                values_to_set[SOUP_URI_PORT] ? GPOINTER_TO_INT (values[SOUP_URI_PORT]) : get_maybe_default_port (uri),
                 values_to_set[SOUP_URI_PATH] ? values[SOUP_URI_PATH] : g_uri_get_path (uri),
                 values_to_set[SOUP_URI_QUERY] ? values[SOUP_URI_QUERY] : g_uri_get_query (uri),
                 values_to_set[SOUP_URI_FRAGMENT] ? values[SOUP_URI_FRAGMENT] : g_uri_get_fragment (uri)
