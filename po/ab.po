@@ -1,0 +1,198 @@
+msgid ""
+msgstr ""
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
+"POT-Creation-Date: 2022-10-11 18:29+0000\n"
+"Last-Translator: Нанба Наала <naala-nanba@rambler.ru>\n"
+"Language-Team: Abkhazian <daniel.abzakh@gmail.com>\n"
+"Language: ab\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-DamnedLies-Scope: partial\n"
+
+#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
+#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
+msgid "Connection terminated unexpectedly"
+msgstr "Аимадара иаалырҟьаны иеԥырҟьахеит"
+
+#: libsoup/soup-body-input-stream.c:459
+msgid "Invalid seek request"
+msgstr "Аиасразы иақәнагам адҵаалара"
+
+#: libsoup/soup-body-input-stream.c:487
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Изалымшахеит ахсара SoupBodyInputStream"
+
+#: libsoup/soup-cache-input-stream.c:76
+msgid "Network stream unexpectedly closed"
+msgstr "Аҳатә еишьҭаҵа иаалырҟьаны иаркхеит"
+
+#: libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Инагӡаны аресурс кеш азура залымшахеит"
+
+#: libsoup/soup-directory-input-stream.c:232
+msgid "Name"
+msgstr "Ахьӡ"
+
+#: libsoup/soup-directory-input-stream.c:233
+msgid "Size"
+msgstr "Ашәага"
+
+#: libsoup/soup-directory-input-stream.c:234
+msgid "Date Modified"
+msgstr "Аԥсахра аамҭарба :"
+
+#: libsoup/soup-converter-wrapper.c:189
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Аҭыгаратә буфер амцхә ихәыҷуп"
+
+#: libsoup/soup-message-client-io.c:39
+msgid "Could not parse HTTP response"
+msgstr "HTTP-аҭак аилыргара залымшахеит"
+
+#: libsoup/soup-message-client-io.c:62
+msgid "Unrecognized HTTP response encoding"
+msgstr "HTTP- аҭак еиҩдыраам акодркра"
+
+#: libsoup/soup-message-io.c:269
+msgid "Header too big"
+msgstr "Амцхә идуу ахы"
+
+#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
+msgid "Operation would block"
+msgstr "Аҟаҵара аанкылоуп"
+
+#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+msgid "Operation was cancelled"
+msgstr "Аоперациа аԥыхоуп"
+
+#: libsoup/soup-message-server-io.c:63
+msgid "Could not parse HTTP request"
+msgstr ""
+
+#: libsoup/soup-request.c:141
+#, c-format
+msgid "No URI provided"
+msgstr ""
+
+#: libsoup/soup-request.c:151
+#, c-format
+msgid "Invalid “%s” URI: %s"
+msgstr ""
+
+#: libsoup/soup-server.c:1810
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Изалшом  аԥҵара  TLS-сервер TLS-сертификат ада"
+
+#: libsoup/soup-server.c:1827
+#, c-format
+msgid "Could not listen on address %s, port %d: "
+msgstr ""
+
+#: libsoup/soup-session.c:4587
+#, c-format
+msgid "Could not parse URI “%s”"
+msgstr ""
+
+#: libsoup/soup-session.c:4624
+#, c-format
+msgid "Unsupported URI scheme “%s”"
+msgstr ""
+
+#: libsoup/soup-session.c:4646
+#, c-format
+msgid "Not an HTTP URI"
+msgstr ""
+
+#: libsoup/soup-session.c:4857
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Асервер иаднакылаӡом аимадара ашьақәырӷәӷәара WebSocket."
+
+#: libsoup/soup-socket.c:148
+msgid "Can’t import non-socket as SoupSocket"
+msgstr ""
+
+#: libsoup/soup-socket.c:166
+msgid "Could not import existing socket: "
+msgstr "Иҟоу асокет аимпортҟаҵара залымшахеит:"
+
+#: libsoup/soup-socket.c:175
+msgid "Can’t import unconnected socket"
+msgstr "Изалшом аимпортҟаҵара иаҿакым асокет"
+
+#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
+#: libsoup/soup-websocket.c:539
+msgid "Server requested unsupported extension"
+msgstr "Асервер адкылара змам арҭбаара иазыҳәеит"
+
+#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Ииашам ахы WebSocket «%s»"
+
+#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr "Асервер ииашам «%s» ацаԥха WebSocket хнырҳәит"
+
+#: libsoup/soup-websocket.c:566
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Ахышәара адубльҟаҵара «%s» аҟны арҭбаара ахы WebSocket"
+
+#: libsoup/soup-websocket.c:567
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "Асервер идубльтәу ахышәара хнырҳәит «%s» аҟны арҭбаара ахы  WebSocket"
+
+#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+msgid "WebSocket handshake expected"
+msgstr "Аимадара ашьақәырӷәӷәара азыԥшра WebSocket"
+
+#: libsoup/soup-websocket.c:675
+msgid "Unsupported WebSocket version"
+msgstr "Адкылара змам аверсиа WebSocket"
+
+#: libsoup/soup-websocket.c:684
+msgid "Invalid WebSocket key"
+msgstr "Ииашам ацаԥха WebSocket"
+
+#: libsoup/soup-websocket.c:703
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Адкылара змам аиҵапротокол WebSocket"
+
+#: libsoup/soup-websocket.c:975
+msgid "Server rejected WebSocket handshake"
+msgstr "Асервер аимадара WebSocket ашьақәырӷәӷәара мап ацәнакит"
+
+#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+msgid "Server ignored WebSocket handshake"
+msgstr "Асервер иазхьамԥшӡеит аимадара ашьақәырӷәӷәара WebSocket"
+
+#: libsoup/soup-websocket.c:1004
+msgid "Server requested unsupported protocol"
+msgstr "Асервер адкылара змам апротокол азыҳәара ҟанаҵеит"
+
+#: libsoup/soup-tld.c:150
+msgid "No public-suffix list available."
+msgstr "Аицзеиԥш асуффиксқәа рыхьӡынҵа ыҟаӡам"
+
+#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
+msgid "Invalid hostname"
+msgstr "Акомпиутер ахьӡ иашаӡам"
+
+#: libsoup/soup-tld.c:167
+msgid "Hostname is an IP address"
+msgstr "Акомпиутер ахьӡ IP - ҭыӡҭыԥуп"
+
+#: libsoup/soup-tld.c:188
+msgid "Hostname has no base domain"
+msgstr "Акомпиутер ахьӡ иамаӡам адоментә хәҭа"
+
+#: libsoup/soup-tld.c:196
+msgid "Not enough domains"
+msgstr "Иазхом адоментә хьыӡқәа аҭыӡҭыԥ аҟны"
