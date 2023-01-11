@@ -1,0 +1,5 @@
+# Disable crawling of GLib's documentation, so official documentation is preferred.
+User-agent: *
+Disallow: /glib/
+Disallow: /gio/
+Disallow: /gobject/
