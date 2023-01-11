@@ -102,6 +102,7 @@ reference:
     - mv _build/docs/reference/libsoup-3.0/* _reference/libsoup-3.0
     # Add libsoup-2.4 docs.
     - cp -R /usr/share/gtk-doc/html/{glib,gio,gobject,libsoup-2.4} _reference/
+    - gtkdoc-rebase --relative --html-dir=_reference/{glib,gio,gobject,libsoup-2.4} --verbose
     - cp .gitlab-ci/{index.html,robots.txt} _reference/
   artifacts:
     paths:
