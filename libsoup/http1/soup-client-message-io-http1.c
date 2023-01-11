@@ -36,6 +36,7 @@ typedef struct {
 
         SoupMessageQueueItem *item;
 
+        gint64 response_header_bytes_received;
         SoupMessageMetrics *metrics;
 
         /* Request body logger */
@@ -495,10 +496,17 @@ response_network_stream_read_data_cb (SoupMessage *msg,
 {
         SoupClientMessageIOHTTP1 *client_io = (SoupClientMessageIOHTTP1 *)soup_message_get_io_data (msg);
 
-        if (client_io->msg_io->base.read_state < SOUP_MESSAGE_IO_STATE_BODY_START)
-                client_io->msg_io->metrics->response_header_bytes_received += count;
-        else
+        if (client_io->msg_io->base.read_state < SOUP_MESSAGE_IO_STATE_BODY_START) {
+                client_io->msg_io->response_header_bytes_received += count;
+                if (client_io->msg_io->metrics)
+                        client_io->msg_io->metrics->response_header_bytes_received += count;
+                return;
+        }
+
+        if (client_io->msg_io->metrics)
                 client_io->msg_io->metrics->response_body_bytes_received += count;
+
+        soup_message_got_body_data (msg, count);
 }
 
 /* Attempts to push forward the reading side of @msg's I/O. Returns
@@ -518,6 +526,7 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
         gboolean succeeded;
         gboolean is_first_read;
         gushort extra_bytes;
+        gsize response_body_bytes_received = 0;
 
         switch (io->read_state) {
         case SOUP_MESSAGE_IO_STATE_HEADERS:
@@ -531,16 +540,17 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
                 if (!succeeded)
                         return FALSE;
 
-                if (client_io->msg_io->metrics) {
-                        /* Adjust the header and body bytes received, since we might
-                         * have read part of the body already that is queued by the stream.
-                         */
-                        if (client_io->msg_io->metrics->response_header_bytes_received > io->read_header_buf->len + extra_bytes) {
-                                client_io->msg_io->metrics->response_body_bytes_received =
-                                        client_io->msg_io->metrics->response_header_bytes_received - io->read_header_buf->len - extra_bytes;
-                                client_io->msg_io->metrics->response_header_bytes_received -= client_io->msg_io->metrics->response_body_bytes_received;
+                /* Adjust the header and body bytes received, since we might
+                 * have read part of the body already that is queued by the stream.
+                 */
+                if (client_io->msg_io->response_header_bytes_received > io->read_header_buf->len + extra_bytes) {
+                        response_body_bytes_received = client_io->msg_io->response_header_bytes_received - io->read_header_buf->len - extra_bytes;
+                        if (client_io->msg_io->metrics) {
+                                client_io->msg_io->metrics->response_body_bytes_received = response_body_bytes_received;
+                                client_io->msg_io->metrics->response_header_bytes_received -= response_body_bytes_received;
                         }
                 }
+                client_io->msg_io->response_header_bytes_received = 0;
 
                 succeeded = parse_headers (msg,
                                            (char *)io->read_header_buf->data,
@@ -616,6 +626,9 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
                         io->read_length = -1;
 
                 soup_message_got_headers (msg);
+
+                if (response_body_bytes_received > 0)
+                        soup_message_got_body_data (msg, response_body_bytes_received);
                 break;
 
         case SOUP_MESSAGE_IO_STATE_BODY_START:
@@ -1043,11 +1056,9 @@ soup_client_message_io_http1_send_item (SoupClientMessageIO       *iface,
         msg_io->base.read_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
         msg_io->base.write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
         msg_io->metrics = soup_message_get_metrics (msg_io->item->msg);
-        if (msg_io->metrics) {
-                g_signal_connect_object (io->istream, "read-data",
-                                         G_CALLBACK (response_network_stream_read_data_cb),
-                                         msg_io->item->msg, G_CONNECT_SWAPPED);
-        }
+        g_signal_connect_object (io->istream, "read-data",
+                                 G_CALLBACK (response_network_stream_read_data_cb),
+                                 msg_io->item->msg, G_CONNECT_SWAPPED);
 
 #ifdef HAVE_SYSPROF
         msg_io->begin_time_nsec = SYSPROF_CAPTURE_CURRENT_TIME;

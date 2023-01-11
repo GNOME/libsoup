@@ -80,6 +80,8 @@ void soup_message_wrote_body_data   (SoupMessage *msg,
 void soup_message_wrote_body        (SoupMessage *msg);
 void soup_message_got_informational (SoupMessage *msg);
 void soup_message_got_headers       (SoupMessage *msg);
+void soup_message_got_body_data     (SoupMessage *msg,
+                                     gsize        chunk_size);
 void soup_message_got_body          (SoupMessage *msg);
 void soup_message_content_sniffed   (SoupMessage *msg,
 				     const char  *content_type,

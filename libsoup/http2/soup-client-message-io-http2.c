@@ -740,6 +740,7 @@ on_frame_recv_callback (nghttp2_session     *session,
         case NGHTTP2_DATA:
                 if (data->metrics)
                         data->metrics->response_body_bytes_received += frame->data.hd.length + FRAME_HEADER_SIZE;
+                soup_message_got_body_data (data->msg, frame->data.hd.length + FRAME_HEADER_SIZE);
                 if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
                         if (data->body_istream) {
                                 soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));

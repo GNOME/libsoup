@@ -111,6 +111,7 @@ enum {
 
 	GOT_INFORMATIONAL,
 	GOT_HEADERS,
+        GOT_BODY_DATA,
 	GOT_BODY,
 	CONTENT_SNIFFED,
 
@@ -435,6 +436,26 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
+
+        /**
+         * SoupMessage::got-body-data:
+         * @msg: the message
+         * @chunk_size: the number of bytes read
+         *
+         * Emitted after reading a portion of the message
+         * body from the network.
+         *
+         * Since: 3.4
+         */
+        signals[GOT_BODY_DATA] =
+                g_signal_new ("got-body-data",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_FIRST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 1,
+                              G_TYPE_UINT);
 
 	/**
 	 * SoupMessage::got-body:
@@ -1210,6 +1231,13 @@ void
 soup_message_got_headers (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[GOT_HEADERS], 0);
+}
+
+void
+soup_message_got_body_data (SoupMessage *msg,
+                            gsize        chunk_size)
+{
+        g_signal_emit (msg, signals[GOT_BODY_DATA], 0, chunk_size);
 }
 
 void
