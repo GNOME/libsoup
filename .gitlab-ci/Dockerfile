@@ -32,7 +32,8 @@ RUN dnf update -y \
     && dnf builddep -y nghttp2 \
     && dnf clean all \
     && python2.7 -m ensurepip \
-    && pip2.7 install virtualenv autobahntestsuite
+    && pip2.7 install --upgrade pip \
+    && pip2.7 install virtualenv wsaccel==0.6.3 autobahntestsuite
 
 # Update libnghttp2 for do_invalid_header_rfc9113_received_test()
 RUN git clone https://github.com/nghttp2/nghttp2.git \
