@@ -11,6 +11,7 @@ RUN dnf update -y \
                       glib2-doc \
                       gnutls-devel \
                       gobject-introspection-devel \
+                      gtk-doc \
                       httpd \
                       krb5-devel \
                       lcov \
