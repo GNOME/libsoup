@@ -976,7 +976,7 @@ soup_message_new (const char *method, const char *uri_string)
 	uri = g_uri_parse (uri_string, SOUP_HTTP_URI_FLAGS, NULL);
 	if (!uri)
 		return NULL;
-	if (!g_uri_get_host (uri)) {
+	if (!SOUP_URI_IS_VALID (uri)) {
 		g_uri_unref (uri);
 		return NULL;
 	}
