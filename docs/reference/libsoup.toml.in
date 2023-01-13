@@ -23,7 +23,7 @@ description = "The base type system library"
 docs_url = "https://docs.gtk.org/glib/"
 
 [dependencies."Gio-2.0"]
-name = "GIO"
+name = "Gio"
 description = "GObject Interfaces and Objects, Networking, IPC, and I/O"
 docs_url = "https://docs.gtk.org/gio/"
 
