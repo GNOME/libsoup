@@ -618,6 +618,12 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 		return;
 	}
 
+	/* SameSite=None cookies are rejected unless the Secure attribute is set. */
+	if (soup_cookie_get_same_site_policy (cookie) == SOUP_SAME_SITE_POLICY_NONE && !soup_cookie_get_secure (cookie)) {
+		soup_cookie_free (cookie);
+		return;
+	}
+
         g_mutex_lock (&priv->mutex);
 
 	old_cookies = g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));
