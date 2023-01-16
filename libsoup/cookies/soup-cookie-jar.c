@@ -624,6 +624,26 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 		return;
 	}
 
+        /* See https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-cookie-prefixes-00 for handling the prefixes,
+         * which has been implemented by Firefox and Chrome. */
+#define MATCH_PREFIX(name, prefix) (!g_ascii_strncasecmp (name, prefix, strlen(prefix)))
+
+	/* Cookies with a "__Secure-" prefix should have Secure attribute set and it must be for a secure host. */
+	if (MATCH_PREFIX (soup_cookie_get_name (cookie), "__Secure-") && (!soup_cookie_get_secure (cookie) || !uri)) {
+		soup_cookie_free (cookie);
+		return;
+	}
+        /* Path=/ and Secure attributes are required; Domain attribute must not be present.
+         Note that SoupCookie always sets the domain so we do exact host matches instead of subdomain matches. */
+	if (MATCH_PREFIX (soup_cookie_get_name (cookie), "__Host-")) {
+		if ((!soup_cookie_get_secure (cookie) || !uri) ||
+		    strcmp (soup_cookie_get_path (cookie), "/") != 0 ||
+		    g_ascii_strcasecmp (soup_cookie_get_domain (cookie), g_uri_get_host (uri)) != 0) {
+			soup_cookie_free (cookie);
+			return;
+		}
+	}
+
         g_mutex_lock (&priv->mutex);
 
 	old_cookies = g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));

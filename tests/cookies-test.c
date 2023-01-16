@@ -286,6 +286,65 @@ do_cookies_strict_secure_test (void)
 	g_object_unref (jar);
 }
 
+static void
+do_cookies_prefix_test (void)
+{
+	SoupCookieJar *jar;
+	GSList *cookies;
+	GUri *insecure_uri;
+	GUri *secure_uri;
+
+	insecure_uri = g_uri_parse ("http://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+	secure_uri = g_uri_parse ("https://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+	jar = soup_cookie_jar_new ();
+
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__SeCuRe-Valid-1=1; Path=/; Secure", secure_uri),
+                                         secure_uri, NULL);
+
+        /* Without Secure */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__SeCuRe-Invalid-1=1;", secure_uri),
+                                         secure_uri, NULL);
+
+        /* Insecure host */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__SECURE-Invalid-2=1; Path=/Somethingelse; Secure", insecure_uri),
+                                         insecure_uri, NULL);
+
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__HoSt-Valid-1=1; Path=/; Secure", secure_uri),
+                                         secure_uri, NULL);
+
+        /* Invalid Path */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__HOST-Invalid-1=1; Path=/Somethingelse; Secure", secure_uri),
+                                         secure_uri, NULL);
+
+        /* Without Secure */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__host-Invalid-2=1; Path=/", secure_uri),
+                                         secure_uri, NULL);
+
+        /* Domain forbidden */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__HoSt-Invalid-3=1; Path=/; Secure; Domain=gnome.org", secure_uri),
+                                         secure_uri, NULL);
+
+        /* Insecure host */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__host-Invalid-4=1; Path=/; Secure", insecure_uri),
+                                         insecure_uri, NULL);
+
+        cookies = soup_cookie_jar_all_cookies (jar);
+
+        for (GSList *l = cookies; l; l = g_slist_next (l)) {
+                SoupCookie *cookie = l->data;
+
+                g_assert_true (strstr (soup_cookie_get_name (cookie), "Valid") != NULL);
+        }
+
+        /* In total we expect 2 valid cookies above. */
+        g_assert_cmpuint (g_slist_length (cookies), ==, 2);
+
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+	g_uri_unref (insecure_uri);
+	g_uri_unref (secure_uri);
+	g_object_unref (jar);
+}
+
 /* FIXME: moar tests! */
 static void
 do_cookies_parsing_test (void)
@@ -545,6 +604,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/get-cookies/empty-host", do_get_cookies_empty_host_test);
 	g_test_add_func ("/cookies/remove-feature", do_remove_feature_test);
 	g_test_add_func ("/cookies/secure-cookies", do_cookies_strict_secure_test);
+	g_test_add_func ("/cookies/prefix", do_cookies_prefix_test);
         g_test_add_func ("/cookies/threads", do_cookies_threads_test);
 
 	ret = g_test_run ();
