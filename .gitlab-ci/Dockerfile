@@ -6,6 +6,7 @@ RUN dnf update -y \
                       brotli-devel \
                       clang-analyzer \
                       'dnf-command(builddep)' \
+                      gcovr \
                       git \
                       gi-docgen \
                       glib2-doc \
