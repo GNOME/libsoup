@@ -442,6 +442,54 @@ do_cookies_equal_nullpath (void)
 }
 
 static void
+do_cookies_parsing_control_characters (void)
+{
+	SoupCookieJar *jar;
+	GSList *cookies;
+	GUri *uri;
+	char buf[256];
+	int cntrl;
+
+	uri = g_uri_parse ("https://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+	jar = soup_cookie_jar_new ();
+
+	/* Cookies should not take control characters %x00-1F / %x7F in names or values, 
+	 * with the exception of %x09 (the tab character). 
+	 */
+	for (cntrl = 0x01; cntrl <= 0x1F; cntrl++) {
+		if (cntrl == 0x09)
+			continue;
+
+		g_snprintf (buf, sizeof(buf), "name%c%x=value%x", cntrl, cntrl, cntrl);
+		soup_cookie_jar_set_cookie (jar, uri, buf);
+		g_snprintf (buf, sizeof(buf), "name%x=value%c%x", cntrl, cntrl, cntrl);
+		soup_cookie_jar_set_cookie (jar, uri, buf);
+
+		cookies = soup_cookie_jar_all_cookies (jar);
+		g_assert_cmpint (g_slist_length (cookies), ==,  0);
+		g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+	}
+
+	cntrl = 0x7F;
+	g_snprintf (buf, sizeof(buf), "name%c%x=value%x", cntrl, cntrl, cntrl);
+	soup_cookie_jar_set_cookie (jar, uri, buf);
+	g_snprintf (buf, sizeof(buf), "name%x=value%c%x", cntrl, cntrl, cntrl);
+	soup_cookie_jar_set_cookie (jar, uri, buf);
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==,  0);
+
+	/* Cookies are accepted with a tab (\t) in name or value. */
+	soup_cookie_jar_set_cookie (jar, uri, "name\x099=value9");
+	soup_cookie_jar_set_cookie (jar, uri, "name9=value\x099");
+	cookies = soup_cookie_jar_all_cookies (jar);
+	g_assert_cmpint (g_slist_length (cookies), ==,  2);
+
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
+	g_uri_unref (uri);
+	g_object_unref (jar);
+}
+
+static void
 do_get_cookies_empty_host_test (void)
 {
 	SoupCookieJar *jar;
@@ -601,6 +649,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
 	g_test_add_func ("/cookies/parsing/no-path-null-origin", do_cookies_parsing_nopath_nullorigin);
 	g_test_add_func ("/cookies/parsing/equal-nullpath", do_cookies_equal_nullpath);
+	g_test_add_func ("/cookies/parsing/control-characters", do_cookies_parsing_control_characters);
 	g_test_add_func ("/cookies/get-cookies/empty-host", do_get_cookies_empty_host_test);
 	g_test_add_func ("/cookies/remove-feature", do_remove_feature_test);
 	g_test_add_func ("/cookies/secure-cookies", do_cookies_strict_secure_test);

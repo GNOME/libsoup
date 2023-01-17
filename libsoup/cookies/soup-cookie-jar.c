@@ -564,6 +564,21 @@ incoming_cookie_is_third_party (SoupCookieJar            *jar,
         return retval;
 }
 
+static gboolean
+string_contains_ctrlcode (const char *s)
+{
+	const char *p;
+
+	p = s;
+	while (*p != '\0') {
+		if (g_ascii_iscntrl (*p) && *p != 0x09)
+			return TRUE;
+		
+		p++;
+	}
+	return FALSE;
+}
+
 /**
  * soup_cookie_jar_add_cookie_full:
  * @jar: a #SoupCookieJar
@@ -644,6 +659,22 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 		}
 	}
 
+	/* Cookies should not take control characters %x00-1F / %x7F (defined by RFC 5234) in names or values,
+	 * with the exception of %x09 (the tab character).
+	 */    
+	const char *name, *value;
+	name = soup_cookie_get_name (cookie);
+	value = soup_cookie_get_value (cookie);
+	if (string_contains_ctrlcode (name) || string_contains_ctrlcode (value)) {
+		soup_cookie_free (cookie);
+		return;
+	}
+	
+	if (strlen(name) > 4096 || strlen(value) > 4096) {
+		soup_cookie_free (cookie);
+		return;
+	}
+	
         g_mutex_lock (&priv->mutex);
 
 	old_cookies = g_hash_table_lookup (priv->domains, soup_cookie_get_domain (cookie));

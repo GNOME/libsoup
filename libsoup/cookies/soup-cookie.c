@@ -108,24 +108,32 @@ soup_cookie_domain_matches (SoupCookie *cookie, const char *host)
 	return soup_host_matches_host (cookie->domain, host);
 }
 
+#define IS_CNTRL(chr) ( g_ascii_iscntrl (chr) && chr != 0x09 )
+
 static inline const char *
 skip_lws (const char *s)
 {
-	while (g_ascii_isspace (*s))
+	while (g_ascii_isspace (*s)) {
+		if (IS_CNTRL (*s))
+			return s;
 		s++;
+	}
 	return s;
 }
 
 static inline const char *
 unskip_lws (const char *s, const char *start)
 {
-	while (s > start && g_ascii_isspace (*(s - 1)))
+	while (s > start && g_ascii_isspace (*(s - 1))) {
 		s--;
+		if (IS_CNTRL (*s))
+			return s;
+	}
 	return s;
 }
 
-#define is_attr_ender(ch) ((ch) < ' ' || (ch) == ';' || (ch) == ',' || (ch) == '=')
-#define is_value_ender(ch) ((ch) < ' ' || (ch) == ';')
+#define is_attr_ender(ch) ((ch) == '\0' || (ch) == ';' || (ch) == ',' || (ch) == '=')
+#define is_value_ender(ch) ((ch) == '\0' || (ch) == ';')
 
 static char *
 parse_value (const char **val_p, gboolean copy)
