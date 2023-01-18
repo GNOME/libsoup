@@ -108,27 +108,25 @@ soup_cookie_domain_matches (SoupCookie *cookie, const char *host)
 	return soup_host_matches_host (cookie->domain, host);
 }
 
-#define IS_CNTRL(chr) ( g_ascii_iscntrl (chr) && chr != 0x09 )
+static inline gboolean
+is_white_space (char c)
+{
+	return (c == ' ' || c == '\t');
+}
 
 static inline const char *
 skip_lws (const char *s)
 {
-	while (g_ascii_isspace (*s)) {
-		if (IS_CNTRL (*s))
-			return s;
+	while (is_white_space (*s))
 		s++;
-	}
 	return s;
 }
 
 static inline const char *
 unskip_lws (const char *s, const char *start)
 {
-	while (s > start && g_ascii_isspace (*(s - 1))) {
+	while (s > start && is_white_space (*(s - 1)))
 		s--;
-		if (IS_CNTRL (*s))
-			return s;
-	}
 	return s;
 }
 
