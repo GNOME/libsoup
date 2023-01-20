@@ -1,3 +1,36 @@
+Changes in libsoup from 3.2.2 to 3.3.0:
+
+* Add `SoupMessage::got-body-data` signal to monitor progress of reads [Carlos Garcia Campos]
+* Add `soup_session_send_and_splice()` and `soup_session_send_and_splice_async()` convenience APIs [Carlos Garcia Campos]
+* Add `soup_message_set_force_http1()` and `soup_message_get_force_http1()` APIs [Milan Crha]
+* Change `soup_cookie_copy()` to not retain default ports [Patrick Griffis]
+* Ensure `SoupServerMessage` socket is available in websocket handler [Carlos Garcia Campos]
+* Fix `soup_message_new()` not erroring when URI has an empty host [Guillaume Desmottes]
+* Fix thread-saftey issues in `SoupConnectionAuth` [Milan Crha]
+* Fix various connection leaks [Biagio Festa, Carlos Garcia Campos]
+* Fix the possibility of sending invalid empty `Sec-WebSocket-Protocol` header [Lukáš Tyrychtr]
+* Fix IO errors not being handled on `CONNECT` messages [Carlos Garcia Campos]
+* Numerous improvements to cookies:
+    * Add support for cookie prefixes (`__Secure-` and `__Host-`) [Siwei Li]
+    * Reject cookies with control characters in name or value [Siwei Li]
+    * Reject `SameSite=None` cookies without `Secure` [Siwei Li]
+    * Change `soup_cookie_parse()` to be more strict about what is considered whitespace [Siwei Li]
+    * Change default SameSite value to `Lax` [Amanda Falke]
+    * Fix `soup_cookie_equal()` with `NULL` path [Patrick Griffis]
+
+Changes in libsoup from 3.2.1 to 3.2.2:
+
+* Various HTTP/2 Fixes: [Carlos Garcia Campos]
+    * Fix `content-sniffed` not being emitted for resources without content
+    * Fix leak of SoupServerConnection when stolen
+
+Changes in libsoup from 3.2.0 to 3.2.1:
+
+* When built against nghttp2 1.50.0+ be relaxed about header whitespace [Carlos Garcia Campos]
+* Fix possible crash when cancelling an HTTP/2 message [Carlos Garcia Campos]
+* Fix regresion where soup_server_message_get_socket() could return NULL [Carlos Garcia Campos]
+* Fix minor memory leak [Milan Crha]
+
 Changes in libsoup from 3.1.4 to 3.2.0:
 
 Changes in libsoup from 3.1.3 to 3.1.4:
