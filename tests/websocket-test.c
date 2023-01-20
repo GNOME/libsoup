@@ -914,7 +914,7 @@ test_soup_websocket_client_prepare_handshake_ignores_invalid_protocols (Test *te
 				 gconstpointer unused)
 {
 	SoupMessage *msg;
-	char *protocol;
+	const char *protocol;
 	msg = soup_message_new ("GET", "http://127.0.0.1");
 	soup_websocket_client_prepare_handshake (msg, NULL, (char **) invalid_protocols, NULL);
 
@@ -929,11 +929,9 @@ test_protocol_client_invalid_direct (Test *test,
 	SoupMessage *msg;
 	SoupServerMessage *server_msg;
 	SoupMessageHeaders *request_headers;
-	SoupMessageHeaders *response_headers;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 	gboolean ok;
-	const char *protocol;
 	GError *error = NULL;
 
 	msg = soup_message_new ("GET", "http://127.0.0.1");
