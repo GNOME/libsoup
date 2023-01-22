@@ -20,6 +20,9 @@
 #include "soup-session-feature-private.h"
 #include "soup-uri-utils-private.h"
 
+#undef G_LOG_DOMAIN
+#define G_LOG_DOMAIN "libsoup-cookiejar"
+
 /**
  * SoupCookieJar:
  *
@@ -579,6 +582,33 @@ string_contains_ctrlcode (const char *s)
 	return FALSE;
 }
 
+G_GNUC_PRINTF(3, 0)
+static void
+log_rejected_cookie (SoupCookie *cookie,
+                     GUri       *uri,
+                     const char *format,
+                     ...)
+{
+        va_list args;
+        char *message;
+        char *uri_string;
+
+        if (g_log_writer_default_would_drop (G_LOG_LEVEL_DEBUG, G_LOG_DOMAIN))
+                return;
+
+	va_start (args, format);
+	message = g_strdup_vprintf (format, args);
+	va_end (args);
+
+        uri_string = uri ? g_uri_to_string_partial (uri, G_URI_HIDE_PASSWORD) : g_strdup ("NULL");
+
+        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[%s] Rejected cookie \"%s\": %s",
+               uri_string, soup_cookie_get_name (cookie), message);
+
+        g_free (message);
+        g_free (uri_string);
+}
+
 /**
  * soup_cookie_jar_add_cookie_full:
  * @jar: a #SoupCookieJar
@@ -610,53 +640,51 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
 	g_return_if_fail (cookie != NULL);
 
+#define REJECT_COOKIE(...) G_STMT_START { \
+        log_rejected_cookie (cookie, uri, __VA_ARGS__); \
+        soup_cookie_free (cookie); \
+        return; \
+} G_STMT_END;
+
+
 	/* Never accept cookies for public domains. */
 	if (!g_hostname_is_ip_address (soup_cookie_get_domain (cookie)) &&
 	    soup_tld_domain_is_public_suffix (soup_cookie_get_domain (cookie))) {
-		soup_cookie_free (cookie);
-		return;
+                REJECT_COOKIE ("Domain has public suffix (%s)", soup_cookie_get_domain (cookie));
 	}
 
 	priv = soup_cookie_jar_get_instance_private (jar);
 
         if (first_party != NULL) {
                 if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER ||
-                    incoming_cookie_is_third_party (jar, cookie, first_party, priv->accept_policy)) {
-                        soup_cookie_free (cookie);
-                        return;
-                }
+                    incoming_cookie_is_third_party (jar, cookie, first_party, priv->accept_policy))
+                        REJECT_COOKIE ("Is a third-party cookie to %s", g_uri_get_host (first_party));
         }
 
-	/* Cannot set a secure cookie over http */
-	if (uri != NULL && !soup_uri_is_https (uri) && soup_cookie_get_secure (cookie)) {
-		soup_cookie_free (cookie);
-		return;
-	}
+	if (uri != NULL && !soup_uri_is_https (uri) && soup_cookie_get_secure (cookie))
+                REJECT_COOKIE ("Secure cookie set over HTTP");
 
-	/* SameSite=None cookies are rejected unless the Secure attribute is set. */
-	if (soup_cookie_get_same_site_policy (cookie) == SOUP_SAME_SITE_POLICY_NONE && !soup_cookie_get_secure (cookie)) {
-		soup_cookie_free (cookie);
-		return;
-	}
+	if (soup_cookie_get_same_site_policy (cookie) == SOUP_SAME_SITE_POLICY_NONE && !soup_cookie_get_secure (cookie))
+                REJECT_COOKIE ("SameSite=None set without Secure");
 
         /* See https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-cookie-prefixes-00 for handling the prefixes,
          * which has been implemented by Firefox and Chrome. */
 #define MATCH_PREFIX(name, prefix) (!g_ascii_strncasecmp (name, prefix, strlen(prefix)))
 
 	/* Cookies with a "__Secure-" prefix should have Secure attribute set and it must be for a secure host. */
-	if (MATCH_PREFIX (soup_cookie_get_name (cookie), "__Secure-") && (!soup_cookie_get_secure (cookie) || !uri)) {
-		soup_cookie_free (cookie);
-		return;
-	}
+	if (MATCH_PREFIX (soup_cookie_get_name (cookie), "__Secure-") && !soup_cookie_get_secure (cookie))
+                REJECT_COOKIE ("Invalid __Secure- cookie (Secure=%d)", soup_cookie_get_secure (cookie));
+
         /* Path=/ and Secure attributes are required; Domain attribute must not be present.
          Note that SoupCookie always sets the domain so we do exact host matches instead of subdomain matches. */
 	if (MATCH_PREFIX (soup_cookie_get_name (cookie), "__Host-")) {
-		if ((!soup_cookie_get_secure (cookie) || !uri) ||
-		    strcmp (soup_cookie_get_path (cookie), "/") != 0 ||
-		    g_ascii_strcasecmp (soup_cookie_get_domain (cookie), g_uri_get_host (uri)) != 0) {
-			soup_cookie_free (cookie);
-			return;
-		}
+                gboolean secure = soup_cookie_get_secure (cookie);
+                const char *path = soup_cookie_get_path (cookie);
+                const char *domain = soup_cookie_get_domain (cookie);
+
+		if (!secure || strcmp (path, "/") != 0 ||
+		    (!uri || g_ascii_strcasecmp (domain, g_uri_get_host (uri)) != 0))
+                        REJECT_COOKIE ("Invalid __Host- cookie (Secure=%d, Path=%s, Domain=%s", secure, path, domain);
 	}
 
 	/* Cookies should not take control characters %x00-1F / %x7F (defined by RFC 5234) in names or values,
@@ -665,15 +693,11 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 	const char *name, *value;
 	name = soup_cookie_get_name (cookie);
 	value = soup_cookie_get_value (cookie);
-	if (string_contains_ctrlcode (name) || string_contains_ctrlcode (value)) {
-		soup_cookie_free (cookie);
-		return;
-	}
+	if (string_contains_ctrlcode (name) || string_contains_ctrlcode (value))
+                REJECT_COOKIE ("Name or value contains control codes");
 	
-	if (strlen(name) > 4096 || strlen(value) > 4096) {
-		soup_cookie_free (cookie);
-		return;
-	}
+	if (strlen(name) > 4096 || strlen(value) > 4096)
+                REJECT_COOKIE ("Name or value longer than 4096 bytes");
 	
         g_mutex_lock (&priv->mutex);
 
@@ -686,6 +710,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 				/* We do not allow overwriting secure cookies from an insecure origin
 				 * https://tools.ietf.org/html/draft-ietf-httpbis-cookie-alone-01
 				 */
+                                log_rejected_cookie (cookie, uri, "Insecure origin overwrites a Secure cookie");
 				soup_cookie_free (cookie);
 			} else if (soup_cookie_get_expires (cookie) && soup_date_time_is_past (soup_cookie_get_expires (cookie))) {
 				/* The new cookie has an expired date,
@@ -715,6 +740,7 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 
 	/* The new cookie is... a new cookie */
 	if (soup_cookie_get_expires (cookie) && soup_date_time_is_past (soup_cookie_get_expires (cookie))) {
+                log_rejected_cookie (cookie, uri, "Already expired");
 		soup_cookie_free (cookie);
                 g_mutex_unlock (&priv->mutex);
 		return;
