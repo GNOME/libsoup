@@ -301,6 +301,10 @@ do_cookies_prefix_test (void)
         soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__SeCuRe-Valid-1=1; Path=/; Secure", secure_uri),
                                          secure_uri, NULL);
 
+        /* With NULL uri is considered secure */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__secure-Valid-2=1; Path=/; Secure", secure_uri),
+                                         NULL, NULL);
+
         /* Without Secure */
         soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__SeCuRe-Invalid-1=1;", secure_uri),
                                          secure_uri, NULL);
@@ -311,6 +315,9 @@ do_cookies_prefix_test (void)
 
         soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__HoSt-Valid-1=1; Path=/; Secure", secure_uri),
                                          secure_uri, NULL);
+
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__HoSt-Valid-2=1; Path=/; Secure", secure_uri),
+                                         NULL, NULL);
 
         /* Invalid Path */
         soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__HOST-Invalid-1=1; Path=/Somethingelse; Secure", secure_uri),
@@ -336,8 +343,8 @@ do_cookies_prefix_test (void)
                 g_assert_true (strstr (soup_cookie_get_name (cookie), "Valid") != NULL);
         }
 
-        /* In total we expect 2 valid cookies above. */
-        g_assert_cmpuint (g_slist_length (cookies), ==, 2);
+        /* In total we expect 4 valid cookies above. */
+        g_assert_cmpuint (g_slist_length (cookies), ==, 4);
 
 	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 	g_uri_unref (insecure_uri);
