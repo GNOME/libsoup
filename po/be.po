@@ -1,18 +1,17 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: 98e6872775a91bf27122ff608b6db605\n"
+"Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
 "POT-Creation-Date: 2022-10-12 07:32+0000\n"
-"PO-Revision-Date: 2023-01-09 14:02+0300\n"
+"PO-Revision-Date: 2023-01-23 21:29+0300\n"
 "Last-Translator: Yuras Shumovich <shumovichy@gmail.com>\n"
 "Language-Team: Belarusian\n"
 "Language: be_BY\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || n%10>=5 && n%10<=9 || "
-"n%100>=11 && n%100<=14 ? 2 : 3);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 "X-Generator: Poedit 3.2.2\n"
 "X-Project-Style: gnome\n"
 "X-Crowdin-Project: 98e6872775a91bf27122ff608b6db605\n"
@@ -27,12 +26,12 @@ msgstr "Сеткавы струмень нечакана закрыўся"
 
 #: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
-msgstr "Не атрымалася цалкам размясціць рэсурс у кэшы"
+msgstr "Не ўдалося цалкам размясціць рэсурс у кэшы"
 
 #: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
-msgstr "Выходны буфер занадта малы"
+msgstr "Выхадны буфер занадта малы"
 
 #: libsoup/http1/soup-body-input-stream.c:155
 #: libsoup/http1/soup-body-input-stream.c:187
@@ -41,7 +40,7 @@ msgstr "Выходны буфер занадта малы"
 #: libsoup/http2/soup-client-message-io-http2.c:406
 #: libsoup/server/http2/soup-server-message-io-http2.c:420
 msgid "Connection terminated unexpectedly"
-msgstr "Злучэнне нечакана знішчана"
+msgstr "Злучэнне нечакана перарвалася"
 
 #: libsoup/http1/soup-body-input-stream.c:471
 msgid "Invalid seek request"
@@ -57,11 +56,11 @@ msgstr "Немагчыма абрэзаць SoupBodyInputStream"
 #: libsoup/server/http1/soup-server-message-io-http1.c:416
 #: libsoup/server/http1/soup-server-message-io-http1.c:889
 msgid "Operation would block"
-msgstr "Аперацыя заблакаваная"
+msgstr "Аперацыя заблакавана"
 
 #: libsoup/http1/soup-client-message-io-http1.c:462
 msgid "Could not parse HTTP response"
-msgstr "Не атрымалася разабраць адказ HTTP"
+msgstr "Не ўдалося разабраць адказ HTTP"
 
 #: libsoup/http1/soup-client-message-io-http1.c:485
 msgid "Unrecognized HTTP response encoding"
@@ -134,7 +133,7 @@ msgstr "Назва хоста не мае базавага дамена"
 
 #: libsoup/soup-tld.c:175
 msgid "Not enough domains"
-msgstr "Не стае даменаў"
+msgstr "Недастаткова даменаў"
 
 #: libsoup/websocket/soup-websocket.c:390
 #: libsoup/websocket/soup-websocket.c:434
@@ -152,7 +151,7 @@ msgstr "Хібны загаловак WebSocket «%s»"
 #: libsoup/websocket/soup-websocket.c:869
 #, c-format
 msgid "Server returned incorrect “%s” key"
-msgstr "Сервер вярнуў хібны ключ «%s»"
+msgstr "Сервер вярнуў няправільны ключ «%s»"
 
 #: libsoup/websocket/soup-websocket.c:477
 #, c-format
