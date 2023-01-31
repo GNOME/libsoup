@@ -194,9 +194,6 @@ do_multi_message_async_test (Test *test, gconstpointer data)
         g_assert_cmpstr (g_bytes_get_data (response1, NULL), ==, "body%201");
         g_assert_cmpstr (g_bytes_get_data (response2, NULL), ==, "body%202");
 
-        while (g_main_context_pending (async_context))
-                g_main_context_iteration (async_context, FALSE);
-
         g_bytes_unref (response1);
         g_bytes_unref (response2);
         g_object_unref (msg1);
@@ -316,9 +313,6 @@ do_one_cancel_after_send_request_test (SoupSession *session,
                 g_bytes_unref (body);
         }
 
-        while (g_main_context_pending (NULL))
-		g_main_context_iteration (NULL, FALSE);
-
         g_object_unref (cancellable);
         g_object_unref (ostream);
         g_object_unref (istream);
@@ -414,9 +408,6 @@ do_post_async_test (Test *test, gconstpointer data)
 
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "body 1");
 
-        while (g_main_context_pending (async_context))
-                g_main_context_iteration (async_context, FALSE);
-
         g_bytes_unref (response);
         g_bytes_unref (bytes);
         g_main_context_unref (async_context);
@@ -450,9 +441,6 @@ do_post_large_async_test (Test *test, gconstpointer data)
                 g_main_context_iteration (async_context, TRUE);
 
         g_assert_true (g_bytes_equal (bytes, response));
-
-        while (g_main_context_pending (async_context))
-                g_main_context_iteration (async_context, FALSE);
 
         g_bytes_unref (response);
         g_bytes_unref (bytes);
@@ -489,9 +477,6 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
 
         g_assert_cmpstr (g_bytes_get_data (response, NULL), ==, "Part 1 - Part 2");
 
-        while (g_main_context_pending (async_context))
-                g_main_context_iteration (async_context, FALSE);
-
         g_bytes_unref (response);
         g_object_unref (in_stream);
         g_main_context_unref (async_context);
@@ -521,9 +506,6 @@ do_post_file_async_test (Test *test, gconstpointer data)
                 g_main_context_iteration (async_context, TRUE);
 
         g_assert_true (g_str_has_prefix (g_bytes_get_data (response, NULL), "-----BEGIN CERTIFICATE-----"));
-
-        while (g_main_context_pending (async_context))
-                g_main_context_iteration (async_context, FALSE);
 
         g_bytes_unref (response);
         g_object_unref (in_stream);
@@ -584,9 +566,16 @@ on_send_ready (GObject *source, GAsyncResult *res, gpointer user_data)
         GInputStream *stream;
 
         stream = soup_session_send_finish (sess, res, &error);
-
         g_assert_no_error (error);
         g_assert_nonnull (stream);
+
+        g_assert_nonnull (msg);
+        g_assert_cmpuint (soup_message_get_http_version (msg), ==, SOUP_HTTP_2_0);
+        conn = soup_message_get_connection (msg);
+        if (last_connection)
+                g_assert_true (last_connection == conn);
+        else
+                last_connection = conn;
 
         GBytes *result = read_stream_to_bytes_sync (stream);
         g_object_unref (stream);
@@ -594,15 +583,6 @@ on_send_ready (GObject *source, GAsyncResult *res, gpointer user_data)
         g_assert_cmpstr (g_bytes_get_data (result, NULL), ==, "Hello world");
         g_bytes_unref (result);
 
-        g_assert_nonnull (msg);
-        g_assert_cmpuint (soup_message_get_http_version (msg), ==, SOUP_HTTP_2_0);
-        conn = soup_message_get_connection (msg);
-
-        if (last_connection)
-                g_assert (last_connection == conn);
-        else
-                last_connection = conn;
-        
         g_test_message ("Conn (%u) = %p", *complete_count, conn);
 
         *complete_count += 1;
@@ -635,9 +615,6 @@ do_connections_test (Test *test, gconstpointer data)
                 g_main_context_iteration (async_context, TRUE);
         }
 
-        while (g_main_context_pending (async_context))
-	        g_main_context_iteration (async_context, FALSE);
-
         /* After no messages reference the connection it should be IDLE and reusable */
         g_assert_cmpuint (soup_connection_get_state (last_connection), ==, SOUP_CONNECTION_IDLE);
         SoupMessage *msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
@@ -646,9 +623,6 @@ do_connections_test (Test *test, gconstpointer data)
 
         while (complete_count != N_TESTS + 1)
                 g_main_context_iteration (async_context, TRUE);
-
-        while (g_main_context_pending (async_context))
-                g_main_context_iteration (async_context, FALSE);
 
         g_uri_unref (uri);
         g_main_context_unref (async_context);
@@ -1124,9 +1098,6 @@ do_sniffer_async_test (Test *test, gconstpointer data)
         do_one_sniffer_test (test->session, "/large", (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1, should_content_sniff, async_context);
         do_one_sniffer_test (test->session, "/no-content", 0, should_content_sniff, async_context);
 
-        while (g_main_context_pending (async_context))
-                g_main_context_iteration (async_context, FALSE);
-
         g_main_context_unref (async_context);
 }
 
@@ -1160,9 +1131,6 @@ do_timeout_test (Test *test, gconstpointer data)
         g_assert_error (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT);
         g_object_unref (msg);
         g_uri_unref (uri);
-
-        while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
 }
 
 static void

@@ -452,8 +452,6 @@ test_multipart (gconstpointer data)
 		soup_session_send_async (session, msg, 0, NULL, no_multipart_handling_cb, NULL);
 
 	g_main_loop_run (loop);
-	while (g_main_context_pending (NULL))
-		g_main_context_iteration (NULL, FALSE);
 
 	content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), &params);
 

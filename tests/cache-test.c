@@ -597,9 +597,6 @@ do_refcounting_test (gconstpointer data)
 
 	g_object_unref (cache);
 	g_free (cache_dir);
-
-	while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -941,10 +938,6 @@ task_async_function (GTask        *task,
         g_signal_handlers_disconnect_by_data (request->session, request);
 
         g_object_unref (msg);
-
-        /* Continue iterating to ensure the item is unqueued and the connection released */
-        while (g_main_context_pending (context))
-                g_main_context_iteration (context, TRUE);
 
         /* Cache writes are G_PRIORITY_LOW, so they won't have happened yet */
         soup_cache_flush ((SoupCache *)soup_session_get_feature (request->session, SOUP_TYPE_CACHE));

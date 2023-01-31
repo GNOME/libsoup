@@ -378,9 +378,6 @@ do_msg_reuse_test (void)
         g_clear_error (&error);
         g_object_unref (stream);
 
-        while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
-
         ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	soup_test_session_abort_unref (session);
@@ -454,7 +451,6 @@ do_early_abort_test (void)
 				 (GAsyncReadyCallback)ea_msg_completed_one,
 				 loop);
 	g_object_unref (msg);
-	g_main_context_iteration (context, FALSE);
 
 	soup_session_abort (session);
 	while (g_main_context_pending (context))
@@ -474,10 +470,6 @@ do_early_abort_test (void)
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
 	g_object_unref (msg);
-
-	while (g_main_context_pending (context))
-		g_main_context_iteration (context, FALSE);
-
 	soup_test_session_abort_unref (session);
 
 	g_test_bug ("668098");
@@ -495,10 +487,6 @@ do_early_abort_test (void)
 	g_clear_error (&error);
 	g_object_unref (cancellable);
 	g_object_unref (msg);
-
-	while (g_main_context_pending (context))
-		g_main_context_iteration (context, FALSE);
-
 	soup_test_session_abort_unref (session);
 }
 
@@ -697,9 +685,6 @@ do_one_cancel_after_send_request_test (SoupSession *session,
                 g_assert_cmpstr (g_bytes_get_data (body, NULL), ==, "index");
                 g_bytes_unref (body);
         }
-
-        while (g_main_context_pending (NULL))
-		g_main_context_iteration (NULL, FALSE);
 
         g_object_unref (cancellable);
         g_object_unref (ostream);
@@ -991,9 +976,6 @@ do_new_request_on_conflict_test (void)
         g_object_unref (msg);
         g_object_unref (data.cancellable);
 
-        while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
-
         data.cancellable = g_cancellable_new ();
         data.connections[0] = data.connections[1] = 0;
         data.done = FALSE;
@@ -1014,10 +996,6 @@ do_new_request_on_conflict_test (void)
 
         g_object_unref (msg);
         g_object_unref (data.cancellable);
-
-        while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
-
         g_uri_unref (uri);
         g_bytes_unref (data.body);
         soup_test_session_abort_unref (data.session);

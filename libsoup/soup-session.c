@@ -1471,9 +1471,7 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 
 	if (item->state != SOUP_MESSAGE_RESTARTING) {
 		item->state = SOUP_MESSAGE_FINISHING;
-
-		if (!item->async)
-			soup_session_process_queue_item (item->session, item, TRUE);
+                soup_session_process_queue_item (item->session, item, !item->async);
 	}
 }
 
@@ -3643,8 +3641,6 @@ soup_session_get_supported_websocket_extensions_for_message (SoupSession *sessio
         return soup_websocket_extension_manager_get_supported_extensions (SOUP_WEBSOCKET_EXTENSION_MANAGER (extension_manager));
 }
 
-static void websocket_connect_async_stop (SoupMessage *msg, gpointer user_data);
-
 static void
 websocket_connect_async_complete (SoupMessage *msg, gpointer user_data)
 {
@@ -3677,11 +3673,10 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 	GList *accepted_extensions = NULL;
 	GError *error = NULL;
 
-	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
-					      0, 0, NULL, NULL, task);
-
 	supported_extensions = soup_session_get_supported_websocket_extensions_for_message (session, msg);
 	if (soup_websocket_client_verify_handshake (item->msg, supported_extensions, &accepted_extensions, &error)) {
+                g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
+                                                      0, 0, NULL, NULL, task);
 		stream = soup_session_steal_connection (item->session, item->msg);
 		client = soup_websocket_connection_new (stream,
 							soup_message_get_uri (item->msg),
@@ -3696,9 +3691,9 @@ websocket_connect_async_stop (SoupMessage *msg, gpointer user_data)
 		return;
 	}
 
-	soup_message_io_finished (item->msg);
-	g_task_return_error (task, error);
-	g_object_unref (task);
+        g_assert (!item->error);
+        item->error = error;
+        soup_message_io_finished (item->msg);
 }
 
 /**

@@ -365,9 +365,6 @@ do_multithread_connections_test (Test         *test,
         body = soup_test_session_async_send (test->session, msg, NULL, NULL);
         g_bytes_unref (body);
 
-        while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
-
         g_assert_nonnull (conn);
         g_assert_cmpuint (soup_connection_get_state (conn), ==, SOUP_CONNECTION_IDLE);
 

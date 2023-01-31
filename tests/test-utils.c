@@ -727,12 +727,8 @@ async_as_sync_callback (GObject      *object,
 			gpointer      user_data)
 {
 	AsyncAsSyncData *data = user_data;
-	GMainContext *context;
 
 	data->result = g_object_ref (result);
-	context = g_main_loop_get_context (data->loop);
-	while (g_main_context_pending (context))
-		g_main_context_iteration (context, FALSE);
 	g_main_loop_quit (data->loop);
 }
 
@@ -772,16 +768,10 @@ soup_test_request_send (SoupSession   *session,
 	stream = soup_session_send_finish (session, data.result, error);
 
 	if (flags & SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH) {
-		GMainContext *context;
-
                 if (flags & SOUP_TEST_REQUEST_CANCEL_BY_SESSION)
                         soup_session_cancel_message (session, msg);
                 else
                         g_cancellable_cancel (cancellable);
-
-		context = g_main_loop_get_context (data.loop);
-		while (g_main_context_pending (context))
-			g_main_context_iteration (context, FALSE);
 	}
 
 	g_main_loop_unref (data.loop);

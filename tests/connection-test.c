@@ -1690,10 +1690,6 @@ do_connection_http_1_1_required_test (void)
         g_assert_nonnull (body);
         g_bytes_unref (body);
         g_object_unref (msg);
-
-        while (g_main_context_pending (NULL))
-                g_main_context_iteration (NULL, FALSE);
-
         soup_test_session_abort_unref (session);
 }
 
