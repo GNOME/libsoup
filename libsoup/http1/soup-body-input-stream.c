@@ -226,12 +226,12 @@ again:
 
 	case SOUP_BODY_INPUT_STREAM_STATE_TRAILERS:
 		nread = soup_filter_input_stream_read_line (
-			fstream, buffer, count, blocking,
+			fstream, metabuf, sizeof (metabuf), blocking,
 			&got_line, cancellable, error);
 		if (nread <= 0)
 			return nread;
 
-		if (strncmp (buffer, "\r\n", nread) || strncmp (buffer, "\n", nread)) {
+		if (strncmp (metabuf, "\r\n", nread) || strncmp (metabuf, "\n", nread)) {
 			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_DONE;
 			priv->eof = TRUE;
 		}
