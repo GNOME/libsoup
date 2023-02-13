@@ -1,3 +1,9 @@
+Changes in libsoup from 3.3.0 to 3.3.1:
+
+* Fix regression in `SoupCookieJar` not handling valid Secure cookies [Patrick Griffis]
+* Fix crash when skipping HTTP/1 response stream with chunked enconding [Carlos Garcia Campos]
+* Change Session to unqueue finished items earlier without an extra MainContext iteration [Carlos Garcia Campos]
+
 Changes in libsoup from 3.2.2 to 3.3.0:
 
 * Add `SoupMessage::got-body-data` signal to monitor progress of reads [Carlos Garcia Campos]
