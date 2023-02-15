@@ -229,6 +229,15 @@ static SoupContentSnifferMediaPattern audio_video_types_table[] = {
 };
 
 static gboolean
+data_has_prefix (const char *data, const char *prefix, gsize max_length)
+{
+        if (strlen (prefix) > max_length)
+                return FALSE;
+
+        return memcmp (data, prefix, strlen (prefix)) == 0;
+}
+
+static gboolean
 sniff_mp4 (SoupContentSniffer *sniffer, GBytes *buffer)
 {
 	gsize resource_length;
@@ -247,14 +256,14 @@ sniff_mp4 (SoupContentSniffer *sniffer, GBytes *buffer)
 	if (resource_length < 12 || resource_length < box_size || box_size % 4 != 0)
 		return FALSE;
 
-	if (!g_str_has_prefix (resource + 4, "ftyp"))
+	if (!data_has_prefix (resource + 4, "ftyp", resource_length - 4))
 		return FALSE;
 
-	if (!g_str_has_prefix (resource + 8, "mp4"))
+	if (!data_has_prefix (resource + 8, "mp4", resource_length - 8))
 		return FALSE;
 
 	for (i = 16; i < box_size && i < resource_length; i = i + 4) {
-		if (g_str_has_prefix (resource + i, "mp4"))
+		if (data_has_prefix (resource + i, "mp4", resource_length - i))
 			return TRUE;
 	}
 
@@ -670,13 +679,13 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 		goto text_html;
 
 	/* Skip comments. */
-	if (g_str_has_prefix (resource + pos, "!--")) {
+	if (data_has_prefix (resource + pos, "!--", resource_length - pos)) {
 		pos = pos + 3;
 
 		if ((pos + 2) > resource_length)
 			goto text_html;
 
-		while (!g_str_has_prefix (resource + pos, "-->")) {
+		while (!data_has_prefix (resource + pos, "-->", resource_length - pos)) {
 			pos++;
 
 			if ((pos + 2) > resource_length)
@@ -708,7 +717,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 
 			if ((pos + 1) > resource_length)
 				goto text_html;
-		} while (!g_str_has_prefix (resource + pos, "?>"));
+		} while (!data_has_prefix (resource + pos, "?>", resource_length - pos));
 
 		pos = pos + 2;
 
@@ -718,19 +727,19 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 	if ((pos + 3) > resource_length)
 		goto text_html;
 
-	if (g_str_has_prefix (resource + pos, "rss"))
+	if (data_has_prefix (resource + pos, "rss", resource_length - pos))
 		return g_strdup ("application/rss+xml");
 
 	if ((pos + 4) > resource_length)
 		goto text_html;
 
-	if (g_str_has_prefix (resource + pos, "feed"))
+	if (data_has_prefix (resource + pos, "feed", resource_length - pos))
 		return g_strdup ("application/atom+xml");
 
 	if ((pos + 7) > resource_length)
 		goto text_html;
 
-	if (g_str_has_prefix (resource + pos, "rdf:RDF")) {
+	if (data_has_prefix (resource + pos, "rdf:RDF", resource_length - pos)) {
 		pos = pos + 7;
 
 		if (skip_insignificant_space (resource, &pos, resource_length))
@@ -739,7 +748,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 		if ((pos + 32) > resource_length)
 			goto text_html;
 
-		if (g_str_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\"")) {
+		if (data_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\"", resource_length - pos)) {
 			pos = pos + 32;
 
 			if (skip_insignificant_space (resource, &pos, resource_length))
@@ -748,14 +757,14 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 			if ((pos + 55) > resource_length)
 				goto text_html;
 
-			if (g_str_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\""))
+			if (data_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"", resource_length - pos))
 				return g_strdup ("application/rss+xml");
 		}
 
 		if ((pos + 55) > resource_length)
 			goto text_html;
 
-		if (g_str_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"")) {
+		if (data_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"", resource_length - pos)) {
 			pos = pos + 55;
 
 			if (skip_insignificant_space (resource, &pos, resource_length))
@@ -764,7 +773,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 			if ((pos + 32) > resource_length)
 				goto text_html;
 
-			if (g_str_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\""))
+			if (data_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\"", resource_length - pos))
 				return g_strdup ("application/rss+xml");
 		}
 	}
