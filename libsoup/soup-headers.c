@@ -986,7 +986,7 @@ soup_header_g_string_append_param_quoted (GString    *string,
  * soup_header_g_string_append_param:
  * @string: a #GString being used to construct an HTTP header value
  * @name: a parameter name
- * @value: a parameter value, or %NULL
+ * @value: (nullable): a parameter value, or %NULL
  *
  * Appends something like `name=value` to @string, taking care to quote @value
  * if needed, and if so, to escape any quotes or backslashes in @value.
