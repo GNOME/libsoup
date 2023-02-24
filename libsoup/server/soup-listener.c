@@ -77,6 +77,8 @@ listen_watch (GObject      *pollable,
                 return G_SOURCE_REMOVE;
 
         conn = soup_server_connection_new (socket, priv->tls_certificate, priv->tls_database, priv->tls_auth_mode);
+        g_object_unref (socket);
+
         g_signal_emit (listener, signals[NEW_CONNECTION], 0, conn);
         g_object_unref (conn);
 
