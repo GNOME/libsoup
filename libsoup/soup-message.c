@@ -2887,6 +2887,23 @@ soup_message_has_content_sniffer (SoupMessage *msg)
         return priv->sniffer != NULL;
 }
 
+static SoupContentSnifferStream *
+soup_content_sniffer_stream_from_stream (GFilterInputStream *stream)
+{       
+        /* If SoupLoggerInputStream wraps our SoupContentSnifferStream we need to go up the chain to find the sniffer.
+           In this usage there should always be one in the chain and it is fine to extract it as long we
+           don't do a read() on the base stream which soup_content_sniffer_stream_sniff() does not.
+        */
+        while (stream) {
+                if (SOUP_IS_CONTENT_SNIFFER_STREAM (stream))
+                        return SOUP_CONTENT_SNIFFER_STREAM (stream);
+                stream = G_FILTER_INPUT_STREAM (g_filter_input_stream_get_base_stream (stream));
+        }
+
+        g_assert_not_reached ();
+        return NULL;
+}
+
 gboolean
 soup_message_try_sniff_content (SoupMessage  *msg,
                                 GInputStream *stream,
@@ -2902,7 +2919,7 @@ soup_message_try_sniff_content (SoupMessage  *msg,
         if (!priv->sniffer)
                 return TRUE;
 
-        sniffer_stream = SOUP_CONTENT_SNIFFER_STREAM (stream);
+        sniffer_stream = soup_content_sniffer_stream_from_stream (G_FILTER_INPUT_STREAM (stream));
         if (!soup_content_sniffer_stream_is_ready (sniffer_stream, blocking, cancellable, error))
                 return FALSE;
 

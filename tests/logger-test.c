@@ -481,6 +481,41 @@ server_callback (SoupServer        *server,
                                           sizeof (body_data) - 1);
 }
 
+static void
+do_logger_with_sniffer_test (void)
+{
+        SoupSession *session;
+        SoupLogger *logger;
+        SoupMessage *msg;
+        LogData log = { NULL, NULL, NULL, NULL };
+        GBytes *response;
+
+        session = soup_test_session_new (NULL);
+        logger = soup_logger_new (SOUP_LOGGER_LOG_BODY);
+        soup_logger_set_printer (logger, (SoupLoggerPrinter)printer, &log, NULL);
+        soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
+        g_object_unref (logger);
+
+        soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        msg = soup_message_new_from_uri ("GET", base_uri);
+        response = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_object_unref (msg);
+        g_bytes_unref (response);
+
+        g_assert_nonnull (log.request);
+        g_assert_null (log.request_body);
+        g_assert_nonnull (log.response);
+        g_assert_nonnull (log.response_body);
+        g_assert_cmpmem (log.response_body->data,
+                         log.response_body->len,
+                         body_data, sizeof (body_data) - 1);
+
+        log_data_clear (&log);
+
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -499,6 +534,7 @@ main (int argc, char **argv)
         g_test_add_func ("/logger/filters", do_logger_filters_test);
         g_test_add_func ("/logger/cookies", do_logger_cookies_test);
         g_test_add_func ("/logger/preconnect", do_logger_preconnect_test);
+        g_test_add_func ("/logger/with-sniffer", do_logger_with_sniffer_test);
 
         ret = g_test_run ();
 
