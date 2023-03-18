@@ -378,7 +378,7 @@ static SoupConnection *
 soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
                                                SoupMessageQueueItem  *item)
 {
-        static gchar env_force_http1 = -1;
+        static int env_force_http1 = -1;
         SoupMessage *msg = item->msg;
         gboolean need_new_connection;
         SoupConnection *conn;
