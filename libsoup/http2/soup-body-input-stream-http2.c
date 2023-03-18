@@ -72,7 +72,7 @@ static guint signals [LAST_SIGNAL] = { 0 };
  * Returns: a new #GInputStream
  */
 GInputStream *
-soup_body_input_stream_http2_new ()
+soup_body_input_stream_http2_new (void)
 {
         return G_INPUT_STREAM (g_object_new (SOUP_TYPE_BODY_INPUT_STREAM_HTTP2, NULL));
 }
