@@ -51,7 +51,7 @@ msgstr "Потокът „SoupBodyInputStream“ не може да бъде о�
 #: libsoup/http2/soup-body-input-stream-http2.c:221
 #: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
 msgid "Operation would block"
-msgstr "Операцията ще блокира"
+msgstr "Действието ще блокира"
 
 #: libsoup/http1/soup-client-message-io-http1.c:456
 msgid "Could not parse HTTP response"
@@ -66,7 +66,7 @@ msgstr "Непознато кодиране на отговора от HTTP"
 #: libsoup/http2/soup-client-message-io-http2.c:1521
 #: libsoup/http2/soup-client-message-io-http2.c:1545
 msgid "Operation was cancelled"
-msgstr "Операцията е отменена"
+msgstr "Действието е отменено"
 
 #: libsoup/http1/soup-message-io-data.c:105
 msgid "Header too big"
