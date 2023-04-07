@@ -120,15 +120,15 @@ msgstr "Липсва списък със суфикси на публични д
 
 #: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
 msgid "Invalid hostname"
-msgstr "Неправилно име на машина"
+msgstr "Неправилно име на хост"
 
 #: libsoup/soup-tld.c:159
 msgid "Hostname is an IP address"
-msgstr "Името на машината е адрес по IP"
+msgstr "Името на хоста е адрес по IP"
 
 #: libsoup/soup-tld.c:180
 msgid "Hostname has no base domain"
-msgstr "Името на машината не съдържа домейн"
+msgstr "Името на хоста не съдържа домейн"
 
 #: libsoup/soup-tld.c:188
 msgid "Not enough domains"
