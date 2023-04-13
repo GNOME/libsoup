@@ -189,6 +189,7 @@ soup_client_input_stream_close_async (GInputStream        *stream,
 	GSource *source;
 
 	task = g_task_new (stream, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_client_input_stream_close_async);
 	g_task_set_priority (task, priority);
 
 	if (close_async_ready (cistream->priv->msg, task) == G_SOURCE_CONTINUE) {

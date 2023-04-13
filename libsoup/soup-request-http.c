@@ -140,6 +140,7 @@ soup_request_http_send_async (SoupRequest          *request,
 	g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
 
 	task = g_task_new (request, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_request_http_send_async);
 	soup_session_send_async (session, http->priv->msg, cancellable,
 				 http_input_stream_ready_cb, task);
 }

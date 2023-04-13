@@ -301,6 +301,7 @@ soup_request_file_send_async (SoupRequest          *request,
 	GError *error = NULL;
 
 	task = g_task_new (request, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_request_file_send_async);
 
 	if (!soup_request_file_ensure_file (file, cancellable, &error)) {
 		g_task_return_error (task, error);

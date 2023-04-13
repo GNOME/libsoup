@@ -418,6 +418,7 @@ soup_connection_connect_async (SoupConnection      *conn,
 
 	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_connection_connect_async);
 
 	soup_socket_connect_async_internal (priv->socket, cancellable,
 					    socket_connect_complete, task);
@@ -546,6 +547,7 @@ soup_connection_start_ssl_async (SoupConnection      *conn,
 
 	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_connection_start_ssl_async);
 
 	soup_socket_handshake_async (priv->socket, priv->remote_uri->host,
 				     cancellable, start_ssl_completed, task);

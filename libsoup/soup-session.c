@@ -4355,6 +4355,7 @@ soup_session_send_async (SoupSession         *session,
 
 	item->new_api = TRUE;
 	item->task = g_task_new (session, item->cancellable, callback, user_data);
+	g_task_set_source_tag (item->task, soup_session_send_async);
 	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
 	/* Do not check for cancellations as we do not want to
@@ -4961,6 +4962,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	soup_message_set_flags (msg, flags | SOUP_MESSAGE_NEW_CONNECTION);
 
 	task = g_task_new (session, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_session_websocket_connect_async);
 	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
 					       websocket_connect_async_complete, task);
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
@@ -5108,6 +5110,7 @@ soup_session_connect_async (SoupSession                       *session,
         g_return_if_fail (uri != NULL);
 
         task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_session_connect_async);
 
         msg = soup_message_new_from_uri (SOUP_METHOD_HEAD, uri);
         soup_message_set_flags (msg, SOUP_MESSAGE_NEW_CONNECTION);
