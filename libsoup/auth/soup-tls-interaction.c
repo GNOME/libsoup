@@ -34,6 +34,7 @@ soup_tls_interaction_request_certificate_async (GTlsInteraction             *tls
         SoupConnection *conn = g_weak_ref_get (&priv->conn);
 
         task = g_task_new (tls_interaction, cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_tls_interaction_request_certificate_async);
         if (conn) {
                 soup_connection_request_tls_certificate (conn, connection, task);
                 g_object_unref (conn);
@@ -66,6 +67,7 @@ soup_tls_interaction_ask_password_async (GTlsInteraction    *tls_interaction,
         SoupConnection *conn = g_weak_ref_get (&priv->conn);
 
         task = g_task_new (tls_interaction, cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_tls_interaction_ask_password_async);
         if (conn) {
                 soup_connection_request_tls_certificate_password (conn, password, task);
                 g_object_unref (conn);

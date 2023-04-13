@@ -178,6 +178,7 @@ soup_io_stream_close_async (GIOStream           *stream,
         SoupIOStreamPrivate *priv = soup_io_stream_get_instance_private (siostream);
 
 	task = g_task_new (stream, cancellable, callback, user_data);
+	g_task_set_source_tag (task, soup_io_stream_close_async);
 	g_io_stream_close_async (priv->base_iostream,
 				 io_priority, cancellable,
 				 close_async_complete, task);

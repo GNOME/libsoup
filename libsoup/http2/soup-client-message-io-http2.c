@@ -1744,6 +1744,7 @@ soup_client_message_io_http2_run_until_read_async (SoupClientMessageIO *iface,
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
 
         data->task = g_task_new (msg, cancellable, callback, user_data);
+        g_task_set_source_tag (data->task, soup_client_message_io_http2_run_until_read_async);
         g_task_set_priority (data->task, io_priority);
         io->pending_io_messages = g_list_prepend (io->pending_io_messages, data);
         if (data->error)
@@ -1790,6 +1791,7 @@ soup_client_message_io_http2_close_async (SoupClientMessageIO *iface,
         if (io->async) {
                 g_assert (!io->close_task);
                 io->close_task = g_task_new (conn, NULL, callback, NULL);
+                g_task_set_source_tag (io->close_task, soup_client_message_io_http2_close_async);
         }
 
         soup_client_message_io_http2_terminate_session (io);

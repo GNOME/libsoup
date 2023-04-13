@@ -3039,6 +3039,7 @@ soup_session_return_error_if_message_already_in_queue (SoupSession         *sess
                                            SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE,
                                            _("Message is already in session queue"));
         task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_session_return_error_if_message_already_in_queue);
         g_task_set_task_data (task, item, (GDestroyNotify)soup_message_queue_item_unref);
         g_task_return_error (task, g_error_copy (item->error));
         g_object_unref (task);
@@ -3087,6 +3088,7 @@ soup_session_send_async (SoupSession         *session,
 			  G_CALLBACK (async_send_request_finished), item);
 
 	item->task = g_task_new (session, item->cancellable, callback, user_data);
+	g_task_set_source_tag (item->task, soup_session_send_async);
 	g_task_set_priority (item->task, io_priority);
 	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
 	if (async_respond_from_cache (session, item))
@@ -3333,6 +3335,7 @@ soup_session_send_and_read_async (SoupSession        *session,
 
         ostream = g_memory_output_stream_new_resizable ();
 	task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_session_send_and_read_async);
 	g_task_set_priority (task, io_priority);
         g_task_set_task_data (task, ostream, g_object_unref);
 
@@ -3506,6 +3509,7 @@ soup_session_send_and_splice_async (SoupSession             *session,
         data->out_stream = g_object_ref (out_stream);
         data->flags = flags;
         data->task = g_task_new (session, cancellable, callback, user_data);
+        g_task_set_source_tag (data->task, soup_session_send_and_splice_async);
         g_task_set_priority (data->task, io_priority);
 
         soup_session_send_async (session, msg,
@@ -3770,6 +3774,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
 	item->io_priority = io_priority;
 
         task = g_task_new (session, item->cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_session_websocket_connect_async);
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
 	soup_message_add_status_code_handler (msg, "got-informational",
@@ -3880,6 +3885,7 @@ soup_session_preconnect_async (SoupSession        *session,
         soup_message_set_is_preconnect (msg, TRUE);
 
         task = g_task_new (session, item->cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_session_preconnect_async);
         g_task_set_priority (task, io_priority);
         g_task_set_task_data (task, item, (GDestroyNotify)soup_message_queue_item_unref);
 

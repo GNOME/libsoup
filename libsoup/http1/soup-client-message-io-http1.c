@@ -973,6 +973,7 @@ soup_client_message_io_http1_run_until_read_async (SoupClientMessageIO *iface,
         GTask *task;
 
         task = g_task_new (msg, cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_client_message_io_http1_run_until_read_async);
         g_task_set_priority (task, io_priority);
         io_run_until_read_async (io, task);
 }

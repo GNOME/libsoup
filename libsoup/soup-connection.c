@@ -794,6 +794,7 @@ soup_connection_connect_async (SoupConnection      *conn,
 
         priv->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
         task = g_task_new (conn, priv->cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_connection_connect_async);
         g_task_set_priority (task, io_priority);
 
         client = new_socket_client (conn);
@@ -919,6 +920,7 @@ soup_connection_tunnel_handshake_async (SoupConnection     *conn,
 
         priv->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
         task = g_task_new (conn, priv->cancellable, callback, user_data);
+        g_task_set_source_tag (task, soup_connection_tunnel_handshake_async);
         g_task_set_priority (task, io_priority);
 
         tls_connection = new_tls_connection (conn, G_SOCKET_CONNECTION (priv->connection), &error);
