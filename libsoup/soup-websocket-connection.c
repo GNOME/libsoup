@@ -306,6 +306,11 @@ soup_websocket_connection_start_input_source (SoupWebsocketConnection *self)
 		return;
 
 	pv->input_source = g_pollable_input_stream_create_source (pv->input, NULL);
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (pv->input_source, "SoupWebsocketConnection input");
+#else
+	g_source_set_name (pv->input_source, "SoupWebsocketConnection input");
+#endif
 	g_source_set_callback (pv->input_source, (GSourceFunc)on_web_socket_input, self, NULL);
 	g_source_attach (pv->input_source, pv->main_context);
 }
@@ -332,6 +337,11 @@ soup_websocket_connection_start_output_source (SoupWebsocketConnection *self)
 		return;
 
 	pv->output_source = g_pollable_output_stream_create_source (pv->output, NULL);
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (pv->output_source, "SoupWebsocketConnection output");
+#else
+	g_source_set_name (pv->output_source, "SoupWebsocketConnection output");
+#endif
 	g_source_set_callback (pv->output_source, (GSourceFunc)on_web_socket_output, self, NULL);
 	g_source_attach (pv->output_source, pv->main_context);
 }
@@ -444,6 +454,11 @@ close_io_after_timeout (SoupWebsocketConnection *self)
 
 	g_debug ("waiting %d seconds for peer to close io", timeout);
 	pv->close_timeout = g_timeout_source_new_seconds (timeout);
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (pv->close_timeout, "SoupWebsocketConnection close timeout");
+#else
+	g_source_set_name (pv->close_timeout, "SoupWebsocketConnection close timeout");
+#endif
 	g_source_set_callback (pv->close_timeout, on_timeout_close_io, self, NULL);
 	g_source_attach (pv->close_timeout, pv->main_context);
 }
@@ -2207,6 +2222,11 @@ soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,
 
 		if (interval > 0) {
 			pv->keepalive_timeout = g_timeout_source_new_seconds (interval);
+#if GLIB_CHECK_VERSION(2, 70, 0)
+			g_source_set_static_name (pv->keepalive_timeout, "SoupWebsocketConnection keepalive timeout");
+#else
+			g_source_set_name (pv->keepalive_timeout, "SoupWebsocketConnection keepalive timeout");
+#endif
 			g_source_set_callback (pv->keepalive_timeout, on_queue_ping, self, NULL);
 			g_source_attach (pv->keepalive_timeout, pv->main_context);
 		}

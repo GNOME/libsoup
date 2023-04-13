@@ -927,7 +927,11 @@ soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
 
 	source = g_source_new (&message_source_funcs,
 			       sizeof (SoupMessageSource));
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (source, "SoupMessageSource");
+#else
 	g_source_set_name (source, "SoupMessageSource");
+#endif
 	message_source = (SoupMessageSource *)source;
 	message_source->msg = g_object_ref (msg);
 	message_source->paused = io && io->paused;

@@ -1203,6 +1203,13 @@ soup_socket_create_watch (SoupSocketPrivate *priv, GIOCondition cond,
 		watch = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->istream), cancellable);
 	else
 		watch = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (priv->ostream), cancellable);
+
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (watch, "SoupSocket watch");
+#else
+	g_source_set_name (watch, "SoupSocket watch");
+#endif
+
 	g_source_set_callback (watch, (GSourceFunc)callback, user_data, NULL);
 
 	g_source_attach (watch, priv->async_context);

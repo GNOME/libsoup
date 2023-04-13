@@ -83,6 +83,11 @@ soup_add_io_watch (GMainContext *async_context,
 		   GIOFunc function, gpointer data)
 {
 	GSource *watch = g_io_create_watch (chan, condition);
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (watch, "SoupIOWatch");
+#else
+	g_source_set_name (watch, "SoupIOWatch");
+#endif
 	g_source_set_callback (watch, (GSourceFunc) function, data, NULL);
 	g_source_attach (watch, async_context);
 	g_source_unref (watch);
@@ -111,6 +116,11 @@ soup_add_idle (GMainContext *async_context,
 	       GSourceFunc function, gpointer data)
 {
 	GSource *source = g_idle_source_new ();
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (source, "SoupIdle");
+#else
+	g_source_set_name (source, "SoupIdle");
+#endif
 	g_source_set_callback (source, function, data, NULL);
 	g_source_attach (source, async_context);
 	g_source_unref (source);
@@ -125,6 +135,11 @@ soup_add_completion_reffed (GMainContext   *async_context,
 {
 	GSource *source = g_idle_source_new ();
 
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (source, "SoupCompletion");
+#else
+	g_source_set_name (source, "SoupCompletion");
+#endif
 	g_source_set_priority (source, G_PRIORITY_DEFAULT);
 	g_source_set_callback (source, function, data, dnotify);
 	g_source_attach (source, async_context);
@@ -178,6 +193,11 @@ soup_add_timeout (GMainContext *async_context,
 		  GSourceFunc function, gpointer data)
 {
 	GSource *source = g_timeout_source_new (interval);
+#if GLIB_CHECK_VERSION(2, 70, 0)
+	g_source_set_static_name (source, "SoupTimeout");
+#else
+	g_source_set_name (source, "SoupTimeout");
+#endif
 	g_source_set_callback (source, function, data, NULL);
 	g_source_attach (source, async_context);
 	g_source_unref (source);
