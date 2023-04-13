@@ -311,6 +311,8 @@ hello_callback (SoupServer        *server,
 	const char *content_type;
 	GString *buf;
 	const char *method;
+	char *buf_str;
+	gsize buf_len;
 
 	method = soup_server_message_get_method (msg);
 	if (method != SOUP_METHOD_GET && method != SOUP_METHOD_HEAD) {
@@ -351,10 +353,11 @@ hello_callback (SoupServer        *server,
 		}
 	}
 
+	buf_len = buf->len;
+	buf_str = g_string_free (g_steal_pointer (&buf), FALSE);
 	soup_server_message_set_response (msg, content_type,
 					  SOUP_MEMORY_TAKE,
-					  buf->str, buf->len);
-	g_string_free (buf, FALSE);
+					  g_steal_pointer (&buf_str), buf_len);
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 
@@ -368,6 +371,8 @@ md5_get_callback (SoupServer        *server,
 	const char *file = NULL, *md5sum = NULL, *fmt;
 	const char *content_type;
 	GString *buf;
+	char *buf_str;
+	gsize buf_len;
 
 	if (query) {
 		file = g_hash_table_lookup (query, "file");
@@ -397,10 +402,11 @@ md5_get_callback (SoupServer        *server,
 			g_string_append_printf (buf, "%s", md5sum);
 	}
 
+	buf_len = buf->len;
+	buf_str = g_string_free (g_steal_pointer (&buf), FALSE);
 	soup_server_message_set_response (msg, content_type,
 					  SOUP_MEMORY_TAKE,
-					  buf->str, buf->len);
-	g_string_free (buf, FALSE);
+					  g_steal_pointer (&buf_str), buf_len);
 	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
 }
 

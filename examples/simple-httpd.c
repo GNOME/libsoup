@@ -88,6 +88,8 @@ do_get (SoupServer *server, SoupServerMessage *msg, const char *path)
 	if (g_file_test (path, G_FILE_TEST_IS_DIR)) {
 		GString *listing;
 		char *index_path;
+		char *listing_str;
+		gsize listing_len;
 
 		slash = strrchr (path, '/');
 		if (!slash || slash[1]) {
@@ -109,11 +111,12 @@ do_get (SoupServer *server, SoupServerMessage *msg, const char *path)
 		g_free (index_path);
 
 		listing = get_directory_listing (path);
+		listing_len = listing->len;
+		listing_str = g_string_free (g_steal_pointer (&listing), FALSE);
 		soup_server_message_set_response (msg, "text/html",
 					   SOUP_MEMORY_TAKE,
-					   listing->str, listing->len);
+					   g_steal_pointer (&listing_str), listing_len);
 		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
-		g_string_free (listing, FALSE);
 		return;
 	}
 
