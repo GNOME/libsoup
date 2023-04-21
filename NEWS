@@ -1,3 +1,9 @@
+Changes in libsoup from 3.4.0 to 3.4.1:
+
+* Fix HTTP/2 on platforms with unsigned char [Patrick Griffis]
+* Change request cancellation to be handled earlier [Carlos Garcia Campos]
+* Add names to GSources and source tags to GTasks to aid debugging [Philip Withnall]
+
 Changes in libsoup from 3.3.1 to 3.4.0:
 
 * Fix possible crash in SoupContentSniffer [Patrick Griffis ]
