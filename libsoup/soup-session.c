@@ -1469,7 +1469,7 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
         if (item->state == SOUP_MESSAGE_REQUEUED)
                 item->state = SOUP_MESSAGE_RESTARTING;
 
-	if (item->state != SOUP_MESSAGE_RESTARTING && item->state != SOUP_MESSAGE_FINISHED) {
+	if (item->state != SOUP_MESSAGE_RESTARTING) {
 		item->state = SOUP_MESSAGE_FINISHING;
                 soup_session_process_queue_item (item->session, item, !item->async);
 	}
