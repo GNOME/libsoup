@@ -1740,9 +1740,6 @@ soup_session_process_queue_item (SoupSession          *session,
 		if (item->paused)
 			return;
 
-                if (item->state != SOUP_MESSAGE_FINISHING && g_cancellable_is_cancelled (item->cancellable))
-                        item->state = SOUP_MESSAGE_FINISHING;
-
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
 			if (!soup_session_ensure_item_connection (session, item))
@@ -2910,8 +2907,7 @@ conditional_get_ready_cb (SoupSession               *session,
 	stream = soup_session_send_finish (session, result, &error);
 	if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
 		soup_cache_cancel_conditional_request (data->cache, data->conditional_msg);
-                if (data->item->state != SOUP_MESSAGE_FINISHED)
-                        cancel_cache_response (data->item);
+		cancel_cache_response (data->item);
 		async_cache_conditional_data_free (data);
 		return;
 	}
