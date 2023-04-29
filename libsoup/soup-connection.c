@@ -1373,8 +1373,7 @@ soup_connection_is_reusable (SoupConnection *conn)
 {
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-        return g_atomic_int_get (&priv->state) != SOUP_CONNECTION_DISCONNECTED &&
-                priv->io_data && soup_client_message_io_is_reusable (priv->io_data);
+        return priv->io_data && soup_client_message_io_is_reusable (priv->io_data);
 }
 
 GThread *
