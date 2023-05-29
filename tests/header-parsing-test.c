@@ -1211,10 +1211,12 @@ struct {
 	{ "two", "test with spaces" },
 	{ "three", "test with \"quotes\" and \\s" },
 	{ "four", NULL },
-	{ "five", "test with \xC3\xA1\xC3\xA7\xC4\x89\xC3\xA8\xC3\xB1\xC5\xA3\xC5\xA1" }
+	{ "five", "test with \xC3\xA1\xC3\xA7\xC4\x89\xC3\xA8\xC3\xB1\xC5\xA3\xC5\xA1" },
+	{ "six", "あ,い!#$&+-.^_`|~" },
+	{ "seven", "あabc*'%123^_`|~" }
 };
 
-#define TEST_PARAMS_RESULT "one=foo, two=\"test with spaces\", three=\"test with \\\"quotes\\\" and \\\\s\", four, five*=UTF-8''test%20with%20%C3%A1%C3%A7%C4%89%C3%A8%C3%B1%C5%A3%C5%A1"
+#define TEST_PARAMS_RESULT "one=foo, two=\"test with spaces\", three=\"test with \\\"quotes\\\" and \\\\s\", four, five*=UTF-8''test%20with%20%C3%A1%C3%A7%C4%89%C3%A8%C3%B1%C5%A3%C5%A1, six*=UTF-8''%E3%81%82%2C%E3%81%84!#$&+-.^_`|~, seven*=UTF-8''%E3%81%82abc%2A%27%25123^_`|~"
 
 static void
 do_append_param_tests (void)

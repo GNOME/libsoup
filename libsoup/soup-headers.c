@@ -902,7 +902,7 @@ append_param_rfc5987 (GString    *string,
 
 	g_string_append (string, name);
 	g_string_append (string, "*=UTF-8''");
-	encoded = g_uri_escape_string (value, "*'%()<>@,;:\\\"/[]?=", FALSE);
+	encoded = g_uri_escape_string (value, "!#$&+-.^_`|~", FALSE);
 	g_string_append (string, encoded);
 	g_free (encoded);
 }
