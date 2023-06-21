@@ -120,6 +120,7 @@ soup_listener_finalize (GObject *object)
 
         g_clear_object (&priv->socket);
         g_clear_object (&priv->iostream);
+        g_clear_object (&priv->local_addr);
 
         g_clear_object (&priv->tls_certificate);
         g_clear_object (&priv->tls_database);
