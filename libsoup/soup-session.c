@@ -1201,7 +1201,7 @@ soup_session_requeue_item (SoupSession          *session,
  * request, then @msg will be modified accordingly.
  *
  * If @msg has already been redirected too many times, this will
- * cause it to fail with %SOUP_STATUS_TOO_MANY_REDIRECTS.
+ * cause it to fail with %SOUP_SESSION_ERROR_TOO_MANY_REDIRECTS.
  *
  * Returns: %TRUE if a redirection was applied, %FALSE if not
  *   (eg, because there was no Location header, or it could not be
