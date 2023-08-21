@@ -113,8 +113,8 @@ soup_connection_auth_get_connection_state_for_message (SoupConnectionAuth *auth,
                 g_hash_table_insert (priv->conns, conn, state);
                 g_mutex_unlock (&priv->lock);
                 if (conn) {
-                        g_signal_connect (conn, "disconnected",
-                                          G_CALLBACK (connection_disconnected), auth);
+                        g_signal_connect_object (conn, "disconnected",
+                                                 G_CALLBACK (connection_disconnected), auth, 0);
                 }
         } else {
                 g_mutex_unlock (&priv->lock);
