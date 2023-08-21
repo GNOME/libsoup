@@ -206,6 +206,26 @@ soup_connection_manager_get_or_create_host_for_item (SoupConnectionManager *mana
         return host;
 }
 
+static void
+soup_connection_manager_drop_connection (SoupConnectionManager *manager,
+                                         SoupConnection        *conn)
+{
+        g_signal_handlers_disconnect_by_data (conn, manager);
+        manager->num_conns--;
+        g_object_unref (conn);
+
+        g_cond_broadcast (&manager->cond);
+}
+
+static void
+remove_connection (gpointer key,
+                   gpointer value,
+                   gpointer user_data)
+{
+        SoupConnectionManager *manager = user_data;
+        soup_connection_manager_drop_connection (manager, key);
+}
+
 SoupConnectionManager *
 soup_connection_manager_new (SoupSession *session,
                              guint        max_conns,
@@ -235,6 +255,9 @@ soup_connection_manager_new (SoupSession *session,
 void
 soup_connection_manager_free (SoupConnectionManager *manager)
 {
+        g_hash_table_foreach (manager->conns, remove_connection, manager);
+        g_assert (manager->num_conns == 0);
+
         g_clear_object (&manager->remote_connectable);
         g_hash_table_destroy (manager->http_hosts);
         g_hash_table_destroy (manager->https_hosts);
@@ -291,17 +314,6 @@ guint
 soup_connection_manager_get_num_conns (SoupConnectionManager *manager)
 {
         return manager->num_conns;
-}
-
-static void
-soup_connection_manager_drop_connection (SoupConnectionManager *manager,
-                                         SoupConnection        *conn)
-{
-        g_signal_handlers_disconnect_by_data (conn, manager);
-        manager->num_conns--;
-        g_object_unref (conn);
-
-        g_cond_broadcast (&manager->cond);
 }
 
 static void
