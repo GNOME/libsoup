@@ -96,6 +96,7 @@ typedef struct {
 
         /* Pollable data sources */
         GSource *data_source_poll;
+        goffset data_source_data_fetched;
 
         /* Non-pollable data sources */
         GByteArray *data_source_buffer;
@@ -1055,8 +1056,13 @@ on_data_read (GInputStream *source,
         } else if (read == 0) {
                 g_byte_array_set_size (data->data_source_buffer, 0);
                 data->data_source_eof = TRUE;
-        } else
+        } else {
+                data->data_source_data_fetched += read;
+                goffset request_content_length = soup_message_headers_get_content_length(soup_message_get_request_headers(data->msg));
+                if (request_content_length > 0 && data->data_source_data_fetched == request_content_length)
+                        data->data_source_eof = TRUE;
                 g_byte_array_set_size (data->data_source_buffer, read);
+        }
 
         h2_debug (data->io, data, "[SEND_BODY] Resuming send");
         NGCHECK (nghttp2_session_resume_data (data->io->session, data->stream_id));
@@ -1104,7 +1110,13 @@ on_data_source_read_callback (nghttp2_session     *session,
 
                 read = g_input_stream_read (source->ptr, buf, length, data->item->cancellable, &error);
                 if (read) {
-                        h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
+                        data->data_source_data_fetched += read;
+                        goffset request_content_length = soup_message_headers_get_content_length(soup_message_get_request_headers(data->msg));
+                        if (request_content_length > 0 && data->data_source_data_fetched == request_content_length) {
+                                *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                                h2_debug (data->io, data, "[SEND_BODY] Read %zd, EOF", read);
+                        } else
+                                h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
                         log_request_data (data, buf, read);
                 }
 
@@ -1132,7 +1144,13 @@ on_data_source_read_callback (nghttp2_session     *session,
                 gssize read = g_pollable_input_stream_read_nonblocking  (in_stream, buf, length, data->item->cancellable, &error);
 
                 if (read) {
-                        h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
+                        data->data_source_data_fetched += read;
+                        goffset request_content_length = soup_message_headers_get_content_length(soup_message_get_request_headers(data->msg));
+                        if (request_content_length > 0 && data->data_source_data_fetched == request_content_length) {
+                                *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                                h2_debug (data->io, data, "[SEND_BODY] Read %zd, EOF", read);
+                        } else
+                                h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
                         log_request_data (data, buf, read);
                 }
 
@@ -1179,7 +1197,11 @@ on_data_source_read_callback (nghttp2_session     *session,
 
                 guint buffer_len = data->data_source_buffer->len;
                 if (buffer_len) {
-                        h2_debug (data->io, data, "[SEND_BODY] Sending %zu", buffer_len);
+                        if (data->data_source_eof) {
+                                h2_debug (data->io, data, "[SEND_BODY] Sending %zu, EOF", buffer_len);
+                                *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                        } else
+                                h2_debug (data->io, data, "[SEND_BODY] Sending %zu", buffer_len);
                         g_assert (buffer_len <= length); /* QUESTION: Maybe not reliable */
                         memcpy (buf, data->data_source_buffer->data, buffer_len);
                         log_request_data (data, buf, buffer_len);
@@ -1257,6 +1279,7 @@ add_message_to_io_data (SoupClientMessageIOHTTP2  *io,
         data->item = soup_message_queue_item_ref (item);
         data->msg = item->msg;
         data->metrics = soup_message_get_metrics (data->msg);
+        data->data_source_data_fetched = 0;
         data->completion_cb = completion_cb;
         data->completion_data = completion_data;
         data->stream_id = 0;
