@@ -795,6 +795,12 @@ on_frame_recv_callback (nghttp2_session     *session,
                 if (nghttp2_session_get_stream_effective_recv_data_length (session, frame->hd.stream_id) == 0)
                         io_try_write (io);
                 break;
+        case NGHTTP2_WINDOW_UPDATE:
+                h2_debug (io, msg_io, "[RECV] [WINDOW_UPDATE] increment=%d, total=%d", frame->window_update.window_size_increment,
+                          nghttp2_session_get_stream_remote_window_size (session, frame->hd.stream_id));
+                if (nghttp2_session_get_stream_remote_window_size (session, frame->hd.stream_id) > 0)
+                        io_try_write (io);
+                break;
         default:
                 io->in_callback--;
                 return 0;

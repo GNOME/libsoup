@@ -553,6 +553,90 @@ do_paused_async_test (Test *test, gconstpointer data)
         g_uri_unref (uri);
 }
 
+typedef struct {
+        int connection;
+        int stream;
+} WindowSize;
+
+static void
+flow_control_message_network_event (SoupMessage        *msg,
+                                    GSocketClientEvent  event,
+                                    GIOStream          *connection,
+                                    WindowSize         *window_size)
+{
+        SoupConnection *conn;
+
+        if (event != G_SOCKET_CLIENT_RESOLVING)
+                return;
+
+        conn = soup_message_get_connection (msg);
+        g_assert_nonnull (conn);
+        if (window_size->connection != -1)
+                soup_connection_set_http2_initial_window_size (conn, window_size->connection);
+        if (window_size->stream != -1)
+                soup_connection_set_http2_initial_stream_window_size (conn, window_size->stream);
+}
+
+static void
+do_flow_control_large_test (Test *test, gconstpointer data)
+{
+        gboolean async = GPOINTER_TO_INT (data);
+        GUri *uri;
+        SoupMessage *msg;
+        GBytes *response;
+        GError *error = NULL;
+        WindowSize window_size = { (LARGE_N_CHARS * LARGE_CHARS_REPEAT) / 2 , (LARGE_N_CHARS * LARGE_CHARS_REPEAT) / 2 };
+
+        uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (flow_control_message_network_event),
+                          &window_size);
+
+        if (async)
+                response = soup_test_session_async_send (test->session, msg, NULL, &error);
+        else
+                response = soup_session_send_and_read (test->session, msg, NULL, &error);
+
+        g_assert_no_error (error);
+        g_assert_cmpuint (g_bytes_get_size (response), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
+
+        g_uri_unref (uri);
+        g_bytes_unref (response);
+        g_object_unref (msg);
+}
+
+static void
+do_flow_control_multi_message_async_test (Test *test, gconstpointer data)
+{
+        GUri *uri;
+        SoupMessage *msg1, *msg2;
+        GBytes *response1 = NULL;
+        GBytes *response2 = NULL;
+        WindowSize window_size = { (LARGE_N_CHARS * LARGE_CHARS_REPEAT), (LARGE_N_CHARS * LARGE_CHARS_REPEAT) / 2 };
+
+        uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
+        msg1 = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        g_signal_connect (msg1, "network-event",
+                          G_CALLBACK (flow_control_message_network_event),
+                          &window_size);
+        msg2 = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        soup_session_send_async (test->session, msg1, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response1);
+        soup_session_send_async (test->session, msg2, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response2);
+
+        while (!response1 || !response2)
+                g_main_context_iteration (NULL, TRUE);
+
+        g_assert_cmpuint (g_bytes_get_size (response1), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
+        g_assert_cmpuint (g_bytes_get_size (response2), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
+
+        g_uri_unref (uri);
+        g_bytes_unref (response1);
+        g_bytes_unref (response2);
+        g_object_unref (msg1);
+        g_object_unref (msg2);
+}
+
 static SoupConnection *last_connection;
 
 static void
@@ -1360,6 +1444,18 @@ main (int argc, char **argv)
         g_test_add ("/http2/paused/async", Test, NULL,
                     setup_session,
                     do_paused_async_test,
+                    teardown_session);
+        g_test_add ("/http2/flow-control/large/async", Test, GINT_TO_POINTER (TRUE),
+                    setup_session,
+                    do_flow_control_large_test,
+                    teardown_session);
+        g_test_add ("/http2/flow-control/large/sync", Test, GINT_TO_POINTER (TRUE),
+                    setup_session,
+                    do_flow_control_large_test,
+                    teardown_session);
+        g_test_add ("/http2/flow-control/multiplex/async", Test, NULL,
+                    setup_session,
+                    do_flow_control_multi_message_async_test,
                     teardown_session);
         g_test_add ("/http2/connections", Test, NULL,
                     setup_session,
