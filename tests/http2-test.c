@@ -360,7 +360,7 @@ do_post_large_sync_test (Test *test, gconstpointer data)
         GUri *uri;
         SoupMessage *msg;
         GInputStream *response;
-        guint large_size = 10000;
+        guint large_size = 1000000;
         char *large_data;
         unsigned int i;
         GError *error = NULL;
@@ -422,7 +422,7 @@ do_post_large_async_test (Test *test, gconstpointer data)
         SoupMessage *msg;
         GBytes *response = NULL;
         GMainContext *async_context = g_main_context_ref_thread_default ();
-        guint large_size = 10000;
+        guint large_size = 1000000;
         char *large_data;
         unsigned int i;
 

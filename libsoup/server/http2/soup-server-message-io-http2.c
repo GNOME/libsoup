@@ -790,6 +790,10 @@ on_frame_recv_callback (nghttp2_session     *session,
                 break;
         }
         case NGHTTP2_DATA:
+                h2_debug (io, msg_io, "[RECV] [DATA] window=%d/%d", nghttp2_session_get_stream_effective_recv_data_length (session, frame->hd.stream_id),
+                          nghttp2_session_get_stream_effective_local_window_size (session, frame->hd.stream_id));
+                if (nghttp2_session_get_stream_effective_recv_data_length (session, frame->hd.stream_id) == 0)
+                        io_try_write (io);
                 break;
         default:
                 io->in_callback--;
