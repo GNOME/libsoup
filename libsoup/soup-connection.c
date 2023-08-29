@@ -48,6 +48,9 @@ typedef struct {
 
 	GCancellable *cancellable;
         GThread *owner;
+
+        int window_size;
+        int stream_window_size;
 } SoupConnectionPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
@@ -91,6 +94,8 @@ static gboolean idle_timeout (gpointer conn);
  */
 #define SOUP_CONNECTION_UNUSED_TIMEOUT 3
 
+#define HTTP2_INITIAL_WINDOW_SIZE (32 * 1024 * 1024) /* 32MB matches other implementations */
+
 static void
 soup_connection_init (SoupConnection *conn)
 {
@@ -99,6 +104,8 @@ soup_connection_init (SoupConnection *conn)
         priv->http_version = SOUP_HTTP_1_1;
         priv->force_http_version = G_MAXUINT8;
         priv->owner = g_thread_self ();
+        priv->window_size = HTTP2_INITIAL_WINDOW_SIZE;
+        priv->stream_window_size = HTTP2_INITIAL_WINDOW_SIZE;
 }
 
 static void
@@ -1382,4 +1389,38 @@ soup_connection_get_owner (SoupConnection *conn)
         SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         return priv->owner;
+}
+
+void
+soup_connection_set_http2_initial_window_size (SoupConnection *conn,
+                                               int             window_size)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        priv->window_size = window_size;
+}
+
+int
+soup_connection_get_http2_initial_window_size (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->window_size;
+}
+
+void
+soup_connection_set_http2_initial_stream_window_size (SoupConnection *conn,
+                                                      int             window_size)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        priv->stream_window_size = window_size;
+}
+
+int
+soup_connection_get_http2_initial_stream_window_size (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->stream_window_size;
 }

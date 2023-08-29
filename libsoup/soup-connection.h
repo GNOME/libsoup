@@ -87,6 +87,13 @@ SoupHTTPVersion      soup_connection_get_negotiated_protocol    (SoupConnection 
 gboolean             soup_connection_is_reusable                (SoupConnection *conn);
 GThread             *soup_connection_get_owner                  (SoupConnection *conn);
 
+void soup_connection_set_http2_initial_window_size        (SoupConnection *conn,
+                                                           int             window_size);
+int  soup_connection_get_http2_initial_window_size        (SoupConnection *conn);
+void soup_connection_set_http2_initial_stream_window_size (SoupConnection *conn,
+                                                           int             window_size);
+int  soup_connection_get_http2_initial_stream_window_size (SoupConnection *conn);
+
 G_END_DECLS
 
 #endif /* __SOUP_CONNECTION_H__ */

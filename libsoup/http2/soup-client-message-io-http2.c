@@ -1971,7 +1971,6 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
         io->iface.funcs = &io_funcs;
 }
 
-#define INITIAL_WINDOW_SIZE (32 * 1024 * 1024) /* 32MB matches other implementations */
 #define MAX_HEADER_TABLE_SIZE 65536 /* Match size used by Chromium/Firefox */
 
 SoupClientMessageIO *
@@ -1989,14 +1988,14 @@ soup_client_message_io_http2_new (SoupConnection *conn)
 
         soup_client_message_io_http2_set_owner (io, soup_connection_get_owner (conn));
 
-        NGCHECK (nghttp2_session_set_local_window_size (io->session, NGHTTP2_FLAG_NONE, 0, INITIAL_WINDOW_SIZE));
-
+        int stream_window_size = soup_connection_get_http2_initial_stream_window_size (conn);
         const nghttp2_settings_entry settings[] = {
-                { NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, INITIAL_WINDOW_SIZE },
+                { NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, stream_window_size },
                 { NGHTTP2_SETTINGS_HEADER_TABLE_SIZE, MAX_HEADER_TABLE_SIZE },
                 { NGHTTP2_SETTINGS_ENABLE_PUSH, 0 },
         };
         NGCHECK (nghttp2_submit_settings (io->session, NGHTTP2_FLAG_NONE, settings, G_N_ELEMENTS (settings)));
+        NGCHECK (nghttp2_session_set_local_window_size (io->session, NGHTTP2_FLAG_NONE, 0, soup_connection_get_http2_initial_window_size (conn)));
         io_try_write (io, !io->async);
 
         return (SoupClientMessageIO *)io;
