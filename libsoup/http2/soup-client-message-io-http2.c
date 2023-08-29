@@ -775,6 +775,8 @@ on_frame_recv_callback (nghttp2_session     *session,
                 break;
         }
         case NGHTTP2_DATA:
+                h2_debug (io, data, "[RECV] [DATA] window=%d/%d", nghttp2_session_get_stream_effective_recv_data_length (session, frame->hd.stream_id),
+                          nghttp2_session_get_stream_effective_local_window_size (session, frame->hd.stream_id));
                 if (data->metrics)
                         data->metrics->response_body_bytes_received += frame->data.hd.length + FRAME_HEADER_SIZE;
                 soup_message_got_body_data (data->msg, frame->data.hd.length + FRAME_HEADER_SIZE);
@@ -787,8 +789,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                                                 soup_http2_message_data_check_status (data);
                                 }
                         }
-                } else {
-                        /* Try to write after every data frame, since nghttp2 might need to send a window update. */
+                } else if (nghttp2_session_get_stream_effective_recv_data_length (session, frame->hd.stream_id) == 0) {
                         io_try_write (io, !data->item->async);
                 }
                 break;
