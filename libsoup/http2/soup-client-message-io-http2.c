@@ -61,6 +61,7 @@ typedef struct {
         GError *error;
         GSource *read_source;
         GSource *write_source;
+        GSource *write_idle_source;
 
         GHashTable *messages;
         GHashTable *closed_messages;
@@ -355,6 +356,8 @@ io_write_ready (GObject                  *stream,
         return G_SOURCE_REMOVE;
 }
 
+static gboolean io_write_idle_cb (SoupClientMessageIOHTTP2* io);
+
 static void
 io_try_write (SoupClientMessageIOHTTP2 *io,
               gboolean                  blocking)
@@ -367,12 +370,32 @@ io_try_write (SoupClientMessageIOHTTP2 *io,
         if (io->in_callback) {
                 if (blocking || !nghttp2_session_want_write (io->session))
                         return;
-        } else {
-                while (!error && nghttp2_session_want_write (io->session))
-                        io_write (io, blocking, NULL, &error);
+
+                if (io->write_idle_source)
+                        return;
+
+                io->write_idle_source = g_idle_source_new ();
+#if GLIB_CHECK_VERSION(2, 70, 0)
+                g_source_set_static_name (io->write_idle_source, "Soup HTTP/2 write idle source");
+#else
+                g_source_set_name (io->write_idle_source, "Soup HTTP/2 write idle source");
+#endif
+                /* Give write more priority than read */
+                g_source_set_priority (io->write_idle_source, G_PRIORITY_DEFAULT - 1);
+                g_source_set_callback (io->write_idle_source, (GSourceFunc)io_write_idle_cb, io, NULL);
+                g_source_attach (io->write_idle_source, g_main_context_get_thread_default ());
+                return;
         }
 
-        if (!blocking && (io->in_callback || g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK))) {
+        if (io->write_idle_source) {
+                g_source_destroy (io->write_idle_source);
+                g_clear_pointer (&io->write_idle_source, g_source_unref);
+        }
+
+        while (!error && nghttp2_session_want_write (io->session))
+                io_write (io, blocking, NULL, &error);
+
+        if (!blocking && g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
                 io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
 #if GLIB_CHECK_VERSION(2, 70, 0)
@@ -384,10 +407,19 @@ io_try_write (SoupClientMessageIOHTTP2 *io,
                 g_source_set_priority (io->write_source, G_PRIORITY_DEFAULT - 1);
                 g_source_set_callback (io->write_source, (GSourceFunc)io_write_ready, io, NULL);
                 g_source_attach (io->write_source, g_main_context_get_thread_default ());
+                return;
         }
 
         if (error)
                 set_io_error (io, error);
+}
+
+static gboolean
+io_write_idle_cb (SoupClientMessageIOHTTP2* io)
+{
+        g_clear_pointer (&io->write_idle_source, g_source_unref);
+        io_try_write (io, FALSE);
+        return G_SOURCE_REMOVE;
 }
 
 static gboolean
@@ -1796,6 +1828,7 @@ soup_client_message_io_http2_set_owner (SoupClientMessageIOHTTP2 *io,
 
         io->owner = owner;
         g_assert (!io->write_source);
+        g_assert (!io->write_idle_source);
         if (io->read_source) {
                 g_source_destroy (io->read_source);
                 g_source_unref (io->read_source);
@@ -1855,6 +1888,10 @@ soup_client_message_io_http2_destroy (SoupClientMessageIO *iface)
         if (io->write_source) {
                 g_source_destroy (io->write_source);
                 g_source_unref (io->write_source);
+        }
+        if (io->write_idle_source) {
+                g_source_destroy (io->write_idle_source);
+                g_source_unref (io->write_idle_source);
         }
 
         g_weak_ref_clear (&io->conn);
