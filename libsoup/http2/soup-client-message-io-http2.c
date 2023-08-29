@@ -428,7 +428,7 @@ io_read (SoupClientMessageIOHTTP2  *io,
          GCancellable              *cancellable,
          GError                   **error)
 {
-        guint8 buffer[8192];
+        guint8 buffer[16384];
         gssize read;
         int ret;
 

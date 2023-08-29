@@ -461,7 +461,7 @@ static gboolean
 io_read (SoupServerMessageIOHTTP2 *io,
          GError                  **error)
 {
-        guint8 buffer[8192];
+        guint8 buffer[16384];
         gssize read;
         int ret;
 
