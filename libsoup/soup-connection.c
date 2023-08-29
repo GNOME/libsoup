@@ -94,7 +94,8 @@ static gboolean idle_timeout (gpointer conn);
  */
 #define SOUP_CONNECTION_UNUSED_TIMEOUT 3
 
-#define HTTP2_INITIAL_WINDOW_SIZE (32 * 1024 * 1024) /* 32MB matches other implementations */
+#define HTTP2_INITIAL_WINDOW_SIZE (15 * 1024 * 1024) /* 15MB */
+#define HTTP2_INITIAL_STREAM_WINDOW_SIZE (6 * 1024 * 1024) /* 6MB */
 
 static void
 soup_connection_init (SoupConnection *conn)
@@ -105,7 +106,7 @@ soup_connection_init (SoupConnection *conn)
         priv->force_http_version = G_MAXUINT8;
         priv->owner = g_thread_self ();
         priv->window_size = HTTP2_INITIAL_WINDOW_SIZE;
-        priv->stream_window_size = HTTP2_INITIAL_WINDOW_SIZE;
+        priv->stream_window_size = HTTP2_INITIAL_STREAM_WINDOW_SIZE;
 }
 
 static void
