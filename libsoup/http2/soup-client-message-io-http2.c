@@ -92,12 +92,12 @@ typedef struct {
         GTask *task;
         gboolean in_io_try_sniff_content;
 
-        /* Request body logger */
+        /* Request body */
         SoupLogger *logger;
+        gssize request_body_bytes_to_write;
 
         /* Pollable data sources */
         GSource *data_source_poll;
-        goffset data_source_data_fetched;
 
         /* Non-pollable data sources */
         GByteArray *data_source_buffer;
@@ -746,6 +746,8 @@ on_frame_recv_callback (nghttp2_session     *session,
 
                                         data_provider.source.ptr = soup_message_get_request_body_stream (data->msg);
                                         data_provider.read_callback = on_data_source_read_callback;
+                                        goffset content_length = soup_message_headers_get_content_length (soup_message_get_request_headers (data->msg));
+                                        data->request_body_bytes_to_write = content_length > 0 ? content_length : -1;
                                         nghttp2_submit_data (io->session, NGHTTP2_FLAG_END_STREAM, frame->hd.stream_id, &data_provider);
                                         io_try_write (io, !data->item->async);
                                 }
@@ -1090,10 +1092,11 @@ on_data_read (GInputStream *source,
                 g_byte_array_set_size (data->data_source_buffer, 0);
                 data->data_source_eof = TRUE;
         } else {
-                data->data_source_data_fetched += read;
-                goffset request_content_length = soup_message_headers_get_content_length(soup_message_get_request_headers(data->msg));
-                if (request_content_length > 0 && data->data_source_data_fetched == request_content_length)
-                        data->data_source_eof = TRUE;
+                if (data->request_body_bytes_to_write > 0) {
+                        data->request_body_bytes_to_write -= read;
+                        if (data->request_body_bytes_to_write == 0)
+                                data->data_source_eof = TRUE;
+                }
                 g_byte_array_set_size (data->data_source_buffer, read);
         }
 
@@ -1143,13 +1146,12 @@ on_data_source_read_callback (nghttp2_session     *session,
 
                 read = g_input_stream_read (source->ptr, buf, length, data->item->cancellable, &error);
                 if (read) {
-                        data->data_source_data_fetched += read;
-                        goffset request_content_length = soup_message_headers_get_content_length(soup_message_get_request_headers(data->msg));
-                        if (request_content_length > 0 && data->data_source_data_fetched == request_content_length) {
-                                *data_flags |= NGHTTP2_DATA_FLAG_EOF;
-                                h2_debug (data->io, data, "[SEND_BODY] Read %zd, EOF", read);
-                        } else
-                                h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
+                        if (data->request_body_bytes_to_write > 0) {
+                                data->request_body_bytes_to_write -= read;
+                                if (data->request_body_bytes_to_write == 0)
+                                        *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                        }
+                        h2_debug (data->io, data, "[SEND_BODY] Read %zd%s", read, *data_flags & NGHTTP2_DATA_FLAG_EOF ? ", EOF" : "");
                         log_request_data (data, buf, read);
                 }
 
@@ -1177,13 +1179,12 @@ on_data_source_read_callback (nghttp2_session     *session,
                 gssize read = g_pollable_input_stream_read_nonblocking  (in_stream, buf, length, data->item->cancellable, &error);
 
                 if (read) {
-                        data->data_source_data_fetched += read;
-                        goffset request_content_length = soup_message_headers_get_content_length(soup_message_get_request_headers(data->msg));
-                        if (request_content_length > 0 && data->data_source_data_fetched == request_content_length) {
-                                *data_flags |= NGHTTP2_DATA_FLAG_EOF;
-                                h2_debug (data->io, data, "[SEND_BODY] Read %zd, EOF", read);
-                        } else
-                                h2_debug (data->io, data, "[SEND_BODY] Read %zd", read);
+                        if (data->request_body_bytes_to_write > 0) {
+                                data->request_body_bytes_to_write -= read;
+                                if (data->request_body_bytes_to_write == 0)
+                                        *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                        }
+                        h2_debug (data->io, data, "[SEND_BODY] Read %zd%s", read, *data_flags & NGHTTP2_DATA_FLAG_EOF ? ", EOF" : "");
                         log_request_data (data, buf, read);
                 }
 
@@ -1312,7 +1313,7 @@ add_message_to_io_data (SoupClientMessageIOHTTP2  *io,
         data->item = soup_message_queue_item_ref (item);
         data->msg = item->msg;
         data->metrics = soup_message_get_metrics (data->msg);
-        data->data_source_data_fetched = 0;
+        data->request_body_bytes_to_write = -1;
         data->completion_cb = completion_cb;
         data->completion_data = completion_data;
         data->stream_id = 0;
@@ -1421,9 +1422,10 @@ send_message_request (SoupMessage          *msg,
                 g_array_append_val (headers, pseudo_headers[i]);
         }
 
+        SoupMessageHeaders *request_headers = soup_message_get_request_headers (msg);
         SoupMessageHeadersIter iter;
         const char *name, *value;
-        soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
+        soup_message_headers_iter_init (&iter, request_headers);
         while (soup_message_headers_iter_next (&iter, &name, &value)) {
                 if (!request_header_is_valid (name))
                         continue;
@@ -1441,7 +1443,7 @@ send_message_request (SoupMessage          *msg,
         nghttp2_priority_spec_init (&priority_spec, 0, message_priority_to_weight (msg), 0);
 
         int32_t stream_id;
-        if (body_stream && soup_message_headers_get_expectations (soup_message_get_request_headers (msg)) & SOUP_EXPECTATION_CONTINUE) {
+        if (body_stream && soup_message_headers_get_expectations (request_headers) & SOUP_EXPECTATION_CONTINUE) {
                 data->expect_continue = TRUE;
                 stream_id = nghttp2_submit_headers (io->session, 0, -1, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, data);
         } else {
@@ -1449,6 +1451,8 @@ send_message_request (SoupMessage          *msg,
                 if (body_stream) {
                         data_provider.source.ptr = body_stream;
                         data_provider.read_callback = on_data_source_read_callback;
+                        goffset content_length = soup_message_headers_get_content_length (request_headers);
+                        data->request_body_bytes_to_write = content_length > 0 ? content_length : -1;
                 }
                 stream_id = nghttp2_submit_request (io->session, &priority_spec, (const nghttp2_nv *)headers->data, headers->len, body_stream ? &data_provider : NULL, data);
         }
