@@ -1,3 +1,11 @@
+Changes in libsoup from 3.4.2 to 3.4.3:
+
+* Fix incorrect UTF-8 encoding for params in headers [Leo Zi-You Assini]
+* Numerous HTTP/2 fixes and improvements [Carlos Garcia Campos]
+* Fix possible crashes in connection management [Michael Catanzaro]
+* Fix small leak in SoupServer [Emil Ljungdahl]
+* Fix the possibility of empty HTTP/2 frames being sent [Pawel Lampe]
+
 Changes in libsoup from 3.4.1 to 3.4.2:
 
 * Revert changes to request cancellation [Patrick Griffis]
