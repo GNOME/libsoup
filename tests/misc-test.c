@@ -430,14 +430,6 @@ ea_message_starting (SoupMessage  *msg,
 }
 
 static void
-ea_message_queued (SoupSession  *session,
-                   SoupMessage  *msg,
-                   GCancellable *cancellable)
-{
-        g_cancellable_cancel (cancellable);
-}
-
-static void
 do_early_abort_test (void)
 {
 	SoupSession *session;
@@ -496,22 +488,6 @@ do_early_abort_test (void)
 	g_object_unref (cancellable);
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
-
-        session = soup_test_session_new (NULL);
-        msg = soup_message_new_from_uri ("GET", base_uri);
-        cancellable = g_cancellable_new ();
-
-        g_signal_connect (session, "request-queued",
-                          G_CALLBACK (ea_message_queued), cancellable);
-        g_assert_null (soup_test_session_async_send (session, msg, cancellable, &error));
-        debug_printf (2, "  Message 4 completed\n");
-
-        g_assert_cmpuint (soup_message_get_connection_id (msg), ==, 0);
-        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
-        g_clear_error (&error);
-        g_object_unref (cancellable);
-        g_object_unref (msg);
-        soup_test_session_abort_unref (session);
 }
 
 static void

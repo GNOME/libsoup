@@ -107,9 +107,6 @@ static void soup_session_process_queue_item (SoupSession          *session,
                                              SoupMessageQueueItem *item,
                                              gboolean              loop);
 
-static void async_send_request_return_result (SoupMessageQueueItem *item,
-                                              gpointer stream, GError *error);
-
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
 
@@ -1369,20 +1366,7 @@ soup_session_append_queue_item (SoupSession        *session,
 	return item;
 }
 
-static gboolean
-finish_request_if_item_cancelled (SoupMessageQueueItem *item)
-{
-        if (!g_cancellable_is_cancelled (item->cancellable))
-                return FALSE;
-
-        if (item->async)
-                async_send_request_return_result (item, NULL, NULL);
-
-        item->state = SOUP_MESSAGE_FINISHING;
-        return TRUE;
-}
-
-static gboolean
+static void
 soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageQueueItem *item,
 			      SoupMessageIOCompletionFn completion_cb)
@@ -1421,13 +1405,9 @@ soup_session_send_queue_item (SoupSession *session,
 		soup_message_headers_set_content_length (request_headers, 0);
 	}
 
-        soup_message_starting (item->msg);
-        finish_request_if_item_cancelled (item);
-        if (item->state != SOUP_MESSAGE_RUNNING)
-                return FALSE;
-
-        soup_message_send_item (item->msg, item, completion_cb, item);
-        return TRUE;
+	soup_message_starting (item->msg);
+	if (item->state == SOUP_MESSAGE_RUNNING)
+                soup_message_send_item (item->msg, item, completion_cb, item);
 }
 
 static void
@@ -1561,18 +1541,14 @@ tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
                         g_object_unref (conn);
                         g_clear_object (&tunnel_item->error);
 			tunnel_item->state = SOUP_MESSAGE_RUNNING;
-                        if (soup_session_send_queue_item (session, tunnel_item, (SoupMessageIOCompletionFn)tunnel_message_completed))
-                                soup_message_io_run (msg, !tunnel_item->async);
-                        else
-                                tunnel_message_completed (msg, SOUP_MESSAGE_IO_INTERRUPTED, tunnel_item);
+			soup_session_send_queue_item (session, tunnel_item,
+						      (SoupMessageIOCompletionFn)tunnel_message_completed);
+			soup_message_io_run (msg, !tunnel_item->async);
 			return;
 		}
 
 		item->state = SOUP_MESSAGE_RESTARTING;
 	}
-
-        if (item->state == SOUP_MESSAGE_FINISHING)
-                soup_message_finished (tunnel_item->msg);
 
 	tunnel_item->state = SOUP_MESSAGE_FINISHED;
 	soup_session_unqueue_item (session, tunnel_item);
@@ -1625,10 +1601,9 @@ tunnel_connect (SoupMessageQueueItem *item)
         g_clear_object (&conn);
 	tunnel_item->state = SOUP_MESSAGE_RUNNING;
 
-        if (soup_session_send_queue_item (session, tunnel_item, (SoupMessageIOCompletionFn)tunnel_message_completed))
-                soup_message_io_run (msg, !item->async);
-        else
-                tunnel_message_completed (msg, SOUP_MESSAGE_IO_INTERRUPTED, tunnel_item);
+	soup_session_send_queue_item (session, tunnel_item,
+				      (SoupMessageIOCompletionFn)tunnel_message_completed);
+	soup_message_io_run (msg, !item->async);
 	g_object_unref (msg);
 }
 
@@ -1767,24 +1742,20 @@ soup_session_process_queue_item (SoupSession          *session,
 
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
-                        if (!finish_request_if_item_cancelled (item)) {
-                                if (!soup_session_ensure_item_connection (session, item))
-                                        return;
-                        }
+			if (!soup_session_ensure_item_connection (session, item))
+				return;
 			break;
 
-		case SOUP_MESSAGE_CONNECTED:
-                        if (!finish_request_if_item_cancelled (item)) {
-                                SoupConnection *conn = soup_message_get_connection (item->msg);
+		case SOUP_MESSAGE_CONNECTED: {
+                        SoupConnection *conn = soup_message_get_connection (item->msg);
 
-                                if (soup_connection_is_tunnelled (conn))
+			if (soup_connection_is_tunnelled (conn))
 				tunnel_connect (item);
-                                else
-                                        item->state = SOUP_MESSAGE_READY;
-                                g_object_unref (conn);
-                        }
+			else
+				item->state = SOUP_MESSAGE_READY;
+                        g_object_unref (conn);
 			break;
-
+                }
 		case SOUP_MESSAGE_READY:
 			if (item->connect_only) {
 				item->state = SOUP_MESSAGE_FINISHING;
@@ -1796,17 +1767,16 @@ soup_session_process_queue_item (SoupSession          *session,
 				break;
 			}
 
-                        if (!finish_request_if_item_cancelled (item)) {
-                                item->state = SOUP_MESSAGE_RUNNING;
+			item->state = SOUP_MESSAGE_RUNNING;
 
-                                soup_message_set_metrics_timestamp (item->msg, SOUP_MESSAGE_METRICS_REQUEST_START);
+                        soup_message_set_metrics_timestamp (item->msg, SOUP_MESSAGE_METRICS_REQUEST_START);
 
-                                if (soup_session_send_queue_item (session, item, (SoupMessageIOCompletionFn)message_completed) && item->async)
-                                        async_send_request_running (session, item);
+			soup_session_send_queue_item (session, item,
+						      (SoupMessageIOCompletionFn)message_completed);
 
-                                return;
-                        }
-                        break;
+			if (item->async)
+				async_send_request_running (session, item);
+			return;
 
 		case SOUP_MESSAGE_RUNNING:
 			if (item->async)
@@ -3222,10 +3192,8 @@ soup_session_send (SoupSession   *session,
 	while (!stream) {
 		/* Get a connection, etc */
 		soup_session_process_queue_item (session, item, TRUE);
-		if (item->state != SOUP_MESSAGE_RUNNING) {
-                        g_cancellable_set_error_if_cancelled (item->cancellable, &my_error);
+		if (item->state != SOUP_MESSAGE_RUNNING)
 			break;
-                }
 
 		/* Send request, read headers */
 		if (!soup_message_io_run_until_read (msg, item->cancellable, &my_error)) {

@@ -1693,61 +1693,6 @@ do_connection_http_1_1_required_test (void)
         soup_test_session_abort_unref (session);
 }
 
-static void
-cancel_tunnel_test_request_queued (SoupSession  *session,
-                                   SoupMessage  *msg,
-                                   GCancellable *cancellable)
-{
-        if (soup_message_get_method (msg) != SOUP_METHOD_CONNECT)
-                return;
-
-        g_signal_connect_swapped (msg, "starting", G_CALLBACK (g_cancellable_cancel), cancellable);
-}
-
-static void
-do_cancel_tunnel_msg_on_starting (void)
-{
-        SoupSession *session;
-        SoupMessage *msg;
-        GProxyResolver *resolver;
-        GCancellable *cancellable;
-        GBytes *body;
-        GError *error = NULL;
-
-        SOUP_TEST_SKIP_IF_NO_TLS
-        SOUP_TEST_SKIP_IF_NO_APACHE;
-
-        session = soup_test_session_new (NULL);
-
-        if (tls_available) {
-                GTlsDatabase *tlsdb;
-
-                tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-                soup_session_set_tls_database (session, tlsdb);
-                g_object_unref (tlsdb);
-        }
-
-        resolver = g_simple_proxy_resolver_new (HTTP_PROXY, NULL);
-        soup_session_set_proxy_resolver (session, resolver);
-        g_object_unref (resolver);
-
-        cancellable = g_cancellable_new ();
-        g_signal_connect (session, "request-queued",
-                          G_CALLBACK (cancel_tunnel_test_request_queued),
-                          cancellable);
-
-        msg = soup_message_new ("GET", HTTPS_SERVER);
-        body = soup_session_send_and_read (session, msg, cancellable, &error);
-        soup_test_assert_message_status (msg, SOUP_STATUS_NONE);
-        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
-        g_clear_error (&error);
-        g_bytes_unref (body);
-        g_object_unref (msg);
-        g_object_unref (cancellable);
-
-        soup_test_session_abort_unref (session);
-}
-
 int
 main (int argc, char **argv)
 {
@@ -1774,7 +1719,6 @@ main (int argc, char **argv)
         g_test_add_func ("/connection/metrics", do_connection_metrics_test);
         g_test_add_func ("/connection/force-http2", do_connection_force_http2_test);
         g_test_add_func ("/connection/http2/http-1-1-required", do_connection_http_1_1_required_test);
-        g_test_add_func ("/connection/cancel-tunnel-msg-on-starting", do_cancel_tunnel_msg_on_starting);
 
 	ret = g_test_run ();
 
