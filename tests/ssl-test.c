@@ -463,6 +463,7 @@ do_tls_interaction_msg_test (gconstpointer data)
                         &error
                 );
                 g_assert_no_error (error);
+                g_clear_error (&error);
                 g_assert_nonnull (pkcs11_certificate);
                 g_assert_true (G_IS_TLS_CERTIFICATE (pkcs11_certificate));
                 msg = soup_message_new_from_uri ("GET", uri);
@@ -509,7 +510,7 @@ do_tls_interaction_msg_test (gconstpointer data)
                 g_bytes_unref (body);
                 g_object_unref (msg);
 
-                g_object_unref (pkcs11_certificate);
+                g_clear_object (&pkcs11_certificate);
         }
 
         g_object_set (server, "tls-database", NULL, "tls-auth-mode", G_TLS_AUTHENTICATION_NONE, NULL);
