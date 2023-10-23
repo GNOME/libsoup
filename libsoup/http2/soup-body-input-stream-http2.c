@@ -42,7 +42,7 @@ struct _SoupBodyInputStreamHttp2 {
 };
 
 typedef struct {
-        GSList *chunks;
+        GQueue *chunks;
         gsize start_offset;
         gsize len;
         gsize pos;
@@ -89,7 +89,7 @@ soup_body_input_stream_http2_add_data (SoupBodyInputStreamHttp2 *stream,
 
         priv = soup_body_input_stream_http2_get_instance_private (stream);
 
-        priv->chunks = g_slist_append (priv->chunks, g_bytes_new (data, size));
+        g_queue_push_tail (priv->chunks, g_bytes_new (data, size));
         priv->len += size;
         if (priv->need_more_data_cancellable) {
                 g_cancellable_cancel (priv->need_more_data_cancellable);
@@ -118,7 +118,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
 {
         SoupBodyInputStreamHttp2 *memory_stream;
         SoupBodyInputStreamHttp2Private *priv;
-        GSList *l;
+        GList *l;
         GBytes *chunk;
         gsize len;
         gsize offset, start, rest, size;
@@ -135,7 +135,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
         count = MIN (read_count, priv->len - priv->pos);
 
         offset = priv->start_offset;
-        for (l = priv->chunks; l; l = l->next) {
+        for (l = g_queue_peek_head_link(priv->chunks); l; l = l->next) {
                 chunk = (GBytes *)l->data;
                 len = g_bytes_get_size (chunk);
 
@@ -150,7 +150,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
         rest = count;
 
         while (l && rest > 0) {
-                GSList *next = l->next;
+                GList *next = l->next;
 
                 const guint8 *chunk_data;
                 chunk = (GBytes *)l->data;
@@ -165,7 +165,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
                 /* Remove fully read chunk from list, note that we are always near the start of the list */
                 if (start + size == len) {
                         priv->start_offset += len;
-                        priv->chunks = g_slist_delete_link (priv->chunks, l);
+                        g_queue_delete_link (priv->chunks, l);
                         g_bytes_unref (chunk);
                 }
 
@@ -256,12 +256,12 @@ soup_body_input_stream_http2_skip (GInputStream  *stream,
 
         /* Remove all skipped chunks */
         gsize offset = priv->start_offset;
-        for (GSList *l = priv->chunks; l; l = l->next) {
+        for (GList *l = g_queue_peek_head_link(priv->chunks); l; l = l->next) {
                 GBytes *chunk = (GBytes *)l->data;
                 gsize chunk_len = g_bytes_get_size (chunk);
 
                 if (offset + chunk_len <= priv->pos) {
-                        priv->chunks = g_slist_delete_link (priv->chunks, l);
+                        g_queue_delete_link (priv->chunks, l);
                         g_bytes_unref (chunk);
                         offset += chunk_len;
                 }
@@ -383,7 +383,7 @@ soup_body_input_stream_http2_finalize (GObject *object)
         SoupBodyInputStreamHttp2 *stream = SOUP_BODY_INPUT_STREAM_HTTP2 (object);
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
 
-        g_slist_free_full (priv->chunks, (GDestroyNotify)g_bytes_unref);
+        g_queue_free_full (priv->chunks, (GDestroyNotify)g_bytes_unref);
 
         G_OBJECT_CLASS (soup_body_input_stream_http2_parent_class)->finalize (object);
 }
@@ -399,6 +399,10 @@ soup_body_input_stream_http2_pollable_iface_init (GPollableInputStreamInterface 
 static void
 soup_body_input_stream_http2_init (SoupBodyInputStreamHttp2 *stream)
 {
+        SoupBodyInputStreamHttp2Private *priv;
+
+        priv = soup_body_input_stream_http2_get_instance_private (stream);
+        priv->chunks = g_queue_new ();
 }
 
 static void
