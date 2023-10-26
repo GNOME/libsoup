@@ -1,3 +1,8 @@
+Changes in libsoup from 3.4.3 to 3.4.4:
+
+* Improve HTTP/2 performance when a lot of buffering happens [Keyu Tao]
+* Support building libnghttp2 as a subproject [hrxi]
+
 Changes in libsoup from 3.4.2 to 3.4.3:
 
 * Fix incorrect UTF-8 encoding for params in headers [Leo Zi-You Assini]
