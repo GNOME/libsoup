@@ -343,6 +343,9 @@ endif
 
 if enable_gssapi
   add_project_arguments('-DLIBSOUP_HAVE_GSSAPI=1', language : 'c')
+  if gssapi_flavor == 'heimdal'
+    add_project_arguments('-DLIBSOUP_HAVE_GSSAPI_HEIMDAL=1', language : 'c')
+  endif
 endif
 
 ################

@@ -13,7 +13,16 @@
 #include <string.h>
 
 #ifdef LIBSOUP_HAVE_GSSAPI
+#ifdef LIBSOUP_HAVE_GSSAPI_HEIMDAL
+#include <glib.h> /* for gssize on Windows */
+#include <roken.h>
+#endif
 #include <gssapi/gssapi.h>
+
+#if (defined (LIBSOUP_HAVE_GSSAPI_HEIMDAL) && defined (GSS_DLLIMP)) || \
+    (!defined (LIBSOUP_HAVE_GSSAPI_HEIMDAL) && defined (GSSAPI_LIB_FUNCTION))
+# error Mixing Heimdal libs with MIT Kerberos headers or vice-versa is not supported
+#endif
 #endif /* LIBSOUP_HAVE_GSSAPI */
 
 #include "soup-auth-negotiate.h"
