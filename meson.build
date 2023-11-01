@@ -300,18 +300,26 @@ endif
 # GSSAPI support #
 ##################
 gssapi_opt = get_option('gssapi')
+gssapi_flavor = get_option('gssapi_flavor')
 enable_gssapi = false
 if cc.get_id() == 'msvc'
-  if host_machine.cpu_family() == 'x86'
-    gssapi_lib_type = '32'
+  gssapi_header = 'gssapi/gssapi.h'
+  if gssapi_flavor == 'mit'
+    gssapi_lib_suffix = host_machine.cpu_family() == 'x86' ? '32' : '64'
+    gssapi_lib = 'gssapi@0@'.format(gssapi_lib_suffix)
   else
-    gssapi_lib_type = '64'
+    gssapi_lib = 'libgssapi'
   endif
-  gssapi_dep = cc.find_library('gssapi' + gssapi_lib_type,
-    has_headers: 'gssapi/gssapi.h',
+  gssapi_dep = cc.find_library(gssapi_lib,
+    has_headers: gssapi_header,
     required: gssapi_opt)
   if gssapi_dep.found()
-      enable_gssapi = true
+    # Only MIT Kerberos define GSS_DLLIMP
+    has_gssapi_dllimp = cc.has_header_symbol(gssapi_header, 'GSS_DLLIMP')
+    if gssapi_flavor == 'mit' ? not has_gssapi_dllimp : has_gssapi_dllimp
+        error('Mixing MIT/Heimdal GSSAPI headers and libs is not supported')
+    endif
+    enable_gssapi = true
   endif
 else
   krb5_config_path = get_option('krb5_config')
@@ -404,7 +412,7 @@ summary({
 )
 
 summary({
-    'GSSAPI' : enable_gssapi,
+    'GSSAPI (@0@)'.format(gssapi_flavor) : enable_gssapi,
     'NTLM' : ntlm_auth.found(),
     'Brotli' : brotlidec_dep.found(),
     'Translations' : xgettext.found(),

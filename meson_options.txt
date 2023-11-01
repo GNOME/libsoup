@@ -4,6 +4,13 @@ option('gssapi',
   description : 'Build with GSSAPI support'
 )
 
+option('gssapi_flavor',
+  type : 'combo',
+  choices : ['mit', 'heimdal'],
+  value : 'mit',
+  description : 'GSSAPI flavor MIT or Heimdal'
+)
+
 option('krb5_config',
   type : 'string',
   value : '',
