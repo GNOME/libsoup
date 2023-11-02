@@ -1068,6 +1068,7 @@ soup_message_new_from_encoded_form (const char *method,
         if (strcmp (method, "GET") == 0) {
                 GUri *new_uri = soup_uri_copy (uri, SOUP_URI_QUERY, encoded_form, SOUP_URI_NONE);
                 msg = soup_message_new_from_uri (method, new_uri);
+                g_free (encoded_form);
                 g_uri_unref (new_uri);
         } else if (strcmp (method, "POST") == 0 || strcmp (method, "PUT") == 0) {
                 GBytes *body;

@@ -129,7 +129,6 @@ do_hello_test_libsoup (int n, gboolean extra, const char *uri)
 	msg = soup_message_new_from_encoded_form ("GET",
 						  uri,
 						  encoded);
-        g_free (encoded);
 	g_datalist_clear (&data);
 
 	body = soup_session_send_and_read (session, msg, NULL, NULL);
