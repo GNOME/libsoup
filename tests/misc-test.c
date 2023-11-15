@@ -145,7 +145,7 @@ do_host_big_header (void)
 	session = soup_test_session_new (NULL);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	for (i = 0; i < 2048; i++) {
+	for (i = 0; i < 3072; i++) {
 		char *key = g_strdup_printf ("test-long-header-key%d", i);
 		char *value = g_strdup_printf ("test-long-header-key%d", i);
 		soup_message_headers_append (soup_message_get_request_headers (msg), key, value);

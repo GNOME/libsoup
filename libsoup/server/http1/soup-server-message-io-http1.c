@@ -50,7 +50,7 @@ typedef struct {
 } SoupServerMessageIOHTTP1;
 
 #define RESPONSE_BLOCK_SIZE 8192
-#define HEADER_SIZE_LIMIT (64 * 1024)
+#define HEADER_SIZE_LIMIT (100 * 1024)
 
 static gboolean io_run_ready (SoupServerMessage *msg,
                               gpointer           user_data);

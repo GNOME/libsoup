@@ -60,7 +60,7 @@ typedef struct {
 } SoupClientMessageIOHTTP1;
 
 #define RESPONSE_BLOCK_SIZE 8192
-#define HEADER_SIZE_LIMIT (64 * 1024)
+#define HEADER_SIZE_LIMIT (100 * 1024)
 
 static void
 soup_message_io_http1_free (SoupMessageIOHTTP1 *msg_io)
