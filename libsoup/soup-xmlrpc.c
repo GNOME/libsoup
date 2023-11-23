@@ -17,6 +17,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <libxml/parser.h>
 #include <libxml/tree.h>
 #include "soup-xmlrpc.h"
 #include "soup.h"
