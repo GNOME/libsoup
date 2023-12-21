@@ -2801,6 +2801,7 @@ run_until_read_done (SoupMessage          *msg,
 	if (error && (!item->io_started || item->state == SOUP_MESSAGE_RESTARTING)) {
 		/* Message was restarted, we'll try again. */
 		g_error_free (error);
+                soup_message_queue_item_unref (item);
 		return;
 	}
 
@@ -2809,6 +2810,7 @@ run_until_read_done (SoupMessage          *msg,
 
 	if (stream) {
 		send_async_maybe_complete (item, stream);
+                soup_message_queue_item_unref (item);
 	        return;
 	}
 
@@ -2820,6 +2822,7 @@ run_until_read_done (SoupMessage          *msg,
 		soup_session_process_queue_item (item->session, item, FALSE);
 	}
 	async_send_request_return_result (item, NULL, error);
+        soup_message_queue_item_unref (item);
 }
 
 static void
@@ -2831,7 +2834,7 @@ async_send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 						      item->io_priority,
 						      item->cancellable,
 						      (GAsyncReadyCallback)run_until_read_done,
-						      item);
+						      soup_message_queue_item_ref (item));
 		return;
 	}
 
