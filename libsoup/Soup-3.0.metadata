@@ -28,4 +28,5 @@ Auth.new symbol_type="function"
 // Simplify memory management
 MessageBody.append deprecated_since="2.32" replacement="MessageBody.append_take"
 
-uri_copy skip=false
+// Vala supports vararg functions
+uri_copy skip=false sentinel="SOUP_URI_NONE"
