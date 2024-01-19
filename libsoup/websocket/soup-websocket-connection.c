@@ -75,6 +75,7 @@ enum {
 	PROP_STATE,
 	PROP_MAX_INCOMING_PAYLOAD_SIZE,
 	PROP_KEEPALIVE_INTERVAL,
+	PROP_KEEPALIVE_PONG_TIMEOUT,
 	PROP_EXTENSIONS,
 
         LAST_PROPERTY
@@ -119,6 +120,14 @@ typedef struct {
 	char *protocol;
 	guint64 max_incoming_payload_size;
 	guint keepalive_interval;
+	guint keepalive_pong_timeout;
+	guint64 last_keepalive_seq_num;
+
+	/* Each keepalive ping uses a unique payload. This hash table uses such
+	 * a ping payload as a key to the corresponding GSource that will
+	 * timeout if the pong is not received in time.
+	 */
+	GHashTable *outstanding_pongs;
 
 	gushort peer_close_code;
 	char *peer_close_data;
@@ -150,6 +159,11 @@ typedef struct {
 #define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
 #define READ_BUFFER_SIZE 1024
 #define MASK_LENGTH 4
+
+/* If a pong payload begins with these bytes, we assume it is a pong from one of
+ * our keepalive pings.
+ */
+#define KEEPALIVE_PAYLOAD_PREFIX "libsoup-keepalive-"
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupWebsocketConnection, soup_websocket_connection, G_TYPE_OBJECT)
 
@@ -357,6 +371,14 @@ keepalive_stop_timeout (SoupWebsocketConnection *self)
 }
 
 static void
+keepalive_stop_outstanding_pongs (SoupWebsocketConnection *self)
+{
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        g_clear_pointer (&priv->outstanding_pongs, g_hash_table_destroy);
+}
+
+static void
 close_io_stop_timeout (SoupWebsocketConnection *self)
 {
 	SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
@@ -374,6 +396,7 @@ close_io_stream (SoupWebsocketConnection *self)
 	SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 
 	keepalive_stop_timeout (self);
+	keepalive_stop_outstanding_pongs (self);
 	close_io_stop_timeout (self);
 
 	if (!priv->io_closing) {
@@ -581,6 +604,7 @@ send_close (SoupWebsocketConnection *self,
 	priv->close_sent = TRUE;
 
 	keepalive_stop_timeout (self);
+	keepalive_stop_outstanding_pongs (self);
 }
 
 static void
@@ -819,9 +843,8 @@ receive_pong (SoupWebsocketConnection *self,
                       const guint8 *data,
                       gsize len)
 {
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 	GByteArray *bytes;
-
-	g_debug ("received pong message");
 
 	bytes = g_byte_array_sized_new (len + 1);
 	g_byte_array_append (bytes, data, len);
@@ -829,6 +852,18 @@ receive_pong (SoupWebsocketConnection *self,
 	g_byte_array_append (bytes, (guchar *)"\0", 1);
 	/* But don't include the null terminator in the byte count */
 	bytes->len--;
+
+        /* g_str_has_prefix() and g_hash_table_remove() are safe to use since we
+         * just made sure to null terminate bytes->data
+         */
+        if (priv->keepalive_pong_timeout > 0 && g_str_has_prefix ((const gchar *)bytes->data, KEEPALIVE_PAYLOAD_PREFIX)) {
+                if (priv->outstanding_pongs && g_hash_table_remove (priv->outstanding_pongs, bytes->data))
+                        g_debug ("received keepalive pong");
+                else
+                        g_debug ("received unknown keepalive pong");
+        } else {
+                g_debug ("received pong message");
+        }
 
 	g_signal_emit (self, signals[PONG], 0, bytes);
 	g_byte_array_unref (bytes);
@@ -1366,6 +1401,10 @@ soup_websocket_connection_get_property (GObject *object,
 		g_value_set_uint (value, priv->keepalive_interval);
 		break;
 
+	case PROP_KEEPALIVE_PONG_TIMEOUT:
+		g_value_set_uint (value, priv->keepalive_pong_timeout);
+		break;
+
 	case PROP_EXTENSIONS:
 		g_value_set_pointer (value, priv->extensions);
 		break;
@@ -1419,6 +1458,11 @@ soup_websocket_connection_set_property (GObject *object,
 		                                                  g_value_get_uint (value));
 		break;
 
+	case PROP_KEEPALIVE_PONG_TIMEOUT:
+		soup_websocket_connection_set_keepalive_pong_timeout (self,
+								      g_value_get_uint (value));
+		break;
+
 	case PROP_EXTENSIONS:
 		priv->extensions = g_value_get_pointer (value);
 		break;
@@ -1433,7 +1477,9 @@ static void
 soup_websocket_connection_dispose (GObject *object)
 {
 	SoupWebsocketConnection *self = SOUP_WEBSOCKET_CONNECTION (object);
-        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+	SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+	keepalive_stop_outstanding_pongs (self);
 
 	priv->dirty_close = TRUE;
 	close_io_stream (self);
@@ -1608,6 +1654,29 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
                 g_param_spec_uint ("keepalive-interval",
                                    "Keepalive interval",
                                    "Keepalive interval",
+                                   0,
+                                   G_MAXUINT,
+                                   0,
+                                   G_PARAM_READWRITE |
+                                   G_PARAM_CONSTRUCT |
+                                   G_PARAM_STATIC_STRINGS);
+
+        /**
+         * SoupWebsocketConnection:keepalive-pong-timeout:
+         *
+         * Timeout in seconds for when the absence of a pong from a keepalive
+         * ping is assumed to be caused by a faulty connection. The WebSocket
+         * will be transitioned to a closed state when this happens.
+         *
+         * If set to 0 then the absence of pongs from keepalive pings is
+         * ignored.
+         *
+         * Since: 3.6
+         */
+        properties[PROP_KEEPALIVE_PONG_TIMEOUT] =
+                g_param_spec_uint ("keepalive-pong-timeout",
+                                   "Keepalive pong timeout",
+                                   "Keepalive pong timeout",
                                    0,
                                    G_MAXUINT,
                                    0,
@@ -2117,15 +2186,97 @@ soup_websocket_connection_get_keepalive_interval (SoupWebsocketConnection *self)
 }
 
 static gboolean
-on_queue_ping (gpointer user_data)
+on_pong_timeout (gpointer user_data)
 {
-	SoupWebsocketConnection *self = SOUP_WEBSOCKET_CONNECTION (user_data);
-	static const char ping_payload[] = "libsoup";
+        SoupWebsocketConnection *self = SOUP_WEBSOCKET_CONNECTION (user_data);
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 
+        g_debug ("expected pong never arrived; connection probably lost");
+
+        GError *error = g_error_new (SOUP_WEBSOCKET_ERROR,
+                                     SOUP_WEBSOCKET_CLOSE_POLICY_VIOLATION,
+                                     "Did not receive keepalive pong within %d seconds",
+                                     priv->keepalive_pong_timeout);
+        emit_error_and_close (self, g_steal_pointer (&error), FALSE /* to ignore error if already closing */);
+
+        return G_SOURCE_REMOVE;
+}
+
+static GSource *
+new_pong_timeout_source (SoupWebsocketConnection *self, int pong_timeout)
+{
+        GSource *source = g_timeout_source_new_seconds (pong_timeout);
+        g_source_set_static_name (source, "SoupWebsocketConnection pong timeout");
+        g_source_set_callback (source, on_pong_timeout, self, NULL);
+        g_source_attach (source, g_main_context_get_thread_default ());
+        return source;
+}
+
+static void
+destroy_and_unref (gpointer data)
+{
+        GSource *source = data;
+
+        g_source_destroy (source);
+        g_source_unref (source);
+}
+
+/**
+ * register_outstanding_pong:
+ * @ping_payload: (transfer full): The payload. Note the transfer of ownership.
+ */
+static void
+register_outstanding_pong (SoupWebsocketConnection *self, char *ping_payload, guint pong_timeout)
+{
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        if (!priv->outstanding_pongs) {
+                priv->outstanding_pongs = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                                                 g_free, destroy_and_unref);
+        }
+
+        g_hash_table_insert (priv->outstanding_pongs,
+                             ping_payload,
+                             new_pong_timeout_source (self, pong_timeout));
+}
+
+static void
+send_ping (SoupWebsocketConnection *self, const guint8 *ping_payload, gsize length)
+{
 	g_debug ("sending ping message");
 
 	send_message (self, SOUP_WEBSOCKET_QUEUE_NORMAL, 0x09,
-		      (guint8 *) ping_payload, strlen(ping_payload));
+		      ping_payload, length);
+}
+
+static gboolean
+on_keepalive_timeout (gpointer user_data)
+{
+	SoupWebsocketConnection *self = SOUP_WEBSOCKET_CONNECTION (user_data);
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        /* We need to be able to uniquely identify each ping so that we can
+         * bookkeep what pongs we are still missing. Since we use TCP as
+         * transport, we don't need to worry about some pings and pongs getting
+         * lost. An ascending sequence number will work fine to uniquely
+         * identify pings.
+         *
+         * Even with G_MAXUINT64 this string is well within the 125 byte ping
+         * payload limit.
+         */
+        priv->last_keepalive_seq_num++;
+        char *ping_payload = g_strdup_printf (KEEPALIVE_PAYLOAD_PREFIX "%" G_GUINT64_FORMAT,
+                                              priv->last_keepalive_seq_num);
+
+        /* We fully control the payload, so we know it is safe to print. */
+        g_debug ("ping %s", ping_payload);
+
+	send_ping (self, (guint8 *) ping_payload, strlen(ping_payload));
+        if (priv->keepalive_pong_timeout > 0) {
+                register_outstanding_pong (self, g_steal_pointer (&ping_payload), priv->keepalive_pong_timeout);
+        } else {
+                g_clear_pointer (&ping_payload, g_free);
+        }
 
 	return G_SOURCE_CONTINUE;
 }
@@ -2157,8 +2308,58 @@ soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,
 		if (interval > 0) {
 			priv->keepalive_timeout = g_timeout_source_new_seconds (interval);
 			g_source_set_static_name (priv->keepalive_timeout, "SoupWebsocketConnection keepalive timeout");
-			g_source_set_callback (priv->keepalive_timeout, on_queue_ping, self, NULL);
+			g_source_set_callback (priv->keepalive_timeout, on_keepalive_timeout, self, NULL);
 			g_source_attach (priv->keepalive_timeout, g_main_context_get_thread_default ());
 		}
 	}
+}
+
+/**
+ * soup_websocket_connection_get_keepalive_pong_timeout:
+ * @self: the WebSocket
+ *
+ * Gets the keepalive pong timeout in seconds or 0 if disabled.
+ *
+ * Returns: the keepalive pong timeout.
+ *
+ * Since: 3.6
+ */
+guint
+soup_websocket_connection_get_keepalive_pong_timeout (SoupWebsocketConnection *self)
+{
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        g_return_val_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self), 0);
+
+        return priv->keepalive_pong_timeout;
+}
+
+/**
+ * soup_websocket_connection_set_keepalive_pong_timeout:
+ * @self: the WebSocket
+ * @pong_timeout: the timeout in seconds
+ *
+ * Set the timeout in seconds for when the absence of a pong from a keepalive
+ * ping is assumed to be caused by a faulty connection.
+ *
+ * If set to 0 then the absence of pongs from keepalive pings is ignored.
+ *
+ * Since: 3.6
+ */
+void
+soup_websocket_connection_set_keepalive_pong_timeout (SoupWebsocketConnection *self,
+                                                      guint pong_timeout)
+{
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        g_return_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self));
+
+        if (priv->keepalive_pong_timeout != pong_timeout) {
+                priv->keepalive_pong_timeout = pong_timeout;
+                g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_KEEPALIVE_PONG_TIMEOUT]);
+        }
+
+        if (priv->keepalive_pong_timeout == 0) {
+                keepalive_stop_outstanding_pongs (self);
+        }
 }
