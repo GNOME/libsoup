@@ -223,3 +223,12 @@ executable('ntlm-test-helper', 'ntlm-test-helper.c',
   install_dir : installed_tests_execdir,
   install_rpath : abs_installed_tests_execdir,
 )
+
+if unix_socket_dep.found()
+  executable('ws-test-helper', 'ws-test-helper.c',
+    dependencies : [libsoup_dep, unix_socket_dep],
+    install : installed_tests_enabled,
+    install_dir : installed_tests_execdir,
+    install_rpath : abs_installed_tests_execdir,
+  )
+endif
