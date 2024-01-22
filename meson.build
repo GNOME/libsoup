@@ -98,7 +98,7 @@ endif
 
 add_project_arguments(common_flags, language : 'c')
 
-glib_required_version = '>= 2.69.1'
+glib_required_version = '>= 2.70.0'
 glib_dep = dependency('glib-2.0', version : glib_required_version,
                        fallback: ['glib', 'libglib_dep'])
 gmodule_dep = dependency('gmodule-2.0', version : glib_required_version,

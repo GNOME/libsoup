@@ -404,11 +404,7 @@ io_try_write (SoupServerMessageIOHTTP2 *io)
                         return;
 
                 io->write_idle_source = g_idle_source_new ();
-#if GLIB_CHECK_VERSION(2, 70, 0)
                 g_source_set_static_name (io->write_idle_source, "Soup server HTTP/2 write idle source");
-#else
-                g_source_set_name (io->write_idle_source, "Soup server HTTP/2 write idle source");
-#endif
                 g_source_set_priority (io->write_idle_source, G_PRIORITY_DEFAULT);
                 g_source_set_callback (io->write_idle_source, (GSourceFunc)io_write_idle_cb, io, NULL);
                 g_source_attach (io->write_idle_source, g_main_context_get_thread_default ());
@@ -429,11 +425,7 @@ io_try_write (SoupServerMessageIOHTTP2 *io)
                 if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                         g_clear_error (&error);
                         io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
-#if GLIB_CHECK_VERSION(2, 70, 0)
                         g_source_set_static_name (io->write_source, "Soup server HTTP/2 write source");
-#else
-                        g_source_set_name (io->write_source, "Soup server HTTP/2 write source");
-#endif
                         g_source_set_callback (io->write_source, (GSourceFunc)io_write_ready, io, NULL);
                         g_source_attach (io->write_source, g_main_context_get_thread_default ());
                 }
@@ -913,11 +905,7 @@ soup_server_message_io_http2_new (SoupServerConnection  *conn,
         soup_server_message_io_http2_init (io);
 
         io->read_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), NULL);
-#if GLIB_CHECK_VERSION(2, 70, 0)
         g_source_set_static_name (io->read_source, "Soup server HTTP/2 read source");
-#else
-        g_source_set_name (io->read_source, "Soup server HTTP/2 read source");
-#endif
         g_source_set_callback (io->read_source, (GSourceFunc)io_read_ready, io, NULL);
         g_source_attach (io->read_source, g_main_context_get_thread_default ());
 

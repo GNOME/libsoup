@@ -375,11 +375,7 @@ io_try_write (SoupClientMessageIOHTTP2 *io,
                         return;
 
                 io->write_idle_source = g_idle_source_new ();
-#if GLIB_CHECK_VERSION(2, 70, 0)
                 g_source_set_static_name (io->write_idle_source, "Soup HTTP/2 write idle source");
-#else
-                g_source_set_name (io->write_idle_source, "Soup HTTP/2 write idle source");
-#endif
                 /* Give write more priority than read */
                 g_source_set_priority (io->write_idle_source, G_PRIORITY_DEFAULT - 1);
                 g_source_set_callback (io->write_idle_source, (GSourceFunc)io_write_idle_cb, io, NULL);
@@ -398,11 +394,7 @@ io_try_write (SoupClientMessageIOHTTP2 *io,
         if (!blocking && g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
                 io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
-#if GLIB_CHECK_VERSION(2, 70, 0)
                 g_source_set_static_name (io->write_source, "Soup HTTP/2 write source");
-#else
-                g_source_set_name (io->write_source, "Soup HTTP/2 write source");
-#endif
                 /* Give write more priority than read */
                 g_source_set_priority (io->write_source, G_PRIORITY_DEFAULT - 1);
                 g_source_set_callback (io->write_source, (GSourceFunc)io_write_ready, io, NULL);
@@ -957,11 +949,7 @@ on_frame_send_callback (nghttp2_session     *session,
 
                         /* Close in idle to ensure all pending io is finished first */
                         source = g_idle_source_new ();
-#if GLIB_CHECK_VERSION(2, 70, 0)
                         g_source_set_static_name (source, "Soup HTTP/2 close source");
-#else
-                        g_source_set_name (source, "Soup HTTP/2 close source");
-#endif
                         g_source_set_callback (source, (GSourceFunc)close_in_idle_cb, io, NULL);
                         g_source_attach (source, g_task_get_context (io->close_task));
                         g_source_unref (source);
@@ -1194,11 +1182,7 @@ on_data_source_read_callback (nghttp2_session     *session,
 
                                 h2_debug (data->io, data, "[SEND_BODY] Polling");
                                 data->data_source_poll = g_pollable_input_stream_create_source (in_stream, data->item->cancellable);
-#if GLIB_CHECK_VERSION(2, 70, 0)
                                 g_source_set_static_name (data->data_source_poll, "Soup HTTP/2 data polling");
-#else
-                                g_source_set_name (data->data_source_poll, "Soup HTTP/2 data polling");
-#endif
                                 g_source_set_callback (data->data_source_poll, (GSourceFunc)on_data_readable, data, NULL);
                                 g_source_set_priority (data->data_source_poll, get_data_io_priority (data));
                                 g_source_attach (data->data_source_poll, g_main_context_get_thread_default ());
@@ -1845,11 +1829,7 @@ soup_client_message_io_http2_set_owner (SoupClientMessageIOHTTP2 *io,
                 return;
 
         io->read_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), NULL);
-#if GLIB_CHECK_VERSION(2, 70, 0)
         g_source_set_static_name (io->read_source, "Soup HTTP/2 read source");
-#else
-        g_source_set_name (io->read_source, "Soup HTTP/2 read source");
-#endif
         g_source_set_priority (io->read_source, G_PRIORITY_DEFAULT);
         g_source_set_callback (io->read_source, (GSourceFunc)io_read_ready, io, NULL);
         g_source_attach (io->read_source, g_main_context_get_thread_default ());

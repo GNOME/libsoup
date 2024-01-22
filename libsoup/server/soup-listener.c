@@ -96,11 +96,7 @@ soup_listener_constructed (GObject *object)
         priv->conn = (GIOStream *)g_socket_connection_factory_create_connection (priv->socket);
         priv->iostream = soup_io_stream_new (priv->conn, FALSE);
         priv->source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (g_io_stream_get_input_stream (priv->iostream)), NULL);
-#if GLIB_CHECK_VERSION(2, 70, 0)
         g_source_set_static_name (priv->source, "SoupListener");
-#else
-        g_source_set_name (priv->source, "SoupListener");
-#endif
         g_source_set_callback (priv->source, (GSourceFunc)listen_watch, listener, NULL);
         g_source_attach (priv->source, g_main_context_get_thread_default ());
 

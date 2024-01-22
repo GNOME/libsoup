@@ -178,11 +178,7 @@ soup_connection_set_property (GObject *object, guint prop_id,
         case PROP_CONTEXT:
                 priv->idle_timeout_src = g_timeout_source_new (0);
                 g_source_set_ready_time (priv->idle_timeout_src, -1);
-#if GLIB_CHECK_VERSION(2, 70, 0)
                 g_source_set_static_name (priv->idle_timeout_src, "Soup connection idle timeout");
-#else
-                g_source_set_name (priv->idle_timeout_src, "Soup connection idle timeout");
-#endif
                 g_source_set_callback (priv->idle_timeout_src, idle_timeout, object, NULL);
                 g_source_attach (priv->idle_timeout_src, g_value_get_pointer (value));
                 break;

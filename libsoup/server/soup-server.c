@@ -1339,11 +1339,7 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
 	g_object_unref (addr6);
 
 	if (v4sock && g_error_matches (my_error, G_IO_ERROR,
-#if GLIB_CHECK_VERSION (2, 41, 0)
 				       G_IO_ERROR_NOT_SUPPORTED
-#else
-				       G_IO_ERROR_FAILED
-#endif
 				       )) {
 		/* No IPv6 support, but IPV6_ONLY wasn't specified, so just
 		 * ignore the failure.

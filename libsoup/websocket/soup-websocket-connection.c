@@ -299,11 +299,7 @@ soup_websocket_connection_start_input_source (SoupWebsocketConnection *self)
 		return;
 
 	priv->input_source = g_pollable_input_stream_create_source (priv->input, NULL);
-#if GLIB_CHECK_VERSION(2, 70, 0)
 	g_source_set_static_name (priv->input_source, "SoupWebsocketConnection input");
-#else
-	g_source_set_name (priv->input_source, "SoupWebsocketConnection input");
-#endif
 	g_source_set_callback (priv->input_source, (GSourceFunc)on_web_socket_input, self, NULL);
 	g_source_attach (priv->input_source, g_main_context_get_thread_default ());
 }
@@ -330,11 +326,7 @@ soup_websocket_connection_start_output_source (SoupWebsocketConnection *self)
 		return;
 
 	priv->output_source = g_pollable_output_stream_create_source (priv->output, NULL);
-#if GLIB_CHECK_VERSION(2, 70, 0)
 	g_source_set_static_name (priv->output_source, "SoupWebsocketConnection output");
-#else
-	g_source_set_name (priv->output_source, "SoupWebsocketConnection output");
-#endif
 	g_source_set_callback (priv->output_source, (GSourceFunc)on_web_socket_output, self, NULL);
 	g_source_attach (priv->output_source, g_main_context_get_thread_default ());
 }
@@ -447,11 +439,7 @@ close_io_after_timeout (SoupWebsocketConnection *self)
 
 	g_debug ("waiting %d seconds for peer to close io", timeout);
 	priv->close_timeout = g_timeout_source_new_seconds (timeout);
-#if GLIB_CHECK_VERSION(2, 70, 0)
 	g_source_set_static_name (priv->close_timeout, "SoupWebsocketConnection close timeout");
-#else
-	g_source_set_name (priv->close_timeout, "SoupWebsocketConnection close timeout");
-#endif
 	g_source_set_callback (priv->close_timeout, on_timeout_close_io, self, NULL);
 	g_source_attach (priv->close_timeout, g_main_context_get_thread_default ());
 }
@@ -2168,11 +2156,7 @@ soup_websocket_connection_set_keepalive_interval (SoupWebsocketConnection *self,
 
 		if (interval > 0) {
 			priv->keepalive_timeout = g_timeout_source_new_seconds (interval);
-#if GLIB_CHECK_VERSION(2, 70, 0)
 			g_source_set_static_name (priv->keepalive_timeout, "SoupWebsocketConnection keepalive timeout");
-#else
-			g_source_set_name (priv->keepalive_timeout, "SoupWebsocketConnection keepalive timeout");
-#endif
 			g_source_set_callback (priv->keepalive_timeout, on_queue_ping, self, NULL);
 			g_source_attach (priv->keepalive_timeout, g_main_context_get_thread_default ());
 		}
