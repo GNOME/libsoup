@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "soup-websocket-connection.h"
+#include "soup-websocket-connection-private.h"
 #include "soup-enum-types.h"
 #include "soup-io-stream.h"
 #include "soup-uri-utils-private.h"
@@ -150,6 +151,12 @@ typedef struct {
 	/* Current message being assembled */
 	guint8 message_opcode;
 	GByteArray *message_data;
+
+	/* Only for use by the libsoup test suite. Can be removed at any point.
+	 * Activating this violates RFC 6455 Section 5.5.2 which stipulates that
+	 * a ping MUST always be replied with a pong.
+	 */
+	gboolean suppress_pongs_for_tests;
 
 	GSource *keepalive_timeout;
 
@@ -833,9 +840,13 @@ receive_ping (SoupWebsocketConnection *self,
                       const guint8 *data,
                       gsize len)
 {
-	/* Send back a pong with same data */
-	g_debug ("received ping, responding");
-	send_message (self, SOUP_WEBSOCKET_QUEUE_URGENT, 0x0A, data, len);
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        if (!priv->suppress_pongs_for_tests) {
+                /* Send back a pong with same data */
+                g_debug ("received ping, responding");
+                send_message (self, SOUP_WEBSOCKET_QUEUE_URGENT, 0x0A, data, len);
+        }
 }
 
 static void
@@ -2362,4 +2373,13 @@ soup_websocket_connection_set_keepalive_pong_timeout (SoupWebsocketConnection *s
         if (priv->keepalive_pong_timeout == 0) {
                 keepalive_stop_outstanding_pongs (self);
         }
+}
+
+void
+soup_websocket_connection_set_suppress_pongs_for_tests (SoupWebsocketConnection *self,
+                                                        gboolean suppress)
+{
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        priv->suppress_pongs_for_tests = suppress;
 }

@@ -21,6 +21,7 @@
 #include "test-utils.h"
 #include "soup-message-private.h"
 #include "soup-server-message-private.h"
+#include "soup-websocket-connection-private.h"
 #include <zlib.h>
 
 typedef struct {
@@ -381,6 +382,19 @@ on_binary_message (SoupWebsocketConnection *ws,
 }
 
 static void
+on_pong_set_flag (SoupWebsocketConnection *ws,
+                  GBytes *message,
+                  gpointer user_data)
+{
+        gboolean *flag = user_data;
+
+        g_assert_false (*flag);
+        g_assert_nonnull (message);
+
+        *flag = TRUE;
+}
+
+static void
 on_close_set_flag (SoupWebsocketConnection *ws,
                    gpointer user_data)
 {
@@ -504,6 +518,40 @@ test_send_client_to_server (Test *test,
 	g_assert (g_bytes_equal (sent, received));
 	g_clear_pointer (&sent, g_bytes_unref);
 	g_clear_pointer (&received, g_bytes_unref);
+}
+
+static void
+test_keepalive_pong_timeout (Test *test,
+                             gconstpointer data)
+{
+        gboolean pong_event = FALSE;
+        gboolean close_event = FALSE;
+        GError *error = NULL;
+
+        g_signal_connect (test->client, "pong", G_CALLBACK (on_pong_set_flag), &pong_event);
+        g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+        g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+        /* First make sure we get a pong if we enable keepalive. */
+        soup_websocket_connection_set_keepalive_interval (test->client, 1);
+        WAIT_UNTIL (pong_event);
+        pong_event = FALSE;
+
+        /* Now enable pong timeout and make sure we still get a pong. */
+        soup_websocket_connection_set_keepalive_pong_timeout (test->client, 60);
+        WAIT_UNTIL (pong_event);
+        pong_event = FALSE;
+
+        /* Now disable pongs from the server. This should result in an error and
+         * close in the client. Set the pong timeout as low as possible so the test
+         * completes quickly.
+         */
+        soup_websocket_connection_set_keepalive_pong_timeout (test->client, 1);
+        soup_websocket_connection_set_suppress_pongs_for_tests (test->server, TRUE);
+        WAIT_UNTIL (error != NULL);
+        g_clear_error (&error);
+        WAIT_UNTIL (close_event);
+        close_event = FALSE;
 }
 
 static void
@@ -2119,6 +2167,11 @@ main (int argc,
 		    setup_soup_connection,
 		    test_send_client_to_server,
 		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/keepalive-pong-timeout", Test, NULL,
+		    setup_direct_connection,
+		    test_keepalive_pong_timeout,
+		    teardown_direct_connection);
 
 	g_test_add ("/websocket/direct/send-server-to-client", Test, NULL,
 		    setup_direct_connection,
