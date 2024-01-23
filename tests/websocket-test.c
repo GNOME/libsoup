@@ -920,6 +920,7 @@ test_soup_websocket_client_prepare_handshake_ignores_invalid_protocols (Test *te
 
 	protocol = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Sec-WebSocket-Protocol");
 	g_assert_cmpstr (protocol, ==, NULL);
+	g_clear_object (&msg);
 }
 
 static void
@@ -948,6 +949,7 @@ test_protocol_client_invalid_direct (Test *test,
 	ok = soup_websocket_server_check_handshake (server_msg, NULL, (char **) all_protocols, NULL, &error);
 	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE);
 	g_assert_false (ok);
+	g_clear_error (&error);
 
 	ok = soup_websocket_server_process_handshake (server_msg, NULL, (char **) all_protocols, NULL, NULL);
 	g_assert_false (ok);
