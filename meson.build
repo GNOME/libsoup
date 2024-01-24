@@ -328,13 +328,13 @@ else
         link_args: libs_output.stdout().split(),
         compile_args: cflags_output.stdout().split())
     endif
-  else
-    gssapi_dep = dependency('', required: false)
   endif
 endif
 
 if enable_gssapi
   add_project_arguments('-DLIBSOUP_HAVE_GSSAPI=1', language : 'c')
+else
+  gssapi_dep = dependency('', required: false)
 endif
 
 ################
