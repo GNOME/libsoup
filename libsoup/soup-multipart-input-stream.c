@@ -376,7 +376,7 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
 							    /* blocking */ TRUE, &got_lf, cancellable, error);
 
 		if (nread <= 0)
-			break;
+			return FALSE;
 
 		g_byte_array_append (priv->meta_buf, read_buf, nread);
 
@@ -467,6 +467,9 @@ soup_multipart_input_stream_new (SoupMessage  *msg,
  * headers for the first part. A read of 0 bytes indicates the end of
  * the part; a new call to this function should be done at that point,
  * to obtain the next part.
+ *
+ * @error will only be set if an error happens during a read, %NULL
+ * is a valid return value otherwise.
  *
  * Returns: (nullable) (transfer full): a new #GInputStream, or
  *   %NULL if there are no more parts

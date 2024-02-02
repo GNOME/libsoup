@@ -56,7 +56,7 @@ const char *payload = \
 	"Content-Type: text/css\r\n" \
 	"\r\n" \
 	"#soup { background-color: black; }" \
-        "\r\n--cut-here--";
+	"\r\n--cut-here\r\n"; /* Tests missing termination .*/
 
 static void
 server_callback (SoupServer        *server,
