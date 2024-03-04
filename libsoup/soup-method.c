@@ -29,6 +29,7 @@ gpointer _SOUP_METHOD_PROPPATCH = NULL;
 gpointer _SOUP_METHOD_PUT = NULL;
 gpointer _SOUP_METHOD_TRACE = NULL;
 gpointer _SOUP_METHOD_UNLOCK = NULL;
+gpointer _SOUP_METHOD_PATCH = NULL;
 
 /**
  * SOUP_METHOD_OPTIONS:
@@ -104,4 +105,11 @@ gpointer _SOUP_METHOD_UNLOCK = NULL;
  * SOUP_METHOD_UNLOCK:
  *
  * "UNLOCK" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_PATCH:
+ *
+ * "PATCH" as an interned string.
+ *
+ * Since: 3.6
  **/
