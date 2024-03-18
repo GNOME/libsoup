@@ -179,7 +179,12 @@ callback (void *data, int argc, char **argv, char **colname)
 
 	http_only = (g_strcmp0 (argv[COL_HTTP_ONLY], "1") == 0);
 	secure = (g_strcmp0 (argv[COL_SECURE], "1") == 0);
-	same_site_policy = g_ascii_strtoll (argv[COL_SAME_SITE_POLICY], NULL, 0);
+
+	// COL_SAME_SITE_POLICY is a new column and may be NULL in an old DB, treat as None
+	if (argv[COL_SAME_SITE_POLICY] == NULL)
+	    same_site_policy = SOUP_SAME_SITE_POLICY_NONE;
+	else
+	    same_site_policy = g_ascii_strtoll (argv[COL_SAME_SITE_POLICY], NULL, 0);
 
 	cookie = soup_cookie_new (name, value, host, path, max_age);
 
