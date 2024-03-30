@@ -1,0 +1,190 @@
+# Kabyle translation for libsoup.
+# Copyright (C) 2024 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Rachida SACI <rgebbid@gmail.com>, 2024.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues/\n"
+"POT-Creation-Date: 2024-03-18 13:08+0000\n"
+"PO-Revision-Date: 2024-03-30 04:32+0100\n"
+"Last-Translator: sa\n"
+"Language-Team: Kabyle <kab@li.org>\n"
+"Language: kab\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.4.2\n"
+
+#: libsoup/cache/soup-cache-input-stream.c:70
+msgid "Network stream unexpectedly closed"
+msgstr "Asuddem n uzeṭṭa s wudem ur yettwarǧan ara"
+
+#: libsoup/cache/soup-cache-input-stream.c:252
+msgid "Failed to completely cache the resource"
+msgstr "Yecceḍ uḥraz n uɣbalu s wudem yemmden"
+
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Aḥraz n unekcum d amecṭuḥ aṭas"
+
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+#: libsoup/http2/soup-client-message-io-http2.c:437
+#: libsoup/server/http2/soup-server-message-io-http2.c:466
+msgid "Connection terminated unexpectedly"
+msgstr "Tekfa tuqqna s ubrid ur yettwarǧan ara"
+
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Assuter n unadi d arameɣtu"
+
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Ur yezmir ara ad yegzem SoupBodyInputStream"
+
+#: libsoup/http1/soup-client-message-io-http1.c:322
+#: libsoup/http1/soup-client-message-io-http1.c:775
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/http1/soup-server-message-io-http1.c:417
+#: libsoup/server/http1/soup-server-message-io-http1.c:890
+msgid "Operation would block"
+msgstr "TAmhelt ad tessewḥel"
+
+#: libsoup/http1/soup-client-message-io-http1.c:463
+msgid "Could not parse HTTP response"
+msgstr "D awezɣi ad tettwasleḍ tririt HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:486
+msgid "Unrecognized HTTP response encoding"
+msgstr "Asettengel n tririt HTTP ur yettwassen ara"
+
+#: libsoup/http1/soup-client-message-io-http1.c:734
+#: libsoup/http1/soup-client-message-io-http1.c:760
+#: libsoup/http2/soup-client-message-io-http2.c:1697
+#: libsoup/http2/soup-client-message-io-http2.c:1723
+msgid "Operation was cancelled"
+msgstr "Tamhelt tettwasefsex"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Aqerru meqqer aṭas"
+
+#: libsoup/server/soup-listener.c:265
+msgid "Could not import existing socket: "
+msgstr "Yegguma ad yekter socket i yellan: "
+
+#: libsoup/server/soup-listener.c:271
+msgid "Can’t import unconnected socket"
+msgstr "Ur yezmir ara ad d-yekter socket ur neqqin ara"
+
+#: libsoup/server/soup-server.c:1217
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Ur yezmir ara ad yernu aqeddac TLS mebla aselkin TLS"
+
+#: libsoup/soup-session.c:1133
+msgid "Location header is missing or empty in response headers"
+msgstr "Aqerru n wadig ixuṣṣ neɣ d ilem deg yiqerra n tririyin"
+
+#: libsoup/soup-session.c:1147
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "URI \"%s\" d arameɣtu deg uqerru n tririt n wadig"
+
+#: libsoup/soup-session.c:1167
+msgid "Too many redirects"
+msgstr "Aṭas n ubeddel deg tnilwin"
+
+#: libsoup/soup-session.c:1172
+msgid "Message was restarted too many times"
+msgstr "Izen yettwasenker aṭas n tikkal"
+
+#: libsoup/soup-session.c:3039 libsoup/soup-session.c:3189
+msgid "Message is already in session queue"
+msgstr "Izen yella yakan deg udras n tɣimit"
+
+#: libsoup/soup-session.c:3665
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Aqeddac ur iqebbel ara afus n WebSocket."
+
+#: libsoup/soup-tld.c:129
+msgid "No public-suffix list available."
+msgstr "Ulac tabdart n wuzwiren tazayazt i yellan."
+
+#: libsoup/soup-tld.c:139 libsoup/soup-tld.c:155
+msgid "Invalid hostname"
+msgstr "Isem asenneftaɣ d arameɣtu"
+
+#: libsoup/soup-tld.c:146
+msgid "Hostname is an IP address"
+msgstr "Asezdeɣ n yisem d tansa IP"
+
+#: libsoup/soup-tld.c:167
+msgid "Hostname has no base domain"
+msgstr "Asezdeɣ n yisem ur yesεi ara taɣult n taffa"
+
+#: libsoup/soup-tld.c:175
+msgid "Not enough domains"
+msgstr "Ulac ddeqs n talɣutin"
+
+#: libsoup/websocket/soup-websocket.c:391
+#: libsoup/websocket/soup-websocket.c:435
+#: libsoup/websocket/soup-websocket.c:451
+msgid "Server requested unsupported extension"
+msgstr "Aqeddac yessuter asiɣzef ur yettusefraken ara"
+
+#: libsoup/websocket/soup-websocket.c:414
+#: libsoup/websocket/soup-websocket.c:606
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Aqerru WebSocket \"%s\" d arameɣtu"
+
+#: libsoup/websocket/soup-websocket.c:415
+#: libsoup/websocket/soup-websocket.c:870
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr "Aqeddac yerra-d tasarut \"%s\" d tarameɣtut"
+
+#: libsoup/websocket/soup-websocket.c:478
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "Aɣawwar yettwasleg deg uqerru n usiɣzef WebSocket \"%s\""
+
+#: libsoup/websocket/soup-websocket.c:479
+#, c-format
+msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "Aqeddac yerra-d aɣawwar yettwaselgen deg uqerru n usiɣzef WebSocket \"%s\""
+
+#: libsoup/websocket/soup-websocket.c:569
+#: libsoup/websocket/soup-websocket.c:579
+msgid "WebSocket handshake expected"
+msgstr "Afus n WebSocket yetturaǧu"
+
+#: libsoup/websocket/soup-websocket.c:587
+msgid "Unsupported WebSocket version"
+msgstr "Lqem WebSocket ur yettusefraken ara"
+
+#: libsoup/websocket/soup-websocket.c:596
+msgid "Invalid WebSocket key"
+msgstr "Tasarut WebSocket d tarameɣtut"
+
+#: libsoup/websocket/soup-websocket.c:615
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Aneggaf arnaw n WebSocket ur yettwasefrak ara"
+
+#: libsoup/websocket/soup-websocket.c:821
+msgid "Server rejected WebSocket handshake"
+msgstr "Aqeddac yugi afus n WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:829
+#: libsoup/websocket/soup-websocket.c:838
+msgid "Server ignored WebSocket handshake"
+msgstr "Aqeddac yunef i ufus n WebSocket"
+
+#: libsoup/websocket/soup-websocket.c:850
+msgid "Server requested unsupported protocol"
+msgstr "Aneggaf ur yettusefraken ara yesra-t uqeddac"
