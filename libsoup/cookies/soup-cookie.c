@@ -168,6 +168,8 @@ parse_date (const char **val_p)
 	return date;
 }
 
+#define MAX_AGE_CAP_IN_SECONDS 31536000  // 1 year
+
 static SoupCookie *
 parse_one_cookie (const char *header, GUri *origin)
 {
@@ -224,6 +226,8 @@ parse_one_cookie (const char *header, GUri *origin)
 			if (!*mae) {
 				if (max_age < 0)
 					max_age = 0;
+				if (max_age > MAX_AGE_CAP_IN_SECONDS)
+					max_age = MAX_AGE_CAP_IN_SECONDS;
 				soup_cookie_set_max_age (cookie, max_age);
 			}
 			g_free (max_age_str);

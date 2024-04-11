@@ -435,6 +435,28 @@ do_cookies_parsing_nopath_nullorigin (void)
 }
 
 static void
+do_cookies_parsing_max_age_int32_overflow (void)
+{
+	SoupCookie *cookie = soup_cookie_parse ("NAME=VALUE; Max-Age=2147483648", NULL);
+	g_assert_nonnull (cookie);
+	g_assert_cmpstr ("/", ==, soup_cookie_get_path (cookie));
+	g_assert_true (soup_cookie_get_expires (cookie) != NULL);
+	g_assert_true (g_date_time_to_unix (soup_cookie_get_expires (cookie)) > time (NULL));
+	soup_cookie_free (cookie);
+}
+
+static void
+do_cookies_parsing_max_age_long_overflow (void)
+{
+	SoupCookie *cookie = soup_cookie_parse ("NAME=VALUE; Max-Age=99999999999999999999999999999999999", NULL);
+	g_assert_nonnull (cookie);
+	g_assert_cmpstr ("/", ==, soup_cookie_get_path (cookie));
+	g_assert_true (soup_cookie_get_expires (cookie) != NULL);
+	g_assert_true (g_date_time_to_unix (soup_cookie_get_expires (cookie)) > time (NULL));
+	soup_cookie_free (cookie);
+}
+
+static void
 do_cookies_equal_nullpath (void)
 {
 	SoupCookie *cookie1, *cookie2;
@@ -655,6 +677,8 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/accept-policy-subdomains", do_cookies_subdomain_policy_test);
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
 	g_test_add_func ("/cookies/parsing/no-path-null-origin", do_cookies_parsing_nopath_nullorigin);
+	g_test_add_func ("/cookies/parsing/max-age-int32-overflow", do_cookies_parsing_max_age_int32_overflow);
+	g_test_add_func ("/cookies/parsing/max-age-long-overflow", do_cookies_parsing_max_age_long_overflow);
 	g_test_add_func ("/cookies/parsing/equal-nullpath", do_cookies_equal_nullpath);
 	g_test_add_func ("/cookies/parsing/control-characters", do_cookies_parsing_control_characters);
 	g_test_add_func ("/cookies/get-cookies/empty-host", do_get_cookies_empty_host_test);
