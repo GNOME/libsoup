@@ -106,12 +106,8 @@ main (int argc, char **argv)
 		/* This does not necessarily cover all combinations since some make no sense in real use */
 
 		/* Situations where Strict are passed: */
-		{ .name="/same-site/basic", .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
-		{ .name="/same-site/basic-js", .javascript=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
 		{ .name="/same-site/top-level-to-same-site", .top_level_nav=TRUE,  .cookie_uri_is_origin=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
 		{ .name="/same-site/top-level-to-same-site-js", .top_level_nav=TRUE, .cookie_uri_is_origin=TRUE,  .javascript=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
-		{ .name="/same-site/unsafe-method", .unsafe_method=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
-		{ .name="/same-site/unsafe-method-js", .unsafe_method=TRUE, .javascript=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
 		{ .name="/same-site/cross-top-level-to-same-site", .cross_origin=TRUE, .top_level_nav=TRUE, .cookie_uri_is_origin=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
 		{ .name="/same-site/cross-top-level-to-same-site-js", .cross_origin=TRUE, .javascript=TRUE, .top_level_nav=TRUE, .cookie_uri_is_origin=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_STRICT },
 
@@ -128,6 +124,8 @@ main (int argc, char **argv)
 		{ .name="/same-site/cross-unsafe-method", .cross_origin=TRUE, .unsafe_method=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_NONE },
 		{ .name="/same-site/cross-unsafe-method-js", .cross_origin=TRUE, .javascript=TRUE, .unsafe_method=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_NONE },
 		{ .name="/same-site/cross-unsafe-method-top-level", .cross_origin=TRUE, .unsafe_method=TRUE, .top_level_nav=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_NONE },
+		{ .name="/same-site/unsafe-method", .unsafe_method=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_NONE },
+		{ .name="/same-site/unsafe-method-js", .unsafe_method=TRUE, .javascript=TRUE, .visible_policy=SOUP_SAME_SITE_POLICY_NONE },
 	};
 
 	test_init (argc, argv, NULL);

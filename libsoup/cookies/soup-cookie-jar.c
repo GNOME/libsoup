@@ -304,10 +304,10 @@ cookie_is_valid_for_same_site_policy (SoupCookie *cookie,
 	    (is_safe_method || for_http == FALSE))
 		return TRUE;
 
-	if (is_top_level_navigation && cookie_uri == NULL)
+	if (cookie_uri == NULL)
 		return FALSE;
 
-	return soup_host_matches_host (g_uri_get_host (cookie_uri ? cookie_uri : top_level), g_uri_get_host (uri));
+	return !g_ascii_strcasecmp (g_uri_get_host (cookie_uri), g_uri_get_host (uri));
 }
 
 static GSList *
