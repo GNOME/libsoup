@@ -200,7 +200,7 @@ soup_logger_content_processor_wrap_input (SoupContentProcessor *processor,
 
         if (priv->request_filter)
                 log_level = priv->request_filter (logger, msg,
-                                                  priv->response_filter_data);
+                                                  priv->request_filter_data);
         else
                 log_level = priv->level;
 
