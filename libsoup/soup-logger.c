@@ -196,11 +196,14 @@ soup_logger_content_processor_wrap_input (SoupContentProcessor *processor,
         SoupLogger *logger = SOUP_LOGGER (processor);
         SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
         SoupLoggerInputStream *stream;
-        SoupLoggerLogLevel log_level;
+        SoupLoggerLogLevel log_level = SOUP_LOGGER_LOG_NONE;
 
-        if (priv->request_filter)
-                log_level = priv->request_filter (logger, msg,
-                                                  priv->request_filter_data);
+        if (priv->request_filter || priv->response_filter) {
+                if (priv->request_filter)
+                        log_level = priv->request_filter (logger, msg, priv->request_filter_data);
+                if (priv->response_filter)
+                        log_level = MAX(log_level, priv->response_filter (logger, msg, priv->response_filter_data));
+        }
         else
                 log_level = priv->level;
 
