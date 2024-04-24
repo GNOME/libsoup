@@ -683,6 +683,8 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
+	soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>', "Soup-Host: %s", g_uri_get_host (uri));
+
 	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		if (!g_ascii_strcasecmp (name, "Authorization") &&

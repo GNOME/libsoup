@@ -132,10 +132,11 @@ do_logger_headers_test (void)
         g_object_unref (msg);
 
         g_assert_nonnull (log.request);
-        g_assert_cmpuint (g_hash_table_size (log.request), ==, 6);
+        g_assert_cmpuint (g_hash_table_size (log.request), ==, 7);
         g_assert_true (g_hash_table_contains (log.request, "status-line"));
         g_assert_true (g_hash_table_contains (log.request, "Soup-Debug-Timestamp"));
         g_assert_true (g_hash_table_contains (log.request, "Soup-Debug"));
+        g_assert_true (g_hash_table_contains (log.request, "Soup-Host"));
         g_assert_true (g_hash_table_contains (log.request, "Host"));
         g_assert_true (g_hash_table_contains (log.request, "Accept-Encoding"));
         g_assert_true (g_hash_table_contains (log.request, "Connection"));
@@ -202,10 +203,11 @@ do_logger_body_test (void)
         g_object_unref (msg);
 
         g_assert_nonnull (log.request);
-        g_assert_cmpuint (g_hash_table_size (log.request), ==, 7);
+        g_assert_cmpuint (g_hash_table_size (log.request), ==, 8);
         g_assert_true (g_hash_table_contains (log.request, "status-line"));
         g_assert_true (g_hash_table_contains (log.request, "Soup-Debug-Timestamp"));
         g_assert_true (g_hash_table_contains (log.request, "Soup-Debug"));
+        g_assert_true (g_hash_table_contains (log.request, "Soup-Host"));
         g_assert_true (g_hash_table_contains (log.request, "Host"));
         g_assert_true (g_hash_table_contains (log.request, "Accept-Encoding"));
         g_assert_true (g_hash_table_contains (log.request, "Connection"));
@@ -321,7 +323,7 @@ do_logger_filters_test (void)
         g_object_unref (msg);
 
         g_assert_nonnull (log.request);
-        g_assert_cmpuint (g_hash_table_size (log.request), ==, 6);
+        g_assert_cmpuint (g_hash_table_size (log.request), ==, 7);
         g_assert_nonnull (log.response);
         g_assert_cmpuint (g_hash_table_size (log.response), ==, 3);
         g_assert_null (log.request_body);
