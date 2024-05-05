@@ -1,3 +1,18 @@
+Changes in libsoup from 3.4.4 to 3.5.1:
+
+* Add `SOUP_METHOD_PATCH` [Jan-Michael Brummer]
+* websocket: Add `SoupWebsocketConnection:keepalive-pong-timeout` property [Martin Nordholts]
+* Increase maxmimum size of HTTP headers [Filipe Norte]
+* Fix `soup_uri_copy()` in Vala [Val Och]
+* Fix leak in `soup_message_new_from_encoded_form()` [Andy Holmes]
+* multipart: Improve handling of messages missing termination [Vitaly Dyachkov]
+* logger: Fix request filter function being called with response user data [Jan-Michael Brummer]
+* logger: Fix response bodies never being logged if request bodies aren't [Patrick Griffis]
+* logger: Add Soup-Host to logged headers for when Host is missing [Jan-Michael Brummer]
+* cookies: Fix incorrect logic in determining same-site cookies [Patrick Griffis]
+* cookie-jar-db: Explicitly handle old databases lacking same-site column [Kanagaraj]
+* cookies: Limit the Max-Age to 1 year [Max Schmitt]
+
 Changes in libsoup from 3.4.3 to 3.4.4:
 
 * Improve HTTP/2 performance when a lot of buffering happens [Keyu Tao]
