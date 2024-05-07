@@ -5,129 +5,223 @@
 # 1 Pratibha kumari <1pratibharoshan1526@gmail.com>, 2012.
 # raj <raj>, 2013.
 # rajesh <rajesh>, 2014.
+# Scrambled777 <weblate.scrambled777@simplelogin.com>, 2024.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-19 21:50+0000\n"
-"PO-Revision-Date: 2014-09-22 15:47+0630\n"
-"Last-Translator: rajesh <rajesh>\n"
-"Language-Team: Hindi <kde-i18n-doc@kde.org>\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
+"POT-Creation-Date: 2022-10-08 11:34+0000\n"
+"PO-Revision-Date: 2024-04-18 22:13+0530\n"
+"Last-Translator: Scrambled777 <weblate.scrambled777@simplelogin.com>\n"
+"Language-Team: Hindi\n"
 "Language: hi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Lokalize 1.5\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Gtranslator 46.0\n"
 "X-Project-Style: gnome\n"
 
-#: ../libsoup/soup-body-input-stream.c:140
-#: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
-msgid "Connection terminated unexpectedly"
-msgstr "मिलाप अनपेक्षित रुप से खतम हो गया "
-
-#: ../libsoup/soup-body-input-stream.c:462
-msgid "Invalid seek request"
-msgstr "अमान्य खोज अनुरोध"
-
-#: ../libsoup/soup-body-input-stream.c:490
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "SoupBodyInputStream का नहीं कर सकता"
-
-#: ../libsoup/soup-cache-input-stream.c:73
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "संजाल स्ट्रीम अप्रत्याशित रूप से बंद हो गया"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "संसाधन को पूरी तरह कैश करने में विफल"
 
-#: ../libsoup/soup-converter-wrapper.c:192
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "निर्गम बफर बहुत छोटा है"
 
-#: ../libsoup/soup-message-client-io.c:41
-msgid "Could not parse HTTP response"
-msgstr "HTTP अनुक्रिया विश्लेषित नहीं कर सका"
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+#: libsoup/http2/soup-client-message-io-http2.c:406
+#: libsoup/server/http2/soup-server-message-io-http2.c:420
+msgid "Connection terminated unexpectedly"
+msgstr "मिलाप अनपेक्षित रुप से खतम हो गया "
 
-#: ../libsoup/soup-message-client-io.c:66
-msgid "Unrecognized HTTP response encoding"
-msgstr "अपरिचित HTTP अनुक्रिया एन्कोडिंग"
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "अमान्य खोज अनुरोध"
 
-#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
-msgid "Operation was cancelled"
-msgstr "आपरेशन रद्द कर दिया गया"
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStream का नहीं कर सकता"
 
-#: ../libsoup/soup-message-io.c:901
+#: libsoup/http1/soup-client-message-io-http1.c:321
+#: libsoup/http1/soup-client-message-io-http1.c:762
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/http1/soup-server-message-io-http1.c:416
+#: libsoup/server/http1/soup-server-message-io-http1.c:889
 msgid "Operation would block"
 msgstr "आपरेशन बंद हो जाएगा"
 
-#: ../libsoup/soup-message-server-io.c:41
-msgid "Could not parse HTTP request"
-msgstr "HTTP आग्रह विश्लेषित नहीं कर सका"
+#: libsoup/http1/soup-client-message-io-http1.c:462
+msgid "Could not parse HTTP response"
+msgstr "HTTP अनुक्रिया विश्लेषित नहीं कर सका"
 
-#: ../libsoup/soup-request.c:140
-#, c-format
-msgid "No URI provided"
-msgstr "यूआरआई नहीं प्रदान किया गया"
+#: libsoup/http1/soup-client-message-io-http1.c:485
+msgid "Unrecognized HTTP response encoding"
+msgstr "अपरिचित HTTP अनुक्रिया एन्कोडिंग"
 
-#: ../libsoup/soup-request.c:150
-#, c-format
-msgid "Invalid '%s' URI: %s"
-msgstr "यूआरआई '%s' अमान्य: %s"
+#: libsoup/http1/soup-client-message-io-http1.c:721
+#: libsoup/http1/soup-client-message-io-http1.c:747
+#: libsoup/http2/soup-client-message-io-http2.c:1608
+#: libsoup/http2/soup-client-message-io-http2.c:1634
+msgid "Operation was cancelled"
+msgstr "आपरेशन रद्द कर दिया गया"
 
-#: ../libsoup/soup-server.c:1528
-msgid "Can't create a TLS server without a TLS certificate"
-msgstr "TLS सर्वर को बिना TLS प्रमाणपत्र के बना नहीं सकता है"
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "शीर्षलेख बहुत बड़ा है"
 
-#: ../libsoup/soup-server.c:1547
-#, c-format
-msgid "Could not listen on address %s, port %d: "
-msgstr "पता %s, पोर्ट %d पर सुन नहीं सकता है: "
-
-#: ../libsoup/soup-session.c:4466
-#, c-format
-msgid "Could not parse URI '%s'"
-msgstr "URI '%s' पद व्याख्या नहीं हो सका"
-
-#: ../libsoup/soup-session.c:4503
-#, c-format
-msgid "Unsupported URI scheme '%s'"
-msgstr "URI योजना  '%s' को सहारा नहीं"
-
-#: ../libsoup/soup-session.c:4525
-#, c-format
-msgid "Not an HTTP URI"
-msgstr "कोई HTTP URI नहीं"
-
-#: ../libsoup/soup-socket.c:142
-msgid "Can't import non-socket as SoupSocket"
-msgstr "सूपसॉकेट के रूप में आयात नहीं कर सकता है"
-
-#: ../libsoup/soup-socket.c:160
+#: libsoup/server/soup-listener.c:261
 msgid "Could not import existing socket: "
 msgstr "मौजूदा सॉकेट आयात नहीं कर सकता है: "
 
-#: ../libsoup/soup-socket.c:169
-msgid "Can't import unconnected socket"
+#: libsoup/server/soup-listener.c:267
+msgid "Can’t import unconnected socket"
 msgstr "बिना कनेक्टेड सॉकेट आयात नहीं कर सकता है"
 
-#: ../libsoup/soup-tld.c:188
-msgid "Hostname is an IP address"
-msgstr "मेजबाननाम एक आईपी पता है"
+#: libsoup/server/soup-server.c:1209
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "TLS सर्वर को बिना TLS प्रमाणपत्र के बना नहीं सकता है"
 
-#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
+#: libsoup/soup-session.c:1116
+msgid "Location header is missing or empty in response headers"
+msgstr "प्रतिक्रिया शीर्षलेखों में स्थान शीर्षलेख अनुपलब्ध या खाली है"
+
+#: libsoup/soup-session.c:1130
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "स्थान प्रतिक्रिया शीर्षलेख में अमान्य URI “%s”"
+
+#: libsoup/soup-session.c:1150
+msgid "Too many redirects"
+msgstr "बहुत अधिक पुनर्निर्देशन"
+
+#: libsoup/soup-session.c:1155
+msgid "Message was restarted too many times"
+msgstr "संदेश को कई बार पुनः प्रारंभ किया गया"
+
+#: libsoup/soup-session.c:3011 libsoup/soup-session.c:3159
+msgid "Message is already in session queue"
+msgstr "संदेश पहले ही सत्र कतार में है"
+
+#: libsoup/soup-session.c:3491
+msgid "The server did not accept the WebSocket handshake."
+msgstr "सर्वर ने वेबसॉकेट हैंडशेक को स्वीकार नहीं किया।"
+
+#: libsoup/soup-tld.c:129
+msgid "No public-suffix list available."
+msgstr "कोई सार्वजनिक-प्रत्यय सूची उपलब्ध नहीं है।"
+
+#: libsoup/soup-tld.c:139 libsoup/soup-tld.c:155
 msgid "Invalid hostname"
 msgstr "मेजबाननाम मान्य नहीं"
 
-#: ../libsoup/soup-tld.c:250
+#: libsoup/soup-tld.c:146
+msgid "Hostname is an IP address"
+msgstr "मेजबाननाम एक आईपी पता है"
+
+#: libsoup/soup-tld.c:167
 msgid "Hostname has no base domain"
 msgstr "मेजबाननाम को आधार डोमेन नहीं है"
 
-#: ../libsoup/soup-tld.c:304
+#: libsoup/soup-tld.c:175
 msgid "Not enough domains"
 msgstr "डोमेन पर्याप्त नहीं"
 
+#: libsoup/websocket/soup-websocket.c:390
+#: libsoup/websocket/soup-websocket.c:434
+#: libsoup/websocket/soup-websocket.c:450
+msgid "Server requested unsupported extension"
+msgstr "सर्वर ने असमर्थित विस्तार का अनुरोध किया"
+
+#: libsoup/websocket/soup-websocket.c:413
+#: libsoup/websocket/soup-websocket.c:605
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "गलत वेबसॉकेट “%s” शीर्षलेख"
+
+#: libsoup/websocket/soup-websocket.c:414
+#: libsoup/websocket/soup-websocket.c:869
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr "सर्वर ने गलत “%s” कुंजी लौटाई"
+
+#: libsoup/websocket/soup-websocket.c:477
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "“%s” वेबसॉकेट विस्तार शीर्षलेख में डुप्लिकेट पैरामीटर"
+
+#: libsoup/websocket/soup-websocket.c:478
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr "सर्वर ने “%s” वेबसॉकेट विस्तार शीर्षलेख में एक डुप्लिकेट पैरामीटर लौटाया"
+
+#: libsoup/websocket/soup-websocket.c:568
+#: libsoup/websocket/soup-websocket.c:578
+msgid "WebSocket handshake expected"
+msgstr "वेबसॉकेट हैंडशेक अपेक्षित"
+
+#: libsoup/websocket/soup-websocket.c:586
+msgid "Unsupported WebSocket version"
+msgstr "असमर्थित वेबसॉकेट संस्करण"
+
+#: libsoup/websocket/soup-websocket.c:595
+msgid "Invalid WebSocket key"
+msgstr "अमान्य वेबसॉकेट कुंजी"
+
+#: libsoup/websocket/soup-websocket.c:614
+msgid "Unsupported WebSocket subprotocol"
+msgstr "असमर्थित वेबसॉकेट उपप्रोटोकॉल"
+
+#: libsoup/websocket/soup-websocket.c:820
+msgid "Server rejected WebSocket handshake"
+msgstr "सर्वर ने वेबसॉकेट हैंडशेक को अस्वीकार कर दिया"
+
+#: libsoup/websocket/soup-websocket.c:828
+#: libsoup/websocket/soup-websocket.c:837
+msgid "Server ignored WebSocket handshake"
+msgstr "सर्वर ने वेबसॉकेट हैंडशेक को नजरअंदाज कर दिया"
+
+#: libsoup/websocket/soup-websocket.c:849
+msgid "Server requested unsupported protocol"
+msgstr "सर्वर ने असमर्थित प्रोटोकॉल का अनुरोध किया"
+
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "HTTP आग्रह विश्लेषित नहीं कर सका"
+
+#, c-format
+#~ msgid "No URI provided"
+#~ msgstr "यूआरआई नहीं प्रदान किया गया"
+
+#, c-format
+#~ msgid "Invalid '%s' URI: %s"
+#~ msgstr "यूआरआई '%s' अमान्य: %s"
+
+#, c-format
+#~ msgid "Could not listen on address %s, port %d: "
+#~ msgstr "पता %s, पोर्ट %d पर सुन नहीं सकता है: "
+
+#, c-format
+#~ msgid "Could not parse URI '%s'"
+#~ msgstr "URI '%s' पद व्याख्या नहीं हो सका"
+
+#, c-format
+#~ msgid "Unsupported URI scheme '%s'"
+#~ msgstr "URI योजना  '%s' को सहारा नहीं"
+
+#, c-format
+#~ msgid "Not an HTTP URI"
+#~ msgstr "कोई HTTP URI नहीं"
+
+#~ msgid "Can't import non-socket as SoupSocket"
+#~ msgstr "सूपसॉकेट के रूप में आयात नहीं कर सकता है"
