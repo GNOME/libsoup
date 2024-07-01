@@ -216,8 +216,7 @@ parse_one_cookie (const char *header, GUri *origin)
 				cookie->domain = NULL;
 			}
 		} else if (MATCH_NAME ("expires") && has_value) {
-			g_clear_object (&cookie->expires);
-			cookie->expires = parse_date (&p);
+		        soup_cookie_set_expires (cookie, parse_date (&p));
 		} else if (MATCH_NAME ("httponly")) {
 			cookie->http_only = TRUE;
 			if (has_value)
