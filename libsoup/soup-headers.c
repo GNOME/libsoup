@@ -51,12 +51,13 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 	 * ignorable trailing whitespace.
 	 */
 
+	/* No '\0's are allowed */
+	if (memchr (str, '\0', len))
+		return FALSE;
+
 	/* Skip over the Request-Line / Status-Line */
 	headers_start = memchr (str, '\n', len);
 	if (!headers_start)
-		return FALSE;
-	/* No '\0's in the Request-Line / Status-Line */
-	if (memchr (str, '\0', headers_start - str))
 		return FALSE;
 
 	/* We work on a copy of the headers, which we can write '\0's
@@ -68,14 +69,6 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 	memcpy (headers_copy, headers_start, copy_len);
 	headers_copy[copy_len] = '\0';
 	value_end = headers_copy;
-
-	/* There shouldn't be any '\0's in the headers already, but
-	 * this is the web we're talking about.
-	 */
-	while ((p = memchr (headers_copy, '\0', copy_len))) {
-		memmove (p, p + 1, copy_len - (p - headers_copy));
-		copy_len--;
-	}
 
 	while (*(value_end + 1)) {
 		name = value_end + 1;
