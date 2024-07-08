@@ -358,24 +358,6 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "NUL in header name", "760832",
-	  "GET / HTTP/1.1\r\nHost\x00: example.com\r\n", 36,
-	  SOUP_STATUS_OK,
-	  "GET", "/", SOUP_HTTP_1_1,
-	  { { "Host", "example.com" },
-	    { NULL }
-	  }
-	},
-
-	{ "NUL in header value", "760832",
-	  "GET / HTTP/1.1\r\nHost: example\x00" "com\r\n", 35,
-	  SOUP_STATUS_OK,
-	  "GET", "/", SOUP_HTTP_1_1,
-	  { { "Host", "examplecom" },
-	    { NULL }
-	  }
-	},
-
 	/************************/
 	/*** INVALID REQUESTS ***/
 	/************************/
@@ -447,6 +429,21 @@ static struct RequestTest {
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nExpect: the-impossible\r\n", -1,
 	  SOUP_STATUS_EXPECTATION_FAILED,
 	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	// https://gitlab.gnome.org/GNOME/libsoup/-/issues/377
+	{ "NUL in header name", NULL,
+	  "GET / HTTP/1.1\r\nHost\x00: example.com\r\n", 36,
+	  SOUP_STATUS_BAD_REQUEST,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	{ "NUL in header value", NULL,
+	  "HTTP/1.1 200 OK\r\nFoo: b\x00" "ar\r\n", 28,
+	  SOUP_STATUS_BAD_REQUEST,
+           NULL, NULL, -1,
 	  { { NULL } }
 	}
 };
@@ -620,22 +617,6 @@ static struct ResponseTest {
 	    { NULL } }
 	},
 
-	{ "NUL in header name", "760832",
-	  "HTTP/1.1 200 OK\r\nF\x00oo: bar\r\n", 28,
-	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "OK",
-	  { { "Foo", "bar" },
-	    { NULL }
-	  }
-	},
-
-	{ "NUL in header value", "760832",
-	  "HTTP/1.1 200 OK\r\nFoo: b\x00" "ar\r\n", 28,
-	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "OK",
-	  { { "Foo", "bar" },
-	    { NULL }
-	  }
-	},
-
 	/********************************/
 	/*** VALID CONTINUE RESPONSES ***/
 	/********************************/
@@ -767,6 +748,19 @@ static struct ResponseTest {
 	  -1, 0, NULL,
 	  { { NULL }
 	  }
+	},
+
+	// https://gitlab.gnome.org/GNOME/libsoup/-/issues/377
+	{ "NUL in header name", NULL,
+	  "HTTP/1.1 200 OK\r\nF\x00oo: bar\r\n", 28,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+	{ "NUL in header value", "760832",
+	  "HTTP/1.1 200 OK\r\nFoo: b\x00" "ar\r\n", 28,
+	  -1, 0, NULL,
+	  { { NULL } }
 	},
 };
 static const int num_resptests = G_N_ELEMENTS (resptests);
