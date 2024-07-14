@@ -1,3 +1,8 @@
+Changes in libsoup from 3.5.1 to 3.5.2:
+
+* Strictly forbid NUL bytes in headers [Patrick Griffis]
+* Fix minor leaks [Michael Catanzaro]
+
 Changes in libsoup from 3.4.4 to 3.5.1:
 
 * Add `SOUP_METHOD_PATCH` [Jan-Michael Brummer]
