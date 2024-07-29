@@ -581,6 +581,17 @@ tls_connection_ciphersuite_name_changed (SoupConnection *conn)
         g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_TLS_CIPHERSUITE_NAME]);
 }
 
+static gboolean
+is_not_using_http_proxy (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        if (!priv->remote_address || !G_IS_PROXY_ADDRESS (priv->remote_address))
+                return TRUE;
+
+        return g_strcmp0 (g_proxy_address_get_protocol (G_PROXY_ADDRESS (priv->remote_address)), "http") != 0;
+}
+
 static GTlsClientConnection *
 new_tls_connection (SoupConnection    *conn,
                     GSocketConnection *connection,
@@ -603,7 +614,7 @@ new_tls_connection (SoupConnection    *conn,
                 g_ptr_array_add (advertised_protocols, "h2");
                 break;
         default:
-                if (!priv->remote_address || !G_IS_PROXY_ADDRESS (priv->remote_address))
+                if (is_not_using_http_proxy (conn))
                         g_ptr_array_add (advertised_protocols, "h2");
                 g_ptr_array_add (advertised_protocols, "http/1.1");
                 g_ptr_array_add (advertised_protocols, "http/1.0");
