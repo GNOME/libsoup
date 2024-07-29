@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2020-09-17 06:36+0000\n"
+"POT-Creation-Date: 2023-01-25 21:07+0000\n"
 "PO-Revision-Date: 2020-09-30 23:37+0300\n"
-"Last-Translator: Efstathios Iosifidis <eiosifidis@gnome.org>\n"
+"Last-Translator: Giannis Antypas <gianni.antypas@gmail.com>\n"
 "Language-Team: Ελληνικά <>\n"
 "Language: el\n"
 "MIME-Version: 1.0\n"
@@ -21,187 +21,216 @@ msgstr ""
 "X-Generator: Poedit 2.3\n"
 "X-Project-Style: gnome\n"
 
-#: libsoup/soup-body-input-stream.c:139 libsoup/soup-body-input-stream.c:170
-#: libsoup/soup-body-input-stream.c:203 libsoup/soup-message-io.c:244
-msgid "Connection terminated unexpectedly"
-msgstr "Η σύνδεση τερματίστηκε απρόσμενα"
-
-#: libsoup/soup-body-input-stream.c:459
-msgid "Invalid seek request"
-msgstr "Άκυρη αίτηση αναζήτησης"
-
-#: libsoup/soup-body-input-stream.c:487
-msgid "Cannot truncate SoupBodyInputStream"
-msgstr "Αδυναμία περικοπής του SoupBodyInputStream"
-
-#: libsoup/soup-cache-input-stream.c:76
+#: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
 msgstr "Η ροή του δικτύου έκλεισε απρόσμενα"
 
-#: libsoup/soup-cache-input-stream.c:291
+#: libsoup/cache/soup-cache-input-stream.c:252
 msgid "Failed to completely cache the resource"
 msgstr "Αποτυχία πλήρους απόκρυψης του πόρου"
 
-#: libsoup/soup-directory-input-stream.c:231
-msgid "Name"
-msgstr "Όνομα"
-
-#: libsoup/soup-directory-input-stream.c:232
-msgid "Size"
-msgstr "Μέγεθος"
-
-#: libsoup/soup-directory-input-stream.c:233
-msgid "Date Modified"
-msgstr "Ημερομηνία τροποποίησης"
-
-#: libsoup/soup-converter-wrapper.c:189
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Η ενδιάμεση μνήμη εξόδου είναι πολύ μικρή"
 
-#: libsoup/soup-message-client-io.c:39
-msgid "Could not parse HTTP response"
-msgstr "Αδυναμία ανάλυσης της απάντησης HTTP"
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:187
+#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-message-io-data.c:77
+#: libsoup/http2/soup-client-message-io-http2.c:408
+#: libsoup/server/http2/soup-server-message-io-http2.c:431
+msgid "Connection terminated unexpectedly"
+msgstr "Η σύνδεση τερματίστηκε απρόσμενα"
 
-#: libsoup/soup-message-client-io.c:62
-msgid "Unrecognized HTTP response encoding"
-msgstr "Μη αναγνωρίσιμη κωδικοποίηση απάντησης HTTP"
+#: libsoup/http1/soup-body-input-stream.c:471
+msgid "Invalid seek request"
+msgstr "Άκυρη αίτηση αναζήτησης"
 
-#: libsoup/soup-message-io.c:269
-msgid "Header too big"
-msgstr "Η επικεφαλίδα είναι πολύ μεγάλη"
+#: libsoup/http1/soup-body-input-stream.c:499
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Αδυναμία περικοπής του SoupBodyInputStream"
 
-#: libsoup/soup-message-io.c:401 libsoup/soup-message-io.c:1024
+#: libsoup/http1/soup-client-message-io-http1.c:322
+#: libsoup/http1/soup-client-message-io-http1.c:775
+#: libsoup/http2/soup-body-input-stream-http2.c:221
+#: libsoup/server/http1/soup-server-message-io-http1.c:417
+#: libsoup/server/http1/soup-server-message-io-http1.c:890
 msgid "Operation would block"
 msgstr "Η λειτουργία θα μπλοκαριστεί"
 
-#: libsoup/soup-message-io.c:976 libsoup/soup-message-io.c:1009
+#: libsoup/http1/soup-client-message-io-http1.c:463
+msgid "Could not parse HTTP response"
+msgstr "Αδυναμία ανάλυσης της απάντησης HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:486
+msgid "Unrecognized HTTP response encoding"
+msgstr "Μη αναγνωρίσιμη κωδικοποίηση απάντησης HTTP"
+
+#: libsoup/http1/soup-client-message-io-http1.c:734
+#: libsoup/http1/soup-client-message-io-http1.c:760
+#: libsoup/http2/soup-client-message-io-http2.c:1640
+#: libsoup/http2/soup-client-message-io-http2.c:1666
 msgid "Operation was cancelled"
 msgstr "Η λειτουργία ακυρώθηκε"
 
-#: libsoup/soup-message-server-io.c:63
-msgid "Could not parse HTTP request"
-msgstr "Αδυναμία ανάλυσης αιτήματος HTTP"
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Η επικεφαλίδα είναι πολύ μεγάλη"
 
-#: libsoup/soup-request.c:141
-#, c-format
-msgid "No URI provided"
-msgstr "Δεν έχει δοθεί URI"
-
-#: libsoup/soup-request.c:151
-#, c-format
-msgid "Invalid “%s” URI: %s"
-msgstr "Μη έγκυρο «%s» URI: %s"
-
-#: libsoup/soup-server.c:1810
-msgid "Can’t create a TLS server without a TLS certificate"
-msgstr "Αδύνατη η δημιουργία ενός διακομιστή TLS χωρίς πιστοποιητικό TLS"
-
-#: libsoup/soup-server.c:1827
-#, c-format
-msgid "Could not listen on address %s, port %d: "
-msgstr "Αδυναμία ακρόασης στη διεύθυνση %s, θύρα %d: "
-
-#: libsoup/soup-session.c:4585
-#, c-format
-msgid "Could not parse URI “%s”"
-msgstr "Αδυναμία ανάλυσης URI «%s»"
-
-#: libsoup/soup-session.c:4622
-#, c-format
-msgid "Unsupported URI scheme “%s”"
-msgstr "Μη υποστηριζόμενο σχήμα URI «%s»"
-
-#: libsoup/soup-session.c:4644
-#, c-format
-msgid "Not an HTTP URI"
-msgstr "Δεν είναι HTTP URI"
-
-#: libsoup/soup-session.c:4855
-msgid "The server did not accept the WebSocket handshake."
-msgstr "Ο διακομιστής δεν αποδέχεται τη χειραψία WebSocket."
-
-#: libsoup/soup-socket.c:148
-msgid "Can’t import non-socket as SoupSocket"
-msgstr "Αδύνατη η εισαγωγή μιας μη υποδοχής ως SoupSocket"
-
-#: libsoup/soup-socket.c:166
+#: libsoup/server/soup-listener.c:261
 msgid "Could not import existing socket: "
 msgstr "Αδυναμία εισαγωγής υπάρχουσας υποδοχής: "
 
-#: libsoup/soup-socket.c:175
+#: libsoup/server/soup-listener.c:267
 msgid "Can’t import unconnected socket"
 msgstr "Αδύνατη η εισαγωγή μιας μη συνδεμένης υποδοχής"
 
-#: libsoup/soup-websocket.c:479 libsoup/soup-websocket.c:523
-#: libsoup/soup-websocket.c:539
+#: libsoup/server/soup-server.c:1217
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Αδύνατη η δημιουργία ενός διακομιστή TLS χωρίς πιστοποιητικό TLS"
+
+#: libsoup/soup-session.c:1133
+msgid "Location header is missing or empty in response headers"
+msgstr "Η κεφαλίδα Θέσης λείπει ή είναι κενή στις κεφαλίδες απόκρισης"
+
+#: libsoup/soup-session.c:1147
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Μη έγκυρη URI “%s” στην κεφαλίδα απόκρισης Θέσης"
+
+#: libsoup/soup-session.c:1167
+msgid "Too many redirects"
+msgstr "Πάρα πολλές ανακατευθύνσεις"
+
+#: libsoup/soup-session.c:1172
+msgid "Message was restarted too many times"
+msgstr "Το μήνυμα επανεκκινήθηκε πάρα πολλές φορές"
+
+#: libsoup/soup-session.c:3038 libsoup/soup-session.c:3186
+msgid "Message is already in session queue"
+msgstr "Το μήνυμα υπάρχει ήδη στην ουρά συνεδρίας"
+
+#: libsoup/soup-session.c:3662
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Ο διακομιστής δεν αποδέχεται τη χειραψία WebSocket."
+
+#: libsoup/soup-tld.c:129
+msgid "No public-suffix list available."
+msgstr "Δεν υπάρχει διαθέσιμη λίστα δημόσιων καταλήξεων."
+
+#: libsoup/soup-tld.c:139 libsoup/soup-tld.c:155
+msgid "Invalid hostname"
+msgstr "Μη έγκυρο όνομα κεντρικού υπολογιστή"
+
+#: libsoup/soup-tld.c:146
+msgid "Hostname is an IP address"
+msgstr "Το όνομα κεντρικού υπολογιστή είναι μια διεύθυνση IP"
+
+#: libsoup/soup-tld.c:167
+msgid "Hostname has no base domain"
+msgstr "Το όνομα κεντρικού υπολογιστή δεν έχει βασικό τομέα"
+
+#: libsoup/soup-tld.c:175
+msgid "Not enough domains"
+msgstr "Δεν υπάρχουν αρκετοί τομείς"
+
+#: libsoup/websocket/soup-websocket.c:391
+#: libsoup/websocket/soup-websocket.c:435
+#: libsoup/websocket/soup-websocket.c:451
 msgid "Server requested unsupported extension"
 msgstr "Ο διακομιστής αιτήθηκε μια μη υποστηριζόμενη επέκταση"
 
-#: libsoup/soup-websocket.c:502 libsoup/soup-websocket.c:694
+#: libsoup/websocket/soup-websocket.c:414
+#: libsoup/websocket/soup-websocket.c:606
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Εσφαλμένη κεφαλίδα WebSocket «%s»"
 
-#: libsoup/soup-websocket.c:503 libsoup/soup-websocket.c:1024
+#: libsoup/websocket/soup-websocket.c:415
+#: libsoup/websocket/soup-websocket.c:870
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Ο διακομιστής επέστρεψε ένα εσφαλμένο κλειδί  «%s»"
 
-#: libsoup/soup-websocket.c:566
+#: libsoup/websocket/soup-websocket.c:478
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Διπλότυπη παράμετρος στην κεφαλίδα επέκτασης WebSocket «%s»"
 
-#: libsoup/soup-websocket.c:567
+#: libsoup/websocket/soup-websocket.c:479
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "Ο διακομιστής επέστρεψε μια διπλότυπη παράμετρο στην κεφαλίδα επέκτασης WebSocket «%s»"
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Ο διακομιστής επέστρεψε μια διπλότυπη παράμετρο στην κεφαλίδα επέκτασης "
+"WebSocket «%s»"
 
-#: libsoup/soup-websocket.c:658 libsoup/soup-websocket.c:667
+#: libsoup/websocket/soup-websocket.c:569
+#: libsoup/websocket/soup-websocket.c:579
 msgid "WebSocket handshake expected"
 msgstr "Αναμένεται χειραψία WebSocket"
 
-#: libsoup/soup-websocket.c:675
+#: libsoup/websocket/soup-websocket.c:587
 msgid "Unsupported WebSocket version"
 msgstr "Η έκδοση WebSocket δεν υποστηρίζεται"
 
-#: libsoup/soup-websocket.c:684
+#: libsoup/websocket/soup-websocket.c:596
 msgid "Invalid WebSocket key"
 msgstr "Μη έγκυρο κλειδί κρυπτογράφησης WebSocket"
 
-#: libsoup/soup-websocket.c:703
+#: libsoup/websocket/soup-websocket.c:615
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Το υποπρωτόκολλο WebSocket δεν υποστηρίζεται"
 
-#: libsoup/soup-websocket.c:975
+#: libsoup/websocket/soup-websocket.c:821
 msgid "Server rejected WebSocket handshake"
 msgstr "Ο διακομιστής απέρριψε την χειραψία WebSocket"
 
-#: libsoup/soup-websocket.c:983 libsoup/soup-websocket.c:992
+#: libsoup/websocket/soup-websocket.c:829
+#: libsoup/websocket/soup-websocket.c:838
 msgid "Server ignored WebSocket handshake"
 msgstr "Ο διακομιστής αγνόησε την χειραψία WebSocket"
 
-#: libsoup/soup-websocket.c:1004
+#: libsoup/websocket/soup-websocket.c:850
 msgid "Server requested unsupported protocol"
 msgstr "Ο διακομιστής αιτήθηκε ένα μη υποστηριζόμενο πρωτόκολλο"
 
-#: libsoup/soup-tld.c:150
-msgid "No public-suffix list available."
-msgstr "Δεν υπάρχει διαθέσιμη λίστα δημόσιων καταλήξεων."
+#~ msgid "Name"
+#~ msgstr "Όνομα"
 
-#: libsoup/soup-tld.c:160 libsoup/soup-tld.c:176
-msgid "Invalid hostname"
-msgstr "Μη έγκυρο όνομα κεντρικού υπολογιστή"
+#~ msgid "Size"
+#~ msgstr "Μέγεθος"
 
-#: libsoup/soup-tld.c:167
-msgid "Hostname is an IP address"
-msgstr "Το όνομα κεντρικού υπολογιστή είναι μια διεύθυνση IP"
+#~ msgid "Date Modified"
+#~ msgstr "Ημερομηνία τροποποίησης"
 
-#: libsoup/soup-tld.c:188
-msgid "Hostname has no base domain"
-msgstr "Το όνομα κεντρικού υπολογιστή δεν έχει βασικό τομέα"
+#~ msgid "Could not parse HTTP request"
+#~ msgstr "Αδυναμία ανάλυσης αιτήματος HTTP"
 
-#: libsoup/soup-tld.c:196
-msgid "Not enough domains"
-msgstr "Δεν υπάρχουν αρκετοί τομείς"
+#, c-format
+#~ msgid "No URI provided"
+#~ msgstr "Δεν έχει δοθεί URI"
+
+#, c-format
+#~ msgid "Invalid “%s” URI: %s"
+#~ msgstr "Μη έγκυρο «%s» URI: %s"
+
+#, c-format
+#~ msgid "Could not listen on address %s, port %d: "
+#~ msgstr "Αδυναμία ακρόασης στη διεύθυνση %s, θύρα %d: "
+
+#, c-format
+#~ msgid "Could not parse URI “%s”"
+#~ msgstr "Αδυναμία ανάλυσης URI «%s»"
+
+#, c-format
+#~ msgid "Unsupported URI scheme “%s”"
+#~ msgstr "Μη υποστηριζόμενο σχήμα URI «%s»"
+
+#, c-format
+#~ msgid "Not an HTTP URI"
+#~ msgstr "Δεν είναι HTTP URI"
+
+#~ msgid "Can’t import non-socket as SoupSocket"
+#~ msgstr "Αδύνατη η εισαγωγή μιας μη υποδοχής ως SoupSocket"
