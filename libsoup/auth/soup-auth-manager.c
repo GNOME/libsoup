@@ -40,7 +40,7 @@
  *
  * (Although this type has only been publicly visible since libsoup 2.42, it has
  * always existed in the background, and you can use `g_type_from_name
- * ("SoupAuthManager")` to get its [alias@GLib.Type] in earlier releases.)
+ * ("SoupAuthManager")` to get its [alias@GObject.Type] in earlier releases.)
  **/
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 

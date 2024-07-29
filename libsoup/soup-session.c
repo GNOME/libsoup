@@ -664,7 +664,7 @@ soup_session_get_proxy_resolver (SoupSession *session)
  * @session: a #SoupSession
  * @tls_database: (nullable): a #GTlsDatabase
  *
- * Set a [class@GIo.TlsDatabase] to be used by @session on new connections.
+ * Set a [class@Gio.TlsDatabase] to be used by @session on new connections.
  *
  * If @tls_database is %NULL then certificate validation will always fail. See
  * [property@Session:tls-database] for more information.
@@ -2013,7 +2013,7 @@ feature_already_added (SoupSession *session, GType feature_type)
  * @feature: an object that implements #SoupSessionFeature
  *
  * Adds @feature's functionality to @session. You cannot add multiple
- * features of the same [alias@GLib.Type] to a session.
+ * features of the same [alias@GObject.Type] to a session.
  *
  * See the main #SoupSession documentation for information on what
  * features are present in sessions by default.
