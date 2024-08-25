@@ -1,3 +1,7 @@
+Changes in libsoup from 3.5.2 to 3.6.0:
+
+* Allow HTTP/2 to be used with non-HTTP proxies [Patrick Griffis]
+
 Changes in libsoup from 3.5.1 to 3.5.2:
 
 * Strictly forbid NUL bytes in headers [Patrick Griffis]
