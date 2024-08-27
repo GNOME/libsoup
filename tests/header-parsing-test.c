@@ -825,6 +825,17 @@ static struct ParamListTest {
 	    { "filename", "t\xC3\xA9st.txt" },
 	  },
 	},
+
+        /* This tests invalid UTF-8 data which *should* never be passed here but it was designed to be robust against it. */
+        { TRUE,
+              "invalid*=\x69\x27\x27\x93\x93\x93\x93\xff\x61\x61\x61\x61\x61\x61\x61\x62\x63\x64\x65\x0a; filename*=iso-8859-1''\x69\x27\x27\x93\x93\x93\x93\xff\x61\x61\x61\x61\x61\x61\x61\x62\x63\x64\x65\x0a; foo",
+              {
+                    { "filename", "i''\302\223\302\223\302\223\302\223\303\277aaaaaaabcde" },
+                    { "invalid", "\302\223\302\223\302\223\302\223\303\277aaaaaaabcde" },
+                    { "foo", NULL },
+
+                },
+        }
 };
 static const int num_paramlisttests = G_N_ELEMENTS (paramlisttests);
 
