@@ -63,7 +63,7 @@ of the thread in which the `listen` calls were made.
 
 By default, [class@Server] returns "404 Not Found" in response to all requests
 (except ones that it can't parse, which get "400 Bad Request"). To override this
-behavior, call [class@Server.add_handler] to set a callback to handle certain
+behavior, call [method@Server.add_handler] to set a callback to handle certain
 URI paths.
 
 ```c
@@ -163,7 +163,7 @@ SOUP_ENCODING_CHUNKED)` to tell libsoup that you'll be using `chunked` encoding.
 Then call [method@MessageBody.append] (or [method@MessageBody.append_bytes]) on
 `msg->response_body` with each chunk of the response body as it becomes
 available, and call [method@MessageBody.complete] when the response is complete.
-After each of these calls, you must also call [class@Server.unpause_message] to
+After each of these calls, you must also call [method@Server.unpause_message] to
 cause the chunk to be sent. (You do not normally need to call
 [method@Server.pause_message], because I/O is automatically paused when doing a
 `chunked` transfer if no chunks are available.)

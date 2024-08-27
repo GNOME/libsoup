@@ -1018,7 +1018,7 @@ soup_server_message_get_socket (SoupServerMessage *msg)
  *
  * Returns: (nullable) (transfer none): the #GSocketAddress
  *   associated with the remote end of a connection, it may be
- *   %NULL if you used [class@Server.accept_iostream].
+ *   %NULL if you used [method@Server.accept_iostream].
  */
 GSocketAddress *
 soup_server_message_get_remote_address (SoupServerMessage *msg)
