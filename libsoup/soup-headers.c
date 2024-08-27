@@ -646,8 +646,9 @@ soup_header_contains (const char *header, const char *token)
 }
 
 static void
-decode_quoted_string (char *quoted_string)
+decode_quoted_string_inplace (GString *quoted_gstring)
 {
+	char *quoted_string = quoted_gstring->str;
 	char *src, *dst;
 
 	src = quoted_string + 1;
@@ -661,10 +662,11 @@ decode_quoted_string (char *quoted_string)
 }
 
 static gboolean
-decode_rfc5987 (char *encoded_string)
+decode_rfc5987_inplace (GString *encoded_gstring)
 {
 	char *q, *decoded;
 	gboolean iso_8859_1 = FALSE;
+	const char *encoded_string = encoded_gstring->str;
 
 	q = strchr (encoded_string, '\'');
 	if (!q)
@@ -696,14 +698,7 @@ decode_rfc5987 (char *encoded_string)
 		decoded = utf8;
 	}
 
-	/* If encoded_string was UTF-8, then each 3-character %-escape
-	 * will be converted to a single byte, and so decoded is
-	 * shorter than encoded_string. If encoded_string was
-	 * iso-8859-1, then each 3-character %-escape will be
-	 * converted into at most 2 bytes in UTF-8, and so it's still
-	 * shorter.
-	 */
-	strcpy (encoded_string, decoded);
+	g_string_assign (encoded_gstring, decoded);
 	g_free (decoded);
 	return TRUE;
 }
@@ -713,15 +708,17 @@ parse_param_list (const char *header, char delim, gboolean strict)
 {
 	GHashTable *params;
 	GSList *list, *iter;
-	char *item, *eq, *name_end, *value;
-	gboolean override, duplicated;
 
 	params = g_hash_table_new_full (soup_str_case_hash, 
 					soup_str_case_equal,
-					g_free, NULL);
+					g_free, g_free);
 
 	list = parse_list (header, delim);
 	for (iter = list; iter; iter = iter->next) {
+		char *item, *eq, *name_end;
+		gboolean override, duplicated;
+		GString *parsed_value = NULL;
+
 		item = iter->data;
 		override = FALSE;
 
@@ -736,19 +733,19 @@ parse_param_list (const char *header, char delim, gboolean strict)
 
 			*name_end = '\0';
 
-			value = (char *)skip_lws (eq + 1);
+			parsed_value = g_string_new ((char *)skip_lws (eq + 1));
 
 			if (name_end[-1] == '*' && name_end > item + 1) {
 				name_end[-1] = '\0';
-				if (!decode_rfc5987 (value)) {
+				if (!decode_rfc5987_inplace (parsed_value)) {
+					g_string_free (parsed_value, TRUE);
 					g_free (item);
 					continue;
 				}
 				override = TRUE;
-			} else if (*value == '"')
-				decode_quoted_string (value);
-		} else
-			value = NULL;
+			} else if (parsed_value->str[0] == '"')
+				decode_quoted_string_inplace (parsed_value);
+		}
 
 		duplicated = g_hash_table_lookup_extended (params, item, NULL, NULL);
 
@@ -756,11 +753,16 @@ parse_param_list (const char *header, char delim, gboolean strict)
 			soup_header_free_param_list (params);
 			params = NULL;
 			g_slist_foreach (iter, (GFunc)g_free, NULL);
+			if (parsed_value)
+				g_string_free (parsed_value, TRUE);
 			break;
-		} else if (override || !duplicated)
-			g_hash_table_replace (params, item, value);
-		else
+		} else if (override || !duplicated) {
+			g_hash_table_replace (params, item, parsed_value ? g_string_free (parsed_value, FALSE) : NULL);
+		} else {
+			if (parsed_value)
+				g_string_free (parsed_value, TRUE);
 			g_free (item);
+		}
 	}
 
 	g_slist_free (list);
