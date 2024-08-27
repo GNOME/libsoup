@@ -5,6 +5,7 @@ fuzz_targets = [
   'fuzz_cookie_parse',
   'fuzz_content_sniffer',
   'fuzz_date_time',
+  'fuzz_header_parsing',
 ]
 
 fuzzing_args = '-fsanitize=fuzzer,address,undefined'
@@ -34,6 +35,7 @@ if have_fuzzing and (fuzzing_feature.enabled() or fuzzing_feature.auto())
         '-runs=200000',
         '-artifact_prefix=meson-logs/' + target + '-',
         '-print_final_stats=1',
+        '-max_len=4096',
       ] + extra_args,
       env: [
         'ASAN_OPTIONS=fast_unwind_on_malloc=0',
