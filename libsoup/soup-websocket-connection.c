@@ -1155,9 +1155,9 @@ soup_websocket_connection_read (SoupWebsocketConnection *self)
 		}
 
 		pv->incoming->len = len + count;
-	} while (count > 0);
 
-	process_incoming (self);
+		process_incoming (self);
+	} while (count > 0 && !pv->close_sent && !pv->io_closing);
 
 	if (end) {
 		if (!pv->close_sent || !pv->close_received) {
