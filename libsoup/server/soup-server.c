@@ -28,9 +28,11 @@
 /**
  * SoupServer:
  *
- * A HTTP server.
- *
- * #SoupServer implements a simple HTTP server.
+ * #SoupServer provides a basic implementation of an HTTP server. The
+ * recommended usage of this server is for internal use, tasks like
+ * a mock server for tests, a private service for IPC, etc. It is not
+ * recommended to be exposed to untrusted clients as it may be vulnerable
+ * to denial of service attacks or other exploits.
  *
  * To begin, create a server using [ctor@Server.new]. Add at least one
  * handler by calling [method@Server.add_handler] or
