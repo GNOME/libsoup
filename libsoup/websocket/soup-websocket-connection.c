@@ -1199,9 +1199,9 @@ soup_websocket_connection_read (SoupWebsocketConnection *self)
 		}
 
 		priv->incoming->len = len + count;
-	} while (count > 0);
 
-	process_incoming (self);
+		process_incoming (self);
+	} while (count > 0 && !priv->close_sent && !priv->io_closing);
 
 	if (end) {
 		if (!priv->close_sent || !priv->close_received) {
