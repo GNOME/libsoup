@@ -83,6 +83,7 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 		}
 
 		g_object_unref (msg);
+		g_bytes_unref (body);
 		return;
 	}
 

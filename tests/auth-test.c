@@ -795,6 +795,7 @@ do_async_auth_cancel_test (void)
 	g_assert_null (soup_test_session_async_send (session, msg, data.cancellable, &error));
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 
+        g_error_free (error);
 	g_object_unref (data.auth);
 	g_object_unref (data.cancellable);
 	g_object_unref (msg);
@@ -1640,6 +1641,7 @@ request_send_cb (SoupSession  *session,
         stream = soup_session_send_finish (session, result, &error);
         g_assert_null (stream);
         g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+        g_error_free (error);
 
         g_main_loop_quit (loop);
 }

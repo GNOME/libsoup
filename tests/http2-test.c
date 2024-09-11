@@ -1080,6 +1080,7 @@ do_invalid_header_rfc9113_received_test (Test *test, gconstpointer data)
         g_assert_no_error (error);
         g_clear_error (&error);
         g_object_unref (msg);
+        g_bytes_unref (response);
         g_uri_unref (uri);
 }
 #endif
