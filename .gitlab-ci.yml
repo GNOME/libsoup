@@ -1,12 +1,67 @@
-workflow:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+include:
+ - remote: 'https://gitlab.freedesktop.org/freedesktop/ci-templates/-/raw/6a40df92957c8ce9ee741aaccc5daaaf70545b1e/templates/fedora.yml'
 
-image: registry.gitlab.gnome.org/gnome/libsoup/master:v20
+variables:
+  FDO_UPSTREAM_REPO: GNOME/libsoup
+
+.fedora.container.common:
+  variables:
+    FDO_DISTRIBUTION_TAG: '2024-09-11.7'
+    FDO_DISTRIBUTION_VERSION: 'latest'
+
+build.container.fedora@x86_64:
+  extends:
+  - '.fdo.container-build@fedora'
+  - '.fedora.container.common'
+  stage: prepare
+  variables:
+    GIT_STRATEGY: none
+    FDO_EXPIRES_AFTER: 8w
+    FDO_DISTRIBUTION_PACKAGES: >-
+      brotli-devel
+      clang-analyzer
+      'dnf-command(builddep)'
+      gcovr
+      git
+      gi-docgen
+      glib2-doc
+      glib-networking
+      gnutls-devel
+      gobject-introspection-devel
+      gtk-doc
+      httpd
+      krb5-devel
+      lcov
+      libasan
+      libnghttp2-devel
+      libpsl-devel
+      libsoup-doc
+      lsof
+      meson
+      mod_http2
+      mod_ssl
+      python2.7
+      redhat-rpm-config
+      samba-winbind-clients
+      sqlite-devel
+      sysprof-devel
+      vala
+      valgrind
+      which
+    FDO_DISTRIBUTION_EXEC: >-
+      python2.7 -m ensurepip &&
+      pip2.7 install --upgrade pip &&
+      pip2.7 install virtualenv wsaccel==0.6.3 autobahntestsuite
+
+# FIXME: restore this to disable CI for branch commits
+#workflow:
+#  rules:
+#    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+#    - if: $CI_COMMIT_TAG
+#    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 stages:
+  - prepare
   - build
   - coverage
   - docs
@@ -20,7 +75,10 @@ stages:
     - ipv6
 
 fedora-test:
-  extends: .build
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora.container.common'
+    - '.build'
   script:
     - cp .gitlab-ci/lcovrc ~/.lcovrc
     - meson _build -Db_coverage=true --auto-features=enabled
@@ -43,7 +101,10 @@ fedora-test:
   coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
 
 fedora-autobahn-quick:
-  extends: .build
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora.container.common'
+    - '.build'
   script:
     - meson _build --auto-features=enabled -Dautobahn=enabled
     - meson test -C _build --suite autobahn-quick --verbose
@@ -53,10 +114,13 @@ fedora-autobahn-quick:
   allow_failure: true
 
 fedora-scan:
-  extends: .build
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora.container.common'
+    - '.build'
   script:
     - meson _build --auto-features=enabled
-    - ninja -C _build scan-build
+    - SCANBUILD=$(pwd)/run-scan-build ninja -C _build scan-build
     - bash -c 'if [[ -n "$(ls -A _build/meson-logs/scanbuild/)" ]]; then echo "Scan build log found, assuming defects exist"; exit 1; fi'
   artifacts:
     reports:
@@ -66,7 +130,10 @@ fedora-scan:
       - _build/meson-logs/scanbuild
 
 fedora-asan:
-  stage: build
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora.container.common'
+    - '.build'
   tags:
     - asan
   variables:
@@ -84,7 +151,10 @@ fedora-asan:
       - "_build/meson-logs/testlog.txt"
 
 # fedora-fuzzing:
-#   stage: build
+#  extends:
+#    - '.fdo.distribution-image@fedora'
+#    - '.fedora.container.common'
+#    - '.build'
 #   allow_failure: true
 #   variables:
 #     CC: clang
@@ -97,6 +167,9 @@ fedora-asan:
 #       - _build/meson-logs/
 
 reference:
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora.container.common'
   stage: docs
   variables:
     MESON_ARGS: >-
@@ -118,6 +191,9 @@ reference:
       - _reference
 
 pages:
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora.container.common'
   stage: deploy
   needs: ['reference']
   script:
