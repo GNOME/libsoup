@@ -1,8 +1,9 @@
+#include "test-utils.h"
+
 #include <glib.h>
 #include <glib/gstdio.h>
 
 #include <stdio.h>
-#include "test-utils.h"
 #include "soup-uri-utils-private.h"
 
 #define DB_FILE "hsts-db.sqlite"
