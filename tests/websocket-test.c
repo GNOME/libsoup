@@ -1539,8 +1539,9 @@ test_receive_invalid_encode_length_64 (Test *test,
 	GError *error = NULL;
 	InvalidEncodeLengthTest context = { test, NULL };
 	guint i;
+	guint error_id;
 
-	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	error_id = g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
 	g_signal_connect (test->client, "message", G_CALLBACK (on_binary_message), &received);
 
 	/* We use 127(\x7f) as payload length with 65535 extended length */
@@ -1553,6 +1554,7 @@ test_receive_invalid_encode_length_64 (Test *test,
 	WAIT_UNTIL (error != NULL || received != NULL);
 	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
 	g_clear_error (&error);
+        g_signal_handler_disconnect (test->client, error_id);
 	g_assert_null (received);
 
         g_thread_join (thread);
