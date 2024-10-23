@@ -417,7 +417,7 @@ soup_uri_copy (GUri            *uri,
         va_start (args, first_component);
         while (component != SOUP_URI_NONE) {
                 if (component == SOUP_URI_PORT)
-                        values[component] = GINT_TO_POINTER (va_arg (args, glong));
+                        values[component] = GINT_TO_POINTER (va_arg (args, gint));
                 else
                         values[component] = va_arg (args, gpointer);
                 values_to_set[component] = TRUE;
