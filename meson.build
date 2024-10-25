@@ -127,10 +127,14 @@ if brotlidec_dep.found()
   cdata.set('WITH_BROTLI', true)
 endif
 
-unix_socket_dep = dependency('gio-unix-2.0',
-                             version : glib_required_version,
-                             fallback: ['glib', 'libgiounix_dep'],
-                             required : false)
+unix_socket_dep = disabler()
+if host_machine.system() != 'windows'
+  # XXX: Check whether the later GLib releases have enough UNIX socket support to support this
+  unix_socket_dep = dependency('gio-unix-2.0',
+                               version : glib_required_version,
+                               fallback: ['glib', 'libgiounix_dep'],
+                               required : false)
+endif
 
 platform_deps = []
 is_static_library = get_option('default_library') == 'static'
