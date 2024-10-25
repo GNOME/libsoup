@@ -1,6 +1,6 @@
 project('libsoup', 'c',
         version: '3.6.0',
-        meson_version : '>= 0.54',
+        meson_version : '>= 0.60',
         license : 'LGPL-2.0-or-later',
         default_options : [
           'c_std=gnu99',
@@ -120,19 +120,7 @@ if (libnghttp2_dep.version() == 'unknown' and (libnghttp2_dep.type_name() == 'in
     cdata.set('HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION', '1')
 endif
 
-sqlite_dep = dependency('sqlite3', required: false)
-
-# Fallback check for sqlite, not all platforms ship pkg-config file
-if not sqlite_dep.found()
-  sqlite_dep = cc.find_library('sqlite3',
-    has_headers : ['sqlite3.h'],
-    required: false)
-endif
-
-if not sqlite_dep.found()
-  # Allows fallback to subproject
-  sqlite_dep = dependency('sqlite3')
-endif
+sqlite_dep = dependency(['sqlite3', 'SQLite3'], modules: ['SQLite::SQLite3'])
 
 brotlidec_dep = dependency('libbrotlidec', required : get_option('brotli'))
 if brotlidec_dep.found()
