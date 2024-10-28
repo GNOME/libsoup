@@ -14,6 +14,7 @@
 #include "soup-multipart.h"
 #include "soup-headers.h"
 #include "soup-message-headers-private.h"
+#include "soup-misc.h"
 #include "soup.h"
 
 /**
@@ -155,7 +156,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
         const char *body_data = g_bytes_get_data (body, &body_size);
 	body_end = body_data + body_size;
 	boundary = multipart->boundary;
-	boundary_len = strlen (boundary);
+	boundary_len = SOUP_CLAMP_INT (strlen (boundary));
 
 	/* skip preamble */
 	start = find_boundary (body_data, body_end,
@@ -191,7 +192,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		 */
 		part_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 		g_ptr_array_add (multipart->headers, part_headers);
-		if (!soup_headers_parse (start, split - 2 - start,
+		if (!soup_headers_parse (start, SOUP_CLAMP_INT (split - 2 - start),
 					 part_headers)) {
 			soup_multipart_free (multipart);
 			return NULL;

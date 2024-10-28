@@ -378,7 +378,7 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
 		if (nread <= 0)
 			return FALSE;
 
-		g_byte_array_append (priv->meta_buf, read_buf, nread);
+		g_byte_array_append (priv->meta_buf, read_buf, SOUP_CLAMP_INT (nread));
 
 		/* Need to do this boundary check before checking for the line feed, since we
 		 * may get the multipart end indicator without getting a new line.

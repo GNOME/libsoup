@@ -334,7 +334,7 @@ soup_uri_decode_data_uri (const char *uri,
                                 gsize content_length;
                                 GByteArray *unescaped_array = g_bytes_unref_to_array (bytes);
                                 g_base64_decode_inplace ((gchar*)unescaped_array->data, &content_length);
-                                unescaped_array->len = content_length;
+                                unescaped_array->len = SOUP_CLAMP_INT (content_length);
                                 bytes = g_byte_array_free_to_bytes (unescaped_array);
                         }
                 }

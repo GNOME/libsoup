@@ -455,7 +455,7 @@ io_read (SoupServerMessageIOHTTP2 *io,
 {
         guint8 buffer[16384];
         gssize read;
-        int ret;
+        gssize ret;
 
         if ((read = g_pollable_stream_read (io->istream, buffer, sizeof (buffer), FALSE, NULL, error)) < 0)
                 return FALSE;
@@ -470,7 +470,7 @@ io_read (SoupServerMessageIOHTTP2 *io,
         g_assert (io->in_callback == 0);
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
         if (ret < 0) {
-                g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP/2 IO error: %s", nghttp2_strerror (ret));
+                g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP/2 IO error: %s", nghttp2_strerror (SOUP_CLAMP_INT (ret)));
                 return FALSE;
         }
 

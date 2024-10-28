@@ -1156,7 +1156,7 @@ sort_ranges (gconstpointer a, gconstpointer b)
 	SoupRange *ra = (SoupRange *)a;
 	SoupRange *rb = (SoupRange *)b;
 
-	return ra->start - rb->start;
+	return SOUP_CLAMP_INT (ra->start - rb->start);
 }
 
 /* like soup_message_headers_get_ranges(), except it returns:

@@ -227,7 +227,7 @@ sso_ntlm_response (SoupAuthNTLMPrivate *priv, const char *input, SoupNTLMState c
 	size_t	len_in = strlen (input), len_out = sizeof (buf);
 
 	while (len_in > 0) {
-		int written = write (priv->fd_in, input, len_in);
+		gssize written = write (priv->fd_in, input, len_in);
 		if (written == -1) {
 			if (errno == EINTR)
 				continue;
@@ -604,7 +604,7 @@ soup_auth_ntlm_class_init (SoupAuthNTLMClass *auth_ntlm_class)
 }
 
 static void md4sum                (const unsigned char *in, 
-				   int                  nbytes, 
+				   gsize                nbytes, 
 				   unsigned char        digest[16]);
 
 typedef guint32 DES_KS[16][2]; /* Single-key DES key schedule */
@@ -995,11 +995,11 @@ soup_ntlm_response (const char *nonce,
 	user_conv = g_convert (user, -1, "UCS-2LE", "UTF-8", NULL, &ulen, NULL);
 	host_conv = g_convert (host, -1, "UCS-2LE", "UTF-8", NULL, &hlen, NULL);
 
-	ntlm_set_string (&resp.domain, &offset, dlen);
-	ntlm_set_string (&resp.user, &offset, ulen);
-	ntlm_set_string (&resp.host, &offset, hlen);
+	ntlm_set_string (&resp.domain, &offset, SOUP_CLAMP_INT (dlen));
+	ntlm_set_string (&resp.user, &offset, SOUP_CLAMP_INT (ulen));
+	ntlm_set_string (&resp.host, &offset, SOUP_CLAMP_INT (hlen));
 	ntlm_set_string (&resp.lm_resp, &offset, sizeof (lm_resp));
-	ntlm_set_string (&resp.nt_resp, &offset, nt_resp_sz);
+	ntlm_set_string (&resp.nt_resp, &offset, SOUP_CLAMP_INT (nt_resp_sz));
 
 	out = g_malloc (((offset + 3) * 4) / 3 + 6);
 	memcpy (out, "NTLM ", 5);
@@ -1092,11 +1092,11 @@ calc_response (const guchar *key, const guchar *plaintext, guchar *results)
 #define ROT(val, n) ( ((val) << (n)) | ((val) >> (32 - (n))) )
 
 static void
-md4sum (const unsigned char *in, int nbytes, unsigned char digest[16])
+md4sum (const unsigned char *in, gsize nbytes, unsigned char digest[16])
 {
 	unsigned char *M;
 	guint32 A, B, C, D, AA, BB, CC, DD, X[16];
-	int pbytes, nbits = nbytes * 8, i, j;
+	gsize pbytes, nbits = nbytes * 8, i, j;
 
 	/* There is *always* padding of at least one bit. */
 	pbytes = ((119 - (nbytes % 64)) % 64) + 1;

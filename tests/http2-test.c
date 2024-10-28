@@ -985,7 +985,7 @@ do_preconnect_test (Test *test, gconstpointer data)
         SoupMessage *msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
         GError *error = NULL;
         SoupConnection *conn = NULL;
-        guint32 connection_id;
+        guint64 connection_id;
 
         soup_session_preconnect_async (test->session, msg, G_PRIORITY_DEFAULT, NULL,
                                        (GAsyncReadyCallback)on_preconnect_ready,

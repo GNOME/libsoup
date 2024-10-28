@@ -633,7 +633,7 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, GBytes *buffer)
 }
 
 static gboolean
-skip_insignificant_space (const char *resource, int *pos, int resource_length)
+skip_insignificant_space (const char *resource, int *pos, gsize resource_length)
 {
 	while ((resource[*pos] == '\x09') ||
 	       (resource[*pos] == '\x20') ||

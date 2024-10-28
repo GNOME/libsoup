@@ -95,7 +95,7 @@ typedef struct {
         gboolean is_options_ping;
         gboolean is_preconnect;
         gboolean is_misdirected_retry;
-        guint    last_connection_id;
+        guint64  last_connection_id;
         guint8   force_http_version;
         GSocketAddress *remote_address;
 
@@ -1343,6 +1343,7 @@ soup_message_add_header_handler (SoupMessage *msg,
 {
 	GClosure *closure;
 	char *header_name;
+        gulong handler;
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
 	g_return_val_if_fail (signal != NULL, 0);
@@ -1357,7 +1358,10 @@ soup_message_add_header_handler (SoupMessage *msg,
 	g_closure_add_finalize_notifier (closure, header_name,
 					 header_handler_free);
 
-	return g_signal_connect_closure (msg, signal, closure, FALSE);
+        /* FIXME: Cannot fix without API break. */
+	handler = g_signal_connect_closure (msg, signal, closure, FALSE);
+        g_assert (handler <= G_MAXUINT);
+        return (guint)handler;
 }
 
 static void
@@ -1402,6 +1406,7 @@ soup_message_add_status_code_handler (SoupMessage *msg,
 				      gpointer     user_data)
 {
 	GClosure *closure;
+        gulong handler;
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
 	g_return_val_if_fail (signal != NULL, 0);
@@ -1411,7 +1416,10 @@ soup_message_add_status_code_handler (SoupMessage *msg,
 	g_closure_set_meta_marshal (closure, GUINT_TO_POINTER (status_code),
 				    status_handler_metamarshal);
 
-	return g_signal_connect_closure (msg, signal, closure, FALSE);
+        /* FIXME: Cannot fix without API break. */
+	handler = g_signal_connect_closure (msg, signal, closure, FALSE);
+        g_assert (handler <= G_MAXUINT);
+        return (guint)handler;
 }
 
 void

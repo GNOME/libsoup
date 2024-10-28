@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-message-body.h"
+#include "soup-misc.h"
 #include "soup.h"
 
 /**
@@ -253,16 +254,14 @@ soup_message_body_flatten (SoupMessageBody *body)
 	g_return_val_if_fail (priv->accumulate == TRUE, NULL);
 
 	if (!priv->flattened) {
-#if GLIB_SIZEOF_SIZE_T < 8
-		g_return_val_if_fail (body->length < G_MAXSIZE, NULL);
-#endif
+                g_return_val_if_fail (body->length < G_MAXUINT, NULL);
 
-                GByteArray *array = g_byte_array_sized_new (body->length + 1);
+                GByteArray *array = g_byte_array_sized_new (SOUP_CLAMP_INT (body->length + 1));
 		for (GSList *iter = priv->chunks; iter; iter = iter->next) {
 			GBytes *chunk = iter->data;
                         gsize chunk_size;
                         const guchar *chunk_data = g_bytes_get_data (chunk, &chunk_size);
-                        g_byte_array_append (array, chunk_data, chunk_size);
+                        g_byte_array_append (array, chunk_data, SOUP_CLAMP_INT (chunk_size));
 		}
                 // NUL terminate the array but don't reflect that in the length
                 g_byte_array_append (array, (guchar*)"\0", 1);

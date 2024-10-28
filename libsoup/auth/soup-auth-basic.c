@@ -92,7 +92,7 @@ soup_auth_basic_authenticate (SoupAuth *auth, const char *username,
 {
 	SoupAuthBasicPrivate *priv = soup_auth_basic_get_instance_private (SOUP_AUTH_BASIC (auth));
 	char *user_pass, *user_pass_latin1;
-	int len;
+	gsize len;
 
 	user_pass = g_strdup_printf ("%s:%s", username, password);
 	user_pass_latin1 = g_convert (user_pass, -1, "ISO-8859-1", "UTF-8",

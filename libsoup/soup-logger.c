@@ -159,7 +159,7 @@ write_body (SoupLogger *logger, const char *buffer, gsize nread,
                 /* longer than max => we've written the extra [...] */
                 if (body->len > priv->max_body_size)
                         return;
-                int cap = priv->max_body_size - body->len;
+                gsize cap = priv->max_body_size - body->len;
                 if (cap > 0)
                         g_string_append_len (body, buffer, MIN (nread, cap));
                 if (nread > cap)

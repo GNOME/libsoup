@@ -16,6 +16,7 @@
 #include <sqlite3.h>
 
 #include "soup-cookie-jar-db.h"
+#include "soup-misc.h"
 #include "soup.h"
 
 /**
@@ -175,7 +176,7 @@ callback (void *data, int argc, char **argv, char **colname)
 
 	if (now >= expire_time)
 		return 0;
-	max_age = (expire_time - now <= G_MAXINT ? expire_time - now : G_MAXINT);
+	max_age = SOUP_CLAMP_INT (expire_time - now);
 
 	http_only = (g_strcmp0 (argv[COL_HTTP_ONLY], "1") == 0);
 	secure = (g_strcmp0 (argv[COL_SECURE], "1") == 0);
@@ -184,7 +185,7 @@ callback (void *data, int argc, char **argv, char **colname)
 	if (argv[COL_SAME_SITE_POLICY] == NULL)
 	    same_site_policy = SOUP_SAME_SITE_POLICY_NONE;
 	else
-	    same_site_policy = g_ascii_strtoll (argv[COL_SAME_SITE_POLICY], NULL, 0);
+	    same_site_policy = SOUP_CLAMP_INT (g_ascii_strtoll (argv[COL_SAME_SITE_POLICY], NULL, 0));
 
 	cookie = soup_cookie_new (name, value, host, path, max_age);
 

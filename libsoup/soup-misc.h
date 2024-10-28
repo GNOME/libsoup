@@ -77,6 +77,8 @@ gchar *soup_get_accept_languages_from_system (void);
 
 const char *soup_http_version_to_string (SoupHTTPVersion version);
 
+#define SOUP_CLAMP_INT(value) (int)(MAX(MIN(value, G_MAXINT), G_MININT))
+
 G_END_DECLS
 
 #endif /* __SOUP_MISC_H__ */

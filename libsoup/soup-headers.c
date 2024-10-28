@@ -321,7 +321,7 @@ soup_headers_parse_status_line (const char       *status_line,
 	if (code < 100 || code > 999)
 		return FALSE;
 	if (status_code)
-		*status_code = code;
+		*status_code = SOUP_CLAMP_INT (code);
 
 	phrase_start = code_end;
 	while (*phrase_start == ' ' || *phrase_start == '\t')
@@ -626,7 +626,7 @@ gboolean
 soup_header_contains (const char *header, const char *token)
 {
 	const char *end;
-	guint len;
+	gsize len;
 
 	g_return_val_if_fail (header != NULL, FALSE);
 	g_return_val_if_fail (token != NULL, FALSE);

@@ -22,7 +22,7 @@
 
 typedef struct {
 	char     *path;
-	int       len;
+	gsize     len;
 	gpointer  data;
 } SoupPathMapping;
 
@@ -84,7 +84,7 @@ mapping_lookup (SoupPathMap *map, const char *path, int *match, int *insert)
 {
 	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
 	guint i;
-	int path_len;
+	gsize path_len;
 	gboolean exact = FALSE;
 
 	*match = -1;

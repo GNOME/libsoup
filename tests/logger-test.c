@@ -3,6 +3,7 @@
  */
 
 #include "test-utils.h"
+#include "soup-misc.h"
 
 static const char body_data[] =
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
@@ -61,7 +62,7 @@ printer (SoupLogger         *logger,
                 /* we're only reading body now */
                 if (!strcmp (data, "[...]"))
                         return;
-                g_byte_array_append (*body, (const unsigned char *)data, strlen (data));
+                g_byte_array_append (*body, (const unsigned char *)data, SOUP_CLAMP_INT (strlen (data)));
         } else {
                 char *p;
 

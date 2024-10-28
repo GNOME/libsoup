@@ -111,8 +111,8 @@ typedef struct _SoupCacheEntry {
 	guint32 freshness_lifetime;
 	gboolean must_revalidate;
 	gsize length;
-	guint32 corrected_initial_age;
-	guint32 response_time;
+	time_t corrected_initial_age;
+	time_t response_time;
 	gboolean dirty;
 	gboolean being_validated;
 	SoupMessageHeaders *headers;
@@ -334,7 +334,7 @@ copy_end_to_end_headers (SoupMessageHeaders *source, SoupMessageHeaders *destina
 	soup_message_headers_clean_connection_headers (destination);
 }
 
-static guint
+static time_t
 soup_cache_entry_get_current_age (SoupCacheEntry *entry)
 {
 	time_t now = time (NULL);
@@ -347,7 +347,7 @@ soup_cache_entry_get_current_age (SoupCacheEntry *entry)
 static gboolean
 soup_cache_entry_is_fresh_enough (SoupCacheEntry *entry, gint min_fresh)
 {
-	guint limit = (min_fresh == -1) ? soup_cache_entry_get_current_age (entry) : (guint) min_fresh;
+	time_t limit = (min_fresh == -1) ? soup_cache_entry_get_current_age (entry) : (guint) min_fresh;
 	return entry->freshness_lifetime > limit;
 }
 

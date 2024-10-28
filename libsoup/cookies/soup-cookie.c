@@ -230,7 +230,7 @@ parse_one_cookie (const char *header, GUri *origin)
 					max_age = 0;
 				if (max_age > MAX_AGE_CAP_IN_SECONDS)
 					max_age = MAX_AGE_CAP_IN_SECONDS;
-				soup_cookie_set_max_age (cookie, max_age);
+				soup_cookie_set_max_age (cookie, (int)max_age);
 			}
 			g_free (max_age_str);
 		} else if (MATCH_NAME ("path") && has_value) {
@@ -1050,7 +1050,7 @@ soup_cookies_to_cookie_header (GSList *cookies)
 gboolean
 soup_cookie_applies_to_uri (SoupCookie *cookie, GUri *uri)
 {
-	int plen;
+	gsize plen;
 
         g_return_val_if_fail (cookie != NULL, FALSE);
         g_return_val_if_fail (uri != NULL, FALSE);

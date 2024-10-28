@@ -311,7 +311,7 @@ io_write (SoupClientMessageIOHTTP2 *io,
                 io->written_bytes = 0;
                 g_warn_if_fail (io->in_callback == 0);
                 io->write_buffer_size = nghttp2_session_mem_send (io->session, (const guint8**)&io->write_buffer);
-                NGCHECK (io->write_buffer_size);
+                NGCHECK (SOUP_CLAMP_INT (io->write_buffer_size));
                 if (io->write_buffer_size == 0) {
                         /* Done */
                         io->write_buffer = NULL;
@@ -421,8 +421,7 @@ io_read (SoupClientMessageIOHTTP2  *io,
          GError                   **error)
 {
         guint8 buffer[16384];
-        gssize read;
-        int ret;
+        gssize read, ret;
 
         /* Always try to write before read, in case there's a pending reset stream after an error. */
         io_try_write (io, blocking);
@@ -1085,7 +1084,8 @@ on_data_read (GInputStream *source,
                         if (data->request_body_bytes_to_write == 0)
                                 data->data_source_eof = TRUE;
                 }
-                g_byte_array_set_size (data->data_source_buffer, read);
+                g_assert (read <= G_MAXUINT);
+                g_byte_array_set_size (data->data_source_buffer, (guint)read);
         }
 
         h2_debug (data->io, data, "[SEND_BODY] Resuming send");
@@ -1237,7 +1237,8 @@ on_data_source_read_callback (nghttp2_session     *session,
                         return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
                 } else {
                         h2_debug (data->io, data, "[SEND_BODY] Reading async");
-                        g_byte_array_set_size (data->data_source_buffer, length);
+                        g_assert (length <= G_MAXUINT);
+                        g_byte_array_set_size (data->data_source_buffer, (guint)length);
                         g_input_stream_read_async (in_stream, data->data_source_buffer->data, length,
                                                    get_data_io_priority (data),
                                                    data->item->cancellable,

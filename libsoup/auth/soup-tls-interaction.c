@@ -49,10 +49,10 @@ soup_tls_interaction_request_certificate_finish (GTlsInteraction *tls_interactio
                                                  GAsyncResult    *result,
                                                  GError         **error)
 {
-        int task_result;
+        gssize task_result;
 
         task_result = g_task_propagate_int (G_TASK (result), error);
-        return task_result != -1 ? task_result : G_TLS_INTERACTION_FAILED;
+        return task_result != -1 ? SOUP_CLAMP_INT (task_result) : G_TLS_INTERACTION_FAILED;
 }
 
 static void
@@ -82,10 +82,10 @@ soup_tls_interaction_ask_password_finish (GTlsInteraction *tls_interaction,
                                           GAsyncResult    *result,
                                           GError         **error)
 {
-        int task_result;
+        gssize task_result;
 
         task_result = g_task_propagate_int (G_TASK (result), error);
-        return task_result != -1 ? task_result : G_TLS_INTERACTION_FAILED;
+        return task_result != -1 ? SOUP_CLAMP_INT (task_result) : G_TLS_INTERACTION_FAILED;
 }
 
 static void

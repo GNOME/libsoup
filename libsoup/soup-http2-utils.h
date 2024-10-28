@@ -8,7 +8,7 @@
 
 #define NGCHECK(stm)                                                                             \
         G_STMT_START {                                                                           \
-                int return_code = stm;                                                           \
+                int return_code = SOUP_CLAMP_INT (stm);                                          \
                 if (return_code == NGHTTP2_ERR_NOMEM)                                            \
                         g_abort ();                                                              \
                 else if (return_code < 0)                                                        \

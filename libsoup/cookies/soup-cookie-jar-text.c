@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "soup-cookie-jar-text.h"
+#include "soup-misc.h"
 #include "soup.h"
 
 /**
@@ -161,7 +162,7 @@ parse_cookie (char *line, time_t now)
 	char **result;
 	SoupCookie *cookie = NULL;
 	gboolean http_only;
-	gulong expire_time;
+	gsize expire_time;
 	int max_age;
 	char *host, *path, *secure, *expires, *name, *value, *samesite = NULL;
 	gsize result_length;
@@ -184,7 +185,7 @@ parse_cookie (char *line, time_t now)
 	expire_time = strtoul (expires, NULL, 10);
 	if (now >= expire_time)
 		goto out;
-	max_age = (expire_time - now <= G_MAXINT ? expire_time - now : G_MAXINT);
+	max_age = SOUP_CLAMP_INT (expire_time - now);
 
 	host = result[0];
 

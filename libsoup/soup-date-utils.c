@@ -25,6 +25,7 @@
 
 #include "soup-date-utils.h"
 #include "soup-date-utils-private.h"
+#include "soup-misc.h"
 
 /**
  * soup_date_time_is_past:
@@ -122,7 +123,7 @@ parse_day (int *day, const char **date_string)
 {
 	char *end;
 
-	*day = strtoul (*date_string, &end, 10);
+	*day = SOUP_CLAMP_INT (strtoul (*date_string, &end, 10));
 	if (end == (char *)*date_string)
 		return FALSE;
 
@@ -154,7 +155,7 @@ parse_year (int *year, const char **date_string)
 {
 	char *end;
 
-	*year = strtoul (*date_string, &end, 10);
+	*year = SOUP_CLAMP_INT (strtoul (*date_string, &end, 10));
 	if (end == (char *)*date_string)
 		return FALSE;
 
@@ -177,15 +178,15 @@ parse_time (int *hour, int *minute, int *second, const char **date_string)
 {
 	char *p, *end;
 
-	*hour = strtoul (*date_string, &end, 10);
+	*hour = SOUP_CLAMP_INT (strtoul (*date_string, &end, 10));
 	if (end == (char *)*date_string || *end++ != ':')
 		return FALSE;
 	p = end;
-	*minute = strtoul (p, &end, 10);
+	*minute = SOUP_CLAMP_INT (strtoul (p, &end, 10));
 	if (end == p || *end++ != ':')
 		return FALSE;
 	p = end;
-	*second = strtoul (p, &end, 10);
+	*second = SOUP_CLAMP_INT (strtoul (p, &end, 10));
 	if (end == p)
 		return FALSE;
 	p = end;
@@ -199,7 +200,7 @@ parse_time (int *hour, int *minute, int *second, const char **date_string)
 static inline gboolean
 parse_timezone (GTimeZone **timezone, const char **date_string)
 {
-        gint32 offset_minutes;
+        gssize offset_minutes;
         gboolean utc;
 
 	if (!**date_string) {
@@ -237,7 +238,7 @@ parse_timezone (GTimeZone **timezone, const char **date_string)
         if (utc)
                 *timezone = g_time_zone_new_utc ();
         else
-                *timezone = g_time_zone_new_offset (offset_minutes * 60);
+                *timezone = g_time_zone_new_offset (SOUP_CLAMP_INT (offset_minutes * 60));
 	return TRUE;
 }
 
