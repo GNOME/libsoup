@@ -914,7 +914,7 @@ append_param_quoted (GString    *string,
 		     const char *name,
 		     const char *value)
 {
-	int len;
+	gsize len;
 
 	g_string_append (string, name);
 	g_string_append (string, "=\"");
