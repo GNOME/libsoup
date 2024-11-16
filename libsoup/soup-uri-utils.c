@@ -303,6 +303,8 @@ soup_uri_decode_data_uri (const char *uri,
 
         uri_string = g_uri_to_string (soup_uri);
         g_uri_unref (soup_uri);
+        if (!uri_string)
+                return NULL;
 
         start = uri_string + 5;
         comma = strchr (start, ',');
