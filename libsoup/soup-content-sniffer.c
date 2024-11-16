@@ -504,7 +504,7 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 			guint index_pattern = 0;
 			gboolean skip_row = FALSE;
 
-			while ((index_stream < resource_length) &&
+			while ((index_stream < resource_length - 1) &&
 			       (index_pattern <= type_row->pattern_length)) {
 				/* Skip insignificant white space ("WS" in the spec) */
 				if (type_row->pattern[index_pattern] == ' ') {
