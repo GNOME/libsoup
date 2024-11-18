@@ -641,7 +641,7 @@ skip_insignificant_space (const char *resource, int *pos, int resource_length)
 	       (resource[*pos] == '\x0D')) {
 		*pos = *pos + 1;
 
-		if (*pos > resource_length)
+		if (*pos >= resource_length)
 			return TRUE;
 	}
 
@@ -704,7 +704,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 		do {
 			pos++;
 
-			if (pos > resource_length)
+			if ((pos + 1) > resource_length)
 				goto text_html;
 		} while (resource[pos] != '>');
 
