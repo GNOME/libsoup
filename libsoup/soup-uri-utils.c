@@ -286,6 +286,7 @@ soup_uri_decode_data_uri (const char *uri,
         gboolean base64 = FALSE;
         char *uri_string;
         GBytes *bytes;
+        const char *path;
 
         g_return_val_if_fail (uri != NULL, NULL);
 
@@ -300,6 +301,13 @@ soup_uri_decode_data_uri (const char *uri,
 
         if (content_type)
                 *content_type = NULL;
+
+        /* g_uri_to_string() is picky about paths that start with `//` and will assert. */
+        path = g_uri_get_path (soup_uri);
+        if (path[0] == '/' && path[1] == '/') {
+                g_uri_unref (soup_uri);
+                return NULL;
+        }
 
         uri_string = g_uri_to_string (soup_uri);
         g_uri_unref (soup_uri);
