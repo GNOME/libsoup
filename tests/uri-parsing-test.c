@@ -141,6 +141,8 @@ static struct {
         { "data:text/plain;base64,aGVsbG8=", "hello", "text/plain" },
         { "data:text/plain;base64,invalid=", "", "text/plain" },
         { "data:,", "", CONTENT_TYPE_DEFAULT },
+        { "data:.///", NULL, NULL },
+        { "data:/.//", NULL, NULL },
 };
 
 static void
