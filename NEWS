@@ -1,3 +1,10 @@
+Changes in libsoup from 3.4.4 to 3.4.5:
+
+* Fix possible NULL deref in `soup_uri_decode_data_uri()` [Ar Jun]
+* Fix possible overflow in `SoupContentSniffer` [Ar Jun]
+* Fix assertion in `soup_uri_decode_data_uri()` on URLs with a path starting with `//` [Patrick Griffis]
+* websocket: Fix possibility of being stuck in a read loop [Ignacio Casal Quinteiro]
+
 Changes in libsoup from 3.4.3 to 3.4.4:
 
 * Improve HTTP/2 performance when a lot of buffering happens [Keyu Tao]
