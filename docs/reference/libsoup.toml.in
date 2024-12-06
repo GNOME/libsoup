@@ -4,7 +4,8 @@ version = "@VERSION@"
 browse_url = "https://gitlab.gnome.org/GNOME/libsoup"
 repository_url = "https://gitlab.gnome.org/GNOME/libsoup.git"
 docs_url = "https://libsoup.org/libsoup-3.0/"
-website_url = "https://libsoup.org/"
+website_url = "https://libsoup.gnome.org/"
+logo_url = "https://gitlab.gnome.org/uploads/-/system/project/avatar/1630/logo.png"
 authors = "Dan Winship, Claudio Saavedra, Patrick Griffis, and Carlos Garcia Campos"
 license = "LGPL-2.0-or-later"
 description = "HTTP client/server library for GNOME"
@@ -48,5 +49,10 @@ content_files = [
 ]
 
 content_images = [
+  "images/favicon.ico",
+  "images/favicon-16x16.png",
+  "images/favicon-32x32.png",
+  "images/favicon-180x180.png",
+  "images/favicon-192x192.png",
 ]
 urlmap_file = "urlmap.js"
