@@ -1,4 +1,4 @@
-Title: Advances Usage
+Title: Advanced Usage
 Slug: client-advanced
 
 # Advanced Usage
