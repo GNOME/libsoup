@@ -148,6 +148,9 @@ soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 	guint qop_options;
 	gboolean ok = TRUE;
 
+        if (!soup_auth_get_realm (auth))
+                return FALSE;
+
 	g_free (priv->domain);
 	g_free (priv->nonce);
 	g_free (priv->opaque);
