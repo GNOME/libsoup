@@ -254,6 +254,10 @@ soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
         GTask *task = data->task;
         GError *error = NULL;
 
+        /* Already finished. */
+        if (!data->task)
+                return;
+
         if (g_cancellable_set_error_if_cancelled (g_task_get_cancellable (task), &error)) {
                 io->pending_io_messages = g_list_remove (io->pending_io_messages, data);
                 data->task = NULL;
@@ -631,7 +635,7 @@ on_begin_frame_callback (nghttp2_session        *session,
         case NGHTTP2_DATA:
                 if (data->state < STATE_READ_DATA_START) {
                         g_assert (!data->body_istream);
-                        data->body_istream = soup_body_input_stream_http2_new ();
+                        data->body_istream = soup_body_input_stream_http2_new (session, hd->stream_id);
                         g_signal_connect (data->body_istream, "need-more-data",
                                           G_CALLBACK (memory_stream_need_more_data_callback), data);
 
@@ -954,6 +958,9 @@ on_frame_send_callback (nghttp2_session     *session,
                         g_source_attach (source, g_task_get_context (io->close_task));
                         g_source_unref (source);
                 }
+                break;
+        case NGHTTP2_WINDOW_UPDATE:
+                h2_debug (io, data, "[SEND] [WINDOW_UPDATE] stream_id=%u increment=%d", frame->hd.stream_id, frame->window_update.window_size_increment);
                 break;
         default:
                 h2_debug (io, data, "[SEND] [%s] stream_id=%u", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.stream_id);
@@ -1942,6 +1949,7 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
 
         nghttp2_option_new (&option);
         nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation (option, 1);
+        nghttp2_option_set_no_auto_window_update (option, 1);
         NGCHECK (nghttp2_session_client_new2 (&io->session, callbacks, io, option));
         nghttp2_option_del (option);
 #else

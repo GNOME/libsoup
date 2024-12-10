@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "soup-body-input-stream-http2.h"
+#include "soup-http2-utils.h"
 #include <glib/gi18n-lib.h>
 
 /*
@@ -48,6 +49,8 @@ typedef struct {
         gsize pos;
         gboolean completed;
         GCancellable *need_more_data_cancellable;
+        nghttp2_session *session; /* unowned */
+        gint32 stream_id;
 } SoupBodyInputStreamHttp2Private;
 
 static void soup_body_input_stream_http2_pollable_iface_init (GPollableInputStreamInterface *iface);
@@ -66,15 +69,36 @@ static guint signals [LAST_SIGNAL] = { 0 };
 
 /**
  * soup_body_input_stream_http2_new:
+ * @session: (transfer none): NGHTTP2 session
+ * @stream_id: ID of specific connection
  *
- * Creates a new empty #SoupBodyInputStreamHttp2. 
+ * Creates a new empty #SoupBodyInputStreamHttp2. @session is only %NULL for unit tests.
  *
  * Returns: a new #GInputStream
  */
 GInputStream *
-soup_body_input_stream_http2_new (void)
+soup_body_input_stream_http2_new (nghttp2_session *session, gint32 stream_id)
 {
-        return G_INPUT_STREAM (g_object_new (SOUP_TYPE_BODY_INPUT_STREAM_HTTP2, NULL));
+        SoupBodyInputStreamHttp2 *stream = g_object_new (SOUP_TYPE_BODY_INPUT_STREAM_HTTP2, NULL);
+        SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
+
+        priv->session = session;
+        priv->stream_id = stream_id;
+
+        return G_INPUT_STREAM (stream);
+}
+
+gsize
+soup_body_input_stream_http2_get_buffer_size (SoupBodyInputStreamHttp2 *stream)
+{
+        SoupBodyInputStreamHttp2Private *priv;
+
+        g_return_val_if_fail (SOUP_IS_BODY_INPUT_STREAM_HTTP2 (stream), 0);
+
+        priv = soup_body_input_stream_http2_get_instance_private (stream);
+
+        g_assert (priv->len >= priv->pos);
+        return priv->len - priv->pos;
 }
 
 void
@@ -174,22 +198,26 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
         }
 
         priv->pos += count;
+        if (priv->session)
+                NGCHECK (nghttp2_session_consume (priv->session, priv->stream_id, count));
 
-        /* We need to block until the read is completed.
-         * So emit a signal saying we need more data. */
-        if (count == 0 && blocking && !priv->completed) {
+        if (count < read_count && !priv->completed) {
+                /* We need to block until the read is completed.
+                * So emit a signal saying we need more data. */
                 GError *read_error = NULL;
                 g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0,
-                               blocking, cancellable, &read_error);
+                        blocking, cancellable, &read_error);
 
                 if (read_error) {
                         g_propagate_error (error, read_error);
                         return -1;
                 }
 
-                return soup_body_input_stream_http2_read_real (
-                        stream, blocking, buffer, read_count, cancellable, error
-                );
+                if (blocking) {
+                        return soup_body_input_stream_http2_read_real (
+                                stream, blocking, buffer, read_count, cancellable, error
+                        );
+                }
         }
 
         return count;
@@ -253,6 +281,8 @@ soup_body_input_stream_http2_skip (GInputStream  *stream,
 
         count = MIN (count, priv->len - priv->pos);
         priv->pos += count;
+        if (priv->session)
+                NGCHECK (nghttp2_session_consume_stream (priv->session, priv->stream_id, count));
 
         /* Remove all skipped chunks */
         gsize offset = priv->start_offset;

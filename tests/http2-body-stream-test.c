@@ -26,7 +26,7 @@ do_large_data_test (void)
 #define CHUNK_SIZE (gsize)1024 * 1024 * 512 // 512 MiB
 #define TEST_SIZE CHUNK_SIZE * 20 // 10 GiB
 
-        GInputStream *stream = soup_body_input_stream_http2_new ();
+        GInputStream *stream = soup_body_input_stream_http2_new (NULL, 0);
         SoupBodyInputStreamHttp2 *mem_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
         gsize data_needed = TEST_SIZE;
         guint8 *memory_chunk = g_new (guint8, CHUNK_SIZE); 
@@ -63,7 +63,7 @@ do_large_data_test (void)
 static void
 do_multiple_chunk_test (void)
 {
-        GInputStream *stream = soup_body_input_stream_http2_new ();
+        GInputStream *stream = soup_body_input_stream_http2_new (NULL, 0);
         SoupBodyInputStreamHttp2 *mem_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
         const char * const chunks[] = {
                 "1234", "5678", "9012", "hell", "owor", "ld..",
@@ -100,7 +100,7 @@ on_skip_ready (GInputStream *stream, GAsyncResult *res, GMainLoop *loop)
 static void
 do_skip_async_test (void)
 {
-        GInputStream *stream = soup_body_input_stream_http2_new ();
+        GInputStream *stream = soup_body_input_stream_http2_new (NULL, 0);
         SoupBodyInputStreamHttp2 *bistream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
         GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
