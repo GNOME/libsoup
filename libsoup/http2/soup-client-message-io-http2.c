@@ -254,6 +254,10 @@ soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
         GTask *task = data->task;
         GError *error = NULL;
 
+        /* Already finished. */
+        if (!data->task)
+                return;
+
         if (g_cancellable_set_error_if_cancelled (g_task_get_cancellable (task), &error)) {
                 io->pending_io_messages = g_list_remove (io->pending_io_messages, data);
                 data->task = NULL;
@@ -601,6 +605,10 @@ memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
         SoupHTTP2MessageData *data = (SoupHTTP2MessageData*)user_data;
         GError *error = NULL;
 
+        // Callbacks can trigger sniffing which reads data.
+        if (data->io->in_callback)
+                return NULL;
+
         if (nghttp2_session_want_read (data->io->session))
                 io_read (data->io, blocking, cancellable, &error);
 
@@ -631,7 +639,7 @@ on_begin_frame_callback (nghttp2_session        *session,
         case NGHTTP2_DATA:
                 if (data->state < STATE_READ_DATA_START) {
                         g_assert (!data->body_istream);
-                        data->body_istream = soup_body_input_stream_http2_new ();
+                        data->body_istream = soup_body_input_stream_http2_new (session, hd->stream_id);
                         g_signal_connect (data->body_istream, "need-more-data",
                                           G_CALLBACK (memory_stream_need_more_data_callback), data);
 
@@ -955,6 +963,9 @@ on_frame_send_callback (nghttp2_session     *session,
                         g_source_unref (source);
                 }
                 break;
+        case NGHTTP2_WINDOW_UPDATE:
+                h2_debug (io, data, "[SEND] [WINDOW_UPDATE] stream_id=%u increment=%d", frame->hd.stream_id, frame->window_update.window_size_increment);
+                break;
         default:
                 h2_debug (io, data, "[SEND] [%s] stream_id=%u", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.stream_id);
                 break;
@@ -1120,11 +1131,6 @@ on_data_source_read_callback (nghttp2_session     *session,
         SoupHTTP2MessageData *data = nghttp2_session_get_stream_user_data (session, stream_id);
 
         h2_debug (io, data, "[SEND_BODY] stream_id=%u, paused=%d", stream_id, data ? data->paused : 0);
-
-        if (!data) {
-                /* This can happen in case of cancellation */
-                return 0;
-        }
 
         data->io->in_callback++;
 
@@ -1937,17 +1943,18 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
         nghttp2_session_callbacks_set_on_frame_send_callback (callbacks, on_frame_send_callback);
         nghttp2_session_callbacks_set_on_stream_close_callback (callbacks, on_stream_close_callback);
 
-#ifdef HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION
         nghttp2_option *option;
 
         nghttp2_option_new (&option);
-        nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation (option, 1);
-        NGCHECK (nghttp2_session_client_new2 (&io->session, callbacks, io, option));
-        nghttp2_option_del (option);
-#else
-        NGCHECK (nghttp2_session_client_new (&io->session, callbacks, io));
-#endif
 
+#ifdef HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION
+        nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation (option, 1);
+#endif
+        nghttp2_option_set_no_auto_window_update (option, 1);
+
+        NGCHECK (nghttp2_session_client_new2 (&io->session, callbacks, io, option));
+
+        nghttp2_option_del (option);
         nghttp2_session_callbacks_del (callbacks);
 
         io->messages = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)soup_http2_message_data_free);

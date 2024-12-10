@@ -1,12 +1,15 @@
 
 #pragma once
 
+#include <nghttp2/nghttp2.h>
 #include "soup-types.h"
 
 #define SOUP_TYPE_BODY_INPUT_STREAM_HTTP2 (soup_body_input_stream_http2_get_type ())
 G_DECLARE_FINAL_TYPE (SoupBodyInputStreamHttp2, soup_body_input_stream_http2, SOUP, BODY_INPUT_STREAM_HTTP2, GInputStream)
 
-GInputStream * soup_body_input_stream_http2_new        (void);
+GInputStream * soup_body_input_stream_http2_new        (nghttp2_session *session, gint32 stream_id);
+
+gsize          soup_body_input_stream_http2_get_buffer_size (SoupBodyInputStreamHttp2 *stream);
 
 void           soup_body_input_stream_http2_add_data   (SoupBodyInputStreamHttp2 *stream,
                                                         const guint8             *data,
