@@ -1,3 +1,9 @@
+include:
+  - component: gitlab.gnome.org/GNOME/citemplates/release-service@master
+    inputs:
+      dist-job-name: "fedora-distcheck"
+      tarball-artifact-path: "_build/meson-dist/$CI_PROJECT_NAME-$CI_COMMIT_TAG.tar.xz"
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
@@ -11,6 +17,7 @@ stages:
   - coverage
   - docs
   - deploy
+  - release
 
 .build:
   stage: build
@@ -64,6 +71,16 @@ fedora-scan:
     when: on_failure
     paths:
       - _build/meson-logs/scanbuild
+
+fedora-distcheck:
+  extends: .build
+  script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - meson setup _build --auto-features=enabled
+    - meson dist -C _build
+  artifacts:
+    paths:
+      - "_build/meson-dist/*.xz"
 
 fedora-asan:
   stage: build
@@ -128,3 +145,4 @@ pages:
       - public
   only:
     - master
+
