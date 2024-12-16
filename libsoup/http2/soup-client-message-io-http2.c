@@ -119,6 +119,52 @@ typedef struct {
 static void soup_client_message_io_http2_finished (SoupClientMessageIO *iface, SoupMessage *msg);
 static ssize_t on_data_source_read_callback (nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data);
 
+#define ANSI_CODE_RESET      "\033[00m"
+#define ANSI_CODE_BOLD       "\033[1m"
+#define ANSI_CODE_DARK       "\033[2m"
+#define ANSI_CODE_UNDERLINE  "\033[4m"
+#define ANSI_CODE_BLINK      "\033[5m"
+#define ANSI_CODE_REVERSE    "\033[7m"
+#define ANSI_CODE_CONCEALED  "\033[8m"
+#define ANSI_CODE_GRAY       "\033[30m"
+#define ANSI_CODE_RED        "\033[31m"
+#define ANSI_CODE_GREEN      "\033[32m"
+#define ANSI_CODE_YELLOW     "\033[33m"
+#define ANSI_CODE_BLUE       "\033[34m"
+#define ANSI_CODE_MAGENTA    "\033[35m"
+#define ANSI_CODE_CYAN       "\033[36m"
+#define ANSI_CODE_WHITE      "\033[37m"
+#define ANSI_CODE_BG_GRAY    "\033[40m"
+#define ANSI_CODE_BG_RED     "\033[41m"
+#define ANSI_CODE_BG_GREEN   "\033[42m"
+#define ANSI_CODE_BG_YELLOW  "\033[43m"
+#define ANSI_CODE_BG_BLUE    "\033[44m"
+#define ANSI_CODE_BG_MAGENTA "\033[45m"
+#define ANSI_CODE_BG_CYAN    "\033[46m"
+#define ANSI_CODE_BG_WHITE   "\033[47m"
+
+static const char *
+id_color (guint32 id)
+{
+        switch (id % 6) {
+            case 0:
+                return ANSI_CODE_RED;
+            case 1:
+                return ANSI_CODE_GREEN;
+            case 2:
+                return ANSI_CODE_YELLOW;
+            case 3:
+                return ANSI_CODE_BLUE;
+            case 4:
+                return ANSI_CODE_MAGENTA;
+            case 5:
+                return ANSI_CODE_CYAN;
+        }
+
+        g_assert_not_reached ();
+        return "";
+}
+
 G_GNUC_PRINTF(3, 0)
 static void
 h2_debug (SoupClientMessageIOHTTP2   *io,
@@ -141,7 +187,7 @@ h2_debug (SoupClientMessageIOHTTP2   *io,
                 stream_id = data->stream_id;
 
         g_assert (io);
-        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[CLIENT] [C%" G_GUINT64_FORMAT "-S%u] [%s] %s", io->connection_id, stream_id, data ? soup_http2_io_state_to_string (data->state) : "-", message);
+        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[CLIENT] [%sC%" G_GUINT64_FORMAT "%s-%sS%u%s] [%s] %s", id_color (io->connection_id), io->connection_id, ANSI_CODE_RESET, id_color (stream_id), stream_id, ANSI_CODE_RESET, data ? soup_http2_io_state_to_string (data->state) : "-", message);
 
         g_free (message);
 }
