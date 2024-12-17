@@ -1340,12 +1340,13 @@ soup_server_listen_ipv4_ipv6 (SoupServer *server,
 	}
 	g_object_unref (addr6);
 
-	if (v4sock && g_error_matches (my_error, G_IO_ERROR,
-				       G_IO_ERROR_NOT_SUPPORTED
-				       )) {
+	if (v4sock &&
+            (g_error_matches (my_error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED) ||
+             g_error_matches (my_error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED))) {
 		/* No IPv6 support, but IPV6_ONLY wasn't specified, so just
 		 * ignore the failure.
 		 */
+                g_debug ("Ignoring IPv6 listen error, assuming it isn't supported: %s", my_error->message);
 		g_error_free (my_error);
 		return TRUE;
 	}
