@@ -745,7 +745,7 @@ soup_server_message_io_http2_send_response (SoupServerMessageIOHTTP2 *io,
         nghttp2_data_provider data_provider;
         data_provider.source.ptr = soup_server_message_get_response_body (msg);
         data_provider.read_callback = on_data_source_read_callback;
-        nghttp2_submit_response (io->session, msg_io->stream_id, (const nghttp2_nv *)headers->data, headers->len, &data_provider);
+        NGCHECK (nghttp2_submit_response (io->session, msg_io->stream_id, (const nghttp2_nv *)headers->data, headers->len, &data_provider));
         io_try_write (io);
         g_array_free (headers, TRUE);
         g_free (status);
