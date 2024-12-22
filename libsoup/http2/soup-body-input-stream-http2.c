@@ -351,9 +351,13 @@ soup_body_input_stream_http2_create_source (GPollableInputStream *stream,
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (SOUP_BODY_INPUT_STREAM_HTTP2 (stream));
         GSource *base_source, *pollable_source;
 
-        if (!priv->need_more_data_cancellable)
-                priv->need_more_data_cancellable = g_cancellable_new ();
-        base_source = g_cancellable_source_new (priv->need_more_data_cancellable);
+        if (priv->pos < priv->len) {
+                base_source = g_timeout_source_new (0);
+        } else {
+                if (!priv->need_more_data_cancellable)
+                        priv->need_more_data_cancellable = g_cancellable_new ();
+                base_source = g_cancellable_source_new (priv->need_more_data_cancellable);
+        }
 
         pollable_source = g_pollable_source_new_full (stream, base_source, cancellable);
         g_source_set_name (pollable_source, "SoupMemoryStreamSource");
