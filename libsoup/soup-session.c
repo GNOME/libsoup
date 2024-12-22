@@ -1239,6 +1239,57 @@ soup_session_redirect_message (SoupSession *session,
 					  error);
 }
 
+static const char *
+state_to_string (SoupMessageQueueItemState state)
+{
+        switch (state) {
+                case SOUP_MESSAGE_STARTING:
+                        return "STARTING";
+                case SOUP_MESSAGE_CONNECTING:
+                        return "CONNECTING";
+                case SOUP_MESSAGE_CONNECTED:
+                        return "CONNECTED";
+                case SOUP_MESSAGE_TUNNELING:
+                        return "TUNNELING";
+                case SOUP_MESSAGE_READY:
+                        return "READY";
+                case SOUP_MESSAGE_RUNNING:
+                        return "RUNNING";
+                case SOUP_MESSAGE_CACHED:
+                        return "CACHED";
+                case SOUP_MESSAGE_REQUEUED:
+                        return "REQUEUED";
+                case SOUP_MESSAGE_RESTARTING:
+                        return "RESTARTING";
+                case SOUP_MESSAGE_FINISHING:
+                        return "FINISHING";
+                case SOUP_MESSAGE_FINISHED:
+                        return "FINISHED";
+        }
+
+        g_assert_not_reached ();
+        return "";
+}
+
+G_GNUC_PRINTF(2, 0)
+static void
+session_debug (SoupMessageQueueItem *item, const char *format, ...)
+{
+        va_list args;
+        char *message;
+
+        if (g_log_writer_default_would_drop (G_LOG_LEVEL_DEBUG, G_LOG_DOMAIN))
+                return;
+
+	va_start (args, format);
+	message = g_strdup_vprintf (format, args);
+	va_end (args);
+
+        g_assert (item);
+        g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "[SESSION QUEUE] [%p] [%s] %s", item,state_to_string (item->state), message);
+        g_free (message);
+}
+
 static void
 redirect_handler (SoupMessage *msg,
 		  gpointer     user_data)
@@ -1456,6 +1507,8 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 	SoupMessageQueueItem *item = user_data;
 
         g_assert (item->context == soup_thread_default_context ());
+
+        session_debug (item, "Message completed");
 
 	if (item->async)
 		soup_session_kick_queue (item->session);
@@ -1737,6 +1790,7 @@ soup_session_process_queue_item (SoupSession          *session,
         g_assert (item->context == soup_thread_default_context ());
 
 	do {
+                session_debug (item, "Processing item, paused=%d state=%d", item->paused, item->state);
 		if (item->paused)
 			return;
 
@@ -2797,6 +2851,8 @@ run_until_read_done (SoupMessage          *msg,
 	GInputStream *stream = NULL;
 	GError *error = NULL;
 
+        session_debug (item, "run_until_read_done");
+
 	soup_message_io_run_until_read_finish (msg, result, &error);
 	if (error && (!item->io_started || item->state == SOUP_MESSAGE_RESTARTING)) {
 		/* Message was restarted, we'll try again. */
@@ -2960,7 +3016,6 @@ idle_return_from_cache_cb (gpointer data)
 	return FALSE;
 }
 
-
 static gboolean
 async_respond_from_cache (SoupSession          *session,
 			  SoupMessageQueueItem *item)
@@ -2977,6 +3032,7 @@ async_respond_from_cache (SoupSession          *session,
 		GInputStream *stream;
 		GSource *source;
 
+                session_debug (item, "Had fresh cache response");
 		stream = soup_cache_send_response (cache, item->msg);
 		if (!stream) {
 			/* Cached file was deleted? */
@@ -2994,6 +3050,8 @@ async_respond_from_cache (SoupSession          *session,
 	} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
 		SoupMessage *conditional_msg;
 		AsyncCacheConditionalData *data;
+
+                session_debug (item, "Needs validation");
 
 		conditional_msg = soup_cache_generate_conditional_request (cache, item->msg);
 		if (!conditional_msg)
@@ -3205,17 +3263,21 @@ soup_session_send (SoupSession   *session,
 				g_clear_error (&my_error);
 				continue;
 			}
+                        session_debug (item, "Did not reach read: %s", my_error->message);
 			break;
 		}
 
 		stream = soup_message_io_get_response_istream (msg, &my_error);
-		if (!stream)
+		if (!stream) {
+                        session_debug (item, "Did not get a response stream");
 			break;
+                }
 
 		if (!expected_to_be_requeued (session, msg))
 			break;
 
 		/* Gather the current message body... */
+                session_debug (item, "Reading response stream");
 		ostream = g_memory_output_stream_new_resizable ();
 		if (g_output_stream_splice (ostream, stream,
 					    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
@@ -3232,6 +3294,7 @@ soup_session_send (SoupSession   *session,
 		/* If the message was requeued, loop */
 		if (item->state == SOUP_MESSAGE_RESTARTING) {
 			g_object_unref (ostream);
+                        session_debug (item, "Restarting item");
 			continue;
 		}
 
