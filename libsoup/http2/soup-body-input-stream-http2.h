@@ -8,6 +8,8 @@ G_DECLARE_FINAL_TYPE (SoupBodyInputStreamHttp2, soup_body_input_stream_http2, SO
 
 GInputStream * soup_body_input_stream_http2_new        (void);
 
+gsize          soup_body_input_stream_http2_get_buffer_size (SoupBodyInputStreamHttp2 *stream);
+
 void           soup_body_input_stream_http2_add_data   (SoupBodyInputStreamHttp2 *stream,
                                                         const guint8             *data,
                                                         gsize                     size);

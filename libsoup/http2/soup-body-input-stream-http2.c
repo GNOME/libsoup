@@ -59,6 +59,7 @@ G_DEFINE_FINAL_TYPE_WITH_CODE (SoupBodyInputStreamHttp2, soup_body_input_stream_
 
 enum {
         NEED_MORE_DATA,
+        READ_DATA,
         LAST_SIGNAL
 };
 
@@ -75,6 +76,19 @@ GInputStream *
 soup_body_input_stream_http2_new (void)
 {
         return G_INPUT_STREAM (g_object_new (SOUP_TYPE_BODY_INPUT_STREAM_HTTP2, NULL));
+}
+
+gsize
+soup_body_input_stream_http2_get_buffer_size (SoupBodyInputStreamHttp2 *stream)
+{
+        SoupBodyInputStreamHttp2Private *priv;
+
+        g_return_val_if_fail (SOUP_IS_BODY_INPUT_STREAM_HTTP2 (stream), 0);
+
+        priv = soup_body_input_stream_http2_get_instance_private (stream);
+
+        g_assert (priv->len >= priv->pos);
+        return priv->len - priv->pos;
 }
 
 void
@@ -106,6 +120,14 @@ soup_body_input_stream_http2_is_blocked (SoupBodyInputStreamHttp2 *stream)
 
         priv = soup_body_input_stream_http2_get_instance_private (stream);
         return priv->need_more_data_cancellable != NULL;
+}
+
+static gboolean
+have_more_data_coming (SoupBodyInputStreamHttp2 *stream)
+{
+        SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
+
+        return !priv->completed || priv->pos < priv->len;
 }
 
 static gssize
@@ -173,23 +195,29 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
                 l = next;
         }
 
-        priv->pos += count;
+        gsize bytes_read = count - rest;
+        priv->pos += bytes_read;
 
-        /* We need to block until the read is completed.
-         * So emit a signal saying we need more data. */
-        if (count == 0 && blocking && !priv->completed) {
+        if (bytes_read > 0)
+                g_signal_emit (memory_stream, signals[READ_DATA], 0, bytes_read);
+
+        /* When doing blocking reads we must always request more data.
+         * Even when doing non-blocking, a read consuming data may trigger a new WINDOW_UPDATE. */
+        if (have_more_data_coming (memory_stream) && bytes_read == 0) {
                 GError *read_error = NULL;
                 g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0,
-                               blocking, cancellable, &read_error);
+                        blocking, cancellable, &read_error);
 
                 if (read_error) {
                         g_propagate_error (error, read_error);
                         return -1;
                 }
 
-                return soup_body_input_stream_http2_read_real (
-                        stream, blocking, buffer, read_count, cancellable, error
-                );
+                if (blocking) {
+                        return soup_body_input_stream_http2_read_real (
+                                stream, blocking, buffer, read_count, cancellable, error
+                        );
+                }
         }
 
         return count;
@@ -212,12 +240,11 @@ soup_body_input_stream_http2_read_nonblocking (GPollableInputStream  *stream,
                                                GError               **error)
 {
         SoupBodyInputStreamHttp2 *memory_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
-        SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (memory_stream);
         GError *inner_error = NULL;
 
         gsize read = soup_body_input_stream_http2_read_real (G_INPUT_STREAM (stream), FALSE, buffer, count, NULL, &inner_error);
 
-        if (read == 0 && !priv->completed && !inner_error) {
+        if (read == 0 && have_more_data_coming (memory_stream) && !inner_error) {
                 g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK, _("Operation would block"));
                 return -1;
         }
@@ -253,6 +280,8 @@ soup_body_input_stream_http2_skip (GInputStream  *stream,
 
         count = MIN (count, priv->len - priv->pos);
         priv->pos += count;
+        if (count)
+                g_signal_emit (memory_stream, signals[READ_DATA], 0, count);
 
         /* Remove all skipped chunks */
         gsize offset = priv->start_offset;
@@ -439,4 +468,14 @@ soup_body_input_stream_http2_class_init (SoupBodyInputStreamHttp2Class *klass)
                               G_TYPE_ERROR,
                               2, G_TYPE_BOOLEAN,
                               G_TYPE_CANCELLABLE);
+
+        signals[READ_DATA] =
+                g_signal_new ("read-data",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_FIRST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 1,
+                              G_TYPE_UINT64);
 }
