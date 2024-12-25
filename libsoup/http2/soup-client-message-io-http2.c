@@ -510,13 +510,13 @@ io_read_ready (GObject                  *stream,
         if (conn)
                 soup_connection_set_in_use (conn, TRUE);
 
-        while (progress && nghttp2_session_want_read (io->session)) {
+        while (nghttp2_session_want_read (io->session) || nghttp2_session_want_write (io->session)) {
                 progress = io_read (io, FALSE, NULL, &error);
-                if (progress) {
-                        g_list_foreach (io->pending_io_messages,
-                                        (GFunc)soup_http2_message_data_check_status,
-                                        NULL);
-                }
+                g_list_foreach (io->pending_io_messages,
+                                (GFunc)soup_http2_message_data_check_status,
+                                NULL);
+                if (!progress || error)
+                        break;
         }
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
@@ -647,10 +647,25 @@ memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
         SoupHTTP2MessageData *data = (SoupHTTP2MessageData*)user_data;
         GError *error = NULL;
 
-        if (nghttp2_session_want_read (data->io->session))
+        if (data->in_io_try_sniff_content)
+                return NULL;
+
+        if (nghttp2_session_want_read (data->io->session) || nghttp2_session_want_write (data->io->session))
                 io_read (data->io, blocking, cancellable, &error);
 
         return error;
+}
+
+static void
+memory_stream_read_data (SoupBodyInputStreamHttp2 *stream,
+                         guint64                   bytes_read,
+                         gpointer                  user_data)
+{
+        SoupHTTP2MessageData *data = (SoupHTTP2MessageData*)user_data;
+
+        h2_debug (data->io, data, "[BODY_STREAM] Consumed %" G_GUINT64_FORMAT " bytes", bytes_read);
+
+        NGCHECK (nghttp2_session_consume(data->io->session, data->stream_id, bytes_read));
 }
 
 static int
@@ -680,6 +695,8 @@ on_begin_frame_callback (nghttp2_session        *session,
                         data->body_istream = soup_body_input_stream_http2_new ();
                         g_signal_connect (data->body_istream, "need-more-data",
                                           G_CALLBACK (memory_stream_need_more_data_callback), data);
+                        g_signal_connect (data->body_istream, "read-data",
+                                          G_CALLBACK (memory_stream_read_data), data);
 
                         g_assert (!data->decoded_data_istream);
                         data->decoded_data_istream = soup_session_setup_message_body_input_stream (data->item->session,
@@ -1986,17 +2003,18 @@ soup_client_message_io_http2_init (SoupClientMessageIOHTTP2 *io)
         nghttp2_session_callbacks_set_on_frame_send_callback (callbacks, on_frame_send_callback);
         nghttp2_session_callbacks_set_on_stream_close_callback (callbacks, on_stream_close_callback);
 
-#ifdef HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION
         nghttp2_option *option;
 
         nghttp2_option_new (&option);
-        nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation (option, 1);
-        NGCHECK (nghttp2_session_client_new2 (&io->session, callbacks, io, option));
-        nghttp2_option_del (option);
-#else
-        NGCHECK (nghttp2_session_client_new (&io->session, callbacks, io));
-#endif
 
+#ifdef HAVE_NGHTTP2_OPTION_SET_NO_RFC9113_LEADING_AND_TRAILING_WS_VALIDATION
+        nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation (option, 1);
+#endif
+        nghttp2_option_set_no_auto_window_update (option, 1);
+
+        NGCHECK (nghttp2_session_client_new2 (&io->session, callbacks, io, option));
+
+        nghttp2_option_del (option);
         nghttp2_session_callbacks_del (callbacks);
 
         io->messages = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)soup_http2_message_data_free);
