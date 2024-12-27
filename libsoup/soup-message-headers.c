@@ -1443,10 +1443,15 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
 	 */
 	if (params && g_hash_table_lookup_extended (*params, "filename",
 						    &orig_key, &orig_value)) {
-		char *filename = strrchr (orig_value, '/');
+                if (orig_value) {
+                        char *filename = strrchr (orig_value, '/');
 
-		if (filename)
-			g_hash_table_insert (*params, g_strdup (orig_key), filename + 1);
+                        if (filename)
+                                g_hash_table_insert (*params, g_strdup (orig_key), filename + 1);
+                } else {
+                        /* filename with no value isn't valid. */
+                        g_hash_table_remove (*params, "filename");
+                }
 	}
 	return TRUE;
 }
