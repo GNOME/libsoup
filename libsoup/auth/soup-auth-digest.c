@@ -72,6 +72,7 @@ soup_auth_digest_finalize (GObject *object)
 	g_free (priv->nonce);
 	g_free (priv->domain);
 	g_free (priv->cnonce);
+        g_free (priv->opaque);
 
 	memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
 	memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
