@@ -1039,6 +1039,7 @@ do_param_list_tests (void)
 #define RFC5987_TEST_HEADER_FALLBACK "attachment; filename*=Unknown''t%FF%FF%FFst.txt; filename=\"test.txt\""
 #define RFC5987_TEST_HEADER_NO_TYPE  "filename=\"test.txt\""
 #define RFC5987_TEST_HEADER_NO_TYPE_2  "filename=\"test.txt\"; foo=bar"
+#define RFC5987_TEST_HEADER_EMPTY_FILENAME ";filename"
 
 static void
 do_content_disposition_tests (void)
@@ -1137,6 +1138,19 @@ do_content_disposition_tests (void)
 	g_assert_cmpstr (filename, ==, RFC5987_TEST_FALLBACK_FILENAME);
         parameter2 = g_hash_table_lookup (params, "foo");
         g_assert_cmpstr (parameter2, ==, "bar");
+	g_hash_table_destroy (params);
+
+        /* Empty filename */
+        soup_message_headers_clear (hdrs);
+        soup_message_headers_append (hdrs, "Content-Disposition",
+				     RFC5987_TEST_HEADER_EMPTY_FILENAME);
+	if (!soup_message_headers_get_content_disposition (hdrs,
+							   &disposition,
+							   &params)) {
+		soup_test_assert (FALSE, "empty filename decoding FAILED");
+		return;
+	}
+        g_assert_false (g_hash_table_contains (params, "filename"));
 	g_hash_table_destroy (params);
 
 	soup_message_headers_unref (hdrs);
