@@ -1867,16 +1867,17 @@ do_multiple_digest_algorithms (void)
 }
 
 static void
-on_request_read_for_missing_realm (SoupServer        *server,
-                                   SoupServerMessage *msg,
-                                   gpointer           user_data)
+on_request_read_for_missing_params (SoupServer        *server,
+                                      SoupServerMessage *msg,
+                                      gpointer           user_data)
 {
+        const char *auth_header = user_data;
         SoupMessageHeaders *response_headers = soup_server_message_get_response_headers (msg);
-        soup_message_headers_replace (response_headers, "WWW-Authenticate", "Digest qop=\"auth\"");
+        soup_message_headers_replace (response_headers, "WWW-Authenticate", auth_header);
 }
 
 static void
-do_missing_realm_test (void)
+do_missing_params_test (gconstpointer auth_header)
 {
         SoupSession *session;
         SoupMessage *msg;
@@ -1899,8 +1900,8 @@ do_missing_realm_test (void)
         g_object_unref (digest_auth_domain);
 
         g_signal_connect (server, "request-read",
-                          G_CALLBACK (on_request_read_for_missing_realm),
-                          NULL);
+                          G_CALLBACK (on_request_read_for_missing_params),
+                          (gpointer)auth_header);
 
         session = soup_test_session_new (NULL);
         msg = soup_message_new_from_uri ("GET", uri);
@@ -1948,7 +1949,9 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/auth-uri", do_auth_uri_test);
         g_test_add_func ("/auth/cancel-request-on-authenticate", do_cancel_request_on_authenticate);
         g_test_add_func ("/auth/multiple-algorithms", do_multiple_digest_algorithms);
-        g_test_add_func ("/auth/missing-realm", do_missing_realm_test);
+        g_test_add_data_func ("/auth/missing-params/realm", "Digest qop=\"auth\"", do_missing_params_test);
+        g_test_add_data_func ("/auth/missing-params/nonce", "Digest realm=\"auth-test\", qop=\"auth,auth-int\", opaque=\"5ccc069c403ebaf9f0171e9517f40e41\"", do_missing_params_test);
+        g_test_add_data_func ("/auth/missing-params/nonce-md5-sess", "Digest realm=\"auth-test\", qop=\"auth,auth-int\", opaque=\"5ccc069c403ebaf9f0171e9517f40e41\" algorithm=\"MD5-sess\"", do_missing_params_test);
 
 	ret = g_test_run ();
 

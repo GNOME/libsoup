@@ -139,6 +139,19 @@ soup_auth_digest_get_qop (SoupAuthDigestQop qop)
 }
 
 static gboolean
+validate_params (SoupAuthDigest *auth_digest)
+{
+        SoupAuthDigestPrivate *priv = soup_auth_digest_get_instance_private (auth_digest);
+
+        if (priv->qop || priv->algorithm == SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS) {
+                if (!priv->nonce)
+                        return FALSE;
+        }
+
+        return TRUE;
+}
+
+static gboolean
 soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 			 GHashTable *auth_params)
 {
@@ -175,16 +188,21 @@ soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 	if (priv->algorithm == -1)
 		ok = FALSE;
 
-	stale = g_hash_table_lookup (auth_params, "stale");
-	if (stale && !g_ascii_strcasecmp (stale, "TRUE") && *priv->hex_urp)
-		recompute_hex_a1 (priv);
-	else {
-		g_free (priv->user);
-		priv->user = NULL;
-		g_free (priv->cnonce);
-		priv->cnonce = NULL;
-		memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
-		memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
+        if (!validate_params (auth_digest))
+                ok = FALSE;
+
+        if (ok) {
+                stale = g_hash_table_lookup (auth_params, "stale");
+                if (stale && !g_ascii_strcasecmp (stale, "TRUE") && *priv->hex_urp)
+                        recompute_hex_a1 (priv);
+                else {
+                        g_free (priv->user);
+                        priv->user = NULL;
+                        g_free (priv->cnonce);
+                        priv->cnonce = NULL;
+                        memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
+                        memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
+                }
         }
 
 	return ok;
@@ -276,6 +294,8 @@ soup_auth_digest_compute_hex_a1 (const char              *hex_urp,
 
 		/* In MD5-sess, A1 is hex_urp:nonce:cnonce */
 
+                g_assert (nonce && cnonce);
+
 		checksum = g_checksum_new (G_CHECKSUM_MD5);
 		g_checksum_update (checksum, (guchar *)hex_urp, strlen (hex_urp));
 		g_checksum_update (checksum, (guchar *)":", 1);
@@ -366,6 +386,8 @@ soup_auth_digest_compute_response (const char        *method,
 	if (qop) {
 		char tmp[9];
 
+                g_assert (cnonce);
+
 		g_snprintf (tmp, 9, "%.8x", nc);
 		g_checksum_update (checksum, (guchar *)tmp, strlen (tmp));
 		g_checksum_update (checksum, (guchar *)":", 1);
@@ -428,6 +450,9 @@ soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 	uri = soup_message_get_uri (msg);
 	g_return_val_if_fail (uri != NULL, NULL);
 	url = soup_uri_get_path_and_query (uri);
+
+        g_assert (priv->nonce);
+        g_assert (!priv->qop || priv->cnonce);
 
 	soup_auth_digest_compute_response (soup_message_get_method (msg), url, priv->hex_a1,
 					   priv->qop, priv->nonce,
