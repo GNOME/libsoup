@@ -1447,7 +1447,7 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
                         char *filename = strrchr (orig_value, '/');
 
                         if (filename)
-                                g_hash_table_insert (*params, g_strdup (orig_key), filename + 1);
+                                g_hash_table_insert (*params, g_strdup (orig_key), g_strdup (filename + 1));
                 } else {
                         /* filename with no value isn't valid. */
                         g_hash_table_remove (*params, "filename");
