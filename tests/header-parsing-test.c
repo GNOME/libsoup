@@ -1129,6 +1129,7 @@ do_content_disposition_tests (void)
 		soup_test_assert (FALSE, "empty filename decoding FAILED");
 		return;
 	}
+        g_free (disposition);
         g_assert_false (g_hash_table_contains (params, "filename"));
 	g_hash_table_destroy (params);
 	soup_message_headers_free (hdrs);
