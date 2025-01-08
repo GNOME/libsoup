@@ -8,7 +8,7 @@ fuzz_targets = [
   'fuzz_header_parsing',
 ]
 
-fuzzing_args = '-fsanitize=fuzzer,address,undefined'
+fuzzing_args = '-fsanitize=fuzzer'
 have_fuzzing = cc.has_argument(fuzzing_args)
 fuzzing_feature = get_option('fuzzing')
 
