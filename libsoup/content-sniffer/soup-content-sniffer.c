@@ -243,8 +243,13 @@ sniff_mp4 (SoupContentSniffer *sniffer, GBytes *buffer)
 	gsize resource_length;
 	const char *resource = g_bytes_get_data (buffer, &resource_length);
 	resource_length = MIN (512, resource_length);
-	guint32 box_size = *((guint32*)resource);
+	guint32 box_size;
 	guint i;
+
+        if (resouce_length < sizeof (guint32))
+                return FALSE;
+
+	box_size = *((guint32*)resource);
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	box_size = ((box_size >> 24) |
@@ -806,6 +811,8 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	const char *x_content_type_options;
 	char *sniffed_type = NULL;
 	gboolean no_sniff = FALSE;
+        gsize buffer_size;
+        const char* buffer_data;
 
 	content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), params);
 
