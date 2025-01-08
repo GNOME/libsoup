@@ -243,8 +243,13 @@ sniff_mp4 (SoupContentSniffer *sniffer, GBytes *buffer)
 	gsize resource_length;
 	const char *resource = g_bytes_get_data (buffer, &resource_length);
 	resource_length = MIN (512, resource_length);
-	guint32 box_size = *((guint32*)resource);
+	guint32 box_size;
 	guint i;
+
+        if (resource_length < sizeof (guint32))
+                return FALSE;
+
+	box_size = *((guint32*)resource);
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	box_size = ((box_size >> 24) |
