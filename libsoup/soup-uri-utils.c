@@ -286,7 +286,6 @@ soup_uri_decode_data_uri (const char *uri,
         gboolean base64 = FALSE;
         char *uri_string;
         GBytes *bytes;
-        const char *path;
 
         g_return_val_if_fail (uri != NULL, NULL);
 
@@ -302,12 +301,20 @@ soup_uri_decode_data_uri (const char *uri,
         if (content_type)
                 *content_type = NULL;
 
-        /* g_uri_to_string() is picky about paths that start with `//` and will assert. */
-        path = g_uri_get_path (soup_uri);
+#if !GLIB_CHECK_VERSION (2, 83, 1)
+        /* g_uri_to_string() is picky about paths that start with `//` and will assert, clean them up.
+         * https://gitlab.gnome.org/GNOME/glib/-/merge_requests/4407 */
+        const char *path = g_uri_get_path (soup_uri);
         if (path[0] == '/' && path[1] == '/') {
+                char *new_path = g_strconcat ("/.", path, NULL);
+                GUri *new_uri = soup_uri_copy (soup_uri, SOUP_URI_PATH, new_path, SOUP_URI_NONE);
+
                 g_uri_unref (soup_uri);
-                return NULL;
+                g_free (new_path);
+
+                soup_uri = new_uri;
         }
+#endif
 
         uri_string = g_uri_to_string (soup_uri);
         g_uri_unref (soup_uri);
