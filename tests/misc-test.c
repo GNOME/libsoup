@@ -960,7 +960,7 @@ do_new_request_on_conflict_test (void)
         uri = g_uri_parse_relative (base_uri, "/session", SOUP_HTTP_URI_FLAGS, NULL);
         msg = soup_message_new_from_uri (SOUP_METHOD_PUT, uri);
         soup_message_set_request_body_from_bytes (msg, "text/plain", data.body);
-        soup_message_add_status_code_handler (msg, "got-headers", SOUP_STATUS_CONFLICT,
+        soup_message_add_status_code_handler2 (msg, "got-headers", SOUP_STATUS_CONFLICT,
                                               G_CALLBACK (conflict_test_on_conflict_cb),
                                               &data);
         soup_session_send_async (data.session, msg, G_PRIORITY_DEFAULT, data.cancellable,
@@ -1062,7 +1062,7 @@ do_response_informational_content_length_test (void)
         soup_message_headers_append (request_headers, "Upgrade", "echo");
         soup_message_headers_append (request_headers, "Connection", "upgrade");
 
-        soup_message_add_status_code_handler (msg, "got-informational",
+        soup_message_add_status_code_handler2 (msg, "got-informational",
                                               SOUP_STATUS_SWITCHING_PROTOCOLS,
                                               G_CALLBACK (switching_protocols_check_length), NULL);
 

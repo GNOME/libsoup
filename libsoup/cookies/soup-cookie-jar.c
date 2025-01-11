@@ -909,11 +909,11 @@ soup_cookie_jar_request_queued (SoupSessionFeature *feature,
 			  G_CALLBACK (msg_starting_cb),
 			  feature);
 
-	soup_message_add_header_handler (msg, "got-headers",
+	soup_message_add_header_handler2 (msg, "got-headers",
 					 "Set-Cookie",
 					 G_CALLBACK (process_set_cookie_header),
 					 feature);
-        soup_message_add_status_code_handler (msg, "got-informational",
+        soup_message_add_status_code_handler2 (msg, "got-informational",
                                               SOUP_STATUS_SWITCHING_PROTOCOLS,
                                               G_CALLBACK (process_set_cookie_header),
                                               feature);

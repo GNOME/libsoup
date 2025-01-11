@@ -1319,7 +1319,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 }
 
 /**
- * soup_message_add_header_handler: (skip)
+ * soup_message_add_header_handler2: (skip)
  * @msg: a #SoupMessage
  * @signal: signal to connect the handler to.
  * @header: HTTP response header to match against
@@ -1333,13 +1333,14 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
  * a header named @header.
  *
  * Returns: the handler ID from [func@GObject.signal_connect]
+ * Since: 3.8
  **/
-guint
-soup_message_add_header_handler (SoupMessage *msg,
-				 const char  *signal,
-				 const char  *header,
-				 GCallback    callback,
-				 gpointer     user_data)
+gulong
+soup_message_add_header_handler2 (SoupMessage *msg,
+				  const char  *signal,
+				  const char  *header,
+				  GCallback    callback,
+				  gpointer     user_data)
 {
 	GClosure *closure;
 	char *header_name;
@@ -1360,6 +1361,40 @@ soup_message_add_header_handler (SoupMessage *msg,
 	return g_signal_connect_closure (msg, signal, closure, FALSE);
 }
 
+/**
+ * soup_message_add_header_handler: (skip)
+ * @msg: a #SoupMessage
+ * @signal: signal to connect the handler to.
+ * @header: HTTP response header to match against
+ * @callback: the header handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a signal handler to @msg for @signal.
+ *
+ * Similar to [func@GObject.signal_connect], but the @callback will only be run
+ * if @msg's incoming messages headers (that is, the `request_headers`) contain
+ * a header named @header.
+ *
+ * Deprecated: 3.8: Use soup_message_add_header_handler2() instead.
+ * Returns: the handler ID from [func@GObject.signal_connect]
+ **/
+guint
+soup_message_add_header_handler (SoupMessage *msg,
+				 const char  *signal,
+				 const char  *header,
+				 GCallback    callback,
+				 gpointer     user_data)
+{
+        gulong id = soup_message_add_header_handler2 (msg, signal, header, callback, user_data);
+
+        if (G_UNLIKELY (id > G_MAXUINT32)) {
+                g_warning ("handler id larger than MAX_UINT, use soup_message_add_header_handler2 instead");
+                return 0;
+        }
+
+        return (guint)id;
+}
+
 static void
 status_handler_metamarshal (GClosure *closure, GValue *return_value,
 			    guint n_param_values, const GValue *param_values,
@@ -1374,6 +1409,45 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
 				  param_values, invocation_hint,
 				  ((GCClosure *)closure)->callback);
 	}
+}
+
+/**
+ * soup_message_add_status_code_handler2: (skip)
+ * @msg: a #SoupMessage
+ * @signal: signal to connect the handler to.
+ * @status_code: status code to match against
+ * @callback: the header handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a signal handler to @msg for @signal.
+ *
+ * Similar to [func@GObject.signal_connect], but the @callback will only be run
+ * if @msg has the status @status_code.
+ *
+ * @signal must be a signal that will be emitted after @msg's status
+ * is set (this means it can't be a "wrote" signal).
+ *
+ * Returns: the handler ID from [func@GObject.signal_connect]
+ * Since: 3.8
+ **/
+gulong
+soup_message_add_status_code_handler2 (SoupMessage *msg,
+				      const char  *signal,
+				      guint        status_code,
+				      GCallback    callback,
+				      gpointer     user_data)
+{
+	GClosure *closure;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
+	g_return_val_if_fail (signal != NULL, 0);
+	g_return_val_if_fail (callback != NULL, 0);
+
+	closure = g_cclosure_new (callback, user_data, NULL);
+	g_closure_set_meta_marshal (closure, GUINT_TO_POINTER (status_code),
+				    status_handler_metamarshal);
+
+	return g_signal_connect_closure (msg, signal, closure, FALSE);
 }
 
 /**
@@ -1392,6 +1466,7 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
  * @signal must be a signal that will be emitted after @msg's status
  * is set (this means it can't be a "wrote" signal).
  *
+ * Deprecated: 3.8: Use soup_message_add_status_code_handler2() instead.
  * Returns: the handler ID from [func@GObject.signal_connect]
  **/
 guint
@@ -1401,17 +1476,14 @@ soup_message_add_status_code_handler (SoupMessage *msg,
 				      GCallback    callback,
 				      gpointer     user_data)
 {
-	GClosure *closure;
+        gulong id = soup_message_add_status_code_handler2 (msg, signal, status_code, callback, user_data);
 
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
-	g_return_val_if_fail (signal != NULL, 0);
-	g_return_val_if_fail (callback != NULL, 0);
+        if (G_UNLIKELY (id > G_MAXUINT32)) {
+                g_warning ("handler id larger than MAX_UINT, use soup_message_add_status_code_handler2 instead");
+                return 0;
+        }
 
-	closure = g_cclosure_new (callback, user_data, NULL);
-	g_closure_set_meta_marshal (closure, GUINT_TO_POINTER (status_code),
-				    status_handler_metamarshal);
-
-	return g_signal_connect_closure (msg, signal, closure, FALSE);
+        return (guint)id;
 }
 
 void

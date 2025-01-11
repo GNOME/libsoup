@@ -780,17 +780,17 @@ soup_auth_manager_request_queued (SoupSessionFeature *manager,
 	g_signal_connect (msg, "starting",
 			  G_CALLBACK (auth_msg_starting), manager);
 
-	soup_message_add_status_code_handler (
+	soup_message_add_status_code_handler2 (
 		msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
 		G_CALLBACK (auth_got_headers), manager);
-	soup_message_add_status_code_handler (
+	soup_message_add_status_code_handler2 (
 		msg, "got_body", SOUP_STATUS_UNAUTHORIZED,
 		G_CALLBACK (auth_got_body), manager);
 
-	soup_message_add_status_code_handler (
+	soup_message_add_status_code_handler2 (
 		msg, "got_headers", SOUP_STATUS_PROXY_UNAUTHORIZED,
 		G_CALLBACK (proxy_auth_got_headers), manager);
-	soup_message_add_status_code_handler (
+	soup_message_add_status_code_handler2 (
 		msg, "got_body", SOUP_STATUS_PROXY_UNAUTHORIZED,
 		G_CALLBACK (proxy_auth_got_body), manager);
 }

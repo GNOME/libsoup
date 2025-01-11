@@ -1394,11 +1394,11 @@ soup_session_append_queue_item (SoupSession        *session,
                 g_atomic_int_inc (&priv->num_async_items);
 
 	if (!soup_message_query_flags (msg, SOUP_MESSAGE_NO_REDIRECT)) {
-		soup_message_add_header_handler (
+		soup_message_add_header_handler2 (
 			msg, "got_body", "Location",
 			G_CALLBACK (redirect_handler), item);
 	}
-        soup_message_add_status_code_handler (msg, "got-body",
+        soup_message_add_status_code_handler2 (msg, "got-body",
                                               SOUP_STATUS_MISDIRECTED_REQUEST,
                                               G_CALLBACK (misdirected_handler), item);
 	g_signal_connect (msg, "restarted",
@@ -3839,7 +3839,7 @@ soup_session_websocket_connect_async (SoupSession          *session,
         g_task_set_source_tag (task, soup_session_websocket_connect_async);
 	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
-	soup_message_add_status_code_handler (msg, "got-informational",
+	soup_message_add_status_code_handler2 (msg, "got-informational",
 					      SOUP_STATUS_SWITCHING_PROTOCOLS,
 					      G_CALLBACK (websocket_connect_async_stop), task);
         g_signal_connect_object (msg, "finished",

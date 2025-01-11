@@ -121,14 +121,30 @@ void                 soup_message_tls_client_certificate_password_request_comple
 
 
 /* Specialized signal handlers */
-SOUP_AVAILABLE_IN_ALL
+
+SOUP_AVAILABLE_IN_3_8 
+gulong         soup_message_add_header_handler2 (SoupMessage *msg,
+						 const char  *signal,
+						 const char  *header,
+						 GCallback    callback,
+						 gpointer     user_data);
+
+SOUP_DEPRECATED_IN_3_8_FOR (soup_message_add_header_handler2)
 guint          soup_message_add_header_handler  (SoupMessage       *msg,
 						 const char        *signal,
 						 const char        *header,
 						 GCallback          callback,
 						 gpointer           user_data);
 
-SOUP_AVAILABLE_IN_ALL
+SOUP_AVAILABLE_IN_3_8
+gulong          soup_message_add_status_code_handler2 (
+                                                 SoupMessage       *msg,
+						 const char        *signal,
+						 guint              status_code,
+						 GCallback          callback,
+						 gpointer           user_data);
+
+SOUP_DEPRECATED_IN_3_8_FOR (soup_message_add_status_code_handler2)
 guint          soup_message_add_status_code_handler (
 						 SoupMessage       *msg,
 						 const char        *signal,

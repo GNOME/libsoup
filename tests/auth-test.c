@@ -439,7 +439,7 @@ do_digest_nonce_test (SoupSession *session,
 				  G_CALLBACK (digest_nonce_authenticate),
 				  NULL);
 	}
-	soup_message_add_status_code_handler (msg, "got_headers",
+	soup_message_add_status_code_handler2 (msg, "got_headers",
 					      SOUP_STATUS_UNAUTHORIZED,
 					      G_CALLBACK (digest_nonce_unauthorized),
 					      &got_401);
@@ -1372,10 +1372,10 @@ do_batch_tests (gconstpointer data)
 		g_free (uristr);
 
 		expected = g_strdup (current_tests[i].expected);
-		soup_message_add_status_code_handler (
+		soup_message_add_status_code_handler2 (
 			msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
 			G_CALLBACK (handler), expected);
-		soup_message_add_status_code_handler (
+		soup_message_add_status_code_handler2 (
 			msg, "got_headers", SOUP_STATUS_OK,
 			G_CALLBACK (handler), expected);
 

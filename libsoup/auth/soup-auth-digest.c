@@ -497,7 +497,7 @@ soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 
 	token = g_string_free (out, FALSE);
 
-	soup_message_add_header_handler (msg,
+	soup_message_add_header_handler2 (msg,
 					 "got_headers",
 					 soup_auth_is_for_proxy (auth) ?
 					 "Proxy-Authentication-Info" :

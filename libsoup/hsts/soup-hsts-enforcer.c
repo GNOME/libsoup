@@ -540,7 +540,7 @@ preprocess_request (SoupHSTSEnforcer *enforcer, SoupMessage *msg)
 		}
 		g_free (canonicalized);
 	} else if (soup_uri_is_https (uri)) {
-		soup_message_add_header_handler (msg, "got-headers",
+		soup_message_add_header_handler2 (msg, "got-headers",
 						 "Strict-Transport-Security",
 						 G_CALLBACK (got_sts_header_cb),
 						 enforcer);
