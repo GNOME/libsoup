@@ -1,3 +1,13 @@
+Changes in libsoup from 3.6.1 to 3.6.2:
+
+* http2: Significantly reduce memory usage of large requests [Patrick Griffis]
+* server: Treat `ECONNREFUSED` when listening on IPv6 as unsupported [Michael Catanzaro]
+* auth-digest: Fix handling missing nonce/realm in responses, as well as a leak [Patrick Griffis]
+* In `soup_uri_decode_data_uri()` fix handling of URIs with a path beginning with `//` [Patrick Griffis]
+* In `soup_message_headers_get_content_disposition()` fix possibility of NULL-deref and double-free [Patrick Griffis]
+* In `soup_header_parse_quality_list()` fix leak [Patrick Griffis]
+* In `soup_form_decode_multipart()` fix ownership annotation for the multipart object [Patrick Griffis]
+
 Changes in libsoup from 3.6.0 to 3.6.1:
 
 * Fix `soup_uri_copy()` reading port as a long instead of an int [Artem Sinkevich]
