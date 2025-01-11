@@ -1,4 +1,4 @@
-Changes in libsoup from 3.6.1 to 3.6.2:
+Changes in libsoup from 3.6.1 to 3.6.3:
 
 * http2: Significantly reduce memory usage of large requests [Patrick Griffis]
 * server: Treat `ECONNREFUSED` when listening on IPv6 as unsupported [Michael Catanzaro]
