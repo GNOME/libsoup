@@ -92,7 +92,7 @@ fedora-asan:
   script:
     # Introspection doesn't work when linking to libasan, the NTLM tests fail most likely due to unsafe usage of setenv()
     - meson _build --auto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled -Dntlm=disabled -Ddocs=disabled
-    - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose --timeout-multiplier=10
+    - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose --timeout-multiplier=2
   artifacts:
     reports:
       junit: "_build/meson-logs/testlog.junit.xml"
@@ -107,7 +107,7 @@ fedora-asan:
 #     CC: clang
 #   script:
 #     - meson _build --auto-features=enabled -Dfuzzing=enabled -Dintrospection=disabled -Dvapi=disabled
-#     - meson test -C _build --suite=fuzzing --timeout-multiplier=10
+#     - meson test -C _build --suite=fuzzing --timeout-multiplier=2
 #   artifacts:
 #     when: on_failure
 #     paths:
