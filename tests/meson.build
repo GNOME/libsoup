@@ -87,8 +87,8 @@ tests = [
   {'name': 'date'},
   {'name': 'forms'},
   {'name': 'header-parsing'},
-  {'name': 'http2'},
-  {'name': 'http2-body-stream'},
+  {'name': 'http2', 'slow': true},
+  {'name': 'http2-body-stream', 'slow': true},
   {'name': 'hsts'},
   {'name': 'hsts-db'},
   {'name': 'logger'},
@@ -115,11 +115,12 @@ tests = [
    ]
   },
   {'name': 'streaming'},
-  {'name': 'timeout'},
+  {'name': 'timeout', 'slow': true},
   {'name': 'tld'},
   {'name': 'uri-parsing'},
   {'name': 'websocket',
-   'dependencies': [libz_dep]},
+   'dependencies': [libz_dep],
+   'slow': true},
 ]
 
 if brotlidec_dep.found()
@@ -219,14 +220,13 @@ foreach test: tests
     install_dir : installed_tests_execdir,
     install_rpath : abs_installed_tests_execdir,
   )
-  # Increase the timeout as on some architectures the tests could be slower
-  # than the default 30 seconds.
+
   test(test_name, test_target,
     args : ['--debug'],
     env : env,
     is_parallel : test.get('parallel', true),
     depends : test.get('depends', []),
-    timeout : 60,
+    timeout : test.get('slow', false) ? 300 : 30,
     protocol : 'tap',
   )
 endforeach
