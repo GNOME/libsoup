@@ -453,7 +453,7 @@ do_tls_interaction_msg_test (gconstpointer data)
         g_object_unref (msg);
 
         /* Currently on the gnutls backend supports pkcs#11 */
-        if (g_strcmp0 (g_type_name (G_TYPE_FROM_INSTANCE (g_tls_backend_get_default ())), "GTlsBackendGnutls") == 0) {
+        if (ENABLE_PKCS11_TESTS && g_strcmp0 (g_type_name (G_TYPE_FROM_INSTANCE (g_tls_backend_get_default ())), "GTlsBackendGnutls") == 0) {
                 g_test_message ("Running PKCS#11 tests");
 
                 /* Using PKCS#11 works, and asks for a PIN */
@@ -650,7 +650,7 @@ do_tls_interaction_preconnect_test (gconstpointer data)
         soup_session_abort (session);
 
         /* Currently on the gnutls backend supports pkcs#11 */
-        if (g_strcmp0 (g_type_name (G_TYPE_FROM_INSTANCE (g_tls_backend_get_default ())), "GTlsBackendGnutls") == 0) {
+        if (ENABLE_PKCS11_TESTS && g_strcmp0 (g_type_name (G_TYPE_FROM_INSTANCE (g_tls_backend_get_default ())), "GTlsBackendGnutls") == 0) {
                 GTlsCertificate *pkcs11_certificate;
 
                 pkcs11_certificate = g_tls_certificate_new_from_pkcs11_uris (
@@ -734,7 +734,7 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-#if HAVE_GNUTLS
+#if HAVE_GNUTLS && ENABLE_PKCS11_TESTS
         char *module_path = soup_test_build_filename_abs (G_TEST_BUILT, "mock-pkcs11.so", NULL);
         g_assert_true (g_file_test (module_path, G_FILE_TEST_EXISTS));
 
