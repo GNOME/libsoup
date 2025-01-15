@@ -1,8 +1,12 @@
 include:
   - component: gitlab.gnome.org/GNOME/citemplates/release-service@master
     inputs:
-      dist-job-name: "fedora-distcheck"
+      dist-job-name: "fedora-test"
       tarball-artifact-path: "_build/meson-dist/$CI_PROJECT_NAME-$CI_COMMIT_TAG.tar.xz"
+  - project: 'Infrastructure/freedesktop-ci-templates'
+    ref: '8f27b815f07b7ebc3546863a2b386425291b7349'
+    file:
+      - '/templates/fedora.yml'
 
 workflow:
   rules:
@@ -10,30 +14,104 @@ workflow:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-image: registry.gitlab.gnome.org/gnome/libsoup/master:v20
+variables:
+  FDO_UPSTREAM_REPO: GNOME/libsoup
+
+.fedora-image:
+  variables:
+    FDO_DISTRIBUTION_TAG: '2026-01-17-v1'
+    FDO_DISTRIBUTION_VERSION: '42'
+
+.fedora-python2-image:
+  variables:
+    FDO_DISTRIBUTION_TAG: '2025-01-14-python2-v3'
+    FDO_DISTRIBUTION_VERSION: '40'
 
 stages:
+  - prepare
   - build
   - coverage
   - docs
   - deploy
   - release
 
-.build:
-  stage: build
-  tags:
-    # We need runners supporting IPv6:
-    # https://gitlab.gnome.org/Infrastructure/GitLab/issues/313
-    - ipv6
+build-fedora-image:
+  extends:
+    - '.fdo.container-build@fedora'
+    - '.fedora-image'
+  stage: prepare
+  variables:
+    FDO_DISTRIBUTION_PACKAGES: >-
+      brotli-devel
+      clang-analyzer
+      gcovr
+      git
+      gi-docgen
+      glib-networking
+      gnutls-devel
+      gobject-introspection-devel
+      gtk-doc
+      httpd
+      krb5-devel
+      lcov
+      libasan
+      libnghttp2-devel
+      libpsl-devel
+      meson
+      mod_ssl
+      redhat-rpm-config
+      samba-winbind-clients
+      sqlite-devel
+      sysprof-devel
+      vala
+      valgrind
+      which
+    FDO_DISTRIBUTION_EXEC:
+      dnf install --setopt=tsflags='' -y glib2-doc libsoup-doc
+
+build-fedora-autobahn-image:
+  extends:
+    - '.fdo.container-build@fedora'
+    - '.fedora-python2-image'
+  stage: prepare
+  variables:
+    FDO_DISTRIBUTION_PACKAGES: >-
+      brotli-devel
+      gcc
+      glib2-devel
+      glib-networking
+      libnghttp2-devel
+      libpsl-devel
+      lsof
+      meson
+      python2.7
+      sqlite-devel
+    FDO_DISTRIBUTION_EXEC: >-
+      python2.7 -m ensurepip;
+      pip2.7 install --upgrade pip wheel;
+      pip2.7 install virtualenv wsaccel==0.6.3 autobahntestsuite;
 
 fedora-test:
-  extends: .build
+  stage: build
+  tags:
+    - ipv6
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora-image'
   script:
-    - cp .gitlab-ci/lcovrc ~/.lcovrc
-    - meson _build -Db_coverage=true --auto-features=enabled
+    - meson setup _build -Db_coverage=true --auto-features=enabled -Dautobahn=disabled
     - meson compile -C _build
-    - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose
+
+    - meson test -j 1 -C _build --verbose
+
+    - cp .gitlab-ci/lcovrc ~/.lcovrc
     - ninja -C _build coverage-html coverage-xml
+
+    - ninja -C _build scan-build
+    - bash -c 'if [[ -n "$(ls -A _build/meson-logs/scanbuild/)" ]]; then echo "Scan build log found, assuming defects exist"; exit 1; fi'
+
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - meson dist -C _build
   artifacts:
     reports:
       junit: "_build/meson-logs/testlog.junit.xml"
@@ -47,52 +125,39 @@ fedora-test:
       - "_build/meson-logs/meson-log.txt"
       - "_build/meson-logs/testlog.txt"
       - "_build/meson-logs/coveragereport"
+      - "_build/meson-logs/scanbuild"
+      - "_build/meson-dist/*.xz"
   coverage: '/^\s+lines\.+:\s+([\d.]+\%)\s+/'
 
 fedora-autobahn-quick:
-  extends: .build
+  stage: build
+  tags:
+    - ipv6
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora-python2-image'
   script:
-    - meson _build --auto-features=enabled -Dautobahn=enabled
+    - meson setup _build -Dautobahn=enabled
     - meson test -C _build --suite autobahn-quick --verbose
   artifacts:
     paths:
       - "_build/meson-logs/autobahn-report"
   allow_failure: true
 
-fedora-scan:
-  extends: .build
-  script:
-    - meson _build --auto-features=enabled
-    - ninja -C _build scan-build
-    - bash -c 'if [[ -n "$(ls -A _build/meson-logs/scanbuild/)" ]]; then echo "Scan build log found, assuming defects exist"; exit 1; fi'
-  artifacts:
-    reports:
-      junit: "_build/meson-logs/testlog.junit.xml"
-    when: on_failure
-    paths:
-      - _build/meson-logs/scanbuild
-
-fedora-distcheck:
-  extends: .build
-  script:
-    - git config --global --add safe.directory $CI_PROJECT_DIR
-    - meson setup _build --auto-features=enabled
-    - meson dist -C _build
-  artifacts:
-    paths:
-      - "_build/meson-dist/*.xz"
-
 fedora-asan:
   stage: build
   tags:
     - asan
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora-image'
   variables:
     ASAN_OPTIONS: fast_unwind_on_malloc=0
     SOUP_TEST_NO_IPV6: 1
   script:
-    # Introspection doesn't work when linking to libasan, the NTLM tests fail most likely due to unsafe usage of setenv()
-    - meson _build --auto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled -Dntlm=disabled -Ddocs=disabled
-    - meson test --no-suite autobahn-quick --no-suite autobahn -C _build --verbose --timeout-multiplier=2
+    # Introspection doesn't work when linking to libasan, the NTLM tests fail most likely due to unsafe usage of setenv(), autobahn is Python2 only.
+    - meson setup _build --auto-features=enabled -Db_sanitize=address -Dintrospection=disabled -Dvapi=disabled -Dntlm=disabled -Ddocs=disabled -Dautobahn=disabled
+    - meson test -C _build --verbose --timeout-multiplier=2
   artifacts:
     reports:
       junit: "_build/meson-logs/testlog.junit.xml"
@@ -100,21 +165,11 @@ fedora-asan:
     paths:
       - "_build/meson-logs/testlog.txt"
 
-# fedora-fuzzing:
-#   stage: build
-#   allow_failure: true
-#   variables:
-#     CC: clang
-#   script:
-#     - meson _build --auto-features=enabled -Dfuzzing=enabled -Dintrospection=disabled -Dvapi=disabled
-#     - meson test -C _build --suite=fuzzing --timeout-multiplier=2
-#   artifacts:
-#     when: on_failure
-#     paths:
-#       - _build/meson-logs/
-
 reference:
   stage: docs
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora-image'
   variables:
     MESON_ARGS: >-
       -Ddocs=enabled
@@ -136,6 +191,9 @@ reference:
 
 pages:
   stage: deploy
+  extends:
+    - '.fdo.distribution-image@fedora'
+    - '.fedora-image'
   needs: ['reference']
   script:
     - mv _reference public
@@ -145,4 +203,3 @@ pages:
       - public
   only:
     - master
-
