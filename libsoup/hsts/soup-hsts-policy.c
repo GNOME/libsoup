@@ -143,6 +143,7 @@ soup_hsts_policy_new (const char *domain,
 		      gboolean include_subdomains)
 {
 	GDateTime *expires;
+        SoupHSTSPolicy *policy;
 
 	if (max_age == SOUP_HSTS_POLICY_MAX_AGE_PAST) {
 		/* Use a date way in the past, to protect against
@@ -155,7 +156,11 @@ soup_hsts_policy_new (const char *domain,
                 g_date_time_unref (now);
         }
 
-	return soup_hsts_policy_new_full (domain, max_age, expires, include_subdomains);
+	policy = soup_hsts_policy_new_full (domain, max_age, expires, include_subdomains);
+
+        g_date_time_unref (expires);
+
+        return policy;
 }
 
 /**
