@@ -169,8 +169,9 @@ query_all_callback (void *data, int argc, char **argv, char **colname)
 	if (policy) {
 		soup_hsts_enforcer_set_policy (hsts_enforcer, policy);
 		soup_hsts_policy_free (policy);
-	} else
-		g_date_time_unref (expires);
+	}
+
+        g_date_time_unref (expires);
 
 	return 0;
 }

@@ -73,11 +73,11 @@ soup_hsts_enforcer_init (SoupHSTSEnforcer *hsts_enforcer)
 
 	priv->host_policies = g_hash_table_new_full (soup_str_case_hash,
 								    soup_str_case_equal,
-								    g_free, NULL);
+								    g_free, (GDestroyNotify)soup_hsts_policy_free);
 
 	priv->session_policies = g_hash_table_new_full (soup_str_case_hash,
 								       soup_str_case_equal,
-								       g_free, NULL);
+								       g_free, (GDestroyNotify)soup_hsts_policy_free);
         g_mutex_init (&priv->mutex);
 }
 
@@ -85,17 +85,8 @@ static void
 soup_hsts_enforcer_finalize (GObject *object)
 {
 	SoupHSTSEnforcerPrivate *priv = soup_hsts_enforcer_get_instance_private ((SoupHSTSEnforcer*)object);
-	GHashTableIter iter;
-	gpointer key, value;
 
-	g_hash_table_iter_init (&iter, priv->host_policies);
-	while (g_hash_table_iter_next (&iter, &key, &value))
-		soup_hsts_policy_free (value);
 	g_hash_table_destroy (priv->host_policies);
-
-	g_hash_table_iter_init (&iter, priv->session_policies);
-	while (g_hash_table_iter_next (&iter, &key, &value))
-		soup_hsts_policy_free (value);
 	g_hash_table_destroy (priv->session_policies);
 
         g_mutex_clear (&priv->mutex);
@@ -218,8 +209,6 @@ should_remove_expired_host_policy (G_GNUC_UNUSED gpointer key,
 		   table, which could be problematic, or not.
 		*/
 		soup_hsts_enforcer_changed (enforcer, policy, NULL);
-		soup_hsts_policy_free (policy);
-
 		return TRUE;
 	}
 
@@ -241,15 +230,14 @@ soup_hsts_enforcer_remove_host_policy (SoupHSTSEnforcer *hsts_enforcer,
 {
         SoupHSTSEnforcerPrivate *priv = soup_hsts_enforcer_get_instance_private (hsts_enforcer);
 	SoupHSTSPolicy *policy;
+        char *key;
 
-	policy = g_hash_table_lookup (priv->host_policies, domain);
+        if (!g_hash_table_steal_extended (priv->host_policies, domain, (gpointer*)&key, (gpointer*)&policy))
+                return;
 
-	if (!policy)
-		return;
-
-	g_hash_table_remove (priv->host_policies, domain);
 	soup_hsts_enforcer_changed (hsts_enforcer, policy, NULL);
 	soup_hsts_policy_free (policy);
+        g_free (key);
 
 	remove_expired_host_policies (hsts_enforcer);
 }
@@ -262,6 +250,7 @@ soup_hsts_enforcer_replace_policy (SoupHSTSEnforcer *hsts_enforcer,
 	GHashTable *policies;
 	SoupHSTSPolicy *old_policy;
 	const char *domain;
+        char *old_key;
 	gboolean is_session_policy;
 
 	g_assert (!soup_hsts_policy_is_expired (new_policy));
@@ -272,10 +261,10 @@ soup_hsts_enforcer_replace_policy (SoupHSTSEnforcer *hsts_enforcer,
 	policies = is_session_policy ? priv->session_policies :
 		                       priv->host_policies;
 
-	old_policy = g_hash_table_lookup (policies, domain);
-	g_assert (old_policy);
+        g_assert (g_hash_table_steal_extended (policies, domain,
+                                              (gpointer*)&old_key, (gpointer*)&old_policy));
 
-	g_hash_table_replace (policies, g_strdup (domain), soup_hsts_policy_copy (new_policy));
+	g_hash_table_insert (policies, g_steal_pointer (&old_key), soup_hsts_policy_copy (new_policy));
 	if (!soup_hsts_policy_equal (old_policy, new_policy))
 		soup_hsts_enforcer_changed (hsts_enforcer, old_policy, new_policy);
 	soup_hsts_policy_free (old_policy);
