@@ -665,7 +665,7 @@ memory_stream_read_data (SoupBodyInputStreamHttp2 *stream,
 
         h2_debug (data->io, data, "[BODY_STREAM] Consumed %" G_GUINT64_FORMAT " bytes", bytes_read);
 
-        NGCHECK (nghttp2_session_consume(data->io->session, data->stream_id, bytes_read));
+        NGCHECK (nghttp2_session_consume(data->io->session, data->stream_id, (size_t)bytes_read));
 }
 
 static int
