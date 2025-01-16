@@ -1,3 +1,7 @@
+Changes in libsoup from 3.6.3 to 3.6.4:
+
+* http2: Fix regression on 32bit systems when reading response data [Andrzej Surdej]
+
 Changes in libsoup from 3.6.1 to 3.6.3:
 
 * http2: Significantly reduce memory usage of large requests [Patrick Griffis]
