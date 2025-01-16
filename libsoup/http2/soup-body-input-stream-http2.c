@@ -199,7 +199,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
         priv->pos += bytes_read;
 
         if (bytes_read > 0)
-                g_signal_emit (memory_stream, signals[READ_DATA], 0, bytes_read);
+                g_signal_emit (memory_stream, signals[READ_DATA], 0, (guint64)bytes_read);
 
         /* When doing blocking reads we must always request more data.
          * Even when doing non-blocking, a read consuming data may trigger a new WINDOW_UPDATE. */
@@ -281,7 +281,7 @@ soup_body_input_stream_http2_skip (GInputStream  *stream,
         count = MIN (count, priv->len - priv->pos);
         priv->pos += count;
         if (count)
-                g_signal_emit (memory_stream, signals[READ_DATA], 0, count);
+                g_signal_emit (memory_stream, signals[READ_DATA], 0, (guint64)count);
 
         /* Remove all skipped chunks */
         gsize offset = priv->start_offset;
