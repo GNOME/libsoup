@@ -348,6 +348,19 @@ got_connection (GThreadedSocketService *service,
 		g_clear_error (&error);
 	}
 
+	// Work around a race condition where do_tls_interaction_test's call to
+	// soup_session_send_message() fails due to the server having closed the
+	// connection:
+	//
+	// ERROR:../tests/ssl-test.c:405:do_tls_interaction_test: Unexpected status 7 Connection terminated unexpectedly (expected 200 OK)
+	//
+	// This bug is already fixed upstream, so no sense in spending a bunch
+	// of time trying to find a proper fix.
+	//
+	// I'm not certain, but I suspect it's fixed by:
+	// https://gitlab.gnome.org/GNOME/libsoup/-/commit/bd6de90343839125bd07c43c97e1000deb0b40c3
+	sleep (1);
+
 	g_io_stream_close (tls, NULL, &error);
 	g_assert_no_error (error);
 
