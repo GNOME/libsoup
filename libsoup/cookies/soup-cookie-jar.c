@@ -943,6 +943,8 @@ soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_inter
  * The cookies in the list are a copy of the original, so
  * you have to free them when you are done with them.
  *
+ * For historical reasons this list is in reverse order.
+ *
  * Returns: (transfer full) (element-type Soup.Cookie): a #GSList
  *   with all the cookies in the @jar.
  **/
