@@ -168,8 +168,8 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 	/**
 	 * SoupCookieJar::changed:
 	 * @jar: the #SoupCookieJar
-	 * @old_cookie: the old #SoupCookie value
-	 * @new_cookie: the new #SoupCookie value
+	 * @old_cookie: (nullable): the old #SoupCookie value
+	 * @new_cookie: (nullable): the new #SoupCookie value
 	 *
 	 * Emitted when @jar changes.
 	 *
