@@ -169,6 +169,7 @@ parse_date (const char **val_p)
 }
 
 #define MAX_AGE_CAP_IN_SECONDS 31536000  // 1 year
+#define MAX_ATTRIBUTE_SIZE 1024
 
 static SoupCookie *
 parse_one_cookie (const char *header, GUri *origin)
@@ -214,8 +215,13 @@ parse_one_cookie (const char *header, GUri *origin)
 #define MATCH_NAME(name) ((end - start == strlen (name)) && !g_ascii_strncasecmp (start, name, end - start))
 
 		if (MATCH_NAME ("domain") && has_value) {
+                        char *new_domain = parse_value (&p, TRUE);
+                        if (strlen (new_domain) > MAX_ATTRIBUTE_SIZE) {
+                            g_free (new_domain);
+                            continue;
+                        }
 			g_free (cookie->domain);
-			cookie->domain = parse_value (&p, TRUE);
+			cookie->domain = g_steal_pointer (&new_domain);
 			if (!*cookie->domain) {
 				g_free (cookie->domain);
 				cookie->domain = NULL;
@@ -229,6 +235,10 @@ parse_one_cookie (const char *header, GUri *origin)
 				parse_value (&p, FALSE);
 		} else if (MATCH_NAME ("max-age") && has_value) {
 			char *max_age_str = parse_value (&p, TRUE), *mae;
+                        if (strlen (max_age_str) > MAX_ATTRIBUTE_SIZE) {
+                            g_free (max_age_str);
+                            continue;
+                        }
 			long max_age = strtol (max_age_str, &mae, 10);
 			if (!*mae) {
 				if (max_age < 0)
@@ -239,8 +249,13 @@ parse_one_cookie (const char *header, GUri *origin)
 			}
 			g_free (max_age_str);
 		} else if (MATCH_NAME ("path") && has_value) {
+                        char *new_path = parse_value (&p, TRUE);
+                        if (strlen (new_path) > MAX_ATTRIBUTE_SIZE) {
+                            g_free (new_path);
+                            continue;
+                        }
 			g_free (cookie->path);
-			cookie->path = parse_value (&p, TRUE);
+			cookie->path = g_steal_pointer (&new_path);
 			if (*cookie->path != '/') {
 				g_free (cookie->path);
 				cookie->path = NULL;
