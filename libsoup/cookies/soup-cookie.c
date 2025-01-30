@@ -199,6 +199,11 @@ parse_one_cookie (const char *header, GUri *origin)
 	/* Parse the VALUE */
 	cookie->value = parse_value (&p, TRUE);
 
+        if (!*cookie->name && !*cookie->value) {
+            soup_cookie_free (cookie);
+            return NULL;
+        }
+
 	if (strlen (cookie->name) + strlen (cookie->value) > 4096) {
 		soup_cookie_free (cookie);
 		return NULL;
