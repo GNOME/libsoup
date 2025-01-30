@@ -335,6 +335,10 @@ do_cookies_prefix_test (void)
         soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("__host-Invalid-4=1; Path=/; Secure", insecure_uri),
                                          insecure_uri, NULL);
 
+	/* Impersonator, value pretending to be prefixed. */
+        soup_cookie_jar_add_cookie_full (jar, soup_cookie_parse ("=__Secure-Invalid; Path=/; Secure", secure_uri),
+                                         secure_uri, NULL);
+
         cookies = soup_cookie_jar_all_cookies (jar);
 
         for (GSList *l = cookies; l; l = g_slist_next (l)) {

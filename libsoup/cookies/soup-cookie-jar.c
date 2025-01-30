@@ -643,14 +643,17 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
          * which has been implemented by Firefox and Chrome. */
 #define MATCH_PREFIX(name, prefix) (!g_ascii_strncasecmp (name, prefix, strlen(prefix)))
 
+        const char *name = soup_cookie_get_name (cookie);
+        const char *value = soup_cookie_get_value (cookie);
+
 	/* Cookies with a "__Secure-" prefix should have Secure attribute set and it must be for a secure host. */
-	if (MATCH_PREFIX (soup_cookie_get_name (cookie), "__Secure-") && !soup_cookie_get_secure (cookie) ) {
+	if (MATCH_PREFIX (name, "__Secure-") && !soup_cookie_get_secure (cookie) ) {
 		soup_cookie_free (cookie);
 		return;
 	}
         /* Path=/ and Secure attributes are required; Domain attribute must not be present.
          Note that SoupCookie always sets the domain so we ensure its not a subdomain match. */
-	if (MATCH_PREFIX (soup_cookie_get_name (cookie), "__Host-")) {
+	if (MATCH_PREFIX (name, "__Host-")) {
 		if (!soup_cookie_get_secure (cookie) ||
 		    strcmp (soup_cookie_get_path (cookie), "/") != 0 ||
                     soup_cookie_get_domain (cookie)[0] == '.') {
@@ -659,12 +662,15 @@ soup_cookie_jar_add_cookie_full (SoupCookieJar *jar, SoupCookie *cookie, GUri *u
 		}
 	}
 
+        /* Cookie with an empty name impersonating a prefixed name. */
+        if (!*name && (MATCH_PREFIX (value, "__Secure-") || MATCH_PREFIX (value, "__Host-"))) {
+                soup_cookie_free (cookie);
+                return;
+        }
+
 	/* Cookies should not take control characters %x00-1F / %x7F (defined by RFC 5234) in names or values,
 	 * with the exception of %x09 (the tab character).
-	 */    
-	const char *name, *value;
-	name = soup_cookie_get_name (cookie);
-	value = soup_cookie_get_value (cookie);
+	 */
 	if (string_contains_ctrlcode (name) || string_contains_ctrlcode (value)) {
 		soup_cookie_free (cookie);
 		return;
