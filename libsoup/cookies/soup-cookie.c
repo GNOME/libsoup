@@ -198,6 +198,11 @@ parse_one_cookie (const char *header, GUri *origin)
 	/* Parse the VALUE */
 	cookie->value = parse_value (&p, TRUE);
 
+	if (strlen (cookie->name) + strlen (cookie->value) > 4096) {
+		soup_cookie_free (cookie);
+		return NULL;
+	}
+
 	/* Parse attributes */
 	while (*p == ';') {
 		start = skip_lws (p + 1);
