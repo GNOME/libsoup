@@ -162,7 +162,7 @@ soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 	guint qop_options;
 	gboolean ok = TRUE;
 
-        if (!soup_auth_get_realm (auth))
+        if (!soup_auth_get_realm (auth) || !g_hash_table_contains (auth_params, "nonce"))
                 return FALSE;
 
 	g_free (priv->domain);
