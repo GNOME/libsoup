@@ -605,6 +605,11 @@ main (int argc, char **argv)
 			      "type/text_html; charset=UTF-8/test.html => text/html; charset=UTF-8",
 			      do_sniffing_test);
 
+        /* Test hitting skip_insignificant_space() with number of bytes equaling resource_length. */
+	g_test_add_data_func ("/sniffing/whitespace",
+			      "type/text_html/whitespace.html => text/html",
+			      do_sniffing_test);
+
 	/* Test that disabling the sniffer works correctly */
 	g_test_add_data_func ("/sniffing/disabled",
 			      "/text_or_binary/home.gif",
