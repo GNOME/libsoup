@@ -669,7 +669,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, GBytes *buffer)
 		pos = 3;
 
  look_for_tag:
-	if (pos > resource_length)
+	if (pos >= resource_length)
 		goto text_html;
 
 	if (skip_insignificant_space (resource, &pos, resource_length))

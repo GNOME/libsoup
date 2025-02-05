@@ -25,5 +25,6 @@
     <file>resources/text.txt</file>
     <file>resources/text_binary.txt</file>
     <file>resources/tux.webp</file>
+    <file>resources/whitespace.html</file>
   </gresource>
 </gresources>
