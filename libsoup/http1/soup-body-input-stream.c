@@ -179,12 +179,14 @@ again:
 		nread = soup_filter_input_stream_read_line (
 			fstream, metabuf, sizeof (metabuf), blocking,
 			&got_line, cancellable, error);
-		if (nread <= 0)
+		if (nread < 0)
 			return nread;
-		if (!got_line) {
-			g_set_error_literal (error, G_IO_ERROR,
-					     G_IO_ERROR_PARTIAL_INPUT,
-					     _("Connection terminated unexpectedly"));
+		if (nread == 0 || !got_line) {
+			if (error && *error == NULL) {
+				g_set_error_literal (error, G_IO_ERROR,
+						     G_IO_ERROR_PARTIAL_INPUT,
+						     _("Connection terminated unexpectedly"));
+			}
 			return -1;
 		}
 
@@ -212,12 +214,14 @@ again:
 			SOUP_FILTER_INPUT_STREAM (priv->base_stream),
 			metabuf, sizeof (metabuf), blocking,
 			&got_line, cancellable, error);
-		if (nread <= 0)
+		if (nread < 0)
 			return nread;
-		if (!got_line) {
-			g_set_error_literal (error, G_IO_ERROR,
-					     G_IO_ERROR_PARTIAL_INPUT,
-					     _("Connection terminated unexpectedly"));
+		if (nread == 0 || !got_line) {
+			if (error && *error == NULL) {
+				g_set_error_literal (error, G_IO_ERROR,
+						     G_IO_ERROR_PARTIAL_INPUT,
+						     _("Connection terminated unexpectedly"));
+			}
 			return -1;
 		}
 
@@ -228,8 +232,17 @@ again:
 		nread = soup_filter_input_stream_read_line (
 			fstream, metabuf, sizeof (metabuf), blocking,
 			&got_line, cancellable, error);
-		if (nread <= 0)
+		if (nread < 0)
 			return nread;
+
+		if (nread == 0) {
+			if (error && *error == NULL) {
+				g_set_error_literal (error, G_IO_ERROR,
+						     G_IO_ERROR_PARTIAL_INPUT,
+						     _("Connection terminated unexpectedly"));
+			}
+			return -1;
+		}
 
 		if (strncmp (metabuf, "\r\n", nread) || strncmp (metabuf, "\n", nread)) {
 			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_DONE;
