@@ -303,7 +303,6 @@ endif
 # GSSAPI support #
 ##################
 gssapi_opt = get_option('gssapi')
-enable_gssapi = false
 if cc.get_id() == 'msvc'
   if host_machine.cpu_family() == 'x86'
     gssapi_lib_type = '32'
@@ -313,31 +312,12 @@ if cc.get_id() == 'msvc'
   gssapi_dep = cc.find_library('gssapi' + gssapi_lib_type,
     has_headers: 'gssapi/gssapi.h',
     required: gssapi_opt)
-  if gssapi_dep.found()
-      enable_gssapi = true
-  endif
 else
-  krb5_config_path = get_option('krb5_config')
-  if not meson.is_cross_build() and krb5_config_path == ''
-    krb5_config_path = 'krb5-config'
-  endif
-  krb5_config = find_program(krb5_config_path, required : gssapi_opt)
-  if krb5_config.found()
-    libs_output = run_command(krb5_config, '--libs', 'gssapi', check: gssapi_opt.enabled())
-    cflags_output = run_command(krb5_config, '--cflags', 'gssapi', check: gssapi_opt.enabled())
-    if libs_output.returncode() == 0 and cflags_output.returncode() == 0
-      enable_gssapi = true
-      gssapi_dep = declare_dependency(
-        link_args: libs_output.stdout().split(),
-        compile_args: cflags_output.stdout().split())
-    endif
-  endif
+  gssapi_dep = dependency('krb5-gssapi', required: gssapi_opt)
 endif
 
-if enable_gssapi
+if gssapi_dep.found()
   add_project_arguments('-DLIBSOUP_HAVE_GSSAPI=1', language : 'c')
-else
-  gssapi_dep = dependency('', required: false)
 endif
 
 ################
@@ -407,7 +387,7 @@ summary({
 )
 
 summary({
-    'GSSAPI' : enable_gssapi,
+    'GSSAPI' : gssapi_dep.found(),
     'NTLM' : ntlm_auth.found(),
     'Brotli' : brotlidec_dep.found(),
     'Translations' : xgettext.found(),

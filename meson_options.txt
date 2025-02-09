@@ -4,12 +4,6 @@ option('gssapi',
   description : 'Build with GSSAPI support'
 )
 
-option('krb5_config',
-  type : 'string',
-  value : '',
-  description : 'Where to look for krb5-config, path points to krb5-config installation (defaultly looking in PATH)'
-)
-
 option('ntlm',
   type : 'feature',
   value : 'auto',
