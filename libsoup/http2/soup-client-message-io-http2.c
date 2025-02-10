@@ -546,6 +546,17 @@ io_read_ready (GObject                  *stream,
 }
 
 static void
+sniff_for_empty_response (SoupMessage *msg)
+{
+        if (soup_message_has_content_sniffer (msg)) {
+                const char *content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), NULL);
+                if (!content_type)
+                     content_type = "text/plain";
+                soup_message_content_sniffed (msg, content_type, NULL);
+        }
+}
+
+static void
 io_try_sniff_content (SoupHTTP2MessageData *data,
                       gboolean              blocking,
                       GCancellable         *cancellable)
@@ -555,6 +566,13 @@ io_try_sniff_content (SoupHTTP2MessageData *data,
         /* This can re-enter in sync mode */
         if (data->in_io_try_sniff_content)
                 return;
+
+        if (soup_message_headers_get_content_length (soup_message_get_response_headers (data->msg)) == 0) {
+                sniff_for_empty_response (data->msg);
+                h2_debug (data->io, data, "[DATA] Sniffed content (Content-Length was 0)");
+                advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
+                return;
+        }
 
         data->in_io_try_sniff_content = TRUE;
 
@@ -825,8 +843,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                 if (soup_message_get_status (data->msg) == SOUP_STATUS_NO_CONTENT || frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
                         h2_debug (io, data, "Stream done");
                         advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA_START);
-                        if (soup_message_has_content_sniffer (data->msg))
-                                soup_message_content_sniffed (data->msg, "text/plain", NULL);
+                        sniff_for_empty_response (data->msg);
                         advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
                 }
                 break;
