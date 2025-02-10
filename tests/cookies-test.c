@@ -691,6 +691,7 @@ do_cookies_threads_test (void)
         while (g_main_context_pending (NULL))
                 g_main_context_iteration (NULL, FALSE);
 
+        soup_cookies_free (cookies);
         soup_test_session_abort_unref (session);
 }
 
