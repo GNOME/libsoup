@@ -140,19 +140,6 @@ soup_auth_digest_get_qop (SoupAuthDigestQop qop)
 }
 
 static gboolean
-validate_params (SoupAuthDigest *auth_digest)
-{
-        SoupAuthDigestPrivate *priv = soup_auth_digest_get_instance_private (auth_digest);
-
-        if (priv->qop || priv->algorithm == SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS) {
-                if (!priv->nonce)
-                        return FALSE;
-        }
-
-        return TRUE;
-}
-
-static gboolean
 soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 			 GHashTable *auth_params)
 {
@@ -188,9 +175,6 @@ soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
 	priv->algorithm = soup_auth_digest_parse_algorithm (g_hash_table_lookup (auth_params, "algorithm"));
 	if (priv->algorithm == -1)
 		ok = FALSE;
-
-        if (!validate_params (auth_digest))
-                ok = FALSE;
 
         if (ok) {
                 stale = g_hash_table_lookup (auth_params, "stale");
