@@ -6,6 +6,10 @@ typedef struct {
 	const char *name, *value;
 } Header;
 
+static char unterminated_http_version[] = {
+        'G','E','T',' ','/',' ','H','T','T','P','/','1', '0', '0', '.'
+};
+
 static struct RequestTest {
 	const char *description;
 	const char *bugref;
@@ -380,6 +384,14 @@ static struct RequestTest {
 	  "GET / HTTP/2000.0\r\n", -1,
 	  SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED,
 	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+        /* This couldn't be a C string as going one byte over would have been safe. */
+	{ "Long HTTP version terminating at missing minor version", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/404",
+	  unterminated_http_version, sizeof (unterminated_http_version),
+	  SOUP_STATUS_BAD_REQUEST,
+           NULL, NULL, -1,
 	  { { NULL } }
 	},
 
