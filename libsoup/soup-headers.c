@@ -224,7 +224,7 @@ soup_headers_parse_request (const char          *str,
 	    !g_ascii_isdigit (version[5]))
 		return SOUP_STATUS_BAD_REQUEST;
 	major_version = strtoul (version + 5, &p, 10);
-	if (*p != '.' || !g_ascii_isdigit (p[1]))
+	if (p + 1 >= str + len || *p != '.' || !g_ascii_isdigit (p[1]))
 		return SOUP_STATUS_BAD_REQUEST;
 	minor_version = strtoul (p + 1, &p, 10);
 	version_end = p;
