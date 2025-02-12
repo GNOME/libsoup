@@ -185,7 +185,7 @@ soup_headers_parse_request (const char          *str,
 	/* RFC 2616 4.1 "servers SHOULD ignore any empty line(s)
 	 * received where a Request-Line is expected."
 	 */
-	while ((*str == '\r' || *str == '\n') && len > 0) {
+	while (len > 0 && (*str == '\r' || *str == '\n')) {
 		str++;
 		len--;
 	}
@@ -369,7 +369,7 @@ soup_headers_parse_response (const char          *str,
 	 * after a response, which we then see prepended to the next
 	 * response on that connection.
 	 */
-	while ((*str == '\r' || *str == '\n') && len > 0) {
+	while (len > 0 && (*str == '\r' || *str == '\n')) {
 		str++;
 		len--;
 	}
