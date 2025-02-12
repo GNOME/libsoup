@@ -6,8 +6,13 @@ typedef struct {
 	const char *name, *value;
 } Header;
 
+/* These are not C strings to ensure going one byte over is not safe. */
 static char unterminated_http_version[] = {
         'G','E','T',' ','/',' ','H','T','T','P','/','1', '0', '0', '.'
+};
+
+static char only_newlines[] = {
+        '\n', '\n', '\n', '\n'
 };
 
 static struct RequestTest {
@@ -387,7 +392,6 @@ static struct RequestTest {
 	  { { NULL } }
 	},
 
-        /* This couldn't be a C string as going one byte over would have been safe. */
 	{ "Long HTTP version terminating at missing minor version", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/404",
 	  unterminated_http_version, sizeof (unterminated_http_version),
 	  SOUP_STATUS_BAD_REQUEST,
@@ -454,6 +458,13 @@ static struct RequestTest {
 
 	{ "NUL in header value", NULL,
 	  "HTTP/1.1 200 OK\r\nFoo: b\x00" "ar\r\n", 28,
+	  SOUP_STATUS_BAD_REQUEST,
+           NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	{ "Only newlines", NULL,
+	  only_newlines, sizeof (only_newlines),
 	  SOUP_STATUS_BAD_REQUEST,
            NULL, NULL, -1,
 	  { { NULL } }
