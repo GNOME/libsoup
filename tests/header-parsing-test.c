@@ -10,6 +10,10 @@ static char unterminated_http_version[] = {
         'G','E','T',' ','/',' ','H','T','T','P','/','1', '0', '0', '.'
 };
 
+static char only_newlines[] = {
+        '\n', '\n', '\n', '\n'
+};
+
 static struct RequestTest {
 	const char *description;
 	const char *bugref;
@@ -454,6 +458,13 @@ static struct RequestTest {
 
 	{ "NUL in header value", NULL,
 	  "HTTP/1.1 200 OK\r\nFoo: b\x00" "ar\r\n", 28,
+	  SOUP_STATUS_BAD_REQUEST,
+           NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	{ "Only newlines", NULL,
+	  only_newlines, sizeof (only_newlines),
 	  SOUP_STATUS_BAD_REQUEST,
            NULL, NULL, -1,
 	  { { NULL } }
