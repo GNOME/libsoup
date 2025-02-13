@@ -4,32 +4,9 @@
  */
 
 #include "test-utils.h"
-
-static void
-force_io_streams_init (void)
-{
-	SoupServer *server;
-	SoupSession *session;
-	GUri *base_uri;
-	SoupMessage *msg;
-
-	/* Poke libsoup enough to cause SoupBodyInputStream and
-	 * SoupBodyOutputStream to get defined, so we can find them
-	 * via g_type_from_name() later.
-	 */
-
-	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
-	base_uri = soup_test_server_get_uri (server, "http", NULL);
-
-	session = soup_test_session_new (NULL);
-	msg = soup_message_new_from_uri ("POST", base_uri);
-	soup_test_session_send_message (session, msg);
-	g_object_unref (msg);
-	soup_test_session_abort_unref (session);
-
-	g_uri_unref (base_uri);
-	soup_test_server_quit_unref (server);
-}
+#include "soup-body-input-stream.h"
+#include "soup-body-output-stream.h"
+#include "soup-filter-input-stream.h"
 
 typedef struct {
 	GFilterInputStream grandparent;
@@ -48,7 +25,7 @@ static void slow_pollable_input_stream_init (GPollableInputStreamInterface *poll
 					     gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SlowInputStream, slow_input_stream,
-			 g_type_from_name ("SoupFilterInputStream"),
+			 SOUP_TYPE_FILTER_INPUT_STREAM,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM, slow_pollable_input_stream_init);
 			 )
 
@@ -141,7 +118,7 @@ static void slow_pollable_output_stream_init (GPollableOutputStreamInterface *po
 					      gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (SlowOutputStream, slow_output_stream,
-			 g_type_from_name ("GFilterOutputStream"),
+			 G_TYPE_FILTER_OUTPUT_STREAM,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_OUTPUT_STREAM, slow_pollable_output_stream_init);
 			 )
 
@@ -234,7 +211,7 @@ static void breaking_pollable_output_stream_init (GPollableOutputStreamInterface
 						  gpointer interface_data);
 
 G_DEFINE_TYPE_WITH_CODE (BreakingOutputStream, breaking_output_stream,
-			 g_type_from_name ("GFilterOutputStream"),
+			 G_TYPE_FILTER_OUTPUT_STREAM,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_OUTPUT_STREAM, breaking_pollable_output_stream_init);
 			 )
 
@@ -367,7 +344,7 @@ do_io_tests (void)
 			      "base-stream", imem,
 			      "close-base-stream", TRUE,
 			      NULL);
-	in = g_object_new (g_type_from_name ("SoupBodyInputStream"),
+	in = g_object_new (SOUP_TYPE_BODY_INPUT_STREAM,
 			   "base-stream", islow,
 			   "close-base-stream", TRUE,
 			   "encoding", SOUP_ENCODING_CHUNKED,
@@ -404,7 +381,7 @@ do_io_tests (void)
 			      "base-stream", imem,
 			      "close-base-stream", TRUE,
 			      NULL);
-	in = g_object_new (g_type_from_name ("SoupBodyInputStream"),
+	in = g_object_new (SOUP_TYPE_BODY_INPUT_STREAM,
 			   "base-stream", islow,
 			   "close-base-stream", TRUE,
 			   "encoding", SOUP_ENCODING_CHUNKED,
@@ -457,7 +434,7 @@ do_io_tests (void)
 			      "base-stream", omem,
 			      "close-base-stream", TRUE,
 			      NULL);
-	out = g_object_new (g_type_from_name ("SoupBodyOutputStream"),
+	out = g_object_new (SOUP_TYPE_BODY_OUTPUT_STREAM,
 			    "base-stream", oslow,
 			    "close-base-stream", TRUE,
 			    "encoding", SOUP_ENCODING_CHUNKED,
@@ -502,7 +479,7 @@ do_io_tests (void)
 			      "base-stream", omem,
 			      "close-base-stream", TRUE,
 			      NULL);
-	out = g_object_new (g_type_from_name ("SoupBodyOutputStream"),
+	out = g_object_new (SOUP_TYPE_BODY_OUTPUT_STREAM,
 			    "base-stream", oslow,
 			    "close-base-stream", TRUE,
 			    "encoding", SOUP_ENCODING_CHUNKED,
@@ -563,7 +540,7 @@ do_io_tests (void)
 			      "base-stream", omem,
 			      "close-base-stream", TRUE,
 			      NULL);
-	out = g_object_new (g_type_from_name ("SoupBodyOutputStream"),
+	out = g_object_new (SOUP_TYPE_BODY_OUTPUT_STREAM,
 			    "base-stream", oslow,
 			    "close-base-stream", TRUE,
 			    "encoding", SOUP_ENCODING_CHUNKED,
@@ -597,8 +574,6 @@ main (int argc, char **argv)
 	int ret;
 
 	test_init (argc, argv, NULL);
-
-	force_io_streams_init ();
 
 	g_test_add_func ("/chunk-io", do_io_tests);
 
