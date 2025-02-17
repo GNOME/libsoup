@@ -1,0 +1,4 @@
+Checks: '-*,clang-analyzer-security.*,clang-analyzer-unix.*,bugprone-*,-bugprone-casting-through-void,-bugprone-reserved-identifier,-bugprone-easily-swappable-parameters,-clang-analyzer-optin.core.EnumCastOutOfRange,-bugprone-multi-level-implicit-pointer-conversion,-bugprone-assignment-in-if-condition,-bugprone-signal-handler,-bugprone-branch-clone'
+HeaderFilterRegex: '.*/libsoup/.*'
+ExcludeHeaderFilterRegex: '(soup-enum-types|soup-private-enum-types|soup-header-names)\..*'
+ExtraArgs: ['-Wno-format-nonliteral']
