@@ -26,12 +26,12 @@ typedef enum {
 } SoupMessageIOState;
 
 #define SOUP_MESSAGE_IO_STATE_ACTIVE(state) \
-	(state != SOUP_MESSAGE_IO_STATE_NOT_STARTED && \
-	 state != SOUP_MESSAGE_IO_STATE_BLOCKING && \
-	 state != SOUP_MESSAGE_IO_STATE_DONE)
+	((state) != SOUP_MESSAGE_IO_STATE_NOT_STARTED && \
+	 (state) != SOUP_MESSAGE_IO_STATE_BLOCKING && \
+	 (state) != SOUP_MESSAGE_IO_STATE_DONE)
 #define SOUP_MESSAGE_IO_STATE_POLLABLE(state) \
 	(SOUP_MESSAGE_IO_STATE_ACTIVE (state) && \
-	 state != SOUP_MESSAGE_IO_STATE_BODY_DONE)
+	 (state) != SOUP_MESSAGE_IO_STATE_BODY_DONE)
 
 typedef struct {
 	GInputStream         *body_istream;

@@ -44,7 +44,7 @@ typedef struct {
         GSource *keep_alive_src;
 } SoupHost;
 
-#define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
+#define HOST_KEEP_ALIVE (5 * 60 * 1000) /* 5 min in msecs */
 
 static SoupHost *
 soup_host_new (GUri         *uri,

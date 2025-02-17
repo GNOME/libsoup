@@ -17,17 +17,17 @@
 
 #define MAKE_NV(NAME, VALUE, VALUELEN)                                                           \
         {                                                                                        \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), VALUELEN, NGHTTP2_NV_FLAG_NONE \
+                (uint8_t *)(NAME), (uint8_t *)(VALUE), strlen (NAME), VALUELEN, NGHTTP2_NV_FLAG_NONE \
         }
 
 #define MAKE_NV2(NAME, VALUE)                                                                          \
         {                                                                                              \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), strlen (VALUE), NGHTTP2_NV_FLAG_NONE \
+                (uint8_t *)(NAME), (uint8_t *)(VALUE), strlen (NAME), strlen (VALUE), NGHTTP2_NV_FLAG_NONE \
         }
 
 #define MAKE_NV3(NAME, VALUE, FLAGS)                                                     \
         {                                                                                \
-                (uint8_t *)NAME, (uint8_t *)VALUE, strlen (NAME), strlen (VALUE),  FLAGS \
+                (uint8_t *)(NAME), (uint8_t *)(VALUE), strlen (NAME), strlen (VALUE),  FLAGS \
         }
 
 

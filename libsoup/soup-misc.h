@@ -41,28 +41,28 @@ extern const char soup_char_attributes[];
 #define SOUP_CHAR_HTTP_SEPARATOR      0x08
 #define SOUP_CHAR_HTTP_CTL            0x10
 
-#define soup_char_is_uri_percent_encoded(ch) (soup_char_attributes[(guchar)ch] & SOUP_CHAR_URI_PERCENT_ENCODED)
-#define soup_char_is_uri_gen_delims(ch)      (soup_char_attributes[(guchar)ch] & SOUP_CHAR_URI_GEN_DELIMS)
-#define soup_char_is_uri_sub_delims(ch)      (soup_char_attributes[(guchar)ch] & SOUP_CHAR_URI_SUB_DELIMS)
-#define soup_char_is_uri_unreserved(ch)      (!(soup_char_attributes[(guchar)ch] & (SOUP_CHAR_URI_PERCENT_ENCODED | SOUP_CHAR_URI_GEN_DELIMS | SOUP_CHAR_URI_SUB_DELIMS)))
-#define soup_char_is_token(ch)               (!(soup_char_attributes[(guchar)ch] & (SOUP_CHAR_HTTP_SEPARATOR | SOUP_CHAR_HTTP_CTL)))
+#define soup_char_is_uri_percent_encoded(ch) (soup_char_attributes[(guchar)(ch)] & SOUP_CHAR_URI_PERCENT_ENCODED)
+#define soup_char_is_uri_gen_delims(ch)      (soup_char_attributes[(guchar)(ch)] & SOUP_CHAR_URI_GEN_DELIMS)
+#define soup_char_is_uri_sub_delims(ch)      (soup_char_attributes[(guchar)(ch)] & SOUP_CHAR_URI_SUB_DELIMS)
+#define soup_char_is_uri_unreserved(ch)      (!(soup_char_attributes[(guchar)(ch)] & (SOUP_CHAR_URI_PERCENT_ENCODED | SOUP_CHAR_URI_GEN_DELIMS | SOUP_CHAR_URI_SUB_DELIMS)))
+#define soup_char_is_token(ch)               (!(soup_char_attributes[(guchar)(ch)] & (SOUP_CHAR_HTTP_SEPARATOR | SOUP_CHAR_HTTP_CTL)))
 
 /* At some point it might be possible to mark additional methods
  * safe or idempotent...
  */
-#define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \
-				     method == SOUP_METHOD_HEAD || \
-				     method == SOUP_METHOD_OPTIONS || \
-				     method == SOUP_METHOD_PROPFIND || \
-				     method == SOUP_METHOD_TRACE)
+#define SOUP_METHOD_IS_SAFE(method) ((method) == SOUP_METHOD_GET || \
+				     (method) == SOUP_METHOD_HEAD || \
+				     (method) == SOUP_METHOD_OPTIONS || \
+				     (method) == SOUP_METHOD_PROPFIND || \
+				     (method) == SOUP_METHOD_TRACE)
 
-#define SOUP_METHOD_IS_IDEMPOTENT(method) (method == SOUP_METHOD_GET || \
-					   method == SOUP_METHOD_HEAD || \
-					   method == SOUP_METHOD_OPTIONS || \
-					   method == SOUP_METHOD_PROPFIND || \
-					   method == SOUP_METHOD_TRACE || \
-					   method == SOUP_METHOD_PUT || \
-					   method == SOUP_METHOD_DELETE)
+#define SOUP_METHOD_IS_IDEMPOTENT(method) ((method) == SOUP_METHOD_GET || \
+					   (method) == SOUP_METHOD_HEAD || \
+					   (method) == SOUP_METHOD_OPTIONS || \
+					   (method) == SOUP_METHOD_PROPFIND || \
+					   (method) == SOUP_METHOD_TRACE || \
+					   (method) == SOUP_METHOD_PUT || \
+					   (method) == SOUP_METHOD_DELETE)
 
 guint soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 						goffset              total_length,

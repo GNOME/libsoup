@@ -395,6 +395,8 @@ get_maybe_default_port (GUri *uri)
                 if (!strcmp (scheme, "https") || !strcmp (scheme, "wss"))
                         return -1;
                 break;
+        default:
+                break;
         }
 
         return port;

@@ -426,7 +426,7 @@ static GMainLoop *max_conns_loop;
 static int msgs_done;
 static guint quit_loop_timeout;
 #define MAX_CONNS 2
-#define TEST_CONNS (MAX_CONNS * 2) + 1
+#define TEST_CONNS ((MAX_CONNS * 2) + 1)
 
 static gboolean
 idle_start_server (gpointer data)

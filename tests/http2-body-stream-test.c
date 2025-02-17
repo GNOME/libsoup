@@ -23,8 +23,8 @@
 static void
 do_large_data_test (void)
 {
-#define CHUNK_SIZE (gsize)1024 * 1024 * 512 // 512 MiB
-#define TEST_SIZE CHUNK_SIZE * 20 // 10 GiB
+#define CHUNK_SIZE ((gsize)1024 * 1024 * 512) // 512 MiB
+#define TEST_SIZE (CHUNK_SIZE * 20) // 10 GiB
 
         GInputStream *stream = soup_body_input_stream_http2_new ();
         SoupBodyInputStreamHttp2 *mem_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);

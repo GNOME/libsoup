@@ -31,7 +31,7 @@
  **/
 
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
-#define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
+#define HEXCHAR(s) ((XDIGIT ((s)[1]) << 4) + XDIGIT ((s)[2]))
 
 static gboolean
 form_decode (char *part)

@@ -67,7 +67,7 @@ static void soup_cache_session_feature_init (SoupSessionFeatureInterface *featur
 static SoupContentProcessorInterface *soup_cache_default_content_processor_interface;
 static void soup_cache_content_processor_init (SoupContentProcessorInterface *interface, gpointer interface_data);
 
-#define DEFAULT_MAX_SIZE 50 * 1024 * 1024
+#define DEFAULT_MAX_SIZE (50 * 1024 * 1024)
 #define MAX_ENTRY_DATA_PERCENTAGE 10 /* Percentage of the total size
 	                                of the cache that can be
 	                                filled by a single entry */

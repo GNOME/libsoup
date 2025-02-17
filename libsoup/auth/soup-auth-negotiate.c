@@ -45,7 +45,7 @@ soup_auth_negotiate_supported (void)
 #endif
 }
 
-#define AUTH_GSS_ERROR      -1
+#define AUTH_GSS_ERROR      (-1)
 #define AUTH_GSS_COMPLETE    1
 #define AUTH_GSS_CONTINUE    0
 
