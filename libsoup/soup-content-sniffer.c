@@ -612,8 +612,11 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 }
 
 static gboolean
-skip_insignificant_space (const char *resource, int *pos, int resource_length)
+skip_insignificant_space (const char *resource, gsize *pos, gsize resource_length)
 {
+        if (*pos >= resource_length)
+	        return TRUE;
+
 	while ((resource[*pos] == '\x09') ||
 	       (resource[*pos] == '\x20') ||
 	       (resource[*pos] == '\x0A') ||
@@ -632,7 +635,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
 	const char *resource = (const char *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
-	int pos = 0;
+	gsize pos = 0;
 
 	if (resource_length < 3)
 		goto text_html;
@@ -642,9 +645,6 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 		pos = 3;
 
  look_for_tag:
-	if (pos > resource_length)
-		goto text_html;
-
 	if (skip_insignificant_space (resource, &pos, resource_length))
 		goto text_html;
 
