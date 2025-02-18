@@ -436,6 +436,52 @@ test_disabled (gconstpointer data)
 	soup_uri_free (uri);
 }
 
+static const gsize MARKUP_LENGTH = strlen ("<!--") + strlen ("-->");
+
+static void
+do_skip_whitespace_test (void)
+{
+        SoupContentSniffer *sniffer = soup_content_sniffer_new ();
+        SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "http://example.org");
+        const char *test_cases[] = {
+                "",
+                "<rdf:RDF",
+                "<rdf:RDFxmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"",
+                "<rdf:RDFxmlns=\"http://purl.org/rss/1.0/\"",
+        };
+
+        soup_message_headers_set_content_type (msg->response_headers, "text/html", NULL);
+
+        for (guint i = 0; i < G_N_ELEMENTS (test_cases); i++) {
+                const char *trailing_data = test_cases[i];
+                gsize leading_zeros = 512 - MARKUP_LENGTH - strlen (trailing_data);
+                gsize testsize = MARKUP_LENGTH + leading_zeros + strlen (trailing_data);
+                guint8 *data = g_malloc0 (testsize);
+                guint8 *p = data;
+                char *content_type;
+                GBytes *buffer;
+
+                // Format of <!--[0x00 * $leading_zeros]-->$trailing_data
+                memcpy (p, "<!--", strlen ("<!--"));
+                p += strlen ("<!--");
+                p += leading_zeros;
+                memcpy (p, "-->", strlen ("-->"));
+                p += strlen ("-->");
+                if (strlen (trailing_data))
+                        memcpy (p, trailing_data, strlen (trailing_data));
+                // Purposefully not NUL terminated.                
+
+                buffer = g_bytes_new_take (g_steal_pointer (&data), testsize);
+                content_type = soup_content_sniffer_sniff (sniffer, msg, (SoupBuffer *) buffer, NULL);
+
+                g_free (content_type);
+                g_bytes_unref (buffer);
+        }
+
+        g_object_unref (msg);
+        g_object_unref (sniffer);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -605,15 +651,12 @@ main (int argc, char **argv)
 			      "type/text_html; charset=UTF-8/test.html => text/html; charset=UTF-8",
 			      do_sniffing_test);
 
-        /* Test hitting skip_insignificant_space() with number of bytes equaling resource_length. */
-	g_test_add_data_func ("/sniffing/whitespace",
-			      "type/text_html/whitespace.html => text/html",
-			      do_sniffing_test);
-
 	/* Test that disabling the sniffer works correctly */
 	g_test_add_data_func ("/sniffing/disabled",
 			      "/text_or_binary/home.gif",
 			      test_disabled);
+
+	g_test_add_func ("/sniffing/whitespace", do_skip_whitespace_test);
 
 	ret = g_test_run ();
 
