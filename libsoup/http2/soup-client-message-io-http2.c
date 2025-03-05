@@ -556,6 +556,17 @@ sniff_for_empty_response (SoupMessage *msg)
         }
 }
 
+static gboolean
+message_has_content_length_zero (SoupMessage *msg)
+{
+        SoupMessageHeaders *headers = soup_message_get_response_headers (msg);
+
+        if (soup_message_headers_get_encoding (headers) != SOUP_ENCODING_CONTENT_LENGTH)
+                return FALSE;
+
+        return soup_message_headers_get_content_length (headers) == 0;
+}
+
 static void
 io_try_sniff_content (SoupHTTP2MessageData *data,
                       gboolean              blocking,
@@ -567,7 +578,7 @@ io_try_sniff_content (SoupHTTP2MessageData *data,
         if (data->in_io_try_sniff_content)
                 return;
 
-        if (soup_message_headers_get_content_length (soup_message_get_response_headers (data->msg)) == 0) {
+        if (message_has_content_length_zero (data->msg)) {
                 sniff_for_empty_response (data->msg);
                 h2_debug (data->io, data, "[DATA] Sniffed content (Content-Length was 0)");
                 advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
