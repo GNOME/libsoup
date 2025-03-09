@@ -3228,6 +3228,9 @@ soup_session_send_finish (SoupSession   *session,
  * [method@Session.send] will only return once a final response has been
  * received.
  *
+ * Possible error domains include [error@SessionError], [error@Gio.IOErrorEnum],
+ * and [error@Gio.TlsError] which you may want to specifically handle.
+ *
  * Returns: (transfer full): a #GInputStream for reading the
  *   response body, or %NULL on error.
  */
