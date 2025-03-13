@@ -20,8 +20,8 @@ https://discourse.gnome.org/tag/libsoup
 Bugs against libsoup can be filed at:
 https://gitlab.gnome.org/GNOME/libsoup/issues/
 
-More information is available at
-https://wiki.gnome.org/Projects/libsoup
+More information and API documentation is available at
+https://libsoup.gnome.org
 
 Licensing:
 libsoup is licensed under the LGPL, see COPYING for more details.
