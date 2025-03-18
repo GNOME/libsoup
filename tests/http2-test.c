@@ -679,10 +679,10 @@ do_connections_test (Test *test, gconstpointer data)
         guint complete_count = 0;
         GUri *uri;
 
-        if (g_getenv ("ASAN_OPTIONS")) {
-                g_test_skip ("Flakey on asan GitLab runner");
-                return;
-        }
+#ifdef __SANITIZE_ADDRESS__
+        g_test_skip ("Flakey on asan GitLab runner");
+        return;
+#endif
 
         async_context = g_main_context_ref_thread_default ();
 
