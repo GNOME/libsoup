@@ -132,7 +132,7 @@ Changes in libsoup from 3.1.1 to 3.1.2:
 
 Changes in libsoup from 3.0.7 to 3.1.1:
 
-* Reintroduce some thread-safety to SoupSession (see https://libsoup.org/libsoup-3.0/client-thread-safety.html) [Carlos Garcia Campos]
+* Reintroduce some thread-safety to SoupSession (see https://libsoup.gnome.org/libsoup-3.0/client-thread-safety.html) [Carlos Garcia Campos]
 * Add SoupServerMessage:tls-peer-certificate and SoupServerMessage:tls-peer-certificate-errors [Ignacio Casal Quinteiro]
 * Port docs to gi-docgen [Maximiliano Sandoval R]
 * Update documentation [Patrick Griffis]
@@ -323,7 +323,7 @@ Changes in libsoup from 2.99.1 to 2.99.2:
 Changes in libsoup from 2.72.0 to 2.99.1:
 
     * This is a major ABI breaking release that can be installed in parallel with 2.7x.
-      Numerous API have been changed which is documented on https://libsoup.org
+      Numerous API have been changed which is documented on https://libsoup.gnome.org
 
 Changes in libsoup from 2.71.1 to 2.72.0:
 
