@@ -1186,6 +1186,9 @@ soup_connection_set_in_use (SoupConnection *conn,
         if (g_atomic_int_dec_and_test (&priv->in_use)) {
                 clear_proxy_msg (conn);
 
+                if (soup_connection_get_state (conn) == SOUP_CONNECTION_DISCONNECTED)
+                        return;
+
                 if (soup_connection_is_reusable (conn))
                         soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
                 else
