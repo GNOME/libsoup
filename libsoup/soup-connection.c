@@ -1211,7 +1211,7 @@ soup_connection_setup_message_io (SoupConnection *conn,
                 set_proxy_msg (conn, msg);
 
         if (!soup_client_message_io_is_reusable (priv->io_data))
-                g_warn_if_reached ();
+                g_assert_not_reached ();
 
         return priv->io_data;
 }

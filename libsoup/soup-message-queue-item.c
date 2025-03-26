@@ -43,7 +43,7 @@ static void
 soup_message_queue_item_destroy (SoupMessageQueueItem *item)
 {
         if (!g_error_matches (item->error, SOUP_SESSION_ERROR, SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE)) {
-                g_warn_if_fail (soup_message_get_connection (item->msg) == NULL);
+                g_assert (soup_message_get_connection (item->msg) == NULL);
         }
 
         g_object_unref (item->session);

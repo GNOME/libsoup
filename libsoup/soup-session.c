@@ -331,7 +331,7 @@ soup_session_dispose (GObject *object)
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
 	soup_session_abort (session);
-	g_warn_if_fail (soup_connection_manager_get_num_conns (priv->conn_manager) == 0);
+	g_assert (soup_connection_manager_get_num_conns (priv->conn_manager) == 0);
 
 	while (priv->features)
 		soup_session_remove_feature (session, priv->features->data);
@@ -348,7 +348,7 @@ soup_session_finalize (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 
-	g_warn_if_fail (g_queue_is_empty (priv->queue));
+	g_assert (g_queue_is_empty (priv->queue));
 	g_queue_free (priv->queue);
         g_mutex_clear (&priv->queue_mutex);
         g_clear_pointer (&priv->queue_sources, g_hash_table_destroy);
@@ -1868,7 +1868,7 @@ soup_session_process_queue_item (SoupSession          *session,
 			/* Nothing to do with this message in any
 			 * other state.
 			 */
-			g_warn_if_fail (item->async);
+			g_assert (item->async);
 			return;
 		}
 	} while (loop && item->state != SOUP_MESSAGE_FINISHED);

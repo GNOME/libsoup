@@ -380,7 +380,7 @@ soup_auth_digest_compute_response (const char        *method,
 		g_checksum_update (checksum, (guchar *)":", 1);
 
 		if (!(qop & SOUP_AUTH_DIGEST_QOP_AUTH))
-			g_warn_if_reached ();
+			g_assert_not_reached ();
 		g_checksum_update (checksum, (guchar *)"auth", strlen ("auth"));
 		g_checksum_update (checksum, (guchar *)":", 1);
 	}

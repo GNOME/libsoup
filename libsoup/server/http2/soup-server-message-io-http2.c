@@ -231,7 +231,7 @@ soup_server_message_io_http2_pause (SoupServerMessageIO *iface,
         h2_debug (io, msg_io, "[SESSION] Paused");
 
         if (msg_io->paused)
-                g_warn_if_reached ();
+                g_assert_not_reached ();
 
         if (msg_io->unpause_source) {
                 g_source_destroy (msg_io->unpause_source);
@@ -265,7 +265,7 @@ io_unpause_internal (UnpauseSourceData *data)
                 soup_server_message_io_http2_send_response (data->io, msg_io);
                 break;
         default:
-                g_warn_if_reached ();
+                g_assert_not_reached ();
         }
         return FALSE;
 }
@@ -283,7 +283,7 @@ soup_server_message_io_http2_unpause (SoupServerMessageIO *iface,
         h2_debug (io, msg_io, "[SESSION] Unpaused");
 
         if (!msg_io->paused)
-                g_warn_if_reached ();
+                g_assert_not_reached ();
 
         msg_io->paused = FALSE;
 

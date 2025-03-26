@@ -355,7 +355,7 @@ io_write (SoupClientMessageIOHTTP2 *io,
 
         if (io->write_buffer == NULL) {
                 io->written_bytes = 0;
-                g_warn_if_fail (io->in_callback == 0);
+                g_assert (io->in_callback == 0);
                 io->write_buffer_size = nghttp2_session_mem_send (io->session, (const guint8**)&io->write_buffer);
                 NGCHECK (io->write_buffer_size);
                 if (io->write_buffer_size == 0) {
@@ -484,7 +484,7 @@ io_read (SoupClientMessageIOHTTP2  *io,
                 return FALSE;
         }
 
-        g_warn_if_fail (io->in_callback == 0);
+        g_assert (io->in_callback == 0);
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
         NGCHECK (ret);
         return ret > 0;
@@ -843,7 +843,7 @@ on_frame_recv_callback (nghttp2_session     *session,
                         }
                         break;
                 case NGHTTP2_HCAT_PUSH_RESPONSE:
-                        g_warn_if_reached ();
+                        g_assert_not_reached ();
                         break;
                 default:
                         g_assert_not_reached ();
@@ -1398,7 +1398,7 @@ add_message_to_io_data (SoupClientMessageIOHTTP2  *io,
         data->io = io;
 
         if (!g_hash_table_insert (io->messages, item->msg, data))
-                g_warn_if_reached ();
+                g_assert_not_reached ();
 
         g_signal_connect_swapped (data->msg, "notify::priority",
                                   G_CALLBACK (message_priority_changed),
@@ -1604,9 +1604,9 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
                 soup_http2_message_data_close (data);
 
                 if (!g_hash_table_steal (io->messages, msg))
-                        g_warn_if_reached ();
+                        g_assert_not_reached ();
                 if (!g_hash_table_add (io->closed_messages, data))
-                        g_warn_if_reached ();
+                        g_assert_not_reached ();
 
                 if (conn)
                         soup_connection_set_in_use (conn, TRUE);
@@ -1614,7 +1614,7 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
                 io_try_write (io, !io->async);
         } else {
                 if (!g_hash_table_remove (io->messages, msg))
-                        g_warn_if_reached ();
+                        g_assert_not_reached ();
         }
 
 	if (completion_cb)
@@ -1638,7 +1638,7 @@ soup_client_message_io_http2_pause (SoupClientMessageIO *iface,
         h2_debug (io, data, "[SESSION] Paused");
 
         if (data->paused)
-                g_warn_if_reached ();
+                g_assert_not_reached ();
 
         data->paused = TRUE;
 }
@@ -1653,7 +1653,7 @@ soup_client_message_io_http2_unpause (SoupClientMessageIO *iface,
         h2_debug (io, data, "[SESSION] Unpaused");
 
         if (!data->paused)
-                g_warn_if_reached ();
+                g_assert_not_reached ();
 
         data->paused = FALSE;
 
@@ -1721,7 +1721,7 @@ client_stream_eof (SoupClientInputStream *stream,
 	SoupClientMessageIOHTTP2 *io = get_io_data (msg);
 
         if (!io) {
-                g_warn_if_reached ();
+                g_assert_not_reached ();
                 return;
         }
 

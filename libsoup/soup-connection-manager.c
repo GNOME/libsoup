@@ -81,7 +81,7 @@ soup_host_new (GUri         *uri,
 static void
 soup_host_free (SoupHost *host)
 {
-        g_warn_if_fail (host->conns == NULL);
+        g_assert (host->conns == NULL);
 
         if (host->keep_alive_src) {
                 g_source_destroy (host->keep_alive_src);
@@ -102,7 +102,7 @@ soup_host_uri_hash (gconstpointer key)
 {
         GUri *uri = (GUri*)key;
 
-        g_warn_if_fail (uri != NULL && g_uri_get_host (uri) != NULL);
+        g_assert (uri != NULL && g_uri_get_host (uri) != NULL);
 
         return g_uri_get_port (uri) + soup_str_case_hash (g_uri_get_host (uri));
 }
@@ -113,11 +113,11 @@ soup_host_uri_equal (gconstpointer v1, gconstpointer v2)
         GUri *one = (GUri*)v1;
         GUri *two = (GUri*)v2;
 
-        g_warn_if_fail (one != NULL && two != NULL);
+        g_assert (one != NULL && two != NULL);
 
         const char *one_host = g_uri_get_host (one);
         const char *two_host = g_uri_get_host (two);
-        g_warn_if_fail (one_host != NULL && two_host != NULL);
+        g_assert (one_host != NULL && two_host != NULL);
 
         if (g_uri_get_port (one) != g_uri_get_port (two))
                 return FALSE;
@@ -532,7 +532,7 @@ soup_connection_manager_get_connection (SoupConnectionManager *manager,
 
         conn = soup_message_get_connection (item->msg);
         if (conn) {
-                g_warn_if_fail (soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED);
+                g_assert (soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED);
                 g_object_unref (conn);
                 return conn;
         }
