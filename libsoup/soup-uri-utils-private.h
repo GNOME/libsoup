@@ -30,4 +30,6 @@ GUri        *soup_uri_copy_with_normalized_flags (GUri  *uri);
 
 char        *soup_uri_get_host_for_headers  (GUri       *uri);
 
+char        *soup_uri_normalize_domain      (const char *domain);
+
 G_END_DECLS

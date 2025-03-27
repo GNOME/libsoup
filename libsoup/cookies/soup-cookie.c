@@ -168,6 +168,16 @@ parse_date (const char **val_p)
 	return date;
 }
 
+static gboolean
+is_lowercase_ascii_string (const char *str)
+{
+        for (; *str; str++) {
+                if (!g_ascii_islower (*str))
+                        return FALSE;
+        }
+        return TRUE;
+}
+
 #define MAX_AGE_CAP_IN_SECONDS 31536000  // 1 year
 #define MAX_ATTRIBUTE_SIZE 1024
 
@@ -311,6 +321,12 @@ parse_one_cookie (const char *header, GUri *origin)
 			g_free (cookie->domain);
 			cookie->domain = tmp;
 		}
+
+                if (!is_lowercase_ascii_string (cookie->domain)) {
+                        char *tmp = soup_uri_normalize_domain (cookie->domain);
+                        g_free (cookie->domain);
+                        cookie->domain = tmp;
+                }
 	}
 
 	if (origin) {
@@ -321,7 +337,7 @@ parse_one_cookie (const char *header, GUri *origin)
 				return NULL;
 			}
 		} else
-			cookie->domain = g_strdup (g_uri_get_host (origin));
+			cookie->domain = soup_uri_normalize_domain (g_uri_get_host (origin));
 
 		/* The original cookie spec didn't say that pages
 		 * could only set cookies for paths they were under.
@@ -364,7 +380,7 @@ cookie_new_internal (const char *name, const char *value,
 	cookie = g_slice_new0 (SoupCookie);
 	cookie->name = g_strdup (name);
 	cookie->value = g_strdup (value);
-	cookie->domain = g_strdup (domain);
+	cookie->domain = soup_uri_normalize_domain (domain);
 	cookie->path = g_strdup (path);
 	soup_cookie_set_max_age (cookie, max_age);
 	cookie->same_site_policy = SOUP_SAME_SITE_POLICY_LAX;
@@ -537,7 +553,7 @@ void
 soup_cookie_set_domain (SoupCookie *cookie, const char *domain)
 {
 	g_free (cookie->domain);
-	cookie->domain = g_strdup (domain);
+	cookie->domain = soup_uri_normalize_domain (domain);
 }
 
 /**
