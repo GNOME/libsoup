@@ -695,6 +695,24 @@ do_cookies_threads_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static void
+do_cookies_public_suffix_test (void)
+{
+        SoupCookieJar *jar = soup_cookie_jar_new ();
+        GUri *uri = g_uri_parse ("http://example.CO.uk", SOUP_HTTP_URI_FLAGS, NULL);
+        GSList *cookies;
+
+        soup_cookie_jar_set_cookie (jar, uri, "value=1; domain=.co.uk");
+        soup_cookie_jar_set_cookie (jar, uri, "value=1; domain=.CO.uk");
+        soup_cookie_jar_set_cookie (jar, uri, "value=1; domain=.CO.UK");
+
+        cookies = soup_cookie_jar_all_cookies (jar);
+        g_assert_cmpint (g_slist_length (cookies), ==, 0);
+
+        g_uri_unref (uri);
+        g_object_unref (jar);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -726,6 +744,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/secure-cookies", do_cookies_strict_secure_test);
 	g_test_add_func ("/cookies/prefix", do_cookies_prefix_test);
         g_test_add_func ("/cookies/threads", do_cookies_threads_test);
+        g_test_add_func ("/cookies/public-suffix", do_cookies_public_suffix_test);
 
 	ret = g_test_run ();
 
