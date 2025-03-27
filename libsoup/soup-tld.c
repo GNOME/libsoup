@@ -15,6 +15,7 @@
 #include <libpsl.h>
 
 #include "soup-tld.h"
+#include "soup-uri-utils-private.h"
 #include "soup.h"
 
 static const char *soup_tld_get_base_domain_internal (const char *hostname,
@@ -40,6 +41,8 @@ static const char *soup_tld_get_base_domain_internal (const char *hostname,
  * UTF-8 if it was an IDN. From 2.46 on, the name can be in either
  * UTF-8 or ASCII format (and the return value will be in the same
  * format).
+ *
+ * For accurate results @hostname must be lowercase.
  *
  * Returns: a pointer to the start of the base domain in @hostname. If
  *   an error occurs, %NULL will be returned and @error set.
@@ -80,6 +83,8 @@ gboolean
 soup_tld_domain_is_public_suffix (const char *domain)
 {
 	const psl_ctx_t* psl = soup_psl_context ();
+        char *normalized;
+        gboolean is_public_suffix;
 
 	g_return_val_if_fail (domain, FALSE);
 
@@ -88,7 +93,11 @@ soup_tld_domain_is_public_suffix (const char *domain)
 		return FALSE;
 	}
 
-	return psl_is_public_suffix2 (psl, domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE);
+        normalized = soup_uri_normalize_domain (domain);
+        is_public_suffix = psl_is_public_suffix2 (psl, domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE);
+        g_free (normalized);
+
+	return is_public_suffix;
 }
 
 /**
