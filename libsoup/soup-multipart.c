@@ -189,7 +189,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 			return NULL;
 		}
 
-		split = strstr (start, "\r\n\r\n");
+		split = g_strstr_len (start, body_end - start, "\r\n\r\n");
 		if (!split || split > end) {
 			soup_multipart_free (multipart);
 			soup_buffer_free (flattened);
