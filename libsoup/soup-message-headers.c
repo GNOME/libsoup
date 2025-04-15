@@ -1024,6 +1024,7 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 			if (cur->start <= prev->end) {
 				prev->end = MAX (prev->end, cur->end);
 				g_array_remove_index (array, i);
+				i--;
 			}
 		}
 	}
