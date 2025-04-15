@@ -471,6 +471,62 @@ test_multipart (gconstpointer data)
 	loop = NULL;
 }
 
+static void
+test_multipart_bounds_good (void)
+{
+	#define TEXT "line1\r\nline2"
+	SoupMultipart *multipart;
+	SoupMessageHeaders *headers, *set_headers = NULL;
+	GBytes *bytes, *set_bytes = NULL;
+	const char *raw_data = "--123\r\nContent-Type: text/plain;\r\n\r\n" TEXT "\r\n--123--\r\n";
+	gboolean success;
+
+	headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+	soup_message_headers_append (headers, "Content-Type", "multipart/mixed; boundary=\"123\"");
+
+	bytes = g_bytes_new (raw_data, strlen (raw_data));
+
+	multipart = soup_multipart_new_from_message (headers, bytes);
+
+	g_assert_nonnull (multipart);
+	g_assert_cmpint (soup_multipart_get_length (multipart), ==, 1);
+	success = soup_multipart_get_part (multipart, 0, &set_headers, &set_bytes);
+	g_assert_true (success);
+	g_assert_nonnull (set_headers);
+	g_assert_nonnull (set_bytes);
+	g_assert_cmpint (strlen (TEXT), ==, g_bytes_get_size (set_bytes));
+	g_assert_cmpstr ("text/plain", ==, soup_message_headers_get_content_type (set_headers, NULL));
+	g_assert_cmpmem (TEXT, strlen (TEXT), g_bytes_get_data (set_bytes, NULL), g_bytes_get_size (set_bytes));
+
+	soup_message_headers_unref (headers);
+	g_bytes_unref (bytes);
+
+	soup_multipart_free (multipart);
+
+	#undef TEXT
+}
+
+static void
+test_multipart_bounds_bad (void)
+{
+	SoupMultipart *multipart;
+	SoupMessageHeaders *headers;
+	GBytes *bytes;
+	const char *raw_data = "--123\r\nContent-Type: text/plain;\r\nline1\r\nline2\r\n--123--\r\n";
+
+	headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+	soup_message_headers_append (headers, "Content-Type", "multipart/mixed; boundary=\"123\"");
+
+	bytes = g_bytes_new (raw_data, strlen (raw_data));
+
+	/* it did read out of raw_data/bytes bounds */
+	multipart = soup_multipart_new_from_message (headers, bytes);
+	g_assert_null (multipart);
+
+	soup_message_headers_unref (headers);
+	g_bytes_unref (bytes);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -498,6 +554,8 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/multipart/sync", GINT_TO_POINTER (SYNC_MULTIPART), test_multipart);
 	g_test_add_data_func ("/multipart/async", GINT_TO_POINTER (ASYNC_MULTIPART), test_multipart);
 	g_test_add_data_func ("/multipart/async-small-reads", GINT_TO_POINTER (ASYNC_MULTIPART_SMALL_READS), test_multipart);
+	g_test_add_func ("/multipart/bounds-good", test_multipart_bounds_good);
+	g_test_add_func ("/multipart/bounds-bad", test_multipart_bounds_bad);
 
 	ret = g_test_run ();
 
