@@ -103,6 +103,7 @@ tests = [
   {'name': 'samesite'},
   {'name': 'session'},
   {'name': 'server-auth'},
+  {'name': 'server-mem-limit'},
   {'name': 'server'},
   {'name': 'sniffing',
     'depends': [test_resources],
