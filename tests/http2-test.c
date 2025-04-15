@@ -1241,6 +1241,30 @@ do_connection_closed_test (Test *test, gconstpointer data)
         g_uri_unref (uri);
 }
 
+static void
+do_broken_pseudo_header_test (Test *test, gconstpointer data)
+{
+	char *path;
+	SoupMessage *msg;
+	GUri *uri;
+	GBytes *body = NULL;
+	GError *error = NULL;
+
+	uri = g_uri_parse_relative (base_uri, "/ag", SOUP_HTTP_URI_FLAGS, NULL);
+
+	/* an ugly cheat to construct a broken URI, which can be sent from other libs */
+	path = (char *) g_uri_get_path (uri);
+	path[1] = '%';
+
+	msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+	body = soup_test_session_async_send (test->session, msg, NULL, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
+	g_assert_null (body);
+	g_clear_error (&error);
+	g_object_unref (msg);
+	g_uri_unref (uri);
+}
+
 static gboolean
 unpause_message (SoupServerMessage *msg)
 {
@@ -1548,6 +1572,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/connection-closed", Test, NULL,
                     setup_session,
                     do_connection_closed_test,
+                    teardown_session);
+        g_test_add ("/http2/broken-pseudo-header", Test, NULL,
+                    setup_session,
+                    do_broken_pseudo_header_test,
                     teardown_session);
 
 	ret = g_test_run ();
