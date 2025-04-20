@@ -177,6 +177,23 @@ do_non_inet_tests (void)
 	}
 }
 
+static struct {
+        const char *hostname;
+        const char *expected_base;
+} normalized_tests[] = {
+        { "bar.foo.CO.uk", "foo.co.uk" },
+};
+
+static void
+do_normalized_tests (void)
+{
+        for (guint i = 0; i < G_N_ELEMENTS (normalized_tests); i++) {
+                char *base = soup_tld_get_base_domain_normalized(normalized_tests[i].hostname, NULL);
+                g_assert_cmpstr (base, ==, normalized_tests[i].expected_base);
+                g_free (base);
+        }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -186,6 +203,8 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/tld/inet", do_inet_tests);
 	g_test_add_func ("/tld/non-inet", do_non_inet_tests);
+	g_test_add_func ("/tld/normalized-base", do_normalized_tests);
+
 
 	ret = g_test_run ();
 
