@@ -42,7 +42,8 @@ static const char *soup_tld_get_base_domain_internal (const char *hostname,
  * UTF-8 or ASCII format (and the return value will be in the same
  * format).
  *
- * For accurate results @hostname must be lowercase.
+ * For accurate results @hostname must be lowercase. Otherwise use
+ * [func@Soup.tld_get_base_domain_normalized].
  *
  * Returns: a pointer to the start of the base domain in @hostname. If
  *   an error occurs, %NULL will be returned and @error set.
@@ -53,6 +54,36 @@ soup_tld_get_base_domain (const char *hostname, GError **error)
 	g_return_val_if_fail (hostname, NULL);
 
 	return soup_tld_get_base_domain_internal (hostname, error);
+}
+
+/**
+ * soup_tld_get_base_domain_normalized:
+ * @hostname: a hostname
+ * @error: return location for a #GError, or %NULL to ignore
+ *   errors. See #SoupTLDError for the available error codes
+ *
+ * Finds the base domain for a given @hostname. See [func@tld_get_base_domain]
+ * for specific details.
+ *
+ * The difference between that function and this is that @hostname will
+ * first be normalized and this returns a copy of the base domain.
+ *
+ * Since: 3.8
+ * Returns: the base domain in @hostname. If
+ *   an error occurs, %NULL will be returned and @error set.
+ **/
+char *
+soup_tld_get_base_domain_normalized (const char *hostname, GError **error)
+{
+        g_return_val_if_fail (hostname, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+        char *normalized = soup_uri_normalize_domain (hostname);
+        const char *base = soup_tld_get_base_domain (normalized, error);
+        char *ret = g_strdup (base);
+        g_free (normalized);
+
+        return ret;
 }
 
 static psl_ctx_t *
@@ -94,7 +125,7 @@ soup_tld_domain_is_public_suffix (const char *domain)
 	}
 
         normalized = soup_uri_normalize_domain (domain);
-        is_public_suffix = psl_is_public_suffix2 (psl, domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE);
+        is_public_suffix = psl_is_public_suffix2 (psl, normalized, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE);
         g_free (normalized);
 
 	return is_public_suffix;

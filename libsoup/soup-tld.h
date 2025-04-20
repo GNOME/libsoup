@@ -13,6 +13,10 @@ SOUP_AVAILABLE_IN_ALL
 const char *soup_tld_get_base_domain         (const char *hostname,
 					      GError    **error);
 
+SOUP_AVAILABLE_IN_3_8
+char *soup_tld_get_base_domain_normalized (const char  *hostname,
+                                           GError     **error);
+
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_tld_domain_is_public_suffix (const char *domain);
 
