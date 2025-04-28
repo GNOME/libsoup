@@ -771,13 +771,18 @@ on_frame_recv_callback (nghttp2_session     *session,
                 char *uri_string;
                 GUri *uri;
 
-		if (msg_io->scheme == NULL || msg_io->authority == NULL || msg_io->path == NULL)
-			return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
-                uri_string = g_strdup_printf ("%s://%s%s", msg_io->scheme, msg_io->authority, msg_io->path);
+                if (msg_io->authority == NULL) {
+                        io->in_callback--;
+                        return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+                }
+                /* RFC 5740: the CONNECT has unset the "scheme" and "path", but the GUri requires the scheme, thus let it be "(null)" */
+                uri_string = g_strdup_printf ("%s://%s%s", msg_io->scheme, msg_io->authority, msg_io->path == NULL ? "" : msg_io->path);
                 uri = g_uri_parse (uri_string, SOUP_HTTP_URI_FLAGS, NULL);
                 g_free (uri_string);
-		if (uri == NULL)
-			return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+                if (uri == NULL) {
+                        io->in_callback--;
+                        return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+                }
                 soup_server_message_set_uri (msg_io->msg, uri);
                 g_uri_unref (uri);
 
