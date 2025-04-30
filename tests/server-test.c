@@ -255,7 +255,7 @@ do_invalid_percent_encoding_paths_test (ServerData *sd, gconstpointer test_data)
 	SoupMessage *msg;
 	GUri *uri;
 
-	g_test_bug ("262");
+	g_test_bug ("https://gitlab.gnome.org/GNOME/libsoup/-/issues/262");
 
 	session = soup_test_session_new (NULL);
 
