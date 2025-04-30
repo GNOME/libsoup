@@ -143,6 +143,8 @@ debug_printf (int level, const char *format, ...)
 	va_start (args, format);
 	g_vprintf (format, args);
 	va_end (args);
+
+	fflush (stdout);
 }
 
 gboolean
