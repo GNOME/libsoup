@@ -607,9 +607,11 @@ static gboolean
 add_listener_in_thread (gpointer user_data)
 {
 	AddListenerData *data = user_data;
+	GUri *uri;
 
-	data->uri = add_listener (data->server, data->scheme, data->host);
+	uri = add_listener (data->server, data->scheme, data->host);
 	g_mutex_lock (&data->mutex);
+	data->uri = uri;
 	g_cond_signal (&data->cond);
 	g_mutex_unlock (&data->mutex);
 
@@ -641,9 +643,9 @@ soup_test_server_get_uri (SoupServer    *server,
 		data.host = host;
 		data.uri = NULL;
 
-		g_mutex_lock (&data.mutex);
 		soup_add_completion (context, add_listener_in_thread, &data);
 
+		g_mutex_lock (&data.mutex);
 		while (!data.uri)
 			g_cond_wait (&data.cond, &data.mutex);
 
