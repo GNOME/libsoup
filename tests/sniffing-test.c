@@ -342,11 +342,10 @@ test_disabled (gconstpointer data)
 	g_uri_unref (uri);
 }
 
-static const gsize MARKUP_LENGTH = strlen ("<!--") + strlen ("-->");
-
 static void
 do_skip_whitespace_test (void)
 {
+        const gsize MARKUP_LENGTH = strlen ("<!--") + strlen ("-->");
         SoupContentSniffer *sniffer = soup_content_sniffer_new ();
         SoupMessage *msg = soup_message_new (SOUP_METHOD_GET, "http://example.org");
         const char *test_cases[] = {
