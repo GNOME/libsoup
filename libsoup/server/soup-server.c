@@ -188,6 +188,16 @@ static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (SoupServer, soup_server, G_TYPE_OBJECT)
 
+/* SoupWebsocketConnection by default limits only maximum packet size. But a
+ * message may consist of multiple packets, so SoupServer additionally restricts
+ * total message size to mitigate denial of service attacks on the server.
+ * SoupWebsocketConnection does not do this by default because I don't know
+ * whether that would or would not cause compatibility problems for websites.
+ *
+ * This size is in bytes and it is arbitrary.
+ */
+#define MAX_TOTAL_MESSAGE_SIZE_DEFAULT   128 * 1024
+
 static void request_finished (SoupServerMessage      *msg,
                               SoupMessageIOCompletion completion,
                               SoupServer             *server);
@@ -952,11 +962,15 @@ complete_websocket_upgrade (SoupServer        *server,
 
 	g_object_ref (msg);
 	stream = soup_server_message_steal_connection (msg);
-	conn = soup_websocket_connection_new (stream, uri,
-					      SOUP_WEBSOCKET_CONNECTION_SERVER,
-					      soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg), SOUP_HEADER_ORIGIN),
-					      soup_message_headers_get_one_common (soup_server_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL),
-					      handler->websocket_extensions);
+	conn = SOUP_WEBSOCKET_CONNECTION (g_object_new (SOUP_TYPE_WEBSOCKET_CONNECTION,
+					  "io-stream", stream,
+					  "uri", uri,
+					  "connection-type", SOUP_WEBSOCKET_CONNECTION_SERVER,
+					  "origin", soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg), SOUP_HEADER_ORIGIN),
+					  "protocol", soup_message_headers_get_one_common (soup_server_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL),
+					  "extensions", handler->websocket_extensions,
+					  "max-total-message-size", (guint64)MAX_TOTAL_MESSAGE_SIZE_DEFAULT,
+					  NULL));
 	handler->websocket_extensions = NULL;
 	g_object_unref (stream);
 
