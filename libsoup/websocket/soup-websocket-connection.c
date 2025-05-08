@@ -166,7 +166,6 @@ typedef struct {
 } SoupWebsocketConnectionPrivate;
 
 #define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
-#define MAX_TOTAL_MESSAGE_SIZE_DEFAULT   128 * 1024
 #define READ_BUFFER_SIZE 1024
 #define MASK_LENGTH 4
 
@@ -1673,9 +1672,10 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	/**
 	 * SoupWebsocketConnection:max-incoming-payload-size:
 	 *
-	 * The maximum payload size for incoming packets.
+	 * The maximum payload size for incoming packets, or 0 to not limit it.
 	 *
-	 * The protocol expects or 0 to not limit it.
+	 * Each message may consist of multiple packets, so also refer to
+	 * [property@WebSocketConnection:max-total-message-size].
 	 */
         properties[PROP_MAX_INCOMING_PAYLOAD_SIZE] =
                 g_param_spec_uint64 ("max-incoming-payload-size",
@@ -1746,9 +1746,19 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	/**
 	 * SoupWebsocketConnection:max-total-message-size:
 	 *
-	 * The total message size for incoming packets.
+	 * The maximum size for incoming messages.
 	 *
-	 * The protocol expects or 0 to not limit it.
+	 * Set to a value to limit the total message size, or 0 to not
+	 * limit it.
+	 *
+	 * [method@Server.add_websocket_handler] will set this to a nonzero
+	 * default value to mitigate denial of service attacks. Clients must
+	 * choose their own default if they need to mitigate denial of service
+	 * attacks. You also need to set your own default if creating your own
+	 * server SoupWebsocketConnection without using SoupServer.
+	 *
+	 * Each message may consist of multiple packets, so also refer to
+	 * [property@WebSocketConnection:max-incoming-payload-size].
 	 *
 	 * Since: 3.8
 	 */
@@ -1758,7 +1768,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
                                      "Max total message size ",
                                      0,
                                      G_MAXUINT64,
-                                     MAX_TOTAL_MESSAGE_SIZE_DEFAULT,
+                                     0,
                                      G_PARAM_READWRITE |
                                      G_PARAM_CONSTRUCT |
                                      G_PARAM_STATIC_STRINGS);
@@ -2248,7 +2258,7 @@ soup_websocket_connection_get_max_total_message_size (SoupWebsocketConnection *s
 {
 	SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 
-	g_return_val_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self), MAX_TOTAL_MESSAGE_SIZE_DEFAULT);
+	g_return_val_if_fail (SOUP_IS_WEBSOCKET_CONNECTION (self), 0);
 
 	return priv->max_total_message_size;
 }
