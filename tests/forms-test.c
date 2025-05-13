@@ -485,6 +485,46 @@ md5_callback (SoupServer        *server,
 		soup_server_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED, NULL);
 }
 
+static void
+do_form_decode_multipart_test (void)
+{
+	SoupMultipart *multipart = soup_multipart_new ("multipart/form-data");
+	const char *file_control_name = "uploaded_file";
+	char *content_type = NULL;
+	char *filename = NULL;
+	GBytes *file = NULL;
+	GHashTable *result;
+	int part;
+
+	for (part = 0; part < 2; part++) {
+		SoupMessageHeaders *headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+		GHashTable *params = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+		GBytes *body = g_bytes_new (NULL, 0);
+
+		g_hash_table_insert (params, g_strdup ("name"), g_strdup (file_control_name));
+		g_hash_table_insert (params, g_strdup ("filename"), g_strdup (file_control_name));
+		soup_message_headers_set_content_disposition (headers, "form-data", params);
+		soup_message_headers_set_content_type (headers, "text/x-form", NULL);
+		soup_multipart_append_part (multipart, headers, body);
+
+		soup_message_headers_unref (headers);
+		g_hash_table_destroy (params);
+		g_bytes_unref (body);
+	}
+
+	/* this would leak memory of the output variables, due to two parts having the same 'file_control_name' */
+	result = soup_form_decode_multipart (multipart, file_control_name, &filename, &content_type, &file);
+	g_assert_nonnull (result);
+	g_assert_cmpstr (content_type, ==, "text/x-form");
+	g_assert_cmpstr (filename, ==, file_control_name);
+	g_assert_nonnull (file);
+
+	g_hash_table_destroy (result);
+	g_free (content_type);
+	g_free (filename);
+	g_bytes_unref (file);
+}
+
 static gboolean run_tests = TRUE;
 
 static GOptionEntry no_test_entry[] = {
@@ -525,6 +565,7 @@ main (int argc, char **argv)
 		g_uri_unref (uri);
 
 		g_test_add_func ("/forms/decode", do_form_decode_test);
+		g_test_add_func ("/forms/decodemultipart", do_form_decode_multipart_test);
 
 		ret = g_test_run ();
 	} else {
