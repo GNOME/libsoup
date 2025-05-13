@@ -168,12 +168,18 @@ soup_form_decode_multipart (SoupMultipart *multipart,
 		}
 
 		if (file_control_name && !strcmp (name, file_control_name)) {
-			if (filename)
+			if (filename) {
+				g_free (*filename);
 				*filename = g_strdup (g_hash_table_lookup (params, "filename"));
-			if (content_type)
+			}
+			if (content_type) {
+				g_free (*content_type);
 				*content_type = g_strdup (soup_message_headers_get_content_type (part_headers, NULL));
-			if (file)
+			}
+			if (file) {
+				g_clear_pointer (file, g_bytes_unref);
 				*file = g_bytes_ref (part_body);
+			}
 		} else {
 			g_hash_table_insert (form_data_set,
 					     g_strdup (name),
