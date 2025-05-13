@@ -357,6 +357,10 @@ configinc = include_directories('.')
 
 prefix = get_option('prefix')
 
+if get_option('b_sanitize') != 'none'
+  cdata.set_quoted('B_SANITIZE_OPTION', get_option('b_sanitize'))
+endif
+
 cdata.set_quoted('PACKAGE_VERSION', soup_version)
 cdata.set_quoted('LOCALEDIR', join_paths(prefix, get_option('localedir')))
 cdata.set_quoted('GETTEXT_PACKAGE', libsoup_api_name)

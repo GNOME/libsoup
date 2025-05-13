@@ -126,13 +126,18 @@ main (int argc, char **argv)
 {
 	int ret;
 
-	test_init (argc, argv, NULL);
-
-	#ifndef G_OS_WIN32
-	struct rlimit new_rlimit = { 1024 * 1024 * 64, 1024 * 1024 * 64 };
+	/* a build with an address sanitizer may crash on mmap() with the limit,
+	   thus skip the limit set in such case, even it may not necessarily
+	   trigger the bug if it regresses */
+	#if !defined(G_OS_WIN32) && !defined(B_SANITIZE_OPTION)
+	struct rlimit new_rlimit = { 1024UL * 1024UL * 1024UL * 2UL, 1024UL * 1024UL * 1024UL * 2UL };
 	/* limit memory usage, to trigger too large memory allocation abort */
 	g_assert_cmpint (setrlimit (RLIMIT_DATA, &new_rlimit), ==, 0);
+	#else
+	g_message ("server-mem-limit-test: Running without memory limit");
 	#endif
+
+	test_init (argc, argv, NULL);
 
 	g_test_add ("/server-mem/range-overlaps", ServerData, NULL,
 		    server_setup, do_ranges_overlaps_test, server_teardown);
