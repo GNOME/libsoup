@@ -97,6 +97,7 @@ tests = [
   {'name': 'multithread'},
   {'name': 'no-ssl'},
   {'name': 'ntlm'},
+  {'name': 'range', 'parallel': false},
   {'name': 'redirect'},
   {'name': 'request-body'},
   {'name': 'samesite'},
@@ -147,7 +148,6 @@ if have_apache
   tests += [
     {'name': 'auth', 'parallel': false},
     {'name': 'connection', 'parallel': false},
-    {'name': 'range', 'parallel': false},
     {'name': 'proxy', 'parallel': false},
   ]
 
