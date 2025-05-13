@@ -128,11 +128,16 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	#ifndef G_OS_WIN32
-	struct rlimit new_rlimit = { 1024 * 1024 * 64, 1024 * 1024 * 64 };
-	/* limit memory usage, to trigger too large memory allocation abort */
-	g_assert_cmpint (setrlimit (RLIMIT_DATA, &new_rlimit), ==, 0);
-	#endif
+	/* Do not set the limit when running in the CI */
+	if (g_getenv ("CI_PROJECT_NAME") == NULL) {
+		#ifndef G_OS_WIN32
+		struct rlimit new_rlimit = { 1024 * 1024 * 64, 1024 * 1024 * 64 };
+		/* limit memory usage, to trigger too large memory allocation abort */
+		g_assert_cmpint (setrlimit (RLIMIT_DATA, &new_rlimit), ==, 0);
+		#endif
+	} else {
+		g_message ("server-mem-limit-test: Running without memory limit\n");
+	}
 
 	g_test_add ("/server-mem/range-overlaps", ServerData, NULL,
 		    server_setup, do_ranges_overlaps_test, server_teardown);
