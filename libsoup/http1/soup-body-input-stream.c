@@ -244,7 +244,7 @@ again:
 			return -1;
 		}
 
-		if (strncmp (metabuf, "\r\n", nread) || strncmp (metabuf, "\n", nread)) {
+		if ((nread == 2 && strncmp (metabuf, "\r\n", nread) == 0) || (nread == 1 && strncmp (metabuf, "\n", nread) == 0)) {
 			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_DONE;
 			priv->eof = TRUE;
 		}
