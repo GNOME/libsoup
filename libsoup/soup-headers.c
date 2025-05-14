@@ -240,7 +240,12 @@ soup_headers_parse_request (const char          *str,
 	if (headers >= str + len || *headers != '\n')
 		return SOUP_STATUS_BAD_REQUEST;
 
-	if (!soup_headers_parse (str, len, req_headers)) 
+	// Ensure pointer location for Request-Line end matches location of 'headers'
+	p = strchr(str, '\n');
+	if (p != headers)
+		return SOUP_STATUS_BAD_REQUEST;
+
+	if (!soup_headers_parse (str, len, req_headers))
 		return SOUP_STATUS_BAD_REQUEST;
 
 	if (soup_message_headers_get_expectations (req_headers) &

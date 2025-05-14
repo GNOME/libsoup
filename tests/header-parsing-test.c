@@ -463,6 +463,24 @@ static struct RequestTest {
 	  { { NULL } }
 	},
 
+	{ "CR and LF were incorrectly permitted within request URIs",
+	  "https://gitlab.gnome.org/GNOME/libsoup/-/issues/380",
+	  "GET /\r\n HTTP/1.1\r\nHost: example.com\r\n",
+	  -1,
+	  SOUP_STATUS_BAD_REQUEST,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	{ "CR and LF incorrectly allowed in request method",
+	  "https://gitlab.gnome.org/GNOME/libsoup/-/issues/441",
+	  "G\r\nET / HTTP/1.1\r\nHost: example.com\r\n",
+	  -1,
+	  SOUP_STATUS_BAD_REQUEST,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
 	{ "Only newlines", NULL,
 	  only_newlines, sizeof (only_newlines),
 	  SOUP_STATUS_BAD_REQUEST,
