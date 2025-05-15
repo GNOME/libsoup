@@ -204,7 +204,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		 */
 		part_body = g_bytes_new_from_bytes (body, // FIXME
 						    split - body_data,
-						    end - 2 - split);
+						    end - 2 >= split ? end - 2 - split : 0);
 		g_ptr_array_add (multipart->bodies, part_body);
 
 		start = end;
