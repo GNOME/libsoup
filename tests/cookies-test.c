@@ -363,6 +363,15 @@ do_cookies_parsing_nopath_nullorigin (void)
 }
 
 static void
+do_cookies_parsing_int32_overflow (void)
+{
+	SoupCookie *cookie = soup_cookie_parse ("Age=1;expires=3Mar9    999:9:9+ 999999999-age=main=gne=", NULL);
+	g_assert_nonnull (cookie);
+	g_assert_null (soup_cookie_get_expires (cookie));
+	soup_cookie_free (cookie);
+}
+
+static void
 do_get_cookies_empty_host_test (void)
 {
 	SoupCookieJar *jar;
@@ -434,6 +443,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/accept-policy-subdomains", do_cookies_subdomain_policy_test);
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
 	g_test_add_func ("/cookies/parsing/no-path-null-origin", do_cookies_parsing_nopath_nullorigin);
+	g_test_add_func ("/cookies/parsing/int32-overflow", do_cookies_parsing_int32_overflow);
 	g_test_add_func ("/cookies/get-cookies/empty-host", do_get_cookies_empty_host_test);
 	g_test_add_func ("/cookies/remove-feature", do_remove_feature_test);
 	g_test_add_func ("/cookies/secure-cookies", do_cookies_strict_secure_test);
