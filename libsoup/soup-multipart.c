@@ -214,7 +214,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		 */
 		part_body = soup_buffer_new_subbuffer (flattened,
 						       split - flattened->data,
-						       end - 2 - split);
+						       end - 2 >= split ? end - 2 - split : 0);
 		g_ptr_array_add (multipart->bodies, part_body);
 
 		start = end;
