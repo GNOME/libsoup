@@ -461,6 +461,15 @@ do_cookies_parsing_max_age_long_overflow (void)
 }
 
 static void
+do_cookies_parsing_int32_overflow (void)
+{
+	SoupCookie *cookie = soup_cookie_parse ("Age=1;expires=3Mar9    999:9:9+ 999999999-age=main=gne=", NULL);
+	g_assert_nonnull (cookie);
+	g_assert_null (soup_cookie_get_expires (cookie));
+	soup_cookie_free (cookie);
+}
+
+static void
 do_cookies_equal_nullpath (void)
 {
 	SoupCookie *cookie1, *cookie2;
@@ -718,6 +727,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/parsing/no-path-null-origin", do_cookies_parsing_nopath_nullorigin);
 	g_test_add_func ("/cookies/parsing/max-age-int32-overflow", do_cookies_parsing_max_age_int32_overflow);
 	g_test_add_func ("/cookies/parsing/max-age-long-overflow", do_cookies_parsing_max_age_long_overflow);
+	g_test_add_func ("/cookies/parsing/int32-overflow", do_cookies_parsing_int32_overflow);
 	g_test_add_func ("/cookies/parsing/equal-nullpath", do_cookies_equal_nullpath);
 	g_test_add_func ("/cookies/parsing/control-characters", do_cookies_parsing_control_characters);
         g_test_add_func ("/cookies/parsing/name-value-max-size", do_cookies_parsing_name_value_max_size);
