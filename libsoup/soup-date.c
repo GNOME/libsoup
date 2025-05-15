@@ -284,7 +284,7 @@ parse_day (SoupDate *date, const char **date_string)
 	while (*end == ' ' || *end == '-')
 		end++;
 	*date_string = end;
-	return TRUE;
+	return date->day >= 1 && date->day <= 31;
 }
 
 static inline gboolean
@@ -324,7 +324,7 @@ parse_year (SoupDate *date, const char **date_string)
 	while (*end == ' ' || *end == '-')
 		end++;
 	*date_string = end;
-	return TRUE;
+	return date->year > 0 && date->year < 9999;
 }
 
 static inline gboolean
@@ -348,7 +348,7 @@ parse_time (SoupDate *date, const char **date_string)
 	while (*p == ' ')
 		p++;
 	*date_string = p;
-	return TRUE;
+	return date->hour >= 0 && date->hour < 24 && date->minute >= 0 && date->minute < 60 && date->second >= 0 && date->second < 60;
 }
 
 static inline gboolean
@@ -361,9 +361,14 @@ parse_timezone (SoupDate *date, const char **date_string)
 		gulong val;
 		int sign = (**date_string == '+') ? -1 : 1;
 		val = strtoul (*date_string + 1, (char **)date_string, 10);
-		if (**date_string == ':')
-			val = 60 * val + strtoul (*date_string + 1, (char **)date_string, 10);
-		else
+		if (val > 9999)
+			return FALSE;
+		if (**date_string == ':') {
+			gulong val2 = strtoul (*date_string + 1, (char **)date_string, 10);
+			if (val > 99 || val2 > 99)
+				return FALSE;
+			val = 60 * val + val2;
+		} else
 			val =  60 * (val / 100) + (val % 100);
 		date->offset = sign * val;
 		date->utc = (sign == -1) && !val;
@@ -407,7 +412,8 @@ parse_textual_date (SoupDate *date, const char *date_string)
 		if (!parse_month (date, &date_string) ||
 		    !parse_day (date, &date_string) ||
 		    !parse_time (date, &date_string) ||
-		    !parse_year (date, &date_string))
+		    !parse_year (date, &date_string) ||
+		    !g_date_valid_dmy (date->day, date->month, date->year))
 			return FALSE;
 
 		/* There shouldn't be a timezone, but check anyway */
@@ -419,7 +425,8 @@ parse_textual_date (SoupDate *date, const char *date_string)
 		if (!parse_day (date, &date_string) ||
 		    !parse_month (date, &date_string) ||
 		    !parse_year (date, &date_string) ||
-		    !parse_time (date, &date_string))
+		    !parse_time (date, &date_string) ||
+		    !g_date_valid_dmy (date->day, date->month, date->year))
 			return FALSE;
 
 		/* This time there *should* be a timezone, but we
