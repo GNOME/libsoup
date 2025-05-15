@@ -527,6 +527,45 @@ test_multipart_bounds_bad (void)
 	g_bytes_unref (bytes);
 }
 
+static void
+test_multipart_too_large (void)
+{
+	const char *raw_body =
+		"-------------------\r\n"
+		"-\n"
+		"Cont\"\r\n"
+		"Content-Tynt----e:n\x8erQK\r\n"
+		"Content-Disposition:   name=  form-; name=\"file\"; filename=\"ype:i/  -d; ----\xae\r\n"
+		"Content-Typimag\x01/png--\\\n"
+		"\r\n"
+		"---:\n\r\n"
+		"\r\n"
+		"-------------------------------------\r\n"
+		"---------\r\n"
+		"----------------------";
+	GBytes *body;
+	GHashTable *params;
+	SoupMessageHeaders *headers;
+	SoupMultipart *multipart;
+
+	params = g_hash_table_new (g_str_hash, g_str_equal);
+	g_hash_table_insert (params, (gpointer) "boundary", (gpointer) "-----------------");
+	headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+	soup_message_headers_set_content_type (headers, "multipart/form-data", params);
+	g_hash_table_unref (params);
+
+	body = g_bytes_new_static (raw_body, strlen (raw_body));
+	multipart = soup_multipart_new_from_message (headers, body);
+	soup_message_headers_unref (headers);
+	g_bytes_unref (body);
+
+	g_assert_nonnull (multipart);
+	g_assert_cmpint (soup_multipart_get_length (multipart), ==, 1);
+	g_assert_true (soup_multipart_get_part (multipart, 0, &headers, &body));
+	g_assert_cmpint (g_bytes_get_size (body), ==, 0);
+	soup_multipart_free (multipart);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -556,6 +595,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/multipart/async-small-reads", GINT_TO_POINTER (ASYNC_MULTIPART_SMALL_READS), test_multipart);
 	g_test_add_func ("/multipart/bounds-good", test_multipart_bounds_good);
 	g_test_add_func ("/multipart/bounds-bad", test_multipart_bounds_bad);
+	g_test_add_func ("/multipart/too-large", test_multipart_too_large);
 
 	ret = g_test_run ();
 
