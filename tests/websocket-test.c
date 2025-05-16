@@ -591,16 +591,9 @@ test_send_big_packets (Test *test,
 {
 	GBytes *sent = NULL;
 	GBytes *received = NULL;
+	gulong signal_id;
 
-	g_signal_connect (test->client, "message", G_CALLBACK (on_text_message), &received);
-
-	sent = g_bytes_new_take (g_strnfill (400, '!'), 400);
-	soup_websocket_connection_send_text (test->server, g_bytes_get_data (sent, NULL));
-	WAIT_UNTIL (received != NULL);
-	g_assert_true (g_bytes_equal (sent, received));
-	g_bytes_unref (sent);
-	g_bytes_unref (received);
-	received = NULL;
+	signal_id = g_signal_connect (test->client, "message", G_CALLBACK (on_text_message), &received);
 
 	sent = g_bytes_new_take (g_strnfill (100 * 1000, '?'), 100 * 1000);
 	soup_websocket_connection_send_text (test->server, g_bytes_get_data (sent, NULL));
@@ -611,21 +604,171 @@ test_send_big_packets (Test *test,
 	received = NULL;
 
 	soup_websocket_connection_set_max_incoming_payload_size (test->client, 1000 * 1000 + 1);
-	g_assert_true (soup_websocket_connection_get_max_incoming_payload_size (test->client) == (1000 * 1000 + 1));
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->client), ==, 1000 * 1000 + 1);
 	soup_websocket_connection_set_max_incoming_payload_size (test->server, 1000 * 1000 + 1);
-	g_assert_true (soup_websocket_connection_get_max_incoming_payload_size (test->server) == (1000 * 1000 + 1));
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->server), ==, 1000 * 1000 + 1);
 
 	soup_websocket_connection_set_max_total_message_size (test->client, 1000 * 1000 + 1);
-	g_assert (soup_websocket_connection_get_max_total_message_size (test->client) == (1000 * 1000 + 1));
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->client), ==, 1000 * 1000 + 1);
 	soup_websocket_connection_set_max_total_message_size (test->server, 1000 * 1000 + 1);
-	g_assert (soup_websocket_connection_get_max_total_message_size (test->server) == (1000 * 1000 + 1));
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->server), ==, 1000 * 1000 + 1);
 
 	sent = g_bytes_new_take (g_strnfill (1000 * 1000, '?'), 1000 * 1000);
 	soup_websocket_connection_send_text (test->server, g_bytes_get_data (sent, NULL));
 	WAIT_UNTIL (received != NULL);
 	g_assert_true (g_bytes_equal (sent, received));
+	g_bytes_unref (received);
+	received = NULL;
+
+	/* Reverse the test and send the big message to the server. */
+	g_signal_handler_disconnect (test->client, signal_id);
+	g_signal_connect (test->server, "message", G_CALLBACK (on_text_message), &received);
+
+	soup_websocket_connection_send_text (test->client, g_bytes_get_data (sent, NULL));
+	WAIT_UNTIL (received != NULL);
+	g_assert_true (g_bytes_equal (sent, received));
 	g_bytes_unref (sent);
 	g_bytes_unref (received);
+}
+
+static void
+test_send_big_packets_direct (Test *test,
+                              gconstpointer data)
+{
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->client), ==, 128 * 1024);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->client), ==, 0);
+
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->server), ==, 128 * 1024);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->server), ==, 0);
+
+	test_send_big_packets (test, data);
+}
+
+static void
+test_send_big_packets_soup (Test *test,
+                            gconstpointer data)
+{
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->client), ==, 128 * 1024);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->client), ==, 0);
+
+	/* Max total message size defaults to 0 (unlimited), but SoupServer applies its own limit by default. */
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->server), ==, 128 * 1024);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->server), ==, 128 * 1024);
+
+	test_send_big_packets (test, data);
+}
+
+static void
+test_send_exceeding_client_max_payload_size (Test *test,
+                                             gconstpointer data)
+{
+	GBytes *sent = NULL;
+	GBytes *received = NULL;
+	gboolean close_event = FALSE;
+	GError *error = NULL;
+
+	g_signal_connect (test->server, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->client), ==, 128 * 1024);
+
+	soup_websocket_connection_set_max_incoming_payload_size (test->server, 0);
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->server), ==, 0);
+
+	/* The message to the client is dropped due to the client's limit. */
+	sent = g_bytes_new_take (g_strnfill (1000 * 1000, '?'), 1000 * 1000);
+	soup_websocket_connection_send_text (test->server, g_bytes_get_data (sent, NULL));
+	g_bytes_unref (sent);
+	WAIT_UNTIL (close_event);
+	g_assert_null (received);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+	g_assert_no_error (test->client_error);
+}
+
+static void
+test_send_exceeding_server_max_payload_size (Test *test,
+                                             gconstpointer data)
+{
+	GBytes *sent = NULL;
+	GBytes *received = NULL;
+	gboolean close_event = FALSE;
+	GError *error = NULL;
+
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->server, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	soup_websocket_connection_set_max_incoming_payload_size (test->client, 0);
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->client), ==, 0);
+
+	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->server), ==, 128 * 1024);
+
+	/* The message to the server is dropped due to the server's limit. */
+	sent = g_bytes_new_take (g_strnfill (1000 * 1000, '?'), 1000 * 1000);
+	soup_websocket_connection_send_text (test->client, g_bytes_get_data (sent, NULL));
+	g_bytes_unref (sent);
+	WAIT_UNTIL (close_event);
+	g_assert_null (received);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+	g_assert_no_error (test->client_error);
+}
+
+static void
+test_send_exceeding_client_max_message_size (Test *test,
+                                             gconstpointer data)
+{
+	GBytes *sent = NULL;
+	GBytes *received = NULL;
+	gboolean close_event = FALSE;
+	GError *error = NULL;
+
+	g_signal_connect (test->server, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	soup_websocket_connection_set_max_total_message_size (test->client, 128 * 1024);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->client), ==, 128 * 1024);
+
+	soup_websocket_connection_set_max_total_message_size (test->server, 0);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->server), ==, 0);
+
+	/* The message to the client is dropped due to the client's limit. */
+	sent = g_bytes_new_take (g_strnfill (1000 * 1000, '?'), 1000 * 1000);
+	soup_websocket_connection_send_text (test->server, g_bytes_get_data (sent, NULL));
+	g_bytes_unref (sent);
+	WAIT_UNTIL (close_event);
+	g_assert_null (received);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+	g_assert_no_error (test->client_error);
+}
+
+static void
+test_send_exceeding_server_max_message_size (Test *test,
+                                             gconstpointer data)
+{
+	GBytes *sent = NULL;
+	GBytes *received = NULL;
+	gboolean close_event = FALSE;
+	GError *error = NULL;
+
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->server, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	soup_websocket_connection_set_max_total_message_size (test->client, 0);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->client), ==, 0);
+
+	/* Set the server message total message size manually, because its
+	 * default is different for direct connection vs. soup connection.
+	 */
+	soup_websocket_connection_set_max_total_message_size (test->server, 128 * 1024);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->server), ==, 128 * 1024);
+
+	/* The message to the server is dropped due to the server's limit. */
+	sent = g_bytes_new_take (g_strnfill (1000 * 1000, '?'), 1000 * 1000);
+	soup_websocket_connection_send_text (test->client, g_bytes_get_data (sent, NULL));
+	g_bytes_unref (sent);
+	WAIT_UNTIL (close_event);
+	g_assert_null (received);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+	g_assert_no_error (test->client_error);
 }
 
 static void
@@ -2262,11 +2405,47 @@ main (int argc,
 
 	g_test_add ("/websocket/direct/send-big-packets", Test, NULL,
 		    setup_direct_connection,
-		    test_send_big_packets,
+		    test_send_big_packets_direct,
 		    teardown_direct_connection);
 	g_test_add ("/websocket/soup/send-big-packets", Test, NULL,
 		    setup_soup_connection,
-		    test_send_big_packets,
+		    test_send_big_packets_soup,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/send-exceeding-client-max-payload-size", Test, NULL,
+		    setup_direct_connection,
+		    test_send_exceeding_client_max_payload_size,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-exceeding-client-max-payload-size", Test, NULL,
+		    setup_soup_connection,
+		    test_send_exceeding_client_max_payload_size,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/send-exceeding-server-max-payload-size", Test, NULL,
+		    setup_direct_connection,
+		    test_send_exceeding_server_max_payload_size,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-exceeding-server-max-payload-size", Test, NULL,
+		    setup_soup_connection,
+		    test_send_exceeding_server_max_payload_size,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/send-exceeding-client-max-message-size", Test, NULL,
+		    setup_direct_connection,
+		    test_send_exceeding_client_max_message_size,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-exceeding-client-max-message-size", Test, NULL,
+		    setup_soup_connection,
+		    test_send_exceeding_client_max_message_size,
+		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/send-exceeding-server-max-message-size", Test, NULL,
+		    setup_direct_connection,
+		    test_send_exceeding_server_max_message_size,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-exceeding-server-max-message-size", Test, NULL,
+		    setup_soup_connection,
+		    test_send_exceeding_server_max_message_size,
 		    teardown_soup_connection);
 
 	g_test_add ("/websocket/direct/send-empty-packets", Test, NULL,
@@ -2425,11 +2604,11 @@ main (int argc,
 
 	g_test_add ("/websocket/direct/deflate-send-big-packets", Test, NULL,
 		    setup_direct_connection_with_extensions,
-		    test_send_big_packets,
+		    test_send_big_packets_direct,
 		    teardown_direct_connection);
 	g_test_add ("/websocket/soup/deflate-send-big-packets", Test, NULL,
 		    setup_soup_connection_with_extensions,
-		    test_send_big_packets,
+		    test_send_big_packets_soup,
 		    teardown_soup_connection);
 
 	g_test_add ("/websocket/direct/deflate-send-empty-packets", Test, NULL,
