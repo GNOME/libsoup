@@ -2830,6 +2830,8 @@ soup_message_io_skip (SoupMessage  *msg,
                       GError      **error)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        if (!priv->io_data)
+                return TRUE;
 
         return soup_client_message_io_skip (priv->io_data, msg, blocking, cancellable, error);
 }
