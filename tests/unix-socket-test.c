@@ -42,7 +42,7 @@ do_load_uri_test (void)
         session = soup_test_session_new ("remote-connectable", address, NULL);
         g_object_unref (address);
 
-        msg = soup_message_new (SOUP_METHOD_GET, "http://locahost/foo");
+        msg = soup_message_new (SOUP_METHOD_GET, "http://localhost/foo");
         body = soup_session_send_and_read (session, msg, NULL, &error);
         g_assert_no_error (error);
         g_assert_nonnull (body);

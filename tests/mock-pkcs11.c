@@ -243,7 +243,7 @@ copy_padded_string(CK_UTF8CHAR_PTR dest, const CK_UTF8CHAR_PTR src, size_t dest_
 {
         const size_t len = strlen((char*)src);
 
-        g_assert (len < dest_size);
+        g_assert_true(len < dest_size);
 
         memset(dest, ' ', dest_size);
         memcpy(dest, src, len);
@@ -263,13 +263,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_Initialize)(CK_VOID_PTR pInitArgs)
         path = g_test_build_filename(G_TEST_DIST, "test-cert.pem", NULL);
         status = gnutls_load_file(path, &data);
         g_debug("Loading %s - %s", path, gnutls_strerror(status));
-        g_assert(status == GNUTLS_E_SUCCESS);
+        g_assert_true(status == GNUTLS_E_SUCCESS);
 
         status = gnutls_x509_crt_init(&mock_objects[0].cert);
-        g_assert(status == GNUTLS_E_SUCCESS);
+        g_assert_true(status == GNUTLS_E_SUCCESS);
 
         status = gnutls_x509_crt_import(mock_objects[0].cert, &data, GNUTLS_X509_FMT_PEM);
-        g_assert(status == GNUTLS_E_SUCCESS);
+        g_assert_true(status == GNUTLS_E_SUCCESS);
 
         gnutls_free(data.data);
         g_free(path);
@@ -277,13 +277,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_Initialize)(CK_VOID_PTR pInitArgs)
         path = g_test_build_filename(G_TEST_DIST, "test-key.pem", NULL);
         status = gnutls_load_file(path, &data);
         g_debug("Loading %s - %s", path, gnutls_strerror(status));
-        g_assert(status == GNUTLS_E_SUCCESS);
+        g_assert_true(status == GNUTLS_E_SUCCESS);
 
         status = gnutls_privkey_init(&mock_objects[1].key);
-        g_assert(status == GNUTLS_E_SUCCESS);
+        g_assert_true(status == GNUTLS_E_SUCCESS);
 
         status = gnutls_privkey_import_x509_raw(mock_objects[1].key, &data, GNUTLS_X509_FMT_PEM, NULL, 0);
-        g_assert(status == GNUTLS_E_SUCCESS);
+        g_assert_true(status == GNUTLS_E_SUCCESS);
 
         gnutls_free(data.data);
         g_free(path);
@@ -1027,12 +1027,12 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
                         gnutls_datum_t data;
                         gnutls_x509_dn_t dn; /* Owned by cert */
 
-                        g_assert (obj.object_class == CKO_CERTIFICATE);
+                        g_assert_true (obj.object_class == CKO_CERTIFICATE);
 
                         status = gnutls_x509_crt_get_subject(obj.cert, &dn);
-                        g_assert(status == GNUTLS_E_SUCCESS);
+                        g_assert_true(status == GNUTLS_E_SUCCESS);
                         status = gnutls_x509_dn_get_str(dn, &data);
-                        g_assert(status == GNUTLS_E_SUCCESS);
+                        g_assert_true(status == GNUTLS_E_SUCCESS);
 
                         if (data.size > pTemplate[i].ulValueLen)
                         {
@@ -1056,7 +1056,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
                                 gnutls_datum_t data;
 
                                 status = gnutls_x509_crt_export2(obj.cert, GNUTLS_X509_FMT_DER, &data);
-                                g_assert(status == GNUTLS_E_SUCCESS);
+                                g_assert_true(status == GNUTLS_E_SUCCESS);
 
                                 if (data.size > pTemplate[i].ulValueLen)
                                 {
@@ -1138,7 +1138,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
                         /* Hardcode RSA for now */
                         gnutls_datum_t modulus;
                         int status = gnutls_privkey_export_rsa_raw (obj.key, &modulus, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-                        g_assert (status == GNUTLS_E_SUCCESS);
+                        g_assert_true (status == GNUTLS_E_SUCCESS);
 
                         if (modulus.size > pTemplate[i].ulValueLen)
                         {
@@ -1935,8 +1935,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignInit)(CK_SESSION_HANDLE hSession, CK_MECHANISM_P
 
                 params = pMechanism->pParameter;
 
-                g_assert (params->hashAlg == CKM_SHA256);
-                g_assert (params->mgf == CKG_MGF1_SHA256);
+                g_assert_true (params->hashAlg == CKM_SHA256);
+                g_assert_true (params->mgf == CKG_MGF1_SHA256);
                 // if (PKCS11_MOCK_CK_OBJECT_HANDLE_PRIVATE_KEY != hKey)
                 //         return CKR_KEY_TYPE_INCONSISTENT;
         }
@@ -1946,7 +1946,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignInit)(CK_SESSION_HANDLE hSession, CK_MECHANISM_P
         }
         else
         {
-                g_assert_not_reached ();
+                g_assert_cmpstr ("This code", ==, "should not be reached");
                 return CKR_MECHANISM_INVALID;
         }
 
@@ -2000,7 +2000,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_Sign)(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
         else
                 g_assert_not_reached ();
 
-        // g_assert (status == GNUTLS_E_SUCCESS);
+        // g_assert_true (status == GNUTLS_E_SUCCESS);
         if (status != GNUTLS_E_SUCCESS)
                 return CKR_FUNCTION_FAILED; // TODO: Best return code?
 

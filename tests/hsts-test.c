@@ -132,7 +132,7 @@ session_get_uri (SoupSession *session,
 	else
 		g_assert_no_error (error);
 	soup_test_assert_message_status (msg, expected_status);
-	g_assert (enforced == expected_enforced);
+	g_assert_true (enforced == expected_enforced);
 	g_clear_error (&error);
 	g_bytes_unref (body);
 	g_object_unref (msg);
@@ -152,7 +152,7 @@ rewrite_message_uri (SoupMessage *msg)
 	else if (soup_uri_is_https (soup_message_get_uri (msg)))
 		new_uri = soup_uri_copy (soup_message_get_uri (msg), SOUP_URI_PORT, g_uri_get_port (https_uri), SOUP_URI_NONE);
 	else
-		g_assert_not_reached();
+		g_assert_not_reached ();
 	soup_message_set_uri (msg, new_uri);
 	g_uri_unref (new_uri);
 }

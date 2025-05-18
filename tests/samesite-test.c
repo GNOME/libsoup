@@ -68,7 +68,7 @@ assert_highest_policy_visible (GSList *cookies, SoupSameSitePolicy policy)
 		expected_count = 1;
 		break;
         default:
-                g_assert_not_reached ();
+                g_assert_cmpstr ("This code", ==, "should not be reached");
                 break;
 	}
 

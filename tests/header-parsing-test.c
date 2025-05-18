@@ -879,7 +879,7 @@ check_headers (Header *headers, SoupMessageHeaders *hdrs)
 	}
 
 	for (i = 0, h = header_names; headers[i].name && h; i++, h = h->next) {
-		g_assert (g_ascii_strcasecmp (h->data, headers[i].name) == 0);
+		g_assert_true (g_ascii_strcasecmp (h->data, headers[i].name) == 0);
 
 		value = soup_message_headers_get_list (hdrs, headers[i].name);
 		g_assert_cmpstr (value, ==, headers[i].value);

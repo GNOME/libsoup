@@ -307,7 +307,7 @@ do_sniffing_test (gconstpointer data)
 	char **parts;
 
 	parts = g_strsplit (path_and_result, " => ", -1);
-	g_assert (parts && parts[0] && parts[1] && !parts[2]);
+	g_assert_true (parts && parts[0] && parts[1] && !parts[2]);
 
 	test_sniffing (parts[0], parts[1]);
 	g_strfreev (parts);

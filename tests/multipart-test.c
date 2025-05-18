@@ -304,7 +304,7 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 	GInputStream *in;
 	gsize read_size = READ_BUFFER_SIZE;
 
-	g_assert (SOUP_MULTIPART_INPUT_STREAM (source) == multipart);
+	g_assert_true (SOUP_MULTIPART_INPUT_STREAM (source) == multipart);
 
 	in = soup_multipart_input_stream_next_part_finish (multipart, res, &error);
 	g_assert_no_error (error);
