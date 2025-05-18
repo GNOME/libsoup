@@ -133,11 +133,11 @@ do_message (const char *path, gboolean long_body,
 
 	events = NULL;
 	session = soup_test_session_new (NULL);
-        g_assert (SOUP_IS_MESSAGE (msg));
+        g_assert_true (SOUP_IS_MESSAGE (msg));
 	response_body = soup_test_session_async_send (session, msg, NULL, NULL);
-        g_assert (SOUP_IS_MESSAGE (msg));
+        g_assert_true (SOUP_IS_MESSAGE (msg));
 	soup_test_session_abort_unref (session);
-        g_assert (SOUP_IS_MESSAGE (msg));
+        g_assert_true (SOUP_IS_MESSAGE (msg));
 
 	va_start (ap, auth);
 	while ((expected_event = va_arg (ap, const char *))) {

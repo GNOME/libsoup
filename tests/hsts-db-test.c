@@ -87,7 +87,7 @@ session_get_uri (SoupSession *session,
 	else
 		g_assert_no_error (error);
 	soup_test_assert_message_status (msg, expected_status);
-        g_assert (enforced == expected_enforced);
+        g_assert_true (enforced == expected_enforced);
         g_clear_error (&error);
         g_bytes_unref (body);
 	g_object_unref (msg);

@@ -738,8 +738,8 @@ main (int argc, char **argv)
         char *module_path = soup_test_build_filename_abs (G_TEST_BUILT, "mock-pkcs11.so", NULL);
         g_assert_true (g_file_test (module_path, G_FILE_TEST_EXISTS));
 
-        g_assert (gnutls_pkcs11_init (GNUTLS_PKCS11_FLAG_MANUAL, NULL) == GNUTLS_E_SUCCESS);
-        g_assert (gnutls_pkcs11_add_provider (module_path, NULL) == GNUTLS_E_SUCCESS);
+        g_assert_true (gnutls_pkcs11_init (GNUTLS_PKCS11_FLAG_MANUAL, NULL) == GNUTLS_E_SUCCESS);
+        g_assert_true (gnutls_pkcs11_add_provider (module_path, NULL) == GNUTLS_E_SUCCESS);
         g_free (module_path);
 #endif
 

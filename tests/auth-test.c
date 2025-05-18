@@ -186,7 +186,8 @@ identify_auth (SoupMessage *msg)
 			num = 0;
 	}
 
-	g_assert (num >= 0 && num <= 4);
+	g_assert_cmpint (num, >=, 0);
+	g_assert_cmpint (num, <=, 4);
 
 	return num;
 }
@@ -1934,7 +1935,7 @@ redirect_server_callback (SoupServer        *server,
         return;
     }
 
-    g_assert_not_reached ();
+    g_assert_cmpstr ("This code", ==, "should not be reached");
 }
 
 static gboolean

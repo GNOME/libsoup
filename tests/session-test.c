@@ -411,7 +411,7 @@ queue_order_test_message_network_event (SoupMessage       *msg,
 			return;
 		}
 	}
-	g_assert_not_reached ();
+	g_assert_cmpstr ("This code", ==, "should not be reached");
 }
 
 static void
