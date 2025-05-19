@@ -528,6 +528,27 @@ test_multipart_bounds_bad (void)
 }
 
 static void
+test_multipart_bounds_bad_2 (void)
+{
+	SoupMultipart *multipart;
+	SoupMessageHeaders *headers;
+	GBytes *bytes;
+	const char *raw_data = "\n--123\r\nline\r\n--123--\r";
+
+	headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+	soup_message_headers_append (headers, "Content-Type", "multipart/mixed; boundary=\"123\"");
+
+	bytes = g_bytes_new (raw_data, strlen (raw_data));
+
+	multipart = soup_multipart_new_from_message (headers, bytes);
+	g_assert_nonnull (multipart);
+
+	soup_multipart_free (multipart);
+	soup_message_headers_unref (headers);
+	g_bytes_unref (bytes);
+}
+
+static void
 test_multipart_too_large (void)
 {
 	const char *raw_body =
@@ -595,6 +616,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/multipart/async-small-reads", GINT_TO_POINTER (ASYNC_MULTIPART_SMALL_READS), test_multipart);
 	g_test_add_func ("/multipart/bounds-good", test_multipart_bounds_good);
 	g_test_add_func ("/multipart/bounds-bad", test_multipart_bounds_bad);
+	g_test_add_func ("/multipart/bounds-bad-2", test_multipart_bounds_bad_2);
 	g_test_add_func ("/multipart/too-large", test_multipart_too_large);
 
 	ret = g_test_run ();

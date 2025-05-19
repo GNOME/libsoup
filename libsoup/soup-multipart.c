@@ -104,7 +104,7 @@ find_boundary (const char *start, const char *end,
 			continue;
 
 		/* Check that it's at start of line */
-		if (!(b == start || (b[-1] == '\n' && b[-2] == '\r')))
+		if (!(b == start || (b - start >= 2 && b[-1] == '\n' && b[-2] == '\r')))
 			continue;
 
 		/* Check for "--" or "\r\n" after boundary */
