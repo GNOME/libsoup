@@ -36,9 +36,9 @@ struct SoupPathMap {
  * @data_free_func: function to use to free data added with
  *   soup_path_map_add().
  *
- * Creates a new %SoupPathMap.
+ * Creates a new #SoupPathMap.
  *
- * Returns: the new %SoupPathMap
+ * Returns: the new #SoupPathMap
  **/
 SoupPathMap *
 soup_path_map_new (GDestroyNotify data_free_func)
@@ -54,7 +54,7 @@ soup_path_map_new (GDestroyNotify data_free_func)
 
 /**
  * soup_path_map_free:
- * @map: a %SoupPathMap
+ * @map: a #SoupPathMap
  *
  * Frees @map and all data stored in it.
  **/
@@ -116,7 +116,7 @@ mapping_lookup (SoupPathMap *map, const char *path, int *match, int *insert)
 
 /**
  * soup_path_map_add:
- * @map: a %SoupPathMap
+ * @map: a #SoupPathMap
  * @path: the path
  * @data: the data
  *
@@ -145,7 +145,7 @@ soup_path_map_add (SoupPathMap *map, const char *path, gpointer data)
 
 /**
  * soup_path_map_remove:
- * @map: a %SoupPathMap
+ * @map: a #SoupPathMap
  * @path: the path
  *
  * Removes @data from @map at @path. (This must be called with the same
@@ -168,7 +168,7 @@ soup_path_map_remove (SoupPathMap *map, const char *path)
 
 /**
  * soup_path_map_lookup:
- * @map: a %SoupPathMap
+ * @map: a #SoupPathMap
  * @path: the path
  *
  * Finds the data associated with @path in @map. If there is no data

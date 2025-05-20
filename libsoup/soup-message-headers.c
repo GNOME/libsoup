@@ -780,7 +780,7 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
 /**
  * SoupMessageHeadersIter:
  *
- * An opaque type used to iterate over a %SoupMessageHeaders
+ * An opaque type used to iterate over a #SoupMessageHeaders
  * structure.
  *
  * After intializing the iterator with [func@MessageHeadersIter.init], call
@@ -797,9 +797,9 @@ typedef struct {
 
 /**
  * soup_message_headers_iter_init:
- * @iter: (out) (transfer none): a pointer to a %SoupMessageHeadersIter
- *   structure
- * @hdrs: a %SoupMessageHeaders
+ * @iter: (out) (transfer none): a pointer to a #SoupMessageHeadersIter
+ *   structures
+ * @hdrs: a #SoupMessageHeaders
  *
  * Initializes @iter for iterating @hdrs.
  **/
@@ -816,7 +816,7 @@ soup_message_headers_iter_init (SoupMessageHeadersIter *iter,
 
 /**
  * soup_message_headers_iter_next:
- * @iter: (inout) (transfer none): a %SoupMessageHeadersIter
+ * @iter: (inout) (transfer none): a #SoupMessageHeadersIter
  * @name: (out) (transfer none): pointer to a variable to return
  *   the header name in
  * @value: (out) (transfer none): pointer to a variable to return

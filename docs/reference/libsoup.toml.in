@@ -9,7 +9,7 @@ logo_url = "https://gitlab.gnome.org/uploads/-/system/project/avatar/1630/logo.p
 authors = "Dan Winship, Claudio Saavedra, Patrick Griffis, and Carlos Garcia Campos"
 license = "LGPL-2.0-or-later"
 description = "HTTP client/server library for GNOME"
-dependencies = [ "GObject-2.0", "GLib-1.0", "Gio-2.0" ]
+dependencies = [ "GObject-2.0", "GLib-2.0", "Gio-2.0" ]
 devhelp = true
 search_index = true
 
