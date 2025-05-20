@@ -33,7 +33,7 @@
  * @data: (array length=length) (element-type guint8): the data
  * @length: length of @data
  *
- * #SoupMessageBody represents the request or response body of a
+ * [struct@MessageBody] represents the request or response body of a
  * [class@Message].
  *
  * Note that while @length always reflects the full length of the
@@ -59,7 +59,7 @@ typedef struct {
 /**
  * soup_message_body_new:
  *
- * Creates a new #SoupMessageBody.
+ * Creates a new [struct@MessageBody]
  *
  * [class@Message] uses this internally; you
  * will not normally need to call it yourself.
@@ -328,7 +328,7 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
  * @body: a #SoupMessageBody
  * @chunk: a #GBytes received from the network
  *
- * Handles the #SoupMessageBody part of receiving a chunk of data from
+ * Handles the [struct@MessageBody] part of receiving a chunk of data from
  * the network.
  *
  * Normally this means appending @chunk to @body, exactly as with
@@ -354,7 +354,7 @@ soup_message_body_got_chunk (SoupMessageBody *body, GBytes *chunk)
  * @body: a #SoupMessageBody
  * @chunk: a #GBytes returned from [method@MessageBody.get_chunk]
  *
- * Handles the #SoupMessageBody part of writing a chunk of data to the
+ * Handles the [struct@MessageBody] part of writing a chunk of data to the
  * network.
  *
  * Normally this is a no-op, but if you have set @body's accumulate flag to

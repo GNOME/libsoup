@@ -22,15 +22,15 @@
  *
  * An HTTP server request and response pair.
  *
- * A SoupServerMessage represents an HTTP message that is being sent or
+ * A [class@ServerMessage] represents an HTTP message that is being sent or
  * received on a [class@Server].
  *
- * [class@Server] will create `SoupServerMessage`s automatically for
+ * [class@Server] will create [class@ServerMessage]s automatically for
  * incoming requests, which your application will receive via handlers.
  *
  * Note that libsoup's terminology here does not quite match the HTTP
  * specification: in RFC 2616, an "HTTP-message" is *either* a Request, *or* a
- * Response. In libsoup, a #SoupServerMessage combines both the request and the
+ * Response. In libsoup, a [class@ServerMessage] combines both the request and the
  * response.
  **/
 
@@ -393,7 +393,7 @@ soup_server_message_class_init (SoupServerMessageClass *klass)
 	/**
 	 * SoupServerMessage:tls-peer-certificate-errors:
 	 *
-	 * The verification errors on #SoupServerMessage:tls-peer-certificate
+	 * The verification errors on [property@ServerMessage:tls-peer-certificate]
 	 *
 	 * Since: 3.2
 	 */
@@ -921,7 +921,7 @@ soup_server_message_get_uri (SoupServerMessage *msg)
  *   a data buffer containing the body of the message response.
  * @resp_length: the byte length of @resp_body.
  *
- * Convenience function to set the response body of a #SoupServerMessage. If
+ * Convenience function to set the response body of a [class@ServerMessage]. If
  * @content_type is %NULL, the response body must be empty as well.
  */
 void
@@ -1081,7 +1081,7 @@ soup_server_message_get_remote_host (SoupServerMessage *msg)
  * soup_server_message_steal_connection:
  * @msg: a #SoupServerMessage
  *
- * "Steals" the HTTP connection associated with @msg from its #SoupServer. This
+ * "Steals" the HTTP connection associated with @msg from its [class@Server]. This
  * happens immediately, regardless of the current state of the connection; if
  * the response to @msg has not yet finished being sent, then it will be
  * discarded; you can steal the connection from a

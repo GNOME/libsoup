@@ -21,7 +21,7 @@
 /**
  * SoupHSTSPolicy:
  *
- * #SoupHSTSPolicy implements HTTP policies, as described by
+ * [struct@HSTSPolicy] implements HTTP policies, as described by
  * [RFC 6797](http://tools.ietf.org/html/rfc6797).
  *
  * @domain represents the host that this policy applies to. The domain
@@ -123,7 +123,7 @@ is_hostname_valid (const char *hostname)
  * @max_age: max age of the policy
  * @include_subdomains: %TRUE if the policy applies on subdomains
  *
- * Creates a new #SoupHSTSPolicy with the given attributes.
+ * Creates a new [struct@HSTSPolicy] with the given attributes.
  *
  * @domain is a domain on which the strict transport security policy
  * represented by this object must be enforced.
@@ -211,7 +211,7 @@ soup_hsts_policy_new_full (const char *domain,
  * @domain: policy domain or hostname
  * @include_subdomains: %TRUE if the policy applies on sub domains
  *
- * Creates a new session #SoupHSTSPolicy with the given attributes.
+ * Creates a new session [struct@HSTSPolicy] with the given attributes.
  *
  * A session policy is a policy that is valid during the lifetime of
  * the [class@HSTSEnforcer] it is added to. Contrary to regular policies,
@@ -243,7 +243,7 @@ soup_hsts_policy_new_session_policy (const char *domain,
  * @msg: a #SoupMessage
  *
  * Parses @msg's first "Strict-Transport-Security" response header and
- * returns a #SoupHSTSPolicy.
+ * returns a [struct@HSTSPolicy].
  *
  * Returns: (nullable): a new #SoupHSTSPolicy, or %NULL if no valid
  *   "Strict-Transport-Security" response header was found.

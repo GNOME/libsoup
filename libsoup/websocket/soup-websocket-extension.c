@@ -31,7 +31,7 @@
  *
  * A WebSocket extension
  *
- * #SoupWebsocketExtension is the base class for WebSocket extension objects.
+ * [class@WebsocketExtension] is the base class for WebSocket extension objects.
  */
 
 /**
@@ -48,7 +48,7 @@
  * @process_incoming_message: called to process the payload data of a message
  *    after it's received. Reserved bits of the header should be cleared.
  *
- * The class structure for the #SoupWebsocketExtension.
+ * The class structure for the [class@WebsocketExtension].
  */
 
 G_DEFINE_ABSTRACT_TYPE (SoupWebsocketExtension, soup_websocket_extension, G_TYPE_OBJECT)

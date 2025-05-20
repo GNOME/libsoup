@@ -24,7 +24,7 @@
  *
  * Server-side "Digest" authentication.
  *
- * #SoupAuthDomainDigest handles the server side of HTTP "Digest"
+ * [class@AuthDomainDigest] handles the server side of HTTP "Digest"
  * authentication.
  */
 
@@ -118,7 +118,7 @@ soup_auth_domain_digest_get_property (GObject *object, guint prop_id,
  * @optname1: name of first option, or %NULL
  * @...: option name/value pairs
  *
- * Creates a #SoupAuthDomainDigest.
+ * Creates a [class@AuthDomainDigest].
  *
  * You must set the [property@AuthDomain:realm] property, to indicate the realm name to
  * be returned with the authentication challenge to the client. Other parameters
@@ -149,7 +149,7 @@ soup_auth_domain_digest_new (const char *optname1, ...)
  * @username: the username provided by the client
  * @user_data: the data passed to [method@AuthDomainDigest.set_auth_callback]
  *
- * Callback used by #SoupAuthDomainDigest for authentication purposes.
+ * Callback used by [class@AuthDomainDigest] for authentication purposes.
  *
  * The application should look up @username in its password database,
  * and return the corresponding encoded password (see
@@ -359,7 +359,7 @@ soup_auth_domain_digest_challenge (SoupAuthDomain    *domain,
  * That is, it returns a stringified MD5 hash of
  * @username, @realm, and @password concatenated together. This is
  * the form that is needed as the return value of
- * #SoupAuthDomainDigest's auth handler.
+ * [class@AuthDomainDigest]'s auth handler.
  *
  * For security reasons, you should store the encoded hash, rather
  * than storing the cleartext password itself and calling this method

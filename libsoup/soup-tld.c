@@ -24,7 +24,7 @@ static const char *soup_tld_get_base_domain_internal (const char *hostname,
  * soup_tld_get_base_domain:
  * @hostname: a hostname
  * @error: return location for a #GError, or %NULL to ignore
- *   errors. See #SoupTLDError for the available error codes
+ *   errors. See [error@TLDError] for the available error codes
  *
  * Finds the base domain for a given @hostname
  *

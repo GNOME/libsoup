@@ -21,9 +21,9 @@
  *
  * Server-side authentication.
  *
- * A #SoupAuthDomain manages authentication for all or part of a
+ * A [class@AuthDomain] manages authentication for all or part of a
  * [class@Server]. To make a server require authentication, first create
- * an appropriate subclass of #SoupAuthDomain, and then add it to the
+ * an appropriate subclass of [class@AuthDomain], and then add it to the
  * server with [method@Server.add_auth_domain].
  *
  * In order for an auth domain to have any effect, you must add one or more
@@ -308,7 +308,7 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
  * @msg: a #SoupServerMessage
  * @user_data: the data passed to [method@AuthDomain.set_filter]
  *
- * The prototype for a #SoupAuthDomain filter.
+ * The prototype for a [class@AuthDomain] filter.
  *
  * See [method@AuthDomain.set_filter] for details.
  *
@@ -387,11 +387,11 @@ soup_auth_domain_get_realm (SoupAuthDomain *domain)
 /**
  * SoupAuthDomainGenericAuthCallback:
  * @domain: a #SoupAuthDomain
- * @msg: the #SoupServerMessage being authenticated
+ * @msg: the [class@ServerMessage] being authenticated
  * @username: the username from @msg
  * @user_data: the data passed to [method@AuthDomain.set_generic_auth_callback]
  *
- * The prototype for a #SoupAuthDomain generic authentication callback.
+ * The prototype for a [class@AuthDomain] generic authentication callback.
  *
  * The callback should look up the user's password, call
  * [method@AuthDomain.check_password], and use the return value from that method

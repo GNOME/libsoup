@@ -1295,7 +1295,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
  *
  * Calculates whether the @msg can be cached or not.
  *
- * Returns: a #SoupCacheability value indicating whether the @msg can be cached
+ * Returns: a [flags@Cacheability] value indicating whether the @msg can be cached
  *   or not.
  */
 SoupCacheability
@@ -1406,7 +1406,7 @@ clear_cache_files (SoupCache *cache)
  *
  * Will remove all entries in the @cache plus all the cache files.
  *
- * This is not thread safe and must be called only from the thread that created the #SoupCache
+ * This is not thread safe and must be called only from the thread that created the [class@Cache]
  */
 void
 soup_cache_clear (SoupCache *cache)
@@ -1568,7 +1568,7 @@ pack_entry (gpointer data,
  * You must call this before exiting if you want your cache data to
  * persist between sessions.
  *
- * This is not thread safe and must be called only from the thread that created the #SoupCache
+ * This is not thread safe and must be called only from the thread that created the [class@Cache]
  */
 void
 soup_cache_dump (SoupCache *cache)
@@ -1631,7 +1631,7 @@ insert_cache_file (SoupCache *cache, const char *name, GHashTable *leaked_entrie
  *
  * Loads the contents of @cache's index into memory.
  *
- * This is not thread safe and must be called only from the thread that created the #SoupCache
+ * This is not thread safe and must be called only from the thread that created the [class@Cache]
  */
 void
 soup_cache_load (SoupCache *cache)

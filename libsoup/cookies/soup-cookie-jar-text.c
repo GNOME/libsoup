@@ -21,7 +21,7 @@
  *
  * Text-file-based ("cookies.txt") Cookie Jar
  *
- * #SoupCookieJarText is a [class@CookieJar] that reads cookies from and writes
+ * [class@CookieJarText] is a [class@CookieJar] that reads cookies from and writes
  * them to a text file in format similar to Mozilla's "cookies.txt".
  **/
 
@@ -106,7 +106,7 @@ soup_cookie_jar_text_get_property (GObject *object, guint prop_id,
  * @filename: the filename to read to/write from
  * @read_only: %TRUE if @filename is read-only
  *
- * Creates a #SoupCookieJarText.
+ * Creates a [class@CookieJarText].
  *
  * @filename will be read in at startup to create an initial set of cookies. If
  * @read_only is %FALSE, then the non-session cookies will be written to

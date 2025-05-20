@@ -26,10 +26,10 @@
  *
  * HTTP client-side authentication handler.
  *
- * #SoupAuthManager is the [iface@SessionFeature] that handles HTTP
+ * [class@AuthManager] is the [iface@SessionFeature] that handles HTTP
  * authentication for a [class@Session].
  *
- * A #SoupAuthManager is added to the session by default, and normally
+ * A [class@AuthManager] is added to the session by default, and normally
  * you don't need to worry about it at all. However, if you want to
  * disable HTTP authentication, you can remove the feature from the
  * session with [method@Session.remove_feature_by_type] or disable it on
