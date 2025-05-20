@@ -34,13 +34,13 @@
  *
  * Soup session state object.
  *
- * #SoupSession is the object that controls client-side HTTP. A
- * #SoupSession encapsulates all of the state that libsoup is keeping
+ * [class@Session] is the object that controls client-side HTTP. A
+ * [class@Session] encapsulates all of the state that libsoup is keeping
  * on behalf of your program; cached HTTP connections, authentication
  * information, etc. It also keeps track of various global options
  * and features that you are using.
  *
- * Most applications will only need a single #SoupSession; the primary
+ * Most applications will only need a single [class@Session]; the primary
  * reason you might need multiple sessions is if you need to have
  * multiple independent authentication contexts. (Eg, you are
  * connecting to a server and authenticating as two different users at
@@ -49,7 +49,7 @@
  * one session for the first user, and a second session for the other
  * user.)
  *
- * Additional #SoupSession functionality is provided by
+ * Additional [class@Session] functionality is provided by
  * [iface@SessionFeature] objects, which can be added to a session with
  * [method@Session.add_feature] or [method@Session.add_feature_by_type]
  * For example, [class@Logger] provides support for
@@ -61,7 +61,7 @@
  *
  * All `SoupSession`s are created with a [class@AuthManager], and support
  * for %SOUP_TYPE_AUTH_BASIC and %SOUP_TYPE_AUTH_DIGEST. Additionally,
- * sessions using the plain #SoupSession class (rather than one of its deprecated
+ * sessions using the plain [class@Session] class (rather than one of its deprecated
  * subtypes) have a [class@ContentDecoder] by default.
  *
  * Note that all async methods will invoke their callbacks on the thread-default
@@ -162,7 +162,7 @@ static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
  * @SOUP_SESSION_ERROR_MESSAGE_ALREADY_IN_QUEUE: the message is already in the
  *   session queue. Messages can only be reused after unqueued.
  *
- * A #SoupSession error.
+ * A [class@Session] error.
  */
 G_DEFINE_QUARK (soup-session-error-quark, soup_session_error)
 
@@ -516,7 +516,7 @@ soup_session_get_property (GObject *object, guint prop_id,
 /**
  * soup_session_new:
  *
- * Creates a #SoupSession with the default options.
+ * Creates a [class@Session] with the default options.
  *
  * Returns: (transfer full): the new session.
  */
@@ -531,7 +531,7 @@ soup_session_new (void)
  * @optname1: name of first property to set
  * @...: value of @optname1, followed by additional property/value pairs
  *
- * Creates a #SoupSession with the specified options.
+ * Creates a [class@Session] with the specified options.
  *
  * Returns: the new session.
  */
@@ -1191,7 +1191,7 @@ soup_session_requeue_item (SoupSession          *session,
  * header, and requeues it on @session. Use this when you have set
  * %SOUP_MESSAGE_NO_REDIRECT on a message, but have decided to allow a
  * particular redirection to occur, or if you want to allow a
- * redirection that #SoupSession will not perform automatically (eg,
+ * redirection that [class@Session] will not perform automatically (eg,
  * redirecting a non-safe method such as DELETE).
  *
  * If @msg's status code indicates that it should be retried as a GET
@@ -2075,7 +2075,7 @@ feature_already_added (SoupSession *session, GType feature_type)
  * Adds @feature's functionality to @session. You cannot add multiple
  * features of the same [alias@GObject.Type] to a session.
  *
- * See the main #SoupSession documentation for information on what
+ * See the main [class@Session] documentation for information on what
  * features are present in sessions by default.
  **/
 void
@@ -2110,7 +2110,7 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * existing feature on @session the chance to accept @feature_type as
  * a "subfeature". This can be used to add new [class@Auth] types, for instance.
  *
- * See the main #SoupSession documentation for information on what
+ * See the main [class@Session] documentation for information on what
  * features are present in sessions by default.
  **/
 void
@@ -2582,7 +2582,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * enclosed in parentheses, between or after the tokens.
 	 *
 	 * If you set a [property@Session:user-agent] property that has trailing
-	 * whitespace, #SoupSession will append its own product token
+	 * whitespace, [class@Session] will append its own product token
 	 * (eg, `libsoup/2.3.2`) to the end of the
 	 * header for you.
 	 **/
@@ -2613,7 +2613,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:accept-language-auto: (attributes org.gtk.Property.get=soup_session_get_accept_language_auto org.gtk.Property.set=soup_session_set_accept_language_auto)
 	 *
-	 * If %TRUE, #SoupSession will automatically set the string
+	 * If %TRUE, [class@Session] will automatically set the string
 	 * for the "Accept-Language" header on every [class@Message]
 	 * sent, based on the return value of [func@GLib.get_language_names].
 	 *

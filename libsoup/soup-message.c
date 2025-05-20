@@ -25,10 +25,10 @@
  *
  * Represents an HTTP message being sent or received.
  *
- * A #SoupMessage represents an HTTP message that is being sent or
+ * A [class@Message] represents an HTTP message that is being sent or
  * received.
  *
- * You would create a #SoupMessage with [ctor@Message.new] or
+ * You would create a [class@Message] with [ctor@Message.new] or
  * [ctor@Message.new_from_uri], set up its fields appropriately, and send it.
  *
  * [property@Message:status-code] will normally be a [enum@Status] value, eg,
@@ -43,7 +43,7 @@
  *
  * Note that libsoup's terminology here does not quite match the HTTP
  * specification: in RFC 2616, an "HTTP-message" is *either* a Request, *or* a
- * Response. In libsoup, a #SoupMessage combines both the request and the
+ * Response. In libsoup, a [class@Message] combines both the request and the
  * response.
  */
 
@@ -920,7 +920,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	/**
 	 SoupMessage:priority: (attributes org.gtk.Property.get=soup_message_get_priority org.gtk.Property.set=soup_message_set_priority)
 	 *
-	 * Sets the priority of the #SoupMessage. See
+	 * Sets the priority of the [class@Message]. See
 	 * [method@Message.set_priority] for further details.
 	 **/
         properties[PROP_PRIORITY] =
@@ -937,7 +937,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Whether the message is an OPTIONS ping.
 	 *
-	 * The #SoupMessage is intended to be used to send
+	 * The [class@Message] is intended to be used to send
          * `OPTIONS *` to a server. When set to %TRUE, the
          * path of [property@Message:uri] will be ignored and
          * [property@Message:method] set to %SOUP_METHOD_OPTIONS.
@@ -959,7 +959,7 @@ soup_message_class_init (SoupMessageClass *message_class)
  * @method: the HTTP method for the created request
  * @uri_string: the destination endpoint (as a string)
  * 
- * Creates a new empty #SoupMessage, which will connect to @uri.
+ * Creates a new empty [class@Message], which will connect to @uri.
  *
  * Returns: (transfer full) (nullable): the new #SoupMessage (or %NULL if @uri
  *   could not be parsed).
@@ -991,7 +991,7 @@ soup_message_new (const char *method, const char *uri_string)
  * @method: the HTTP method for the created request
  * @uri: the destination endpoint
  * 
- * Creates a new empty #SoupMessage, which will connect to @uri.
+ * Creates a new empty [class@Message], which will connect to @uri.
  *
  * Returns: (transfer full): the new #SoupMessage
  */
@@ -1011,7 +1011,7 @@ soup_message_new_from_uri (const char *method, GUri *uri)
  * soup_message_new_options_ping:
  * @base_uri: the destination endpoint
  *
- * Creates a new #SoupMessage to send `OPTIONS *` to a server. The path of
+ * Creates a new [class@Message] to send `OPTIONS *` to a server. The path of
  * @base_uri will be ignored.
  *
  * Returns: (transfer full): the new #SoupMessage
@@ -1034,7 +1034,7 @@ soup_message_new_options_ping (GUri *base_uri)
  * @uri_string: the destination endpoint (as a string)
  * @encoded_form: (transfer full): a encoded form
  *
- * Creates a new #SoupMessage and sets it up to send the given @encoded_form
+ * Creates a new [class@Message] and sets it up to send the given @encoded_form
  * to @uri via @method. If @method is "GET", it will include the form data
  * into @uri's query field, and if @method is "POST" or "PUT", it will be set as
  * request body.
@@ -1091,7 +1091,7 @@ soup_message_new_from_encoded_form (const char *method,
  * @uri_string: the destination endpoint
  * @multipart: a #SoupMultipart
  *
- * Creates a new #SoupMessage and sets it up to send @multipart to
+ * Creates a new [class@Message] and sets it up to send @multipart to
  * @uri_string via POST.
  *
  * Returns: (transfer full) (nullable): the new #SoupMessage, or %NULL if @uri_string
@@ -1132,7 +1132,7 @@ soup_message_new_from_multipart (const char    *uri_string,
  * @stream: (nullable): a #GInputStream to read the request body from
  * @content_length: the byte length of @stream or -1 if unknown
  *
- * Set the request body of a #SoupMessage.
+ * Set the request body of a [class@Message].
  *
  * If @content_type is %NULL and @stream is not %NULL the Content-Type header will
  * not be changed if present.
@@ -1179,7 +1179,7 @@ soup_message_set_request_body (SoupMessage  *msg,
  * @content_type: (nullable): MIME Content-Type of the body, or %NULL if unknown
  * @bytes: (nullable): a #GBytes with the request body data
  *
- * Set the request body of a #SoupMessage from [struct@GLib.Bytes].
+ * Set the request body of a [class@Message] from [struct@GLib.Bytes].
  *
  * If @content_type is %NULL and @bytes is not %NULL the Content-Type header will
  * not be changed if present.
@@ -1910,8 +1910,7 @@ soup_message_cleanup_response (SoupMessage *msg)
  *   [method@Message.disable_feature] passing #SOUP_TYPE_AUTH_MANAGER instead.
  * @SOUP_MESSAGE_COLLECT_METRICS: Metrics will be collected for this message.
  *
- * Various flags that can be set on a #SoupMessage to alter its
- * behavior.
+ * Various flags that can be set on a [class@Message] to alter its behavior.
  **/
 
 /**
@@ -2212,7 +2211,7 @@ soup_message_set_status (SoupMessage *msg,
 /**
  * soup_message_disable_feature:
  * @msg: a #SoupMessage
- * @feature_type: the #GType of a #SoupSessionFeature
+ * @feature_type: the #GType of a [iface@SessionFeature]
  *
  * Disables the actions of [iface@SessionFeature]s with the
  * given @feature_type (or a subclass of that type) on @msg.
@@ -2266,7 +2265,7 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
 /**
  * soup_message_is_feature_disabled:
  * @msg: a #SoupMessage
- * @feature_type: the #GType of a #SoupSessionFeature
+ * @feature_type: the #GType of a [iface@SessionFeature]
  *
  * Get whether [iface@SessionFeature]s of the given @feature_type
  * (or a subclass of that type) are disabled on @msg.
@@ -2646,14 +2645,14 @@ soup_message_tls_client_certificate_password_request_complete (SoupMessage *msg)
  * @SOUP_MESSAGE_PRIORITY_VERY_LOW: The lowest priority, the messages
  *   with this priority will be the last ones to be attended.
  * @SOUP_MESSAGE_PRIORITY_LOW: Use this for low priority messages, a
- *   #SoupMessage with the default priority will be processed first.
+ *   [class@Message] with the default priority will be processed first.
  * @SOUP_MESSAGE_PRIORITY_NORMAL: The default priotity, this is the
- *   priority assigned to the #SoupMessage by default.
- * @SOUP_MESSAGE_PRIORITY_HIGH: High priority, a #SoupMessage with
+ *   priority assigned to the [class@Message] by default.
+ * @SOUP_MESSAGE_PRIORITY_HIGH: High priority, a [class@Message] with
  *   this priority will be processed before the ones with the default
  *   priority.
  * @SOUP_MESSAGE_PRIORITY_VERY_HIGH: The highest priority, use this
- *   for very urgent #SoupMessage as they will be the first ones to be
+ *   for very urgent [class@Message] as they will be the first ones to be
  *   attended.
  *
  * Priorities that can be set on a [class@Message] to instruct the message queue
@@ -2981,7 +2980,7 @@ soup_message_get_reason_phrase (SoupMessage *msg)
  *
  * Returns the headers sent with the request.
  *
- * Returns: (transfer none): The #SoupMessageHeaders
+ * Returns: (transfer none): The [struct@MessageHeaders]
  */
 SoupMessageHeaders *
 soup_message_get_request_headers (SoupMessage  *msg)
@@ -2999,7 +2998,7 @@ soup_message_get_request_headers (SoupMessage  *msg)
  *
  * Returns the headers recieved with the response.
  * 
- * Returns: (transfer none): The #SoupMessageHeaders
+ * Returns: (transfer none): The [struct@MessageHeaders]
  */
 SoupMessageHeaders *
 soup_message_get_response_headers (SoupMessage  *msg)

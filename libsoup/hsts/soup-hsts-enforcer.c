@@ -23,24 +23,24 @@
  *
  * Automatic HTTP Strict Transport Security enforcing for [class@Session].
  *
- * A #SoupHSTSEnforcer stores HSTS policies and enforces them when
- * required. #SoupHSTSEnforcer implements [iface@SessionFeature], so you
+ * A [class@HSTSEnforcer] stores HSTS policies and enforces them when
+ * required. [class@HSTSEnforcer] implements [iface@SessionFeature], so you
  * can add an HSTS enforcer to a session with
  * [method@Session.add_feature] or [method@Session.add_feature_by_type].
  *
- * #SoupHSTSEnforcer keeps track of all the HTTPS destinations that,
+ * [class@HSTSEnforcer] keeps track of all the HTTPS destinations that,
  * when connected to, return the Strict-Transport-Security header with
- * valid values. #SoupHSTSEnforcer will forget those destinations
+ * valid values. [class@HSTSEnforcer] will forget those destinations
  * upon expiry or when the server requests it.
  *
- * When the [class@Session] the #SoupHSTSEnforcer is attached to queues or
- * restarts a message, the #SoupHSTSEnforcer will rewrite the URI to HTTPS if
+ * When the [class@Session] the [class@HSTSEnforcer] is attached to queues or
+ * restarts a message, the [class@HSTSEnforcer] will rewrite the URI to HTTPS if
  * the destination is a known HSTS host and is contacted over an insecure
- * transport protocol (HTTP). Users of #SoupHSTSEnforcer are advised to listen
+ * transport protocol (HTTP). Users of [class@HSTSEnforcer] are advised to listen
  * to changes in the [property@Message:uri] property in order to be aware of
  * changes in the message URI.
  *
- * Note that #SoupHSTSEnforcer does not support any form of long-term
+ * Note that [class@HSTSEnforcer] does not support any form of long-term
  * HSTS policy persistence. See [class@HSTSEnforcerDB] for a persistent
  * enforcer.
  **/
@@ -176,9 +176,9 @@ soup_hsts_enforcer_class_init (SoupHSTSEnforcerClass *hsts_enforcer_class)
 /**
  * soup_hsts_enforcer_new:
  *
- * Creates a new #SoupHSTSEnforcer.
+ * Creates a new [class@HSTSEnforcer].
  *
- * The base #SoupHSTSEnforcer class does not support persistent storage of HSTS
+ * The base [class@HSTSEnforcer] class does not support persistent storage of HSTS
  * policies, see [class@HSTSEnforcerDB] for that.
  *
  * Returns: a new #SoupHSTSEnforcer

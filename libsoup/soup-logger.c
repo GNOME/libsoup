@@ -27,12 +27,12 @@
  *
  * Debug logging support
  *
- * #SoupLogger watches a [class@Session] and logs the HTTP traffic that
+ * [class@Logger] watches a [class@Session] and logs the HTTP traffic that
  * it generates, for debugging purposes. Many applications use an
  * environment variable to determine whether or not to use
- * #SoupLogger, and to determine the amount of debugging output.
+ * [class@Logger], and to determine the amount of debugging output.
  *
- * To use #SoupLogger, first create a logger with [ctor@Logger.new], optionally
+ * To use [class@Logger], first create a logger with [ctor@Logger.new], optionally
  * configure it with [method@Logger.set_request_filter],
  * [method@Logger.set_response_filter], and [method@Logger.set_printer], and
  * then attach it to a session (or multiple sessions) with
@@ -63,7 +63,7 @@
  * [class@Session], [class@Message], and [class@Gio.Socket] involved; the hex
  * numbers are the addresses of the objects in question (which may be useful if
  * you are running in a debugger). The decimal IDs are simply counters that
- * uniquely identify objects across the lifetime of the #SoupLogger. In
+ * uniquely identify objects across the lifetime of the [class@Logger]. In
  * particular, this can be used to identify when multiple messages are sent
  * across the same connection.
  *
@@ -75,7 +75,7 @@
  * from the network (from the [signal@Message::got-body] or
  * [signal@Message::got-informational] signal), which means that the
  * [signal@Message::got-headers] signal, and anything triggered off it (such as
- * #SoupMessage::authenticate) will be emitted *before* the response headers are
+ * [signal@Message::authenticate]) will be emitted *before* the response headers are
  * actually logged.
  *
  * If the response doesn't happen to trigger the [signal@Message::got-body] nor
@@ -374,7 +374,7 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
  * soup_logger_new:
  * @level: the debug level
  *
- * Creates a new #SoupLogger with the given debug level.
+ * Creates a new [class@Logger] with the given debug level.
  *
  * If you need finer control over what message parts are and aren't
  * logged, use [method@Logger.set_request_filter] and

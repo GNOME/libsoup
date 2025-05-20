@@ -20,13 +20,13 @@ G_DECLARE_DERIVABLE_TYPE (SoupHSTSEnforcer, soup_hsts_enforcer, SOUP, HSTS_ENFOR
  * @is_persistent: The @is_persistent function advertises whether the enforcer is persistent or
  * whether changes made to it will be lost when the underlying [class@Session] is finished.
  * @has_valid_policy: The @has_valid_policy function is called to check whether there is a valid
- * policy for the given domain. This method should return %TRUE for #SoupHSTSEnforcer to
- * change the scheme of the #GUri in the #SoupMessage to HTTPS. Implementations might want to
+ * policy for the given domain. This method should return %TRUE for [class@HSTSEnforcer] to
+ * change the scheme of the #GUri in the [class@Message] to HTTPS. Implementations might want to
  * chain up to the @has_valid_policy in the parent class to check, for instance, for runtime
  * policies.
- * @changed: The class closure for the #SoupHSTSEnforcer::changed signal.
+ * @changed: The class closure for the [signal@HSTSEnforcer::changed] signal.
  *
- * Class structure for #SoupHSTSEnforcer.
+ * Class structure for [class@HSTSEnforcer].
  **/
 struct _SoupHSTSEnforcerClass {
 	GObjectClass parent_class;

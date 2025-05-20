@@ -62,7 +62,7 @@ struct _SoupMessageHeaders {
  * soup_message_headers_new:
  * @type: the type of headers
  *
- * Creates a #SoupMessageHeaders.
+ * Creates a [struct@MessageHeaders].
  *
  * ([class@Message] does this automatically for its own headers. You would only
  * need to use this method if you are manually parsing or generating message
@@ -780,8 +780,7 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
 /**
  * SoupMessageHeadersIter:
  *
- * An opaque type used to iterate over a #SoupMessageHeaders
- * structure.
+ * An opaque type used to iterate over a [struct@MessageHeaders] structure
  *
  * After intializing the iterator with [func@MessageHeadersIter.init], call
  * [method@MessageHeadersIter.next] to fetch data from it.
@@ -797,8 +796,7 @@ typedef struct {
 
 /**
  * soup_message_headers_iter_init:
- * @iter: (out) (transfer none): a pointer to a #SoupMessageHeadersIter
- *   structures
+ * @iter: (out) (transfer none): a pointer to a #SoupMessageHeadersIter structure
  * @hdrs: a #SoupMessageHeaders
  *
  * Initializes @iter for iterating @hdrs.
@@ -1279,7 +1277,7 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  * Beware that even if given a @total_length, this function does not
  * check that the ranges are satisfiable.
  *
- * #SoupServer has built-in handling for range requests. If your
+ * [class@Server] has built-in handling for range requests. If your
  * server handler returns a %SOUP_STATUS_OK response containing the
  * complete response body (rather than pausing the message and
  * returning some of the response body later), and there is a Range

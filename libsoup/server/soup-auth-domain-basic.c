@@ -21,7 +21,7 @@
  *
  * Server-side "Basic" authentication.
  *
- * #SoupAuthDomainBasic handles the server side of HTTP "Basic" (ie,
+ * [class@AuthDomainBasic] handles the server side of HTTP "Basic" (ie,
  * cleartext password) authentication.
  */
 
@@ -114,7 +114,7 @@ soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
  * @optname1: name of first option, or %NULL
  * @...: option name/value pairs
  *
- * Creates a #SoupAuthDomainBasic.
+ * Creates a [class@AuthDomainBasic].
  *
  * You must set the [property@AuthDomain:realm] property, to indicate the realm
  * name to be returned with the authentication challenge to the client. Other
@@ -146,7 +146,7 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  * @password: the password provided by the client
  * @user_data: the data passed to [method@AuthDomainBasic.set_auth_callback]
  *
- * Callback used by #SoupAuthDomainBasic for authentication purposes.
+ * Callback used by [class@AuthDomainBasic] for authentication purposes.
  *
  * The application should verify that @username and @password and valid
  * and return %TRUE or %FALSE.

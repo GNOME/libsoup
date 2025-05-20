@@ -23,7 +23,7 @@
  *
  * Database-based Cookie Jar.
  *
- * #SoupCookieJarDB is a [class@CookieJar] that reads cookies from and writes
+ * [class@CookieJarDB] is a [class@CookieJar] that reads cookies from and writes
  * them to a sqlite database in the new Mozilla format.
  *
  * (This is identical to `SoupCookieJarSqlite` in
@@ -112,7 +112,7 @@ soup_cookie_jar_db_get_property (GObject *object, guint prop_id,
  * @filename: the filename to read to/write from, or %NULL
  * @read_only: %TRUE if @filename is read-only
  *
- * Creates a #SoupCookieJarDB.
+ * Creates a [class@CookieJarDB].
  *
  * @filename will be read in at startup to create an initial set of cookies. If
  * @read_only is %FALSE, then the non-session cookies will be written to

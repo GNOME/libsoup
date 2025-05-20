@@ -28,7 +28,7 @@
  * SoupBodyInputStreamHttp2
  * @short_description: Streaming input operations on memory chunks
  *
- * #SoupBodyInputStreamHttp2 is a class for using arbitrary
+ * [type@BodyInputStreamHttp2] is a class for using arbitrary
  * memory chunks as input for GIO streaming input operations.
  *
  * It differs from #GMemoryInputStream in that it frees older chunks
@@ -67,7 +67,7 @@ static guint signals [LAST_SIGNAL] = { 0 };
 /**
  * soup_body_input_stream_http2_new:
  *
- * Creates a new empty #SoupBodyInputStreamHttp2. 
+ * Creates a new empty [type@BodyInputStreamHttp2].
  *
  * Returns: a new #GInputStream
  */

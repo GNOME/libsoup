@@ -356,7 +356,7 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
          * @count: the bytes written
          * @is_metadata: whether the data being written is control data
          *
-         * Emitted every time data is written in a #SoupBodyOutputStream
+         * Emitted every time data is written in a [type@BodyOutputStream]
          */
         signals[WROTE_DATA] =
                 g_signal_new ("wrote-data",

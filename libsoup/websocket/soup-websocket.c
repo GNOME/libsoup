@@ -52,11 +52,11 @@
  * WebSocket handshake, and [func@websocket_server_process_handshake] for
  * handling the server side.)
  *
- * #SoupWebsocketConnection handles the details of WebSocket communication. You
+ * [class@WebsocketConnection] handles the details of WebSocket communication. You
  * can use [method@WebsocketConnection.send_text] and
  * [method@WebsocketConnection.send_binary] to send data, and the
  * [signal@WebsocketConnection::message] signal to receive data.
- * (#SoupWebsocketConnection currently only supports asynchronous I/O.)
+ * ([class@WebsocketConnection] currently only supports asynchronous I/O.)
  */
 
 /**
@@ -664,7 +664,7 @@ respond_handshake_bad (SoupServerMessage *msg,
  * @supported_extensions: (nullable) (element-type GObject.TypeClass): list
  *   of supported extension types
  * @accepted_extensions: (out) (optional) (element-type SoupWebsocketExtension): a
- *   #GList of #SoupWebsocketExtension objects
+ *   #GList of [class@WebsocketExtension] objects
  *
  * Examines the method and request headers in @msg and (assuming @msg
  * contains a valid handshake request), fills in the handshake
@@ -782,7 +782,7 @@ soup_websocket_server_process_handshake (SoupServerMessage *msg,
  * @supported_extensions: (nullable) (element-type GObject.TypeClass): list
  *   of supported extension types
  * @accepted_extensions: (out) (optional) (element-type SoupWebsocketExtension): a
- *   #GList of #SoupWebsocketExtension objects
+ *   #GList of [class@WebsocketExtension] objects
  * @error: return location for a #GError
  *
  * Looks at the response status code and headers in @msg and

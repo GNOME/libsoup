@@ -34,7 +34,7 @@
  *
  * A WebSocket connection.
  *
- * A #SoupWebsocketConnection is a WebSocket connection to a peer.
+ * A [class@WebsocketConnection] is a WebSocket connection to a peer.
  * This API is modeled after the W3C API for interacting with
  * WebSockets.
  *
@@ -1807,7 +1807,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
  * @protocol: (nullable): the subprotocol in use
  * @extensions: (element-type SoupWebsocketExtension) (transfer full): a #GList of #SoupWebsocketExtension objects
  *
- * Creates a #SoupWebsocketConnection on @stream with the given active @extensions.
+ * Creates a [class@WebsocketConnection] on @stream with the given active @extensions.
  *
  * This should be called after completing the handshake to begin using the WebSocket
  * protocol.
