@@ -871,6 +871,11 @@ process_contents (SoupWebsocketConnection *self,
 		switch (pv->message_opcode) {
 		case 0x01:
 		case 0x02:
+			/* Safety valve */
+			if (pv->message_data->len + payload_len > pv->max_incoming_payload_size) {
+				too_big_error_and_close (self, (pv->message_data->len + payload_len));
+				return;
+			}
 			g_byte_array_append (pv->message_data, payload, payload_len);
 			break;
 		default:
