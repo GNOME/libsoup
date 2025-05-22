@@ -2987,9 +2987,11 @@ conditional_get_ready_cb (SoupSession               *session,
 		soup_cache_cancel_conditional_request (data->cache, data->conditional_msg);
 		cancel_cache_response (data->item);
 		async_cache_conditional_data_free (data);
+		g_clear_error (&error);
 		return;
 	}
 	g_object_unref (stream);
+	g_clear_error (&error);
 
 	soup_cache_update_from_conditional_request (data->cache, data->conditional_msg);
 
