@@ -1381,6 +1381,7 @@ soup_session_append_queue_item (SoupSession        *session,
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
 	SoupMessageQueueItem *item;
+	GPtrArray *queue_features = NULL;
 	GSList *f;
 
         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_FETCH_START);
@@ -1415,9 +1416,17 @@ soup_session_append_queue_item (SoupSession        *session,
 	for (f = priv->features; f; f = g_slist_next (f)) {
 		SoupSessionFeature *feature = SOUP_SESSION_FEATURE (f->data);
 
-		g_object_ref (feature);
+		if (queue_features == NULL)
+			queue_features = g_ptr_array_new_with_free_func (g_object_unref);
+		g_ptr_array_add (queue_features, g_object_ref (feature));
 		soup_session_feature_request_queued (feature, msg);
 	}
+
+	if (queue_features != NULL) {
+		g_object_set_data_full (G_OBJECT (msg), "soup-session-queued-features",
+			queue_features, (GDestroyNotify) g_ptr_array_unref);
+	}
+
 	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 
 	return item;
@@ -1472,7 +1481,7 @@ soup_session_unqueue_item (SoupSession          *session,
 			   SoupMessageQueueItem *item)
 {
 	SoupSessionPrivate *priv = soup_session_get_instance_private (session);
-	GSList *f;
+	GPtrArray *queued_features;
 
         soup_message_set_connection (item->msg, NULL);
 
@@ -1497,11 +1506,15 @@ soup_session_unqueue_item (SoupSession          *session,
 	g_signal_handlers_disconnect_matched (item->msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, item);
 
-	for (f = priv->features; f; f = g_slist_next (f)) {
-		SoupSessionFeature *feature = SOUP_SESSION_FEATURE (f->data);
+	queued_features = g_object_get_data (G_OBJECT (item->msg), "soup-session-queued-features");
+	if (queued_features) {
+		guint ii;
 
-		soup_session_feature_request_unqueued (feature, item->msg);
-		g_object_unref (feature);
+		for (ii = 0; ii < queued_features->len; ii++) {
+			SoupSessionFeature *feature = SOUP_SESSION_FEATURE (g_ptr_array_index (queued_features, ii));
+
+			soup_session_feature_request_unqueued (feature, item->msg);
+		}
 	}
 	g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, item->msg);
 	soup_message_queue_item_unref (item);
