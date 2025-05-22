@@ -84,6 +84,7 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 				debug_printf (1, "    Content-Range: %s\n", content_range);
 		}
 
+		g_clear_pointer (&body, g_bytes_unref);
 		g_object_unref (msg);
 		return;
 	}
