@@ -760,6 +760,7 @@ do_logging_test (Test *test, gconstpointer data)
         SoupLogger *logger = soup_logger_new (SOUP_LOGGER_LOG_BODY);
         soup_logger_set_printer (logger, log_printer, &has_logged_body, NULL);
         soup_session_add_feature (test->session, SOUP_SESSION_FEATURE (logger));
+        g_clear_object (&logger);
 
         uri = g_uri_parse_relative (base_uri, "/echo_post", SOUP_HTTP_URI_FLAGS, NULL);
         msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
@@ -771,6 +772,7 @@ do_logging_test (Test *test, gconstpointer data)
         g_assert_true (has_logged_body);
 
         g_bytes_unref (response);
+        g_bytes_unref (bytes);
         g_object_unref (msg);
         g_uri_unref (uri);
 }
@@ -1078,7 +1080,7 @@ do_invalid_header_rfc9113_received_test (Test *test, gconstpointer data)
 
         g_assert_nonnull (response);
         g_assert_no_error (error);
-        g_clear_error (&error);
+        g_bytes_unref (response);
         g_object_unref (msg);
         g_uri_unref (uri);
 }
@@ -1219,6 +1221,7 @@ do_timeout_test (Test *test, gconstpointer data)
         response = soup_test_session_async_send (test->session, msg, NULL, &error);
         g_assert_null (response);
         g_assert_error (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT);
+        g_clear_error (&error);
         g_object_unref (msg);
         g_uri_unref (uri);
 }
@@ -1318,10 +1321,14 @@ server_handler (SoupServer        *server,
                 response_body = soup_server_message_get_response_body (msg);
                 for (i = 0; i < LARGE_N_CHARS; i++, letter++) {
                         GString *chunk = g_string_new (NULL);
+                        GBytes *bytes;
 
                         for (j = 0; j < LARGE_CHARS_REPEAT; j++)
                                 chunk = g_string_append_c (chunk, letter);
-                        soup_message_body_append_bytes (response_body, g_string_free_to_bytes (chunk));
+
+                        bytes = g_string_free_to_bytes (chunk);
+                        soup_message_body_append_bytes (response_body, bytes);
+                        g_bytes_unref (bytes);
                 }
                 soup_message_body_append (response_body, SOUP_MEMORY_STATIC, "\0", 1);
 
