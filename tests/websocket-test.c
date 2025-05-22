@@ -1602,6 +1602,9 @@ test_client_receive_masked_frame (Test *test,
 	g_clear_error (&error);
 	g_assert_null (received);
 
+	/* it can emit more errors while joining the thread, thus disconnect, to avoid memory leak */
+	g_signal_handlers_disconnect_by_func (test->client, G_CALLBACK (on_error_copy), &error);
+
         g_thread_join (thread);
 
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
@@ -2049,6 +2052,9 @@ test_deflate_receive_fragmented_error (Test *test,
 	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
 	g_clear_error (&error);
 	g_assert_null (received);
+
+	/* it can emit more errors while joining the thread, thus disconnect, to avoid memory leak */
+	g_signal_handlers_disconnect_by_func (test->client, G_CALLBACK (on_error_copy), &error);
 
 	g_thread_join (thread);
 
