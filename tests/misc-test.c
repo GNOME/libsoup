@@ -156,6 +156,7 @@ do_host_big_header (void)
 	stream = soup_session_send (session, msg, NULL, &error);
 	g_assert_null (stream);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
+	g_clear_error (&error);
 
 	soup_test_session_abort_unref (session);
 
@@ -846,6 +847,7 @@ redirect_handler (SoupMessage *msg,
         g_assert_nonnull (body);
         g_assert_cmpstr (g_bytes_get_data (body, NULL), ==, "index");
         g_object_unref (new_msg);
+        g_bytes_unref (body);
 }
 
 static void
