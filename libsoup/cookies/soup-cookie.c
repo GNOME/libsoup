@@ -427,15 +427,7 @@ soup_cookie_new (const char *name, const char *value,
 {
 	g_return_val_if_fail (name != NULL, NULL);
 	g_return_val_if_fail (value != NULL, NULL);
-
-	/* We ought to return if domain is NULL too, but this used to
-	 * do be incorrectly documented as legal, and it wouldn't
-	 * break anything as long as you called
-	 * soup_cookie_set_domain() immediately after. So we warn but
-	 * don't return, to discourage that behavior but not actually
-	 * break anyone doing it.
-	 */
-	g_warn_if_fail (domain != NULL);
+	g_return_val_if_fail (domain != NULL, NULL);
 
 	return cookie_new_internal (name, value, domain, path, max_age);
 }
