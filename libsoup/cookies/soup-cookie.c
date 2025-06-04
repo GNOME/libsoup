@@ -380,7 +380,10 @@ cookie_new_internal (const char *name, const char *value,
 	cookie = g_slice_new0 (SoupCookie);
 	cookie->name = g_strdup (name);
 	cookie->value = g_strdup (value);
-	cookie->domain = soup_uri_normalize_domain (domain);
+	// This is only supported because of soup_cookies_from_request(),
+	// If unset this is not a valid cookie without calling soup_cookie_set_domain().
+	if (domain)
+		cookie->domain = soup_uri_normalize_domain (domain);
 	cookie->path = g_strdup (path);
 	soup_cookie_set_max_age (cookie, max_age);
 	cookie->same_site_policy = SOUP_SAME_SITE_POLICY_LAX;
@@ -940,12 +943,13 @@ soup_cookies_from_response (SoupMessage *msg)
  * `SoupCookie`s.
  *
  * As the "Cookie" header, unlike "Set-Cookie", only contains cookie names and
- * values, none of the other [struct@Cookie] fields will be filled in. (Thus, you
- * can't generally pass a cookie returned from this method directly to
- * [func@cookies_to_response].)
+ * values, none of the other [struct@Cookie] fields will be filled in. To be valid
+ * you must set the domain manually, otherwise you can't pass a cookie returned from
+ * this method directly to [func@cookies_to_response].
  *
  * Returns: (element-type SoupCookie) (transfer full): a #GSList of
  *   `SoupCookie`s, which can be freed with [method@Cookie.free].
+ * Deprecated: 3.8
  **/
 GSList *
 soup_cookies_from_request (SoupMessage *msg)

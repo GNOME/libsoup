@@ -108,7 +108,7 @@ void        soup_cookie_free                    (SoupCookie  *cookie);
 
 SOUP_AVAILABLE_IN_ALL
 GSList     *soup_cookies_from_response          (SoupMessage *msg);
-SOUP_AVAILABLE_IN_ALL
+SOUP_DEPRECATED_IN_3_8
 GSList     *soup_cookies_from_request           (SoupMessage *msg);
 
 SOUP_AVAILABLE_IN_ALL
