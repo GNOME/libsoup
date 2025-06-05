@@ -15,6 +15,7 @@
 #include <libpsl.h>
 
 #include "soup-tld.h"
+#include "soup-misc.h"
 #include "soup-uri-utils-private.h"
 #include "soup.h"
 
@@ -52,6 +53,9 @@ const char *
 soup_tld_get_base_domain (const char *hostname, GError **error)
 {
 	g_return_val_if_fail (hostname, NULL);
+
+	if (!soup_string_is_lowercase_ascii (hostname))
+		g_warning ("Passing a non-lowercase string (\"%s\") to soup_tld_get_base_domain() may give incorrect results", hostname);
 
 	return soup_tld_get_base_domain_internal (hostname, error);
 }

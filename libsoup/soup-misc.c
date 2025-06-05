@@ -307,3 +307,14 @@ soup_http_version_to_string (SoupHTTPVersion version)
         g_assert_not_reached ();
         return NULL;
 }
+
+gboolean
+soup_string_is_lowercase_ascii (const char *str)
+{
+        for (; *str; str++) {
+                if (!g_ascii_islower (*str))
+                        return FALSE;
+        }
+        return TRUE;
+}
+

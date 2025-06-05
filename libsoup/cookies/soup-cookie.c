@@ -168,16 +168,6 @@ parse_date (const char **val_p)
 	return date;
 }
 
-static gboolean
-is_lowercase_ascii_string (const char *str)
-{
-        for (; *str; str++) {
-                if (!g_ascii_islower (*str))
-                        return FALSE;
-        }
-        return TRUE;
-}
-
 #define MAX_AGE_CAP_IN_SECONDS 31536000  // 1 year
 #define MAX_ATTRIBUTE_SIZE 1024
 
@@ -322,7 +312,7 @@ parse_one_cookie (const char *header, GUri *origin)
 			cookie->domain = tmp;
 		}
 
-                if (!is_lowercase_ascii_string (cookie->domain)) {
+                if (!soup_string_is_lowercase_ascii (cookie->domain)) {
                         char *tmp = soup_uri_normalize_domain (cookie->domain);
                         g_free (cookie->domain);
                         cookie->domain = tmp;
