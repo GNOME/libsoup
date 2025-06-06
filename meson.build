@@ -141,7 +141,7 @@ endif
 
 unix_socket_dep = dependency('gio-unix-2.0',
                              version : glib_required_version,
-                             fallback: ['glib', 'libgiounix_dep'],
+                             fallback: (host_system != 'windows') ? ['glib', 'libgiounix_dep'] : [],
                              required : false)
 
 platform_deps = []
