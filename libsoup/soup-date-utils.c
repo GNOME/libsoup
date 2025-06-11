@@ -40,7 +40,7 @@ soup_date_time_is_past (GDateTime *date)
         g_return_val_if_fail (date != NULL, TRUE);
 
 	/* optimization */
-	if (g_date_time_get_year (date) < 2020)
+	if (g_date_time_get_year (date) < 2025)
 		return TRUE;
 
 	return g_date_time_to_unix (date) < time (NULL);
@@ -219,15 +219,15 @@ parse_timezone (GTimeZone **timezone, const char **date_string)
 		} else
 			val =  60 * (val / 100) + (val % 100);
 		offset_minutes = sign * val;
-                utc = (sign == -1) && !val;
+		utc = (sign == -1) && !val;
 	} else if (**date_string == 'Z') {
 		offset_minutes = 0;
-                utc = TRUE;
+		utc = TRUE;
 		(*date_string)++;
 	} else if (!strcmp (*date_string, "GMT") ||
 		   !strcmp (*date_string, "UTC")) {
 		offset_minutes = 0;
-                utc = TRUE;
+		utc = TRUE;
 		(*date_string) += 3;
 	} else if (strchr ("ECMP", **date_string) &&
 		   ((*date_string)[1] == 'D' || (*date_string)[1] == 'S') &&
