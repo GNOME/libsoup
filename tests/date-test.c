@@ -96,6 +96,11 @@ static const OkDate ok_dates[] = {
 	{ "Sat, 06 Nov 2004 08:09:07", NULL },
 	{ "06 Nov 2004 08:09:07 GMT", NULL },
 	{ "SAT, 06 NOV 2004 08:09:07 +1000", "644048" },
+	{ "Sat, 06-Nov-2004 08:09:07 -10000", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" },
+	{ "Sat, 06-Nov-2004 08:09:07 +01:30", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" },
+	{ "Sat, 06-Nov-2004 08:09:07 +0:180", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" },
+	{ "Sat, 06-Nov-2004 08:09:07 +100:100", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" },
+	{ "Sat, 06-Nov-2004 08:09:07 Z", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" },
 
 	/* rfc850-date, and broken variants */
 	{ "Saturday, 06-Nov-04 08:09:07 GMT", NULL },
@@ -113,6 +118,8 @@ static const OkDate ok_dates[] = {
 	{ "Sat Nov 06 08:09:07 2004", NULL },
 	{ "Sat Nov 6 08:09:07 2004", NULL },
 	{ "Sat Nov  6 08:09:07 2004 GMT", NULL },
+	{ "Sat Nov 6 08:09:07 2004 NoZone", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" },
+	{ "Sat Nov 6 08:09:07 2004 UTC", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" },
 
 	/* ISO 8601 */
 	{ "2004-11-06T08:09:07Z", NULL },
@@ -214,7 +221,22 @@ static const BadDate bad_dates[] = {
 	{ "Sat Nov  6 08::07 2004", NULL },
 	{ "Sat Nov  6 08:09: 2004", NULL },
 	{ "Sat Nov  6 08:09:07", NULL },
-	{ "Sat Nov  6 08:09:07 GMT 2004", NULL }
+	{ "Sat Nov  6 08:09:07 GMT 2004", NULL },
+
+	/* range constraints added "https://gitlab.gnome.org/GNOME/libsoup/-/issues/448" */
+	{ "Sat, 00-Nov-2004 08:09:07 GMT", NULL },
+	{ "Sat, 32-Nov-2004 08:09:07 GMT", NULL },
+	{ "Sat, 06-Nov-0 08:09:07 GMT", NULL },
+	{ "Sat, 06-Nov-9999 08:09:07 GMT", NULL },
+	{ "Sat, 06-Nov-2004 0-1:09:07 GMT", NULL },
+	{ "(Sat), Nov  6 -1:09:07 2004", NULL },
+	{ "Sat, 06-Nov-2004 24:09:07 GMT", NULL },
+	{ "Sat, 06-Nov-2004 08:-1:07 GMT", NULL },
+	{ "Sat, 06-Nov-2004 08:60:07 GMT", NULL },
+	{ "Sat, 06-Nov-2004 08:09:-10 GMT", NULL },
+	{ "Sat, 06-Nov-2004 08:09:60 GMT", NULL },
+	{ "Sat, 06-Nov-71 08:09:99 UTC", NULL },
+	{ "Sat, 31-Feb-2004 08:09:07 UTC", NULL },
 };
 
 static void

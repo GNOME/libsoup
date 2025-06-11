@@ -366,6 +366,7 @@ static void
 do_cookies_parsing_int32_overflow (void)
 {
 	SoupCookie *cookie = soup_cookie_parse ("Age=1;expires=3Mar9    999:9:9+ 999999999-age=main=gne=", NULL);
+	g_test_bug ("https://gitlab.gnome.org/GNOME/libsoup/-/issues/448");
 	g_assert_nonnull (cookie);
 	g_assert_null (soup_cookie_get_expires (cookie));
 	soup_cookie_free (cookie);
