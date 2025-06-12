@@ -49,11 +49,11 @@
  * > Content-Type: text/plain
  * > Connection: close
  *
- * &lt; HTTP/1.1 201 Created
- * &lt; Soup-Debug-Timestamp: 1200171744
- * &lt; Soup-Debug: SoupMessage 1 (0x617000)
- * &lt; Date: Sun, 12 Jan 2008 21:02:24 GMT
- * &lt; Content-Length: 0
+ * < HTTP/1.1 201 Created
+ * < Soup-Debug-Timestamp: 1200171744
+ * < Soup-Debug: SoupMessage 1 (0x617000)
+ * < Date: Sun, 12 Jan 2008 21:02:24 GMT
+ * < Content-Length: 0
  * ```
  *
  * The `Soup-Debug-Timestamp` line gives the time (as a `time_t`) when the

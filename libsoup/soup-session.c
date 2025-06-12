@@ -896,6 +896,7 @@ soup_session_set_user_agent (SoupSession *session,
 			g_free (user_agent_to_set);
 			return;
 		}
+		g_free (priv->user_agent);
 		priv->user_agent = user_agent_to_set;
 	} else {
 		if (g_strcmp0 (priv->user_agent, user_agent) == 0)
