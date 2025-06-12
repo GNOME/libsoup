@@ -465,6 +465,103 @@ do_queue_order_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_user_agent_test(void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        SoupMessageHeaders *request_headers;
+        gchar dest_str[128];
+        gchar *result_str;
+
+        session = soup_test_session_new (NULL);
+        msg = soup_message_new_from_uri ("GET", base_uri);
+        request_headers = soup_message_get_request_headers (msg);
+
+        // Default value of `priv->user_agent` should be NULL
+        g_assert_null (soup_session_get_user_agent (session));
+        soup_test_session_send_message (session, msg);
+        g_assert_null (soup_message_headers_get_one (request_headers, "User-Agent"));
+
+        // Set value to "libsoup Session Test"
+        soup_session_set_user_agent (session, "libsoup Session Test");
+        g_assert_cmpstr ("libsoup Session Test", ==,
+                        soup_session_get_user_agent (session));
+        soup_test_session_send_message (session, msg);
+        g_assert_cmpstr ("libsoup Session Test", ==,
+                         soup_message_headers_get_one (request_headers, "User-Agent"));
+
+        // Set value to "Session Test " will append default
+        g_strlcpy (dest_str, "Session Test libsoup/", sizeof (dest_str));
+        result_str = g_strconcat (dest_str, PACKAGE_VERSION, NULL);
+        soup_session_set_user_agent (session, "Session Test ");
+        g_assert_cmpstr (result_str, ==, soup_session_get_user_agent (session));
+        soup_test_session_send_message (session, msg);
+        g_assert_cmpstr (result_str, ==,
+                         soup_message_headers_get_one (request_headers, "User-Agent"));
+
+        // Set value to "Session Test " while this is already the saved value
+        soup_session_set_user_agent (session, "Session Test ");
+        g_assert_cmpstr (result_str, ==, soup_session_get_user_agent (session));
+        soup_test_session_send_message (session, msg);
+        g_assert_cmpstr (result_str, ==,
+                         soup_message_headers_get_one (request_headers, "User-Agent"));
+        g_free (result_str);
+
+        // Set value to "" should result in the default string, call TWICE
+        g_strlcpy (dest_str, "libsoup/", sizeof (dest_str));
+        result_str = g_strconcat (dest_str, PACKAGE_VERSION, NULL);
+        soup_session_set_user_agent (session, "");
+        g_assert_cmpstr (result_str, ==, soup_session_get_user_agent (session));
+        soup_session_set_user_agent (session, "");       // To reach early return
+        soup_test_session_send_message (session, msg);
+        g_assert_cmpstr (result_str, ==,
+                         soup_message_headers_get_one (request_headers, "User-Agent"));
+
+        // Set value to the full string which equals the default string
+        soup_session_set_user_agent (session, result_str);
+        g_assert_cmpstr (result_str, ==, soup_session_get_user_agent (session));
+        soup_test_session_send_message (session, msg);
+        g_assert_cmpstr (result_str, ==,
+                         soup_message_headers_get_one (request_headers, "User-Agent"));
+        g_free (result_str);
+
+        // Set value to NULL after it has already been set to something else
+        soup_session_set_user_agent (session, NULL);
+        g_assert_null (soup_session_get_user_agent (session));
+        // implementation in soup_session_send_queue_item() will skip over NULL value user_agent property
+        // therefore the existing non-null User-Agent header will remain until explicitly removed
+        soup_message_headers_remove (request_headers, "User-Agent");
+        soup_test_session_send_message (session, msg);
+        g_assert_null (soup_message_headers_get_one (request_headers, "User-Agent"));
+
+        // Test soup_message_headers_append of "User-Agent" right after being NULL
+        g_test_bug("https://gitlab.gnome.org/GNOME/libsoup/-/issues/405");
+        soup_session_set_user_agent (session, NULL);
+        soup_message_headers_remove (request_headers, "User-Agent");
+        g_assert_null (soup_session_get_user_agent (session));
+        g_assert_null (soup_message_headers_get_one (request_headers, "User-Agent"));
+        soup_message_headers_append (request_headers, "User-Agent", "#405");
+        g_assert_null (soup_session_get_user_agent (session));  // property remains NULL
+        soup_test_session_send_message (session, msg);
+        g_assert_cmpstr ("#405", ==,
+                         soup_message_headers_get_one (request_headers, "User-Agent"));
+
+        // Test soup_message_headers_replace of "User-Agent" right after being NULL
+        g_test_bug("https://gitlab.gnome.org/GNOME/libsoup/-/issues/405");
+        soup_session_set_user_agent (session, NULL);
+        soup_message_headers_remove (request_headers, "User-Agent");
+        g_assert_null (soup_session_get_user_agent (session));
+        g_assert_null (soup_message_headers_get_one (request_headers, "User-Agent"));
+        soup_message_headers_replace (request_headers, "User-Agent", "#405");
+        g_assert_null (soup_session_get_user_agent (session));  // property remains NULL
+        soup_test_session_send_message (session, msg);
+        g_assert_cmpstr ("#405", ==,
+                         soup_message_headers_get_one (request_headers, "User-Agent"));
+
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -485,6 +582,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/session/property", do_property_tests);
 	g_test_add_func ("/session/features", do_features_test);
 	g_test_add_func ("/session/queue-order", do_queue_order_test);
+	g_test_add_func ("/session/user-agent", do_user_agent_test);
 
 	ret = g_test_run ();
 
