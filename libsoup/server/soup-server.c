@@ -1526,8 +1526,8 @@ soup_server_listen_socket (SoupServer *server, GSocket *socket,
  * the addresses `0.0.0.0` and `::`, rather than actually returning separate
  * URIs for each interface on the system.
  *
- * Returns: (transfer full) (element-type GUri): a list of #GUris, which you
- *   must free when you are done with it.
+ * Returns: (transfer full) (element-type GUri): a list of [struct@GLib.Uri], which you
+ *   must free with each element with [method@GLib.Uri.unref] when you are done with it.
  */
 GSList *
 soup_server_get_uris (SoupServer *server)
