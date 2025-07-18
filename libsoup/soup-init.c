@@ -10,7 +10,6 @@
 #endif
 
 #include <glib/gi18n-lib.h>
-#include <gmodule.h>
 #include "gconstructor.h"
 
 #ifdef G_OS_WIN32
@@ -18,21 +17,28 @@
 #include <windows.h>
 
 HMODULE soup_dll;
+#else
+#include <dlfcn.h>
 #endif
 
 static gboolean
 soup2_is_loaded (void)
 {
-    GModule *module = g_module_open (NULL, 0);
-    gpointer func;
-    gboolean result = FALSE;
+	gboolean result = FALSE;
 
-    if (g_module_symbol (module, "soup_uri_new", &func))
-        result = TRUE;
+	/* Skip on PE/COFF, as it doesn't have a flat symbol namespace */
+#ifndef G_OS_WIN32
+	gpointer handle;
+	gpointer func;
 
-    g_module_close (module);
-
-    return result;
+	handle = dlopen (NULL, RTLD_LAZY | RTLD_GLOBAL);
+	if (handle != NULL) {
+		func = dlsym (handle, "soup_uri_new");
+		result = (func != NULL);
+		dlclose (handle);
+	}
+#endif
+	return result;
 }
 
 static void
