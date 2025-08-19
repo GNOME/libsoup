@@ -103,6 +103,8 @@ typedef struct {
         GByteArray *data_source_buffer;
         GError *data_source_error;
         gboolean data_source_eof;
+        GCancellable *data_source_cancellable;
+        gulong data_source_cancellable_id;
 
         SoupClientMessageIOHTTP2 *io; /* Unowned */
         SoupMessageIOCompletionFn completion_cb;
@@ -1248,6 +1250,14 @@ log_request_data (SoupHTTP2MessageData *data,
         soup_logger_log_request_data (data->logger, data->msg, (const char *)buffer, len);
 }
 
+static void
+on_data_source_cancelled (GCancellable *cancellable,
+                          gpointer      data)
+{
+        GCancellable *linked_cancellable = G_CANCELLABLE (data);
+        g_cancellable_cancel (linked_cancellable);
+}
+
 static ssize_t
 on_data_source_read_callback (nghttp2_session     *session,
                               int32_t              stream_id,
@@ -1379,9 +1389,17 @@ on_data_source_read_callback (nghttp2_session     *session,
                 } else {
                         h2_debug (data->io, data, "[SEND_BODY] Reading async");
                         g_byte_array_set_size (data->data_source_buffer, length);
+                        if (!data->data_source_cancellable) {
+                                data->data_source_cancellable = g_cancellable_new ();
+                                if (data->item->cancellable) {
+                                        data->data_source_cancellable_id =
+                                                g_cancellable_connect (data->item->cancellable, G_CALLBACK (on_data_source_cancelled),
+                                                                       g_object_ref (data->data_source_cancellable),  g_object_unref);
+                                }
+                        }
                         g_input_stream_read_async (in_stream, data->data_source_buffer->data, length,
                                                    get_data_io_priority (data),
-                                                   data->item->cancellable,
+                                                   data->data_source_cancellable,
                                                    (GAsyncReadyCallback)on_data_read, data);
                         data->io->in_callback--;
                         return NGHTTP2_ERR_DEFERRED;
@@ -1464,6 +1482,15 @@ soup_http2_message_data_close (SoupHTTP2MessageData *data)
         if (data->body_istream) {
                 g_signal_handlers_disconnect_by_data (data->body_istream, data);
                 g_clear_object (&data->body_istream);
+        }
+
+        if (data->data_source_cancellable_id) {
+                g_cancellable_disconnect (data->item->cancellable, data->data_source_cancellable_id);
+                data->data_source_cancellable_id = 0;
+        }
+        if (data->data_source_cancellable) {
+                g_cancellable_cancel(data->data_source_cancellable);
+                g_clear_object(&data->data_source_cancellable);
         }
 
         if (data->msg)
