@@ -1332,6 +1332,31 @@ do_bad_header_tests (void)
 	soup_message_headers_unref (hdrs);
 }
 
+static const struct {
+	const char *description, *name, *value;
+} case_sensitive_headers[] = {
+	{ "Sec-WebSocket-Protocol is case sensitive", "Sec-WebSocket-Protocol", "foo,bar,qux" },
+};
+
+static void
+do_case_sensitive_header_tests (void)
+{
+	int i;
+
+	const char* token = "foo";
+	for (i = 0; i < G_N_ELEMENTS (case_sensitive_headers); i++) {
+		const char* value = case_sensitive_headers[i].value;
+		char* token_uppercase = g_ascii_strup (token, -1);
+
+		g_assert_true (soup_header_contains (value, token));
+		g_assert_true (soup_header_contains (value, token_uppercase));
+		g_assert_true (soup_header_contains_case_sensitive (value, token));
+		g_assert_false (soup_header_contains_case_sensitive (value, token_uppercase));
+
+		g_free (token_uppercase);
+	}
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1347,6 +1372,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/header-parsing/content-type", do_content_type_tests);
 	g_test_add_func ("/header-parsing/append-param", do_append_param_tests);
 	g_test_add_func ("/header-parsing/bad", do_bad_header_tests);
+	g_test_add_func ("/header-parsing/case-sensitive", do_case_sensitive_header_tests);
 
 	ret = g_test_run ();
 

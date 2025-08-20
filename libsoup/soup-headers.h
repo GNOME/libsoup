@@ -52,6 +52,9 @@ void        soup_header_free_list           (GSList           *list);
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_header_contains            (const char       *header,
 					     const char       *token);
+SOUP_AVAILABLE_IN_3_8
+gboolean    soup_header_contains_case_sensitive (const char       *header,
+                                                 const char       *token);
 
 SOUP_AVAILABLE_IN_ALL
 GHashTable *soup_header_parse_param_list      (const char       *header);

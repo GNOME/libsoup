@@ -649,6 +649,45 @@ soup_header_contains (const char *header, const char *token)
 	return FALSE;
 }
 
+/**
+ * soup_header_contains_case_sensitive:
+ * @header: An HTTP header suitable for parsing with
+ *   [func@header_parse_list]
+ * @token: a token
+ *
+ * Parses @header to see if it contains the token @token (matched
+ * case-sensitively).
+ *
+ * Note that this can't be used with lists that have qvalues.
+ *
+ * Returns: whether or not @header contains @token
+ *
+ * Since: 3.8
+ **/
+gboolean
+soup_header_contains_case_sensitive (const char *header, const char *token)
+{
+	const char *end;
+	guint len;
+
+	g_return_val_if_fail (header != NULL, FALSE);
+	g_return_val_if_fail (token != NULL, FALSE);
+
+	len = strlen (token);
+
+	header = skip_delims (header, ',');
+	while (*header) {
+		end = skip_item (header, ',');
+		if (end - header == len &&
+		    !strncmp (header, token, len)) {
+			return TRUE;
+		}
+		header = skip_delims (end, ',');
+	}
+
+	return FALSE;
+}
+
 static void
 decode_quoted_string_inplace (GString *quoted_gstring)
 {

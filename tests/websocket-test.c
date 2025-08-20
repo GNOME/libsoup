@@ -759,6 +759,69 @@ test_protocol_negotiate_soup (Test *test,
 	g_assert_cmpstr (soup_websocket_connection_get_protocol (test->server), ==, negotiated_protocol);
 }
 
+static void
+test_protocol_negotiate_case_sensitive_direct (Test *test,
+				gconstpointer data)
+{
+	SoupMessage *msg;
+	SoupServerMessage *server_msg;
+	SoupMessageHeaders *request_headers;
+	SoupMessageHeaders *response_headers;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
+	gboolean ok;
+	const char *protocol;
+	GError *error = NULL;
+
+	msg = soup_message_new ("GET", "http://127.0.0.1");
+	soup_websocket_client_prepare_handshake (msg, NULL,
+						 (char **) negotiate_client_protocols,
+						 NULL);
+
+	server_msg = g_object_new (SOUP_TYPE_SERVER_MESSAGE, NULL);
+	soup_server_message_set_method (server_msg, soup_message_get_method (msg));
+	soup_server_message_set_uri (server_msg, soup_message_get_uri (msg));
+	request_headers = soup_server_message_get_request_headers (server_msg);
+	soup_message_headers_iter_init (&iter, soup_message_get_request_headers (msg));
+	while (soup_message_headers_iter_next (&iter, &name, &value))
+		soup_message_headers_append (request_headers, name, value);
+	ok = soup_websocket_server_check_handshake (server_msg, NULL,
+						    (char **) negotiate_server_protocols,
+						    NULL,
+						    &error);
+	g_assert_no_error (error);
+	g_clear_error (&error);
+	g_assert_true (ok);
+
+	ok = soup_websocket_server_process_handshake (server_msg, NULL,
+						      (char **) negotiate_server_protocols,
+						      NULL, NULL);
+	g_assert_true (ok);
+
+        soup_message_set_status (msg, soup_server_message_get_status (server_msg), NULL);
+	response_headers = soup_server_message_get_response_headers (server_msg);
+	soup_message_headers_iter_init (&iter, response_headers);
+	while (soup_message_headers_iter_next (&iter, &name, &value))
+		soup_message_headers_append (soup_message_get_response_headers (msg), name, value);
+	protocol = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Sec-WebSocket-Protocol");
+	g_assert_cmpstr (protocol, ==, negotiated_protocol);
+
+	// Uppercase negotiated protocol in response headers.
+	gchar* protocol_uppercase = g_ascii_strup (protocol, -1);
+	soup_message_headers_replace (soup_message_get_response_headers (msg), "Sec-WebSocket-Protocol", protocol_uppercase);
+	// Client verification must fail since server must echo the requested protocol, according to WebSocket spec.
+	ok = soup_websocket_client_verify_handshake (msg, NULL, NULL, &error);
+	g_assert_false (ok);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE);
+	g_clear_error (&error);
+
+	g_free (protocol_uppercase);
+	g_object_unref (msg);
+	g_object_unref (server_msg);
+
+	teardown_direct_connection (test, data);
+}
+
 static const char *mismatch_client_protocols[] = { "ddd", NULL };
 static const char *mismatch_server_protocols[] = { "aaa", "bbb", "ccc", NULL };
 
@@ -2259,6 +2322,10 @@ main (int argc,
 	g_test_add ("/websocket/soup/protocol-negotiate", Test, NULL, NULL,
 		    test_protocol_negotiate_soup,
 		    teardown_soup_connection);
+
+	g_test_add ("/websocket/direct/protocol-negotiate-case-sensitive", Test, NULL, NULL,
+		    test_protocol_negotiate_case_sensitive_direct,
+		    NULL);
 
 	g_test_add ("/websocket/direct/protocol-mismatch", Test, NULL, NULL,
 		    test_protocol_mismatch_direct,

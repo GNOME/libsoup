@@ -843,7 +843,7 @@ soup_websocket_client_verify_handshake (SoupMessage *msg,
 	if (protocol) {
 		request_protocols = soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL);
 		if (!request_protocols ||
-		    !soup_header_contains (request_protocols, protocol)) {
+		    !soup_header_contains_case_sensitive (request_protocols, protocol)) {
 			g_set_error_literal (error,
 					     SOUP_WEBSOCKET_ERROR,
 					     SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
