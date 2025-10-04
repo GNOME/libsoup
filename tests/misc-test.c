@@ -8,6 +8,8 @@
 #include "soup-session-private.h"
 #include "soup-message-headers-private.h"
 
+#include <stdint.h>
+
 SoupServer *server;
 GUri *base_uri;
 
@@ -87,6 +89,13 @@ server_callback (SoupServer        *server,
 		soup_server_message_set_response (msg, "text/plain",
                                                   SOUP_MEMORY_STATIC, "foo-index", 9);
 		return;
+	} else if (!strcmp (path, "/large-body")) {
+	        gsize size = 64 * 1024 + 32;
+	        const char *body = g_malloc (size);
+	        for (gsize i = 0; i < size; i+= 16) {
+	                memcpy ((void *)(body + i), (void*) "0123456789ABCDEF", 16); // NOLINT(*-not-null-terminated-result)
+	        }
+	        soup_server_message_set_response (msg, "text/plain", SOUP_MEMORY_TAKE, body, size);
 	} else {
 		soup_server_message_set_response (msg, "text/plain",
 						  SOUP_MEMORY_STATIC, "index", 5);
@@ -1103,6 +1112,53 @@ do_invalid_utf8_headers_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static void
+do_io_pollable_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GPollableInputStream *stream;
+        GUri *uri;
+        guint8 buffer[4096];
+        goffset length;
+        gssize read_total = 0;
+        gssize nread;
+        GError *error = NULL;
+
+        session = soup_test_session_new (NULL);
+        uri = g_uri_parse_relative (base_uri, "/large-body", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        stream = G_POLLABLE_INPUT_STREAM (soup_session_send (session, msg, NULL, NULL));
+        length = soup_message_headers_get_content_length (soup_message_get_response_headers (msg));
+
+        g_assert_cmpuint (length, ==, 64 * 1024 + 32);
+        g_assert_true (g_pollable_input_stream_can_poll (stream));
+
+        while (read_total < length) {
+                if (g_pollable_input_stream_is_readable (stream)) {
+                        nread = g_pollable_input_stream_read_nonblocking (stream, buffer, 4096, NULL, &error);
+                        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+                                g_clear_error (&error);
+                                g_usleep (10000);
+                                continue;
+                        }
+                        g_assert_no_error (error);
+                        g_assert_cmpint (nread, >, 0);
+                        read_total += nread;
+                } else {
+                        g_usleep (10000);
+                }
+        }
+
+        g_assert_true (g_pollable_input_stream_is_readable (stream));
+        g_assert_cmpuint (g_pollable_input_stream_read_nonblocking (stream, buffer, 4096, NULL, NULL), ==, 0);
+
+        g_object_unref (stream);
+        g_object_unref (msg);
+        g_uri_unref (uri);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1141,6 +1197,7 @@ main (int argc, char **argv)
         g_test_add_func ("/misc/new-request-on-conflict", do_new_request_on_conflict_test);
         g_test_add_func ("/misc/response/informational/content-length", do_response_informational_content_length_test);
         g_test_add_func ("/misc/invalid-utf8-headers", do_invalid_utf8_headers_test);
+        g_test_add_func ("/misc/io-pollable", do_io_pollable_test);
 
 	ret = g_test_run ();
 
