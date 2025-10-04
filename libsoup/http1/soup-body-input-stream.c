@@ -290,8 +290,13 @@ read_internal (GInputStream  *stream,
 
 		nread = soup_body_input_stream_read_raw (bistream, buffer, count,
 							 blocking, cancellable, error);
-		if (priv->read_length != -1 && nread > 0)
-			priv->read_length -= nread;
+		if (priv->read_length != -1 && nread > 0) {
+		        priv->read_length -= nread;
+
+		        if (priv->encoding == SOUP_ENCODING_CONTENT_LENGTH && priv->read_length == 0) {
+		                priv->eof = TRUE;
+		        }
+		}
 
 		if (priv->encoding == SOUP_ENCODING_CONTENT_LENGTH)
 			priv->pos += nread;
