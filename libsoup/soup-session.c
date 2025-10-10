@@ -2894,8 +2894,10 @@ run_until_read_done (SoupMessage          *msg,
 		if (soup_message_io_in_progress (msg))
 			soup_message_io_finished (msg);
 		item->paused = FALSE;
-		item->state = SOUP_MESSAGE_FINISHING;
-		soup_session_process_queue_item (item->session, item, FALSE);
+		if (item->state != SOUP_MESSAGE_FINISHED) {
+			item->state = SOUP_MESSAGE_FINISHING;
+			soup_session_process_queue_item (item->session, item, FALSE);
+		}
 	}
 	async_send_request_return_result (item, NULL, error);
         soup_message_queue_item_unref (item);
