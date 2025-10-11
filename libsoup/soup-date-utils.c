@@ -95,6 +95,9 @@ soup_date_time_to_string (GDateTime      *date,
                 char *date_format;
                 char *formatted_date;
 
+                if (!utcdate)
+                        return NULL;
+
                 // We insert days/months ourselves to avoid locale specific formatting
                 if (format == SOUP_DATE_HTTP) {
 			/* "Sun, 06 Nov 1994 08:49:37 GMT" */
