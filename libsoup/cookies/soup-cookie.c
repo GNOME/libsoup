@@ -758,12 +758,13 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 
 	if (cookie->expires) {
 		char *timestamp;
-
-		g_string_append (header, "; expires=");
 		timestamp = soup_date_time_to_string (cookie->expires,
 						      SOUP_DATE_COOKIE);
-		g_string_append (header, timestamp);
-		g_free (timestamp);
+                if (timestamp) {
+                        g_string_append (header, "; expires=");
+                        g_string_append (header, timestamp);
+                        g_free (timestamp);
+                }
 	}
 	if (cookie->path) {
 		g_string_append (header, "; path=");
