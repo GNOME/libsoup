@@ -852,6 +852,11 @@ got_headers (SoupServer        *server,
 
 	date = g_date_time_new_now_utc ();
 	date_string = soup_date_time_to_string (date, SOUP_DATE_HTTP);
+	if (!date_string) {
+		g_date_time_unref (date);
+		return;
+	}
+
 	soup_message_headers_replace_common (headers, SOUP_HEADER_DATE, date_string);
 	g_free (date_string);
 	g_date_time_unref (date);
