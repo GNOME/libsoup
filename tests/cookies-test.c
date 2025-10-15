@@ -471,6 +471,16 @@ do_cookies_parsing_int32_overflow (void)
 }
 
 static void
+do_cookies_parsing_invalid_timezone (void)
+{
+	SoupCookie *cookie = soup_cookie_parse ("NAME=VALUE;expires=Mon, 31 Dec 9999 23:59:59 -1000", NULL);
+	g_test_bug ("https://gitlab.gnome.org/GNOME/libsoup/-/issues/459");
+	g_assert_nonnull (cookie);
+	g_assert_null (soup_cookie_get_expires (cookie));
+	soup_cookie_free (cookie);
+}
+
+static void
 do_cookies_equal_nullpath (void)
 {
 	SoupCookie *cookie1, *cookie2;
@@ -729,6 +739,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/parsing/max-age-int32-overflow", do_cookies_parsing_max_age_int32_overflow);
 	g_test_add_func ("/cookies/parsing/max-age-long-overflow", do_cookies_parsing_max_age_long_overflow);
 	g_test_add_func ("/cookies/parsing/int32-overflow", do_cookies_parsing_int32_overflow);
+	g_test_add_func ("/cookies/parsing/invalid-timezone", do_cookies_parsing_invalid_timezone);
 	g_test_add_func ("/cookies/parsing/equal-nullpath", do_cookies_equal_nullpath);
 	g_test_add_func ("/cookies/parsing/control-characters", do_cookies_parsing_control_characters);
         g_test_add_func ("/cookies/parsing/name-value-max-size", do_cookies_parsing_name_value_max_size);
