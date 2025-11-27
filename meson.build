@@ -148,7 +148,7 @@ platform_deps = []
 is_static_library = get_option('default_library') == 'static'
 if not is_static_library
   if host_machine.system() == 'windows'
-    platform_deps = [cc.find_library('ws2_32')]
+    platform_deps += [cc.find_library('ws2_32')]
     cdata.set('DLL_EXPORT', true)
     cdata.set('_SOUP_EXTERN', '__declspec(dllexport) extern')
   else
