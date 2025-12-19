@@ -1229,7 +1229,7 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 			if (*end) {
 				cur.end = g_ascii_strtoull (end, &end, 10);
 				if (cur.end < cur.start) {
-					status = SOUP_STATUS_OK;
+					status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
 					break;
 				}
 			} else
