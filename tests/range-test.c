@@ -334,6 +334,13 @@ do_range_test (SoupSession *session, const char *uri,
 				    1, 10,
 				    full_response_length + 1, full_response_length + 100,
 				    20, 30); 
+
+	debug_printf (1, "Requesting (invalid end) %d-%d\n",
+		      1,
+		      (int) full_response_length + 1000);
+	request_single_range (session, uri,
+			      1, full_response_length + 1000,
+			      FALSE);
 }
 
 #ifdef HAVE_APACHE
