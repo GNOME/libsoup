@@ -341,6 +341,13 @@ do_range_test (SoupSession *session, const char *uri,
 	request_single_range (session, uri,
 			      1, full_response_length + 1000,
 			      FALSE);
+
+	debug_printf (1, "Requesting (end before start) %d-%d\n",
+		      10,
+		      1);
+	request_single_range (session, uri,
+			      10, 1,
+			      FALSE);
 }
 
 #ifdef HAVE_APACHE
