@@ -384,6 +384,10 @@ do_range_test (SoupSession *session, const char *uri,
 	debug_printf (1, "Requesting (malformed suffix length) -0\n");
 	request_single_range_by_string (session, uri,
 					"bytes=-0");
+
+	debug_printf (1, "Requesting (extra content after valid header value) 0-10\n");
+	request_single_range_by_string (session, uri,
+					"bytes=0-10 but with weird trailing content");
 }
 
 #ifdef HAVE_APACHE
