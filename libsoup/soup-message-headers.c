@@ -1240,7 +1240,7 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 				cur.end = total_length - 1;
 		}
 		if (*end) {
-			status = SOUP_STATUS_OK;
+			status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
 			break;
 		} else if (check_satisfiable &&
 			   (cur.start >= total_length ||
