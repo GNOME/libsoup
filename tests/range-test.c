@@ -111,6 +111,38 @@ request_single_range (SoupSession *session, const char *uri,
 	do_single_range (session, msg, start, end, succeed);
 }
 
+/* This always asserts failure; it’s intended to be used for passing invalid
+ * Range header formats which can’t be built by calling
+ * soup_message_headers_set_range(). */
+static void
+request_single_range_by_string (SoupSession *session, const char *uri,
+			        const char *range)
+{
+	SoupMessage *msg;
+	GBytes *body;
+
+	msg = soup_message_new ("GET", uri);
+	soup_message_headers_replace (soup_message_get_request_headers (msg), "Range", range);
+
+	debug_printf (1, "    Range: %s\n",
+		      soup_message_headers_get_one (soup_message_get_request_headers (msg), "Range"));
+
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+	if (soup_message_get_status (msg) != SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
+		const char *content_range;
+
+		content_range = soup_message_headers_get_one (soup_message_get_response_headers (msg),
+							      "Content-Range");
+		if (content_range)
+			debug_printf (1, "    Content-Range: %s\n", content_range);
+	}
+
+	g_clear_pointer (&body, g_bytes_unref);
+	g_object_unref (msg);
+}
+
 static void
 do_multi_range (SoupSession *session, SoupMessage *msg,
 		int expected_return_ranges)
@@ -348,6 +380,10 @@ do_range_test (SoupSession *session, const char *uri,
 	request_single_range (session, uri,
 			      10, 1,
 			      FALSE);
+
+	debug_printf (1, "Requesting (malformed suffix length) -0\n");
+	request_single_range_by_string (session, uri,
+					"bytes=-0");
 }
 
 #ifdef HAVE_APACHE
