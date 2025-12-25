@@ -1181,10 +1181,16 @@ sort_ranges (gconstpointer a, gconstpointer b)
 }
 
 /* like soup_message_headers_get_ranges(), except it returns:
- *   SOUP_STATUS_OK if there is no Range or it should be ignored.
- *   SOUP_STATUS_PARTIAL_CONTENT if there is at least one satisfiable range.
- *   SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE if @check_satisfiable
- *     is %TRUE and the request is not satisfiable given @total_length.
+ *  - SOUP_STATUS_OK if there is no Range or it should be ignored due to being
+ *    entirely invalid.
+ *  - SOUP_STATUS_PARTIAL_CONTENT if there is at least one satisfiable range.
+ *  - SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE if @check_satisfiable
+ *     is %TRUE, the Range is valid, but no part of the request is satisfiable
+ *     given @total_length.
+ *
+ * @ranges and @length are only set if SOUP_STATUS_PARTIAL_CONTENT is returned.
+ *
+ * See https://httpwg.org/specs/rfc9110.html#field.range
  */
 guint
 soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
@@ -1198,22 +1204,28 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 	GArray *array;
 	char *spec, *end;
 	guint status = SOUP_STATUS_OK;
+	gboolean is_all_valid = TRUE;
 
 	if (!range || strncmp (range, "bytes", 5) != 0)
-		return status;
+		return SOUP_STATUS_OK;  /* invalid header or unknown range unit */
 
 	range += 5;
 	while (g_ascii_isspace (*range))
 		range++;
 	if (*range++ != '=')
-		return status;
+		return SOUP_STATUS_OK;  /* invalid header */
 	while (g_ascii_isspace (*range))
 		range++;
 
 	range_list = soup_header_parse_list (range);
 	if (!range_list)
-		return status;
+		return SOUP_STATUS_OK;  /* invalid list */
 
+	/* Loop through the ranges and modify the status accordingly. Default to
+	 * status 200 (OK, ignoring the ranges). Switch to status 206 (Partial
+	 * Content) if there is at least one partially valid range. Switch to
+	 * status 416 (Range Not Satisfiable) if there are no partially valid
+	 * ranges at all. */
 	array = g_array_new (FALSE, FALSE, sizeof (SoupRange));
 	for (r = range_list; r; r = r->next) {
 		SoupRange cur;
@@ -1222,40 +1234,48 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 		if (*spec == '-') {
 			cur.start = g_ascii_strtoll (spec, &end, 10) + total_length;
 			cur.end = total_length - 1;
-			if (cur.end < cur.start) {
-				status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
-				break;
-			}
 		} else {
 			cur.start = g_ascii_strtoull (spec, &end, 10);
 			if (*end == '-')
 				end++;
-			if (*end) {
+			if (*end)
 				cur.end = g_ascii_strtoull (end, &end, 10);
-				if (cur.end < cur.start) {
-					status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
-					break;
-				}
-			} else
+			else
 				cur.end = total_length - 1;
 		}
+
 		if (*end) {
-			status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
-			break;
-		} else if (check_satisfiable &&
-			   (cur.start >= total_length ||
-			    cur.end >= total_length)) {
-			if (status == SOUP_STATUS_OK)
-				status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
+			/* Junk after the range */
+			is_all_valid = FALSE;
 			continue;
 		}
 
+		if (cur.end < cur.start) {
+			is_all_valid = FALSE;
+			continue;
+		}
+
+		g_assert (cur.start >= 0);
+		if (cur.end >= total_length)
+			cur.end = total_length - 1;
+
+		if (cur.start >= total_length) {
+			/* Range is valid, but unsatisfiable */
+			continue;
+		}
+
+		/* We have at least one (at least partially) satisfiable range */
 		g_array_append_val (array, cur);
 		status = SOUP_STATUS_PARTIAL_CONTENT;
 	}
 	soup_header_free_list (range_list);
 
 	if (status != SOUP_STATUS_PARTIAL_CONTENT) {
+		g_assert (status == SOUP_STATUS_OK);
+
+		if (is_all_valid && check_satisfiable)
+			status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
+
 		g_array_free (array, TRUE);
 		return status;
 	}

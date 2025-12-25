@@ -398,26 +398,26 @@ do_range_test (SoupSession *session, const char *uri,
 		      (int) full_response_length + 1000);
 	request_single_range (session, uri,
 			      1, full_response_length + 1000,
-			      SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE,
-			      0, 0);
+			      SOUP_STATUS_PARTIAL_CONTENT,
+			      1, full_response_length - 1);
 
 	debug_printf (1, "Requesting (end before start) %d-%d\n",
 		      10,
 		      1);
 	request_single_range (session, uri,
 			      10, 1,
-			      SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE,
-			      0, 0);
+			      SOUP_STATUS_OK,
+			      1, full_response_length);
 
 	debug_printf (1, "Requesting (malformed suffix length) -0\n");
 	request_single_range_by_string (session, uri,
 					"bytes=-0",
-					SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+					SOUP_STATUS_OK);
 
 	debug_printf (1, "Requesting (extra content after valid header value) 0-10\n");
 	request_single_range_by_string (session, uri,
 					"bytes=0-10 but with weird trailing content",
-					SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+					SOUP_STATUS_OK);
 }
 
 #ifdef HAVE_APACHE
