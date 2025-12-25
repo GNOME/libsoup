@@ -418,6 +418,31 @@ do_range_test (SoupSession *session, const char *uri,
 	request_single_range_by_string (session, uri,
 					"bytes=0-10 but with weird trailing content",
 					SOUP_STATUS_OK);
+
+	debug_printf (1, "Requesting (invalid range dash) 0a10\n");
+	request_single_range_by_string (session, uri,
+					"bytes=0a10",
+					SOUP_STATUS_OK);
+
+	debug_printf (1, "Requesting (invalid range unit) 0-10\n");
+	request_single_range_by_string (session, uri,
+					"horses=0-10",
+					SOUP_STATUS_OK);
+
+	debug_printf (1, "Requesting (missing equals) 0-10\n");
+	request_single_range_by_string (session, uri,
+					"bytes 0-10",
+					SOUP_STATUS_OK);
+
+	debug_printf (1, "Requesting (end before start but with whitespace) 10-1\n");
+	request_single_range_by_string (session, uri,
+					"bytes \t = \t 10-1",
+					SOUP_STATUS_OK);
+
+	debug_printf (1, "Requesting (delimiters but no ranges)\n");
+	request_single_range_by_string (session, uri,
+					"bytes=, ,,\t, ",
+					SOUP_STATUS_OK);
 }
 
 #ifdef HAVE_APACHE
