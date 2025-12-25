@@ -63,7 +63,8 @@ check_part (SoupMessageHeaders *headers,
 
 static void
 do_single_range (SoupSession *session, SoupMessage *msg,
-		 int start, int end, gboolean succeed)
+		 int start, int end, SoupStatus expected_status,
+		 int expected_start, int expected_end)
 {
 	const char *content_type;
 	GBytes *body;
@@ -73,7 +74,7 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 
 	body = soup_test_session_async_send (session, msg, NULL, NULL);
 
-	if (!succeed) {
+	if (expected_status == SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
 		soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
 		if (soup_message_get_status (msg) != SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
 			const char *content_range;
@@ -83,40 +84,50 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 			if (content_range)
 				debug_printf (1, "    Content-Range: %s\n", content_range);
 		}
+	} else if (expected_status == SOUP_STATUS_OK) {
+		soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
-		g_clear_pointer (&body, g_bytes_unref);
-		g_object_unref (msg);
-		return;
+		content_type = soup_message_headers_get_content_type (
+			soup_message_get_response_headers (msg), NULL);
+		g_assert_cmpstr (content_type, !=, "multipart/byteranges");
+
+		g_assert_false (soup_message_headers_get_content_range (
+			soup_message_get_response_headers (msg), NULL, NULL, NULL));
+		g_assert_cmpint (soup_message_headers_get_content_length (
+			soup_message_get_response_headers (msg)), ==, g_bytes_get_size (full_response));
+	} else {
+		soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
+
+		content_type = soup_message_headers_get_content_type (
+			soup_message_get_response_headers (msg), NULL);
+		g_assert_cmpstr (content_type, !=, "multipart/byteranges");
+
+		check_part (soup_message_get_response_headers (msg), body, TRUE, expected_start, expected_end);
 	}
 
-	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
-
-	content_type = soup_message_headers_get_content_type (
-		soup_message_get_response_headers (msg), NULL);
-	g_assert_cmpstr (content_type, !=, "multipart/byteranges");
-
-	check_part (soup_message_get_response_headers (msg), body, TRUE, start, end);
-	g_bytes_unref (body);
+	g_clear_pointer (&body, g_bytes_unref);
 	g_object_unref (msg);
 }
 
 static void
 request_single_range (SoupSession *session, const char *uri,
-		      int start, int end, gboolean succeed)
+		      int start, int end, SoupStatus expected_status,
+		      int expected_start, int expected_end)
 {
 	SoupMessage *msg;
 
 	msg = soup_message_new ("GET", uri);
 	soup_message_headers_set_range (soup_message_get_request_headers (msg), start, end);
-	do_single_range (session, msg, start, end, succeed);
+	do_single_range (session, msg, start, end, expected_status, expected_start, expected_end);
 }
 
-/* This always asserts failure; it’s intended to be used for passing invalid
+/* This always asserts failure (either 406 or 200 with no Content-Range); it’s
+ * intended to be used for passing invalid
  * Range header formats which can’t be built by calling
  * soup_message_headers_set_range(). */
 static void
 request_single_range_by_string (SoupSession *session, const char *uri,
-			        const char *range)
+			        const char *range, SoupStatus expected_status)
 {
 	SoupMessage *msg;
 	GBytes *body;
@@ -129,14 +140,21 @@ request_single_range_by_string (SoupSession *session, const char *uri,
 
 	body = soup_test_session_async_send (session, msg, NULL, NULL);
 
-	soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
-	if (soup_message_get_status (msg) != SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
-		const char *content_range;
+	if (expected_status == SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
+		soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+	} else {
+		const char *content_type;
 
-		content_range = soup_message_headers_get_one (soup_message_get_response_headers (msg),
-							      "Content-Range");
-		if (content_range)
-			debug_printf (1, "    Content-Range: %s\n", content_range);
+		soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+		content_type = soup_message_headers_get_content_type (
+			soup_message_get_response_headers (msg), NULL);
+		g_assert_cmpstr (content_type, !=, "multipart/byteranges");
+
+		g_assert_false (soup_message_headers_get_content_range (
+			soup_message_get_response_headers (msg), NULL, NULL, NULL));
+		g_assert_cmpint (soup_message_headers_get_content_length (
+			soup_message_get_response_headers (msg)), ==, g_bytes_get_size (full_response));
 	}
 
 	g_clear_pointer (&body, g_bytes_unref);
@@ -207,7 +225,9 @@ request_double_range (SoupSession *session, const char *uri,
 		do_single_range (session, msg,
 				 MIN (first_start, second_start),
 				 MAX (first_end, second_end),
-				 TRUE);
+				 SOUP_STATUS_PARTIAL_CONTENT,
+				 MIN (first_start, second_start),
+				 MAX (first_end, second_end));
 	} else
 		do_multi_range (session, msg, expected_return_ranges);
 }
@@ -235,7 +255,9 @@ request_triple_range (SoupSession *session, const char *uri,
 		do_single_range (session, msg,
 				 MIN (first_start, MIN (second_start, third_start)),
 				 MAX (first_end, MAX (second_end, third_end)),
-				 TRUE);
+				 SOUP_STATUS_PARTIAL_CONTENT,
+				 MIN (first_start, MIN (second_start, third_start)),
+				 MAX (first_end, MAX (second_end, third_end)));
 	} else
 		do_multi_range (session, msg, expected_return_ranges);
 }
@@ -291,7 +313,8 @@ do_range_test (SoupSession *session, const char *uri,
 	debug_printf (1, "Requesting %d-%d\n", 0 * twelfths, 1 * twelfths);
 	request_single_range (session, uri,
 			      0 * twelfths, 1 * twelfths,
-			      TRUE);
+			      SOUP_STATUS_PARTIAL_CONTENT,
+			      0 * twelfths, 1 * twelfths);
 
 	/* B: 11, end-relative request. These two are mostly redundant
 	 * in terms of data coverage, but they may still catch
@@ -300,11 +323,13 @@ do_range_test (SoupSession *session, const char *uri,
 	debug_printf (1, "Requesting %d-\n", 11 * twelfths);
 	request_single_range (session, uri,
 			      11 * twelfths, -1,
-			      TRUE);
+			      SOUP_STATUS_PARTIAL_CONTENT,
+			      11 * twelfths, -1);
 	debug_printf (1, "Requesting -%d\n", 1 * twelfths);
 	request_single_range (session, uri,
 			      -1 * twelfths, -1,
-			      TRUE);
+			      SOUP_STATUS_PARTIAL_CONTENT,
+			      -1 * twelfths, -1);
 
 	/* C: 2 and 5 */
 	debug_printf (1, "Requesting %d-%d,%d-%d\n",
@@ -357,7 +382,8 @@ do_range_test (SoupSession *session, const char *uri,
 		      (int) full_response_length + 100);
 	request_single_range (session, uri,
 			      full_response_length + 1, full_response_length + 100,
-			      FALSE);
+			      SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE,
+			      0, 0);
 
 	debug_printf (1, "Requesting (semi-invalid) 1-10,%d-%d,20-30\n",
 		      (int) full_response_length + 1,
@@ -372,22 +398,26 @@ do_range_test (SoupSession *session, const char *uri,
 		      (int) full_response_length + 1000);
 	request_single_range (session, uri,
 			      1, full_response_length + 1000,
-			      FALSE);
+			      SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE,
+			      0, 0);
 
 	debug_printf (1, "Requesting (end before start) %d-%d\n",
 		      10,
 		      1);
 	request_single_range (session, uri,
 			      10, 1,
-			      FALSE);
+			      SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE,
+			      0, 0);
 
 	debug_printf (1, "Requesting (malformed suffix length) -0\n");
 	request_single_range_by_string (session, uri,
-					"bytes=-0");
+					"bytes=-0",
+					SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
 
 	debug_printf (1, "Requesting (extra content after valid header value) 0-10\n");
 	request_single_range_by_string (session, uri,
-					"bytes=0-10 but with weird trailing content");
+					"bytes=0-10 but with weird trailing content",
+					SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
 }
 
 #ifdef HAVE_APACHE
