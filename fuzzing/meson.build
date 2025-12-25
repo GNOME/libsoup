@@ -6,6 +6,8 @@ fuzz_targets = [
   'fuzz_content_sniffer',
   'fuzz_date_time',
   'fuzz_header_parsing',
+  'fuzz_headers_parse_request',
+  'fuzz_headers_parse_response',
 ]
 
 fuzzing_args = '-fsanitize=fuzzer'
