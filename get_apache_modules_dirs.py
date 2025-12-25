@@ -117,6 +117,12 @@ def main():
 
     # These two are mandatory for having properly configured Apache
     if apache_modules_dir == '' or apache_ssl_module_dir == '':
+        print(
+            "Either basic modules dir ({}) or mod_ssl.so dir ({}) was not found".format(
+                apache_modules_dir, apache_ssl_module_dir
+            ),
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     print(apache_modules_dir + ":" +
