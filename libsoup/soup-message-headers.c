@@ -273,12 +273,16 @@ soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs)
 	soup_header_free_list (tokens);
 }
 
-void
+gboolean
 soup_message_headers_append_common (SoupMessageHeaders *hdrs,
                                     SoupHeaderName      name,
                                     const char         *value)
 {
         SoupCommonHeader header;
+        if (name == SOUP_HEADER_HOST && soup_message_headers_get_one (hdrs, "Host")) {
+                g_warning ("soup_message_headers_append_common: Rejecting duplicate Host header");
+                return FALSE;
+        }
 
         if (!hdrs->common_headers)
                 hdrs->common_headers = g_array_sized_new (FALSE, FALSE, sizeof (SoupCommonHeader), 6);
@@ -290,6 +294,53 @@ soup_message_headers_append_common (SoupMessageHeaders *hdrs,
                 g_hash_table_remove (hdrs->common_concat, GUINT_TO_POINTER (header.name));
 
         soup_message_headers_set (hdrs, name, value);
+        return TRUE;
+}
+
+static gboolean
+soup_message_headers_append_internal (SoupMessageHeaders *hdrs,
+			              const char *name, const char *value)
+{
+	SoupUncommonHeader header;
+        SoupHeaderName header_name;
+
+	g_return_val_if_fail (hdrs, FALSE);
+	g_return_val_if_fail (name != NULL, FALSE);
+	g_return_val_if_fail (value != NULL, FALSE);
+
+	/* Setting a syntactically invalid header name or value is
+	 * considered to be a programming error. However, it can also
+	 * be a security hole, so we want to fail here even if
+	 * compiled with G_DISABLE_CHECKS.
+	 */
+#ifndef G_DISABLE_CHECKS
+	g_return_val_if_fail (*name && strpbrk (name, " \t\r\n:") == NULL, FALSE);
+	g_return_val_if_fail (strpbrk (value, "\r\n") == NULL, FALSE);
+#else
+	if (*name && strpbrk (name, " \t\r\n:")) {
+		g_warning ("soup_message_headers_append: Rejecting bad name '%s'", name);
+		return FALSE;
+	}
+	if (strpbrk (value, "\r\n")) {
+		g_warning ("soup_message_headers_append: Rejecting bad value '%s'", value);
+		return FALSE;
+	}
+#endif
+
+        header_name = soup_header_name_from_string (name);
+        if (header_name != SOUP_HEADER_UNKNOWN) {
+                return soup_message_headers_append_common (hdrs, header_name, value);
+        }
+
+        if (!hdrs->uncommon_headers)
+                hdrs->uncommon_headers = g_array_sized_new (FALSE, FALSE, sizeof (SoupUncommonHeader), 6);
+
+	header.name = g_strdup (name);
+	header.value = g_strdup (value);
+	g_array_append_val (hdrs->uncommon_headers, header);
+	if (hdrs->uncommon_concat)
+		g_hash_table_remove (hdrs->uncommon_concat, header.name);
+        return TRUE;
 }
 
 /**
@@ -311,61 +362,26 @@ void
 soup_message_headers_append (SoupMessageHeaders *hdrs,
 			     const char *name, const char *value)
 {
-	SoupUncommonHeader header;
-        SoupHeaderName header_name;
-
-	g_return_if_fail (hdrs);
-	g_return_if_fail (name != NULL);
-	g_return_if_fail (value != NULL);
-
-	/* Setting a syntactically invalid header name or value is
-	 * considered to be a programming error. However, it can also
-	 * be a security hole, so we want to fail here even if
-	 * compiled with G_DISABLE_CHECKS.
-	 */
-#ifndef G_DISABLE_CHECKS
-	g_return_if_fail (*name && strpbrk (name, " \t\r\n:") == NULL);
-	g_return_if_fail (strpbrk (value, "\r\n") == NULL);
-#else
-	if (*name && strpbrk (name, " \t\r\n:")) {
-		g_warning ("soup_message_headers_append: Ignoring bad name '%s'", name);
-		return;
-	}
-	if (strpbrk (value, "\r\n")) {
-		g_warning ("soup_message_headers_append: Ignoring bad value '%s'", value);
-		return;
-	}
-#endif
-
-        header_name = soup_header_name_from_string (name);
-        if (header_name != SOUP_HEADER_UNKNOWN) {
-                soup_message_headers_append_common (hdrs, header_name, value);
-                return;
-        }
-
-        if (!hdrs->uncommon_headers)
-                hdrs->uncommon_headers = g_array_sized_new (FALSE, FALSE, sizeof (SoupUncommonHeader), 6);
-
-	header.name = g_strdup (name);
-	header.value = g_strdup (value);
-	g_array_append_val (hdrs->uncommon_headers, header);
-	if (hdrs->uncommon_concat)
-		g_hash_table_remove (hdrs->uncommon_concat, header.name);
+	soup_message_headers_append_internal (hdrs, name, value);
 }
 
 /*
- * Appends a header value ensuring that it is valid UTF8.
+ * Appends a header value ensuring that it is valid UTF-8, and also checking the
+ * return value of soup_message_headers_append_internal() to report whether the
+ * headers are invalid for various other reasons.
  */
-void
+gboolean
 soup_message_headers_append_untrusted_data (SoupMessageHeaders *hdrs,
                                             const char         *name,
                                             const char         *value)
 {
         char *safe_value = g_utf8_make_valid (value, -1);
         char *safe_name = g_utf8_make_valid (name, -1);
-        soup_message_headers_append (hdrs, safe_name, safe_value);
+        gboolean result = soup_message_headers_append_internal (hdrs, safe_name, safe_value);
+
         g_free (safe_value);
         g_free (safe_name);
+        return result;
 }
 
 void
