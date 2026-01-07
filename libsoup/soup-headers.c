@@ -138,6 +138,9 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 		for (p = strchr (value, '\r'); p; p = strchr (p, '\r'))
 			*p = ' ';
 
+		if (g_ascii_strcasecmp (name, "Host") == 0 && soup_message_headers_get_one (dest, "Host"))
+			goto done;
+
 		soup_message_headers_append (dest, name, value);
         }
 	success = TRUE;
