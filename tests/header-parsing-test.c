@@ -468,6 +468,24 @@ static struct RequestTest {
 	  SOUP_STATUS_BAD_REQUEST,
            NULL, NULL, -1,
 	  { { NULL } }
+	},
+
+	{ "Duplicate Host headers",
+	  "https://gitlab.gnome.org/GNOME/libsoup/-/issues/472",
+	  "GET / HTTP/1.1\r\nHost: example.com\r\nHost: example.org\r\n",
+	  -1,
+	  SOUP_STATUS_BAD_REQUEST,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	{ "Duplicate Host headers (case insensitive)",
+	  "https://gitlab.gnome.org/GNOME/libsoup/-/issues/472",
+	  "GET / HTTP/1.1\r\nHost: example.com\r\nhost: example.org\r\n",
+	  -1,
+	  SOUP_STATUS_BAD_REQUEST,
+	  NULL, NULL, -1,
+	  { { NULL } }
 	}
 };
 static const int num_reqtests = G_N_ELEMENTS (reqtests);
