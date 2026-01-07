@@ -139,7 +139,8 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 		for (p = strchr (value, '\r'); p; p = strchr (p, '\r'))
 			*p = ' ';
 
-		soup_message_headers_append_untrusted_data (dest, name, value);
+		if (!soup_message_headers_append_untrusted_data (dest, name, value))
+                        goto done;
         }
 	success = TRUE;
 
