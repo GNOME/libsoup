@@ -220,6 +220,9 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
 	}
 #endif
 
+	if (g_ascii_strcasecmp (name, "Host") == 0 && soup_message_headers_get_one (hdrs, "Host"))
+		return;
+
 	header.name = intern_header_name (name, &setter);
 	header.value = g_strdup (value);
 	g_array_append_val (hdrs->array, header);
