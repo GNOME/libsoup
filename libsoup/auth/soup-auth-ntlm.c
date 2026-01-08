@@ -309,6 +309,7 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	gboolean success = TRUE;
 	GUri *uri;
 	char *authority;
+	static const guchar zero_hash[21] = { 0 };
 
 	/* Note that we only return FALSE if some sort of parsing error
 	 * occurs. Otherwise, the SoupAuth is still reusable (though it may
@@ -353,6 +354,14 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	if (!auth_header[4] || !auth_header[5]) {
 		conn->state = SOUP_NTLM_FAILED;
 		return FALSE;
+	}
+
+	if (priv->password_state == SOUP_NTLM_PASSWORD_PROVIDED && !memcmp(priv->nt_hash, zero_hash, sizeof(zero_hash))) {
+		/* This can happen if an excessively long password was
+		 * provided, in which case we don't try to hash */
+		conn->state = SOUP_NTLM_FAILED;
+		priv->password_state = SOUP_NTLM_PASSWORD_REJECTED;
+		return TRUE;
 	}
 
 	if (!soup_ntlm_parse_challenge (auth_header + 5, &conn->nonce,
@@ -449,8 +458,10 @@ soup_auth_ntlm_authenticate (SoupAuth *auth, const char *username,
 		priv->username = g_strdup (username);
 	}
 
-	soup_ntlm_nt_hash (password, priv->nt_hash);
-	soup_ntlm_lanmanager_hash (password, priv->lm_hash);
+	if (strlen (password) < 256) {
+		soup_ntlm_nt_hash (password, priv->nt_hash);
+		soup_ntlm_lanmanager_hash (password, priv->lm_hash);
+	}
 
 	priv->password_state = SOUP_NTLM_PASSWORD_PROVIDED;
 }
@@ -604,7 +615,7 @@ soup_auth_ntlm_class_init (SoupAuthNTLMClass *auth_ntlm_class)
 }
 
 static void md4sum                (const unsigned char *in, 
-				   int                  nbytes, 
+				   size_t               nbytes, 
 				   unsigned char        digest[16]);
 
 typedef guint32 DES_KS[16][2]; /* Single-key DES key schedule */
@@ -650,7 +661,7 @@ soup_ntlm_nt_hash (const char *password, guchar hash[21])
 {
 	unsigned char *buf, *p;
 
-	p = buf = g_malloc (strlen (password) * 2);
+	p = buf = g_malloc_n (strlen (password), 2);
 
 	while (*password) {
 		*p++ = *password++;
@@ -1092,15 +1103,16 @@ calc_response (const guchar *key, const guchar *plaintext, guchar *results)
 #define ROT(val, n) ( ((val) << (n)) | ((val) >> (32 - (n))) )
 
 static void
-md4sum (const unsigned char *in, int nbytes, unsigned char digest[16])
+md4sum (const unsigned char *in, size_t nbytes, unsigned char digest[16])
 {
 	unsigned char *M;
 	guint32 A, B, C, D, AA, BB, CC, DD, X[16];
-	int pbytes, nbits = nbytes * 8, i, j;
+	size_t pbytes, nbits = nbytes * 8;
+	int i, j;
 
 	/* There is *always* padding of at least one bit. */
 	pbytes = ((119 - (nbytes % 64)) % 64) + 1;
-	M = alloca (nbytes + pbytes + 8);
+	M = g_malloc (nbytes + pbytes + 8);
 	memcpy (M, in, nbytes);
 	memset (M + nbytes, 0, pbytes + 8);
 	M[nbytes] = 0x80;
@@ -1200,6 +1212,8 @@ md4sum (const unsigned char *in, int nbytes, unsigned char digest[16])
 	digest[13] = (D >>  8) & 0xFF;
 	digest[14] = (D >> 16) & 0xFF;
 	digest[15] = (D >> 24) & 0xFF;
+
+	g_free (M);
 }
 
 
