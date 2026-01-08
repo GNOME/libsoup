@@ -735,6 +735,67 @@ do_retrying_test (TestServer *ts,
 	soup_test_session_abort_unref (session);
 }
 
+static gboolean
+long_password_test_authenticate (SoupMessage *msg,
+			         SoupAuth    *auth,
+			         gboolean     retrying,
+			         gpointer user)
+{
+	size_t l = 65536;
+	char *password;
+	char tmp[10000];
+	size_t i;
+
+	password = (char *)g_malloc (l);
+
+	for (i = 0; i < 10000; i++) {
+		tmp[i] = 'A';
+	}
+	for (i = 0; i < l/10000; i++) {
+		memcpy (password + i * 10000, tmp, 10000);
+	}
+	memcpy (password + l - 1 - 10000, tmp, 10000);
+
+	soup_auth_authenticate (auth, "alice", password);
+
+	g_free (password);
+	return TRUE;
+}
+
+static void
+do_long_password_test (TestServer *ts,
+		  gconstpointer data)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	GUri *uri;
+	GBytes *body;
+
+	if (!can_do_ntlm_test ()) {
+		g_test_skip ("NTLM authentication not available (likely due to FIPS mode)");
+		return;
+	}
+
+	session = soup_test_session_new (NULL);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
+        soup_session_set_proxy_resolver(session, NULL);
+
+	uri = g_uri_parse_relative (ts->uri, "/alice", SOUP_HTTP_URI_FLAGS, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	g_signal_connect (msg, "authenticate",
+			  G_CALLBACK (long_password_test_authenticate), NULL);
+	g_uri_unref (uri);
+
+	body = soup_session_send_and_read (session, msg, NULL, NULL);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_UNAUTHORIZED);
+
+	g_bytes_unref (body);
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -757,6 +818,9 @@ main (int argc, char **argv)
 
 	g_test_add ("/ntlm/retry", TestServer, NULL,
 		    setup_server, do_retrying_test, teardown_server);
+
+	g_test_add ("/ntlm/long-password", TestServer, NULL,
+		    setup_server, do_long_password_test, teardown_server);
 
 	ret = g_test_run ();
 
