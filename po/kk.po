@@ -1,0 +1,194 @@
+# Kazakh translation for libsoup.
+# Copyright (C) 2026 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Baurzhan Muftakhidinov <baurthefirst@gmail.com>,  2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues/\n"
+"POT-Creation-Date: 2025-10-20 18:12+0000\n"
+"PO-Revision-Date: 2026-01-10 22:32+0500\n"
+"Last-Translator: Baurzhan Muftakhidinov <baurthefirst@gmail.com>\n"
+"Language-Team: Kazakh <Kazakh>\n"
+"Language: kk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.8\n"
+
+#: libsoup/cache/soup-cache-input-stream.c:70
+msgid "Network stream unexpectedly closed"
+msgstr "Желілік ағын күтпеген жерден жабылды"
+
+#: libsoup/cache/soup-cache-input-stream.c:252
+msgid "Failed to completely cache the resource"
+msgstr "Ресурсты толығымен кэштеу сәтсіз аяқталды"
+
+#: libsoup/content-decoder/soup-converter-wrapper.c:197
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Шығыс буфері тым кішкентай"
+
+#: libsoup/http1/soup-body-input-stream.c:155
+#: libsoup/http1/soup-body-input-stream.c:188
+#: libsoup/http1/soup-body-input-stream.c:223
+#: libsoup/http1/soup-body-input-stream.c:242
+#: libsoup/http1/soup-message-io-data.c:77
+#: libsoup/http2/soup-client-message-io-http2.c:483
+#: libsoup/server/http2/soup-server-message-io-http2.c:466
+msgid "Connection terminated unexpectedly"
+msgstr "Байланыс күтпеген жерден үзілді"
+
+#: libsoup/http1/soup-body-input-stream.c:489
+msgid "Invalid seek request"
+msgstr "Іздеу сұранысы қате"
+
+#: libsoup/http1/soup-body-input-stream.c:517
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStream қиып тастау мүмкін емес"
+
+#: libsoup/http1/soup-client-message-io-http1.c:322
+#: libsoup/http1/soup-client-message-io-http1.c:775
+#: libsoup/http2/soup-body-input-stream-http2.c:248
+#: libsoup/server/http1/soup-server-message-io-http1.c:417
+#: libsoup/server/http1/soup-server-message-io-http1.c:891
+msgid "Operation would block"
+msgstr "Операция блокталуы мүмкін"
+
+#: libsoup/http1/soup-client-message-io-http1.c:463
+msgid "Could not parse HTTP response"
+msgstr "HTTP жауабын талдау мүмкін болмады"
+
+#: libsoup/http1/soup-client-message-io-http1.c:486
+msgid "Unrecognized HTTP response encoding"
+msgstr "HTTP жауабының кодтауы танылмады"
+
+#: libsoup/http1/soup-client-message-io-http1.c:734
+#: libsoup/http1/soup-client-message-io-http1.c:760
+#: libsoup/http2/soup-client-message-io-http2.c:1791
+#: libsoup/http2/soup-client-message-io-http2.c:1817
+msgid "Operation was cancelled"
+msgstr "Операциядан бас тартылды"
+
+#: libsoup/http1/soup-message-io-data.c:105
+msgid "Header too big"
+msgstr "Тақырыптама тым үлкен"
+
+#: libsoup/server/soup-listener.c:265
+msgid "Could not import existing socket: "
+msgstr "Бар сокетті импорттау мүмкін болмады: "
+
+#: libsoup/server/soup-listener.c:271
+msgid "Can’t import unconnected socket"
+msgstr "Қосылмаған сокетті импорттау мүмкін емес"
+
+#: libsoup/server/soup-server.c:1224
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "TLS сертификатынсыз TLS серверін жасау мүмкін емес"
+
+#: libsoup/soup-session.c:1134
+msgid "Location header is missing or empty in response headers"
+msgstr "Жауап тақырыптамасындағы Орналасу тақырыптамасы жоқ немесе бос"
+
+#: libsoup/soup-session.c:1148
+#, c-format
+msgid "Invalid URI “%s” in Location response header"
+msgstr "Орналасу жауап тақырыптамасындағы “%s” URI-ы қате"
+
+#: libsoup/soup-session.c:1168
+msgid "Too many redirects"
+msgstr "Қайта бағыттаулар тым көп"
+
+#: libsoup/soup-session.c:1173
+msgid "Message was restarted too many times"
+msgstr "Хабарлама тым көп рет қайта іске қосылды"
+
+#: libsoup/soup-session.c:3121 libsoup/soup-session.c:3274
+msgid "Message is already in session queue"
+msgstr "Хабарлама сессия кезегінде бұрыннан бар"
+
+#: libsoup/soup-session.c:3755
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Сервер WebSocket қол алмасуын қабылдамады."
+
+#: libsoup/soup-tld.c:129
+msgid "No public-suffix list available."
+msgstr "Public-suffix тізімі қолжетімді емес."
+
+#: libsoup/soup-tld.c:139 libsoup/soup-tld.c:155
+msgid "Invalid hostname"
+msgstr "Хост аты қате"
+
+#: libsoup/soup-tld.c:146
+msgid "Hostname is an IP address"
+msgstr "Хост аты IP адрес болып тұр"
+
+#: libsoup/soup-tld.c:167
+msgid "Hostname has no base domain"
+msgstr "Хост атының негізгі домені жоқ"
+
+#: libsoup/soup-tld.c:175
+msgid "Not enough domains"
+msgstr "Домендер жеткіліксіз"
+
+#: libsoup/websocket/soup-websocket.c:391
+#: libsoup/websocket/soup-websocket.c:435
+#: libsoup/websocket/soup-websocket.c:451
+msgid "Server requested unsupported extension"
+msgstr "Сервер қолдау көрсетілмейтін кеңейтуді сұратты"
+
+#: libsoup/websocket/soup-websocket.c:414
+#: libsoup/websocket/soup-websocket.c:606
+#, c-format
+msgid "Incorrect WebSocket “%s” header"
+msgstr "Қате WebSocket “%s” тақырыптамасы"
+
+#: libsoup/websocket/soup-websocket.c:415
+#: libsoup/websocket/soup-websocket.c:870
+#, c-format
+msgid "Server returned incorrect “%s” key"
+msgstr "Сервер қате “%s” кілтін қайтарды"
+
+#: libsoup/websocket/soup-websocket.c:478
+#, c-format
+msgid "Duplicated parameter in “%s” WebSocket extension header"
+msgstr "“%s” WebSocket кеңейту тақырыптамасында қайталанған параметр"
+
+#: libsoup/websocket/soup-websocket.c:479
+#, c-format
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"Сервер “%s” WebSocket кеңейтудің тақырыптамасында қайталанған параметрді "
+"қайтарды"
+
+#: libsoup/websocket/soup-websocket.c:569
+#: libsoup/websocket/soup-websocket.c:579
+msgid "WebSocket handshake expected"
+msgstr "WebSocket қол алмасуы күтілді"
+
+#: libsoup/websocket/soup-websocket.c:587
+msgid "Unsupported WebSocket version"
+msgstr "Қолдау көрсетілмейтін WebSocket нұсқасы"
+
+#: libsoup/websocket/soup-websocket.c:596
+msgid "Invalid WebSocket key"
+msgstr "Жарамсыз WebSocket кілті"
+
+#: libsoup/websocket/soup-websocket.c:615
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Қолдау көрсетілмейтін WebSocket ішкі хаттамасы"
+
+#: libsoup/websocket/soup-websocket.c:821
+msgid "Server rejected WebSocket handshake"
+msgstr "Сервер WebSocket қол алмасудан бас тартты"
+
+#: libsoup/websocket/soup-websocket.c:829
+#: libsoup/websocket/soup-websocket.c:838
+msgid "Server ignored WebSocket handshake"
+msgstr "Сервер WebSocket қол алмасуды елемеді"
+
+#: libsoup/websocket/soup-websocket.c:850
+msgid "Server requested unsupported protocol"
+msgstr "Сервер қолдау көрсетілмейтін хаттаманы сұратты"
