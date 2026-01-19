@@ -272,6 +272,7 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 	if (eof && !*got_boundary)
 		read_length = MIN (fstream->priv->buf->len, length);
 	else
-		read_length = p - buf;
+                read_length = MIN ((gsize)(p - buf), length);
+
 	return read_from_buf (fstream, buffer, read_length);
 }
