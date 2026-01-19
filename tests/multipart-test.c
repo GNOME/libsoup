@@ -549,6 +549,51 @@ test_multipart_bounds_bad_2 (void)
 }
 
 static void
+test_multipart_bounds_bad_3 (void)
+{
+        SoupMessage *msg;
+        SoupMessageHeaders *headers;
+        GInputStream *in;
+        SoupMultipartInputStream *multipart;
+        GError *error = NULL;
+        const char raw_data[] = "\0$--A\r\nContent-Disposition: form-data; name=\"f\"\r\n\r\nXXXXXXXXX\r\n--A--\r\n";
+
+        msg = soup_message_new(SOUP_METHOD_POST, "http://foo/upload");
+        headers = soup_message_get_response_headers (msg);
+        soup_message_headers_replace (headers, "Content-Type", "multipart/form-data; boundary=\"A\"");
+
+        in = g_memory_input_stream_new_from_data (raw_data + 2, sizeof(raw_data) - 2, NULL);
+        multipart = soup_multipart_input_stream_new (msg, in);
+        g_object_unref (in);
+
+        while (TRUE) {
+                in = soup_multipart_input_stream_next_part (multipart, NULL, &error);
+                g_assert_no_error (error);
+                if (!in) {
+                        g_clear_error (&error);
+                        break;
+                }
+
+                char buffer[10];
+                while (TRUE) {
+                        gssize bytes_read;
+
+                        bytes_read = g_input_stream_read (in, buffer, sizeof(buffer), NULL, &error);
+                        g_assert_no_error (error);
+                        if (bytes_read <= 0) {
+                                g_clear_error (&error);
+                                break;
+                        }
+                }
+
+                g_object_unref (in);
+        }
+
+        g_object_unref (multipart);
+        g_object_unref (msg);
+}
+
+static void
 test_multipart_too_large (void)
 {
 	const char *raw_body =
@@ -617,6 +662,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/multipart/bounds-good", test_multipart_bounds_good);
 	g_test_add_func ("/multipart/bounds-bad", test_multipart_bounds_bad);
 	g_test_add_func ("/multipart/bounds-bad-2", test_multipart_bounds_bad_2);
+        g_test_add_func ("/multipart/bounds-bad-3", test_multipart_bounds_bad_3);
 	g_test_add_func ("/multipart/too-large", test_multipart_too_large);
 
 	ret = g_test_run ();
