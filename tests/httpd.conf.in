@@ -34,6 +34,7 @@ LoadModule ssl_module           @APACHE_SSL_MODULE_DIR@/mod_ssl.so
 DirectoryIndex index.txt
 TypesConfig /dev/null
 Redirect permanent /redirected /index.txt
+Redirect permanent /Basic/realm1/redirected https://127.0.0.1:47525/index.txt
 
 # Prefer http1 for now because most of the tests expect http1 behavior.
 Protocols http/1.1 h2

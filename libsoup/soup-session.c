@@ -1234,6 +1234,7 @@ soup_session_redirect_message (SoupSession *session,
         /* Strip all credentials on cross-origin redirect. */
         if (!soup_uri_host_equal (soup_message_get_uri (msg), new_uri)) {
                 soup_message_headers_remove_common (soup_message_get_request_headers (msg), SOUP_HEADER_AUTHORIZATION);
+                soup_message_headers_remove_common (soup_message_get_request_headers (msg), SOUP_HEADER_PROXY_AUTHORIZATION);
                 soup_message_set_auth (msg, NULL);
         }
 
