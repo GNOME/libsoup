@@ -236,6 +236,66 @@ soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 	return g_ascii_strcasecmp (one_host, two_host) == 0;
 }
 
+static gboolean
+is_valid_character_for_host (char c)
+{
+        static const char forbidden_chars[] = { '\t', '\n', '\r', ' ', '#', '/', ':', '<', '>', '?', '@', '[', '\\', ']', '^', '|' };
+        int i;
+
+        for (i = 0; i < G_N_ELEMENTS (forbidden_chars); ++i) {
+                if (c == forbidden_chars[i])
+                        return FALSE;
+        }
+
+        return TRUE;
+}
+
+static gboolean
+is_host_valid (const char* host)
+{
+        int i;
+        gboolean is_valid;
+        char *ascii_host = NULL;
+
+        if (!host || !host[0])
+                return FALSE;
+
+        if (g_hostname_is_non_ascii (host)) {
+                ascii_host = g_hostname_to_ascii (host);
+                if (!ascii_host)
+                  return FALSE;
+
+                host = ascii_host;
+        }
+
+        if ((g_ascii_isdigit (host[0]) || strchr (host, ':')) && g_hostname_is_ip_address (host)) {
+                g_free (ascii_host);
+                return TRUE;
+        }
+
+        is_valid = TRUE;
+        for (i = 0; host[i] && is_valid; i++)
+                is_valid = is_valid_character_for_host (host[i]);
+
+        g_free (ascii_host);
+
+        return is_valid;
+}
+
+gboolean
+soup_uri_is_valid (GUri *uri)
+{
+        if (!uri)
+                return FALSE;
+
+        if (!is_host_valid (g_uri_get_host (uri)))
+                return FALSE;
+
+        /* FIXME: validate other URI components? */
+
+        return TRUE;
+}
+
 gboolean
 soup_uri_is_https (GUri *uri)
 {

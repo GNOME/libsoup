@@ -126,6 +126,51 @@ do_copy_tests (void)
         g_uri_unref (uri2);
 }
 
+static struct {
+        const char *scheme;
+        const char *host;
+        const char *as_string;
+        gboolean valid;
+} valid_tests[] = {
+        { "http", "example.com", "http://example.com/", TRUE },
+        { "http", "localhost", "http://localhost/", TRUE },
+        { "http", "127.0.0.1", "http://127.0.0.1/", TRUE },
+        { "http", "::1", "http://[::1]/", TRUE },
+        { "http", "::192.168.0.10", "http://[::192.168.0.10]/", TRUE },
+        { "http", "FEDC:BA98:7654:3210:FEDC:BA98:7654:3210", "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/", TRUE },
+        { "http", "\xe4\xbe\x8b\xe5\xad\x90.\xe6\xb5\x8b\xe8\xaf\x95", "http://\xe4\xbe\x8b\xe5\xad\x90.\xe6\xb5\x8b\xe8\xaf\x95/", TRUE },
+        { "http", "012x:4567:89AB:cdef:3210:7654:ba98:FeDc", "http://012x:4567:89AB:cdef:3210:7654:ba98:FeDc/", FALSE },
+        { "http", "\texample.com", "http://\texample.com/", FALSE },
+        { "http", "example.com\n", "http://example.com\n/", FALSE },
+        { "http", "\r\nexample.com", "http://\r\nexample.com/", FALSE },
+        { "http", "example .com", "http://example .com/", FALSE },
+        { "http", "example:com", "http://example:com/", FALSE },
+        { "http", "exampl<e>.com", "http://exampl<e>.com/", FALSE },
+        { "http", "exampl[e].com", "http://exampl[e].com/", FALSE },
+        { "http", "exampl^e.com", "http://exampl^e.com/", FALSE },
+        { "http", "examp|e.com", "http://examp|e.com/", FALSE },
+};
+
+static void
+do_valid_tests (void)
+{
+        int i;
+
+        for (i = 0; i < G_N_ELEMENTS (valid_tests); ++i) {
+                GUri *uri;
+                char *uri_str;
+
+                uri = g_uri_build (SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_ENCODED, valid_tests[i].scheme, NULL, valid_tests[i].host, -1, "", NULL, NULL);
+                uri_str = g_uri_to_string (uri);
+
+                g_assert_cmpstr (uri_str, ==, valid_tests[i].as_string);
+                g_assert_true (soup_uri_is_valid (uri) == valid_tests[i].valid);
+
+                g_free (uri_str);
+                g_uri_unref (uri);
+        }
+}
+
 #define CONTENT_TYPE_DEFAULT "text/plain;charset=US-ASCII"
 
 static struct {
@@ -204,6 +249,7 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/uri/equality", do_equality_tests);
 	g_test_add_func ("/uri/copy", do_copy_tests);
+        g_test_add_func ("/uri/valid", do_valid_tests);
         g_test_add_func ("/data", do_data_uri_tests);
         g_test_add_func ("/path_and_query", do_path_and_query_tests);
 

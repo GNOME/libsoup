@@ -976,7 +976,8 @@ soup_message_new (const char *method, const char *uri_string)
 	uri = g_uri_parse (uri_string, SOUP_HTTP_URI_FLAGS, NULL);
 	if (!uri)
 		return NULL;
-	if (!SOUP_URI_IS_VALID (uri)) {
+
+	if (!soup_uri_is_valid (uri)) {
 		g_uri_unref (uri);
 		return NULL;
 	}
@@ -999,7 +1000,7 @@ SoupMessage *
 soup_message_new_from_uri (const char *method, GUri *uri)
 {
         g_return_val_if_fail (method != NULL, NULL);
-        g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+        g_return_val_if_fail (soup_uri_is_valid (uri), NULL);
 
 	return g_object_new (SOUP_TYPE_MESSAGE,
 			     "method", method,
@@ -1019,7 +1020,7 @@ soup_message_new_from_uri (const char *method, GUri *uri)
 SoupMessage *
 soup_message_new_options_ping (GUri *base_uri)
 {
-        g_return_val_if_fail (SOUP_URI_IS_VALID (base_uri), NULL);
+        g_return_val_if_fail (soup_uri_is_valid (base_uri), NULL);
 
         return g_object_new (SOUP_TYPE_MESSAGE,
                              "method", SOUP_METHOD_OPTIONS,
@@ -2133,7 +2134,7 @@ soup_message_set_uri (SoupMessage *msg, GUri *uri)
         GUri *normalized_uri;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-        g_return_if_fail (SOUP_URI_IS_VALID (uri));
+        g_return_if_fail (soup_uri_is_valid (uri));
 
 	priv = soup_message_get_instance_private (msg);
 
