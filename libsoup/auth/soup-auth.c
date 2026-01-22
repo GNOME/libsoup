@@ -647,7 +647,7 @@ GSList *
 soup_auth_get_protection_space (SoupAuth *auth, GUri *source_uri)
 {
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
-        g_return_val_if_fail (SOUP_URI_IS_VALID (source_uri), NULL);
+        g_return_val_if_fail (soup_uri_is_valid (source_uri), NULL);
 
         GUri *source_uri_normalized = soup_uri_copy_with_normalized_flags (source_uri);
 	GSList *ret = SOUP_AUTH_GET_CLASS (auth)->get_protection_space (auth, source_uri_normalized);
