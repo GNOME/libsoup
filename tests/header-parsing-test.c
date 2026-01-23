@@ -1329,16 +1329,21 @@ do_append_param_tests (void)
 
 static const struct {
 	const char *description, *name, *value;
-} bad_headers[] = {
-	{ "Empty name", "", "value" },
-	{ "Name with spaces", "na me", "value" },
-	{ "Name with colon", "na:me", "value" },
-	{ "Name with CR", "na\rme", "value" },
-	{ "Name with LF", "na\nme", "value" },
-	{ "Name with tab", "na\tme", "value" },
-	{ "Value with CR", "name", "val\rue" },
-	{ "Value with LF", "name", "val\nue" },
-	{ "Value with LWS", "name", "val\r\n ue" }
+} bad_header_names[] = {
+	{ "empty name", "", "value" },
+	{ "name with spaces", "na me", "value" },
+	{ "name with colon", "na:me", "value" },
+	{ "name with CR", "na\rme", "value" },
+	{ "name with LF", "na\nme", "value" },
+	{ "name with tab", "na\tme", "value" }
+};
+
+static const struct {
+        const char *description, *name, *value;
+} bad_header_values[] = {
+	{ "value with CR", "name", "val\rue" },
+	{ "value with LF", "name", "val\nue" },
+	{ "value with LWS", "name", "val\r\n ue" }
 };
 
 static void
@@ -1348,15 +1353,79 @@ do_bad_header_tests (void)
 	int i;
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
-	for (i = 0; i < G_N_ELEMENTS (bad_headers); i++) {
-		debug_printf (1, "  %s\n", bad_headers[i].description);
 
-		g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
-				       "*soup_message_headers_append*assertion*failed*");
-		soup_message_headers_append (hdrs, bad_headers[i].name,
-					     bad_headers[i].value);
-		g_test_assert_expected_messages ();
+        /* soup_message_headers_append: bad names */
+	for (i = 0; i < G_N_ELEMENTS (bad_header_names); i++) {
+		debug_printf (1, "  Append %s\n", bad_header_names[i].description);
+
+                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                                       "*soup_message_headers_append*Rejecting bad name*");
+		soup_message_headers_append (hdrs, bad_header_names[i].name,
+					     bad_header_names[i].value);
+                g_test_assert_expected_messages ();
 	}
+
+        /* soup_message_headers_append: bad values */
+        for (i = 0; i < G_N_ELEMENTS (bad_header_values); i++) {
+		debug_printf (1, "  Append %s\n", bad_header_values[i].description);
+
+                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                                       "*soup_message_headers_append*Rejecting bad value*");
+		soup_message_headers_append (hdrs, bad_header_values[i].name,
+					     bad_header_values[i].value);
+                g_test_assert_expected_messages ();
+	}
+
+        /* soup_message_headers_replace: bad values */
+        for (i = 0; i < G_N_ELEMENTS (bad_header_values); i++) {
+		debug_printf (1, "  Replace %s\n", bad_header_values[i].description);
+
+                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                                       "*soup_message_headers_append*Rejecting bad value*");
+		soup_message_headers_replace (hdrs, bad_header_values[i].name,
+                                              bad_header_values[i].value);
+                g_test_assert_expected_messages ();
+	}
+
+        /* soup_message_headers_set_content_type: bad values */
+        for (i = 0; i < G_N_ELEMENTS (bad_header_values); i++) {
+                GHashTable *params;
+
+                debug_printf (1, "  Content type with %s\n", bad_header_values[i].description);
+
+                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                                       "*soup_message_headers_append*Rejecting bad value*");
+                soup_message_headers_set_content_type (hdrs, bad_header_values[i].value, NULL);
+                g_test_assert_expected_messages ();
+
+                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                                       "*soup_message_headers_append*Rejecting bad value*");
+                params = g_hash_table_new (g_str_hash, g_str_equal);
+                g_hash_table_insert (params, CONTENT_TYPE_TEST_ATTRIBUTE, (gpointer)bad_header_values[i].value);
+                soup_message_headers_set_content_type (hdrs, CONTENT_TYPE_TEST_MIME_TYPE, params);
+                g_hash_table_destroy (params);
+                g_test_assert_expected_messages ();
+        }
+
+        /* soup_message_headers_set_content_disposition: bad values */
+        for (i = 0; i < G_N_ELEMENTS (bad_header_values); i++) {
+                GHashTable *params;
+
+                debug_printf (1, "  Content disposition with %s\n", bad_header_values[i].description);
+
+                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                                       "*soup_message_headers_append*Rejecting bad value*");
+                soup_message_headers_set_content_disposition (hdrs, bad_header_values[i].value, NULL);
+                g_test_assert_expected_messages ();
+
+                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                                       "*soup_message_headers_append*Rejecting bad value*");
+                params = g_hash_table_new (g_str_hash, g_str_equal);
+                g_hash_table_insert (params, "filename", (gpointer)bad_header_values[i].value);
+                soup_message_headers_set_content_disposition (hdrs, "attachment", params);
+                g_hash_table_destroy (params);
+                g_test_assert_expected_messages ();
+        }
 	soup_message_headers_unref (hdrs);
 }
 

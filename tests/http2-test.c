@@ -1481,8 +1481,8 @@ server_handler (SoupServer        *server,
                 SoupMessageHeaders *response_headers;
 
                 response_headers = soup_server_message_get_response_headers (msg);
-                /* Use soup_message_headers_append_common to skip the validation check. */
-                soup_message_headers_append_common (response_headers, SOUP_HEADER_CONTENT_TYPE, "\r");
+                /* Use soup_message_headers_append_common with trusted_value=TRUE to skip the validation check. */
+                soup_message_headers_append_common (response_headers, SOUP_HEADER_CONTENT_TYPE, "\r", TRUE);
                 soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
         } else if (strcmp (path, "/invalid-header-rfc9113") == 0) {
                 SoupMessageHeaders *response_headers;
