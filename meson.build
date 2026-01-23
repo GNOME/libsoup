@@ -243,18 +243,18 @@ apache_httpd2 = find_program('httpd2', 'httpd', 'apache2', 'apache',
 have_apache=false
 apache_httpd2_version = ''
 if apache_httpd2.found() and apachectl.found()
-  apache_httpd2_version_raw = run_command(apachectl.path(), '-v', check: false)
+  apache_httpd2_version_raw = run_command(apachectl.full_path(), '-v', check: false)
   # It seems that from version 2.4.39 apachectl doesn't take arguments, fallback
   # to calling apache directly just in case.
   if apache_httpd2_version_raw.returncode() != 0
-    apache_httpd2_version_raw = run_command(apache_httpd2.path(), '-v', check: false)
+    apache_httpd2_version_raw = run_command(apache_httpd2.full_path(), '-v', check: false)
   endif
   if apache_httpd2_version_raw.returncode() == 0
     apache_httpd2_version = apache_httpd2_version_raw.stdout().split('\n')[0]
     apache_httpd2_version = apache_httpd2_version.split('/')[1].split(' ')[0]
     if apache_httpd2_version.version_compare('>=2.4')
       have_apache = true
-      cdata.set_quoted('APACHE_HTTPD', apache_httpd2.path())
+      cdata.set_quoted('APACHE_HTTPD', apache_httpd2.full_path())
     else
       message('Found ' + apache_httpd2_version + ', but at least 2.4 is needed - ignoring')
     endif
@@ -262,11 +262,11 @@ if apache_httpd2.found() and apachectl.found()
 endif
 
 if have_apache
-  apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apachectl.path(), check: false)
+  apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apachectl.full_path(), check: false)
   have_apache = (apache_modules_dirs_out.returncode() == 0)
   # Same as above, using apachectl might fail, try apache directly.
   if not have_apache
-    apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apache_httpd2.path(), check: false)
+    apache_modules_dirs_out = run_command('get_apache_modules_dirs.py', apache_httpd2.full_path(), check: false)
     have_apache = (apache_modules_dirs_out.returncode() == 0)
   endif
   if have_apache
@@ -330,7 +330,7 @@ if host_machine.system() != 'windows'
 
   if ntlm_auth.found()
     add_project_arguments('-DUSE_NTLM_AUTH=1', language : 'c')
-    add_project_arguments('-DNTLM_AUTH="' + ntlm_auth.path() + '"', language : 'c')
+    add_project_arguments('-DNTLM_AUTH="' + ntlm_auth.full_path() + '"', language : 'c')
   endif
 else
   ntlm_auth = dependency('', required: false)
