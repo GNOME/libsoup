@@ -1,5 +1,5 @@
 autobahn_conf = configuration_data()
-autobahn_conf.set('MESON_BUILD_ROOT', meson.build_root())
+autobahn_conf.set('MESON_BUILD_ROOT', meson.project_build_root())
 
 configure_file(
   input : 'autobahn-server.json.in',
