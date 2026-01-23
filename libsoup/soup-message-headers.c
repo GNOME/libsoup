@@ -799,7 +799,7 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
  * An opaque type used to iterate over a [struct@MessageHeaders] structure
  *
  * After intializing the iterator with [func@MessageHeadersIter.init], call
- * [method@MessageHeadersIter.next] to fetch data from it.
+ * [func@MessageHeadersIter.next] to fetch data from it.
  *
  * You may not modify the headers while iterating over them.
  **/
@@ -840,7 +840,7 @@ soup_message_headers_iter_init (SoupMessageHeadersIter *iter,
  * iterated by @iter.
  *
  * If @iter has already yielded the last header, then
- * [method@MessageHeadersIter.next] will return %FALSE and @name and @value
+ * [func@MessageHeadersIter.next] will return %FALSE and @name and @value
  * will be unchanged.
  *
  * Returns: %TRUE if another name and value were returned, %FALSE
