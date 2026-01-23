@@ -263,6 +263,8 @@ if enable_introspection or enable_vapi
 
    libsoup_gir_extra_args = [
      libsoup_c_args,
+     '--warn-all',
+     '--quiet',
    ]
    if gir.version().version_compare('>=1.83.2')
      libsoup_gir_extra_args += [
