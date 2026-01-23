@@ -41,10 +41,10 @@ static struct {
 	{ "a.b.example.uk.com", "example.uk.com", -1 },
 	{ "test.ac", "test.ac", -1 },
 	/* TLD with only 1 (wildcard) rule. */
-	{ "bd", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
-	{ "c.bd", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
-	{ "b.c.bd", "b.c.bd", -1 },
-	{ "a.b.c.bd", "b.c.bd", -1 },
+	{ "jm", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "c.jm", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "b.c.jm", "b.c.jm", -1 },
+	{ "a.b.c.jm", "b.c.jm", -1 },
 	/* More complex TLD. */
 	{ "jp", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
 	{ "test.jp", "test.jp", -1 },
