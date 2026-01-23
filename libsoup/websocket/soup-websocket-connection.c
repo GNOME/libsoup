@@ -1675,7 +1675,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * The maximum payload size for incoming packets, or 0 to not limit it.
 	 *
 	 * Each message may consist of multiple packets, so also refer to
-	 * [property@WebSocketConnection:max-total-message-size].
+	 * [property@WebsocketConnection:max-total-message-size].
 	 */
         properties[PROP_MAX_INCOMING_PAYLOAD_SIZE] =
                 g_param_spec_uint64 ("max-incoming-payload-size",
@@ -1758,7 +1758,7 @@ soup_websocket_connection_class_init (SoupWebsocketConnectionClass *klass)
 	 * server SoupWebsocketConnection without using SoupServer.
 	 *
 	 * Each message may consist of multiple packets, so also refer to
-	 * [property@WebSocketConnection:max-incoming-payload-size].
+	 * [property@WebsocketConnection:max-incoming-payload-size].
 	 *
 	 * Since: 3.8
 	 */
