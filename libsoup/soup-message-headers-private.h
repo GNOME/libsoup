@@ -15,7 +15,8 @@ gboolean    soup_message_headers_append_untrusted_data  (SoupMessageHeaders *hdr
                                                          const char         *value);
 gboolean    soup_message_headers_append_common          (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name,
-                                                         const char         *value);
+                                                         const char         *value,
+                                                         gboolean            trusted_value);
 const char *soup_message_headers_get_one_common         (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name);
 const char *soup_message_headers_get_list_common        (SoupMessageHeaders *hdrs,
@@ -24,7 +25,8 @@ void        soup_message_headers_remove_common          (SoupMessageHeaders *hdr
                                                          SoupHeaderName      name);
 void        soup_message_headers_replace_common         (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name,
-                                                         const char         *value);
+                                                         const char         *value,
+                                                         gboolean            trusted_value);
 gboolean    soup_message_headers_header_contains_common (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name,
                                                          const char         *token);

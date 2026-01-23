@@ -328,7 +328,7 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 			conn->state = SOUP_NTLM_FAILED;
 			if (soup_message_is_keepalive (msg)) {
 				soup_message_headers_append_common (soup_message_get_response_headers (msg),
-                                                                    SOUP_HEADER_CONNECTION, "close");
+                                                                    SOUP_HEADER_CONNECTION, "close", TRUE);
 			}
 			return TRUE;
 		}

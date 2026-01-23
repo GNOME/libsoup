@@ -939,7 +939,7 @@ soup_server_message_set_response (SoupServerMessage *msg,
 
                 soup_message_headers_replace_common (msg->response_headers,
                                                      SOUP_HEADER_CONTENT_TYPE,
-                                                     content_type);
+                                                     content_type, FALSE);
                 soup_message_body_append (msg->response_body, resp_use,
                                           resp_body, resp_length);
         } else {
@@ -980,7 +980,7 @@ soup_server_message_set_redirect (SoupServerMessage *msg,
 	soup_server_message_set_status (msg, status_code, NULL);
 	location_str = g_uri_to_string (location);
 	soup_message_headers_replace_common (msg->response_headers, SOUP_HEADER_LOCATION,
-                                             location_str);
+                                             location_str, FALSE);
 	g_free (location_str);
 	g_uri_unref (location);
 }

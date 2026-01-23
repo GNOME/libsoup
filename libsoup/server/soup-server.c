@@ -857,7 +857,7 @@ got_headers (SoupServer        *server,
 		return;
 	}
 
-	soup_message_headers_replace_common (headers, SOUP_HEADER_DATE, date_string);
+	soup_message_headers_replace_common (headers, SOUP_HEADER_DATE, date_string, TRUE);
 	g_free (date_string);
 	g_date_time_unref (date);
 
@@ -1041,7 +1041,7 @@ request_started_cb (SoupServer           *server,
 
                 headers = soup_server_message_get_response_headers (msg);
                 soup_message_headers_append_common (headers, SOUP_HEADER_SERVER,
-                                                    priv->server_header);
+                                                    priv->server_header, FALSE);
         }
 
         g_signal_emit (server, signals[REQUEST_STARTED], 0, msg);

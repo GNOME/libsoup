@@ -568,7 +568,7 @@ io_read (SoupClientMessageIOHTTP1 *client_io,
                          * closed when we're done.
                          */
                         soup_message_headers_append_common (soup_message_get_request_headers (msg),
-                                                            SOUP_HEADER_CONNECTION, "close");
+                                                            SOUP_HEADER_CONNECTION, "close", TRUE);
                         soup_message_set_metrics_timestamp (msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
                         io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
                         break;

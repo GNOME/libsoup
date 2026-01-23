@@ -899,7 +899,7 @@ msg_starting_cb (SoupMessage *msg, gpointer feature)
 							               soup_message_get_is_top_level_navigation (msg));
 	if (cookies != NULL) {
 		char *cookie_header = soup_cookies_to_cookie_header (cookies);
-		soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_COOKIE, cookie_header);
+		soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_COOKIE, cookie_header, TRUE);
 		g_free (cookie_header);
 		g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 	} else {
