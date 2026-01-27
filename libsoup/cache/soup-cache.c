@@ -419,9 +419,9 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 		gint64 expires_t, date_t;
 
 		expires_d = soup_date_time_new_from_http_string (expires);
-		if (expires_d) {
-			date_d = soup_date_time_new_from_http_string (date);
+		date_d = soup_date_time_new_from_http_string (date);
 
+		if (expires_d && date_d) {
 			expires_t = g_date_time_to_unix (expires_d);
 			date_t = g_date_time_to_unix (date_d);
 
@@ -463,13 +463,15 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 		gint64 now, last_modified_t;
 
 		soup_date = soup_date_time_new_from_http_string (last_modified);
-		last_modified_t = g_date_time_to_unix (soup_date);
-		now = time (NULL);
+		if (soup_date) {
+			last_modified_t = g_date_time_to_unix (soup_date);
+			now = time (NULL);
 
 #define HEURISTIC_FACTOR 0.1 /* From Section 2.3.1.1 */
 
-		entry->freshness_lifetime = MAX (0, (now - last_modified_t) * HEURISTIC_FACTOR);
-		g_date_time_unref (soup_date);
+			entry->freshness_lifetime = MAX (0, (now - last_modified_t) * HEURISTIC_FACTOR);
+			g_date_time_unref (soup_date);
+		}
 	}
 
 	return;
@@ -484,6 +486,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 {
 	SoupCacheEntry *entry;
 	const char *date;
+	GDateTime *soup_date = NULL;
 
 	entry = g_slice_new0 (SoupCacheEntry);
 	entry->dirty = FALSE;
@@ -504,13 +507,13 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 
 	/* Section 2.3.2, Calculating Age */
 	date = soup_message_headers_get_one_common (entry->headers, SOUP_HEADER_DATE);
+	if (date)
+		soup_date = soup_date_time_new_from_http_string (date);
 
-	if (date) {
-		GDateTime *soup_date;
+	if (soup_date) {
 		const char *age;
 		gint64 date_value, apparent_age, corrected_received_age, response_delay, age_value = 0;
 
-		soup_date = soup_date_time_new_from_http_string (date);
 		date_value = g_date_time_to_unix (soup_date);
 		g_date_time_unref (soup_date);
 
