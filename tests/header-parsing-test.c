@@ -1110,6 +1110,17 @@ do_param_list_tests (void)
 #define RFC5987_TEST_HEADER_NO_TYPE_2  "filename=\"test.txt\"; foo=bar"
 #define RFC5987_TEST_HEADER_EMPTY_FILENAME ";filename"
 
+static const struct {
+        const char *description;
+        const char *filename;
+        const char *sanitized;
+} bad_filenames[] = {
+        { "Invalid leading", "/test.txt", "test.txt" },
+        { "Invalid trailing", "test.txt.\n", "test.txt" },
+        { "Invalid leading and trailing", " \ttest.txt/", "test.txt" },
+        { "Invalid characters", "**t/e:<s>t~|.t\n\rxt", "__t_e__s_t__.t__xt" }
+};
+
 static void
 do_content_disposition_tests (void)
 {
@@ -1119,6 +1130,7 @@ do_content_disposition_tests (void)
 	char *disposition;
 	GBytes *buffer;
 	SoupMultipart *multipart;
+        int i;
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	params = g_hash_table_new (g_str_hash, g_str_equal);
@@ -1222,6 +1234,24 @@ do_content_disposition_tests (void)
         g_free (disposition);
         g_assert_false (g_hash_table_contains (params, "filename"));
 	g_hash_table_destroy (params);
+
+        /* Invalid filenames */
+        for (i = 0; i < G_N_ELEMENTS (bad_filenames); i++) {
+                debug_printf (1, "  %s \n", bad_filenames[i].description);
+
+                soup_message_headers_clear (hdrs);
+                params = g_hash_table_new (g_str_hash, g_str_equal);
+                g_hash_table_insert (params, "filename", (char*)bad_filenames[i].filename);
+                soup_message_headers_set_content_disposition (hdrs, "attachment", params);
+                g_hash_table_destroy (params);
+
+                g_assert_true (soup_message_headers_get_content_disposition (hdrs, &disposition, &params));
+                g_free (disposition);
+
+                filename = g_hash_table_lookup (params, "filename");
+                g_assert_cmpstr (filename, ==, bad_filenames[i].sanitized);
+                g_hash_table_destroy (params);
+        }
 
 	soup_message_headers_unref (hdrs);
 
@@ -1409,21 +1439,11 @@ do_bad_header_tests (void)
 
         /* soup_message_headers_set_content_disposition: bad values */
         for (i = 0; i < G_N_ELEMENTS (bad_header_values); i++) {
-                GHashTable *params;
-
                 debug_printf (1, "  Content disposition with %s\n", bad_header_values[i].description);
 
                 g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
                                        "*soup_message_headers_append*Rejecting bad value*");
                 soup_message_headers_set_content_disposition (hdrs, bad_header_values[i].value, NULL);
-                g_test_assert_expected_messages ();
-
-                g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
-                                       "*soup_message_headers_append*Rejecting bad value*");
-                params = g_hash_table_new (g_str_hash, g_str_equal);
-                g_hash_table_insert (params, "filename", (gpointer)bad_header_values[i].value);
-                soup_message_headers_set_content_disposition (hdrs, "attachment", params);
-                g_hash_table_destroy (params);
                 g_test_assert_expected_messages ();
         }
 	soup_message_headers_unref (hdrs);
