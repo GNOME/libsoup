@@ -1560,6 +1560,46 @@ parse_content_foo (SoupMessageHeaders *hdrs,
 	return TRUE;
 }
 
+static inline gboolean
+is_valid_leading_or_trailingcharacter_for_filename (guchar c)
+{
+        return !g_ascii_isspace (c) && c != '\r' && c != '\n' && c != '/' && c != '\\' && c != '.';
+}
+
+static char *
+sanitize_filename (const char *value)
+{
+        char *filename;
+        guchar *c;
+        gsize len;
+
+        if (!value || !value[0])
+                return NULL;
+
+        filename = g_strdup (value);
+
+        /* Remove leading invalid characters */
+        for (c = (guchar*)filename; *c && !is_valid_leading_or_trailingcharacter_for_filename (*c); c++)
+                ;
+        memmove (filename, c, strlen ((gchar *)c) + 1);
+
+        /* Remove trailing invalid characters */
+        len = strlen (filename);
+        while (len--) {
+                if (is_valid_leading_or_trailingcharacter_for_filename ((guchar)filename[len]))
+                        break;
+                filename[len] = '\0';
+        }
+
+        /* Replace all other invalid characters with '_' */
+        for (c = (guchar*)filename; *c; c++) {
+                if (strchr ("\"~*/:<>?\\|\r\n", *c) || g_ascii_isspace (*c) || g_ascii_iscntrl (*c))
+                        *c = '_';
+        }
+
+        return filename;
+}
+
 static void
 set_content_foo (SoupMessageHeaders *hdrs,
                  SoupHeaderName      header_name,
@@ -1574,8 +1614,13 @@ set_content_foo (SoupMessageHeaders *hdrs,
 	if (params) {
 		g_hash_table_iter_init (&iter, params);
 		while (g_hash_table_iter_next (&iter, &key, &value)) {
+                        char *filename = NULL;
+
 			g_string_append (str, "; ");
-			soup_header_g_string_append_param (str, key, value);
+                        if (g_strcmp0 (key, "filename") == 0)
+                                filename = sanitize_filename (value);
+			soup_header_g_string_append_param (str, key, filename ? filename : value);
+                        g_free (filename);
 		}
 	}
 
@@ -1677,16 +1722,14 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
 				disposition, params))
 		return FALSE;
 
-	/* If there is a filename parameter, make sure it contains
-	 * only a single path component
-	 */
+	/* If there is a filename parameter, make sure it contains only valid characters */
 	if (params && g_hash_table_lookup_extended (*params, "filename",
 						    &orig_key, &orig_value)) {
                 if (orig_value) {
-                        char *filename = strrchr (orig_value, '/');
+                        char *filename = sanitize_filename (orig_value);
 
                         if (filename)
-                                g_hash_table_insert (*params, g_strdup (orig_key), g_strdup (filename + 1));
+                                g_hash_table_insert (*params, g_strdup (orig_key), g_steal_pointer (&filename));
                 } else {
                         /* filename with no value isn't valid. */
                         g_hash_table_remove (*params, "filename");
