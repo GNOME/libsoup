@@ -441,7 +441,7 @@ update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy
 	if (!token)
 		return;
 
-	soup_message_headers_replace_common (soup_message_get_request_headers (msg), authorization_header, token, TRUE);
+	soup_message_headers_replace_common (soup_message_get_request_headers (msg), authorization_header, token, SOUP_HEADER_VALUE_TRUSTED);
 	g_free (token);
 }
 

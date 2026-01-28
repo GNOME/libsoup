@@ -1448,10 +1448,10 @@ soup_session_send_queue_item (SoupSession *session,
 
 	request_headers = soup_message_get_request_headers (item->msg);
 	if (priv->user_agent)
-		soup_message_headers_replace_common (request_headers, SOUP_HEADER_USER_AGENT, priv->user_agent, FALSE);
+		soup_message_headers_replace_common (request_headers, SOUP_HEADER_USER_AGENT, priv->user_agent, SOUP_HEADER_VALUE_UNTRUSTED);
 
 	if (priv->accept_language && !soup_message_headers_get_list_common (request_headers, SOUP_HEADER_ACCEPT_LANGUAGE))
-		soup_message_headers_append_common (request_headers, SOUP_HEADER_ACCEPT_LANGUAGE, priv->accept_language, FALSE);
+		soup_message_headers_append_common (request_headers, SOUP_HEADER_ACCEPT_LANGUAGE, priv->accept_language, SOUP_HEADER_VALUE_UNTRUSTED);
 
         conn = soup_message_get_connection (item->msg);
         soup_message_set_http_version (item->msg, soup_connection_get_negotiated_protocol (conn));

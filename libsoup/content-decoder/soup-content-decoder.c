@@ -249,7 +249,8 @@ soup_content_decoder_request_queued (SoupSessionFeature *feature,
 #endif
 
 		soup_message_headers_append_common (soup_message_get_request_headers (msg),
-                                                    SOUP_HEADER_ACCEPT_ENCODING, header, TRUE);
+                                                    SOUP_HEADER_ACCEPT_ENCODING, header,
+                                                    SOUP_HEADER_VALUE_TRUSTED);
 	}
 }
 

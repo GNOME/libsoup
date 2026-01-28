@@ -354,12 +354,12 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
 		soup_header_g_string_append_param_quoted (disposition, "filename", filename);
 	}
 	soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_DISPOSITION,
-                                            disposition->str, FALSE);
+                                            disposition->str, SOUP_HEADER_VALUE_UNTRUSTED);
 	g_string_free (disposition, TRUE);
 
 	if (content_type) {
 		soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_TYPE,
-                                                    content_type, FALSE);
+                                                    content_type, SOUP_HEADER_VALUE_UNTRUSTED);
 	}
 
 	g_ptr_array_add (multipart->headers, headers);

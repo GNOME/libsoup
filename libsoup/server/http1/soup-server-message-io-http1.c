@@ -305,7 +305,7 @@ handle_partial_get (SoupServerMessage *msg)
                         if (content_type) {
                                 soup_message_headers_append_common (part_headers,
                                                                     SOUP_HEADER_CONTENT_TYPE,
-                                                                    content_type, TRUE);
+                                                                    content_type, SOUP_HEADER_VALUE_TRUSTED);
                         }
                         soup_message_headers_set_content_range (part_headers,
                                                                 ranges[i].start,
@@ -763,7 +763,7 @@ io_read (SoupServerMessageIOHTTP1 *server_io,
                          * closed when we're done.
                          */
                         soup_server_message_set_status (msg, status, NULL);
-                        soup_message_headers_append_common (request_headers, SOUP_HEADER_CONNECTION, "close", TRUE);
+                        soup_message_headers_append_common (request_headers, SOUP_HEADER_CONNECTION, "close", SOUP_HEADER_VALUE_TRUSTED);
                         io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
                         break;
                 }
