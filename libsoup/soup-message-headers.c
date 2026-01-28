@@ -284,10 +284,10 @@ static inline gboolean is_valid_header_value (const char *value)
 }
 
 gboolean
-soup_message_headers_append_common (SoupMessageHeaders *hdrs,
-                                    SoupHeaderName      name,
-                                    const char         *value,
-                                    gboolean            trusted_value)
+soup_message_headers_append_common (SoupMessageHeaders    *hdrs,
+                                    SoupHeaderName         name,
+                                    const char            *value,
+                                    SoupHeaderValueTrusted trusted_value)
 {
         SoupCommonHeader header;
         if (name == SOUP_HEADER_HOST && soup_message_headers_get_one (hdrs, "Host")) {
@@ -295,7 +295,7 @@ soup_message_headers_append_common (SoupMessageHeaders *hdrs,
                 return FALSE;
         }
 
-        if (!trusted_value && !is_valid_header_value (value)) {
+        if (trusted_value == SOUP_HEADER_VALUE_UNTRUSTED && !is_valid_header_value (value)) {
                 g_warning ("soup_message_headers_append: Rejecting bad value '%s'", value);
                 return FALSE;
         }
@@ -331,7 +331,7 @@ soup_message_headers_append_internal (SoupMessageHeaders *hdrs,
 
         header_name = soup_header_name_from_string (name);
         if (header_name != SOUP_HEADER_UNKNOWN)
-                return soup_message_headers_append_common (hdrs, header_name, value, FALSE);
+                return soup_message_headers_append_common (hdrs, header_name, value, SOUP_HEADER_VALUE_UNTRUSTED);
 
         if (!is_valid_header_value (value)) {
                 g_warning ("soup_message_headers_append: Rejecting bad value '%s'", value);
@@ -391,10 +391,10 @@ soup_message_headers_append_untrusted_data (SoupMessageHeaders *hdrs,
 }
 
 void
-soup_message_headers_replace_common (SoupMessageHeaders *hdrs,
-                                     SoupHeaderName      name,
-                                     const char         *value,
-                                     gboolean            trusted_value)
+soup_message_headers_replace_common (SoupMessageHeaders    *hdrs,
+                                     SoupHeaderName         name,
+                                     const char            *value,
+                                     SoupHeaderValueTrusted trusted_value)
 {
         soup_message_headers_remove_common (hdrs, name);
         soup_message_headers_append_common (hdrs, name, value, trusted_value);
@@ -1029,7 +1029,7 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
 
 	case SOUP_ENCODING_CHUNKED:
 		soup_message_headers_remove_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
-		soup_message_headers_replace_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING, "chunked", TRUE);
+		soup_message_headers_replace_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING, "chunked", SOUP_HEADER_VALUE_TRUSTED);
 		break;
 
 	default:
@@ -1092,7 +1092,7 @@ soup_message_headers_set_content_length (SoupMessageHeaders *hdrs,
 	g_snprintf (length, sizeof (length), "%" G_GUINT64_FORMAT,
 		    content_length);
 	soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
-	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_LENGTH, length, TRUE);
+	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_LENGTH, length, SOUP_HEADER_VALUE_TRUSTED);
 }
 
 /**
@@ -1145,7 +1145,7 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
 	g_return_if_fail ((expectations & ~SOUP_EXPECTATION_CONTINUE) == 0);
 
 	if (expectations & SOUP_EXPECTATION_CONTINUE)
-		soup_message_headers_replace_common (hdrs, SOUP_HEADER_EXPECT, "100-continue", TRUE);
+		soup_message_headers_replace_common (hdrs, SOUP_HEADER_EXPECT, "100-continue", SOUP_HEADER_VALUE_TRUSTED);
 	else
 		soup_message_headers_remove_common (hdrs, SOUP_HEADER_EXPECT);
 }
@@ -1383,7 +1383,7 @@ soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
 		}
 	}
 
-	soup_message_headers_replace_common (hdrs, SOUP_HEADER_RANGE, header->str, TRUE);
+	soup_message_headers_replace_common (hdrs, SOUP_HEADER_RANGE, header->str, SOUP_HEADER_VALUE_TRUSTED);
 	g_string_free (header, TRUE);
 }
 
@@ -1504,7 +1504,7 @@ soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
 		header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
 					  G_GINT64_FORMAT "/*", start, end);
 	}
-	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header, TRUE);
+	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header, SOUP_HEADER_VALUE_TRUSTED);
 	g_free (header);
 }
 
@@ -1579,7 +1579,7 @@ set_content_foo (SoupMessageHeaders *hdrs,
 		}
 	}
 
-	soup_message_headers_replace_common (hdrs, header_name, str->str, FALSE);
+	soup_message_headers_replace_common (hdrs, header_name, str->str, SOUP_HEADER_VALUE_UNTRUSTED);
 	g_string_free (str, TRUE);
 }
 

@@ -581,6 +581,6 @@ soup_auth_domain_challenge (SoupAuthDomain    *domain,
                                             priv->proxy ?
                                             SOUP_HEADER_PROXY_AUTHENTICATE :
                                             SOUP_HEADER_WWW_AUTHENTICATE,
-                                            challenge, FALSE);
+                                            challenge, SOUP_HEADER_VALUE_UNTRUSTED);
 	g_free (challenge);
 }

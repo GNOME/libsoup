@@ -988,7 +988,8 @@ soup_cookies_to_response (GSList *cookies, SoupMessage *msg)
 	while (cookies) {
 		serialize_cookie (cookies->data, header, TRUE);
 		soup_message_headers_append_common (soup_message_get_response_headers (msg),
-                                                    SOUP_HEADER_SET_COOKIE, header->str, TRUE);
+                                                    SOUP_HEADER_SET_COOKIE, header->str,
+                                                    SOUP_HEADER_VALUE_TRUSTED);
 		g_string_truncate (header, 0);
 		cookies = cookies->next;
 	}
@@ -1019,7 +1020,8 @@ soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
 		cookies = cookies->next;
 	}
 	soup_message_headers_replace_common (soup_message_get_request_headers (msg),
-                                             SOUP_HEADER_COOKIE, header->str, TRUE);
+                                             SOUP_HEADER_COOKIE, header->str,
+                                             SOUP_HEADER_VALUE_TRUSTED);
 	g_string_free (header, TRUE);
 }
 

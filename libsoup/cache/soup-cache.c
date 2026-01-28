@@ -1471,11 +1471,11 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	if (last_modified)
 		soup_message_headers_append_common (soup_message_get_request_headers (msg),
                                                     SOUP_HEADER_IF_MODIFIED_SINCE,
-                                                    last_modified, TRUE);
+                                                    last_modified, SOUP_HEADER_VALUE_TRUSTED);
 	if (etag)
 		soup_message_headers_append_common (soup_message_get_request_headers (msg),
                                                     SOUP_HEADER_IF_NONE_MATCH,
-                                                    etag, TRUE);
+                                                    etag, SOUP_HEADER_VALUE_TRUSTED);
 
 	return msg;
 }

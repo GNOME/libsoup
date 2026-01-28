@@ -10,13 +10,18 @@
 
 G_BEGIN_DECLS
 
+typedef enum {
+        SOUP_HEADER_VALUE_UNTRUSTED,
+        SOUP_HEADER_VALUE_TRUSTED
+} SoupHeaderValueTrusted;
+
 gboolean    soup_message_headers_append_untrusted_data  (SoupMessageHeaders *hdrs,
                                                          const char         *name,
                                                          const char         *value);
 gboolean    soup_message_headers_append_common          (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name,
                                                          const char         *value,
-                                                         gboolean            trusted_value);
+                                                         SoupHeaderValueTrusted trusted_value);
 const char *soup_message_headers_get_one_common         (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name);
 const char *soup_message_headers_get_list_common        (SoupMessageHeaders *hdrs,
@@ -26,7 +31,7 @@ void        soup_message_headers_remove_common          (SoupMessageHeaders *hdr
 void        soup_message_headers_replace_common         (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name,
                                                          const char         *value,
-                                                         gboolean            trusted_value);
+                                                         SoupHeaderValueTrusted trusted_value);
 gboolean    soup_message_headers_header_contains_common (SoupMessageHeaders *hdrs,
                                                          SoupHeaderName      name,
                                                          const char         *token);
