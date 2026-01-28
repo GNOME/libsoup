@@ -594,6 +594,15 @@ soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 }
 
 static void
+soup_logger_print_decorative_newline (SoupLogger *logger)
+{
+	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
+	if (!priv->printer) {
+		g_print("\n");
+	}
+}
+
+static void
 soup_logger_print_basic_auth (SoupLogger *logger, const char *value)
 {
 	char *decoded, *decoded_utf8, *p;
@@ -697,17 +706,20 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	}
 
 	if (log_level == SOUP_LOGGER_LOG_HEADERS)
-		return;
+		goto print_newline_and_return;
 
 	/* will be logged in get_informational */
 	if (soup_message_headers_get_expectations (soup_message_get_request_headers (msg)) == SOUP_EXPECTATION_CONTINUE)
-		return;
+		goto print_newline_and_return;
 
 	if (!g_hash_table_steal_extended (priv->request_bodies, msg, NULL, (gpointer *)&body))
-		return;
+		goto print_newline_and_return;
 
 	soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '>', "\n%s", body->str);
 	g_string_free (body, TRUE);
+
+print_newline_and_return:
+	soup_logger_print_decorative_newline (logger);
 }
 
 static void
@@ -742,7 +754,7 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 			   soup_logger_get_id (logger, msg), msg);
 
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
-		return;
+		goto print_newline_and_return;
 
 	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
@@ -751,13 +763,16 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 	}
 
 	if (log_level == SOUP_LOGGER_LOG_HEADERS)
-		return;
+		goto print_newline_and_return;
 
 	if (!g_hash_table_steal_extended (priv->response_bodies, msg, NULL, (gpointer *)&body))
-		return;
+		goto print_newline_and_return;
 
 	soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '<', "\n%s", body->str);
 	g_string_free (body, TRUE);
+
+print_newline_and_return:
+	soup_logger_print_decorative_newline (logger);
 }
 
 static void
@@ -774,7 +789,6 @@ finished (SoupMessage *msg, gpointer user_data)
 
         g_mutex_lock (&priv->mutex);
 	print_response (logger, msg);
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
         g_mutex_unlock (&priv->mutex);
 }
 
@@ -796,7 +810,6 @@ got_informational (SoupMessage *msg, gpointer user_data)
 
         g_signal_handlers_disconnect_by_func (msg, finished, logger);
         print_response (logger, msg);
-        soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
         if (!g_hash_table_steal_extended (priv->response_bodies, msg, NULL, (gpointer *)&body)) {
                 g_mutex_unlock (&priv->mutex);
@@ -812,7 +825,7 @@ got_informational (SoupMessage *msg, gpointer user_data)
                                            '>', "%s", body->str);
                 }
 
-                soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
+                soup_logger_print_decorative_newline (logger);
         }
 
         g_string_free (body, TRUE);
@@ -831,7 +844,6 @@ got_body (SoupMessage *msg, gpointer user_data)
 	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 
 	print_response (logger, msg);
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
 
         g_mutex_unlock (&priv->mutex);
 }
@@ -867,7 +879,6 @@ wrote_body (SoupMessage *msg, gpointer user_data)
 
         g_mutex_lock (&priv->mutex);
 	print_request (logger, msg, socket, restarted);
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "\n");
         g_mutex_unlock (&priv->mutex);
 }
 
