@@ -557,12 +557,28 @@ static const NtlmTest ntlmv2_tests[] = {
 	{ "/ntlm/v2/basic", "alice", FALSE, BUILTIN }
 };
 
+static gboolean
+can_do_ntlm_test (void)
+{
+	GHmac *hmac = g_hmac_new (G_CHECKSUM_MD5, (const unsigned char *)"abc123", sizeof ("abc123"));
+	if (hmac) {
+		g_hmac_unref (hmac);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static void
 do_ntlm_test (TestServer *ts,
 	      gconstpointer data)
 {
 	const NtlmTest *test = data;
 	gboolean use_builtin_ntlm = TRUE;
+
+	if (!can_do_ntlm_test ()) {
+		g_test_skip ("NTLM authentication not available (likely due to FIPS mode)");
+		return;
+	}
 
 	switch (test->ntlm_type) {
 	case BUILTIN:
@@ -638,6 +654,11 @@ do_retrying_test (TestServer *ts,
 	gboolean retried = FALSE;
 
 	g_test_bug ("693222");
+
+	if (!can_do_ntlm_test ()) {
+		g_test_skip ("NTLM authentication not available (likely due to FIPS mode)");
+		return;
+	}
 
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
 
