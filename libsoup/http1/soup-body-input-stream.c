@@ -176,11 +176,13 @@ soup_body_input_stream_read_chunked (SoupBodyInputStream  *bistream,
 again:
 	switch (priv->chunked_state) {
 	case SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE:
-		nread = soup_filter_input_stream_read_line (
-			fstream, metabuf, sizeof (metabuf), blocking,
+		nread = soup_filter_input_stream_read_until (
+			fstream, metabuf, sizeof (metabuf),
+                        "\r\n", 2, blocking, TRUE,
 			&got_line, cancellable, error);
 		if (nread < 0)
 			return nread;
+
 		if (nread == 0 || !got_line) {
 			if (error && *error == NULL) {
 				g_set_error_literal (error, G_IO_ERROR,
@@ -210,9 +212,10 @@ again:
 		return nread;
 
 	case SOUP_BODY_INPUT_STREAM_STATE_CHUNK_END:
-		nread = soup_filter_input_stream_read_line (
+		nread = soup_filter_input_stream_read_until (
 			SOUP_FILTER_INPUT_STREAM (priv->base_stream),
-			metabuf, sizeof (metabuf), blocking,
+			metabuf, sizeof (metabuf),
+                        "\r\n", 2, blocking, TRUE,
 			&got_line, cancellable, error);
 		if (nread < 0)
 			return nread;
@@ -229,8 +232,9 @@ again:
 		break;
 
 	case SOUP_BODY_INPUT_STREAM_STATE_TRAILERS:
-		nread = soup_filter_input_stream_read_line (
-			fstream, metabuf, sizeof (metabuf), blocking,
+		nread = soup_filter_input_stream_read_until (
+			fstream, metabuf, sizeof (metabuf),
+                        "\r\n", 2, blocking, TRUE,
 			&got_line, cancellable, error);
 		if (nread < 0)
 			return nread;
@@ -244,7 +248,7 @@ again:
 			return -1;
 		}
 
-		if ((nread == 2 && strncmp (metabuf, "\r\n", nread) == 0) || (nread == 1 && strncmp (metabuf, "\n", nread) == 0)) {
+		if (nread == 2 && strncmp (metabuf, "\r\n", nread) == 0) {
 			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_DONE;
 			priv->eof = TRUE;
 		}
