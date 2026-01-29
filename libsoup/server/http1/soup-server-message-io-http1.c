@@ -654,6 +654,14 @@ parse_headers (SoupServerMessage *msg,
                         return SOUP_STATUS_BAD_REQUEST;
         }
 
+        /* A server MAY reject a request that contains both Content-Length and
+         * Transfer-Encoding or process such a request in accordance with the
+         * Transfer-Encoding alone. Regardless, the server MUST close the connection
+         * after responding to such a request to avoid the potential attacks
+         */
+        if (*encoding == SOUP_ENCODING_CHUNKED && soup_message_headers_get_one_common (request_headers, SOUP_HEADER_CONTENT_LENGTH))
+                soup_message_headers_replace_common (request_headers, SOUP_HEADER_CONNECTION, "close", SOUP_HEADER_VALUE_TRUSTED);
+
         /* Generate correct context for request */
         req_host = soup_message_headers_get_one_common (request_headers, SOUP_HEADER_HOST);
         if (req_host && strchr (req_host, '/')) {

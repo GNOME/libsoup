@@ -1379,7 +1379,9 @@ do_chunked_test (ServerData *sd, gconstpointer test_data)
                 const char *description;
                 const char *test;
         } tests[] = {
-                { "Lone LF", "Transfer-Encoding: chunked\r\n\r\n5;ext\n data\r\n0\r\n\r\n" },
+                { "Single LF", "Transfer-Encoding: chunked\r\n\r\n5;ext\n data\r\n0\r\n\r\n" },
+                { "Content-Length and Transfer-Encoding", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n" },
+                { "Content-Length and Transfer-Encoding with keep alive connection", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n0\r\n\r\n" },
         };
 
         sd->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
