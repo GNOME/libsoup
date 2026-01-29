@@ -150,19 +150,8 @@ soup_message_headers_set (SoupMessageHeaders *hdrs,
 {
         switch (name) {
         case SOUP_HEADER_CONTENT_LENGTH:
-                if (hdrs->encoding == SOUP_ENCODING_CHUNKED)
-                        return;
-
-                if (value) {
-                        char *end;
-
-                        hdrs->content_length = g_ascii_strtoull (value, &end, 10);
-                        if (*end)
-                                hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
-                        else
-                                hdrs->encoding = SOUP_ENCODING_CONTENT_LENGTH;
-                } else
-                        hdrs->encoding = -1;
+        case SOUP_HEADER_TRANSFER_ENCODING:
+                hdrs->encoding = -1;
                 break;
         case SOUP_HEADER_CONTENT_TYPE:
                 g_clear_pointer (&hdrs->content_type, g_free);
@@ -187,21 +176,6 @@ soup_message_headers_set (SoupMessageHeaders *hdrs,
                                 hdrs->expectations = SOUP_EXPECTATION_UNRECOGNIZED;
                 } else
                         hdrs->expectations = 0;
-                break;
-        case SOUP_HEADER_TRANSFER_ENCODING:
-                if (value) {
-                        /* "identity" is a wrong value according to RFC errata 408,
-                         * and RFC 7230 does not list it as valid transfer-coding.
-                         * Nevertheless, the obsolete RFC 2616 stated "identity"
-                         * as valid, so we can't handle it as unrecognized here
-                         * for compatibility reasons.
-                         */
-                        if (g_ascii_strcasecmp (value, "chunked") == 0)
-                                hdrs->encoding = SOUP_ENCODING_CHUNKED;
-                        else if (g_ascii_strcasecmp (value, "identity") != 0)
-                                hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
-                } else
-                        hdrs->encoding = -1;
                 break;
         default:
                 break;
@@ -968,32 +942,52 @@ soup_message_headers_foreach (SoupMessageHeaders           *hdrs,
 SoupEncoding
 soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
 {
-	const char *header;
+	const char *content_length;
+        const char *transfer_encoding;
 
 	g_return_val_if_fail (hdrs, SOUP_ENCODING_UNRECOGNIZED);
 
 	if (hdrs->encoding != -1)
 		return hdrs->encoding;
 
-	/* If Transfer-Encoding was set, hdrs->encoding would already
-	 * be set. So we don't need to check that possibility.
-	 */
-	header = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
-	if (header) {
-                soup_message_headers_set (hdrs, SOUP_HEADER_CONTENT_LENGTH, header);
-		if (hdrs->encoding != -1)
-			return hdrs->encoding;
-	}
+        /* Transfer-Encoding is checked first because it overrides the Content-Length */
+        transfer_encoding = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
+        if (transfer_encoding) {
+                /* "identity" is a wrong value according to RFC errata 408,
+                 * and RFC 7230 does not list it as valid transfer-coding.
+                 * Nevertheless, the obsolete RFC 2616 stated "identity"
+                 * as valid, so we can't handle it as unrecognized here
+                 * for compatibility reasons.
+                 */
+                if (g_ascii_strcasecmp (transfer_encoding, "chunked") == 0)
+                        hdrs->encoding = SOUP_ENCODING_CHUNKED;
+                else if (g_ascii_strcasecmp (transfer_encoding, "identity") != 0)
+                        hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
+        } else {
+                content_length = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
+                if (content_length) {
+                        char *end;
 
-	/* Per RFC 2616 4.4, a response body that doesn't indicate its
-	 * encoding otherwise is terminated by connection close, and a
-	 * request that doesn't indicate otherwise has no body. Note
-	 * that SoupMessage calls soup_message_headers_set_encoding()
-	 * to override the response body default for our own
-	 * server-side messages.
-	 */
-	hdrs->encoding = (hdrs->type == SOUP_MESSAGE_HEADERS_RESPONSE) ?
-		SOUP_ENCODING_EOF : SOUP_ENCODING_NONE;
+                        hdrs->content_length = g_ascii_strtoull (content_length, &end, 10);
+                        if (*end)
+                                hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
+                        else
+                                hdrs->encoding = SOUP_ENCODING_CONTENT_LENGTH;
+                }
+        }
+
+        if (hdrs->encoding == -1) {
+                /* Per RFC 2616 4.4, a response body that doesn't indicate its
+                 * encoding otherwise is terminated by connection close, and a
+                 * request that doesn't indicate otherwise has no body. Note
+                 * that SoupMessage calls soup_message_headers_set_encoding()
+                 * to override the response body default for our own
+                 * server-side messages.
+                 */
+                hdrs->encoding = (hdrs->type == SOUP_MESSAGE_HEADERS_RESPONSE) ?
+                        SOUP_ENCODING_EOF : SOUP_ENCODING_NONE;
+        }
+
 	return hdrs->encoding;
 }
 
