@@ -456,6 +456,17 @@ soup_auth_ntlm_authenticate (SoupAuth *auth, const char *username,
 }
 
 static gboolean
+soup_auth_ntlm_can_authenticate (SoupAuth *auth)
+{
+	GHmac *hmac = g_hmac_new (G_CHECKSUM_MD5, (const unsigned char *)"abc123", sizeof ("abc123"));
+	if (hmac) {
+		g_hmac_unref (hmac);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static gboolean
 soup_auth_ntlm_is_authenticated (SoupAuth *auth)
 {
 	SoupAuthNTLM *auth_ntlm = SOUP_AUTH_NTLM (auth);
@@ -587,6 +598,7 @@ soup_auth_ntlm_class_init (SoupAuthNTLMClass *auth_ntlm_class)
 
 	auth_class->get_protection_space = soup_auth_ntlm_get_protection_space;
 	auth_class->authenticate = soup_auth_ntlm_authenticate;
+	auth_class->can_authenticate = soup_auth_ntlm_can_authenticate;
 	auth_class->is_authenticated = soup_auth_ntlm_is_authenticated;
 
 	connauth_class->create_connection_state = soup_auth_ntlm_create_connection_state;
