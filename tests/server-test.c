@@ -1355,6 +1355,71 @@ do_idle_connection_closed_test (ServerData *sd, gconstpointer test_data)
                 g_main_context_iteration (NULL, FALSE);
 }
 
+static void
+server_chunked_hundler (SoupServer        *server,
+                        SoupServerMessage *msg,
+                        const char        *path,
+                        GHashTable        *query,
+                        gpointer           data)
+{
+        g_assert_true (soup_server_message_get_method (msg) == SOUP_METHOD_POST);
+        g_assert_cmpstr (path, ==, "/valid");
+
+        soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+        soup_server_message_set_response (msg, "text/plain", SOUP_MEMORY_STATIC, "index", 5);
+}
+
+#define CHUNKED_FORMAT_REQUEST "POST /valid HTTP/1.1\r\nHost: 127.0.0.1\r\n%sGET /invalid HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n"
+
+static void
+do_chunked_test (ServerData *sd, gconstpointer test_data)
+{
+        gint i;
+        struct {
+                const char *description;
+                const char *test;
+        } tests[] = {
+                { "Lone LF", "Transfer-Encoding: chunked\r\n\r\n5;ext\n data\r\n0\r\n\r\n" },
+        };
+
+        sd->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+        sd->base_uri = soup_test_server_get_uri (sd->server, "http", NULL);
+        server_add_handler (sd, NULL, server_chunked_hundler, NULL, NULL);
+
+        for (i = 0; i < G_N_ELEMENTS (tests); i++) {
+                GSocketClient *client;
+                GSocketConnection *conn;
+                GInputStream *input;
+                GOutputStream *output;
+                char *request;
+                char buffer[4096];
+                gssize nread;
+                GError *error = NULL;
+
+                debug_printf (1, "  %s\n", tests[i].description);
+
+                client = g_socket_client_new ();
+                conn = g_socket_client_connect_to_host (client, g_uri_get_host (sd->base_uri), g_uri_get_port (sd->base_uri), NULL, &error);
+                g_assert_no_error (error);
+
+                request = g_strdup_printf (CHUNKED_FORMAT_REQUEST, tests[i].test);
+
+                output = g_io_stream_get_output_stream (G_IO_STREAM (conn));
+                g_output_stream_write_all (output, request, strlen (request), NULL, NULL, NULL);
+                g_output_stream_close (output, NULL, NULL);
+                g_socket_shutdown (g_socket_connection_get_socket (G_SOCKET_CONNECTION (conn)), FALSE, TRUE, &error);
+
+                input = g_io_stream_get_input_stream (G_IO_STREAM (conn));
+                do {
+                        nread = g_input_stream_read (input, buffer, sizeof(buffer), NULL, NULL);
+                } while (nread > 0);
+
+                g_free (request);
+                g_object_unref (conn);
+                g_object_unref (client);
+        }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1395,6 +1460,8 @@ main (int argc, char **argv)
 		    server_setup_nohandler, do_early_multi_test, server_teardown);
 	g_test_add ("/server/steal/CONNECT", ServerData, NULL,
 		    server_setup, do_steal_connect_test, server_teardown);
+        g_test_add ("/server/chunked", ServerData, NULL,
+                    NULL, do_chunked_test, server_teardown);
 
 	ret = g_test_run ();
 
