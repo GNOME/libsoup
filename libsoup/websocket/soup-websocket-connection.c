@@ -945,6 +945,8 @@ process_contents (SoupWebsocketConnection *self,
 		}
 	} else if (priv->close_received) {
 		g_debug ("received message after close was received");
+        } else if (priv->close_sent && priv->dirty_close) {
+                g_debug ("received message after close due to error was sent");
 	} else {
 		/* A message frame */
 

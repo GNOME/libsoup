@@ -2363,6 +2363,34 @@ test_connection_error (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+test_fragment_assembly_corruption (Test *test, gconstpointer data)
+{
+        GBytes *received = NULL;
+        gsize written;
+        const char fragments[] =
+                "\x01\x10START_FRAGMENT_1" /* valid */
+                "\x02\x10WRONG_OPCODE_XXX" /* Wrong opcode! */
+                "\x00\x08INJECTED"
+                "\x80\x05_DATA"; /* Final fragment */
+        GError *error = NULL;
+
+        g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+        g_signal_connect (test->client, "message", G_CALLBACK (on_text_message), &received);
+
+        g_output_stream_write_all (g_io_stream_get_output_stream (test->raw_server),
+                                   fragments, sizeof (fragments) - 1, &written, NULL, &error);
+        g_assert_no_error (error);
+        g_assert_cmpuint (written, ==, sizeof (fragments) - 1);
+
+        WAIT_UNTIL (error != NULL || received != NULL);
+
+        g_assert_null (received);
+        g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR);
+        g_clear_error (&error);
+        g_clear_pointer (&received, g_bytes_unref);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -2648,6 +2676,11 @@ main (int argc,
                     teardown_soup_connection);
 
 	g_test_add_func ("/websocket/soup/connection-error", test_connection_error);
+
+        g_test_add ("/websocket/direct/fragment-assembly-corruption", Test, NULL,
+                    setup_half_direct_connection,
+                    test_fragment_assembly_corruption,
+                    teardown_direct_connection);
 
 	ret = g_test_run ();
 
