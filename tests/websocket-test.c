@@ -2391,6 +2391,41 @@ test_fragment_assembly_corruption (Test *test, gconstpointer data)
         g_clear_pointer (&received, g_bytes_unref);
 }
 
+static void
+test_cve_2026_0716 (Test *test,
+                    gconstpointer unused)
+{
+	GError *error = NULL;
+	GIOStream *io;
+	gsize written;
+	const char *frame;
+	gboolean close_event = FALSE;
+
+	g_signal_handlers_disconnect_by_func (test->server, on_error_not_reached, NULL);
+	g_signal_connect (test->server, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	io = soup_websocket_connection_get_io_stream (test->client);
+
+	soup_websocket_connection_set_max_incoming_payload_size (test->server, 0);
+
+	// Malicious masked frame header (10-byte header + 4-byte mask) */
+	frame = "\x82\xff\xff\xff\xff\xff\xff\xff\xff\xf6\xaa\xbb\xcc\xdd";
+	if (!g_output_stream_write_all (g_io_stream_get_output_stream (io),
+					frame, 14, &written, NULL, NULL))
+		g_assert_cmpstr ("This code", ==, "should not be reached");
+	g_assert_cmpuint (written, ==, 14);
+
+	WAIT_UNTIL (error != NULL);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
+	g_clear_error (&error);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert_true (close_event);
+
+	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
+}
+
 int
 main (int argc,
       char *argv[])
@@ -2681,6 +2716,15 @@ main (int argc,
                     setup_half_direct_connection,
                     test_fragment_assembly_corruption,
                     teardown_direct_connection);
+
+	g_test_add ("/websocket/direct/cve-2026-0716", Test, NULL,
+		    setup_direct_connection,
+		    test_cve_2026_0716,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/cve-2026-0716", Test, NULL,
+		    setup_soup_connection,
+		    test_cve_2026_0716,
+		    teardown_soup_connection);
 
 	ret = g_test_run ();
 
