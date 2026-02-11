@@ -524,6 +524,10 @@ sniff_unknown (SoupContentSniffer *sniffer, GBytes *buffer,
 		if (!sniff_scriptable && type_row->scriptable)
 			continue;
 
+		/* Ensure we have data to sniff - prevents underflow in resource_length - 1 */
+		if (resource_length == 0)
+			continue;
+
 		if (type_row->has_ws) {
 			guint index_stream = 0;
 			guint index_pattern = 0;
