@@ -91,7 +91,7 @@ tests = [
   {'name': 'http2-body-stream', 'slow': true},
   {'name': 'hsts'},
   {'name': 'hsts-db'},
-  {'name': 'logger'},
+  {'name': 'logger', 'slow': true},
   {'name': 'misc'},
   {'name': 'multipart'},
   {'name': 'multithread'},

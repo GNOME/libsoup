@@ -561,22 +561,24 @@ soup_logger_set_id (SoupLogger *logger, gpointer object)
 	return GPOINTER_TO_UINT (id);
 }
 
-static void soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
-			       char direction, const char *format, ...) G_GNUC_PRINTF (4, 5);
+static void
+soup_logger_print_new_line (SoupLogger *logger, SoupLoggerLogLevel level, char direction)
+{
+        SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
+
+        if (priv->printer)
+                priv->printer (logger, level, direction, "", priv->printer_data);
+        else
+                printf ("%c \n", direction);
+}
 
 static void
-soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
-		   char direction, const char *format, ...)
+soup_logger_print_lines (SoupLogger *logger, SoupLoggerLogLevel level, char direction, char *data)
 {
-	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
-	va_list args;
-	char *data, *line, *end;
+        SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
+        char *line, *end;
 
-	va_start (args, format);
-	data = g_strdup_vprintf (format, args);
-	va_end (args);
-
-	line = data;
+        line = data;
 	do {
 		end = strchr (line, '\n');
 		if (end)
@@ -589,7 +591,23 @@ soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 
 		line = end + 1;
 	} while (end && *line);
+}
 
+static void soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
+			       char direction, const char *format, ...) G_GNUC_PRINTF (4, 5);
+
+static void
+soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
+		   char direction, const char *format, ...)
+{
+	va_list args;
+	char *data;
+
+	va_start (args, format);
+	data = g_strdup_vprintf (format, args);
+	va_end (args);
+
+        soup_logger_print_lines (logger, level, direction, data);
 	g_free (data);
 }
 
@@ -715,7 +733,8 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (!g_hash_table_steal_extended (priv->request_bodies, msg, NULL, (gpointer *)&body))
 		goto print_newline_and_return;
 
-	soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '>', "\n%s", body->str);
+        soup_logger_print_new_line (logger, SOUP_LOGGER_LOG_BODY, '>');
+	soup_logger_print_lines (logger, SOUP_LOGGER_LOG_BODY, '>', body->str);
 	g_string_free (body, TRUE);
 
 print_newline_and_return:
@@ -768,7 +787,8 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 	if (!g_hash_table_steal_extended (priv->response_bodies, msg, NULL, (gpointer *)&body))
 		goto print_newline_and_return;
 
-	soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '<', "\n%s", body->str);
+        soup_logger_print_new_line (logger, SOUP_LOGGER_LOG_BODY, '<');
+	soup_logger_print_lines (logger, SOUP_LOGGER_LOG_BODY, '<', body->str);
 	g_string_free (body, TRUE);
 
 print_newline_and_return:
@@ -820,10 +840,8 @@ got_informational (SoupMessage *msg, gpointer user_data)
                 soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
                                    "[Now sending request body...]");
 
-                if (log_level == SOUP_LOGGER_LOG_BODY) {
-                        soup_logger_print (logger, SOUP_LOGGER_LOG_BODY,
-                                           '>', "%s", body->str);
-                }
+                if (log_level == SOUP_LOGGER_LOG_BODY)
+                        soup_logger_print_lines (logger, SOUP_LOGGER_LOG_BODY, '>', body->str);
 
                 soup_logger_print_decorative_newline (logger);
         }
