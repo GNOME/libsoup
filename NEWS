@@ -1,3 +1,38 @@
+Changes in libsoup from 3.6.5 to 3.6.6:
+
+* websocket: Fix out-of-bounds read in process_frame [Mike Gorse]
+* Check nulls returned by soup_date_time_new_from_http_string() [Adrian Perez de Castro]
+* Numerous fixes to handling of Range headers [Philip Withnall]
+* server: close the connection after responsing a request containing Content-Length and Transfer-Encoding [Carlos Garcia Campos]
+* Use CRLF as line boundary when parsing chunked enconding data [Carlos Garcia Campos]
+* websocket: do not accept messages frames after closing due to an error [Carlos Garcia Campos]
+* Sanitize filename of content disposition header values [Carlos Garcia Campos]
+* Always validate the headers value when coming from untrusted source [Carlos Garcia Campos]
+* uri-utils: do host validation when checking if a GUri is valid [Carlos Garcia Campos]
+* multipart: check length of bytes read soup_filter_input_stream_read_until() [Carlos Garcia Campos]
+* message-headers: Reject duplicate Host headers [Michael Catanzaro]
+* server: null-check soup_date_time_to_string() [Michael Catanzaro]
+* auth-digest: fix crash in soup_auth_digest_get_protection_space() [Michael Catanzaro]
+* session: fix 'heap-use-after-free' caused by 'finishing' queue item twice [Eugene Mutavchi]
+* cookies: Avoid expires attribute if date is invalid [Alynx Zhou]
+* http1: Set EOF flag once content-length bytes have been read [Marvin W]
+* date-utils: Add value checks for date/time parsing [Milan Crha]
+* multipart: Fix multiple boundry limits [Milan Crha]
+* Fixed multiple possible memory leaks [Milan Crha]
+* message-headers: Correct merge of ranges [Milan Crha]
+* body-input-stream: Correct chunked trailers end detection [Milan Crha]
+* server-http2: Correctly validate URIs [Milan Crha]
+* multipart: Fix read out of buffer bounds under soup_multipart_new_from_message() [Milan Crha]
+* headers: Ensure Request-Line comprises entire first line [Brian Yurko]
+* tests: Fix MSVC build error [Seungha Yang]
+* Fix possible deadlock on init from gmodule usage [Nirbheek Chauhan]
+
+* Add Cornish translation [Flynn Peck]
+* Update Turkish translation [Sabri Ünal]
+* Update Uighur translation [Abduqadir Abliz]
+* Update Romanian translation [Antonio Marin]
+* Add Uzbek (Latin) translation [Oyatillo Mamirov]
+* Add Kazakh translation [Baurzhan Muftakhidinov]
 
 Changes in libsoup from 3.6.4 to 3.6.5:
 
