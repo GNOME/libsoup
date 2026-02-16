@@ -69,6 +69,8 @@ typedef struct {
         GHashTable *messages;
 
         guint in_callback;
+        guint protected;
+        gboolean destroyed;
 } SoupServerMessageIOHTTP2;
 
 static void soup_server_message_io_http2_send_response (SoupServerMessageIOHTTP2 *io,
@@ -146,6 +148,8 @@ soup_server_message_io_http2_destroy (SoupServerMessageIO *iface)
 {
         SoupServerMessageIOHTTP2 *io = (SoupServerMessageIOHTTP2 *)iface;
 
+        io->destroyed = TRUE;
+
         if (io->read_source) {
                 g_source_destroy (io->read_source);
                 g_source_unref (io->read_source);
@@ -160,10 +164,14 @@ soup_server_message_io_http2_destroy (SoupServerMessageIO *iface)
         }
 
         g_clear_object (&io->iostream);
-        g_clear_pointer (&io->session, nghttp2_session_del);
-        g_clear_pointer (&io->messages, g_hash_table_unref);
+        io->istream = NULL;
+        io->ostream = NULL;
 
-        g_free (io);
+        if (io->protected == 0) {
+                g_clear_pointer (&io->session, nghttp2_session_del);
+                g_clear_pointer (&io->messages, g_hash_table_unref);
+                g_free (io);
+        }
 }
 
 static void
@@ -321,7 +329,33 @@ static const SoupServerMessageIOFuncs io_funcs = {
         soup_server_message_io_http2_is_paused
 };
 
+static void
+soup_server_message_io_http2_protect (SoupServerMessageIOHTTP2 *io)
+{
+        io->protected++;
+        g_object_ref (io->conn);
+}
+
 static gboolean
+soup_server_message_io_http2_unprotect (SoupServerMessageIOHTTP2 *io)
+{
+        g_object_unref (io->conn);
+
+        if (--io->protected > 0)
+                return FALSE;
+
+        if (io->destroyed) {
+                g_clear_pointer (&io->session, nghttp2_session_del);
+                g_clear_pointer (&io->messages, g_hash_table_unref);
+                g_free (io);
+
+                return TRUE;
+        }
+
+        return FALSE;
+}
+
+static void
 io_write (SoupServerMessageIOHTTP2 *io,
           GError                  **error)
 {
@@ -336,51 +370,57 @@ io_write (SoupServerMessageIOHTTP2 *io,
                 if (io->write_buffer_size == 0) {
                         /* Done */
                         io->write_buffer = NULL;
-                        return TRUE;
+                        return;
                 }
         }
+
+        if (!io->ostream)
+                return;
 
         gssize ret = g_pollable_stream_write (io->ostream,
                                               io->write_buffer + io->written_bytes,
                                               io->write_buffer_size - io->written_bytes,
                                               FALSE, NULL, error);
-        if (ret < 0)
-                return FALSE;
-
-        io->written_bytes += ret;
-        return TRUE;
+        if (ret > 0)
+                io->written_bytes += ret;
 }
 
 static gboolean
 io_write_ready (GObject                  *stream,
                 SoupServerMessageIOHTTP2 *io)
 {
-        SoupServerConnection *conn = io->conn;
         GError *error = NULL;
 
-        g_object_ref (conn);
+        soup_server_message_io_http2_protect (io);
 
-        while (!error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && nghttp2_session_want_write (io->session))
+        while (!error) {
+                if (io->destroyed)
+                        break;
+
+                if (!nghttp2_session_want_write (io->session))
+                        break;
+
                 io_write (io, &error);
+        }
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
-                g_object_unref (conn);
+                soup_server_message_io_http2_unprotect (io);
                 return G_SOURCE_CONTINUE;
         }
 
-        if (soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io) {
+        if (!io->destroyed) {
                 if (error)
                         h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
 
                 g_clear_pointer (&io->write_source, g_source_unref);
 
                 if (error || (!nghttp2_session_want_read (io->session) && !nghttp2_session_want_write (io->session)))
-                        soup_server_connection_disconnect (conn);
+                        soup_server_connection_disconnect (io->conn);
         }
 
         g_clear_error (&error);
-        g_object_unref (conn);
+        soup_server_message_io_http2_unprotect (io);
 
         return G_SOURCE_REMOVE;
 }
@@ -390,13 +430,12 @@ static gboolean io_write_idle_cb (SoupServerMessageIOHTTP2* io);
 static void
 io_try_write (SoupServerMessageIOHTTP2 *io)
 {
-        SoupServerConnection *conn = io->conn;
         GError *error = NULL;
 
         if (io->write_source)
                 return;
 
-        if (io->in_callback && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io) {
+        if (io->in_callback && !io->destroyed) {
                 if (!nghttp2_session_want_write (io->session))
                         return;
 
@@ -416,12 +455,19 @@ io_try_write (SoupServerMessageIOHTTP2 *io)
                 g_clear_pointer (&io->write_idle_source, g_source_unref);
         }
 
-        g_object_ref (conn);
+        soup_server_message_io_http2_protect (io);
 
-        while (!error && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && !io->in_callback && nghttp2_session_want_write (io->session))
+        while (!error) {
+                if (io->destroyed)
+                        break;
+
+                if (!nghttp2_session_want_write (io->session))
+                        break;
+
                 io_write (io, &error);
+        }
 
-        if (soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io) {
+        if (!io->destroyed) {
                 if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                         g_clear_error (&error);
                         io->write_source = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (io->ostream), NULL);
@@ -434,11 +480,11 @@ io_try_write (SoupServerMessageIOHTTP2 *io)
                         h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
 
                 if (error || (!nghttp2_session_want_read (io->session) && !nghttp2_session_want_write (io->session)))
-                        soup_server_connection_disconnect (conn);
+                        soup_server_connection_disconnect (io->conn);
         }
 
         g_clear_error (&error);
-        g_object_unref (conn);
+        soup_server_message_io_http2_unprotect (io);
 }
 
 static gboolean
@@ -481,31 +527,37 @@ static gboolean
 io_read_ready (GObject                  *stream,
                SoupServerMessageIOHTTP2 *io)
 {
-        SoupServerConnection *conn = io->conn;
         gboolean progress = TRUE;
         GError *error = NULL;
 
-        g_object_ref (conn);
+        soup_server_message_io_http2_protect (io);
 
-        while (progress && soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io && nghttp2_session_want_read (io->session))
+        while (progress) {
+                if (io->destroyed)
+                        break;
+
+                if (!nghttp2_session_want_read (io->session))
+                        break;
+
                 progress = io_read (io, &error);
+        }
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
-                g_object_unref (conn);
+                soup_server_message_io_http2_unprotect (io);
                 return G_SOURCE_CONTINUE;
         }
 
-        if (soup_server_connection_get_io_data (conn) == (SoupServerMessageIO *)io) {
+        if (!io->destroyed) {
                 if (error)
                         h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
 
                 if (error || (!nghttp2_session_want_read (io->session) && !nghttp2_session_want_write (io->session)))
-                        soup_server_connection_disconnect (conn);
+                        soup_server_connection_disconnect (io->conn);
         }
 
         g_clear_error (&error);
-        g_object_unref (conn);
+        soup_server_message_io_http2_unprotect (io);
 
         return G_SOURCE_REMOVE;
 }
@@ -931,5 +983,10 @@ soup_server_message_io_http2_new (SoupServerConnection  *conn,
         nghttp2_submit_settings (io->session, NGHTTP2_FLAG_NONE, settings, G_N_ELEMENTS (settings));
         io_try_write (io);
 
+#ifdef __clang_analyzer__
+        // Suppress false positive about io being destroyed here, since at this point we have only
+        // send the initial settings and not callback is called.
+        [[clang::suppress]]
+#endif
         return (SoupServerMessageIO *)io;
 }
