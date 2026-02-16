@@ -1368,6 +1368,39 @@ do_broken_pseudo_header_test (Test *test, gconstpointer data)
 	g_uri_unref (uri);
 }
 
+static void
+disconnect_on_got_headers (SoupServerMessage *msg, gpointer user_data)
+{
+        GUri *uri;
+        SoupServerConnection *conn;
+
+        uri = soup_server_message_get_uri (msg);
+        if (!g_str_equal (g_uri_get_path (uri), "/close-on-got-headers"))
+                return;
+
+        conn = soup_server_message_get_connection (msg);
+        soup_server_connection_disconnect (conn);
+}
+
+static void
+do_server_disconnect_on_got_headers_test (Test *test, gconstpointer data)
+{
+        SoupMessage *msg;
+        GUri *uri;
+        GBytes *response;
+        GError *error = NULL;
+
+        uri = g_uri_parse_relative (base_uri, "/close-on-got-headers", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+
+        response = soup_test_session_async_send (test->session, msg, NULL, &error);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
+
+        g_bytes_unref (response);
+        g_object_unref (msg);
+        g_uri_unref (uri);
+}
+
 static gboolean
 unpause_message (SoupServerMessage *msg)
 {
@@ -1508,7 +1541,21 @@ server_handler (SoupServer        *server,
                 soup_server_message_set_response (msg, "text/plain",
                                                   SOUP_MEMORY_STATIC,
                                                   "Success!", 8);
+        } else if (strcmp (path, "/close-on-got-headers") == 0) {
+                soup_server_message_set_response (msg, "text/plain",
+                                                  SOUP_MEMORY_STATIC,
+                                                  "Success!", 8);
         }
+}
+
+static void
+server_request_started (SoupServer           *server,
+                        SoupServerMessage    *msg,
+                        SoupServerConnection *conn,
+                        gpointer              user_data)
+{
+        g_signal_connect (msg, "got-headers",
+                          G_CALLBACK (disconnect_on_got_headers), NULL);
 }
 
 static gboolean
@@ -1537,6 +1584,8 @@ main (int argc, char **argv)
                 return 0;
 
         server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD | SOUP_TEST_SERVER_HTTP2);
+        g_signal_connect (server, "request-started",
+                          G_CALLBACK (server_request_started), NULL);
         auth = soup_auth_domain_basic_new ("realm", "http2-test",
                                            "auth-callback", server_basic_auth_callback,
                                            NULL);
@@ -1696,6 +1745,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/broken-pseudo-header", Test, NULL,
                     setup_session,
                     do_broken_pseudo_header_test,
+                    teardown_session);
+        g_test_add ("/http2/server-disconnect-on-got-headers", Test, NULL,
+                    setup_session,
+                    do_server_disconnect_on_got_headers_test,
                     teardown_session);
 
 	ret = g_test_run ();
