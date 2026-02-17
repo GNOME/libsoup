@@ -269,6 +269,33 @@ soup_message_headers_append_common (SoupMessageHeaders    *hdrs,
                 return FALSE;
         }
 
+        if (name == SOUP_HEADER_CONTENT_LENGTH) {
+                /* RFC 9110 - 7.7. Content-Length
+                 * If a message is received that has a Content-Length header field value consisting of
+                 * the same decimal value as a comma-separated list (Section 5.7.1) — for example,
+                 * "Content-Length: 42, 42" — indicating that duplicate Content-Length header fields have
+                 * been generated or combined by an upstream message processor, then the recipient must either
+                 * reject the message as invalid or replace the duplicated field values with a single valid
+                 * Content-Length field containing that decimal value prior to determining the message body
+                 * length or forwarding the message.
+                 */
+                const char *content_length = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
+                if (content_length) {
+                        guint64 decimal_value1, decimal_value2;
+                        char *end;
+
+                        decimal_value1 = g_ascii_strtoull (content_length, &end, 10);
+                        if (*end)
+                                return FALSE;
+
+                        decimal_value2 = g_ascii_strtoull (value, &end, 10);
+                        if (*end)
+                                return FALSE;
+
+                        return decimal_value1 == decimal_value2;
+                }
+        }
+
         if (trusted_value == SOUP_HEADER_VALUE_UNTRUSTED && !is_valid_header_value (value)) {
                 g_warning ("soup_message_headers_append: Rejecting bad value '%s'", value);
                 return FALSE;

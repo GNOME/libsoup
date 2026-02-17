@@ -368,6 +368,22 @@ static struct RequestTest {
 	  }, 0
 	},
 
+        { "Duplicate Content-Length with the same value", NULL,
+          "POST / HTTP/1.1\r\nContent-Length: 4\r\nContent-Length: 4\r\n",
+          -1,
+          SOUP_STATUS_OK,
+          "POST", "/", SOUP_HTTP_1_1,
+          { { "Content-Length", "4" } }, 0
+        },
+
+        { "Duplicate Content-Length with the same decimal value", NULL,
+          "POST / HTTP/1.1\r\nContent-Length: 04\r\nContent-Length: 4\r\n",
+          -1,
+          SOUP_STATUS_OK,
+          "POST", "/", SOUP_HTTP_1_1,
+          { { "Content-Length", "04" } }, 0
+        },
+
 	/************************/
 	/*** INVALID REQUESTS ***/
 	/************************/
@@ -507,7 +523,16 @@ static struct RequestTest {
 	  NULL, NULL, -1,
 	  { { NULL } },
 	  G_LOG_LEVEL_WARNING
-	}
+	},
+
+        { "Duplicate Content-Length with different value",
+          "https://gitlab.gnome.org/GNOME/libsoup/-/issues/500",
+          "POST / HTTP/1.1\r\nContent-Length: 2\r\nContent-Length: 4\r\n",
+          -1,
+          SOUP_STATUS_BAD_REQUEST,
+          NULL, NULL, -1,
+          { { NULL } }, 0
+        }
 };
 static const int num_reqtests = G_N_ELEMENTS (reqtests);
 
@@ -1475,6 +1500,28 @@ do_append_duplicate_host_test (void)
 	soup_message_headers_unref (hdrs);
 }
 
+static void
+do_append_duplicate_content_length_test (void)
+{
+        SoupMessageHeaders *hdrs;
+        const char *list_value;
+
+        hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+        soup_message_headers_append (hdrs, "Content-Length", "42");
+
+        /* Inserting the same value doesn't generate a list */
+        soup_message_headers_append (hdrs, "Content-Length", "42");
+        list_value = soup_message_headers_get_list (hdrs, "Content-Length");
+        g_assert_cmpstr (list_value, ==, "42");
+
+        /* Inserting a different value does nothing */
+        soup_message_headers_append (hdrs, "Content-Length", "45");
+        list_value = soup_message_headers_get_list (hdrs, "Content-Length");
+        g_assert_cmpstr (list_value, ==, "42");
+
+        soup_message_headers_unref (hdrs);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1491,6 +1538,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/header-parsing/append-param", do_append_param_tests);
 	g_test_add_func ("/header-parsing/bad", do_bad_header_tests);
 	g_test_add_func ("/header-parsing/append-duplicate-host", do_append_duplicate_host_test);
+        g_test_add_func ("/header-parsing/append-duplicate-content-length", do_append_duplicate_content_length_test);
 
 	ret = g_test_run ();
 
