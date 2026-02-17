@@ -1422,6 +1422,68 @@ do_chunked_test (ServerData *sd, gconstpointer test_data)
         }
 }
 
+static void
+do_multiple_content_length_test (ServerData *sd, gconstpointer test_data)
+{
+        gint i;
+        struct {
+                const char *description;
+                const char *test;
+                const char *expected_response;
+        } tests[] = {
+                { "Double Content-Length with different value", "POST / HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\nContent-Length: 4\r\nConnection: close\r\n\r\n\r\nABCD", "HTTP/1.0 400 Bad Request" },
+                { "Double Content-Length with the same value", "POST / HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 4\r\nContent-Length: 4\r\nConnection: close\r\n\r\n\r\nABCD", "HTTP/1.1 200 OK" },
+        };
+
+        sd->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+        sd->base_uri = soup_test_server_get_uri (sd->server, "http", NULL);
+        server_add_handler (sd, NULL, server_callback, NULL, NULL);
+
+        for (i = 0; i < G_N_ELEMENTS (tests); i++) {
+                GSocketClient *client;
+                GSocketConnection *conn;
+                GInputStream *input;
+                GOutputStream *output;
+                gsize nwritten;
+                char buffer[4096];
+                gssize nread;
+                GString *response;
+                const char *boundary;
+                GError *error = NULL;
+
+                debug_printf (1, "  %s\n", tests[i].description);
+
+                client = g_socket_client_new ();
+                conn = g_socket_client_connect_to_host (client, g_uri_get_host (sd->base_uri), g_uri_get_port (sd->base_uri), NULL, &error);
+                g_assert_no_error (error);
+
+                output = g_io_stream_get_output_stream (G_IO_STREAM (conn));
+                g_output_stream_write_all (output, tests[i].test, strlen (tests[i].test), &nwritten, NULL, &error);
+                g_assert_no_error (error);
+                g_assert_cmpuint (nwritten, ==, strlen (tests[i].test));
+                g_output_stream_flush (output, NULL, &error);
+                g_assert_no_error (error);
+
+                response = g_string_new (NULL);
+
+                input = g_io_stream_get_input_stream (G_IO_STREAM (conn));
+                do {
+                        nread = g_input_stream_read (input, buffer, sizeof(buffer), NULL, NULL);
+                        if (nread >= 0)
+                                response = g_string_append_len (response, (const char *)buffer, nread);
+                } while (nread > 0);
+
+                boundary = strstr (response->str, "\r\n");
+                g_assert_nonnull (boundary);
+                response = g_string_truncate (response, response->len - strlen (boundary));
+                g_assert_cmpstr (response->str, ==, tests[i].expected_response);
+                g_string_free (response, TRUE);
+
+                g_object_unref (conn);
+                g_object_unref (client);
+        }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1464,6 +1526,8 @@ main (int argc, char **argv)
 		    server_setup, do_steal_connect_test, server_teardown);
         g_test_add ("/server/chunked", ServerData, NULL,
                     NULL, do_chunked_test, server_teardown);
+        g_test_add ("/server/multiple-content-length", ServerData, NULL,
+                    NULL, do_multiple_content_length_test, server_teardown);
 
 	ret = g_test_run ();
 
