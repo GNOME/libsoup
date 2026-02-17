@@ -683,6 +683,7 @@ test_send_exceeding_client_max_payload_size (Test *test,
 	g_assert_null (received);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
 	g_assert_no_error (test->client_error);
+	g_error_free (error);
 }
 
 static void
@@ -710,6 +711,7 @@ test_send_exceeding_server_max_payload_size (Test *test,
 	g_assert_null (received);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
 	g_assert_no_error (test->client_error);
+	g_error_free (error);
 }
 
 static void
@@ -738,6 +740,7 @@ test_send_exceeding_client_max_message_size (Test *test,
 	g_assert_null (received);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
 	g_assert_no_error (test->client_error);
+	g_error_free (error);
 }
 
 static void
@@ -769,6 +772,7 @@ test_send_exceeding_server_max_message_size (Test *test,
 	g_assert_null (received);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED);
 	g_assert_no_error (test->client_error);
+	g_error_free (error);
 }
 
 static void
