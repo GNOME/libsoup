@@ -184,6 +184,7 @@ env.prepend('LD_LIBRARY_PATH', meson.project_build_root() + '/libsoup')
 env.set('MALLOC_CHECK_', '2')
 # This is set by Meson if empty
 env.set('MALLOC_PERTURB_', '')
+env.set('LSAN_OPTIONS', 'suppressions=@0@/.gitlab-ci/leak_suppressions'.format(meson.project_source_root()))
 
 if meson.version().version_compare('>= 0.58.0')
   meson.add_devenv(env)
