@@ -1114,7 +1114,8 @@ static const struct {
         const char *description;
         const char *filename;
         const char *sanitized;
-} bad_filenames[] = {
+} filenames[] = {
+        { "Valid space", "test 1.txt", "test 1.txt" },
         { "Invalid leading", "/test.txt", "test.txt" },
         { "Invalid trailing", "test.txt.\n", "test.txt" },
         { "Invalid leading and trailing", " \ttest.txt/", "test.txt" },
@@ -1235,13 +1236,13 @@ do_content_disposition_tests (void)
         g_assert_false (g_hash_table_contains (params, "filename"));
 	g_hash_table_destroy (params);
 
-        /* Invalid filenames */
-        for (i = 0; i < G_N_ELEMENTS (bad_filenames); i++) {
-                debug_printf (1, "  %s \n", bad_filenames[i].description);
+        /* Sanitized filenames */
+        for (i = 0; i < G_N_ELEMENTS (filenames); i++) {
+                debug_printf (1, "  %s \n", filenames[i].description);
 
                 soup_message_headers_clear (hdrs);
                 params = g_hash_table_new (g_str_hash, g_str_equal);
-                g_hash_table_insert (params, "filename", (char*)bad_filenames[i].filename);
+                g_hash_table_insert (params, "filename", (char*)filenames[i].filename);
                 soup_message_headers_set_content_disposition (hdrs, "attachment", params);
                 g_hash_table_destroy (params);
 
@@ -1249,7 +1250,7 @@ do_content_disposition_tests (void)
                 g_free (disposition);
 
                 filename = g_hash_table_lookup (params, "filename");
-                g_assert_cmpstr (filename, ==, bad_filenames[i].sanitized);
+                g_assert_cmpstr (filename, ==, filenames[i].sanitized);
                 g_hash_table_destroy (params);
         }
 

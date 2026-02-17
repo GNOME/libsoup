@@ -1613,7 +1613,7 @@ sanitize_filename (const char *value)
 
         /* Replace all other invalid characters with '_' */
         for (c = (guchar*)filename; *c; c++) {
-                if (strchr ("\"~*/:<>?\\|\r\n", *c) || g_ascii_isspace (*c) || g_ascii_iscntrl (*c))
+                if (strchr ("\"~*/:<>?\\|\r\n", *c) || g_ascii_iscntrl (*c))
                         *c = '_';
         }
 
