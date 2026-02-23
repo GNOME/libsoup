@@ -19,8 +19,8 @@ variables:
 
 .fedora-image:
   variables:
-    FDO_DISTRIBUTION_TAG: '2026-01-17-v1'
-    FDO_DISTRIBUTION_VERSION: '42'
+    FDO_DISTRIBUTION_TAG: '2026-02-23-v1'
+    FDO_DISTRIBUTION_VERSION: '43'
 
 .fedora-python2-image:
   variables:
