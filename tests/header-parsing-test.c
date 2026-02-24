@@ -1548,6 +1548,110 @@ do_append_duplicate_content_length_test (void)
         soup_message_headers_unref (hdrs);
 }
 
+static void
+do_content_length_test (void)
+{
+        SoupMessageHeaders *hdrs;
+
+        hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+
+        /* Add Content-Length using soup_message_headers_append() */
+        soup_message_headers_append (hdrs, "Content-Length", "42");
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "42");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 42);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CONTENT_LENGTH);
+        soup_message_headers_clear (hdrs);
+
+        /* Add Content-Length using soup_message_headers_set_content_length() */
+        soup_message_headers_set_content_length (hdrs, 24);
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "24");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 24);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CONTENT_LENGTH);
+        soup_message_headers_clear (hdrs);
+
+        /* Set the encoding before the content length */
+        soup_message_headers_set_encoding (hdrs, SOUP_ENCODING_CONTENT_LENGTH);
+        soup_message_headers_set_content_length (hdrs, 52);
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "52");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 52);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CONTENT_LENGTH);
+        soup_message_headers_clear (hdrs);
+
+        /* Set the encoding after the content length */
+        soup_message_headers_set_content_length (hdrs, 25);
+        soup_message_headers_set_encoding (hdrs, SOUP_ENCODING_CONTENT_LENGTH);
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "25");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 25);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CONTENT_LENGTH);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding before content length using soup_message_headers_append() */
+        soup_message_headers_append (hdrs, "Transfer-Encoding", "chunked");
+        soup_message_headers_append (hdrs, "Content-Length", "84");
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "84");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 0);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding before content length using soup_message_headers_append() and soup_message_headers_set_content_length() */
+        soup_message_headers_append (hdrs, "Transfer-Encoding", "chunked");
+        soup_message_headers_set_content_length (hdrs, 48);
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "48");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 48);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CONTENT_LENGTH);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding before content length using soup_message_headers_set_encoding() and soup_message_headers_append() */
+        soup_message_headers_set_encoding (hdrs, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_append (hdrs, "Content-Length", "92");
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "92");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 0);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding before content length using soup_message_headers_set_encoding() and soup_message_headers_set_content_length() */
+        soup_message_headers_set_encoding (hdrs, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_set_content_length (hdrs, 29);
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "29");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 29);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CONTENT_LENGTH);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding after content length using soup_message_headers_append() */
+        soup_message_headers_append (hdrs, "Content-Length", "21");
+        soup_message_headers_append (hdrs, "Transfer-Encoding", "chunked");
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "21");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 0);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding after content length using soup_message_headers_set_content_length() and soup_message_headers_append() */
+        soup_message_headers_set_content_length (hdrs, 12);
+        soup_message_headers_append (hdrs, "Transfer-Encoding", "chunked");
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "12");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 0);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding after content length using soup_message_headers_append() and soup_message_headers_set_encoding() */
+        soup_message_headers_append (hdrs, "Content-Length", "21");
+        soup_message_headers_set_encoding (hdrs, SOUP_ENCODING_CHUNKED);
+        g_assert_null (soup_message_headers_get_one (hdrs, "Content-Length"));
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 0);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_clear (hdrs);
+
+        /* Set different encoding after content length using soup_message_headers_set_content_length() and soup_message_headers_set_encoding() */
+        soup_message_headers_set_content_length (hdrs, 35);
+        soup_message_headers_set_encoding (hdrs, SOUP_ENCODING_CHUNKED);
+        g_assert_null (soup_message_headers_get_one (hdrs, "Content-Length"));
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 0);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CHUNKED);
+        soup_message_headers_clear (hdrs);
+
+        soup_message_headers_unref (hdrs);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1566,6 +1670,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/header-parsing/case-sensitive", do_case_sensitive_header_tests);
 	g_test_add_func ("/header-parsing/append-duplicate-host", do_append_duplicate_host_test);
         g_test_add_func ("/header-parsing/append-duplicate-content-length", do_append_duplicate_content_length_test);
+        g_test_add_func ("/header-parsing/content-length", do_content_length_test);
 
 	ret = g_test_run ();
 

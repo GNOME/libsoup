@@ -220,6 +220,11 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
 
 	if (hdrs->uncommon_concat)
 		g_hash_table_remove_all (hdrs->uncommon_concat);
+
+        hdrs->encoding = -1;
+        hdrs->content_length = 0;
+        hdrs->expectations = 0;
+        g_clear_pointer (&hdrs->content_type, g_free);
 }
 
 /**
@@ -939,6 +944,27 @@ soup_message_headers_foreach (SoupMessageHeaders           *hdrs,
 
 /* Specific headers */
 
+static gboolean
+soup_message_headers_update_content_length_encoding (SoupMessageHeaders *hdrs)
+{
+        const char *content_length;
+
+        content_length = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
+        if (content_length) {
+                char *end;
+
+                hdrs->content_length = g_ascii_strtoull (content_length, &end, 10);
+                if (*end)
+                        hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
+                else
+                        hdrs->encoding = SOUP_ENCODING_CONTENT_LENGTH;
+
+                return TRUE;
+        }
+
+        return FALSE;
+}
+
 /**
  * SoupEncoding:
  * @SOUP_ENCODING_UNRECOGNIZED: unknown / error
@@ -969,7 +995,6 @@ soup_message_headers_foreach (SoupMessageHeaders           *hdrs,
 SoupEncoding
 soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
 {
-	const char *content_length;
         const char *transfer_encoding;
 
 	g_return_val_if_fail (hdrs, SOUP_ENCODING_UNRECOGNIZED);
@@ -991,16 +1016,7 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
                 else if (g_ascii_strcasecmp (transfer_encoding, "identity") != 0)
                         hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
         } else {
-                content_length = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
-                if (content_length) {
-                        char *end;
-
-                        hdrs->content_length = g_ascii_strtoull (content_length, &end, 10);
-                        if (*end)
-                                hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
-                        else
-                                hdrs->encoding = SOUP_ENCODING_CONTENT_LENGTH;
-                }
+                soup_message_headers_update_content_length_encoding (hdrs);
         }
 
         if (hdrs->encoding == -1) {
@@ -1046,6 +1062,8 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
 
 	case SOUP_ENCODING_CONTENT_LENGTH:
 		soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
+                if (soup_message_headers_update_content_length_encoding (hdrs))
+                        return;
 		break;
 
 	case SOUP_ENCODING_CHUNKED:
