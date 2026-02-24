@@ -51,7 +51,6 @@ struct _SoupAuthManager {
 typedef struct {
 	SoupSession *session;
 	GPtrArray *auth_types;
-	gboolean auto_ntlm;
 
 	SoupAuth *proxy_auth;
         GMutex mutex;
@@ -133,13 +132,6 @@ soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 	g_ptr_array_add (priv->auth_types, auth_class);
 	g_ptr_array_sort (priv->auth_types, auth_type_compare_func);
 
-	/* Plain SoupSession does not get the backward-compat
-	 * auto-NTLM behavior; SoupSession subclasses do.
-	 */
-	if (type == SOUP_TYPE_AUTH_NTLM &&
-	    G_TYPE_FROM_INSTANCE (priv->session) != SOUP_TYPE_SESSION)
-		priv->auto_ntlm = TRUE;
-
 	return TRUE;
 }
 
@@ -157,9 +149,6 @@ soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 
 	for (i = 0; i < priv->auth_types->len; i++) {
 		if (priv->auth_types->pdata[i] == (gpointer)auth_class) {
-			if (type == SOUP_TYPE_AUTH_NTLM)
-				priv->auto_ntlm = FALSE;
-
 			g_ptr_array_remove_index (priv->auth_types, i);
 			return TRUE;
 		}
@@ -406,25 +395,6 @@ soup_auth_host_free (SoupAuthHost *host)
 	g_slice_free (SoupAuthHost, host);
 }
 
-static gboolean
-make_auto_ntlm_auth (SoupAuthManagerPrivate *priv, SoupAuthHost *host)
-{
-	SoupAuth *auth;
-	char *authority;
-
-	if (!priv->auto_ntlm)
-		return FALSE;
-
-	authority = g_strdup_printf ("%s:%d", g_uri_get_host (host->uri), g_uri_get_port (host->uri));
-	auth = g_object_new (SOUP_TYPE_AUTH_NTLM,
-			     "authority", authority,
-			     NULL);
-	record_auth_for_uri (priv, host->uri, auth, FALSE);
-	g_object_unref (auth);
-	g_free (authority);
-	return TRUE;
-}
-
 static void
 update_authorization_header (SoupMessage *msg, SoupAuth *auth, gboolean is_proxy)
 {
@@ -466,14 +436,6 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 		return NULL;
 
 	host = get_auth_host_for_uri (priv, uri);
-	if (!host->auth_realms && !make_auto_ntlm_auth (priv, host))
-		return NULL;
-
-	/* Cannot change the above '&&' into '||', because make_auto_ntlm_auth() is used
-	 * to populate host->auth_realms when it's not set yet. Even the make_auto_ntlm_auth()
-	 * returns TRUE only if it also populates the host->auth_realms, this extra test
-	 * is required to mute a FORWARD_NULL Coverity Scan warning, which is a false-positive
-	 * here */
 	if (!host->auth_realms)
 		return NULL;
 
