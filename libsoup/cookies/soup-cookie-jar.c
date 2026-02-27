@@ -885,18 +885,28 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 	g_slist_free (new_cookies);
 }
 
+static gboolean
+allow_cookies_for_request (SoupMessage *msg)
+{
+        /* Do not send cookies to a HTTP proxy for a HTTPS request */
+        return soup_message_get_method (msg) != SOUP_METHOD_CONNECT || !soup_connection_is_tunnelled (soup_message_get_connection (msg));
+}
+
 static void
 msg_starting_cb (SoupMessage *msg, gpointer feature)
 {
 	SoupCookieJar *jar = SOUP_COOKIE_JAR (feature);
-	GSList *cookies;
+	GSList *cookies = NULL;
 
-	cookies = soup_cookie_jar_get_cookie_list_with_same_site_info (jar, soup_message_get_uri (msg),
-	                                                               soup_message_get_first_party (msg),
-							               soup_message_get_site_for_cookies (msg),
-								       TRUE,
-							               SOUP_METHOD_IS_SAFE (soup_message_get_method (msg)),
-							               soup_message_get_is_top_level_navigation (msg));
+        if (allow_cookies_for_request (msg)) {
+                cookies = soup_cookie_jar_get_cookie_list_with_same_site_info (jar, soup_message_get_uri (msg),
+                                                                               soup_message_get_first_party (msg),
+                                                                               soup_message_get_site_for_cookies (msg),
+                                                                               TRUE,
+                                                                               SOUP_METHOD_IS_SAFE (soup_message_get_method (msg)),
+                                                                               soup_message_get_is_top_level_navigation (msg));
+        }
+
 	if (cookies != NULL) {
 		char *cookie_header = soup_cookies_to_cookie_header (cookies);
 		soup_message_headers_replace_common (soup_message_get_request_headers (msg), SOUP_HEADER_COOKIE, cookie_header, SOUP_HEADER_VALUE_TRUSTED);
