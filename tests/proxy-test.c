@@ -400,6 +400,56 @@ do_proxy_auth_cache_test (void)
 	g_object_unref (cache);
 }
 
+static void
+connect_message_wrote_headers_cb (SoupMessage *msg, guint *counter)
+{
+        SoupMessageHeaders *hdrs;
+
+        *counter += 1;
+
+        hdrs = msg->request_headers;
+        if (msg->method == SOUP_METHOD_CONNECT)
+                g_assert_null (soup_message_headers_get_one (hdrs, "Cookie"));
+        else
+                g_assert_nonnull (soup_message_headers_get_one (hdrs, "Cookie"));
+}
+
+static void
+request_queued_cb (SoupSession *session, SoupMessage *msg, guint *counter)
+{
+        g_signal_connect (msg, "wrote-headers", G_CALLBACK (connect_message_wrote_headers_cb), counter);
+}
+
+static void
+do_proxy_secure_cookies_test (void)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        SoupCookieJar *jar;
+	GInputStream *stream;
+        guint counter = 0;
+
+        SOUP_TEST_SKIP_IF_NO_APACHE;
+        SOUP_TEST_SKIP_IF_NO_TLS;
+
+        session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, "proxy-resolver", proxy_resolvers[SIMPLE_PROXY], NULL);
+        g_signal_connect (session, "request-queued", G_CALLBACK (request_queued_cb), &counter);
+
+        soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
+        jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));
+
+        msg = soup_message_new (SOUP_METHOD_GET, HTTPS_SERVER);
+        soup_cookie_jar_set_cookie (jar, soup_message_get_uri (msg), "user=password; secure");
+        stream = soup_session_send (session, msg, NULL, NULL);
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_assert_cmpuint (counter, ==, 2);
+
+	if (stream)
+		g_object_unref (stream);
+
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -434,6 +484,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/proxy/fragment", base_uri, do_proxy_fragment_test);
 	g_test_add_func ("/proxy/redirect", do_proxy_redirect_test);
 	g_test_add_func ("/proxy/auth-cache", do_proxy_auth_cache_test);
+        g_test_add_func ("/proxy/secure-cookies", do_proxy_secure_cookies_test);
 
 	ret = g_test_run ();
 
@@ -445,3 +496,4 @@ main (int argc, char **argv)
 	test_cleanup ();
 	return ret;
 }
+

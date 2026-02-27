@@ -11,6 +11,7 @@
 
 #include <string.h>
 
+#include "soup-connection.h"
 #include "soup-cookie-jar.h"
 #include "soup-misc-private.h"
 #include "soup.h"
@@ -686,6 +687,13 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 	g_slist_free (new_cookies);
 }
 
+static gboolean
+allow_cookies_for_request (SoupMessage *msg)
+{
+        /* Do not send cookies to a HTTP proxy for a HTTPS request */
+        return msg->method != SOUP_METHOD_CONNECT || !soup_connection_is_tunnelled (soup_message_get_connection (msg));
+}
+
 static void
 msg_starting_cb (SoupMessage *msg, gpointer feature)
 {
@@ -694,8 +702,10 @@ msg_starting_cb (SoupMessage *msg, gpointer feature)
 
 	cookies = soup_cookie_jar_get_cookies (jar, soup_message_get_uri (msg), TRUE);
 	if (cookies) {
-		soup_message_headers_replace (msg->request_headers,
-					      "Cookie", cookies);
+		if (allow_cookies_for_request (msg)) {
+			soup_message_headers_replace (msg->request_headers,
+						      "Cookie", cookies);
+		}
 		g_free (cookies);
 	} else
 		soup_message_headers_remove (msg->request_headers, "Cookie");
@@ -892,3 +902,4 @@ soup_cookie_jar_is_persistent (SoupCookieJar *jar)
 
 	return SOUP_COOKIE_JAR_GET_CLASS (jar)->is_persistent (jar);
 }
+
