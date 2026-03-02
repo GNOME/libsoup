@@ -827,8 +827,20 @@ io_read (SoupServerMessageIOHTTP1 *server_io,
                         break;
                 }
 
-                if (nread == -1)
-                        return FALSE;
+                if (nread == -1) {
+                        if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT) || g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT))
+                                soup_server_message_set_status (msg, 400, NULL);
+                        else if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_MESSAGE_TOO_LARGE))
+                                soup_server_message_set_status (msg, 413, NULL);
+                        else
+                                return FALSE;
+
+                        g_clear_error (error);
+                        request_headers = soup_server_message_get_request_headers (msg);
+                        soup_message_headers_append_common (request_headers, SOUP_HEADER_CONNECTION, "close", SOUP_HEADER_VALUE_TRUSTED);
+                        io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
+                        break;
+                }
 
                 /* else nread == 0 */
                 io->read_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
