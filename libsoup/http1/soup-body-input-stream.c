@@ -173,6 +173,9 @@ soup_body_input_stream_read_chunked (SoupBodyInputStream  *bistream,
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (priv->base_stream);
 	char metabuf[128];
 	gssize nread;
+        guint64 chunk_size;
+        gchar *end;
+        char *boundary;
 	gboolean got_line;
 
 again:
@@ -185,7 +188,7 @@ again:
 		if (nread < 0)
 			return nread;
 
-		if (nread == 0 || !got_line) {
+		if (nread == 0 || !got_line || nread < 3) {
 			if (error && *error == NULL) {
 				g_set_error_literal (error, G_IO_ERROR,
 						     G_IO_ERROR_PARTIAL_INPUT,
@@ -194,7 +197,32 @@ again:
 			return -1;
 		}
 
-		priv->read_length = strtoul (metabuf, NULL, 16);
+                /* ignore extensions */
+                boundary = strstr (metabuf, ";");
+                if (boundary)
+                        *boundary = '\0';
+                else
+                        metabuf[nread - 2] = '\0';
+
+                chunk_size = g_ascii_strtoull (metabuf, &end, 16);
+                if (*end) {
+                        if (error && *error == NULL) {
+                                g_set_error_literal (error, G_IO_ERROR,
+                                                     G_IO_ERROR_INVALID_ARGUMENT,
+                                                     _("Invalid chunk size"));
+                        }
+                        return -1;
+                }
+
+                if (chunk_size > G_MAXOFFSET) {
+                        if (error && *error == NULL) {
+                                g_set_error_literal (error, G_IO_ERROR,
+                                                     G_IO_ERROR_MESSAGE_TOO_LARGE,
+                                                     _("Too large chunk"));
+                        }
+                        return -1;
+                }
+                priv->read_length = (goffset)chunk_size;
 		if (priv->read_length > 0)
 			priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_CHUNK;
 		else

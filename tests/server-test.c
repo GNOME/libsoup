@@ -1378,10 +1378,12 @@ do_chunked_test (ServerData *sd, gconstpointer test_data)
         struct {
                 const char *description;
                 const char *test;
+                const char *expected_response;
         } tests[] = {
-                { "Single LF", "Transfer-Encoding: chunked\r\n\r\n5;ext\n data\r\n0\r\n\r\n" },
-                { "Content-Length and Transfer-Encoding", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n" },
-                { "Content-Length and Transfer-Encoding with keep alive connection", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n0\r\n\r\n" },
+                { "Single LF", "Transfer-Encoding: chunked\r\n\r\n5;ext\n data\r\n0\r\n\r\n", "HTTP/1.1 400 Bad Request" },
+                { "Content-Length and Transfer-Encoding", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n", "HTTP/1.1 200 OK" },
+                { "Content-Length and Transfer-Encoding with keep alive connection", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n0\r\n\r\n", "HTTP/1.1 200 OK" },
+                { "Request Entity Too Large", "Transfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n8000000000000001\r\n\r\n\r\n", "HTTP/1.1 413 Request Entity Too Large" },
         };
 
         sd->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
@@ -1396,6 +1398,8 @@ do_chunked_test (ServerData *sd, gconstpointer test_data)
                 char *request;
                 char buffer[4096];
                 gssize nread;
+                GString *response;
+                const char *boundary;
                 GError *error = NULL;
 
                 debug_printf (1, "  %s\n", tests[i].description);
@@ -1411,10 +1415,21 @@ do_chunked_test (ServerData *sd, gconstpointer test_data)
                 g_output_stream_close (output, NULL, NULL);
                 g_socket_shutdown (g_socket_connection_get_socket (G_SOCKET_CONNECTION (conn)), FALSE, TRUE, &error);
 
+                response = g_string_new (NULL);
+
                 input = g_io_stream_get_input_stream (G_IO_STREAM (conn));
                 do {
-                        nread = g_input_stream_read (input, buffer, sizeof(buffer), NULL, NULL);
+                        nread = g_input_stream_read (input, buffer, sizeof(buffer), NULL, &error);
+                        g_assert_no_error (error);
+                        if (nread >= 0)
+                                response = g_string_append_len (response, (const char *)buffer, nread);
                 } while (nread > 0);
+
+                boundary = strstr (response->str, "\r\n");
+                g_assert_nonnull (boundary);
+                response = g_string_truncate (response, response->len - strlen (boundary));
+                g_assert_cmpstr (response->str, ==, tests[i].expected_response);
+                g_string_free (response, TRUE);
 
                 g_free (request);
                 g_object_unref (conn);
