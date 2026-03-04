@@ -2396,7 +2396,7 @@ test_fragment_assembly_corruption (Test *test, gconstpointer data)
 }
 
 static void
-test_cve_2026_0716 (Test *test,
+test_bad_length_masked (Test *test,
                     gconstpointer unused)
 {
 	GError *error = NULL;
@@ -2413,7 +2413,7 @@ test_cve_2026_0716 (Test *test,
 
 	soup_websocket_connection_set_max_incoming_payload_size (test->server, 0);
 
-	// Malicious masked frame header (10-byte header + 4-byte mask) */
+	/* Malicious masked frame header (10-byte header + 4-byte mask) */
 	frame = "\x82\xff\xff\xff\xff\xff\xff\xff\xff\xf6\xaa\xbb\xcc\xdd";
 	if (!g_output_stream_write_all (g_io_stream_get_output_stream (io),
 					frame, 14, &written, NULL, NULL))
@@ -2428,6 +2428,53 @@ test_cve_2026_0716 (Test *test,
 	g_assert_true (close_event);
 
 	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
+}
+
+static gpointer
+send_bad_length_frame_server_thread (gpointer user_data)
+{
+	Test *test = user_data;
+	const char frame[] = "\x82\x7f\xff\xff\xff\xff\xff\xff\xff\xf6";
+	gsize written;
+	GError *error = NULL;
+
+	g_output_stream_write_all (g_io_stream_get_output_stream (test->raw_server),
+				   frame, sizeof (frame), &written, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpuint (written, ==, sizeof (frame));
+
+	g_io_stream_close (test->raw_server, NULL, &error);
+	g_assert_no_error (error);
+
+	return NULL;
+}
+
+static void
+test_bad_length_unmasked (Test *test,
+                    gconstpointer unused)
+{
+	GThread *thread;
+	GBytes *received = NULL;
+	GError *error = NULL;
+
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "message", G_CALLBACK (on_binary_message), &received);
+
+	soup_websocket_connection_set_max_incoming_payload_size (test->client, 0);
+
+	thread = g_thread_new ("send-bad-length-frame-thread", send_bad_length_frame_server_thread, test);
+
+	WAIT_UNTIL (error != NULL || received != NULL);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
+	g_clear_error (&error);
+	g_assert_null (received);
+
+	/* it can emit more errors while joining the thread, thus disconnect, to avoid memory leak */
+	g_signal_handlers_disconnect_by_func (test->client, G_CALLBACK (on_error_copy), &error);
+
+        g_thread_join (thread);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 }
 
 int
@@ -2721,14 +2768,18 @@ main (int argc,
                     test_fragment_assembly_corruption,
                     teardown_direct_connection);
 
-	g_test_add ("/websocket/direct/cve-2026-0716", Test, NULL,
+	g_test_add ("/websocket/direct/bad-length-masked", Test, NULL,
 		    setup_direct_connection,
-		    test_cve_2026_0716,
+		    test_bad_length_masked,
 		    teardown_direct_connection);
-	g_test_add ("/websocket/soup/cve-2026-0716", Test, NULL,
+	g_test_add ("/websocket/soup/bad-length-masked", Test, NULL,
 		    setup_soup_connection,
-		    test_cve_2026_0716,
+		    test_bad_length_masked,
 		    teardown_soup_connection);
+	g_test_add ("/websocket/direct/bad-length-unmasked", Test, NULL,
+		    setup_half_direct_connection,
+		    test_bad_length_unmasked,
+		    teardown_direct_connection);
 
 	ret = g_test_run ();
 

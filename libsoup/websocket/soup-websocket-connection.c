@@ -1146,16 +1146,16 @@ process_frame (SoupWebsocketConnection *self)
 
 	payload = header + at;
 
+	/* at has a maximum value of 10 + 4 = 14 */
+	if (payload_len > G_MAXSIZE - 14) {
+		bad_data_error_and_close (self);
+		return FALSE;
+	}
+
 	if (masked) {
 		mask = header + at;
 		payload += 4;
 		at += 4;
-
-		/* at has a maximum value of 10 + 4 = 14 */
-		if (payload_len > G_MAXSIZE - 14) {
-			bad_data_error_and_close (self);
-			return FALSE;
-		}
 
 		if (len < at + payload_len)
 			return FALSE; /* need more data */
