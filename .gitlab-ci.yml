@@ -19,7 +19,7 @@ variables:
 
 .fedora-image:
   variables:
-    FDO_DISTRIBUTION_TAG: '2026-02-23-v2'
+    FDO_DISTRIBUTION_TAG: '2026-02-23-v3'
     FDO_DISTRIBUTION_VERSION: '43'
 
 .fedora-python2-image:
@@ -50,7 +50,6 @@ build-fedora-image:
       glib-networking
       gnutls-devel
       gobject-introspection-devel
-      gtk-doc
       httpd
       krb5-devel
       lcov
@@ -67,8 +66,6 @@ build-fedora-image:
       vala
       valgrind
       which
-    FDO_DISTRIBUTION_EXEC:
-      dnf install --setopt=tsflags='' -y glib2-doc libsoup-doc
 
 build-fedora-autobahn-image:
   extends:
@@ -181,9 +178,6 @@ reference:
     - meson compile -C _build libsoup-doc --verbose
     - meson test -C _build docs --verbose
     - mv _build/docs/reference/libsoup-3.0/* _reference/libsoup-3.0
-    # Add libsoup-2.4 docs.
-    - cp -R /usr/share/gtk-doc/html/{glib,gio,gobject,libsoup-2.4} _reference/
-    - gtkdoc-rebase --relative --html-dir=_reference/{glib,gio,gobject,libsoup-2.4} --verbose
     - cp .gitlab-ci/{index.html,robots.txt} _reference/
   artifacts:
     paths:
