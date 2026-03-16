@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# FIXME: This is just a workaround, gobject-introspection generates this error so just ignore it.
+exec scan-build -disable-checker unix.Stream "$@"

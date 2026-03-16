@@ -107,7 +107,7 @@ fedora-test:
 
     - ninja -C _build coverage-html coverage-xml
 
-    - ninja -C _build scan-build
+    - SCANBUILD=$CI_PROJECT_DIR/.gitlab-ci/scan-build-wrapper ninja -C _build scan-build
     - bash -c 'if [[ -n "$(ls -A _build/meson-logs/scanbuild/)" ]]; then echo "Scan build log found, assuming defects exist"; exit 1; fi'
 
     - git config --global --add safe.directory $CI_PROJECT_DIR
