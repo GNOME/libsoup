@@ -12,3 +12,18 @@ lcov_excl_br_line = LCOV_EXCL_BR_LINE|g_return_if_fail|g_return_val_if_fail|g_as
 
 # Similarly for unreachable assertions.
 lcov_excl_line = LCOV_EXCL_LINE|g_return_if_reached|g_return_val_if_reached|g_assert_not_reached|g_warn_if_reached
+
+# Exclude generated enum type files from coverage reports. Without this,
+# genhtml 2.x fails with "duplicate merge record libsoup" because meson passes
+# both --prefix <build_root> and --prefix <source_root> to genhtml. After
+# prefix-stripping, generated files under <build_root>/libsoup/ and real
+# sources under <source_root>/libsoup/ both produce a top-level directory entry
+# named "libsoup", which genhtml 2.x rejects as a duplicate. The generated
+# files are not meaningful to track for coverage anyway.
+exclude = */soup-enum-types.c
+exclude = */soup-private-enum-types.c
+
+# The exclude patterns above are only applicable to genhtml, not to
+# intermediate lcov merge/extract steps. Suppress the error lcov 2.x emits
+# when a pattern goes unused rather than failing the entire coverage run.
+ignore_errors = unused,unused
