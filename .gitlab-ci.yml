@@ -105,7 +105,6 @@ fedora-test:
 
     - meson test -j 1 -C _build --verbose
 
-    - cp .gitlab-ci/lcovrc ~/.lcovrc
     - ninja -C _build coverage-html coverage-xml
 
     - ninja -C _build scan-build
