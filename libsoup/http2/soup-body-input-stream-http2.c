@@ -153,7 +153,7 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
          * Once a chunk is fully read it is removed from our list and we
          * keep the offset of where the chunks start.
          */
-
+retry:
         count = MIN (read_count, priv->len - priv->pos);
 
         offset = priv->start_offset;
@@ -213,11 +213,8 @@ soup_body_input_stream_http2_read_real (GInputStream  *stream,
                         return -1;
                 }
 
-                if (blocking) {
-                        return soup_body_input_stream_http2_read_real (
-                                stream, blocking, buffer, read_count, cancellable, error
-                        );
-                }
+                if (blocking)
+                        goto retry;
         }
 
         return count;
