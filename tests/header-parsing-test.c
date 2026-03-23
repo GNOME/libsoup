@@ -1524,6 +1524,14 @@ do_append_duplicate_host_test (void)
 	g_assert_cmpstr (list_value, ==, "a");
 
 	soup_message_headers_unref (hdrs);
+
+	/* Duplicate Host headers are allowed in responses, for web compat. */
+	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+	soup_message_headers_append (hdrs, "Host", "a");
+	soup_message_headers_append (hdrs, "Host", "b");
+	list_value = soup_message_headers_get_list (hdrs, "Host");
+	g_assert_cmpstr (list_value, ==, "a, b");
+	soup_message_headers_unref (hdrs);
 }
 
 static void
