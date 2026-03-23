@@ -269,7 +269,14 @@ soup_message_headers_append_common (SoupMessageHeaders    *hdrs,
                                     SoupHeaderValueTrusted trusted_value)
 {
         SoupCommonHeader header;
-        if (name == SOUP_HEADER_HOST && soup_message_headers_get_one (hdrs, "Host")) {
+
+        /* RFC 9112 - 3.2. Request Target
+         * A server MUST respond with a 400 (Bad Request) status code to any
+         * HTTP/1.1 request message that lacks a Host header field and to any
+         * request message that contains more than one Host header field line or a
+         * Host header field with an invalid field value.
+         */
+        if (hdrs->type == SOUP_MESSAGE_HEADERS_REQUEST && name == SOUP_HEADER_HOST && soup_message_headers_get_one (hdrs, "Host")) {
                 g_warning ("soup_message_headers_append_common: Rejecting duplicate Host header");
                 return FALSE;
         }
