@@ -791,13 +791,22 @@ handle_goaway (SoupClientMessageIOHTTP2 *io,
 
         g_hash_table_iter_init (&iter, io->messages);
         while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&data)) {
-                /* If there is no error it is a graceful shutdown and
-                 * existing messages can be handled otherwise it is a fatal error */
-                if ((error_code == 0 && (int32_t)data->stream_id > last_stream_id) ||
-                     data->state < STATE_READ_DONE) {
-                        /* TODO: We can restart unfinished messages */
+                if ((int32_t)data->stream_id > last_stream_id) {
+                        /* RFC-9113 §6.8: stream was not processed by the server,
+                         * it can be retried on a new connection regardless of error_code. */
+                        data->can_be_restarted = TRUE;
+                        set_http2_error_for_data (data, error_code);
+                } else if (error_code != NGHTTP2_NO_ERROR) {
+                        /* Stream might have been processed by the server but connection is dying with an error.
+                         * Fail explicitly to avoid hanging indefinitely if the server is slow or fails
+                         * to close the TCP connection (which it MUST do per §5.4.1).
+                         * Per §6.8 only idempotent methods may be retried for processed streams. */
+                        if (SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (data->msg)))
+                                data->can_be_restarted = TRUE;
                         set_http2_error_for_data (data, error_code);
                 }
+                 /* else: Graceful shutdown (NO_ERROR) and the server might have processed this stream.
+                  * Per §6.8 it might still complete successfully, let it finish normally. */
         }
 }
 
