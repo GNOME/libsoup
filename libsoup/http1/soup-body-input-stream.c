@@ -81,6 +81,8 @@ soup_body_input_stream_constructed (GObject *object)
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (object);
         SoupBodyInputStreamPrivate *priv = soup_body_input_stream_get_instance_private (bistream);
 
+	G_OBJECT_CLASS (soup_body_input_stream_parent_class)->constructed (object);
+
 	priv->base_stream = g_filter_input_stream_get_base_stream (G_FILTER_INPUT_STREAM (bistream));
 
 	if (priv->encoding == SOUP_ENCODING_NONE ||

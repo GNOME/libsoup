@@ -86,6 +86,8 @@ soup_cookie_jar_constructed (GObject *object)
 	SoupCookieJarPrivate *priv =
 		soup_cookie_jar_get_instance_private (SOUP_COOKIE_JAR (object));
 
+	G_OBJECT_CLASS (soup_cookie_jar_parent_class)->constructed (object);
+
 	priv->constructed = TRUE;
 }
 

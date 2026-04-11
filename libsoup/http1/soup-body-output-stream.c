@@ -75,6 +75,8 @@ soup_body_output_stream_constructed (GObject *object)
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
         SoupBodyOutputStreamPrivate *priv = soup_body_output_stream_get_instance_private (bostream);
 
+	G_OBJECT_CLASS (soup_body_output_stream_parent_class)->constructed (object);
+
 	priv->base_stream = g_filter_output_stream_get_base_stream (G_FILTER_OUTPUT_STREAM (bostream));
 }
 
