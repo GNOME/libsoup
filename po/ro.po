@@ -3,14 +3,14 @@
 # Copyright (C) 2012 THE libsoup'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 # Mișu Moldovan <dumol@xfce.org>, 2012.
-# Antonio Marin <gnmer.6qxyg@slmail.me>, 2025.
+# Antonio Marin <gnmer.6qxyg@slmail.me>, 2025-2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues/\n"
-"POT-Creation-Date: 2025-05-23 17:04+0000\n"
-"PO-Revision-Date: 2025-06-04 17:09+0200\n"
+"POT-Creation-Date: 2026-04-14 07:18+0000\n"
+"PO-Revision-Date: 2026-04-14 12:06+0200\n"
 "Last-Translator: Antonio Marin <gnmer.6qxyg@slmail.me>\n"
 "Language-Team: Romanian <gnomero-list@lists.sourceforge.net>\n"
 "Language: ro\n"
@@ -35,29 +35,37 @@ msgstr "Resursa nu a putut fi salvată în spațiul de prestocare"
 msgid "Output buffer is too small"
 msgstr "Memoria tampon de ieșire este prea mică"
 
-#: libsoup/http1/soup-body-input-stream.c:155
-#: libsoup/http1/soup-body-input-stream.c:188
-#: libsoup/http1/soup-body-input-stream.c:223
-#: libsoup/http1/soup-body-input-stream.c:242
+#: libsoup/http1/soup-body-input-stream.c:157
+#: libsoup/http1/soup-body-input-stream.c:195
+#: libsoup/http1/soup-body-input-stream.c:256
+#: libsoup/http1/soup-body-input-stream.c:276
 #: libsoup/http1/soup-message-io-data.c:77
 #: libsoup/http2/soup-client-message-io-http2.c:483
 #: libsoup/server/http2/soup-server-message-io-http2.c:466
 msgid "Connection terminated unexpectedly"
 msgstr "Conexiunea s-a terminat neașteptat"
 
-#: libsoup/http1/soup-body-input-stream.c:484
+#: libsoup/http1/soup-body-input-stream.c:212
+msgid "Invalid chunk size"
+msgstr "Mărime greșită a fragmentului (chunk)"
+
+#: libsoup/http1/soup-body-input-stream.c:221
+msgid "Too large chunk"
+msgstr "Fragment (chunk) prea mare"
+
+#: libsoup/http1/soup-body-input-stream.c:523
 msgid "Invalid seek request"
 msgstr "Cerere greșită de poziționare"
 
-#: libsoup/http1/soup-body-input-stream.c:512
+#: libsoup/http1/soup-body-input-stream.c:551
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Nu se poate trunchia SoupBodyInputStream"
 
 #: libsoup/http1/soup-client-message-io-http1.c:322
-#: libsoup/http1/soup-client-message-io-http1.c:775
-#: libsoup/http2/soup-body-input-stream-http2.c:248
+#: libsoup/http1/soup-client-message-io-http1.c:776
+#: libsoup/http2/soup-body-input-stream-http2.c:245
 #: libsoup/server/http1/soup-server-message-io-http1.c:417
-#: libsoup/server/http1/soup-server-message-io-http1.c:891
+#: libsoup/server/http1/soup-server-message-io-http1.c:911
 msgid "Operation would block"
 msgstr "Operația ar bloca"
 
@@ -69,8 +77,8 @@ msgstr "Nu s-a putut analiza răspunsul HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codare de răspuns HTTP nerecunoscută"
 
-#: libsoup/http1/soup-client-message-io-http1.c:734
-#: libsoup/http1/soup-client-message-io-http1.c:760
+#: libsoup/http1/soup-client-message-io-http1.c:735
+#: libsoup/http1/soup-client-message-io-http1.c:761
 #: libsoup/http2/soup-client-message-io-http2.c:1791
 #: libsoup/http2/soup-client-message-io-http2.c:1817
 msgid "Operation was cancelled"
@@ -88,32 +96,32 @@ msgstr "Nu s-a putut importa soclul existent: "
 msgid "Can’t import unconnected socket"
 msgstr "Nu se poate importa soclul neconectat"
 
-#: libsoup/server/soup-server.c:1219
+#: libsoup/server/soup-server.c:1239
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Nu se poate crea un server TLS fără un certificat TLS"
 
-#: libsoup/soup-session.c:1133
+#: libsoup/soup-session.c:1134
 msgid "Location header is missing or empty in response headers"
 msgstr "Antetul de localizare lipsește sau este gol în anteturile de răspuns"
 
-#: libsoup/soup-session.c:1147
+#: libsoup/soup-session.c:1148
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "Este greșit URI-ul „%s” din antetul de răspuns Location"
 
-#: libsoup/soup-session.c:1167
+#: libsoup/soup-session.c:1168
 msgid "Too many redirects"
 msgstr "Prea multe redirecționări"
 
-#: libsoup/soup-session.c:1172
+#: libsoup/soup-session.c:1173
 msgid "Message was restarted too many times"
 msgstr "Mesajul a fost repornit de prea multe ori"
 
-#: libsoup/soup-session.c:3118 libsoup/soup-session.c:3271
+#: libsoup/soup-session.c:3122 libsoup/soup-session.c:3275
 msgid "Message is already in session queue"
 msgstr "Mesajul este deja în coada de sesiune"
 
-#: libsoup/soup-session.c:3752
+#: libsoup/soup-session.c:3756
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Serverul nu a acceptat conectarea WebSocket."
 
