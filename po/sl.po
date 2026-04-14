@@ -7,19 +7,19 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2021-07-02 00:12+0000\n"
-"PO-Revision-Date: 2021-07-02 14:38+0200\n"
-"Last-Translator: Matej Urbančič <mateju@src.gnome.org>\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues/\n"
+"POT-Creation-Date: 2026-04-14 07:18+0000\n"
+"PO-Revision-Date: 2026-04-14 11:44+0200\n"
+"Last-Translator: Martin Srebotnjak <miles@filmsi.net>\n"
 "Language-Team: Slovenian <gnome-si@googlegroups.com>\n"
 "Language: sl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n"
-"%100==4 ? 3 : 0);\n"
+"Plural-Forms: nplurals=4; plural=(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || "
+"n%100==4 ? 3 : 0);\n"
 "X-Poedit-SourceCharset: utf-8\n"
-"X-Generator: Poedit 2.4.2\n"
+"X-Generator: Poedit 3.8\n"
 
 #: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
@@ -34,40 +34,52 @@ msgstr "Ustvarjanje predpomnilnika vira je spodletelo"
 msgid "Output buffer is too small"
 msgstr "Odvodni medpomnilnik je premajhen."
 
-#: libsoup/http1/soup-body-input-stream.c:155
-#: libsoup/http1/soup-body-input-stream.c:187
-#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-body-input-stream.c:157
+#: libsoup/http1/soup-body-input-stream.c:195
+#: libsoup/http1/soup-body-input-stream.c:256
+#: libsoup/http1/soup-body-input-stream.c:276
 #: libsoup/http1/soup-message-io-data.c:77
+#: libsoup/http2/soup-client-message-io-http2.c:483
+#: libsoup/server/http2/soup-server-message-io-http2.c:466
 msgid "Connection terminated unexpectedly"
 msgstr "Povezava je nepričakovano končana"
 
-#: libsoup/http1/soup-body-input-stream.c:471
+#: libsoup/http1/soup-body-input-stream.c:212
+msgid "Invalid chunk size"
+msgstr "Neveljavna velikost kosa"
+
+#: libsoup/http1/soup-body-input-stream.c:221
+msgid "Too large chunk"
+msgstr "Prevelik kos"
+
+#: libsoup/http1/soup-body-input-stream.c:523
 msgid "Invalid seek request"
 msgstr "Neveljavna zahteva iskanja"
 
-#: libsoup/http1/soup-body-input-stream.c:499
+#: libsoup/http1/soup-body-input-stream.c:551
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Ni mogoče porezati SoupBodyInputStream"
 
-#: libsoup/http1/soup-client-message-io-http1.c:312
-#: libsoup/http1/soup-client-message-io-http1.c:756
-#: libsoup/http2/soup-body-input-stream-http2.c:221
-#: libsoup/server/soup-server-io.c:354 libsoup/server/soup-server-io.c:819
+#: libsoup/http1/soup-client-message-io-http1.c:322
+#: libsoup/http1/soup-client-message-io-http1.c:776
+#: libsoup/http2/soup-body-input-stream-http2.c:245
+#: libsoup/server/http1/soup-server-message-io-http1.c:417
+#: libsoup/server/http1/soup-server-message-io-http1.c:911
 msgid "Operation would block"
 msgstr "Opravilo bi zaustavilo delovanje"
 
-#: libsoup/http1/soup-client-message-io-http1.c:456
+#: libsoup/http1/soup-client-message-io-http1.c:463
 msgid "Could not parse HTTP response"
 msgstr "Odziva HTTP ni mogoče razčleniti"
 
-#: libsoup/http1/soup-client-message-io-http1.c:479
+#: libsoup/http1/soup-client-message-io-http1.c:486
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neprepoznano kodiranje odziva HTTP"
 
-#: libsoup/http1/soup-client-message-io-http1.c:715
-#: libsoup/http1/soup-client-message-io-http1.c:741
-#: libsoup/http2/soup-client-message-io-http2.c:1455
-#: libsoup/http2/soup-client-message-io-http2.c:1479
+#: libsoup/http1/soup-client-message-io-http1.c:735
+#: libsoup/http1/soup-client-message-io-http1.c:761
+#: libsoup/http2/soup-client-message-io-http2.c:1791
+#: libsoup/http2/soup-client-message-io-http2.c:1817
 msgid "Operation was cancelled"
 msgstr "Opravilo je preklicano."
 
@@ -75,183 +87,118 @@ msgstr "Opravilo je preklicano."
 msgid "Header too big"
 msgstr "Glava je prevelika"
 
-#: libsoup/server/soup-server.c:1201
-msgid "Can’t create a TLS server without a TLS certificate"
-msgstr "Ni mogoče ustvariti strežnika TLS brez ustreznega potrdila TLS."
-
-#: libsoup/server/soup-server.c:1223
-#, c-format
-msgid "Could not listen on address %s, port %d: "
-msgstr "Ni mogoče prisluhniti naslovu %s, vrata %d:"
-
-#: libsoup/server/soup-socket.c:121
+#: libsoup/server/soup-listener.c:265
 msgid "Could not import existing socket: "
 msgstr "Ni mogoče uvoziti obstoječega vtiča:"
 
-#: libsoup/server/soup-socket.c:130
+#: libsoup/server/soup-listener.c:271
 msgid "Can’t import unconnected socket"
 msgstr "Ni mogoče uvoziti nepovezanega vtiča"
 
-#: libsoup/soup-session.c:1166
+#: libsoup/server/soup-server.c:1239
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "Ni mogoče ustvariti strežnika TLS brez ustreznega potrdila TLS."
+
+#: libsoup/soup-session.c:1134
 msgid "Location header is missing or empty in response headers"
 msgstr "Manjkajo podatki trenutnega mesta v glavi odziva"
 
-#: libsoup/soup-session.c:1180
+#: libsoup/soup-session.c:1148
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "Neveljaven naslov URI »%s« med podatki trenutnega mesta v glavi odziva"
 
-#: libsoup/soup-session.c:1200
+#: libsoup/soup-session.c:1168
 msgid "Too many redirects"
 msgstr "Zaznanih je preveč preusmeritev"
 
-#: libsoup/soup-session.c:1205
+#: libsoup/soup-session.c:1173
 msgid "Message was restarted too many times"
 msgstr "Sporočilo je bilo začeto prevečkrat"
 
-#: libsoup/soup-session.c:3317 libsoup/soup-session.c:3466
+#: libsoup/soup-session.c:3122 libsoup/soup-session.c:3275
 msgid "Message is already in session queue"
 msgstr "Sporočilo je že v vrsti za pošiljanje"
 
-#: libsoup/soup-session.c:3827
+#: libsoup/soup-session.c:3756
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Strežnik ne podpira zahteve overitve WebSocket"
 
-#: libsoup/soup-tld.c:142
+#: libsoup/soup-tld.c:129
 msgid "No public-suffix list available."
 msgstr "Ni javnega seznama končnic."
 
-#: libsoup/soup-tld.c:152 libsoup/soup-tld.c:168
+#: libsoup/soup-tld.c:139 libsoup/soup-tld.c:155
 msgid "Invalid hostname"
 msgstr "Neveljavno ime gostitelja"
 
-#: libsoup/soup-tld.c:159
+#: libsoup/soup-tld.c:146
 msgid "Hostname is an IP address"
 msgstr "Ime gostitelja je naslov IP"
 
-#: libsoup/soup-tld.c:180
+#: libsoup/soup-tld.c:167
 msgid "Hostname has no base domain"
 msgstr "Ime gostitelja je brez osnovne domene"
 
-#: libsoup/soup-tld.c:188
+#: libsoup/soup-tld.c:175
 msgid "Not enough domains"
 msgstr "Ni dovolj domen"
 
-#: libsoup/websocket/soup-websocket.c:399
-#: libsoup/websocket/soup-websocket.c:443
-#: libsoup/websocket/soup-websocket.c:459
+#: libsoup/websocket/soup-websocket.c:391
+#: libsoup/websocket/soup-websocket.c:435
+#: libsoup/websocket/soup-websocket.c:451
 msgid "Server requested unsupported extension"
 msgstr "Strežnik zahteva nepodprto razširitev"
 
-#: libsoup/websocket/soup-websocket.c:422
-#: libsoup/websocket/soup-websocket.c:614
+#: libsoup/websocket/soup-websocket.c:414
+#: libsoup/websocket/soup-websocket.c:606
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "Neveljavna glava WebSocket \"%s\""
 
-#: libsoup/websocket/soup-websocket.c:423
-#: libsoup/websocket/soup-websocket.c:878
+#: libsoup/websocket/soup-websocket.c:415
+#: libsoup/websocket/soup-websocket.c:870
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "Strežnik je vrnil neveljaven ključ \"%s\""
 
-#: libsoup/websocket/soup-websocket.c:486
+#: libsoup/websocket/soup-websocket.c:478
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "Zaznanj e podvojen parameter v glavi razširitve WebSocket »%s«"
 
-#: libsoup/websocket/soup-websocket.c:487
+#: libsoup/websocket/soup-websocket.c:479
 #, c-format
 msgid ""
 "Server returned a duplicated parameter in “%s” WebSocket extension header"
 msgstr "Strežnik je vrnil podvojen parameter v glavi razširitve WebSocket »%s«"
 
-#: libsoup/websocket/soup-websocket.c:577
-#: libsoup/websocket/soup-websocket.c:587
+#: libsoup/websocket/soup-websocket.c:569
+#: libsoup/websocket/soup-websocket.c:579
 msgid "WebSocket handshake expected"
 msgstr "Pričakovana je zahteva overitve z WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:595
+#: libsoup/websocket/soup-websocket.c:587
 msgid "Unsupported WebSocket version"
 msgstr "Nepodprta različica WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:604
+#: libsoup/websocket/soup-websocket.c:596
 msgid "Invalid WebSocket key"
 msgstr "Neveljaven ključ WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:623
+#: libsoup/websocket/soup-websocket.c:615
 msgid "Unsupported WebSocket subprotocol"
 msgstr "Nepodprt podrejeni protokol WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:829
+#: libsoup/websocket/soup-websocket.c:821
 msgid "Server rejected WebSocket handshake"
 msgstr "Strežnik je zavrnil zahtevo overitve WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:837
-#: libsoup/websocket/soup-websocket.c:846
+#: libsoup/websocket/soup-websocket.c:829
+#: libsoup/websocket/soup-websocket.c:838
 msgid "Server ignored WebSocket handshake"
 msgstr "Strežnik je prezrl zahtevo overitve z WebSocket"
 
-#: libsoup/websocket/soup-websocket.c:858
+#: libsoup/websocket/soup-websocket.c:850
 msgid "Server requested unsupported protocol"
 msgstr "Strežnik zahteva nepodprt protokol"
-
-#, c-format
-#~ msgid "Could not parse URI “%s”: %s"
-#~ msgstr "Ni mogoče razčleniti naslova URI »%s«: %s"
-
-#, c-format
-#~ msgid "Unsupported URI scheme “%s”"
-#~ msgstr "Nepodprta shema naslova URI “%s”"
-
-#, c-format
-#~ msgid "Invalid “%s” URI: %s"
-#~ msgstr "Neveljaven naslov URI “%s”: %s"
-
-#~ msgid "Name"
-#~ msgstr "Ime"
-
-#~ msgid "Size"
-#~ msgstr "Velikost"
-
-#~ msgid "Date Modified"
-#~ msgstr "Datum spremembe"
-
-#~ msgid "Could not parse HTTP request"
-#~ msgstr "Zahteve HTTP ni mogoče razčleniti"
-
-#~ msgid "No URI provided"
-#~ msgstr "Ni podanega naslova URI"
-
-#~ msgid "Not an HTTP URI"
-#~ msgstr "Naslov ni v obliki HTTP URI"
-
-#~ msgid "Can’t import non-socket as SoupSocket"
-#~ msgstr "Ni mogoče uvoziti predmeta, ki ni vtič, kot SoupSocket"
-
-#~ msgid "Invalid '%s' URI: %s"
-#~ msgstr "Neveljaven naslov URI '%s': %s"
-
-#~ msgid "Can't create a TLS server without a TLS certificate"
-#~ msgstr "Ni mogoče ustvariti strežnika TLS brez ustreznega potrdila TLS."
-
-#~ msgid "Could not listen on address %s, port %d"
-#~ msgstr "Ni mogoče prisluhniti naslovu %s, vrata %d"
-
-#~ msgid "Could not parse URI '%s'"
-#~ msgstr "Ni mogoče razčleniti naslova URI '%s'"
-
-#~ msgid "Unsupported URI scheme '%s'"
-#~ msgstr "Nepodprta shema URI '%s'"
-
-#~ msgid "Can't import non-socket as SoupSocket"
-#~ msgstr "Ni mogoče uvoziti predmeta, ki ni vtič, kot SoupSocket"
-
-#~ msgid "Can't import unconnected socket"
-#~ msgstr "Ni mogoče uvoziti nepovezanega vtiča"
-
-#~ msgid "Incorrect WebSocket \"%s\" header"
-#~ msgstr "Neveljavna glava WebSocket \"%s\""
-
-#~ msgid "Server returned incorrect \"%s\" key"
-#~ msgstr "Strežnik je vrnil neveljavni ključ \"%s\""
