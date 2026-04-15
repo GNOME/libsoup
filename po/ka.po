@@ -1,22 +1,22 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Georgian translation for libsoup.
+# Copyright (C) 2026 libsoup's authors
+# This file is distributed under the same license as the libsoup package.
+# Ekaterine Papava <papava.e@gtu.ge>, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
-"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues\n"
-"POT-Creation-Date: 2022-06-02 11:25+0000\n"
-"PO-Revision-Date: 2022-06-06 16:49+0200\n"
-"Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues/\n"
+"POT-Creation-Date: 2026-04-14 07:18+0000\n"
+"PO-Revision-Date: 2026-04-15 04:40+0200\n"
+"Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <(nothing)>\n"
 "Language: ka\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.0.1\n"
+"X-Generator: Poedit 3.9\n"
 
 #: libsoup/cache/soup-cache-input-stream.c:70
 msgid "Network stream unexpectedly closed"
@@ -31,40 +31,52 @@ msgstr "რესურსის მთლიანად დაქეშვა 
 msgid "Output buffer is too small"
 msgstr "გამოტანის ბუფერი მეტისმეტად პატარაა"
 
-#: libsoup/http1/soup-body-input-stream.c:155
-#: libsoup/http1/soup-body-input-stream.c:187
-#: libsoup/http1/soup-body-input-stream.c:220
+#: libsoup/http1/soup-body-input-stream.c:157
+#: libsoup/http1/soup-body-input-stream.c:195
+#: libsoup/http1/soup-body-input-stream.c:256
+#: libsoup/http1/soup-body-input-stream.c:276
 #: libsoup/http1/soup-message-io-data.c:77
+#: libsoup/http2/soup-client-message-io-http2.c:483
+#: libsoup/server/http2/soup-server-message-io-http2.c:466
 msgid "Connection terminated unexpectedly"
 msgstr "შეერთება მოულოდნელად დაიხურა"
 
-#: libsoup/http1/soup-body-input-stream.c:471
+#: libsoup/http1/soup-body-input-stream.c:212
+msgid "Invalid chunk size"
+msgstr "არასწორი სეგმენტის ზომა"
+
+#: libsoup/http1/soup-body-input-stream.c:221
+msgid "Too large chunk"
+msgstr "მეტისმეტად დიდი სეგმენტი"
+
+#: libsoup/http1/soup-body-input-stream.c:523
 msgid "Invalid seek request"
 msgstr "გადახვევის არასწორი მოთხოვნა"
 
-#: libsoup/http1/soup-body-input-stream.c:499
+#: libsoup/http1/soup-body-input-stream.c:551
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream-ის წაკვეთის შეცდომა"
 
-#: libsoup/http1/soup-client-message-io-http1.c:312
-#: libsoup/http1/soup-client-message-io-http1.c:756
-#: libsoup/http2/soup-body-input-stream-http2.c:221
-#: libsoup/server/soup-server-io.c:363 libsoup/server/soup-server-io.c:828
+#: libsoup/http1/soup-client-message-io-http1.c:322
+#: libsoup/http1/soup-client-message-io-http1.c:776
+#: libsoup/http2/soup-body-input-stream-http2.c:245
+#: libsoup/server/http1/soup-server-message-io-http1.c:417
+#: libsoup/server/http1/soup-server-message-io-http1.c:911
 msgid "Operation would block"
 msgstr "ოპერაცია დაიბლოკებოდა"
 
-#: libsoup/http1/soup-client-message-io-http1.c:456
+#: libsoup/http1/soup-client-message-io-http1.c:463
 msgid "Could not parse HTTP response"
 msgstr "HTTP პასუხის დამუშავების შეცდომა"
 
-#: libsoup/http1/soup-client-message-io-http1.c:479
+#: libsoup/http1/soup-client-message-io-http1.c:486
 msgid "Unrecognized HTTP response encoding"
 msgstr "HTTP პასუხის უცნობი კოდირება"
 
-#: libsoup/http1/soup-client-message-io-http1.c:715
-#: libsoup/http1/soup-client-message-io-http1.c:741
-#: libsoup/http2/soup-client-message-io-http2.c:1606
-#: libsoup/http2/soup-client-message-io-http2.c:1630
+#: libsoup/http1/soup-client-message-io-http1.c:735
+#: libsoup/http1/soup-client-message-io-http1.c:761
+#: libsoup/http2/soup-client-message-io-http2.c:1791
+#: libsoup/http2/soup-client-message-io-http2.c:1817
 msgid "Operation was cancelled"
 msgstr "ოპერაცია გაუქმდა"
 
@@ -72,45 +84,40 @@ msgstr "ოპერაცია გაუქმდა"
 msgid "Header too big"
 msgstr "თავსართი ძალიან დიდია"
 
-#: libsoup/server/soup-server.c:1203
-msgid "Can’t create a TLS server without a TLS certificate"
-msgstr "TLS სერვერის შექმნა შეუძლებელია TLS სერტიფიკატის გარეშე"
-
-#: libsoup/server/soup-server.c:1225
-#, c-format
-msgid "Could not listen on address %s, port %d: "
-msgstr "მისამართზე: %s, პორტზე %d მოსმენა შეუძლებელია: "
-
-#: libsoup/server/soup-socket.c:123
+#: libsoup/server/soup-listener.c:265
 msgid "Could not import existing socket: "
 msgstr "არსებული სოკეტის შემოტანა შეუძლებელია: "
 
-#: libsoup/server/soup-socket.c:132
+#: libsoup/server/soup-listener.c:271
 msgid "Can’t import unconnected socket"
 msgstr "დაუკავშირებელი სოკეტის შემოტანა შეუძლებელია"
 
-#: libsoup/soup-session.c:1180
+#: libsoup/server/soup-server.c:1239
+msgid "Can’t create a TLS server without a TLS certificate"
+msgstr "TLS სერვერის შექმნა შეუძლებელია TLS სერტიფიკატის გარეშე"
+
+#: libsoup/soup-session.c:1134
 msgid "Location header is missing or empty in response headers"
 msgstr "პასუხის თავსართებში თავსართი \"Location\" არ არსებობს ან ცარიელია"
 
-#: libsoup/soup-session.c:1194
+#: libsoup/soup-session.c:1148
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "\"Location\" თავსართის არასწორი URI: \"%s\""
 
-#: libsoup/soup-session.c:1214
+#: libsoup/soup-session.c:1168
 msgid "Too many redirects"
 msgstr "მეტისმეტად ბევრი გადამისამართება"
 
-#: libsoup/soup-session.c:1219
+#: libsoup/soup-session.c:1173
 msgid "Message was restarted too many times"
 msgstr "შეტყობინება მეტისმეტად ბევრჯერ გაეშვა"
 
-#: libsoup/soup-session.c:3310 libsoup/soup-session.c:3458
+#: libsoup/soup-session.c:3122 libsoup/soup-session.c:3275
 msgid "Message is already in session queue"
 msgstr "შეტყობინება უკვე სესიის რიგშია"
 
-#: libsoup/soup-session.c:3821
+#: libsoup/soup-session.c:3756
 msgid "The server did not accept the WebSocket handshake."
 msgstr "სერვერი WebSocket-ის ტიპის კავშირს არ დაეთანხმა."
 
@@ -134,60 +141,67 @@ msgstr "ჰოსტის სახელს ბაზისური დომ
 msgid "Not enough domains"
 msgstr "არასაკმარისი დომენები"
 
-#: libsoup/websocket/soup-websocket.c:390
-#: libsoup/websocket/soup-websocket.c:434
-#: libsoup/websocket/soup-websocket.c:450
+#: libsoup/websocket/soup-websocket.c:391
+#: libsoup/websocket/soup-websocket.c:435
+#: libsoup/websocket/soup-websocket.c:451
 msgid "Server requested unsupported extension"
 msgstr "სერვერმა მხარდაუჭერელი გაფართოება მოითხოვა"
 
-#: libsoup/websocket/soup-websocket.c:413
-#: libsoup/websocket/soup-websocket.c:605
+#: libsoup/websocket/soup-websocket.c:414
+#: libsoup/websocket/soup-websocket.c:606
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
 msgstr "WebSocket-ის არასწორი თავსართი: \"%s\""
 
-#: libsoup/websocket/soup-websocket.c:414
-#: libsoup/websocket/soup-websocket.c:869
+#: libsoup/websocket/soup-websocket.c:415
+#: libsoup/websocket/soup-websocket.c:870
 #, c-format
 msgid "Server returned incorrect “%s” key"
 msgstr "სერვერმა არასწორი გასაღებს დააბრუნა: \"%s\""
 
-#: libsoup/websocket/soup-websocket.c:477
+#: libsoup/websocket/soup-websocket.c:478
 #, c-format
 msgid "Duplicated parameter in “%s” WebSocket extension header"
 msgstr "დუბლრებული პარამეტრი WebSocket-ის გაფართოების თავსართში: \"%s\""
 
-#: libsoup/websocket/soup-websocket.c:478
+#: libsoup/websocket/soup-websocket.c:479
 #, c-format
-msgid "Server returned a duplicated parameter in “%s” WebSocket extension header"
-msgstr "სერვერმა დააბრუნა დუბლრებული პარამეტრი WebSocket-ის გაფართოების თავსართში: \"%s\""
+msgid ""
+"Server returned a duplicated parameter in “%s” WebSocket extension header"
+msgstr ""
+"სერვერმა დააბრუნა დუბლრებული პარამეტრი WebSocket-ის გაფართოების თავსართში: "
+"\"%s\""
 
-#: libsoup/websocket/soup-websocket.c:568
-#: libsoup/websocket/soup-websocket.c:578
+#: libsoup/websocket/soup-websocket.c:569
+#: libsoup/websocket/soup-websocket.c:579
 msgid "WebSocket handshake expected"
 msgstr "მოსალოდნელი იყო WebSocket-ის ტიპის შეერთება"
 
-#: libsoup/websocket/soup-websocket.c:586
+#: libsoup/websocket/soup-websocket.c:587
 msgid "Unsupported WebSocket version"
 msgstr "WebSocket-ის მხარდაუჭერელი ვერსია"
 
-#: libsoup/websocket/soup-websocket.c:595
+#: libsoup/websocket/soup-websocket.c:596
 msgid "Invalid WebSocket key"
 msgstr "WebSocket-ის არასწორი გასაღები"
 
-#: libsoup/websocket/soup-websocket.c:614
+#: libsoup/websocket/soup-websocket.c:615
 msgid "Unsupported WebSocket subprotocol"
 msgstr "WebSocket-ის მხარდაუჭერელი ქვეპროტოკოლი"
 
-#: libsoup/websocket/soup-websocket.c:820
+#: libsoup/websocket/soup-websocket.c:821
 msgid "Server rejected WebSocket handshake"
 msgstr "სერვერმა უარჰყო WebSocket-ის ტიპის შეერთება"
 
-#: libsoup/websocket/soup-websocket.c:828
-#: libsoup/websocket/soup-websocket.c:837
+#: libsoup/websocket/soup-websocket.c:829
+#: libsoup/websocket/soup-websocket.c:838
 msgid "Server ignored WebSocket handshake"
 msgstr "სერვერმა დააიგნორა WebSocket-ის ტიპის შეერთება"
 
-#: libsoup/websocket/soup-websocket.c:849
+#: libsoup/websocket/soup-websocket.c:850
 msgid "Server requested unsupported protocol"
 msgstr "სერვერმა მხარდაუჭერელი პროტოკოლი მოითხოვა"
+
+#, c-format
+#~ msgid "Could not listen on address %s, port %d: "
+#~ msgstr "მისამართზე: %s, პორტზე %d მოსმენა შეუძლებელია: "
