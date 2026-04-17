@@ -229,7 +229,7 @@ main (int argc, char **argv)
 		/* The 1-second timeouts are too fast for some machines... */
 		test_session = soup_test_session_new (NULL);
 		start = g_get_monotonic_time ();
-		do_message_to_session (test_session, uri, NULL, SOUP_STATUS_OK);
+		do_message_to_session (test_session, https_uri, NULL, SOUP_STATUS_OK);
 		end = g_get_monotonic_time ();
 		soup_test_session_abort_unref (test_session);
 		debug_printf (2, "  (https request took %0.3fs)\n", (end - start) / 1000000.0);
