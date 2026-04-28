@@ -532,6 +532,14 @@ static struct RequestTest {
           SOUP_STATUS_BAD_REQUEST,
           NULL, NULL, -1,
           { { NULL } }, 0
+        },
+
+        { "Header fileds too large", NULL,
+          "GET / HTTP/1.1\r\n",
+          (18 + 256) * 1024,
+          SOUP_STATUS_BAD_REQUEST,
+          NULL, NULL, -1,
+          { { NULL } }, 0
         }
 };
 static const int num_reqtests = G_N_ELEMENTS (reqtests);
@@ -847,6 +855,12 @@ static struct ResponseTest {
 	{ "NUL in header value", "760832",
 	  "HTTP/1.1 200 OK\r\nFoo: b\x00" "ar\r\n", 28,
 	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+        { "Header fileds too large", NULL,
+          "HTTP/1.0 200 ok\r\n", (20 + 256) * 1024,
+          -1, 0, NULL,
 	  { { NULL } }
 	},
 };
