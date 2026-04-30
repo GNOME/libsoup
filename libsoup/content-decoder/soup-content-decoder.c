@@ -19,6 +19,20 @@
 #ifdef WITH_BROTLI
 #include "soup-brotli-decompressor.h"
 #endif
+#ifdef WITH_ZSTD
+#include "soup-zstd-decompressor.h"
+#endif
+
+#ifdef WITH_BROTLI
+#define SOUP_ACCEPT_BR ", br"
+#else
+#define SOUP_ACCEPT_BR ""
+#endif
+#ifdef WITH_ZSTD
+#define SOUP_ACCEPT_ZSTD ", zstd"
+#else
+#define SOUP_ACCEPT_ZSTD ""
+#endif
 
 /**
  * SoupContentDecoder:
@@ -27,7 +41,7 @@
  *
  * [class@ContentDecoder] handles adding the "Accept-Encoding" header on
  * outgoing messages, and processing the "Content-Encoding" header on
- * incoming ones. Currently it supports the "gzip", "deflate", and "br"
+ * incoming ones. Currently it supports the "gzip", "deflate", "br", and "zstd"
  * content codings.
  *
  * A [class@ContentDecoder] will automatically be
@@ -192,6 +206,14 @@ brotli_decoder_creator (void)
 }
 #endif
 
+#ifdef WITH_ZSTD
+static GConverter *
+zstd_decoder_creator (void)
+{
+	return (GConverter *)soup_zstd_decompressor_new ();
+}
+#endif
+
 static void
 soup_content_decoder_init (SoupContentDecoder *decoder)
 {
@@ -208,6 +230,10 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 #ifdef WITH_BROTLI
 	g_hash_table_insert (priv->decoders, "br",
 			     brotli_decoder_creator);
+#endif
+#ifdef WITH_ZSTD
+	g_hash_table_insert (priv->decoders, "zstd",
+			     zstd_decoder_creator);
 #endif
 }
 
@@ -238,14 +264,14 @@ soup_content_decoder_request_queued (SoupSessionFeature *feature,
                                                   SOUP_HEADER_ACCEPT_ENCODING)) {
                 const char *header = "gzip, deflate";
 
-#ifdef WITH_BROTLI
-                /* brotli is only enabled over TLS connections
+#if defined(WITH_BROTLI) || defined(WITH_ZSTD)
+                /* brotli and zstd are only enabled over TLS connections
                  * as other browsers have found that some networks have expectations
                  * regarding the encoding of HTTP messages and this may break those
                  * expectations. Firefox and Chromium behave similarly.
                  */
                 if (soup_uri_is_https (soup_message_get_uri (msg)))
-                        header = "gzip, deflate, br";
+                        header = "gzip, deflate" SOUP_ACCEPT_BR SOUP_ACCEPT_ZSTD;
 #endif
 
 		soup_message_headers_append_common (soup_message_get_request_headers (msg),

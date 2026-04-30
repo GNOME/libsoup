@@ -152,6 +152,10 @@ if brotlidec_dep.found()
   soup_sources += 'content-decoder/soup-brotli-decompressor.c'
 endif
 
+if libzstd_dep.found()
+  soup_sources += 'content-decoder/soup-zstd-decompressor.c'
+endif
+
 
 install_headers(soup_installed_headers, subdir : includedir)
 
@@ -188,6 +192,7 @@ deps = [
   sqlite_dep,
   libpsl_dep,
   brotlidec_dep,
+  libzstd_dep,
   platform_deps,
   gssapi_dep,
   libz_dep,

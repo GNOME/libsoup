@@ -19,7 +19,7 @@ variables:
 
 .fedora-image:
   variables:
-    FDO_DISTRIBUTION_TAG: '2026-02-23-v3'
+    FDO_DISTRIBUTION_TAG: '2026-04-29-v1'
     FDO_DISTRIBUTION_VERSION: '43'
 
 .fedora-python2-image:
@@ -56,6 +56,7 @@ build-fedora-image:
       libasan
       libnghttp2-devel
       libpsl-devel
+      libzstd-devel
       meson
       mod_ssl
       mod_http2

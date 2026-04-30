@@ -22,6 +22,12 @@ option('brotli',
   description : 'Build with Brotli decompression support'
 )
 
+option('zstd',
+  type : 'feature',
+  value : 'auto',
+  description : 'Build with Zstandard decompression support'
+)
+
 option('tls_check',
   type : 'boolean',
   value : true,

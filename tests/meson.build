@@ -125,15 +125,27 @@ tests = [
    'slow': true},
 ]
 
-if brotlidec_dep.found()
-  tests += [{'name': 'brotli-decompressor'}]
+if brotlidec_dep.found() or libzstd_dep.found()
+  tests += [{'name': 'decompressor'}]
 
   if installed_tests_enabled
-    install_data(
-      'brotli-data/compressed.br',
-      'brotli-data/corrupt.br',
-      'brotli-data/uncompressed.txt',
-      install_dir : join_paths(installed_tests_execdir, 'brotli-data'),
+    compressed_data_files = [
+      'compressed-data/uncompressed.txt',
+    ]
+    if brotlidec_dep.found()
+      compressed_data_files += [
+        'compressed-data/compressed.br',
+        'compressed-data/corrupt.br',
+      ]
+    endif
+    if libzstd_dep.found()
+      compressed_data_files += [
+        'compressed-data/compressed.zst',
+        'compressed-data/corrupt.zst',
+      ]
+    endif
+    install_data(compressed_data_files,
+      install_dir : join_paths(installed_tests_execdir, 'compressed-data'),
     )
   endif
 endif

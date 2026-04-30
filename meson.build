@@ -139,6 +139,11 @@ if brotlidec_dep.found()
   cdata.set('WITH_BROTLI', true)
 endif
 
+libzstd_dep = dependency('libzstd', required : get_option('zstd'))
+if libzstd_dep.found()
+  cdata.set('WITH_ZSTD', true)
+endif
+
 unix_socket_dep = dependency('gio-unix-2.0',
                              version : glib_required_version,
                              fallback: (host_system != 'windows') ? ['glib', 'libgiounix_dep'] : [],
@@ -395,6 +400,7 @@ summary({
     'GSSAPI' : gssapi_dep.found(),
     'NTLM' : ntlm_auth.found(),
     'Brotli' : brotlidec_dep.found(),
+    'zstd' : libzstd_dep.found(),
     'Translations' : xgettext.found(),
     'GIR' : enable_introspection,
     'VAPI' : enable_vapi,
