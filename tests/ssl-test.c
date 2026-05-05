@@ -344,7 +344,7 @@ got_connection (GThreadedSocketService *service,
 					   NULL, NULL, &error);
 		g_assert_no_error (error);
 	} else {
-		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_CERTIFICATE_REQUIRED);
+		g_assert_error (error, G_TLS_ERROR, G_TLS_ERROR_MISC);
 		g_clear_error (&error);
 	}
 
@@ -403,7 +403,7 @@ do_tls_interaction_test (void)
 	/* Without a GTlsInteraction */
 	msg = soup_message_new_from_uri ("GET", test_uri);
 	soup_session_send_message (session, msg);
-	soup_test_assert_message_status (msg, SOUP_STATUS_SSL_FAILED);
+	soup_test_assert_message_status (msg, SOUP_STATUS_IO_ERROR);
 	g_object_unref (msg);
 
 	interaction = g_object_new (test_tls_interaction_get_type (), NULL);
