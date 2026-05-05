@@ -487,6 +487,12 @@ io_read (SoupClientMessageIOHTTP2  *io,
         g_warn_if_fail (io->in_callback == 0);
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
         NGCHECK (ret);
+        if (ret <= 0)
+                return FALSE;
+
+        g_list_foreach (io->pending_io_messages,
+                        (GFunc)soup_http2_message_data_check_status,
+                        NULL);
         return ret > 0;
 }
 
@@ -510,14 +516,8 @@ io_read_ready (GObject                  *stream,
         if (conn)
                 soup_connection_set_in_use (conn, TRUE);
 
-        while (nghttp2_session_want_read (io->session) || nghttp2_session_want_write (io->session)) {
+        while (progress && nghttp2_session_want_read (io->session))
                 progress = io_read (io, FALSE, NULL, &error);
-                g_list_foreach (io->pending_io_messages,
-                                (GFunc)soup_http2_message_data_check_status,
-                                NULL);
-                if (!progress || error)
-                        break;
-        }
 
         if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_error_free (error);
@@ -679,7 +679,7 @@ memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
         if (data->in_io_try_sniff_content)
                 return NULL;
 
-        if (nghttp2_session_want_read (data->io->session) || nghttp2_session_want_write (data->io->session))
+        if (nghttp2_session_want_read (data->io->session))
                 io_read (data->io, blocking, cancellable, &error);
 
         return error;
@@ -695,6 +695,7 @@ memory_stream_read_data (SoupBodyInputStreamHttp2 *stream,
         h2_debug (data->io, data, "[BODY_STREAM] Consumed %" G_GUINT64_FORMAT " bytes", bytes_read);
 
         NGCHECK (nghttp2_session_consume(data->io->session, data->stream_id, (size_t)bytes_read));
+        io_try_write (data->io, !data->item->async);
 }
 
 static int
