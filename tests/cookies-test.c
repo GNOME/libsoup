@@ -4,6 +4,7 @@
  */
 
 #include "test-utils.h"
+#include "soup-cookie-jar-db.h"
 
 static SoupServer *server;
 static GUri *first_party_uri, *third_party_uri;
@@ -662,6 +663,30 @@ task_finished_cb (SoupSession  *session,
         g_atomic_int_inc (finished_count);
 }
 
+static void
+do_cookies_db_init_failure_test (void)
+{
+	/* Pass a path that exists but is a directory — SQLite cannot open it */
+	const char *bad_path = "/tmp";
+	GError *error = NULL;
+	SoupCookieJar *jar;
+
+	jar = soup_cookie_jar_db_new_with_error (bad_path, FALSE, &error);
+	g_assert_null (jar);
+	g_assert_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE);
+	g_clear_error (&error);
+
+	/* Legacy new() must still return a non-NULL jar (compat) */
+	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING, "Failed to open cookie jar database:*");
+	SoupCookieJar *compat_jar = soup_cookie_jar_db_new (bad_path, FALSE);
+	g_test_assert_expected_messages ();
+	g_assert_nonnull (compat_jar);
+	/* The jar has no open db, so it holds no cookies */
+	GSList *cookies = soup_cookie_jar_all_cookies (compat_jar);
+	g_assert_null (cookies);
+	g_object_unref (compat_jar);
+}
+
 static gint
 find_cookie (SoupCookie *cookie,
              const char *name)
@@ -748,6 +773,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/secure-cookies", do_cookies_strict_secure_test);
 	g_test_add_func ("/cookies/prefix", do_cookies_prefix_test);
         g_test_add_func ("/cookies/threads", do_cookies_threads_test);
+	g_test_add_func ("/cookies/db-jar/init-failure", do_cookies_db_init_failure_test);
 
 	ret = g_test_run ();
 

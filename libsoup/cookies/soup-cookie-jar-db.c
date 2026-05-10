@@ -19,6 +19,15 @@
 #include "soup.h"
 
 /**
+ * SoupCookieJarDBError:
+ * @SOUP_COOKIE_JAR_DB_ERROR_SQLITE: an error from a sqlite operation
+
+ *
+ * A [class@SoupCookieJarDB] error.
+ */
+G_DEFINE_QUARK (soup-cookie-jar-db-error-quark, soup_cookie_jar_db_error)
+
+/**
  * SoupCookieJarDB:
  *
  * Database-based Cookie Jar.
@@ -29,6 +38,9 @@
  * (This is identical to `SoupCookieJarSqlite` in
  * libsoup-gnome; it has just been moved into libsoup proper, and
  * renamed to avoid conflicting.)
+ *
+ * Since 3.8 this class implements [iface@Gio.Initable] to track failures
+ * opening the database. See [ctor@SoupCookieJarDB.new_with_error].
  **/
 
 enum {
@@ -49,11 +61,18 @@ struct _SoupCookieJarDB {
 typedef struct {
 	char *filename;
 	sqlite3 *db;
+	gboolean is_initializing;
+	GError *init_error;
 } SoupCookieJarDBPrivate;
 
-G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupCookieJarDB, soup_cookie_jar_db, SOUP_TYPE_COOKIE_JAR)
+static void soup_cookie_jar_db_initable_iface_init (GInitableIface *iface);
 
-static void load (SoupCookieJar *jar);
+G_DEFINE_FINAL_TYPE_WITH_CODE (SoupCookieJarDB, soup_cookie_jar_db, SOUP_TYPE_COOKIE_JAR,
+                                G_ADD_PRIVATE (SoupCookieJarDB)
+			       G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE, soup_cookie_jar_db_initable_iface_init))
+
+static gboolean open_db (SoupCookieJar *jar, GError **error);
+static void soup_cookie_jar_db_constructed (GObject *object);
 
 static void
 soup_cookie_jar_db_init (SoupCookieJarDB *db)
@@ -68,6 +87,7 @@ soup_cookie_jar_db_finalize (GObject *object)
 
 	g_free (priv->filename);
 	g_clear_pointer (&priv->db, sqlite3_close);
+	g_clear_error (&priv->init_error);
 
 	G_OBJECT_CLASS (soup_cookie_jar_db_parent_class)->finalize (object);
 }
@@ -82,7 +102,6 @@ soup_cookie_jar_db_set_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_FILENAME:
 		priv->filename = g_value_dup_string (value);
-		load (SOUP_COOKIE_JAR (object));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -127,10 +146,40 @@ soup_cookie_jar_db_new (const char *filename, gboolean read_only)
 {
 	g_return_val_if_fail (filename != NULL, NULL);
 
-	return g_object_new (SOUP_TYPE_COOKIE_JAR_DB,
-			     "filename", filename,
-			     "read-only", read_only,
-			     NULL);
+	GError *error = NULL;
+	SoupCookieJarDB *jar = g_object_new (SOUP_TYPE_COOKIE_JAR_DB,
+					     "filename", filename,
+					     "read-only", read_only,
+					     NULL);
+	if (!g_initable_init (G_INITABLE (jar), NULL, &error)) {
+		g_warning ("Failed to open cookie jar database: %s", error->message);
+		g_clear_error (&error);
+	}
+	return SOUP_COOKIE_JAR (jar);
+}
+
+/**
+ * soup_cookie_jar_db_new_with_error:
+ * @filename: the filename to read to/write from
+ * @read_only: %TRUE if @filename is read-only
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a [class@CookieJarDB], returning %NULL and setting @error if the
+ * database file cannot be opened.
+ *
+ * Returns: (transfer full): the new #SoupCookieJar, or %NULL on error
+ *
+ * Since: 3.8
+ **/
+SoupCookieJar *
+soup_cookie_jar_db_new_with_error (const char *filename, gboolean read_only, GError **error)
+{
+	g_return_val_if_fail (filename != NULL, NULL);
+
+	return g_initable_new (SOUP_TYPE_COOKIE_JAR_DB, NULL, error,
+			       "filename", filename,
+			       "read-only", read_only,
+			       NULL);
 }
 
 #define QUERY_ALL "SELECT id, name, value, host, path, expiry, lastAccessed, isSecure, isHttpOnly, sameSite FROM moz_cookies;"
@@ -235,46 +284,74 @@ try_exec:
 	}
 }
 
-/* Follows sqlite3 convention; returns TRUE on error */
+/* Returns FALSE and sets error on failure */
 static gboolean
-open_db (SoupCookieJar *jar)
+open_db (SoupCookieJar *jar, GError **error)
 {
 	SoupCookieJarDBPrivate *priv =
 		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
 
-	char *error = NULL;
+	char *errmsg = NULL;
 
 	if (sqlite3_open (priv->filename, &priv->db)) {
-		sqlite3_close (priv->db);
-		priv->db = NULL;
-		g_warning ("Can't open %s", priv->filename);
-		return TRUE;
+		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+			     "Failed to open %s: %s", priv->filename,
+			     sqlite3_errmsg (priv->db));
+		g_clear_pointer (&priv->db, sqlite3_close);
+		return FALSE;
 	}
 
-	if (sqlite3_exec (priv->db, "PRAGMA synchronous = OFF; PRAGMA secure_delete = 1;", NULL, NULL, &error)) {
-		g_warning ("Failed to execute query: %s", error);
-		sqlite3_free (error);
+	if (sqlite3_exec (priv->db, "PRAGMA synchronous = OFF; PRAGMA secure_delete = 1;", NULL, NULL, &errmsg)) {
+		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+			     "Failed to execute PRAGMA: %s", errmsg);
+		sqlite3_free (errmsg);
+		g_clear_pointer (&priv->db, sqlite3_close);
+		return FALSE;
 	}
 
 	/* Migrate old DB to include same-site info. We simply always run this as it
 	   will safely handle a column with the same name existing */
 	sqlite3_exec (priv->db, "ALTER TABLE moz_cookies ADD COLUMN sameSite INTEGER DEFAULT 0", NULL, NULL, NULL);
 
-	return FALSE;
+	return TRUE;
 }
 
 static void
-load (SoupCookieJar *jar)
+soup_cookie_jar_db_constructed (GObject *object)
 {
-	SoupCookieJarDBPrivate *priv =
-		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
+	G_OBJECT_CLASS (soup_cookie_jar_db_parent_class)->constructed (object);
 
-	if (priv->db == NULL) {
-		if (open_db (jar))
-			return;
-	}
+	SoupCookieJarDB *jar = SOUP_COOKIE_JAR_DB (object);
+	SoupCookieJarDBPrivate *priv = soup_cookie_jar_db_get_instance_private (jar);
 
+	if (!open_db (SOUP_COOKIE_JAR (object), &priv->init_error))
+		return;
+
+	priv->is_initializing = TRUE;
 	exec_query_with_try_create_table (priv->db, QUERY_ALL, callback, jar);
+	priv->is_initializing = FALSE;
+}
+
+static gboolean
+soup_cookie_jar_db_initable_init (GInitable     *initable,
+				  GCancellable  *cancellable,
+				  GError       **error)
+{
+	SoupCookieJarDBPrivate *priv = soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (initable));
+
+	/* This is an unusual pattern but it was done to retain full API compatibility with
+	 * the version before GInitable while still exposing previously hidden errors. */
+	if (priv->init_error) {
+		g_propagate_error (error, g_error_copy (priv->init_error));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+static void
+soup_cookie_jar_db_initable_iface_init (GInitableIface *iface)
+{
+	iface->init = soup_cookie_jar_db_initable_init;
 }
 
 static void
@@ -286,10 +363,8 @@ soup_cookie_jar_db_changed (SoupCookieJar *jar,
 		soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
 	char *query;
 
-	if (priv->db == NULL) {
-		if (open_db (jar))
-			return;
-	}
+	if (priv->is_initializing || priv->db == NULL)
+		return;
 
 	if (old_cookie) {
 		query = sqlite3_mprintf (QUERY_DELETE,
@@ -333,6 +408,7 @@ soup_cookie_jar_db_class_init (SoupCookieJarDBClass *db_class)
 	cookie_jar_class->is_persistent = soup_cookie_jar_db_is_persistent;
 	cookie_jar_class->changed       = soup_cookie_jar_db_changed;
 
+	object_class->constructed  = soup_cookie_jar_db_constructed;
 	object_class->finalize     = soup_cookie_jar_db_finalize;
 	object_class->set_property = soup_cookie_jar_db_set_property;
 	object_class->get_property = soup_cookie_jar_db_get_property;
