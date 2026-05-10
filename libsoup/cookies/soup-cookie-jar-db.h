@@ -37,4 +37,10 @@ SoupCookieJar *soup_cookie_jar_db_new_with_error (const char *filename,
 						  gboolean    read_only,
 					          GError    **error);
 
+SOUP_AVAILABLE_IN_3_8
+gboolean soup_cookie_jar_db_set_max_size (SoupCookieJarDB *jar, guint64 max_size, GError **error);
+
+SOUP_AVAILABLE_IN_3_8
+guint64 soup_cookie_jar_db_get_max_size (SoupCookieJarDB *jar);
+
 G_END_DECLS

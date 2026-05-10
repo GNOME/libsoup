@@ -47,6 +47,7 @@ enum {
 	PROP_0,
 
 	PROP_FILENAME,
+	PROP_MAX_SIZE,
 
 	LAST_PROPERTY
 };
@@ -61,6 +62,9 @@ struct _SoupCookieJarDB {
 typedef struct {
 	char *filename;
 	sqlite3 *db;
+	guint64 db_default_page_size;
+	guint64 db_default_max_page_count;
+	guint64 max_size;
 	gboolean is_initializing;
 	GError *init_error;
 } SoupCookieJarDBPrivate;
@@ -68,10 +72,11 @@ typedef struct {
 static void soup_cookie_jar_db_initable_iface_init (GInitableIface *iface);
 
 G_DEFINE_FINAL_TYPE_WITH_CODE (SoupCookieJarDB, soup_cookie_jar_db, SOUP_TYPE_COOKIE_JAR,
-                                G_ADD_PRIVATE (SoupCookieJarDB)
+			       G_ADD_PRIVATE (SoupCookieJarDB)
 			       G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE, soup_cookie_jar_db_initable_iface_init))
 
 static gboolean open_db (SoupCookieJar *jar, GError **error);
+static gboolean db_set_max_size (SoupCookieJarDB *jar, guint64 max_size, GError **error);
 static void soup_cookie_jar_db_constructed (GObject *object);
 
 static void
@@ -103,6 +108,10 @@ soup_cookie_jar_db_set_property (GObject *object, guint prop_id,
 	case PROP_FILENAME:
 		priv->filename = g_value_dup_string (value);
 		break;
+	case PROP_MAX_SIZE:
+		/* construct-only value, actually used in constructed() */
+		priv->max_size = g_value_get_uint64 (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -120,10 +129,187 @@ soup_cookie_jar_db_get_property (GObject *object, guint prop_id,
 	case PROP_FILENAME:
 		g_value_set_string (value, priv->filename);
 		break;
+	case PROP_MAX_SIZE:
+		g_value_set_uint64 (value, priv->max_size);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
+}
+
+static int
+read_default_max_page_count_callback (void *data, int argc, char **argv, char **colname)
+{
+	SoupCookieJarDBPrivate *priv = (SoupCookieJarDBPrivate*)data;
+
+	if (argc != 1 || argv[0] == NULL) {
+		g_warning ("cookie-jar-db: Max page count value is missing");
+		return -1;
+	}
+
+	priv->db_default_max_page_count = g_ascii_strtoull (argv[0], NULL, 10);
+	return 0;
+}
+
+static gboolean
+soup_cookie_jar_db_get_default_max_page_count (SoupCookieJarDB *jar, GError **error)
+{
+	SoupCookieJarDBPrivate *priv = soup_cookie_jar_db_get_instance_private (jar);
+
+	char *errmsg = NULL;
+	int ret = sqlite3_exec (priv->db, "PRAGMA max_page_count;", read_default_max_page_count_callback, priv, &errmsg);
+	if (ret) {
+		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+			     "Failed to execute 'PRAGMA max_page_count': %s", errmsg);
+		sqlite3_free (errmsg);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+static int
+read_default_page_size_callback (void *data, int argc, char **argv, char **colname)
+{
+	SoupCookieJarDBPrivate *priv = (SoupCookieJarDBPrivate*)data;
+
+	if (argc != 1 || argv[0] == NULL) {
+		g_warning ("cookie-jar-db: Page size value is missing");
+		return -1;
+	}
+
+	priv->db_default_page_size = g_ascii_strtoull (argv[0], NULL, 10);
+	return 0;
+}
+
+static gboolean
+soup_cookie_jar_db_get_default_page_size (SoupCookieJarDB *jar, GError **error)
+{
+	SoupCookieJarDBPrivate *priv = soup_cookie_jar_db_get_instance_private (jar);
+
+	char *errmsg = NULL;
+	int ret = sqlite3_exec (priv->db, "PRAGMA page_size;", read_default_page_size_callback, priv, &errmsg);
+	if (ret) {
+		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+			     "Failed to execute 'PRAGMA page_size': %s", errmsg);
+		sqlite3_free (errmsg);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/**
+ * soup_cookie_jar_db_get_max_size:
+ * @jar: A #SoupCookieJarDB
+ *
+ * Get the maximum size for the database file storage
+ *
+ * This method returns the currently configured max database file size. A return value of zero
+ * indicates that no limit is configured.
+ *
+ * Returns: Database max file size
+ *
+ * Since: 3.8
+ **/
+guint64
+soup_cookie_jar_db_get_max_size (SoupCookieJarDB *jar)
+{
+	SoupCookieJarDBPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR_DB (jar), 0);
+
+	priv = soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
+	return priv->max_size;
+}
+
+/**
+ * soup_cookie_jar_db_set_max_size:
+ * @jar: A #SoupCookieJarDB
+ * @max_size: Max database file size, in bytes
+ * @error A #GError
+ *
+ * Set the maximum size for the database file storage
+ *
+ * If @max_size is 0, it means "no limit", in which case the database file size will be limited only
+ * by the database capabilities / intrinsic limits.
+ *
+ * If @max_size has a higher limit than supported by the database, the max_size will be internally
+ * set to the limit supported by the database.
+ *
+ * The @max_size will be internally truncated to a multiple of the database page size. If the page
+ * size is, for example, 4K, setting a max size of 10K will effectively limit the database size to
+ * 8K to ensure it does not grow beyond the specified limit.
+ *
+ * Attempting to set a limit that is less than the already used database file storage will NOT
+ * truncate the database, but won't allow the database to grow further in size (although writes
+ * might be still accepted within the already allocated space).
+ *
+ * This value does not persist in the database. Each construction of this class must set
+ * the property again or it will use the default value.
+ *
+ * Returns: %TRUE is configuration was successful, otherwise %FALSE and @error will be set.
+ *
+ * Since: 3.8
+ **/
+gboolean
+soup_cookie_jar_db_set_max_size (SoupCookieJarDB *jar, guint64 max_size, GError **error)
+{
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR_DB (jar), FALSE);
+
+	SoupCookieJarDBPrivate *priv = soup_cookie_jar_db_get_instance_private (SOUP_COOKIE_JAR_DB (jar));
+
+	return (priv->max_size == max_size) ? TRUE : db_set_max_size (SOUP_COOKIE_JAR_DB (jar), max_size, error);
+}
+
+static gboolean
+db_set_max_size (SoupCookieJarDB *jar, guint64 max_size, GError **error)
+{
+	SoupCookieJarDBPrivate *priv =
+		soup_cookie_jar_db_get_instance_private (jar);
+
+	if (0 == priv->db_default_page_size) {
+		g_set_error_literal (error,
+				     SOUP_COOKIE_JAR_DB_ERROR,
+				     SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+				     "Database page size is not available");
+		return FALSE;
+	}
+
+	if (0 == priv->db_default_max_page_count) {
+		g_set_error_literal (error,
+				     SOUP_COOKIE_JAR_DB_ERROR,
+				     SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+				     "Database max page count is not available");
+		return FALSE;
+	}
+
+	// Integer truncation ensures we don't use more space than desired in case the max
+	// database size is not a multiple of the database page size
+	guint64 max_page_count = (max_size != 0) ? max_size / priv->db_default_page_size : priv->db_default_max_page_count;
+
+	if (max_page_count > priv->db_default_max_page_count)
+		max_page_count = priv->db_default_max_page_count;
+
+	max_size = max_page_count * priv->db_default_page_size;
+
+	char *error_msg = NULL;
+	char *query = sqlite3_mprintf ("PRAGMA max_page_count = %u;", max_page_count);
+	int ret = sqlite3_exec (priv->db, query, NULL, NULL, &error_msg);
+
+	sqlite3_free (query);
+
+	if (ret) {
+		g_set_error (error,
+		             SOUP_COOKIE_JAR_DB_ERROR,
+		             SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+		             "PRAGMA failed: %s", error_msg);
+		sqlite3_free (error_msg);
+		return FALSE;
+	}
+	priv->max_size = max_size;
+	g_object_notify_by_pspec (G_OBJECT (jar), properties[PROP_MAX_SIZE]);
+
+	return TRUE;
 }
 
 /**
@@ -268,10 +454,13 @@ exec_query_with_try_create_table (sqlite3 *db,
 {
 	char *error = NULL;
 	gboolean try_create = TRUE;
+	int ret;
 
 try_exec:
-	if (sqlite3_exec (db, sql, callback, argument, &error)) {
-		if (try_create) {
+	ret = sqlite3_exec (db, sql, callback, argument, &error);
+	if (ret) {
+		/* Missing table will fail with SQLITE_ERROR, ignore others. */
+		if (try_create && ret == SQLITE_ERROR) {
 			try_create = FALSE;
 			try_create_table (db);
 			sqlite3_free (error);
@@ -330,6 +519,15 @@ soup_cookie_jar_db_constructed (GObject *object)
 	priv->is_initializing = TRUE;
 	exec_query_with_try_create_table (priv->db, QUERY_ALL, callback, jar);
 	priv->is_initializing = FALSE;
+
+	if (!soup_cookie_jar_db_get_default_page_size (jar, &priv->init_error))
+		return;
+
+	if (!soup_cookie_jar_db_get_default_max_page_count (jar, &priv->init_error))
+		return;
+
+	if (priv->max_size > 0)
+		db_set_max_size (jar, priv->max_size, &priv->init_error);
 }
 
 static gboolean
@@ -425,6 +623,22 @@ soup_cookie_jar_db_class_init (SoupCookieJarDBClass *db_class)
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
 				     G_PARAM_STATIC_STRINGS);
+
+	/**
+	 * SoupCookieJarDB:max-size:
+	 *
+	 * Cookie-storage maximum database size.
+	 *
+	 * Since: 3.8
+	 */
+	properties[PROP_MAX_SIZE] =
+		g_param_spec_uint64 ("max-size",
+		                     "Database maximum size",
+		                     NULL,
+		                     0,
+		                     G_MAXUINT64,
+		                     0,
+		                     G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_STATIC_STRINGS | G_PARAM_CONSTRUCT_ONLY);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }

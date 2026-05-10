@@ -5,6 +5,13 @@
 
 #include "test-utils.h"
 #include "soup-cookie-jar-db.h"
+#include <glib/gstdio.h>
+#include <stdint.h>
+
+// This is hardcoded to match sqlite but in theory could change some day.
+// https://sqlite.org/limits.html
+#define SQLITE_PAGE_SIZE 4096ULL
+#define SQLITE_MAX_PAGE_COUNT (G_MAXUINT32 - 1)
 
 static SoupServer *server;
 static GUri *first_party_uri, *third_party_uri;
@@ -740,6 +747,507 @@ do_cookies_threads_test (void)
         soup_test_session_abort_unref (session);
 }
 
+/**
+ * do_cookies_persistence_test:
+ *
+ * Test that cookies are saved in persistent storage medium
+ */
+static void
+do_cookies_persistence_test (void)
+{
+	SoupCookieJar *jar;
+	const char *value = "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
+	char buf[4096];
+	GFileIOStream *cookies_file_stream = NULL;
+	GError *error = NULL;
+
+	GFile *cookies_file = g_file_new_tmp ("cookies.sqlite.XXXXXX", &cookies_file_stream, &error);
+	g_assert_no_error (error);
+
+	// Closing only the stream handle to allow file to be opened by soup implementation, but
+	// keeping file handle as we still need it later to check file size. The file will not be
+	// deleted automatically so there is no risk of a race condition with other system processes
+	// creating same temp file (despite unlikely anyway)
+	g_object_unref (cookies_file_stream);
+
+	char *cookies_file_path = g_file_get_path (cookies_file);
+	jar = soup_cookie_jar_db_new (cookies_file_path, FALSE);
+	GUri *uri = g_uri_parse ("https://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+	const guint write_cookie_count = 10;
+
+	for (guint i = 0; i < write_cookie_count; i++) {
+		g_snprintf (buf, sizeof(buf), "%d=%s; Max-Age=2147483648", i, value);
+		soup_cookie_jar_set_cookie (jar, uri, buf);
+	}
+
+	// Reopen database to get data effectively written to it, as soup_cookie_jar_set_cookie doesn't
+	// return an error in case of write failure and we don't want to rely on failure to write log
+	// messages being present or not to decide if the test passed or failed
+	g_object_unref (jar);
+	jar = soup_cookie_jar_db_new (cookies_file_path, FALSE);
+
+	GSList *cookies = soup_cookie_jar_all_cookies (jar);
+	guint stored_cookie_count = g_slist_length (cookies);
+
+	g_assert_cmpuint (stored_cookie_count, ==, write_cookie_count);
+
+	g_slist_free_full (cookies, (GDestroyNotify) soup_cookie_free);
+	g_uri_unref (uri);
+	g_object_unref (jar);
+	g_file_delete (cookies_file, NULL, &error);
+	g_assert_no_error (error);
+	g_free (cookies_file_path);
+	g_object_unref (cookies_file);
+}
+
+/**
+ * do_cookies_persistence_default_db_max_size_test:
+ *
+ * Test that default database max size is returned when no other was set
+ */
+static void
+do_cookies_persistence_default_db_max_size_test (void)
+{
+	SoupCookieJar *jar;
+	GFileIOStream *cookies_file_stream = NULL;
+	GError *error = NULL;
+
+	GFile *cookies_file = g_file_new_tmp ("cookies.sqlite.XXXXXX", &cookies_file_stream, &error);
+
+	g_assert_no_error (error);
+
+	// Closing only the stream handle to allow file to be opened by soup implementation, but
+	// keeping file handle as we still need it later to check file size. The file will not be
+	// deleted automatically so there is no risk of a race condition with other system processes
+	// creating same temp file (despite unlikely anyway)
+	g_object_unref (cookies_file_stream);
+
+	char *cookies_file_path = g_file_get_path (cookies_file);
+
+	jar = soup_cookie_jar_db_new (cookies_file_path, FALSE);
+
+	// Test read using function API
+
+	guint64 max_size = soup_cookie_jar_db_get_max_size (SOUP_COOKIE_JAR_DB(jar));
+	g_assert_cmpuint (max_size, ==, 0);
+
+	// Test read using object API
+	g_object_get(G_OBJECT(jar), "max-size", &max_size, NULL);
+	g_assert_cmpuint (max_size, ==, 0);
+
+	g_object_unref (jar);
+	g_file_delete (cookies_file, NULL, &error);
+	g_assert_no_error (error);
+	g_free (cookies_file_path);
+	g_object_unref (cookies_file);
+}
+
+typedef struct {
+	guint64 size_requested;
+	guint64 size_expected;
+	guint write_cookie_count;
+	guint min_cookie_count;
+	guint max_cookie_count;
+} CookiePersistenceMaxSizeStorageWriteTestData;
+
+static const CookiePersistenceMaxSizeStorageWriteTestData cookie_persistence_max_size_storage_test_cases[] = {
+	// Page size aligned to match exactly
+	{ 5 * SQLITE_PAGE_SIZE, 5 * SQLITE_PAGE_SIZE, 10, 3, 6 },
+	// Not aligned to page size to force size truncation
+	{ 6 * SQLITE_PAGE_SIZE - 1, 5 * SQLITE_PAGE_SIZE, 10, 3, 6 },
+	// Unlimited
+	{ 0, 0, 10, 10, 10 },
+};
+
+/**
+ * do_cookies_persistence_db_max_size_storage_test:
+ *
+ * Test that database max size is respected when set and that storage does not grow beyond it
+ */
+static void
+do_cookies_persistence_db_max_size_storage_test (gconstpointer user_data)
+{
+	const CookiePersistenceMaxSizeStorageWriteTestData *test_data = user_data;
+	SoupCookieJar *jar;
+	const char *value = "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
+	char buf[4096];
+	GFileIOStream *cookies_file_stream = NULL;
+	GError *error = NULL;
+
+	GFile *cookies_file = g_file_new_tmp ("cookies.sqlite.XXXXXX", &cookies_file_stream, &error);
+
+	g_assert_no_error (error);
+
+	// Closing only the stream handle to allow file to be opened by soup implementation, but
+	// keeping file handle as we still need it later to check file size. The file will not be
+	// deleted automatically so there is no risk of a race condition with other system processes
+	// creating same temp file (despite unlikely anyway)
+	g_object_unref (cookies_file_stream);
+
+	char *cookies_file_path = g_file_get_path (cookies_file);
+
+	// ******************************************************************************************
+	// Phase 1: Configure max database size and try to write beyond it
+	// ******************************************************************************************
+	jar = soup_cookie_jar_db_new (cookies_file_path, FALSE);
+	g_assert_nonnull (jar);
+	soup_cookie_jar_db_set_max_size (SOUP_COOKIE_JAR_DB(jar), test_data->size_requested, &error);
+	g_assert_no_error (error);
+
+	GUri *uri = g_uri_parse ("https://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+
+	for (guint i = 0; i < test_data->write_cookie_count; i++) {
+		g_snprintf (buf, sizeof(buf), "%d=%s; Max-Age=2147483648", i, value);
+                g_test_expect_message("libsoup", G_LOG_LEVEL_WARNING, "Failed to execute query: database or disk is full");
+		soup_cookie_jar_set_cookie (jar, uri, buf);
+	}
+
+	// ******************************************************************************************
+	// Phase 2: Reopen database to get data effectively written to it, as the
+	//          soup_cookie_jar_set_cookie doesn't return an error in case of write failure and
+	//          we don't want to rely on failure to write log messages being present or not to
+	//          decide if the test passed or failed. Verify database file size did not grow
+	//          beyond the limit
+	// ******************************************************************************************
+
+	g_object_unref (jar);
+	jar = soup_cookie_jar_db_new (cookies_file_path, FALSE);
+
+	GSList *cookies = soup_cookie_jar_all_cookies (jar);
+	guint stored_cookie_count = g_slist_length (cookies);
+
+	g_slist_free_full (cookies, (GDestroyNotify) soup_cookie_free);
+
+	// Exact number of cookies will depend on the database overhead to store the data. Give some margin
+	// by using min and max values
+	g_assert_cmpuint (stored_cookie_count, <=, test_data->max_cookie_count);
+	g_assert_cmpuint (stored_cookie_count, >=, test_data->min_cookie_count);
+
+	// Verify actual file size only if size is not unlimited
+	if (test_data->size_expected > 0) {
+		GFileInfo *info = g_file_query_info (cookies_file,
+		                                     G_FILE_ATTRIBUTE_STANDARD_SIZE,
+		                                     G_FILE_QUERY_INFO_NONE,
+		                                     NULL,
+		                                     &error);
+		g_assert_no_error (error);
+		g_assert_cmpuint (g_file_info_get_size(info), ==, test_data->size_expected);
+		g_object_unref (info);
+	}
+
+	// Since the database was reopened, confirm that the max size has reverted to the default
+
+	guint64 sqlite_max_size = 0; // Our API sets zero for unlimited
+	guint64 max_size_read = soup_cookie_jar_db_get_max_size (SOUP_COOKIE_JAR_DB(jar));
+	g_assert_cmpuint (max_size_read, ==, sqlite_max_size);
+
+	// ******************************************************************************************
+	// Phase 3: Verify that we can write beyond the previously set limit. This implies
+	//          reopening the database again after the write to ensure data did not remain
+	//          just in memory
+	// ******************************************************************************************
+
+	for (guint i = 0; i < test_data->write_cookie_count; i++) {
+		g_snprintf (buf, sizeof(buf), "%d=%s; Max-Age=2147483648", i, value);
+		soup_cookie_jar_set_cookie (jar, uri, buf);
+	}
+
+	g_object_unref (jar);
+	jar = soup_cookie_jar_db_new (cookies_file_path, FALSE);
+
+	cookies = soup_cookie_jar_all_cookies (jar);
+	stored_cookie_count = g_slist_length (cookies);
+
+	g_slist_free_full (cookies, (GDestroyNotify) soup_cookie_free);
+
+	g_assert_cmpuint (stored_cookie_count, ==, test_data->write_cookie_count);
+
+	// Check file size grew again beyond previously set limit (now reverted)
+	GFileInfo *info = g_file_query_info (cookies_file,
+		                                     G_FILE_ATTRIBUTE_STANDARD_SIZE,
+		                                     G_FILE_QUERY_INFO_NONE,
+		                                     NULL,
+		                                     &error);
+	g_assert_no_error (error);
+
+	g_assert_cmpuint (g_file_info_get_size(info), >, test_data->size_expected);
+
+	g_object_unref (info);
+	g_uri_unref (uri);
+	g_object_unref (jar);
+
+	g_file_delete (cookies_file, NULL, &error);
+	g_assert_no_error (error);
+
+	g_free (cookies_file_path);
+	g_object_unref (cookies_file);
+}
+
+typedef struct {
+	guint64 size_requested;
+	guint64 size_expected;
+	guint write_cookie_count;
+	guint min_cookie_count;
+	guint max_cookie_count;
+} CookiePersistenceMaxSizeAtObjectCreationStorageWriteTestData;
+
+static const CookiePersistenceMaxSizeAtObjectCreationStorageWriteTestData cookie_persistence_max_size_at_object_creation_storage_test_cases[] = {
+	// Page size aligned to match exactly
+	{ 5 * SQLITE_PAGE_SIZE, 5 * SQLITE_PAGE_SIZE, 10, 3, 6 },
+	// Not aligned to page size to force size truncation
+	{ 6 * SQLITE_PAGE_SIZE - 1, 5 * SQLITE_PAGE_SIZE, 10, 3, 6 },
+	// Unlimited
+	{  0, 0, 10, 10, 10 }
+};
+/**
+ * do_cookies_persistence_db_max_size_at_object_creation_storage_test:
+ *
+ * Test that database max size is respected when set during object creation and that storage does
+ * not grow beyond it
+ */
+static void
+do_cookies_persistence_db_max_size_at_object_creation_storage_test (gconstpointer user_data)
+{
+	const CookiePersistenceMaxSizeAtObjectCreationStorageWriteTestData *test_data = user_data;
+	SoupCookieJar *jar;
+	const char *value = "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
+	char buf[4096];
+	GFileIOStream *cookies_file_stream = NULL;
+	GError *error = NULL;
+
+
+	GFile *cookies_file = g_file_new_tmp ("cookies.sqlite.XXXXXX", &cookies_file_stream, &error);
+	g_assert_no_error (error);
+
+	// Closing only the stream handle to allow file to be opened by soup implementation, but
+	// keeping file handle as we still need it later to check file size. The file will not be
+	// deleted automatically so there is no risk of a race condition with other system processes
+	// creating same temp file (despite unlikely anyway)
+	g_object_unref (cookies_file_stream);
+
+	char *cookies_file_path = g_file_get_path (cookies_file);
+
+	// ******************************************************************************************
+	// Phase 1: Configure max database size and try to write beyond it
+	// ******************************************************************************************
+	jar = g_object_new (SOUP_TYPE_COOKIE_JAR_DB,
+						"filename", cookies_file_path,
+						"read-only", FALSE,
+						"max-size", test_data->size_requested,
+						NULL);
+
+	GUri *uri = g_uri_parse ("https://gnome.org", SOUP_HTTP_URI_FLAGS, NULL);
+
+	for (guint i = 0; i < test_data->write_cookie_count; i++) {
+		g_snprintf (buf, sizeof(buf), "%d=%s; Max-Age=2147483648", i, value);
+		soup_cookie_jar_set_cookie (jar, uri, buf);
+	}
+
+	// ******************************************************************************************
+	// Phase 2: Reopen database to get data effectively written to it, as the
+	//          soup_cookie_jar_set_cookie doesn't return an error in case of write failure and
+	//          we don't want to rely on failure to write log messages being present or not to
+	//          decide if the test passed or failed. Verify database file size did not grow
+	//          beyond the limit
+	// ******************************************************************************************
+
+	g_object_unref (jar);
+	jar = g_object_new (SOUP_TYPE_COOKIE_JAR_DB,
+						"filename", cookies_file_path,
+						"read-only", FALSE,
+						NULL);
+
+	GSList *cookies = soup_cookie_jar_all_cookies (jar);
+	guint stored_cookie_count = g_slist_length (cookies);
+
+	g_slist_free_full (cookies, (GDestroyNotify) soup_cookie_free);
+
+	// Exact number of cookies will depend on the database overhead to store the data. Give some margin
+	// by using min and max values
+	g_assert_cmpuint (stored_cookie_count, <=, test_data->max_cookie_count);
+	g_assert_cmpuint (stored_cookie_count, >=, test_data->min_cookie_count);
+
+	// Verify actual file size only if size is not unlimited
+	if (test_data->size_expected > 0) {
+		// Check file size matches expectation
+		GFileInfo *info = g_file_query_info (cookies_file,
+		                                     G_FILE_ATTRIBUTE_STANDARD_SIZE,
+		                                     G_FILE_QUERY_INFO_NONE,
+		                                     NULL,
+		                                     &error);
+		g_assert_no_error (error);
+
+		g_assert_cmpuint (g_file_info_get_size(info), ==, test_data->size_expected);
+
+		g_object_unref (info);
+	}
+
+	// Since the database was reopened, confirm that the max size has reverted to the default
+
+	// Our API sets zero for unlimited
+	guint64 sqlite_max_size = 0;
+	guint64 max_size_read = G_MAXUINT32;
+
+	g_object_get(G_OBJECT(jar), "max-size", &max_size_read, NULL);
+
+	g_assert_cmpuint (max_size_read, ==, sqlite_max_size);
+
+	// ******************************************************************************************
+	// Phase 3: Verify that we can write beyond the previously set limit. This implies
+	//          reopening the database again after the write to ensure data did not remain
+	//          just in memory
+	// ******************************************************************************************
+
+	for (guint i = 0; i < test_data->write_cookie_count; i++) {
+		g_snprintf (buf, sizeof(buf), "%d=%s; Max-Age=2147483648", i, value);
+		soup_cookie_jar_set_cookie (jar, uri, buf);
+	}
+
+	g_object_unref (jar);
+	jar = g_object_new (SOUP_TYPE_COOKIE_JAR_DB,
+						"filename", cookies_file_path,
+						"read-only", FALSE,
+						NULL);
+
+	cookies = soup_cookie_jar_all_cookies (jar);
+	stored_cookie_count = g_slist_length (cookies);
+	g_slist_free_full (cookies, (GDestroyNotify) soup_cookie_free);
+
+	g_assert_cmpuint (stored_cookie_count, ==, test_data->write_cookie_count);
+
+	// Check file size grew again beyond previously set limit (now reverted)
+	GFileInfo *info = g_file_query_info (cookies_file,
+		                                     G_FILE_ATTRIBUTE_STANDARD_SIZE,
+		                                     G_FILE_QUERY_INFO_NONE,
+		                                     NULL,
+		                                     &error);
+	g_assert_no_error (error);
+
+	g_assert_cmpuint (g_file_info_get_size(info), >, test_data->size_expected);
+
+	g_object_unref (info);
+	g_uri_unref (uri);
+	g_object_unref (jar);
+	g_file_delete (cookies_file, NULL, &error);
+	g_assert_no_error (error);
+	g_free (cookies_file_path);
+	g_object_unref (cookies_file);
+}
+
+typedef struct {
+	guint64 size_requested;
+	guint64 size_expected;
+} CookiePersistenceMaxSizeValuesTestData;
+
+static const CookiePersistenceMaxSizeValuesTestData cookie_persistence_max_size_values_test_cases[] = {
+	// Page size aligned to match exactly
+	{ 10 * SQLITE_PAGE_SIZE, 10 * SQLITE_PAGE_SIZE },
+	// Not aligned to page size to force size truncation
+	{ 10 * SQLITE_PAGE_SIZE + 100, 10 * SQLITE_PAGE_SIZE },
+	// Exceeding max database supported size (maximum size, rounded down)
+	{ G_MAXUINT64, SQLITE_MAX_PAGE_COUNT * SQLITE_PAGE_SIZE },
+	// Unlimited
+	{ 0, 0 },
+};
+
+static void
+do_cookies_persistence_db_max_size_values_test (gconstpointer user_data)
+{
+	const CookiePersistenceMaxSizeValuesTestData *test_data = user_data;
+	SoupCookieJarDB *jar;
+	GFileIOStream *cookies_file_stream = NULL;
+	GError *error = NULL;
+
+	GFile *cookies_file = g_file_new_tmp ("cookies.sqlite.XXXXXX", &cookies_file_stream, &error);
+
+	g_assert_no_error (error);
+
+	// Closing only the stream handle to allow file to be opened by soup implementation, but
+	// keeping file handle as we still need it later to check file size. The file will not be
+	// deleted automatically so there is no risk of a race condition with other system processes
+	// creating same temp file (despite unlikely anyway)
+	g_object_unref (cookies_file_stream);
+
+	char *cookies_file_path = g_file_get_path (cookies_file);
+
+	jar = g_object_new (SOUP_TYPE_COOKIE_JAR_DB, "filename", cookies_file_path,
+		               "max-size", test_data->size_requested, NULL);
+
+	g_assert_cmpuint (soup_cookie_jar_db_get_max_size (jar), ==, test_data->size_expected);
+
+	g_object_unref (jar);
+	g_file_delete (cookies_file, NULL, &error);
+	g_assert_no_error (error);
+	g_free (cookies_file_path);
+	g_object_unref (cookies_file);
+}
+
+typedef struct {
+	guint notify_count;
+} NotifyData;
+
+static void
+on_notify(GObject *obj, GParamSpec *pspec, gpointer user_data)
+{
+	NotifyData *data = user_data;
+
+	if (g_str_equal (pspec->name, "max-size")) {
+		data->notify_count++;
+    }
+}
+
+typedef struct {
+	guint64 size_requested1;
+	guint64 notify_count_expected1;
+	guint64 size_requested2;
+	guint notify_count_expected2;
+} CookiePersistenceMaxSizeNotifyTestData;
+
+static const CookiePersistenceMaxSizeNotifyTestData cookie_persistence_max_size_notify_test_cases[] = {
+	{10 * SQLITE_PAGE_SIZE, 1, 10 * SQLITE_PAGE_SIZE, 1 },
+	{10 * SQLITE_PAGE_SIZE, 1, 20 * SQLITE_PAGE_SIZE, 2 },
+	{10 * SQLITE_PAGE_SIZE, 1, 0, 2 },
+	{ 0, 0, 10 * SQLITE_PAGE_SIZE, 1 },
+};
+
+static void
+do_cookies_persistence_db_max_size_notify_test (gconstpointer user_data)
+{
+	const CookiePersistenceMaxSizeNotifyTestData *test_data = user_data;
+	SoupCookieJar *jar;
+	GFileIOStream *cookies_file_stream = NULL;
+	GError *error = NULL;
+
+	GFile *cookies_file = g_file_new_tmp ("cookies.sqlite.XXXXXX", &cookies_file_stream, &error);
+
+	g_assert_no_error (error);
+
+	// Closing only the stream handle to allow file to be opened by soup implementation, but
+	// keeping file handle as we still need it later to check file size. The file will not be
+	// deleted automatically so there is no risk of a race condition with other system processes
+	// creating same temp file (despite unlikely anyway)
+	g_object_unref (cookies_file_stream);
+
+	char *cookies_file_path = g_file_get_path (cookies_file);
+
+	jar = soup_cookie_jar_db_new (cookies_file_path, FALSE);
+
+	NotifyData notify_data = {0};
+
+	g_signal_connect(jar, "notify::max-size", G_CALLBACK (on_notify), &notify_data);
+
+	soup_cookie_jar_db_set_max_size (SOUP_COOKIE_JAR_DB(jar), test_data->size_requested1, NULL);
+	g_assert_cmpuint (notify_data.notify_count, ==, test_data->notify_count_expected1);
+	soup_cookie_jar_db_set_max_size (SOUP_COOKIE_JAR_DB(jar), test_data->size_requested2, NULL);
+	g_assert_cmpuint (notify_data.notify_count, ==, test_data->notify_count_expected2);
+
+	g_object_unref (jar);
+	g_file_delete (cookies_file, NULL, &error);
+	g_assert_no_error (error);
+	g_free (cookies_file_path);
+	g_object_unref (cookies_file);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -774,6 +1282,33 @@ main (int argc, char **argv)
 	g_test_add_func ("/cookies/prefix", do_cookies_prefix_test);
         g_test_add_func ("/cookies/threads", do_cookies_threads_test);
 	g_test_add_func ("/cookies/db-jar/init-failure", do_cookies_db_init_failure_test);
+	g_test_add_func ("/cookies/db-jar/persistence", do_cookies_persistence_test);
+	g_test_add_func ("/cookies/db-jar/persistence/max-size-default", do_cookies_persistence_default_db_max_size_test);
+
+	for (guint i = 0; i < G_N_ELEMENTS (cookie_persistence_max_size_storage_test_cases); i++) {
+		gchar *name = g_strdup_printf ("/cookies/db-jar/persistence/max-size-storage/%u", i);
+		g_test_add_data_func (name, &cookie_persistence_max_size_storage_test_cases[i], do_cookies_persistence_db_max_size_storage_test);
+		g_free (name);
+	}
+
+	for (guint i = 0; i < G_N_ELEMENTS (cookie_persistence_max_size_at_object_creation_storage_test_cases); i++) {
+		gchar *name = g_strdup_printf ("/cookies/db-jar/persistence/max-size-storage-at-object-creation/%u", i);
+		g_test_add_data_func (name, &cookie_persistence_max_size_at_object_creation_storage_test_cases[i], do_cookies_persistence_db_max_size_at_object_creation_storage_test);
+		g_free (name);
+	}
+
+	for (guint i = 0; i < G_N_ELEMENTS (cookie_persistence_max_size_values_test_cases); i++) {
+		gchar *name = g_strdup_printf ("/cookies/db-jar/persistence/max-size-values/%u", i);
+		g_test_add_data_func (name, &cookie_persistence_max_size_values_test_cases[i], do_cookies_persistence_db_max_size_values_test);
+		g_free (name);
+	}
+
+	for (guint i = 0; i < G_N_ELEMENTS (cookie_persistence_max_size_notify_test_cases); i++) {
+		gchar *name = g_strdup_printf ("/cookies/db-jar/persistence/max-size-notify/%u", i);
+		g_test_add_data_func (name, &cookie_persistence_max_size_notify_test_cases[i], do_cookies_persistence_db_max_size_notify_test);
+		g_free (name);
+	}
+
 
 	ret = g_test_run ();
 
