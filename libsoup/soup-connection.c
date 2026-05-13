@@ -1216,6 +1216,14 @@ soup_connection_setup_message_io (SoupConnection *conn,
         return priv->io_data;
 }
 
+SoupClientMessageIO *
+soup_connection_get_io_data (SoupConnection *conn)
+{
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+
+        return priv->io_data;
+}
+
 GTlsCertificate *
 soup_connection_get_tls_certificate (SoupConnection *conn)
 {

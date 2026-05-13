@@ -52,8 +52,6 @@ struct _SoupMessage {
 };
 
 typedef struct {
-	SoupClientMessageIO *io_data;
-
         SoupMessageHeaders *request_headers;
 	SoupMessageHeaders *response_headers;
 
@@ -1718,7 +1716,6 @@ soup_message_set_connection (SoupMessage    *msg,
 
 	if (connection) {
 		g_signal_handlers_disconnect_by_data (connection, msg);
-                priv->io_data = NULL;
 
                 if (priv->pending_tls_cert_request) {
                         soup_connection_complete_tls_certificate_request (connection,
@@ -2719,17 +2716,28 @@ soup_message_get_priority (SoupMessage *msg)
 SoupClientMessageIO *
 soup_message_get_io_data (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupConnection *connection = g_weak_ref_get (&priv->connection);
+        SoupClientMessageIO *io_data;
 
-	return priv->io_data;
+        if (connection == NULL)
+                return NULL;
+
+        io_data = soup_connection_get_io_data (connection);
+        g_object_unref (connection);
+
+	return io_data;
 }
 
 void
 soup_message_io_finished (SoupMessage *msg)
 {
+#ifndef G_DISABLE_ASSERT
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+#endif
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        if (!priv->io_data)
+        if (!io_data)
                 return;
 
 #ifndef G_DISABLE_ASSERT
@@ -2738,35 +2746,35 @@ soup_message_io_finished (SoupMessage *msg)
         g_assert (connection != NULL);
         g_object_unref (connection);
 #endif
-        soup_client_message_io_finished (g_steal_pointer (&priv->io_data), msg);
+        soup_client_message_io_finished (io_data, msg);
 }
 
 void
 soup_message_io_pause (SoupMessage *msg)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        g_return_if_fail (priv->io_data != NULL);
+        g_assert (io_data != NULL);
 
-        soup_client_message_io_pause (priv->io_data, msg);
+        soup_client_message_io_pause (io_data, msg);
 }
 
 void
 soup_message_io_unpause (SoupMessage *msg)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        g_return_if_fail (priv->io_data != NULL);
+        g_assert (io_data != NULL);
 
-        soup_client_message_io_unpause (priv->io_data, msg);
+        soup_client_message_io_unpause (io_data, msg);
 }
 
 gboolean
 soup_message_is_io_paused (SoupMessage *msg)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        return priv->io_data && soup_client_message_io_is_paused (priv->io_data, msg);
+        return io_data && soup_client_message_io_is_paused (io_data, msg);
 }
 
 /**
@@ -2780,18 +2788,20 @@ soup_message_is_io_paused (SoupMessage *msg)
 gboolean
 soup_message_io_in_progress (SoupMessage *msg)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        return priv->io_data && soup_client_message_io_in_progress (priv->io_data, msg);
+        return io_data && soup_client_message_io_in_progress (io_data, msg);
 }
 
 void
 soup_message_io_run (SoupMessage *msg,
                      gboolean     blocking)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        soup_client_message_io_run (priv->io_data, msg, blocking);
+        g_assert (io_data != NULL);
+
+        soup_client_message_io_run (io_data, msg, blocking);
 }
 
 gboolean
@@ -2799,9 +2809,11 @@ soup_message_io_run_until_read (SoupMessage  *msg,
                                 GCancellable *cancellable,
                                 GError      **error)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        return soup_client_message_io_run_until_read (priv->io_data, msg, cancellable, error);
+        g_assert (io_data != NULL);
+
+        return soup_client_message_io_run_until_read (io_data, msg, cancellable, error);
 }
 
 void
@@ -2811,9 +2823,11 @@ soup_message_io_run_until_read_async (SoupMessage        *msg,
                                       GAsyncReadyCallback callback,
                                       gpointer            user_data)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        soup_client_message_io_run_until_read_async (priv->io_data, msg, io_priority, cancellable, callback, user_data);
+        g_assert (io_data != NULL);
+
+        soup_client_message_io_run_until_read_async (io_data, msg, io_priority, cancellable, callback, user_data);
 }
 
 gboolean
@@ -2830,22 +2844,23 @@ soup_message_io_skip (SoupMessage  *msg,
                       GCancellable *cancellable,
                       GError      **error)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-        if (!priv->io_data)
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
+
+        if (!io_data)
                 return TRUE;
 
-        return soup_client_message_io_skip (priv->io_data, msg, blocking, cancellable, error);
+        return soup_client_message_io_skip (io_data, msg, blocking, cancellable, error);
 }
 
 GCancellable *
 soup_message_io_get_cancellable (SoupMessage *msg)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        if (!priv->io_data)
+        if (!io_data)
                 return NULL;
 
-        return soup_client_message_io_get_cancellable (priv->io_data, msg);
+        return soup_client_message_io_get_cancellable (io_data, msg);
 }
 
 void
@@ -2856,19 +2871,22 @@ soup_message_send_item (SoupMessage              *msg,
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
         SoupConnection *connection = g_weak_ref_get (&priv->connection);
+        SoupClientMessageIO *io_data;
 
-        priv->io_data = soup_connection_setup_message_io (connection, msg);
+        io_data = soup_connection_setup_message_io (connection, msg);
         g_object_unref (connection);
-        soup_client_message_io_send_item (priv->io_data, item, completion_cb, user_data);
+        soup_client_message_io_send_item (io_data, item, completion_cb, user_data);
 }
 
 GInputStream *
 soup_message_io_get_response_istream (SoupMessage  *msg,
                                       GError      **error)
 {
-        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+        SoupClientMessageIO *io_data = soup_message_get_io_data (msg);
 
-        return soup_client_message_io_get_response_stream (priv->io_data, msg, error);
+        g_assert (io_data != NULL);
+
+        return soup_client_message_io_get_response_stream (io_data, msg, error);
 }
 
 void

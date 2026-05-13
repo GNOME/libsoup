@@ -62,6 +62,7 @@ gboolean        soup_connection_is_idle_open   (SoupConnection   *conn);
 
 SoupClientMessageIO *soup_connection_setup_message_io    (SoupConnection *conn,
                                                           SoupMessage    *msg);
+SoupClientMessageIO *soup_connection_get_io_data         (SoupConnection *conn);
 
 GTlsCertificate     *soup_connection_get_tls_certificate                       (SoupConnection  *conn);
 GTlsCertificateFlags soup_connection_get_tls_certificate_errors                (SoupConnection  *conn);
