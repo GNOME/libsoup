@@ -292,21 +292,39 @@ soup_http2_message_data_can_be_restarted (SoupHTTP2MessageData *data,
                 SOUP_METHOD_IS_IDEMPOTENT (soup_message_get_method (data->msg));
 }
 
+static gboolean
+complete_in_idle_cb (SoupHTTP2MessageData *data)
+{
+        GTask *task = g_steal_pointer (&data->task);
+        GError *error = g_steal_pointer (&data->error);
+
+        g_assert (g_task_is_valid (G_ASYNC_RESULT (task), data->msg));
+
+        if (error) {
+                /* Beware! This will destroy the SoupHTTP2MessageData. */
+                soup_client_message_io_http2_finished ((SoupClientMessageIO *)data->io, data->msg);
+                g_task_return_error (task, error);
+        } else {
+                g_task_return_boolean (task, TRUE);
+        }
+
+        g_object_unref (task);
+
+        return G_SOURCE_REMOVE;
+}
+
 static void
 soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
 {
         SoupClientMessageIOHTTP2 *io = data->io;
         SoupMessage *msg = data->msg;
         GTask *task = data->task;
+        GSource *source;
         GError *error = NULL;
 
         if (g_cancellable_set_error_if_cancelled (g_task_get_cancellable (task), &error)) {
                 io->pending_io_messages = g_list_remove (io->pending_io_messages, data);
-                data->task = NULL;
-                soup_client_message_io_http2_finished ((SoupClientMessageIO *)io, msg);
-                g_task_return_error (task, error);
-                g_object_unref (task);
-                return;
+                goto out;
         }
 
         if (data->paused)
@@ -316,19 +334,12 @@ soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
                 data->error = g_error_copy (io->error);
 
         if (data->error) {
-                GError *error = g_steal_pointer (&data->error);
-
-                if (soup_http2_message_data_can_be_restarted (data, error))
+                if (soup_http2_message_data_can_be_restarted (data, data->error))
                         data->item->state = SOUP_MESSAGE_RESTARTING;
                 else
                         soup_message_set_metrics_timestamp (data->msg, SOUP_MESSAGE_METRICS_RESPONSE_END);
                 io->pending_io_messages = g_list_remove (io->pending_io_messages, data);
-                data->task = NULL;
-                soup_client_message_io_http2_finished ((SoupClientMessageIO *)io, msg);
-
-                g_task_return_error (task, error);
-                g_object_unref (task);
-                return;
+                goto out;
         }
 
         if (data->state == STATE_READ_DATA_START && !soup_message_has_content_sniffer (msg))
@@ -338,9 +349,24 @@ soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
                 return;
 
         io->pending_io_messages = g_list_remove (io->pending_io_messages, data);
-        data->task = NULL;
-        g_task_return_boolean (task, TRUE);
-        g_object_unref (task);
+
+        /* We need to use an idle callback here to guarantee the task does not
+         * complete until the next iteration of the main context. Otherwise,
+         * we could wind up in g_task_return_now(), executing who knows what
+         * code, which can start a second call io_read() before we have
+         * completed the current call.
+         *
+         * Too bad we don't have an off switch for g_task_return_now().
+         *
+         * https://gitlab.gnome.org/GNOME/libsoup/-/work_items/524
+         */
+out:
+        source = g_idle_source_new ();
+        g_source_set_static_name (source, "SoupClientMessageIOHTTP2 status callback");
+        g_source_set_priority (source, G_PRIORITY_DEFAULT);
+        g_source_set_callback (source, G_SOURCE_FUNC (complete_in_idle_cb), data, NULL);
+        g_source_attach (source, g_task_get_context (data->task));
+        g_source_unref (source);
 }
 
 static gboolean
