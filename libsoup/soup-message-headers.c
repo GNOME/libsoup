@@ -9,6 +9,7 @@
 #include <config.h>
 #endif
 
+#include <errno.h>
 #include <string.h>
 
 #include "soup-message-headers-private.h"
@@ -296,12 +297,14 @@ soup_message_headers_append_common (SoupMessageHeaders    *hdrs,
                         guint64 decimal_value1, decimal_value2;
                         char *end;
 
+                        errno = 0;
                         decimal_value1 = g_ascii_strtoull (content_length, &end, 10);
-                        if (*end)
+                        if (*end || errno == ERANGE)
                                 return FALSE;
 
+                        errno = 0;
                         decimal_value2 = g_ascii_strtoull (value, &end, 10);
-                        if (*end)
+                        if (*end || errno == ERANGE)
                                 return FALSE;
 
                         return decimal_value1 == decimal_value2;
