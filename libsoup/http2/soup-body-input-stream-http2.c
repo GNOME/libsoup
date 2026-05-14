@@ -201,20 +201,17 @@ retry:
         if (bytes_read > 0)
                 g_signal_emit (memory_stream, signals[READ_DATA], 0, (guint64)bytes_read);
 
-        /* When doing blocking reads we must always request more data.
-         * Even when doing non-blocking, a read consuming data may trigger a new WINDOW_UPDATE. */
-        if (have_more_data_coming (memory_stream) && bytes_read == 0) {
+        /* When doing blocking reads we must always request more data. */
+        if (blocking && have_more_data_coming (memory_stream) && bytes_read == 0) {
                 GError *read_error = NULL;
-                g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0,
-                        blocking, cancellable, &read_error);
+                g_signal_emit (memory_stream, signals[NEED_MORE_DATA], 0, cancellable, &read_error);
 
                 if (read_error) {
                         g_propagate_error (error, read_error);
                         return -1;
                 }
 
-                if (blocking)
-                        goto retry;
+                goto retry;
         }
 
         return count;
@@ -462,8 +459,7 @@ soup_body_input_stream_http2_class_init (SoupBodyInputStreamHttp2Class *klass)
                               0,
                               NULL, NULL,
                               NULL,
-                              G_TYPE_ERROR,
-                              2, G_TYPE_BOOLEAN,
+                              G_TYPE_ERROR, 1,
                               G_TYPE_CANCELLABLE);
 
         signals[READ_DATA] =

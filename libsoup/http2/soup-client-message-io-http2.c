@@ -669,7 +669,6 @@ on_invalid_header_callback (nghttp2_session     *session,
 
 static GError *
 memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
-                                       gboolean                  blocking,
                                        GCancellable             *cancellable,
                                        gpointer                  user_data)
 {
@@ -680,7 +679,7 @@ memory_stream_need_more_data_callback (SoupBodyInputStreamHttp2 *stream,
                 return NULL;
 
         if (nghttp2_session_want_read (data->io->session))
-                io_read (data->io, blocking, cancellable, &error);
+                io_read (data->io, TRUE, cancellable, &error);
 
         return error;
 }
