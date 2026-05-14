@@ -114,6 +114,7 @@ typedef struct {
         guint32 stream_id;
         gboolean can_be_restarted;
         gboolean expect_continue;
+        GSource *check_status_idle_source;
 } SoupHTTP2MessageData;
 
 static void soup_client_message_io_http2_finished (SoupClientMessageIO *iface, SoupMessage *msg);
@@ -293,12 +294,28 @@ soup_http2_message_data_can_be_restarted (SoupHTTP2MessageData *data,
 }
 
 static void
+soup_http2_message_data_destroy_check_status_idle_source (SoupHTTP2MessageData *data)
+{
+        if (!data->check_status_idle_source)
+                return;
+
+        g_source_destroy (data->check_status_idle_source);
+        g_source_unref (data->check_status_idle_source);
+        data->check_status_idle_source = NULL;
+}
+
+static void
 soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
 {
         SoupClientMessageIOHTTP2 *io = data->io;
         SoupMessage *msg = data->msg;
         GTask *task = data->task;
         GError *error = NULL;
+
+        soup_http2_message_data_destroy_check_status_idle_source (data);
+
+        if (!task)
+                return;
 
         if (g_cancellable_set_error_if_cancelled (g_task_get_cancellable (task), &error)) {
                 io->pending_io_messages = g_list_remove (io->pending_io_messages, data);
@@ -341,6 +358,27 @@ soup_http2_message_data_check_status (SoupHTTP2MessageData *data)
         data->task = NULL;
         g_task_return_boolean (task, TRUE);
         g_object_unref (task);
+}
+
+static gboolean
+check_status_idle_source_cb (SoupHTTP2MessageData *data)
+{
+        g_clear_pointer (&data->check_status_idle_source, g_source_unref);
+        soup_http2_message_data_check_status (data);
+        return G_SOURCE_REMOVE;
+}
+
+static void
+soup_http2_message_data_check_status_in_idle (SoupHTTP2MessageData *data)
+{
+        if (data->check_status_idle_source)
+                return;
+
+        data->check_status_idle_source = g_idle_source_new ();
+        g_source_set_static_name (data->check_status_idle_source, "Soup HTTP/2 check message data status");
+        g_source_set_priority (data->check_status_idle_source, G_PRIORITY_DEFAULT);
+        g_source_set_callback (data->check_status_idle_source, (GSourceFunc)check_status_idle_source_cb, data, NULL);
+        g_source_attach (data->check_status_idle_source, g_main_context_get_thread_default ());
 }
 
 static gboolean
@@ -487,12 +525,6 @@ io_read (SoupClientMessageIOHTTP2  *io,
         g_warn_if_fail (io->in_callback == 0);
         ret = nghttp2_session_mem_recv (io->session, buffer, read);
         NGCHECK (ret);
-        if (ret <= 0)
-                return FALSE;
-
-        g_list_foreach (io->pending_io_messages,
-                        (GFunc)soup_http2_message_data_check_status,
-                        NULL);
         return ret > 0;
 }
 
@@ -582,6 +614,8 @@ io_try_sniff_content (SoupHTTP2MessageData *data,
                 sniff_for_empty_response (data->msg);
                 h2_debug (data->io, data, "[DATA] Sniffed content (Content-Length was 0)");
                 advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
+                if (data->item->async)
+                        soup_http2_message_data_check_status_in_idle (data);
                 return;
         }
 
@@ -590,6 +624,8 @@ io_try_sniff_content (SoupHTTP2MessageData *data,
         if (soup_message_try_sniff_content (data->msg, data->decoded_data_istream, blocking, cancellable, &error)) {
                 h2_debug (data->io, data, "[DATA] Sniffed content");
                 advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
+                if (data->item->async)
+                        soup_http2_message_data_check_status_in_idle (data);
         } else {
                 h2_debug (data->io, data, "[DATA] Sniffer stream was not ready %s", error->message);
 
@@ -856,6 +892,8 @@ on_frame_recv_callback (nghttp2_session     *session,
                         advance_state_from (data, STATE_READ_HEADERS, STATE_READ_DATA_START);
                         sniff_for_empty_response (data->msg);
                         advance_state_from (data, STATE_READ_DATA_START, STATE_READ_DATA);
+                        if (data->item->async)
+                                soup_http2_message_data_check_status_in_idle (data);
                 }
                 break;
         }
@@ -868,11 +906,8 @@ on_frame_recv_callback (nghttp2_session     *session,
                 if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
                         if (data->body_istream) {
                                 soup_body_input_stream_http2_complete (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
-                                if (data->state == STATE_READ_DATA_START) {
+                                if (data->state == STATE_READ_DATA_START)
                                         io_try_sniff_content (data, FALSE, data->item->cancellable);
-                                        if (data->state == STATE_READ_DATA && data->item->async)
-                                                soup_http2_message_data_check_status (data);
-                                }
                         }
                 } else if (nghttp2_session_get_stream_effective_recv_data_length (session, frame->hd.stream_id) == 0) {
                         io_try_write (io, !data->item->async);
@@ -1129,6 +1164,9 @@ on_stream_close_callback (nghttp2_session *session,
                 set_http2_error_for_data (data, error_code);
                 break;
         }
+
+        if (data->item->async)
+                soup_http2_message_data_check_status_in_idle (data);
 
         data->io->in_callback--;
         return 0;
@@ -1422,6 +1460,8 @@ soup_http2_message_data_close (SoupHTTP2MessageData *data)
         if (data->msg)
                 g_signal_handlers_disconnect_by_data (data->msg, data);
 
+        soup_http2_message_data_destroy_check_status_idle_source (data);
+
         data->msg = NULL;
         data->metrics = NULL;
         g_clear_pointer (&data->item, soup_message_queue_item_unref);
@@ -1583,6 +1623,8 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
         SoupConnection *conn;
 
         data = get_data_for_message (io, msg);
+
+        soup_http2_message_data_destroy_check_status_idle_source (data);
 
         completion = data->state < STATE_READ_DONE ? SOUP_MESSAGE_IO_INTERRUPTED : SOUP_MESSAGE_IO_COMPLETE;
 
