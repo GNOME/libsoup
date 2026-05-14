@@ -152,14 +152,52 @@ read_stream_to_bytes_sync (GInputStream *stream)
 }
 
 static void
-on_send_complete (GObject *source, GAsyncResult *res, gpointer user_data)
+stream_splice_async_finished_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-        SoupSession *sess = SOUP_SESSION (source);
+        GError *error = NULL;
+        GBytes **bytes_out = user_data;
+
+        g_output_stream_splice_finish (G_OUTPUT_STREAM (source), result, &error);
+        g_assert_no_error (error);
+
+        *bytes_out = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (source));
+}
+
+static void
+on_send_complete_async (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+        SoupSession *session = SOUP_SESSION (source);
+        GError *error = NULL;
+        GInputStream *stream;
+        GBytes **bytes_out = user_data;
+        GOutputStream *out;
+
+        stream = soup_session_send_finish (session, res, &error);
+
+        g_assert_no_error (error);
+        g_assert_nonnull (stream);
+
+        out = g_memory_output_stream_new_resizable ();
+        g_output_stream_splice_async (out, stream,
+                                      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                      G_PRIORITY_DEFAULT, NULL,
+                                      stream_splice_async_finished_cb, user_data);
+        while (!*bytes_out)
+                g_main_context_iteration (g_main_context_get_thread_default (), TRUE);
+
+        g_object_unref (stream);
+        g_object_unref (out);
+}
+
+static void
+on_send_complete_sync (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+        SoupSession *session = SOUP_SESSION (source);
         GError *error = NULL;
         GInputStream *stream;
         GBytes **bytes_out = user_data;
 
-        stream = soup_session_send_finish (sess, res, &error);
+        stream = soup_session_send_finish (session, res, &error);
 
         g_assert_no_error (error);
         g_assert_nonnull (stream);
@@ -169,13 +207,15 @@ on_send_complete (GObject *source, GAsyncResult *res, gpointer user_data)
 }
 
 static void
-do_multi_message_async_test (Test *test, gconstpointer data)
+do_multi_message_test (Test *test, gconstpointer data)
 {
+        gboolean async = GPOINTER_TO_INT (data);
         GMainContext *async_context = g_main_context_ref_thread_default ();
         GUri *uri1, *uri2;
         SoupMessage *msg1, *msg2;
         GBytes *response1 = NULL;
         GBytes *response2 = NULL;
+        GAsyncReadyCallback callback;
 
         uri1 = g_uri_parse_relative (base_uri, "echo_query?body%201", SOUP_HTTP_URI_FLAGS, NULL);
         msg1 = soup_message_new_from_uri (SOUP_METHOD_GET, uri1);
@@ -184,8 +224,9 @@ do_multi_message_async_test (Test *test, gconstpointer data)
         uri2 = g_uri_parse_relative (base_uri, "echo_query?body%202", SOUP_HTTP_URI_FLAGS, NULL);
         msg2 = soup_message_new_from_uri (SOUP_METHOD_GET, uri2);
         soup_message_set_http_version (msg2, SOUP_HTTP_2_0);
-        soup_session_send_async (test->session, msg1, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response1);
-        soup_session_send_async (test->session, msg2, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response2);
+        callback = async ? on_send_complete_async : on_send_complete_sync;
+        soup_session_send_async (test->session, msg1, G_PRIORITY_DEFAULT, NULL, callback, &response1);
+        soup_session_send_async (test->session, msg2, G_PRIORITY_DEFAULT, NULL, callback, &response2);
 
         while (!response1 || !response2) {
                 g_main_context_iteration (async_context, TRUE);
@@ -205,7 +246,6 @@ do_multi_message_async_test (Test *test, gconstpointer data)
         g_uri_unref (uri2);
         g_main_context_unref (async_context);
 }
-
 
 static void
 on_send_and_read_cancelled_complete (SoupSession  *session,
@@ -404,7 +444,7 @@ do_post_async_test (Test *test, gconstpointer data)
         msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
         soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
 
-        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete_sync, &response);
 
         while (!response)
                 g_main_context_iteration (async_context, TRUE);
@@ -438,7 +478,7 @@ do_post_large_async_test (Test *test, gconstpointer data)
         msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
         soup_message_set_request_body_from_bytes (msg, "text/plain", bytes);
 
-        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete_sync, &response);
 
         while (!response)
                 g_main_context_iteration (async_context, TRUE);
@@ -467,7 +507,7 @@ do_post_blocked_async_test (Test *test, gconstpointer data)
         msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
         soup_message_set_request_body (msg, "text/plain", in_stream, 8 + 8);
 
-        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete_sync, &response);
 
         while (!response) {
                 // Let it iterate for a bit waiting on blocked data
@@ -503,7 +543,7 @@ do_post_file_async_test (Test *test, gconstpointer data)
         msg = soup_message_new_from_uri (SOUP_METHOD_POST, uri);
         soup_message_set_request_body (msg, "application/x-x509-ca-cert", G_INPUT_STREAM (in_stream), -1);
 
-        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response);
+        soup_session_send_async (test->session, msg, G_PRIORITY_DEFAULT, NULL, on_send_complete_sync, &response);
 
         while (!response)
                 g_main_context_iteration (async_context, TRUE);
@@ -707,12 +747,15 @@ do_flow_control_large_test (Test *test, gconstpointer data)
 }
 
 static void
-do_flow_control_multi_message_async_test (Test *test, gconstpointer data)
+do_flow_control_multi_message_test (Test *test, gconstpointer data)
 {
+        gboolean async = GPOINTER_TO_INT (data);
+        GMainContext *async_context = g_main_context_ref_thread_default ();
         GUri *uri;
         SoupMessage *msg1, *msg2;
         GBytes *response1 = NULL;
         GBytes *response2 = NULL;
+        GAsyncReadyCallback callback;
         WindowSize window_size = { (LARGE_N_CHARS * LARGE_CHARS_REPEAT), (LARGE_N_CHARS * LARGE_CHARS_REPEAT) / 2 };
 
         uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
@@ -721,11 +764,12 @@ do_flow_control_multi_message_async_test (Test *test, gconstpointer data)
                           G_CALLBACK (flow_control_message_network_event),
                           &window_size);
         msg2 = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
-        soup_session_send_async (test->session, msg1, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response1);
-        soup_session_send_async (test->session, msg2, G_PRIORITY_DEFAULT, NULL, on_send_complete, &response2);
+        callback = async ? on_send_complete_async : on_send_complete_sync;
+        soup_session_send_async (test->session, msg1, G_PRIORITY_DEFAULT, NULL, callback, &response1);
+        soup_session_send_async (test->session, msg2, G_PRIORITY_DEFAULT, NULL, callback, &response2);
 
         while (!response1 || !response2)
-                g_main_context_iteration (NULL, TRUE);
+                g_main_context_iteration (async_context, TRUE);
 
         g_assert_cmpuint (g_bytes_get_size (response1), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
         g_assert_cmpuint (g_bytes_get_size (response2), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
@@ -735,6 +779,7 @@ do_flow_control_multi_message_async_test (Test *test, gconstpointer data)
         g_bytes_unref (response2);
         g_object_unref (msg1);
         g_object_unref (msg2);
+        g_main_context_unref (async_context);
 }
 
 static SoupConnection *last_connection;
@@ -1567,9 +1612,13 @@ main (int argc, char **argv)
                     setup_session,
                     do_large_test,
                     teardown_session);
-        g_test_add ("/http2/multiplexing/async", Test, NULL,
+        g_test_add ("/http2/multiplexing/async", Test, GINT_TO_POINTER (TRUE),
                     setup_session,
-                    do_multi_message_async_test,
+                    do_multi_message_test,
+                    teardown_session);
+        g_test_add ("/http2/multiplexing/sync", Test, GINT_TO_POINTER (FALSE),
+                    setup_session,
+                    do_multi_message_test,
                     teardown_session);
         g_test_add ("/http2/post/async", Test, NULL,
                     setup_session,
@@ -1607,9 +1656,13 @@ main (int argc, char **argv)
                     setup_session,
                     do_flow_control_large_test,
                     teardown_session);
-        g_test_add ("/http2/flow-control/multiplex/async", Test, NULL,
+        g_test_add ("/http2/flow-control/multiplex/async", Test, GINT_TO_POINTER (TRUE),
                     setup_session,
-                    do_flow_control_multi_message_async_test,
+                    do_flow_control_multi_message_test,
+                    teardown_session);
+        g_test_add ("/http2/flow-control/multiplex/sync", Test, GINT_TO_POINTER (FALSE),
+                    setup_session,
+                    do_flow_control_multi_message_test,
                     teardown_session);
         g_test_add ("/http2/flow-control/buffer-size", Test, NULL,
                     setup_session,
