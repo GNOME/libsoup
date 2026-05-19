@@ -135,6 +135,7 @@ if not sqlite_dep.found()
 endif
 
 brotlidec_dep = dependency('libbrotlidec', required : get_option('brotli'))
+brotlienc_dep = dependency('libbrotlienc', required : get_option('brotli'))
 if brotlidec_dep.found()
   cdata.set('WITH_BROTLI', true)
 endif

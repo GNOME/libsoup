@@ -98,6 +98,8 @@ typedef struct {
         GSocketAddress *remote_address;
 
         SoupMessageMetrics *metrics;
+
+        GBytes *compression_dictionary;
 } SoupMessagePrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
@@ -206,6 +208,8 @@ soup_message_finalize (GObject *object)
 	g_clear_object (&priv->tls_peer_certificate);
         g_clear_object (&priv->remote_address);
         g_clear_object (&priv->tls_client_certificate);
+
+        g_clear_pointer (&priv->compression_dictionary, g_bytes_unref);
 
 	soup_message_headers_unref (priv->request_headers);
 	soup_message_headers_unref (priv->response_headers);
@@ -3375,4 +3379,53 @@ soup_message_get_force_http1 (SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
 
 	return soup_message_get_force_http_version (msg) == SOUP_HTTP_1_1;
+}
+
+/**
+ * soup_message_set_compression_dictionary:
+ * @msg: a #SoupMessage
+ * @dictionary: (nullable): a #GBytes containing the shared dictionary, or %NULL to unset
+ *
+ * Sets the shared dictionary to use for Compression Dictionary Transport (RFC 9842).
+ *
+ * When set, [class@ContentDecoder] will include @"dcb" in the @"Accept-Encoding"
+ * request header (over HTTPS) and will decode responses with
+ * @"Content-Encoding: dcb" using this dictionary.
+ *
+ * Since: 3.8
+ */
+void
+soup_message_set_compression_dictionary (SoupMessage *msg,
+                                         GBytes      *dictionary)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+        priv = soup_message_get_instance_private (msg);
+        g_clear_pointer (&priv->compression_dictionary, g_bytes_unref);
+        if (dictionary)
+                priv->compression_dictionary = g_bytes_ref (dictionary);
+}
+
+/**
+ * soup_message_get_compression_dictionary:
+ * @msg: a #SoupMessage
+ *
+ * Gets the shared dictionary previously set with
+ * soup_message_set_compression_dictionary().
+ *
+ * Returns: (nullable) (transfer none): the dictionary, or %NULL
+ *
+ * Since: 3.8
+ */
+GBytes *
+soup_message_get_compression_dictionary (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+        priv = soup_message_get_instance_private (msg);
+        return priv->compression_dictionary;
 }
