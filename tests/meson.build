@@ -80,7 +80,9 @@ endif
 tests = [
   {'name': 'cache'},
   {'name': 'chunk-io'},
-  {'name': 'coding'},
+  {'name': 'coding',
+   'dependencies': [brotlienc_dep],
+   'c_args': ['-DWITH_BROTLI_ENC=@0@'.format(brotlienc_dep.found() ? 1 : 0)]},
   {'name': 'context'},
   {'name': 'continue'},
   {'name': 'cookies'},

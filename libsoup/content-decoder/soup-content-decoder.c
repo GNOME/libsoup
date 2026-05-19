@@ -25,8 +25,10 @@
 
 #ifdef WITH_BROTLI
 #define SOUP_ACCEPT_BR ", br"
+#define SOUP_ACCEPT_DCB ", dcb"
 #else
 #define SOUP_ACCEPT_BR ""
+#define SOUP_ACCEPT_DCB ""
 #endif
 #ifdef WITH_ZSTD
 #define SOUP_ACCEPT_ZSTD ", zstd"
@@ -126,8 +128,20 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 	}
 
 	for (e = encodings; e; e = e->next) {
-		converter_creator = g_hash_table_lookup (priv->decoders, e->data);
-		converter = converter_creator ();
+#ifdef WITH_BROTLI
+		if (g_str_equal (e->data, "dcb")) {
+			GBytes *dictionary = soup_message_get_compression_dictionary (msg);
+			if (!dictionary) {
+				soup_header_free_list (encodings);
+				return NULL;
+			}
+			converter = (GConverter *)soup_brotli_decompressor_new_with_dictionary (dictionary);
+		} else
+#endif
+		{
+			converter_creator = g_hash_table_lookup (priv->decoders, e->data);
+			converter = converter_creator ();
+		}
 
 		/* Content-Encoding lists the codings in the order
 		 * they were applied in, so we put decoders in reverse
@@ -230,6 +244,8 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 #ifdef WITH_BROTLI
 	g_hash_table_insert (priv->decoders, "br",
 			     brotli_decoder_creator);
+	g_hash_table_insert (priv->decoders, "dcb",
+			     brotli_decoder_creator);
 #endif
 #ifdef WITH_ZSTD
 	g_hash_table_insert (priv->decoders, "zstd",
@@ -270,8 +286,21 @@ soup_content_decoder_request_queued (SoupSessionFeature *feature,
                  * regarding the encoding of HTTP messages and this may break those
                  * expectations. Firefox and Chromium behave similarly.
                  */
-                if (soup_uri_is_https (soup_message_get_uri (msg)))
+                if (soup_uri_is_https (soup_message_get_uri (msg))) {
                         header = "gzip, deflate" SOUP_ACCEPT_BR SOUP_ACCEPT_ZSTD;
+
+#ifdef WITH_BROTLI
+                        /* Advertise dcb only when a shared dictionary has been set */
+                        if (soup_message_get_compression_dictionary (msg)) {
+                                char *with_dcb = g_strconcat (header, SOUP_ACCEPT_DCB, NULL);
+                                soup_message_headers_append_common (soup_message_get_request_headers (msg),
+                                                                    SOUP_HEADER_ACCEPT_ENCODING, with_dcb,
+                                                                    SOUP_HEADER_VALUE_TRUSTED);
+                                g_free (with_dcb);
+                                return;
+                        }
+#endif
+                }
 #endif
 
 		soup_message_headers_append_common (soup_message_get_request_headers (msg),
