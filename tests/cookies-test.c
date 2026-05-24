@@ -680,7 +680,7 @@ do_cookies_db_init_failure_test (void)
 
 	jar = soup_cookie_jar_db_new_with_error (bad_path, FALSE, &error);
 	g_assert_null (jar);
-	g_assert_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE);
+	g_assert_error (error, SOUP_COOKIE_JAR_ERROR, SOUP_COOKIE_JAR_ERROR_DB);
 	g_clear_error (&error);
 
 	/* Legacy new() must still return a non-NULL jar (compat) */

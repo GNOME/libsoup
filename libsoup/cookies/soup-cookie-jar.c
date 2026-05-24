@@ -21,6 +21,15 @@
 #include "soup-uri-utils-private.h"
 
 /**
+ * SoupCookieJarError:
+ * @SOUP_COOKIE_JAR_ERROR_DB: an error from a database operation
+
+ *
+ * A [class@SoupCookieJar] error.
+ */
+G_DEFINE_QUARK (soup-cookie-jar-error-quark, soup_cookie_jar_error)
+
+/**
  * SoupCookieJar:
  *
  * Automatic cookie handling for SoupSession.

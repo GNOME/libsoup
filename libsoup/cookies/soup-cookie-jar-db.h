@@ -13,21 +13,6 @@ G_BEGIN_DECLS
 SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupCookieJarDB, soup_cookie_jar_db, SOUP, COOKIE_JAR_DB, SoupCookieJar)
 
-/**
- * soup_cookie_jar_db_error_quark:
- * Registers error quark for SoupCookieJarDB if needed.
- *
- * Since: 3.8
- * Returns: Error quark for SoupCookieJarDB.
- */
-SOUP_AVAILABLE_IN_3_8
-GQuark soup_cookie_jar_db_error_quark (void);
-#define SOUP_COOKIE_JAR_DB_ERROR soup_cookie_jar_db_error_quark ()
-
-typedef enum {
-	SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
-} SoupCookieJarDBError;
-
 SOUP_AVAILABLE_IN_ALL
 SoupCookieJar *soup_cookie_jar_db_new (const char *filename,
 				       gboolean    read_only);

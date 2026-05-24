@@ -19,15 +19,6 @@
 #include "soup.h"
 
 /**
- * SoupCookieJarDBError:
- * @SOUP_COOKIE_JAR_DB_ERROR_SQLITE: an error from a sqlite operation
-
- *
- * A [class@SoupCookieJarDB] error.
- */
-G_DEFINE_QUARK (soup-cookie-jar-db-error-quark, soup_cookie_jar_db_error)
-
-/**
  * SoupCookieJarDB:
  *
  * Database-based Cookie Jar.
@@ -160,7 +151,7 @@ soup_cookie_jar_db_get_default_max_page_count (SoupCookieJarDB *jar, GError **er
 	char *errmsg = NULL;
 	int ret = sqlite3_exec (priv->db, "PRAGMA max_page_count;", read_default_max_page_count_callback, priv, &errmsg);
 	if (ret) {
-		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+		g_set_error (error, SOUP_COOKIE_JAR_ERROR, SOUP_COOKIE_JAR_ERROR_DB,
 			     "Failed to execute 'PRAGMA max_page_count': %s", errmsg);
 		sqlite3_free (errmsg);
 		return FALSE;
@@ -190,7 +181,7 @@ soup_cookie_jar_db_get_default_page_size (SoupCookieJarDB *jar, GError **error)
 	char *errmsg = NULL;
 	int ret = sqlite3_exec (priv->db, "PRAGMA page_size;", read_default_page_size_callback, priv, &errmsg);
 	if (ret) {
-		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+		g_set_error (error, SOUP_COOKIE_JAR_ERROR, SOUP_COOKIE_JAR_ERROR_DB,
 			     "Failed to execute 'PRAGMA page_size': %s", errmsg);
 		sqlite3_free (errmsg);
 		return FALSE;
@@ -269,16 +260,16 @@ db_set_max_size (SoupCookieJarDB *jar, guint64 max_size, GError **error)
 
 	if (0 == priv->db_default_page_size) {
 		g_set_error_literal (error,
-				     SOUP_COOKIE_JAR_DB_ERROR,
-				     SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+				     SOUP_COOKIE_JAR_ERROR,
+				     SOUP_COOKIE_JAR_ERROR_DB,
 				     "Database page size is not available");
 		return FALSE;
 	}
 
 	if (0 == priv->db_default_max_page_count) {
 		g_set_error_literal (error,
-				     SOUP_COOKIE_JAR_DB_ERROR,
-				     SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+				     SOUP_COOKIE_JAR_ERROR,
+				     SOUP_COOKIE_JAR_ERROR_DB,
 				     "Database max page count is not available");
 		return FALSE;
 	}
@@ -300,8 +291,8 @@ db_set_max_size (SoupCookieJarDB *jar, guint64 max_size, GError **error)
 
 	if (ret) {
 		g_set_error (error,
-		             SOUP_COOKIE_JAR_DB_ERROR,
-		             SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+		             SOUP_COOKIE_JAR_ERROR,
+		             SOUP_COOKIE_JAR_ERROR_DB,
 		             "PRAGMA failed: %s", error_msg);
 		sqlite3_free (error_msg);
 		return FALSE;
@@ -483,7 +474,7 @@ open_db (SoupCookieJar *jar, GError **error)
 	char *errmsg = NULL;
 
 	if (sqlite3_open (priv->filename, &priv->db)) {
-		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+		g_set_error (error, SOUP_COOKIE_JAR_ERROR, SOUP_COOKIE_JAR_ERROR_DB,
 			     "Failed to open %s: %s", priv->filename,
 			     sqlite3_errmsg (priv->db));
 		g_clear_pointer (&priv->db, sqlite3_close);
@@ -491,7 +482,7 @@ open_db (SoupCookieJar *jar, GError **error)
 	}
 
 	if (sqlite3_exec (priv->db, "PRAGMA synchronous = OFF; PRAGMA secure_delete = 1;", NULL, NULL, &errmsg)) {
-		g_set_error (error, SOUP_COOKIE_JAR_DB_ERROR, SOUP_COOKIE_JAR_DB_ERROR_SQLITE,
+		g_set_error (error, SOUP_COOKIE_JAR_ERROR, SOUP_COOKIE_JAR_ERROR_DB,
 			     "Failed to execute PRAGMA: %s", errmsg);
 		sqlite3_free (errmsg);
 		g_clear_pointer (&priv->db, sqlite3_close);
