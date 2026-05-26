@@ -104,6 +104,7 @@ typedef struct {
         GError *data_source_error;
         gboolean data_source_eof;
         GCancellable *data_source_cancellable;
+        GCancellable *data_source_message_cancellable;
         gulong data_source_cancellable_id;
 
         SoupClientMessageIOHTTP2 *io; /* Unowned */
@@ -1392,8 +1393,9 @@ on_data_source_read_callback (nghttp2_session     *session,
                         if (!data->data_source_cancellable) {
                                 data->data_source_cancellable = g_cancellable_new ();
                                 if (data->item->cancellable) {
+                                        data->data_source_message_cancellable = g_object_ref (data->item->cancellable);
                                         data->data_source_cancellable_id =
-                                                g_cancellable_connect (data->item->cancellable, G_CALLBACK (on_data_source_cancelled),
+                                                g_cancellable_connect (data->data_source_message_cancellable, G_CALLBACK (on_data_source_cancelled),
                                                                        g_object_ref (data->data_source_cancellable),  g_object_unref);
                                 }
                         }
@@ -1485,8 +1487,9 @@ soup_http2_message_data_close (SoupHTTP2MessageData *data)
         }
 
         if (data->data_source_cancellable_id) {
-                g_cancellable_disconnect (data->item->cancellable, data->data_source_cancellable_id);
+                g_cancellable_disconnect (data->data_source_message_cancellable, data->data_source_cancellable_id);
                 data->data_source_cancellable_id = 0;
+                g_clear_object (&data->data_source_message_cancellable);
         }
         if (data->data_source_cancellable) {
                 g_cancellable_cancel(data->data_source_cancellable);
