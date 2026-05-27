@@ -131,6 +131,55 @@ do_skip_multiple_chunks_test (void)
         g_object_unref (stream);
 }
 
+/* Each invocation delivers one byte then immediately consumes it via a
+ * non-blocking read, leaving the stream empty so the next retry also sees
+ * count==0.  This mimics on_data_chunk_recv_callback() calling
+ * io_try_sniff_content() which consumes incoming data before the outer
+ * blocking read_real() can retry. */
+static GError *
+need_more_data_consuming_cb (SoupBodyInputStreamHttp2 *stream,
+                             GCancellable             *cancellable,
+                             gpointer                  user_data)
+{
+        int *remaining = user_data;
+        guint8 byte = 0, tmp;
+        GError *error = NULL;
+
+        (*remaining)--;
+        if (*remaining > 0) {
+                soup_body_input_stream_http2_add_data (stream, &byte, 1);
+                g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM (stream),
+                                                          &tmp, 1, NULL, &error);
+                g_assert_no_error (error);
+        } else {
+                soup_body_input_stream_http2_complete (stream);
+        }
+
+        return NULL;
+}
+
+static void
+do_blocking_read_no_stackoverflow_test (void)
+{
+        GInputStream *stream = soup_body_input_stream_http2_new ();
+        SoupBodyInputStreamHttp2 *mem_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
+        int remaining = 100000;
+        guint8 buffer[1];
+        gssize n;
+
+        g_signal_connect (mem_stream, "need-more-data",
+                          G_CALLBACK (need_more_data_consuming_cb), &remaining);
+
+        /* A single blocking read that triggers ITERATIONS need-more-data
+         * signals.  Without the goto-retry fix each signal caused a recursive
+         * call; with enough iterations the stack overflows and crashes. */
+        n = g_input_stream_read (stream, buffer, sizeof (buffer), NULL, NULL);
+        g_assert_cmpint (n, ==, 0);
+        g_assert_cmpint (remaining, ==, 0);
+
+        g_object_unref (stream);
+}
+
 static void
 on_skip_ready (GInputStream *stream, GAsyncResult *res, GMainLoop *loop)
 {
@@ -170,6 +219,7 @@ main (int argc, char **argv)
         g_test_add_func ("/body_stream/multiple_chunks", do_multiple_chunk_test);
         g_test_add_func ("/body_stream/skip_async", do_skip_async_test);
         g_test_add_func ("/body_stream/skip_multiple_chunks", do_skip_multiple_chunks_test);
+        g_test_add_func ("/body_stream/blocking_read_no_stackoverflow", do_blocking_read_no_stackoverflow_test);
 
 	ret = g_test_run ();
 
