@@ -285,16 +285,19 @@ soup_body_input_stream_http2_skip (GInputStream  *stream,
 
         /* Remove all skipped chunks */
         gsize offset = priv->start_offset;
-        for (GList *l = g_queue_peek_head_link(priv->chunks); l; l = l->next) {
+        GList *l = g_queue_peek_head_link (priv->chunks);
+        while (l) {
                 GBytes *chunk = (GBytes *)l->data;
                 gsize chunk_len = g_bytes_get_size (chunk);
 
-                if (offset + chunk_len <= priv->pos) {
-                        g_queue_delete_link (priv->chunks, l);
-                        g_bytes_unref (chunk);
-                        offset += chunk_len;
-                }
-                break;
+                if (offset + chunk_len > priv->pos)
+                        break;
+
+                GList *next = l->next;
+                g_queue_delete_link (priv->chunks, l);
+                g_bytes_unref (chunk);
+                offset += chunk_len;
+                l = next;
         }
         priv->start_offset = offset;
 
