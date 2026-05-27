@@ -275,7 +275,11 @@ if enable_introspection or enable_vapi
      libsoup_gir_extra_args += [
        '--doc-format=gi-docgen',
      ]
-   endif
+  endif
+
+  gir_env = environment()
+  # Ensure our library takes priority over any custom CFLAGS
+  gir_env.prepend('CFLAGS', '-L' + meson.current_build_dir(), separator: ' ')
 
   soup_gir_gen_sources = gnome.generate_gir(libsoup,
     sources : [
@@ -294,6 +298,7 @@ if enable_introspection or enable_vapi
     includes : 'Gio-2.0',
     install : true,
     header: join_paths(meson.project_name(), 'soup.h'),
+    env : gir_env,
   )
 
   soup_gir_gen_dep = declare_dependency(
