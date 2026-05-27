@@ -92,6 +92,46 @@ do_multiple_chunk_test (void)
 }
 
 static void
+do_skip_multiple_chunks_test (void)
+{
+        GInputStream *stream = soup_body_input_stream_http2_new ();
+        SoupBodyInputStreamHttp2 *mem_stream = SOUP_BODY_INPUT_STREAM_HTTP2 (stream);
+        char buffer[5] = { 0 };
+        gssize n;
+
+        /* Fill three 4-byte chunks, then skip across the first two chunk
+         * boundaries.  The skip must remove both consumed chunks from the
+         * queue; otherwise subsequent reads return stale data from chunks
+         * that were supposed to have been freed. */
+        soup_body_input_stream_http2_add_data (mem_stream, (guint8 *)"AAAA", 4);
+        soup_body_input_stream_http2_add_data (mem_stream, (guint8 *)"BBBB", 4);
+        soup_body_input_stream_http2_add_data (mem_stream, (guint8 *)"CCCC", 4);
+
+        n = g_input_stream_skip (stream, 8, NULL, NULL);
+        g_assert_cmpint (n, ==, 8);
+
+        /* Reading "CCCC" is a baseline sanity check */
+        n = g_input_stream_read (stream, buffer, 4, NULL, NULL);
+        g_assert_cmpint (n, ==, 4);
+        g_assert_cmpstr (buffer, ==, "CCCC");
+
+        /* Add a fourth chunk after the skip; with the bug, a ghost "BBBB"
+         * chunk left in the queue would be returned here instead of "DDDD". */
+        memset (buffer, 0, sizeof (buffer));
+        soup_body_input_stream_http2_add_data (mem_stream, (guint8 *)"DDDD", 4);
+        soup_body_input_stream_http2_complete (mem_stream);
+
+        n = g_input_stream_read (stream, buffer, 4, NULL, NULL);
+        g_assert_cmpint (n, ==, 4);
+        g_assert_cmpstr (buffer, ==, "DDDD");
+
+        n = g_input_stream_read (stream, buffer, 4, NULL, NULL);
+        g_assert_cmpint (n, ==, 0); /* EOF */
+
+        g_object_unref (stream);
+}
+
+static void
 on_skip_ready (GInputStream *stream, GAsyncResult *res, GMainLoop *loop)
 {
         GError *error = NULL;
@@ -129,6 +169,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/body_stream/large_data", do_large_data_test);
         g_test_add_func ("/body_stream/multiple_chunks", do_multiple_chunk_test);
         g_test_add_func ("/body_stream/skip_async", do_skip_async_test);
+        g_test_add_func ("/body_stream/skip_multiple_chunks", do_skip_multiple_chunks_test);
 
 	ret = g_test_run ();
 
