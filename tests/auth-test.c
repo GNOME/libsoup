@@ -313,7 +313,7 @@ do_pipelined_auth_test (void)
 		g_object_set_data (G_OBJECT (msg), "#", GINT_TO_POINTER (i + 1));
 		g_signal_connect (msg, "authenticate",
 				  G_CALLBACK (bug271540_authenticate), &authenticated);
-		g_signal_connect (msg, "wrote_headers",
+		g_signal_connect (msg, "wrote-headers",
 				  G_CALLBACK (bug271540_sent), &authenticated);
 
 		g_signal_connect (msg, "finished",

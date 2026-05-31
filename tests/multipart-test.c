@@ -433,7 +433,7 @@ test_multipart (gconstpointer data)
 	soup_message_headers_append (soup_message_get_request_headers (msg),
 				     "Connection", "close");
 
-	g_signal_connect (msg, "got_headers",
+	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (got_headers), &headers_count);
 
 	g_signal_connect (msg, "content-sniffed",

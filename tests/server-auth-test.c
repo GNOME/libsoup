@@ -337,7 +337,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, no_test_entry);
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
-	g_signal_connect (server, "request_started",
+	g_signal_connect (server, "request-started",
 			  G_CALLBACK (request_started_callback), NULL);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);

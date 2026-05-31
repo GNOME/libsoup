@@ -341,9 +341,9 @@ do_message (SoupSession *session,
 				  G_CALLBACK (authenticate),
 				  (gpointer)user);
 	}
-	g_signal_connect (msg, "got_headers",
+	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (prompt_check), &state);
-	g_signal_connect (msg, "got_headers",
+	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (challenge_check), &state);
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (request_check), &state);

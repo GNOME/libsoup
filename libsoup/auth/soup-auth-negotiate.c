@@ -267,7 +267,7 @@ soup_auth_negotiate_update_connection (SoupConnectionAuth *auth, SoupMessage *ms
 			if (!g_object_get_data (G_OBJECT (msg), "negotiate-got-headers-connected")) {
 				/* Wait for the 2xx response to verify server response */
 				g_signal_connect_data (msg,
-						       "got_headers",
+						       "got-headers",
 						       G_CALLBACK (check_server_response),
 						       g_object_ref (auth),
 						       (GClosureNotify) g_object_unref,

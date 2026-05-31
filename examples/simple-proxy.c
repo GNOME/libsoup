@@ -352,7 +352,7 @@ server_callback (SoupServer *server, SoupServerMessage *msg,
 	soup_message_headers_set_encoding (soup_server_message_get_response_headers (msg),
 					   SOUP_ENCODING_CHUNKED);
 
-	g_signal_connect (client_msg, "got_headers", G_CALLBACK (send_headers), msg);
+	g_signal_connect (client_msg, "got-headers", G_CALLBACK (send_headers), msg);
 
         GCancellable *client_cancellable = g_cancellable_new ();
 	g_signal_connect (msg, "finished", G_CALLBACK (client_msg_failed), client_cancellable);

@@ -186,7 +186,7 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	}
 
 	treq = &test->requests[0];
-	g_signal_connect (msg, "got_headers",
+	g_signal_connect (msg, "got-headers",
 			  G_CALLBACK (got_headers), &treq);
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
