@@ -3,6 +3,8 @@
 
 #include "soup-types.h"
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_BODY_INPUT_STREAM_HTTP2 (soup_body_input_stream_http2_get_type ())
 G_DECLARE_FINAL_TYPE (SoupBodyInputStreamHttp2, soup_body_input_stream_http2, SOUP, BODY_INPUT_STREAM_HTTP2, GInputStream)
 
