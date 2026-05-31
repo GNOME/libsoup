@@ -815,7 +815,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Site for cookies",
 				    "The URI for the site to compare cookies against",
 				    G_TYPE_URI,
-				    G_PARAM_READWRITE);
+				    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupMessage:is-top-level-navigation: (attributes org.gtk.Property.get=soup_message_get_is_top_level_navigation org.gtk.Property.set=soup_message_set_is_top_level_navigation)
 	 *
@@ -826,7 +826,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "Is top-level navigation",
 				     "If the current messsage is navigating between top-levels",
 				     FALSE,
-				     G_PARAM_READWRITE);
+				     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 	/**
 	 * SoupMessage:request-headers: (attributes org.gtk.Property.get=soup_message_get_request_headers)
 	 *
