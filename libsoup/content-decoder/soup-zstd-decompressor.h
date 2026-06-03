@@ -30,5 +30,6 @@ SOUP_AVAILABLE_IN_3_8
 G_DECLARE_FINAL_TYPE (SoupZstdDecompressor, soup_zstd_decompressor, SOUP, ZSTD_DECOMPRESSOR, GObject)
 
 SoupZstdDecompressor *soup_zstd_decompressor_new (void);
+SoupZstdDecompressor *soup_zstd_decompressor_new_with_dictionary (GBytes *dictionary);
 
 G_END_DECLS

@@ -613,6 +613,202 @@ do_coding_test_dcb_accept_encoding (gconstpointer test_data)
 
 #endif /* WITH_BROTLI_ENC */
 
+/* --- Compression Dictionary Transport (dcz) tests --- */
+
+#if WITH_ZSTD_ENC
+#include <zstd.h>
+
+/* Reuse the same dictionary and plaintext as the dcb tests */
+
+static GBytes *
+compress_with_zstd_dictionary (const guint8 *dict,
+                               gsize         dict_size,
+                               const guint8 *input,
+                               gsize         input_size)
+{
+        ZSTD_CCtx *cctx;
+        gsize output_size;
+        void *output;
+        size_t actual_size;
+
+        cctx = ZSTD_createCCtx ();
+        g_assert_nonnull (cctx);
+
+        ZSTD_CCtx_loadDictionary (cctx, dict, dict_size);
+
+        output_size = ZSTD_compressBound (input_size);
+        output = g_malloc (output_size);
+
+        actual_size = ZSTD_compress2 (cctx, output, output_size, input, input_size);
+        g_assert_false (ZSTD_isError (actual_size));
+
+        ZSTD_freeCCtx (cctx);
+
+        return g_bytes_new_take (output, actual_size);
+}
+
+/* Build a dcz frame: zstd skippable frame header (8 bytes) + SHA-256(dict) + zstd payload */
+static GBytes *
+make_dcz_frame (const guint8 *dict,
+                gsize         dict_size,
+                GBytes       *payload)
+{
+        /* Zstd skippable frame: magic 0x184D2A5E (LE) + frame size 32 (LE) */
+        static const guint8 magic[] = { 0x5e, 0x2a, 0x4d, 0x18, 0x20, 0x00, 0x00, 0x00 };
+        guint8 hash[32];
+        gsize hash_len = sizeof (hash);
+        GChecksum *checksum;
+        GByteArray *frame;
+        const guint8 *payload_data;
+        gsize payload_size;
+
+        checksum = g_checksum_new (G_CHECKSUM_SHA256);
+        g_checksum_update (checksum, dict, (gssize)dict_size);
+        g_checksum_get_digest (checksum, hash, &hash_len);
+        g_checksum_free (checksum);
+
+        frame = g_byte_array_new ();
+        g_byte_array_append (frame, magic, sizeof (magic));
+        g_byte_array_append (frame, hash, sizeof (hash));
+        payload_data = g_bytes_get_data (payload, &payload_size);
+        g_byte_array_append (frame, payload_data, payload_size);
+        return g_byte_array_free_to_bytes (frame);
+}
+
+static void
+dcz_server_callback (SoupServer        *server,
+                     SoupServerMessage *msg,
+                     const char        *path,
+                     GHashTable        *query,
+                     gpointer           user_data)
+{
+        SoupMessageHeaders *response_headers;
+        GBytes *compressed;
+        GBytes *framed;
+
+        response_headers = soup_server_message_get_response_headers (msg);
+
+        compressed = compress_with_zstd_dictionary (dcb_dictionary, dcb_dictionary_size,
+                                                    (const guint8 *)dcb_plaintext, dcb_plaintext_size);
+        framed = make_dcz_frame (dcb_dictionary, dcb_dictionary_size, compressed);
+        g_bytes_unref (compressed);
+
+        soup_message_headers_append (response_headers, "Content-Encoding", "dcz");
+        soup_message_headers_append (response_headers, "Content-Type", "text/plain");
+        soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+        soup_message_headers_set_encoding (response_headers, SOUP_ENCODING_CHUNKED);
+
+        SoupMessageBody *response_body = soup_server_message_get_response_body (msg);
+        soup_message_body_append_bytes (response_body, framed);
+        soup_message_body_complete (response_body);
+        g_bytes_unref (framed);
+}
+
+static void
+dcz_bad_hash_server_callback (SoupServer        *server,
+                               SoupServerMessage *msg,
+                               const char        *path,
+                               GHashTable        *query,
+                               gpointer           user_data)
+{
+        static const guint8 magic[] = { 0xff, 'D', 'C', 'Z' };
+        static const guint8 bad_hash[32] = { 0 }; /* all zeros — intentionally wrong */
+        SoupMessageHeaders *response_headers;
+        GBytes *compressed;
+        GByteArray *frame;
+        GBytes *framed;
+        const guint8 *payload_data;
+        gsize payload_size;
+
+        response_headers = soup_server_message_get_response_headers (msg);
+
+        compressed = compress_with_zstd_dictionary (dcb_dictionary, dcb_dictionary_size,
+                                                    (const guint8 *)dcb_plaintext, dcb_plaintext_size);
+
+        frame = g_byte_array_new ();
+        g_byte_array_append (frame, magic, sizeof (magic));
+        g_byte_array_append (frame, bad_hash, sizeof (bad_hash));
+        payload_data = g_bytes_get_data (compressed, &payload_size);
+        g_byte_array_append (frame, payload_data, payload_size);
+        framed = g_byte_array_free_to_bytes (frame);
+        g_bytes_unref (compressed);
+
+        soup_message_headers_append (response_headers, "Content-Encoding", "dcz");
+        soup_message_headers_append (response_headers, "Content-Type", "text/plain");
+        soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+        soup_message_headers_set_encoding (response_headers, SOUP_ENCODING_CHUNKED);
+
+        SoupMessageBody *response_body = soup_server_message_get_response_body (msg);
+        soup_message_body_append_bytes (response_body, framed);
+        soup_message_body_complete (response_body);
+        g_bytes_unref (framed);
+}
+
+static void
+do_coding_test_dcz (gconstpointer test_data)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *dict;
+        GBytes *body;
+        GUri *uri;
+        const char *body_data;
+        gsize body_size;
+
+        session = soup_test_session_new (NULL);
+
+        uri = g_uri_parse_relative (base_uri, "/dcz", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary (msg, dict);
+        g_bytes_unref (dict);
+
+        body = soup_session_send_and_read (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
+
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+        body_data = g_bytes_get_data (body, &body_size);
+        g_assert_cmpmem (body_data, body_size, dcb_plaintext, dcb_plaintext_size);
+
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+
+static void
+do_coding_test_dcz_hash_mismatch (gconstpointer test_data)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *dict;
+        GBytes *body;
+        GUri *uri;
+        GError *error = NULL;
+
+        session = soup_test_session_new (NULL);
+
+        uri = g_uri_parse_relative (base_uri, "/dcz-bad-hash", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary (msg, dict);
+        g_bytes_unref (dict);
+
+        body = soup_session_send_and_read (session, msg, NULL, &error);
+        g_assert_null (body);
+        g_assert_nonnull (error);
+        g_clear_error (&error);
+
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+
+#endif /* WITH_ZSTD_ENC */
+
 int
 main (int argc, char **argv)
 {
@@ -625,6 +821,10 @@ main (int argc, char **argv)
 #if WITH_BROTLI_ENC
 	soup_server_add_handler (server, "/dcb", dcb_server_callback, NULL, NULL);
 	soup_server_add_handler (server, "/dcb-bad-hash", dcb_bad_hash_server_callback, NULL, NULL);
+#endif
+#if WITH_ZSTD_ENC
+	soup_server_add_handler (server, "/dcz", dcz_server_callback, NULL, NULL);
+	soup_server_add_handler (server, "/dcz-bad-hash", dcz_bad_hash_server_callback, NULL, NULL);
 #endif
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
@@ -668,6 +868,10 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/coding/message/dcb/hash-mismatch", NULL, do_coding_test_dcb_hash_mismatch);
 	g_test_add_data_func ("/coding/message/dcb/accept-encoding-http-only",
 	                      NULL, do_coding_test_dcb_accept_encoding);
+#endif
+#if WITH_ZSTD_ENC
+	g_test_add_data_func ("/coding/message/dcz", NULL, do_coding_test_dcz);
+	g_test_add_data_func ("/coding/message/dcz/hash-mismatch", NULL, do_coding_test_dcz_hash_mismatch);
 #endif
 
 	ret = g_test_run ();

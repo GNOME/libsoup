@@ -32,8 +32,10 @@
 #endif
 #ifdef WITH_ZSTD
 #define SOUP_ACCEPT_ZSTD ", zstd"
+#define SOUP_ACCEPT_DCZ ", dcz"
 #else
 #define SOUP_ACCEPT_ZSTD ""
+#define SOUP_ACCEPT_DCZ ""
 #endif
 
 /**
@@ -133,9 +135,21 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 			GBytes *dictionary = soup_message_get_compression_dictionary (msg);
 			if (!dictionary) {
 				soup_header_free_list (encodings);
+				g_slist_free_full (decoders, g_object_unref);
 				return NULL;
 			}
 			converter = (GConverter *)soup_brotli_decompressor_new_with_dictionary (dictionary);
+		} else
+#endif
+#ifdef WITH_ZSTD
+		if (g_str_equal (e->data, "dcz")) {
+			GBytes *dictionary = soup_message_get_compression_dictionary (msg);
+			if (!dictionary) {
+				soup_header_free_list (encodings);
+				g_slist_free_full (decoders, g_object_unref);
+				return NULL;
+			}
+			converter = (GConverter *)soup_zstd_decompressor_new_with_dictionary (dictionary);
 		} else
 #endif
 		{
@@ -250,6 +264,8 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 #ifdef WITH_ZSTD
 	g_hash_table_insert (priv->decoders, "zstd",
 			     zstd_decoder_creator);
+	g_hash_table_insert (priv->decoders, "dcz",
+			     zstd_decoder_creator);
 #endif
 }
 
@@ -289,17 +305,15 @@ soup_content_decoder_request_queued (SoupSessionFeature *feature,
                 if (soup_uri_is_https (soup_message_get_uri (msg))) {
                         header = "gzip, deflate" SOUP_ACCEPT_BR SOUP_ACCEPT_ZSTD;
 
-#ifdef WITH_BROTLI
-                        /* Advertise dcb only when a shared dictionary has been set */
+                        /* Advertise dictionary encodings only when a shared dictionary has been set */
                         if (soup_message_get_compression_dictionary (msg)) {
-                                char *with_dcb = g_strconcat (header, SOUP_ACCEPT_DCB, NULL);
+                                char *with_dict = g_strconcat (header, SOUP_ACCEPT_DCB SOUP_ACCEPT_DCZ, NULL);
                                 soup_message_headers_append_common (soup_message_get_request_headers (msg),
-                                                                    SOUP_HEADER_ACCEPT_ENCODING, with_dcb,
+                                                                    SOUP_HEADER_ACCEPT_ENCODING, with_dict,
                                                                     SOUP_HEADER_VALUE_TRUSTED);
-                                g_free (with_dcb);
+                                g_free (with_dict);
                                 return;
                         }
-#endif
                 }
 #endif
 

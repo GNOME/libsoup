@@ -140,7 +140,7 @@ if brotlidec_dep.found()
   cdata.set('WITH_BROTLI', true)
 endif
 
-libzstd_dep = dependency('libzstd', required : get_option('zstd'))
+libzstd_dep = dependency('libzstd', required : get_option('zstd'), version: '>= 1.4.0')
 if libzstd_dep.found()
   cdata.set('WITH_ZSTD', true)
 endif
