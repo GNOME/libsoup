@@ -20,6 +20,7 @@ soup_sources = [
   'content-decoder/soup-content-decoder.c',
   'content-decoder/soup-content-processor.c',
   'content-decoder/soup-converter-wrapper.c',
+  'content-decoder/soup-dictionary-header-private.c',
 
   'content-sniffer/soup-content-sniffer.c',
   'content-sniffer/soup-content-sniffer-stream.c',
