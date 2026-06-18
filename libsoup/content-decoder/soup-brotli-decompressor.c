@@ -25,8 +25,8 @@
 #include <brotli/decode.h>
 #include <brotli/shared_dictionary.h>
 #include <gio/gio.h>
-#include <string.h>
 
+#include "soup-dictionary-header-private.h"
 #include "soup-brotli-decompressor.h"
 
 /* dcb framing: 4-byte magic (\xffDCB) + 32-byte SHA-256 hash of the dictionary */
@@ -39,9 +39,7 @@ struct _SoupBrotliDecompressor
 	BrotliDecoderState *state;
 	GError *last_error;
 	GBytes *dictionary;
-	gboolean header_consumed;
-	gsize header_buf_filled;
-	guint8 header_buf[DCB_HEADER_SIZE];
+	SoupDictionaryHeader header;
 };
 
 static void soup_brotli_decompressor_iface_init (GConverterIface *iface);
@@ -124,39 +122,16 @@ soup_brotli_decompressor_convert (GConverter      *converter,
 
 	/* NOTE: all error domains/codes must match GZlibDecompressor */
 
-	if (self->dictionary && !self->header_consumed) {
-		gsize remaining = DCB_HEADER_SIZE - self->header_buf_filled;
-		gsize to_consume = MIN (available_in, remaining);
-
-		memcpy (self->header_buf + self->header_buf_filled, next_in, to_consume);
-		self->header_buf_filled += to_consume;
-		next_in += to_consume;
-		available_in -= to_consume;
-
-		if (self->header_buf_filled == DCB_HEADER_SIZE) {
-			if (memcmp (self->header_buf, DCB_MAGIC, sizeof (DCB_MAGIC)) != 0) {
-				g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-				                     "SoupBrotliDecompressorError: Invalid dcb magic header");
-				return G_CONVERTER_ERROR;
-			}
-
-
-			gsize dict_size;
-			const guchar *dict_data = g_bytes_get_data (self->dictionary, &dict_size);
-			guint8 expected_hash[32];
-			gsize hash_len = sizeof (expected_hash);
-			GChecksum *checksum = g_checksum_new (G_CHECKSUM_SHA256);
-			g_checksum_update (checksum, dict_data, (gssize)dict_size);
-			g_checksum_get_digest (checksum, expected_hash, &hash_len);
-			g_checksum_free (checksum);
-			if (memcmp (self->header_buf + sizeof (DCB_MAGIC), expected_hash, 32) != 0) {
-				g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-										"SoupBrotliDecompressorError: Dictionary hash mismatch");
-				return G_CONVERTER_ERROR;
-			}
-
-			self->header_consumed = TRUE;
-		}
+	if (self->dictionary && !self->header.consumed) {
+		if (!soup_dictionary_header_consume (&self->header,
+							     DCB_MAGIC, sizeof (DCB_MAGIC),
+							     self->dictionary,
+							     &next_in, &available_in,
+							     DCB_HEADER_SIZE,
+							     "SoupBrotliDecompressorError: Invalid dcb magic header",
+							     "SoupBrotliDecompressorError: Dictionary hash mismatch",
+							     error))
+			return G_CONVERTER_ERROR;
 
 		if (available_in == 0) {
 			*bytes_read = inbuf_size;
@@ -232,8 +207,7 @@ soup_brotli_decompressor_reset (GConverter *converter)
 	if (self->state && BrotliDecoderIsUsed (self->state))
 		g_clear_pointer (&self->state, BrotliDecoderDestroyInstance);
 	g_clear_error (&self->last_error);
-	self->header_consumed = FALSE;
-	self->header_buf_filled = 0;
+	soup_dictionary_header_init (&self->header);
 }
 
 static void
