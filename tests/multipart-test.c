@@ -310,6 +310,7 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 	g_assert_no_error (error);
 	if (error) {
 		g_clear_error (&error);
+		g_input_stream_close (G_FILTER_INPUT_STREAM (multipart)->base_stream, NULL, NULL);
 		g_object_unref (multipart);
 		g_main_loop_quit (loop);
 		return;
@@ -317,6 +318,7 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 
 	if (!in) {
 		g_assert_cmpint (passes, ==, 4);
+		g_input_stream_close (G_FILTER_INPUT_STREAM (multipart)->base_stream, NULL, NULL);
 		g_object_unref (multipart);
 		g_main_loop_quit (loop);
 		return;
@@ -408,8 +410,10 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 
 	g_assert_cmpint (passes, ==, 4);
 
-	g_main_loop_quit (loop);
+	g_input_stream_close (G_FILTER_INPUT_STREAM (multipart)->base_stream, NULL, NULL);
 	g_object_unref (multipart);
+
+	g_main_loop_quit (loop);
 }
 
 static void
