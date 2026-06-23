@@ -198,7 +198,7 @@ again:
 		}
 
                 /* ignore extensions */
-                boundary = strstr (metabuf, ";");
+                boundary = memchr (metabuf, ';', nread);
                 if (boundary)
                         *boundary = '\0';
                 else
