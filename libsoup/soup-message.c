@@ -99,7 +99,8 @@ typedef struct {
 
         SoupMessageMetrics *metrics;
 
-        GBytes *compression_dictionary;
+        GBytes *compression_dictionary_hash;
+        SoupCompressionDictionaryRequest *compression_dictionary_request;
 } SoupMessagePrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupMessage, soup_message, G_TYPE_OBJECT)
@@ -125,6 +126,7 @@ enum {
         REQUEST_CERTIFICATE,
         REQUEST_CERTIFICATE_PASSWORD,
 	HSTS_ENFORCED,
+        REQUEST_COMPRESSION_DICTIONARY,
 
 	LAST_SIGNAL
 };
@@ -209,7 +211,8 @@ soup_message_finalize (GObject *object)
         g_clear_object (&priv->remote_address);
         g_clear_object (&priv->tls_client_certificate);
 
-        g_clear_pointer (&priv->compression_dictionary, g_bytes_unref);
+        g_clear_pointer (&priv->compression_dictionary_hash, g_bytes_unref);
+        g_clear_object (&priv->compression_dictionary_request);
 
 	soup_message_headers_unref (priv->request_headers);
 	soup_message_headers_unref (priv->response_headers);
@@ -720,6 +723,37 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      NULL,
 			      G_TYPE_NONE, 0);
+
+        /**
+         * SoupMessage::request-compression-dictionary:
+         * @msg: the message
+         * @request: a #SoupCompressionDictionaryRequest to resolve
+         *
+         * Emitted when the server responds with `Content-Encoding: dcb` or
+         * `Content-Encoding: dcz` and libsoup needs the raw dictionary bytes
+         * to set up decompression.
+         *
+         * Call [method@CompressionDictionaryRequest.set_dictionary] on @request
+         * to provide the dictionary, or [method@CompressionDictionaryRequest.cancel]
+         * to abort. Either can be done synchronously inside this handler, or
+         * asynchronously after calling [method@GObject.Object.ref] on @request
+         * and returning %TRUE.
+         *
+         * Returns: %TRUE to indicate the request will be handled (sync or async),
+         *   or %FALSE to let other handlers run. If no handler returns %TRUE the
+         *   response fails.
+         *
+         * Since: 3.8
+         */
+        signals[REQUEST_COMPRESSION_DICTIONARY] =
+                g_signal_new ("request-compression-dictionary",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              g_signal_accumulator_true_handled, NULL,
+                              NULL,
+                              G_TYPE_BOOLEAN, 1,
+                              SOUP_TYPE_COMPRESSION_DICTIONARY_REQUEST);
 
 	/**
 	 * SoupMessage:method: (attributes org.gtk.Property.get=soup_message_get_method org.gtk.Property.set=soup_message_set_method)
@@ -3382,50 +3416,78 @@ soup_message_get_force_http1 (SoupMessage *msg)
 }
 
 /**
- * soup_message_set_compression_dictionary:
+ * soup_message_set_compression_dictionary_hash:
  * @msg: a #SoupMessage
- * @dictionary: (nullable): a #GBytes containing the shared dictionary, or %NULL to unset
+ * @hash: (nullable): a #GBytes containing the raw SHA-256 hash (32 bytes) of the
+ *   shared dictionary, or %NULL to unset
  *
- * Sets the shared dictionary to use for Compression Dictionary Transport (RFC 9842).
+ * Sets the SHA-256 hash of the shared dictionary to advertise for Compression
+ * Dictionary Transport (RFC 9842).
  *
- * When set, [class@ContentDecoder] will include @"dcb" in the @"Accept-Encoding"
- * request header (over HTTPS) and will decode responses with
- * @"Content-Encoding: dcb" using this dictionary.
+ * When set, [class@ContentDecoder] will include `dcb` and/or `dcz` in the
+ * `Accept-Encoding` request header (over HTTPS) and will send an
+ * `Available-Dictionary` header containing the base64-encoded @hash.
+ * When the server responds with `Content-Encoding: dcb` or `dcz`, the
+ * [signal@Message::request-compression-dictionary] signal is emitted so the
+ * caller can supply the actual dictionary bytes.
+ *
+ * The hash does not survive redirects: a dictionary is chosen for a specific
+ * request URL, so when @msg is redirected the hash and the `Available-Dictionary`
+ * header are cleared. It is the caller's responsibility to select and set a new
+ * dictionary appropriate for the redirect target, if any.
  *
  * Since: 3.8
  */
 void
-soup_message_set_compression_dictionary (SoupMessage *msg,
-                                         GBytes      *dictionary)
+soup_message_set_compression_dictionary_hash (SoupMessage *msg,
+                                              GBytes      *hash)
 {
         SoupMessagePrivate *priv;
 
         g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
         priv = soup_message_get_instance_private (msg);
-        g_clear_pointer (&priv->compression_dictionary, g_bytes_unref);
-        if (dictionary)
-                priv->compression_dictionary = g_bytes_ref (dictionary);
+
+        GBytes *new_hash = hash ? g_bytes_ref (hash) : NULL;
+        g_clear_pointer (&priv->compression_dictionary_hash, g_bytes_unref);
+        priv->compression_dictionary_hash = new_hash;
 }
 
 /**
- * soup_message_get_compression_dictionary:
+ * soup_message_get_compression_dictionary_hash:
  * @msg: a #SoupMessage
  *
- * Gets the shared dictionary previously set with
- * soup_message_set_compression_dictionary().
+ * Gets the SHA-256 hash of the shared dictionary previously set with
+ * [method@Message.set_compression_dictionary_hash].
  *
- * Returns: (nullable) (transfer none): the dictionary, or %NULL
+ * Returns: (nullable) (transfer none): the raw 32-byte SHA-256 hash, or %NULL
  *
  * Since: 3.8
  */
 GBytes *
-soup_message_get_compression_dictionary (SoupMessage *msg)
+soup_message_get_compression_dictionary_hash (SoupMessage *msg)
 {
         SoupMessagePrivate *priv;
 
         g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
         priv = soup_message_get_instance_private (msg);
-        return priv->compression_dictionary;
+        return priv->compression_dictionary_hash;
+}
+
+void
+soup_message_set_compression_dictionary_request (SoupMessage                      *msg,
+                                                 SoupCompressionDictionaryRequest *request)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        g_set_object (&priv->compression_dictionary_request, request);
+}
+
+SoupCompressionDictionaryRequest *
+soup_message_get_compression_dictionary_request (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
+
+        return priv->compression_dictionary_request;
 }

@@ -12,6 +12,7 @@
 #include <libsoup/soup-auth-manager.h>
 #include <libsoup/soup-cache.h>
 #include <libsoup/soup-content-decoder.h>
+#include <libsoup/soup-compression-dictionary-request.h>
 #include <libsoup/soup-content-sniffer.h>
 #include <libsoup/soup-cookie.h>
 #include <libsoup/soup-cookie-jar.h>

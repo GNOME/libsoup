@@ -10,12 +10,15 @@
 #endif
 
 #include "soup-content-decoder.h"
+#include "soup-compression-dictionary-decoder.h"
+#include "soup-compression-dictionary-request-private.h"
 #include "soup-converter-wrapper.h"
 #include "soup-session-feature-private.h"
 #include "soup-message-private.h"
 #include "soup-message-headers-private.h"
 #include "soup-headers.h"
 #include "soup-uri-utils-private.h"
+#include "soup-session.h"
 #ifdef WITH_BROTLI
 #include "soup-brotli-decompressor.h"
 #endif
@@ -72,10 +75,27 @@ struct _SoupContentDecoder {
 };
 
 typedef struct {
-	GHashTable *decoders;
+	GHashTable   *decoders;
+	SoupSession  *session;
 } SoupContentDecoderPrivate;
 
 typedef GConverter * (*SoupContentDecoderCreator) (void);
+
+#if defined(WITH_BROTLI) || defined(WITH_ZSTD)
+static SoupCompressionDictionaryDecoder *
+soup_content_decoder_create_dictionary_decoder (SoupMessageHeaders *response_headers)
+{
+#ifdef WITH_BROTLI
+	if (soup_message_headers_header_contains_common (response_headers, SOUP_HEADER_CONTENT_ENCODING, "dcb"))
+		return (SoupCompressionDictionaryDecoder *)soup_brotli_decompressor_new ();
+#endif
+#ifdef WITH_ZSTD
+	if (soup_message_headers_header_contains_common (response_headers, SOUP_HEADER_CONTENT_ENCODING, "dcz"))
+		return (SoupCompressionDictionaryDecoder *)soup_zstd_decompressor_new ();
+#endif
+	return NULL;
+}
+#endif
 
 static void soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
@@ -89,6 +109,58 @@ G_DEFINE_FINAL_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_
 						      soup_content_decoder_session_feature_init)
 			       G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
 						      soup_content_decoder_content_processor_init))
+
+static void
+soup_content_decoder_got_headers (SoupMessage        *msg,
+				   SoupContentDecoder *decoder)
+{
+        SoupContentDecoderPrivate *priv = soup_content_decoder_get_instance_private (decoder);
+	SoupCompressionDictionaryRequest *request;
+	gboolean handled;
+
+        SoupMessageHeaders *response_headers = soup_message_get_response_headers (msg);
+        if (!soup_message_headers_header_contains_common (response_headers, SOUP_HEADER_CONTENT_ENCODING, "dcb") &&
+            !soup_message_headers_header_contains_common (response_headers, SOUP_HEADER_CONTENT_ENCODING, "dcz"))
+                return;
+
+	/* Only act if not already resolved. */
+	if (soup_message_get_compression_dictionary_request (msg))
+		return;
+
+	request = soup_compression_dictionary_request_new (priv->session, msg);
+	g_signal_emit_by_name (msg, "request-compression-dictionary", request, &handled);
+
+	if (!handled) {
+		g_object_unref (request);
+		return;
+	}
+
+	soup_message_set_compression_dictionary_request (msg, request);
+
+#if defined(WITH_BROTLI) || defined(WITH_ZSTD)
+	/* Create the decoder now that we know the coding and bind it to the
+	 * request's dictionary. It is retrieved later in wrap_input(), which may
+	 * run before the dictionary is resolved (e.g. over HTTP/2, where the
+	 * body stream is set up on the first DATA frame). */
+	SoupCompressionDictionaryDecoder *dict_decoder =
+		soup_content_decoder_create_dictionary_decoder (response_headers);
+	if (dict_decoder) {
+		soup_compression_dictionary_request_set_decoder (request, dict_decoder);
+		g_object_unref (dict_decoder);
+	}
+#endif
+
+	if (!soup_compression_dictionary_request_is_completed (request)) {
+		soup_compression_dictionary_request_set_paused (request);
+                g_debug("content-decoder: Pausing message to wait for SoupMessage::request-compression-dictionary");
+		soup_session_pause_message (priv->session, msg);
+
+                if (G_OBJECT(request)->ref_count == 1)
+                        g_critical ("SoupMessage::request-compression-dictionary was handled but SoupCompressionDictionaryRequest was not referenced");
+	}
+
+	g_object_unref (request);
+}
 
 static GSList *
 soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMessage *msg)
@@ -129,30 +201,27 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 		}
 	}
 
+	/* For dictionary codings (dcb/dcz) the decoder was created and bound to
+	 * the dictionary in soup_content_decoder_got_headers(). Reuse that
+	 * instance so the dictionary (resolved either synchronously or
+	 * asynchronously) is applied to it. Reaching a dcb/dcz entry implies the
+	 * matching decoder was built in, since the loop above bails out for any
+	 * coding not registered in priv->decoders. */
+	SoupCompressionDictionaryRequest *dict_request = soup_message_get_compression_dictionary_request (msg);
+
 	for (e = encodings; e; e = e->next) {
-#ifdef WITH_BROTLI
-		if (g_str_equal (e->data, "dcb")) {
-			GBytes *dictionary = soup_message_get_compression_dictionary (msg);
-			if (!dictionary) {
+		if (g_str_equal (e->data, "dcb") || g_str_equal (e->data, "dcz")) {
+			SoupCompressionDictionaryDecoder *dict_decoder = dict_request ?
+				soup_compression_dictionary_request_get_decoder (dict_request) : NULL;
+
+			if (!dict_decoder) {
 				soup_header_free_list (encodings);
 				g_slist_free_full (decoders, g_object_unref);
 				return NULL;
 			}
-			converter = (GConverter *)soup_brotli_decompressor_new_with_dictionary (dictionary);
-		} else
-#endif
-#ifdef WITH_ZSTD
-		if (g_str_equal (e->data, "dcz")) {
-			GBytes *dictionary = soup_message_get_compression_dictionary (msg);
-			if (!dictionary) {
-				soup_header_free_list (encodings);
-				g_slist_free_full (decoders, g_object_unref);
-				return NULL;
-			}
-			converter = (GConverter *)soup_zstd_decompressor_new_with_dictionary (dictionary);
-		} else
-#endif
-		{
+
+			converter = (GConverter *)g_object_ref (dict_decoder);
+		} else {
 			converter_creator = g_hash_table_lookup (priv->decoders, e->data);
 			converter = converter_creator ();
 		}
@@ -288,44 +357,98 @@ soup_content_decoder_class_init (SoupContentDecoderClass *decoder_class)
 	object_class->finalize = soup_content_decoder_finalize;
 }
 
+static char *
+bytes_to_available_dictionary_header (GBytes *hash)
+{
+        gsize hash_len;
+        const guchar *hash_data = g_bytes_get_data (hash, &hash_len);
+        char *b64 = g_base64_encode (hash_data, hash_len);
+        char *result = g_strdup_printf (":%s:", b64);
+        g_free (b64);
+        return result;
+}
+
+static void
+soup_content_decoder_attach (SoupSessionFeature *feature,
+		              SoupSession        *session)
+{
+        SoupContentDecoderPrivate *priv = soup_content_decoder_get_instance_private (SOUP_CONTENT_DECODER (feature));
+        priv->session = session;
+}
+
+static void
+soup_content_decoder_detach (SoupSessionFeature *feature,
+		              SoupSession        *session)
+{
+        SoupContentDecoderPrivate *priv = soup_content_decoder_get_instance_private (SOUP_CONTENT_DECODER (feature));
+        priv->session = NULL;
+}
+
 static void
 soup_content_decoder_request_queued (SoupSessionFeature *feature,
 				     SoupMessage        *msg)
 {
-	if (!soup_message_headers_get_one_common (soup_message_get_request_headers (msg),
-                                                  SOUP_HEADER_ACCEPT_ENCODING)) {
-                const char *header = "gzip, deflate";
+	SoupMessageHeaders *request_headers = soup_message_get_request_headers (msg);
+
+	if (!soup_message_headers_get_one_common (request_headers, SOUP_HEADER_ACCEPT_ENCODING)) {
+		GString *accept_encoding = g_string_new ("gzip, deflate");
 
 #if defined(WITH_BROTLI) || defined(WITH_ZSTD)
-                /* brotli and zstd are only enabled over TLS connections
-                 * as other browsers have found that some networks have expectations
-                 * regarding the encoding of HTTP messages and this may break those
-                 * expectations. Firefox and Chromium behave similarly.
-                 */
-                if (soup_uri_is_https (soup_message_get_uri (msg))) {
-                        header = "gzip, deflate" SOUP_ACCEPT_BR SOUP_ACCEPT_ZSTD;
+		/* brotli and zstd are only enabled over TLS connections
+		 * as other browsers have found that some networks have expectations
+		 * regarding the encoding of HTTP messages and this may break those
+		 * expectations. Firefox and Chromium behave similarly.
+		 */
+		if (soup_uri_is_https (soup_message_get_uri (msg))) {
+#if defined(WITH_BROTLI)
+			g_string_append (accept_encoding, SOUP_ACCEPT_BR);
+#endif
+#if defined(WITH_ZSTD)
+			g_string_append (accept_encoding, SOUP_ACCEPT_ZSTD);
+#endif
+			 
 
-                        /* Advertise dictionary encodings only when a shared dictionary has been set */
-                        if (soup_message_get_compression_dictionary (msg)) {
-                                char *with_dict = g_strconcat (header, SOUP_ACCEPT_DCB SOUP_ACCEPT_DCZ, NULL);
-                                soup_message_headers_append_common (soup_message_get_request_headers (msg),
-                                                                    SOUP_HEADER_ACCEPT_ENCODING, with_dict,
-                                                                    SOUP_HEADER_VALUE_TRUSTED);
-                                g_free (with_dict);
-                                return;
-                        }
-                }
+			/* Advertise dictionary encodings only when a shared dictionary has been set */
+			GBytes *dict_hash = soup_message_get_compression_dictionary_hash (msg);
+			if (dict_hash) {
+				g_debug("Compression-dictionary hash set, Accepting Encodings");
+				char *avail_dict = bytes_to_available_dictionary_header (dict_hash);
+#if defined(WITH_BROTLI)
+				g_string_append (accept_encoding, SOUP_ACCEPT_DCB);
+#endif
+#if defined(WITH_ZSTD)
+				g_string_append (accept_encoding, SOUP_ACCEPT_DCZ);
+#endif
+				soup_message_headers_append (request_headers, "Available-Dictionary", avail_dict);
+				g_free (avail_dict);
+			}
+		}
 #endif
 
-		soup_message_headers_append_common (soup_message_get_request_headers (msg),
-                                                    SOUP_HEADER_ACCEPT_ENCODING, header,
-                                                    SOUP_HEADER_VALUE_TRUSTED);
+		soup_message_headers_append_common (request_headers,
+						    SOUP_HEADER_ACCEPT_ENCODING, accept_encoding->str,
+						    SOUP_HEADER_VALUE_TRUSTED);
+		g_string_free (accept_encoding, TRUE);
 	}
+
+	g_signal_connect_object (msg, "got-headers",
+			         G_CALLBACK (soup_content_decoder_got_headers),
+			         feature, 0);
+}
+
+static void
+soup_content_decoder_request_unqueued (SoupSessionFeature *feature,
+				        SoupMessage        *msg)
+{
+        soup_message_set_compression_dictionary_request (msg, NULL);
 }
 
 static void
 soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 					   gpointer interface_data)
 {
-	feature_interface->request_queued = soup_content_decoder_request_queued;
+	feature_interface->attach          = soup_content_decoder_attach;
+	feature_interface->detach          = soup_content_decoder_detach;
+	feature_interface->request_queued   = soup_content_decoder_request_queued;
+	feature_interface->request_unqueued = soup_content_decoder_request_unqueued;
 }
