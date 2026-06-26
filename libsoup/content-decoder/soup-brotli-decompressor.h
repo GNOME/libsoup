@@ -30,6 +30,5 @@ SOUP_AVAILABLE_IN_ALL
 G_DECLARE_FINAL_TYPE (SoupBrotliDecompressor, soup_brotli_decompressor, SOUP, BROTLI_DECOMPRESSOR, GObject)
 
 SoupBrotliDecompressor *soup_brotli_decompressor_new (void);
-SoupBrotliDecompressor *soup_brotli_decompressor_new_with_dictionary (GBytes *dictionary);
 
 G_END_DECLS

@@ -29,6 +29,7 @@ typedef struct _SoupSession             SoupSession;
 typedef struct _SoupSessionFeature      SoupSessionFeature;
 typedef struct _SoupWebsocketConnection SoupWebsocketConnection;
 typedef struct _SoupWebsocketExtension  SoupWebsocketExtension;
+typedef struct _SoupCompressionDictionaryRequest SoupCompressionDictionaryRequest;
 
 G_END_DECLS
 

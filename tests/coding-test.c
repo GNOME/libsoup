@@ -13,6 +13,7 @@
 
 static SoupServer *server;
 static GUri *base_uri;
+static GUri *h2_base_uri;
 
 static void
 server_callback (SoupServer        *server,
@@ -348,16 +349,78 @@ do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 	g_bytes_unref (body);
 }
 
-/* --- Compression Dictionary Transport (dcb) tests --- */
+/* --- Compression Dictionary Transport (dcb/dcz) tests --- */
 
-#if WITH_BROTLI_ENC
+#if defined(WITH_BROTLI_ENC) || defined(WITH_ZSTD_ENC)
 
-/* A short shared dictionary and plaintext to compress with it. */
+/* A short shared dictionary and plaintext reused by both dcb and dcz tests. */
 static const guint8 dcb_dictionary[] = "The quick brown fox jumps over the lazy dog";
 static const gsize dcb_dictionary_size = sizeof (dcb_dictionary) - 1;
 
 static const char dcb_plaintext[] = "The quick brown fox jumps over the lazy dog. Again!";
 static const gsize dcb_plaintext_size = sizeof (dcb_plaintext) - 1;
+
+/* A large plaintext (~1 MiB) to force the body to span many read chunks /
+ * HTTP2 DATA frames. Caller owns the returned bytes. */
+static GBytes *
+make_large_plaintext (void)
+{
+        GByteArray *buf = g_byte_array_new ();
+        for (int i = 0; i < 20000; i++)
+                g_byte_array_append (buf, (const guint8 *)dcb_plaintext, dcb_plaintext_size);
+        return g_byte_array_free_to_bytes (buf);
+}
+
+static GBytes *
+compute_sha256_hash (const guint8 *data,
+                     gsize         size)
+{
+        GChecksum *checksum;
+        guint8 hash[32];
+        gsize hash_len = sizeof (hash);
+
+        checksum = g_checksum_new (G_CHECKSUM_SHA256);
+        g_checksum_update (checksum, data, (gssize)size);
+        g_checksum_get_digest (checksum, hash, &hash_len);
+        g_checksum_free (checksum);
+
+        return g_bytes_new (hash, hash_len);
+}
+
+static gboolean
+on_request_compression_dictionary (SoupMessage                      *msg,
+                                    SoupCompressionDictionaryRequest *request,
+                                    gpointer                          user_data)
+{
+        GBytes *dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
+        soup_compression_dictionary_request_set_dictionary (request, dict);
+        g_bytes_unref (dict);
+        return TRUE;
+}
+
+static gboolean
+complete_dictionary_async (gpointer user_data)
+{
+        SoupCompressionDictionaryRequest *request = user_data;
+        GBytes *dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
+        soup_compression_dictionary_request_set_dictionary (request, dict);
+        g_bytes_unref (dict);
+        g_object_unref (request);
+        return G_SOURCE_REMOVE;
+}
+
+static gboolean
+on_request_compression_dictionary_async (SoupMessage                      *msg,
+                                          SoupCompressionDictionaryRequest *request,
+                                          gpointer                          user_data)
+{
+        g_idle_add (complete_dictionary_async, g_object_ref (request));
+        return TRUE;
+}
+
+#endif /* WITH_BROTLI_ENC || WITH_ZSTD_ENC */
+
+#if WITH_BROTLI_ENC
 
 static GBytes *
 compress_with_brotli_dictionary (const guint8 *dict,
@@ -457,12 +520,21 @@ dcb_server_callback (SoupServer        *server,
         SoupMessageHeaders *response_headers;
         GBytes *compressed;
         GBytes *framed;
+        GBytes *large = NULL;
+        const guint8 *plaintext = (const guint8 *)dcb_plaintext;
+        gsize plaintext_size = dcb_plaintext_size;
+
+        if (g_str_has_suffix (path, "-large")) {
+                large = make_large_plaintext ();
+                plaintext = g_bytes_get_data (large, &plaintext_size);
+        }
 
         response_headers = soup_server_message_get_response_headers (msg);
 
         compressed = compress_with_brotli_dictionary (dcb_dictionary, dcb_dictionary_size,
-                                                      (const guint8 *)dcb_plaintext, dcb_plaintext_size);
+                                                      plaintext, plaintext_size);
         framed = make_dcb_frame (dcb_dictionary, dcb_dictionary_size, compressed);
+        g_clear_pointer (&large, g_bytes_unref);
         g_bytes_unref (compressed);
 
         soup_message_headers_append (response_headers, "Content-Encoding", "dcb");
@@ -533,9 +605,11 @@ do_coding_test_dcb (gconstpointer test_data)
         msg = soup_message_new_from_uri ("GET", uri);
         g_uri_unref (uri);
 
-        dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
-        soup_message_set_compression_dictionary (msg, dict);
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
         g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary), NULL);
 
         body = soup_session_send_and_read (session, msg, NULL, NULL);
         g_assert_nonnull (body);
@@ -566,9 +640,11 @@ do_coding_test_dcb_hash_mismatch (gconstpointer test_data)
         msg = soup_message_new_from_uri ("GET", uri);
         g_uri_unref (uri);
 
-        dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
-        soup_message_set_compression_dictionary (msg, dict);
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
         g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary), NULL);
 
         body = soup_session_send_and_read (session, msg, NULL, &error);
         g_assert_null (body);
@@ -596,9 +672,11 @@ do_coding_test_dcb_accept_encoding (gconstpointer test_data)
         msg = soup_message_new_from_uri ("GET", uri);
         g_uri_unref (uri);
 
-        dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
-        soup_message_set_compression_dictionary (msg, dict);
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
         g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary), NULL);
 
         /* Trigger header population by queuing then cancelling */
         body = soup_session_send_and_read (session, msg, NULL, NULL);
@@ -761,9 +839,11 @@ do_coding_test_dcz (gconstpointer test_data)
         msg = soup_message_new_from_uri ("GET", uri);
         g_uri_unref (uri);
 
-        dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
-        soup_message_set_compression_dictionary (msg, dict);
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
         g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary), NULL);
 
         body = soup_session_send_and_read (session, msg, NULL, NULL);
         g_assert_nonnull (body);
@@ -794,9 +874,11 @@ do_coding_test_dcz_hash_mismatch (gconstpointer test_data)
         msg = soup_message_new_from_uri ("GET", uri);
         g_uri_unref (uri);
 
-        dict = g_bytes_new_static (dcb_dictionary, dcb_dictionary_size);
-        soup_message_set_compression_dictionary (msg, dict);
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
         g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary), NULL);
 
         body = soup_session_send_and_read (session, msg, NULL, &error);
         g_assert_null (body);
@@ -809,6 +891,231 @@ do_coding_test_dcz_hash_mismatch (gconstpointer test_data)
 
 #endif /* WITH_ZSTD_ENC */
 
+#if WITH_BROTLI_ENC
+static void
+do_coding_test_dcb_async (gconstpointer test_data)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *dict;
+        GBytes *body;
+        GUri *uri;
+        const char *body_data;
+        gsize body_size;
+
+        session = soup_test_session_new (NULL);
+
+        uri = g_uri_parse_relative (base_uri, "/dcb", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
+        g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary_async), NULL);
+
+        body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
+
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+        body_data = g_bytes_get_data (body, &body_size);
+        g_assert_cmpmem (body_data, body_size, dcb_plaintext, dcb_plaintext_size);
+
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+#endif /* WITH_BROTLI_ENC */
+
+#if WITH_ZSTD_ENC
+static void
+do_coding_test_dcz_async (gconstpointer test_data)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *dict;
+        GBytes *body;
+        GUri *uri;
+        const char *body_data;
+        gsize body_size;
+
+        session = soup_test_session_new (NULL);
+
+        uri = g_uri_parse_relative (base_uri, "/dcz", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
+        g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary_async), NULL);
+
+        body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
+
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+        body_data = g_bytes_get_data (body, &body_size);
+        g_assert_cmpmem (body_data, body_size, dcb_plaintext, dcb_plaintext_size);
+
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+#endif /* WITH_ZSTD_ENC */
+
+#if WITH_BROTLI_ENC || WITH_ZSTD_ENC
+/* Over HTTP/2 the decoded body input stream is created on the first DATA
+ * frame, which can arrive before the asynchronously-resolved dictionary is
+ * set. This exercises the path where the decoder is created without a
+ * dictionary and has it attached later via notify::dictionary. */
+static void
+do_coding_test_dict_async_http2 (const char *path)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *dict;
+        GBytes *body;
+        GUri *uri;
+        const char *body_data;
+        gsize body_size;
+
+        if (!tls_available) {
+                g_test_skip ("TLS not available");
+                return;
+        }
+
+        session = soup_test_session_new (NULL);
+        /* A content sniffer reads the start of the (decoded) body as soon as
+         * data arrives, which for HTTP/2 happens while the message is paused
+         * waiting for the dictionary. WebKit installs one by default. */
+        soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        uri = g_uri_parse_relative (h2_base_uri, path, SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
+        g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary_async), NULL);
+
+        body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_assert_nonnull (body);
+
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+        g_assert_cmpuint (soup_message_get_http_version (msg), ==, SOUP_HTTP_2_0);
+
+        body_data = g_bytes_get_data (body, &body_size);
+        g_assert_cmpmem (body_data, body_size, dcb_plaintext, dcb_plaintext_size);
+
+        g_bytes_unref (body);
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+
+/* Like the above, but reads the response via a streaming GInputStream (as
+ * WebKit does with soup_session_send_async) instead of reading it all at once. */
+static void
+do_coding_test_dict_async_stream (GUri *uri_base, const char *path)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *dict;
+        GBytes *expected = NULL;
+        const char *expected_data = dcb_plaintext;
+        gsize expected_size = dcb_plaintext_size;
+        GUri *uri;
+        GInputStream *stream;
+        GByteArray *received;
+        guchar buf[8];
+        gssize nread;
+        GError *error = NULL;
+
+        if (g_str_has_suffix (path, "-large")) {
+                expected = make_large_plaintext ();
+                expected_data = g_bytes_get_data (expected, &expected_size);
+        }
+
+        session = soup_test_session_new (NULL);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        uri = g_uri_parse_relative (uri_base, path, SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
+        g_bytes_unref (dict);
+        g_signal_connect (msg, "request-compression-dictionary",
+                          G_CALLBACK (on_request_compression_dictionary_async), NULL);
+
+        stream = soup_test_request_send (session, msg, NULL, 0, &error);
+        g_assert_no_error (error);
+        g_assert_nonnull (stream);
+
+        received = g_byte_array_new ();
+        while ((nread = g_input_stream_read (stream, buf, sizeof (buf), NULL, &error)) > 0)
+                g_byte_array_append (received, buf, nread);
+        g_assert_no_error (error);
+        g_assert_cmpint (nread, ==, 0);
+
+        g_assert_cmpmem (received->data, received->len, expected_data, expected_size);
+
+        g_clear_pointer (&expected, g_bytes_unref);
+        g_byte_array_unref (received);
+        g_object_unref (stream);
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+#endif /* WITH_BROTLI_ENC || WITH_ZSTD_ENC */
+
+#if WITH_BROTLI_ENC
+static void
+do_coding_test_dcb_async_http2 (gconstpointer test_data)
+{
+        do_coding_test_dict_async_http2 ("/dcb");
+}
+
+static void
+do_coding_test_dcb_async_stream (gconstpointer test_data)
+{
+        do_coding_test_dict_async_stream (base_uri, "/dcb");
+}
+
+static void
+do_coding_test_dcb_async_stream_http2 (gconstpointer test_data)
+{
+        if (!tls_available) {
+                g_test_skip ("TLS not available");
+                return;
+        }
+        do_coding_test_dict_async_stream (h2_base_uri, "/dcb");
+}
+
+static void
+do_coding_test_dcb_async_stream_large_http2 (gconstpointer test_data)
+{
+        if (!tls_available) {
+                g_test_skip ("TLS not available");
+                return;
+        }
+        do_coding_test_dict_async_stream (h2_base_uri, "/dcb-large");
+}
+#endif
+
+#if WITH_ZSTD_ENC
+static void
+do_coding_test_dcz_async_http2 (gconstpointer test_data)
+{
+        do_coding_test_dict_async_http2 ("/dcz");
+}
+#endif
+
 int
 main (int argc, char **argv)
 {
@@ -820,6 +1127,7 @@ main (int argc, char **argv)
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 #if WITH_BROTLI_ENC
 	soup_server_add_handler (server, "/dcb", dcb_server_callback, NULL, NULL);
+	soup_server_add_handler (server, "/dcb-large", dcb_server_callback, NULL, NULL);
 	soup_server_add_handler (server, "/dcb-bad-hash", dcb_bad_hash_server_callback, NULL, NULL);
 #endif
 #if WITH_ZSTD_ENC
@@ -827,6 +1135,24 @@ main (int argc, char **argv)
 	soup_server_add_handler (server, "/dcz-bad-hash", dcz_bad_hash_server_callback, NULL, NULL);
 #endif
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
+
+#if WITH_BROTLI_ENC || WITH_ZSTD_ENC
+	if (tls_available) {
+		SoupServer *h2_server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD | SOUP_TEST_SERVER_HTTP2);
+#if WITH_BROTLI_ENC
+		soup_server_add_handler (h2_server, "/dcb", dcb_server_callback, NULL, NULL);
+		soup_server_add_handler (h2_server, "/dcb-large", dcb_server_callback, NULL, NULL);
+#endif
+#if WITH_ZSTD_ENC
+		soup_server_add_handler (h2_server, "/dcz", dcz_server_callback, NULL, NULL);
+#endif
+		h2_base_uri = soup_test_server_get_uri (h2_server, "https", "127.0.0.1");
+		/* The server is owned by the test thread; keep it alive for the
+		 * duration of the run and let it be torn down at process exit. */
+		g_object_set_data_full (G_OBJECT (server), "h2-server", h2_server,
+		                        (GDestroyNotify) soup_test_server_quit_unref);
+	}
+#endif
 
 	g_test_add ("/coding/message/plain", CodingTestData,
 		    GINT_TO_POINTER (CODING_TEST_NO_DECODER),
@@ -865,18 +1191,26 @@ main (int argc, char **argv)
 
 #if WITH_BROTLI_ENC
 	g_test_add_data_func ("/coding/message/dcb", NULL, do_coding_test_dcb);
+	g_test_add_data_func ("/coding/message/dcb/async", NULL, do_coding_test_dcb_async);
+	g_test_add_data_func ("/coding/message/dcb/async-http2", NULL, do_coding_test_dcb_async_http2);
+	g_test_add_data_func ("/coding/message/dcb/async-stream", NULL, do_coding_test_dcb_async_stream);
+	g_test_add_data_func ("/coding/message/dcb/async-stream-http2", NULL, do_coding_test_dcb_async_stream_http2);
+	g_test_add_data_func ("/coding/message/dcb/async-stream-large-http2", NULL, do_coding_test_dcb_async_stream_large_http2);
 	g_test_add_data_func ("/coding/message/dcb/hash-mismatch", NULL, do_coding_test_dcb_hash_mismatch);
 	g_test_add_data_func ("/coding/message/dcb/accept-encoding-http-only",
 	                      NULL, do_coding_test_dcb_accept_encoding);
 #endif
 #if WITH_ZSTD_ENC
 	g_test_add_data_func ("/coding/message/dcz", NULL, do_coding_test_dcz);
+	g_test_add_data_func ("/coding/message/dcz/async", NULL, do_coding_test_dcz_async);
+	g_test_add_data_func ("/coding/message/dcz/async-http2", NULL, do_coding_test_dcz_async_http2);
 	g_test_add_data_func ("/coding/message/dcz/hash-mismatch", NULL, do_coding_test_dcz_hash_mismatch);
 #endif
 
 	ret = g_test_run ();
 
 	g_uri_unref (base_uri);
+	g_clear_pointer (&h2_base_uri, g_uri_unref);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

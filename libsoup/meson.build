@@ -17,6 +17,7 @@ soup_sources = [
   'cache/soup-cache-client-input-stream.c',
   'cache/soup-cache-input-stream.c',
 
+  'content-decoder/soup-compression-dictionary-request.c',
   'content-decoder/soup-content-decoder.c',
   'content-decoder/soup-content-processor.c',
   'content-decoder/soup-converter-wrapper.c',
@@ -103,6 +104,7 @@ soup_introspection_headers = [
 
   'cache/soup-cache.h',
 
+  'content-decoder/soup-compression-dictionary-request.h',
   'content-decoder/soup-content-decoder.h',
 
   'content-sniffer/soup-content-sniffer.h',

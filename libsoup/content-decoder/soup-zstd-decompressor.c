@@ -27,6 +27,7 @@
 
 #include "soup-dictionary-header-private.h"
 #include "soup-zstd-decompressor.h"
+#include "soup-compression-dictionary-decoder.h"
 
 /* dcz framing: zstd skippable frame (magic 0x184D2A5E LE + 4-byte size 32 LE)
  * followed by 32-byte SHA-256 hash of the dictionary.
@@ -44,26 +45,16 @@ struct _SoupZstdDecompressor
 };
 
 static void soup_zstd_decompressor_iface_init (GConverterIface *iface);
+static void soup_zstd_decompressor_dictionary_decoder_init (SoupCompressionDictionaryDecoderInterface *iface);
 
 G_DEFINE_FINAL_TYPE_WITH_CODE (SoupZstdDecompressor, soup_zstd_decompressor, G_TYPE_OBJECT,
-                               G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER, soup_zstd_decompressor_iface_init))
+                               G_IMPLEMENT_INTERFACE (G_TYPE_CONVERTER, soup_zstd_decompressor_iface_init)
+                               G_IMPLEMENT_INTERFACE (SOUP_TYPE_COMPRESSION_DICTIONARY_DECODER, soup_zstd_decompressor_dictionary_decoder_init))
 
 SoupZstdDecompressor *
 soup_zstd_decompressor_new (void)
 {
 	return g_object_new (SOUP_TYPE_ZSTD_DECOMPRESSOR, NULL);
-}
-
-SoupZstdDecompressor *
-soup_zstd_decompressor_new_with_dictionary (GBytes *dictionary)
-{
-	SoupZstdDecompressor *self;
-
-	g_return_val_if_fail (dictionary != NULL, NULL);
-
-	self = g_object_new (SOUP_TYPE_ZSTD_DECOMPRESSOR, NULL);
-	self->dictionary = g_bytes_ref (dictionary);
-	return self;
 }
 
 static GConverterResult
@@ -203,6 +194,28 @@ static void soup_zstd_decompressor_iface_init (GConverterIface *iface)
 {
 	iface->convert = soup_zstd_decompressor_convert;
 	iface->reset = soup_zstd_decompressor_reset;
+}
+
+/* The dictionary must be set before any data is decompressed (the message is
+ * paused until it is resolved), otherwise the framing header cannot be consumed. */
+static void
+soup_zstd_decompressor_set_dictionary (SoupCompressionDictionaryDecoder *decoder,
+                                       GBytes                           *dictionary)
+{
+	SoupZstdDecompressor *self = SOUP_ZSTD_DECOMPRESSOR (decoder);
+
+	if (self->dictionary)
+		g_warning ("A compression dictionary was already set!");
+	if (self->header.consumed)
+		g_warning ("Decoding already started before the dictionary!");
+	g_clear_pointer (&self->dictionary, g_bytes_unref);
+	self->dictionary = g_bytes_ref (dictionary);
+}
+
+static void
+soup_zstd_decompressor_dictionary_decoder_init (SoupCompressionDictionaryDecoderInterface *iface)
+{
+	iface->set_dictionary = soup_zstd_decompressor_set_dictionary;
 }
 
 static void

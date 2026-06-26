@@ -202,9 +202,9 @@ SOUP_AVAILABLE_IN_3_4
 gboolean            soup_message_get_force_http1      (SoupMessage *msg);
 
 SOUP_AVAILABLE_IN_3_8
-void                soup_message_set_compression_dictionary (SoupMessage *msg,
-                                                             GBytes      *dictionary);
+void                soup_message_set_compression_dictionary_hash (SoupMessage *msg,
+                                                                  GBytes      *hash);
 SOUP_AVAILABLE_IN_3_8
-GBytes             *soup_message_get_compression_dictionary (SoupMessage *msg);
+GBytes             *soup_message_get_compression_dictionary_hash (SoupMessage *msg);
 
 G_END_DECLS
