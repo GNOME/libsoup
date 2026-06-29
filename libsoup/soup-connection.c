@@ -1210,8 +1210,18 @@ soup_connection_setup_message_io (SoupConnection *conn,
         if (priv->proxy_uri && soup_message_get_method (msg) == SOUP_METHOD_CONNECT)
                 set_proxy_msg (conn, msg);
 
-        if (!soup_client_message_io_is_reusable (priv->io_data))
-                g_warn_if_reached ();
+        if (!soup_client_message_io_is_reusable (priv->io_data)) {
+                /* The connection (typically a shared HTTP/2 session) failed
+                 * during its handshake while another queue item was
+                 * coalesced onto it via the CONNECTING fast-path in
+                 * soup-connection-manager. Returning the broken io_data
+                 * would propagate the original failure to every coalesced
+                 * message; instead, drop the connection and let the caller
+                 * re-queue the message onto a fresh one.
+                 */
+                g_debug ("soup_connection_setup_message_io: connection io is no longer reusable, will re-queue message");
+                return NULL;
+        }
 
         return priv->io_data;
 }

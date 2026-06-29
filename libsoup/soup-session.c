@@ -1849,7 +1849,13 @@ soup_session_process_queue_item (SoupSession          *session,
 			soup_session_send_queue_item (session, item,
 						      (SoupMessageIOCompletionFn)message_completed);
 
-			if (item->async)
+                        /* soup_session_send_queue_item may invoke the completion
+                         * callback synchronously (e.g. when io_data is NULL after
+                         * a broken HTTP/2 session), which changes item->state away
+                         * from RUNNING before we return.  Only enter the async read
+                         * loop when the item is still actually running.
+                         */
+			if (item->async && item->state == SOUP_MESSAGE_RUNNING)
 				async_send_request_running (session, item);
 			return;
 

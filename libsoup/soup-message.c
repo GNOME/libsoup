@@ -17,6 +17,8 @@
 #include "soup-message-private.h"
 #include "soup-message-headers-private.h"
 #include "soup-message-metrics-private.h"
+#include "soup-message-queue-item.h"
+#include "soup-session-private.h"
 #include "soup-uri-utils-private.h"
 #include "content-sniffer/soup-content-sniffer-stream.h"
 
@@ -2874,6 +2876,24 @@ soup_message_send_item (SoupMessage              *msg,
         SoupClientMessageIO *io_data;
 
         io_data = soup_connection_setup_message_io (connection, msg);
+        if (!io_data) {
+                /* The shared connection (typically an HTTP/2 session) became
+                 * unusable before this message could be sent: it failed during
+                 * or right after its handshake while this item was coalesced
+                 * onto it via the CONNECTING fast-path in soup-connection-manager.
+                 * The request was never actually written, so drop the broken
+                 * connection and requeue it onto a fresh one. Going through
+                 * soup_session_requeue_message() honours SOUP_SESSION_MAX_RESEND_COUNT,
+                 * so a persistently broken peer fails the message with
+                 * SOUP_SESSION_ERROR_TOO_MANY_RESTARTS instead of looping forever.
+                 */
+                soup_connection_disconnect (connection);
+                g_object_unref (connection);
+                soup_message_set_connection (msg, NULL);
+                soup_session_requeue_message (item->session, msg);
+                completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_INTERRUPTED, user_data);
+                return;
+        }
         g_object_unref (connection);
         soup_client_message_io_send_item (io_data, item, completion_cb, user_data);
 }
