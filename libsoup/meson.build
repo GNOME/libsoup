@@ -17,6 +17,7 @@ soup_sources = [
   'cache/soup-cache-client-input-stream.c',
   'cache/soup-cache-input-stream.c',
 
+  'content-decoder/soup-compression-dictionary-decoder.c',
   'content-decoder/soup-compression-dictionary-request.c',
   'content-decoder/soup-content-decoder.c',
   'content-decoder/soup-content-processor.c',

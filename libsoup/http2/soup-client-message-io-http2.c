@@ -613,6 +613,13 @@ io_try_sniff_content (SoupHTTP2MessageData *data,
         if (data->in_io_try_sniff_content)
                 return;
 
+        /* Don't read the body while paused (e.g. waiting for a compression
+         * dictionary to be resolved). Sniffing reads through the content
+         * decoder, which must not be fed data before it is ready. The sniff is
+         * retried from soup_client_message_io_http2_unpause(). */
+        if (data->paused)
+                return;
+
         if (message_has_content_length_zero (data->msg)) {
                 sniff_for_empty_response (data->msg);
                 h2_debug (data->io, data, "[DATA] Sniffed content (Content-Length was 0)");
@@ -1737,6 +1744,12 @@ soup_client_message_io_http2_unpause (SoupClientMessageIO *iface,
                 g_warn_if_reached ();
 
         data->paused = FALSE;
+
+        /* Body data that arrived while paused was buffered but not sniffed (see
+         * io_try_sniff_content()), and won't re-trigger on_data_chunk_recv_callback().
+         * Retry sniffing now that the content decoder is ready. */
+        if (data->state == STATE_READ_DATA_START && data->decoded_data_istream)
+                io_try_sniff_content (data, FALSE, data->item->cancellable);
 
         if (data->item->async)
                 soup_http2_message_data_check_status (data);

@@ -114,20 +114,29 @@ static void
 soup_content_decoder_got_headers (SoupMessage        *msg,
 				   SoupContentDecoder *decoder)
 {
+#if defined(WITH_BROTLI) || defined(WITH_ZSTD)
         SoupContentDecoderPrivate *priv = soup_content_decoder_get_instance_private (decoder);
 	SoupCompressionDictionaryRequest *request;
 	gboolean handled;
-
-        SoupMessageHeaders *response_headers = soup_message_get_response_headers (msg);
-        if (!soup_message_headers_header_contains_common (response_headers, SOUP_HEADER_CONTENT_ENCODING, "dcb") &&
-            !soup_message_headers_header_contains_common (response_headers, SOUP_HEADER_CONTENT_ENCODING, "dcz"))
-                return;
 
 	/* Only act if not already resolved. */
 	if (soup_message_get_compression_dictionary_request (msg))
 		return;
 
+	/* Create the decoder now that we know the coding and bind it to the
+	 * request's dictionary. It is retrieved later in wrap_input(), which may
+	 * run before the dictionary is resolved (e.g. over HTTP/2, where the
+	 * body stream is set up on the first DATA frame). */
+	SoupMessageHeaders *response_headers = soup_message_get_response_headers (msg);
+	SoupCompressionDictionaryDecoder *dict_decoder =
+		soup_content_decoder_create_dictionary_decoder (response_headers);
+	if (!dict_decoder)
+		return;
+
 	request = soup_compression_dictionary_request_new (priv->session, msg);
+	soup_compression_dictionary_request_set_decoder (request, dict_decoder);
+	g_object_unref (dict_decoder);
+
 	g_signal_emit_by_name (msg, "request-compression-dictionary", request, &handled);
 
 	if (!handled) {
@@ -136,19 +145,6 @@ soup_content_decoder_got_headers (SoupMessage        *msg,
 	}
 
 	soup_message_set_compression_dictionary_request (msg, request);
-
-#if defined(WITH_BROTLI) || defined(WITH_ZSTD)
-	/* Create the decoder now that we know the coding and bind it to the
-	 * request's dictionary. It is retrieved later in wrap_input(), which may
-	 * run before the dictionary is resolved (e.g. over HTTP/2, where the
-	 * body stream is set up on the first DATA frame). */
-	SoupCompressionDictionaryDecoder *dict_decoder =
-		soup_content_decoder_create_dictionary_decoder (response_headers);
-	if (dict_decoder) {
-		soup_compression_dictionary_request_set_decoder (request, dict_decoder);
-		g_object_unref (dict_decoder);
-	}
-#endif
 
 	if (!soup_compression_dictionary_request_is_completed (request)) {
 		soup_compression_dictionary_request_set_paused (request);
@@ -160,6 +156,7 @@ soup_content_decoder_got_headers (SoupMessage        *msg,
 	}
 
 	g_object_unref (request);
+#endif
 }
 
 static GSList *
