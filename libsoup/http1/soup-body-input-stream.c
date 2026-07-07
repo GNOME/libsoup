@@ -197,12 +197,14 @@ again:
 			return -1;
 		}
 
+                /* metabuf is not NUL-terminated by read_until(), so terminate
+                 * it at the trailing CRLF before scanning for chunk extensions. */
+                metabuf[nread - 2] = '\0';
+
                 /* ignore extensions */
                 boundary = strstr (metabuf, ";");
                 if (boundary)
                         *boundary = '\0';
-                else
-                        metabuf[nread - 2] = '\0';
 
                 chunk_size = g_ascii_strtoull (metabuf, &end, 16);
                 if (*end) {
