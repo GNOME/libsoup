@@ -95,11 +95,30 @@ soup_compression_dictionary_request_class_init (SoupCompressionDictionaryRequest
 	object_class->finalize     = soup_compression_dictionary_request_finalize;
 	object_class->get_property = soup_compression_dictionary_request_get_property;
 
+	/**
+	 * SoupCompressionDictionaryRequest:dictionary:
+	 *
+	 * The raw dictionary bytes provided to resolve the request, or %NULL
+	 * if none has been set yet.
+	 *
+	 * Set with [method@CompressionDictionaryRequest.set_dictionary].
+	 *
+	 * Since: 3.8
+	 */
 	props[PROP_DICTIONARY] =
 		g_param_spec_boxed ("dictionary", NULL, NULL,
 				    G_TYPE_BYTES,
 				    G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
+	/**
+	 * SoupCompressionDictionaryRequest:cancelled:
+	 *
+	 * Whether the request has been cancelled.
+	 *
+	 * Set to %TRUE by [method@CompressionDictionaryRequest.cancel].
+	 *
+	 * Since: 3.8
+	 */
 	props[PROP_CANCELLED] =
 		g_param_spec_boolean ("cancelled", NULL, NULL,
 				      FALSE,
