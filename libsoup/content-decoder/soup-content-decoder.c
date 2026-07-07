@@ -437,6 +437,9 @@ static void
 soup_content_decoder_request_unqueued (SoupSessionFeature *feature,
 				        SoupMessage        *msg)
 {
+        g_signal_handlers_disconnect_by_func (msg,
+                                              G_CALLBACK (soup_content_decoder_got_headers),
+                                              feature);
         soup_message_set_compression_dictionary_request (msg, NULL);
 }
 
