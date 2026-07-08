@@ -548,6 +548,90 @@ dcb_server_callback (SoupServer        *server,
         g_bytes_unref (framed);
 }
 
+/* Deliver the framed dcb body in a few small chunks separated in time.
+ * The 36-byte dcb header alone spans several chunks, and the delays make
+ * each chunk arrive in a distinct client read while the message is
+ * paused waiting for the async dictionary. This feeds the content decoder a
+ * partial header with no further input available. */
+#define DCB_CHUNK_COUNT 4
+#define DCB_CHUNK_DELAY_MS 100
+
+typedef struct {
+        SoupServerMessage *msg;
+        GBytes *framed;
+        gsize offset;
+} DcbChunkedState;
+
+static gsize
+dcb_chunk_size (DcbChunkedState *state)
+{
+        gsize total = g_bytes_get_size (state->framed);
+        return (total + DCB_CHUNK_COUNT - 1) / DCB_CHUNK_COUNT;
+}
+
+static gboolean
+dcb_chunked_send_next (gpointer user_data)
+{
+        DcbChunkedState *state = user_data;
+        SoupServerMessage *msg = state->msg;
+        SoupMessageBody *response_body = soup_server_message_get_response_body (msg);
+        gsize total = g_bytes_get_size (state->framed);
+        gsize chunk_length = MIN (dcb_chunk_size (state), total - state->offset);
+        GBytes *chunk = g_bytes_new_from_bytes (state->framed, state->offset, chunk_length);
+
+        soup_message_body_append_bytes (response_body, chunk);
+        g_bytes_unref (chunk);
+        state->offset += chunk_length;
+
+        if (state->offset >= total)
+                soup_message_body_complete (response_body);
+
+        soup_server_message_unpause (msg);
+        return (state->offset >= total) ? G_SOURCE_REMOVE : G_SOURCE_CONTINUE;
+}
+
+static void
+dcb_chunked_free_state (SoupServerMessage *msg,
+                        gpointer           user_data)
+{
+        DcbChunkedState *state = user_data;
+        g_bytes_unref (state->framed);
+        g_free (state);
+}
+
+static void
+dcb_chunked_server_callback (SoupServer        *server,
+                             SoupServerMessage *msg,
+                             const char        *path,
+                             GHashTable        *query,
+                             gpointer           user_data)
+{
+        SoupMessageHeaders *response_headers = soup_server_message_get_response_headers (msg);
+        GBytes *compressed;
+        DcbChunkedState *state;
+        GSource *source;
+
+        compressed = compress_with_brotli_dictionary (dcb_dictionary, dcb_dictionary_size,
+                                                      (const guint8 *)dcb_plaintext, dcb_plaintext_size);
+
+        soup_message_headers_append (response_headers, "Content-Encoding", "dcb");
+        soup_message_headers_append (response_headers, "Content-Type", "text/plain");
+        soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+
+        state = g_new0 (DcbChunkedState, 1);
+        state->msg = msg;
+        state->framed = make_dcb_frame (dcb_dictionary, dcb_dictionary_size, compressed);
+        g_bytes_unref (compressed);
+
+        soup_message_headers_set_encoding (response_headers, SOUP_ENCODING_CHUNKED);
+        soup_server_message_pause (msg);
+        source = g_timeout_source_new (DCB_CHUNK_DELAY_MS);
+        g_source_set_callback (source, dcb_chunked_send_next, state, NULL);
+        g_source_attach (source, g_main_context_get_thread_default ());
+        g_source_unref (source);
+        g_signal_connect (msg, "finished", G_CALLBACK (dcb_chunked_free_state), state);
+}
+
 static void
 dcb_bad_hash_server_callback (SoupServer        *server,
                                SoupServerMessage *msg,
@@ -1098,6 +1182,12 @@ do_coding_test_dcb_async_stream_http2 (gconstpointer test_data)
 }
 
 static void
+do_coding_test_dcb_async_stream_chunked (gconstpointer test_data)
+{
+        do_coding_test_dict_async_stream (base_uri, "/dcb-chunked");
+}
+
+static void
 do_coding_test_dcb_async_stream_large_http2 (gconstpointer test_data)
 {
         if (!tls_available) {
@@ -1128,6 +1218,7 @@ main (int argc, char **argv)
 #if WITH_BROTLI_ENC
 	soup_server_add_handler (server, "/dcb", dcb_server_callback, NULL, NULL);
 	soup_server_add_handler (server, "/dcb-large", dcb_server_callback, NULL, NULL);
+	soup_server_add_handler (server, "/dcb-chunked", dcb_chunked_server_callback, NULL, NULL);
 	soup_server_add_handler (server, "/dcb-bad-hash", dcb_bad_hash_server_callback, NULL, NULL);
 #endif
 #if WITH_ZSTD_ENC
@@ -1196,6 +1287,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/coding/message/dcb/async-stream", NULL, do_coding_test_dcb_async_stream);
 	g_test_add_data_func ("/coding/message/dcb/async-stream-http2", NULL, do_coding_test_dcb_async_stream_http2);
 	g_test_add_data_func ("/coding/message/dcb/async-stream-large-http2", NULL, do_coding_test_dcb_async_stream_large_http2);
+	g_test_add_data_func ("/coding/message/dcb/async-stream-chunked", NULL, do_coding_test_dcb_async_stream_chunked);
 	g_test_add_data_func ("/coding/message/dcb/hash-mismatch", NULL, do_coding_test_dcb_hash_mismatch);
 	g_test_add_data_func ("/coding/message/dcb/accept-encoding-http-only",
 	                      NULL, do_coding_test_dcb_accept_encoding);
