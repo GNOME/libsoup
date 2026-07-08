@@ -131,6 +131,11 @@ soup_brotli_decompressor_convert (GConverter      *converter,
 		if (available_in == 0) {
 			*bytes_read = inbuf_size;
 			*bytes_written = 0;
+			if (inbuf_size == 0) {
+				g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT,
+						     "SoupBrotliDecompressorError: More input required for dictionary header");
+				return G_CONVERTER_ERROR;
+			}
 			return G_CONVERTER_CONVERTED;
 		}
 	}
