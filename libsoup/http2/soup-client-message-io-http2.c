@@ -736,6 +736,31 @@ memory_stream_read_data (SoupBodyInputStreamHttp2 *stream,
         io_try_write (data->io, !data->item->async);
 }
 
+static void
+soup_http2_message_data_consume_buffered_body (SoupHTTP2MessageData *data)
+{
+        gsize buffered;
+        gssize skipped;
+        GError *error = NULL;
+
+        if (!data->body_istream)
+                return;
+
+        buffered = soup_body_input_stream_http2_get_buffer_size (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream));
+        if (!buffered)
+                return;
+
+        skipped = g_input_stream_skip (data->body_istream, buffered, NULL, &error);
+        if (skipped < 0) {
+                h2_debug (data->io, data, "[BODY_STREAM] Failed to consume %" G_GSIZE_FORMAT " buffered bytes before cancel: %s",
+                          buffered, error->message);
+                g_clear_error (&error);
+                return;
+        }
+
+        h2_debug (data->io, data, "[BODY_STREAM] Consumed %zd/%" G_GSIZE_FORMAT " buffered bytes before cancel", skipped, buffered);
+}
+
 static int
 on_begin_frame_callback (nghttp2_session        *session,
                          const nghttp2_frame_hd *hd,
@@ -1669,6 +1694,9 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 
         h2_debug (io, data, "Finished stream %u: %s", data->stream_id, completion == SOUP_MESSAGE_IO_COMPLETE ? "completed" : "interrupted");
 
+        if (completion == SOUP_MESSAGE_IO_INTERRUPTED)
+                soup_http2_message_data_consume_buffered_body (data);
+
 	completion_cb = data->completion_cb;
 	completion_data = data->completion_data;
 
@@ -1951,7 +1979,8 @@ soup_client_message_io_http2_skip (SoupClientMessageIO *iface,
                 return TRUE;
 
         h2_debug (io, data, "Skip");
-        NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id, NGHTTP2_STREAM_CLOSED));
+        soup_http2_message_data_consume_buffered_body (data);
+        NGCHECK (nghttp2_submit_rst_stream (io->session, NGHTTP2_FLAG_NONE, data->stream_id, NGHTTP2_CANCEL));
         io_try_write (io, blocking);
         return TRUE;
 }
