@@ -718,6 +718,66 @@ flow_control_message_network_event (SoupMessage        *msg,
 }
 
 static void
+do_flow_control_close_buffered_body_test (Test *test, gconstpointer data)
+{
+        GUri *closed_uri;
+        GUri *followup_uri;
+        SoupMessage *closed_msg;
+        SoupMessage *followup_msg;
+        SoupConnection *connection;
+        GInputStream *response_stream = NULL;
+        GInputStream *followup_stream = NULL;
+        GBytes *response;
+        GError *error = NULL;
+        WindowSize window_size = { -1, REALLY_LARGE_BUFFER_SIZE };
+
+        soup_session_set_timeout (test->session, 2);
+
+        closed_uri = g_uri_parse_relative (base_uri, "/larger-than-window", SOUP_HTTP_URI_FLAGS, NULL);
+        closed_msg = soup_message_new_from_uri (SOUP_METHOD_GET, closed_uri);
+        g_signal_connect (closed_msg, "network-event",
+                          G_CALLBACK (flow_control_message_network_event),
+                          &window_size);
+        soup_session_send_async (test->session, closed_msg, G_PRIORITY_DEFAULT, NULL,
+                                 on_send_for_buffer_test, &response_stream);
+        while (!response_stream)
+                g_main_context_iteration (g_main_context_default (), TRUE);
+        connection = soup_message_get_connection (closed_msg);
+        g_assert_nonnull (connection);
+        g_object_ref (connection);
+
+        /* Exhaust the connection window so the next response needs the
+         * canceled stream's WINDOW_UPDATE before it can deliver any body data. */
+        while (soup_body_input_stream_http2_get_buffer_size (get_body_stream_from_response (response_stream)) < soup_connection_get_http2_initial_window_size (connection))
+                g_main_context_iteration (g_main_context_default (), TRUE);
+
+        g_assert_true (g_input_stream_close (response_stream, NULL, &error));
+        g_assert_no_error (error);
+        g_object_unref (response_stream);
+        while (!soup_connection_is_idle_open (connection))
+                g_main_context_iteration (g_main_context_default (), TRUE);
+
+        followup_uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
+        followup_msg = soup_message_new_from_uri (SOUP_METHOD_GET, followup_uri);
+        soup_session_send_async (test->session, followup_msg, G_PRIORITY_DEFAULT, NULL,
+                                 on_send_for_buffer_test, &followup_stream);
+        while (!followup_stream)
+                g_main_context_iteration (g_main_context_default (), TRUE);
+
+        g_assert_true (connection == soup_message_get_connection (followup_msg));
+        response = read_stream_to_bytes_sync (followup_stream);
+        g_assert_cmpuint (g_bytes_get_size (response), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
+
+        g_object_unref (followup_stream);
+        g_bytes_unref (response);
+        g_object_unref (connection);
+        g_object_unref (followup_msg);
+        g_object_unref (closed_msg);
+        g_uri_unref (followup_uri);
+        g_uri_unref (closed_uri);
+}
+
+static void
 do_flow_control_large_test (Test *test, gconstpointer data)
 {
         gboolean async = GPOINTER_TO_INT (data);
@@ -1717,6 +1777,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/flow-control/buffer-size", Test, NULL,
                     setup_session,
                     do_flow_control_buffer_sizes,
+                    teardown_session);
+        g_test_add ("/http2/flow-control/close-buffered-body", Test, NULL,
+                    setup_session,
+                    do_flow_control_close_buffered_body_test,
                     teardown_session);
         g_test_add ("/http2/connections", Test, NULL,
                     setup_session,
