@@ -1082,6 +1082,13 @@ process_frame (SoupWebsocketConnection *self)
                 return FALSE;
         }
 
+	/* RFC 6455 section 5.5 limits control frame payloads to 125 bytes. */
+	if (control && (header[1] & 0x7f) > 125) {
+		g_debug ("received oversized control frame");
+		protocol_error_and_close (self);
+		return FALSE;
+	}
+
 	switch (header[1] & 0x7f) {
 	case 126:
 		/* If 126, the following 2 bytes interpreted as a 16-bit
