@@ -70,4 +70,5 @@ SOUP_AVAILABLE_IN_ALL
 void             soup_message_body_wrote_chunk   (SoupMessageBody *body,
 						  GBytes          *chunk);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupMessageBody, soup_message_body_unref)
 G_END_DECLS
