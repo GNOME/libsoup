@@ -49,16 +49,19 @@ main (int argc, char **argv)
 				      &error);
 	if (listen_socket == NULL) {
 		g_printerr ("Unable to create unix socket: %s\n", error->message);
+		g_error_free (error);
 		return 1;
 	}
 	listen_address = g_unix_socket_address_new (SOCKET_PATH);
 	if (!g_socket_bind (listen_socket, listen_address, TRUE, &error)) {
 		g_printerr ("Unable to bind unix socket to %s: %s\n", SOCKET_PATH, error->message);
+		g_error_free (error);
 		return 1;
 	}
 	g_object_unref (listen_address);
 	if (!g_socket_listen (listen_socket, &error)) {
 		g_printerr ("Unable to listen on unix socket: %s\n", error->message);
+		g_error_free (error);
 		return 1;
 	}
 	server = soup_server_new ("server-header", "unix-socket-server", NULL);
@@ -66,6 +69,7 @@ main (int argc, char **argv)
 
 	if (!soup_server_listen_socket (server, listen_socket, 0, &error)) {
 		g_printerr ("Unable to listen on unix socket: %s\n", error->message);
+		g_error_free (error);
 		return 1;
 	}
 	g_object_unref (listen_socket);

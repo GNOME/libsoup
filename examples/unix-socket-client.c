@@ -28,6 +28,7 @@ main (int argc, char **argv)
 	body = soup_session_send_and_read (session, msg, NULL, &error);
 	if (body == NULL) {
 		g_printerr ("Failed to contact HTTP server: %s\n", error->message);
+		g_error_free (error);
 		return 1;
 	}
 	content_type = soup_message_headers_get_one (soup_message_get_response_headers (msg), "Content-Type");

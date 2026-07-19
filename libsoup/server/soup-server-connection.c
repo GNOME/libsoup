@@ -453,6 +453,8 @@ tls_connection_handshake_ready_cb (GTlsConnection       *tls_conn,
         } else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
                 soup_server_connection_disconnect (conn);
         }
+
+        g_clear_error (&error);
 }
 
 void
