@@ -600,8 +600,7 @@ test_send_big_packets (Test *test,
 	WAIT_UNTIL (received != NULL);
 	g_assert_true (g_bytes_equal (sent, received));
 	g_bytes_unref (sent);
-	g_bytes_unref (received);
-	received = NULL;
+	g_clear_pointer (&received, g_bytes_unref);
 
 	soup_websocket_connection_set_max_incoming_payload_size (test->client, 1000 * 1000 + 1);
 	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->client), ==, 1000 * 1000 + 1);
@@ -617,8 +616,7 @@ test_send_big_packets (Test *test,
 	soup_websocket_connection_send_text (test->server, g_bytes_get_data (sent, NULL));
 	WAIT_UNTIL (received != NULL);
 	g_assert_true (g_bytes_equal (sent, received));
-	g_bytes_unref (received);
-	received = NULL;
+	g_clear_pointer (&received, g_bytes_unref);
 
 	/* Reverse the test and send the big message to the server. */
 	g_signal_handler_disconnect (test->client, signal_id);
@@ -789,8 +787,7 @@ test_send_empty_packets (Test *test,
 	g_assert_nonnull (g_bytes_get_data (received, NULL));
 	g_assert_cmpuint (((char *) g_bytes_get_data (received, NULL))[0], ==, '\0');
 	g_assert_cmpuint (g_bytes_get_size (received), ==, 0);
-	g_bytes_unref (received);
-	received = NULL;
+	g_clear_pointer (&received, g_bytes_unref);
 	g_signal_handler_disconnect (test->client, id);
 
 	id = g_signal_connect (test->client, "message", G_CALLBACK (on_binary_message), &received);
@@ -801,8 +798,7 @@ test_send_empty_packets (Test *test,
 	g_assert_nonnull (g_bytes_get_data (received, NULL));
 	g_assert_cmpuint (((char *) g_bytes_get_data (received, NULL))[0], ==, '\0');
 	g_assert_cmpuint (g_bytes_get_size (received), ==, 0);
-	g_bytes_unref (received);
-	received = NULL;
+	g_clear_pointer (&received, g_bytes_unref);
 	g_signal_handler_disconnect (test->client, id);
 }
 
@@ -2094,8 +2090,7 @@ test_deflate_negotiate_direct (Test *test,
 			g_assert_nonnull (accepted_extensions);
 			g_assert_cmpuint (g_list_length (accepted_extensions), ==, 1);
 			g_assert_true (SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE (accepted_extensions->data));
-			g_list_free_full (accepted_extensions, g_object_unref);
-			accepted_extensions = NULL;
+			g_clear_list (&accepted_extensions, g_object_unref);
 		} else {
 			g_assert_null (accepted_extensions);
 		}
@@ -2112,8 +2107,7 @@ test_deflate_negotiate_direct (Test *test,
 			g_assert_nonnull (accepted_extensions);
                         g_assert_cmpuint (g_list_length (accepted_extensions), ==, 1);
                         g_assert_true (SOUP_IS_WEBSOCKET_EXTENSION_DEFLATE (accepted_extensions->data));
-                        g_list_free_full (accepted_extensions, g_object_unref);
-                        accepted_extensions = NULL;
+                        g_clear_list (&accepted_extensions, g_object_unref);
                 } else {
                         g_assert_null (accepted_extensions);
                 }

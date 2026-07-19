@@ -432,7 +432,7 @@ static gboolean
 idle_start_server (gpointer data)
 {
 	g_mutex_unlock (&server_mutex);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static gboolean
@@ -440,7 +440,7 @@ quit_loop (gpointer data)
 {
 	quit_loop_timeout = 0;
 	g_main_loop_quit (max_conns_loop);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -524,10 +524,7 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	g_object_unref (cancellable);
 	g_main_loop_unref (max_conns_loop);
-	if (quit_loop_timeout) {
-		g_source_remove (quit_loop_timeout);
-		quit_loop_timeout = 0;
-	}
+	g_clear_handle_id (&quit_loop_timeout, g_source_remove);
 
 	for (i = 0; i < TEST_CONNS; i++)
 		g_object_unref (msgs[i]);
@@ -1250,8 +1247,7 @@ do_idle_connection_preconnect_test (const char *uri,
                 data.events++;
         }
 
-        conn = data.conn;
-        data.conn = NULL;
+        conn = g_steal_pointer (&data.conn);
         msg = soup_message_new ("GET", uri);
         bytes = soup_session_send_and_read (session, msg, NULL, NULL);
         soup_test_assert_message_status (msg, SOUP_STATUS_OK);

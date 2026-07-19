@@ -471,8 +471,7 @@ test_multipart (gconstpointer data)
 	g_assert_cmpint (sniffed_count, ==, sniffed_expected);
 
 	g_object_unref (msg);
-	g_main_loop_unref (loop);
-	loop = NULL;
+	g_clear_pointer (&loop, g_main_loop_unref);
 }
 
 static void

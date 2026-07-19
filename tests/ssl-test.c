@@ -258,7 +258,7 @@ set_certificate_idle_cb (SetCertificateAsyncData *data)
 {
         soup_message_set_tls_client_certificate (data->msg, data->certificate);
 
-        return FALSE;
+        return G_SOURCE_REMOVE;
 }
 
 static gboolean
@@ -285,7 +285,7 @@ set_certificate_password_idle_cb (SetCertificateAsyncData *data)
         g_tls_password_set_value (data->tls_password, data->password, -1);
         soup_message_tls_client_certificate_password_request_complete (data->msg);
 
-        return FALSE;
+        return G_SOURCE_REMOVE;
 }
 
 static gboolean

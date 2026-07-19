@@ -122,7 +122,7 @@ idle_start_test1_thread (gpointer user_data)
 
 	g_mutex_unlock (&test1_mutex);
 	g_main_loop_quit (test1_loop);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -204,7 +204,7 @@ static gboolean
 idle_test2_fail (gpointer user_data)
 {
 	soup_test_assert (FALSE, "idle ran");
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void

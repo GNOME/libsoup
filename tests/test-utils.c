@@ -739,7 +739,7 @@ static gboolean
 cancel_request_timeout (GCancellable *cancellable)
 {
 	g_cancellable_cancel (cancellable);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 GInputStream *

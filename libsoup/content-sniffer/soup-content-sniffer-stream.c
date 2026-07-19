@@ -185,8 +185,7 @@ read_internal (GInputStream  *stream,
 		if (buffer)
 			memcpy (buffer, priv->buffer, nread);
 		if (nread == priv->buffer_nread) {
-			g_free (priv->buffer);
-			priv->buffer = NULL;
+			g_clear_pointer (&priv->buffer, g_free);
 		} else {
 			/* FIXME, inefficient */
 			memmove (priv->buffer,
@@ -234,8 +233,7 @@ soup_content_sniffer_stream_skip (GInputStream  *stream,
 	if (priv->buffer) {
 		nskipped = MIN (count, priv->buffer_nread);
 		if (nskipped == priv->buffer_nread) {
-			g_free (priv->buffer);
-			priv->buffer = NULL;
+			g_clear_pointer (&priv->buffer, g_free);
 		} else {
 			/* FIXME */
 			memmove (priv->buffer,

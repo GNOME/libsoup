@@ -24,8 +24,7 @@ soup_message_io_data_cleanup (SoupMessageIOData *io)
 {
 	if (io->io_source) {
 		g_source_destroy (io->io_source);
-		g_source_unref (io->io_source);
-		io->io_source = NULL;
+		g_clear_pointer (&io->io_source, g_source_unref);
 	}
 
 	if (io->body_istream)
@@ -187,8 +186,7 @@ soup_message_io_data_pause (SoupMessageIOData *io)
 {
 	if (io->io_source) {
 		g_source_destroy (io->io_source);
-		g_source_unref (io->io_source);
-		io->io_source = NULL;
+		g_clear_pointer (&io->io_source, g_source_unref);
 	}
 
 	io->paused = TRUE;

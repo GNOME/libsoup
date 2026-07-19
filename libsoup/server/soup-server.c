@@ -1187,10 +1187,8 @@ soup_server_disconnect (SoupServer *server)
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = soup_server_get_instance_private (server);
 
-	clients = priv->clients;
-	priv->clients = NULL;
-	listeners = priv->listeners;
-	priv->listeners = NULL;
+	clients = g_steal_pointer (&priv->clients);
+	listeners = g_steal_pointer (&priv->listeners);
 
 	for (iter = clients; iter; iter = iter->next) {
 		SoupServerConnection *conn = iter->data;
@@ -1823,10 +1821,8 @@ soup_server_add_websocket_handler (SoupServer                   *server,
 	handler = get_or_create_handler (server, path);
 	if (handler->websocket_destroy)
 		handler->websocket_destroy (handler->websocket_user_data);
-	if (handler->websocket_origin)
-		g_free (handler->websocket_origin);
-	if (handler->websocket_protocols)
-		g_strfreev (handler->websocket_protocols);
+	g_free (handler->websocket_origin);
+	g_strfreev (handler->websocket_protocols);
 	g_list_free_full (handler->websocket_extensions, g_object_unref);
 
 	handler->websocket_callback   = callback;

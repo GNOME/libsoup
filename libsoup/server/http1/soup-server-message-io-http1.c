@@ -79,8 +79,7 @@ soup_message_io_http1_free (SoupMessageIOHTTP1 *msg_io)
 
         if (msg_io->unpause_source) {
                 g_source_destroy (msg_io->unpause_source);
-                g_source_unref (msg_io->unpause_source);
-                msg_io->unpause_source = NULL;
+                g_clear_pointer (&msg_io->unpause_source, g_source_unref);
         }
 
         g_clear_object (&msg_io->msg);
@@ -938,8 +937,7 @@ io_run (SoupServerMessageIOHTTP1 *server_io)
 
         if (io->io_source) {
                 g_source_destroy (io->io_source);
-                g_source_unref (io->io_source);
-                io->io_source = NULL;
+                g_clear_pointer (&io->io_source, g_source_unref);
         }
 
         g_object_ref (msg);

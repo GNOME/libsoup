@@ -16,7 +16,7 @@ timeout_cb (gpointer user_data)
 	gboolean *timeout = user_data;
 
 	*timeout = TRUE;
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void

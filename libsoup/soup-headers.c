@@ -797,8 +797,7 @@ parse_param_list (const char *header, char delim, gboolean strict)
 		duplicated = g_hash_table_lookup_extended (params, item, NULL, NULL);
 
 		if (strict && duplicated) {
-			soup_header_free_param_list (params);
-			params = NULL;
+			g_clear_pointer (&params, soup_header_free_param_list);
 			g_slist_foreach (iter, (GFunc)g_free, NULL);
 			if (parsed_value)
 				g_string_free (parsed_value, TRUE);

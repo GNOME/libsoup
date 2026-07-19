@@ -188,7 +188,7 @@ static gboolean
 cu_idle_quit (gpointer loop)
 {
 	g_main_loop_quit (loop);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -414,7 +414,7 @@ static gboolean
 ea_abort_session (gpointer session)
 {
 	soup_session_abort (session);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -545,7 +545,7 @@ static gboolean
 cancel_message_timeout (GCancellable *cancellable)
 {
 	g_cancellable_cancel (cancellable);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void

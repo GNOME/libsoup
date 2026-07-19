@@ -203,8 +203,7 @@ try_exec:
 		if (try_create) {
 			try_create = FALSE;
 			try_create_table (db);
-			sqlite3_free (error);
-			error = NULL;
+			g_clear_pointer (&error, sqlite3_free);
 			goto try_exec;
 		} else {
 			g_warning ("Failed to execute query: %s", error);
@@ -222,8 +221,7 @@ open_db (SoupHSTSEnforcer *hsts_enforcer)
 	char *error = NULL;
 
 	if (sqlite3_open (priv->filename, &priv->db)) {
-		sqlite3_close (priv->db);
-		priv->db = NULL;
+		g_clear_pointer (&priv->db, sqlite3_close);
 		g_warning ("Can't open %s", priv->filename);
 		return TRUE;
 	}

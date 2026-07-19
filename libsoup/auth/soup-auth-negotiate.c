@@ -219,8 +219,7 @@ soup_auth_negotiate_get_connection_authorization (SoupConnectionAuth *auth,
 	}
 
 	if (conn->response_header) {
-		header = conn->response_header;
-		conn->response_header = NULL;
+		header = g_steal_pointer (&conn->response_header);
 		conn->state = SOUP_NEGOTIATE_SENT_RESPONSE;
 	}
 
@@ -624,8 +623,7 @@ soup_gss_client_step (SoupNegotiateConnectionState *conn, const gchar *challenge
 out:
 	if (out.value)
 		gss_release_buffer (&min_stat, &out);
-	if (in.value)
-		g_free (in.value);
+	g_free (in.value);
 	return ret;
 }
 

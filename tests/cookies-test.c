@@ -725,6 +725,7 @@ do_cookies_threads_test (void)
                 data->cookie = values[i];
 
                 task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_source_tag (task, do_cookies_threads_test);
                 g_task_set_task_data (task, data, g_free);
                 g_task_run_in_thread (task, (GTaskThreadFunc)task_sync_function);
                 g_object_unref (task);

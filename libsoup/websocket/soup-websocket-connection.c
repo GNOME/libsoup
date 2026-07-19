@@ -335,8 +335,7 @@ soup_websocket_connection_stop_input_source (SoupWebsocketConnection *self)
 	if (priv->input_source) {
 		g_debug ("stopping input source");
 		g_source_destroy (priv->input_source);
-		g_source_unref (priv->input_source);
-		priv->input_source = NULL;
+		g_clear_pointer (&priv->input_source, g_source_unref);
 	}
 }
 
@@ -362,8 +361,7 @@ soup_websocket_connection_stop_output_source (SoupWebsocketConnection *self)
 	if (priv->output_source) {
 		g_debug ("stopping output source");
 		g_source_destroy (priv->output_source);
-		g_source_unref (priv->output_source);
-		priv->output_source = NULL;
+		g_clear_pointer (&priv->output_source, g_source_unref);
 	}
 }
 
@@ -374,8 +372,7 @@ keepalive_stop_timeout (SoupWebsocketConnection *self)
 
 	if (priv->keepalive_timeout) {
 		g_source_destroy (priv->keepalive_timeout);
-		g_source_unref (priv->keepalive_timeout);
-		priv->keepalive_timeout = NULL;
+		g_clear_pointer (&priv->keepalive_timeout, g_source_unref);
 	}
 }
 
@@ -394,8 +391,7 @@ close_io_stop_timeout (SoupWebsocketConnection *self)
 
 	if (priv->close_timeout) {
 		g_source_destroy (priv->close_timeout);
-		g_source_unref (priv->close_timeout);
-		priv->close_timeout = NULL;
+		g_clear_pointer (&priv->close_timeout, g_source_unref);
 	}
 }
 
@@ -800,8 +796,7 @@ receive_close (SoupWebsocketConnection *self,
 	SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 
 	priv->peer_close_code = 0;
-	g_free (priv->peer_close_data);
-	priv->peer_close_data = NULL;
+	g_clear_pointer (&priv->peer_close_data, g_free);
 	priv->close_received = TRUE;
 
 	switch (len) {
@@ -1016,8 +1011,7 @@ process_contents (SoupWebsocketConnection *self,
 				g_debug ("received invalid non-UTF8 text data");
 
 				/* Discard the entire message */
-				g_byte_array_unref (priv->message_data);
-				priv->message_data = NULL;
+				g_clear_pointer (&priv->message_data, g_byte_array_unref);
 				priv->message_opcode = 0;
 
 				bad_data_error_and_close (self);
@@ -1518,6 +1512,9 @@ soup_websocket_connection_set_property (GObject *object,
 
 	case PROP_MAX_TOTAL_MESSAGE_SIZE:
 		priv->max_total_message_size = g_value_get_uint64 (value);
+		break;
+	case PROP_STATE:
+		g_assert_not_reached ();
 		break;
 
 	default:

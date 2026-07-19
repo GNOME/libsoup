@@ -257,8 +257,7 @@ soup_http2_message_data_destroy_check_status_idle_source (SoupHTTP2MessageData *
                 return;
 
         g_source_destroy (data->check_status_idle_source);
-        g_source_unref (data->check_status_idle_source);
-        data->check_status_idle_source = NULL;
+        g_clear_pointer (&data->check_status_idle_source, g_source_unref);
 }
 
 static void
@@ -1978,8 +1977,7 @@ soup_client_message_io_http2_set_owner (SoupClientMessageIOHTTP2 *io,
         g_assert (!io->write_idle_source);
         if (io->read_source) {
                 g_source_destroy (io->read_source);
-                g_source_unref (io->read_source);
-                io->read_source = NULL;
+                g_clear_pointer (&io->read_source, g_source_unref);
         }
 
         io->async = g_main_context_is_owner (g_main_context_get_thread_default ());

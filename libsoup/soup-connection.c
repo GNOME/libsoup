@@ -146,8 +146,7 @@ soup_connection_dispose (GObject *object)
 
         if (priv->idle_timeout_src) {
                 g_source_destroy (priv->idle_timeout_src);
-                g_source_unref (priv->idle_timeout_src);
-                priv->idle_timeout_src = NULL;
+                g_clear_pointer (&priv->idle_timeout_src, g_source_unref);
         }
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
@@ -182,6 +181,14 @@ soup_connection_set_property (GObject *object, guint prop_id,
                 g_source_set_callback (priv->idle_timeout_src, idle_timeout, object, NULL);
                 g_source_attach (priv->idle_timeout_src, g_value_get_pointer (value));
                 break;
+	case PROP_REMOTE_ADDRESS:
+	case PROP_STATE:
+	case PROP_TLS_CERTIFICATE:
+	case PROP_TLS_CERTIFICATE_ERRORS:
+	case PROP_TLS_PROTOCOL_VERSION:
+	case PROP_TLS_CIPHERSUITE_NAME:
+		g_assert_not_reached ();
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -227,6 +234,9 @@ soup_connection_get_property (GObject *object, guint prop_id,
                 break;
 	case PROP_FORCE_HTTP_VERSION:
 		g_value_set_uchar (value, priv->force_http_version);
+		break;
+	case PROP_CONTEXT:
+		g_assert_not_reached ();
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1015,8 +1025,7 @@ soup_connection_disconnected (SoupConnection *conn)
         if (priv->connection) {
                 GIOStream *connection;
 
-                connection = priv->connection;
-                priv->connection = NULL;
+                connection = g_steal_pointer (&priv->connection);
 
                 g_io_stream_close (connection, NULL, NULL);
                 g_signal_handlers_disconnect_by_data (connection, conn);
@@ -1052,10 +1061,7 @@ soup_connection_disconnect (SoupConnection *conn)
 
         soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
 
-        if (priv->cancellable) {
-                g_cancellable_cancel (priv->cancellable);
-                priv->cancellable = NULL;
-        }
+        g_clear_pointer (&priv->cancellable, g_cancellable_cancel);
 
         if (priv->io_data &&
             soup_client_message_io_close_async (priv->io_data, conn, (GAsyncReadyCallback)client_message_io_closed_cb))
@@ -1104,8 +1110,7 @@ soup_connection_steal_iostream (SoupConnection *conn)
         g_socket_set_timeout (socket, 0);
 
         priv = soup_connection_get_instance_private (conn);
-        iostream = priv->iostream;
-        priv->iostream = NULL;
+        iostream = g_steal_pointer (&priv->iostream);
 
         g_object_set_data_full (G_OBJECT (iostream), "GSocket",
                                 g_object_ref (socket), g_object_unref);

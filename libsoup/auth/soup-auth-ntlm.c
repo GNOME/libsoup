@@ -444,10 +444,8 @@ soup_auth_ntlm_authenticate (SoupAuth *auth, const char *username,
 	g_return_if_fail (username != NULL);
 	g_return_if_fail (password != NULL);
 
-	if (priv->username)
-		g_free (priv->username);
-	if (priv->domain)
-		g_free (priv->domain);
+	g_free (priv->username);
+	g_free (priv->domain);
 
 	slash = strpbrk (username, "\\/");
 	if (slash) {
@@ -529,8 +527,7 @@ soup_auth_ntlm_get_connection_authorization (SoupConnectionAuth *auth,
 					conn->state = SOUP_NTLM_SENT_REQUEST;
 					break;
 				} else {
-					g_free (header);
-					header = NULL;
+					g_clear_pointer (&header, g_free);
 					priv->sso_available = FALSE;
 				}
 			} else {
@@ -546,8 +543,7 @@ soup_auth_ntlm_get_connection_authorization (SoupConnectionAuth *auth,
 		break;
 	case SOUP_NTLM_RECEIVED_CHALLENGE:
 		if (conn->response_header) {
-			header = conn->response_header;
-			conn->response_header = NULL;
+			header = g_steal_pointer (&conn->response_header);
 		} else {
 			header = soup_ntlm_response (conn->nonce,
 						     priv->username,

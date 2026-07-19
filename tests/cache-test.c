@@ -536,7 +536,7 @@ static gboolean
 unref_stream (gpointer stream)
 {
 	g_object_unref (stream);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -999,6 +999,7 @@ do_threads_test (gconstpointer data)
                 requests[i].error = NULL;
 
                 task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_source_tag (task, do_threads_test);
                 g_task_set_task_data (task, &requests[i], NULL);
                 g_task_run_in_thread (task, (GTaskThreadFunc)task_async_function);
                 g_object_unref (task);
@@ -1023,6 +1024,7 @@ do_threads_test (gconstpointer data)
                 requests[i].error = NULL;
 
                 task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_source_tag (task, do_threads_test);
                 g_task_set_task_data (task, &requests[i], NULL);
                 g_task_run_in_thread (task, (GTaskThreadFunc)task_async_function);
                 g_object_unref (task);
@@ -1056,6 +1058,7 @@ do_threads_test (gconstpointer data)
                 requests[i].error = NULL;
 
                 task = g_task_new (NULL, NULL, (GAsyncReadyCallback)task_finished_cb, &finished_count);
+                g_task_set_source_tag (task, do_threads_test);
                 g_task_set_task_data (task, &requests[i], NULL);
                 g_task_run_in_thread (task, (GTaskThreadFunc)task_async_function);
                 g_object_unref (task);

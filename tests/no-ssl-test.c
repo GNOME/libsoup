@@ -6,7 +6,7 @@ static void
 do_ssl_test_for_session (SoupSession *session, GUri *uri)
 {
 	SoupMessage *msg;
-	GError *error;
+	GError *error = NULL;
 
 	msg = soup_message_new_from_uri ("GET", uri);
 	g_assert_null (soup_session_send (session, msg, NULL, &error));

@@ -102,6 +102,11 @@ soup_auth_set_property (GObject *object, guint prop_id,
 	case PROP_IS_FOR_PROXY:
 		priv->proxy = g_value_get_boolean (value);
 		break;
+	case PROP_SCHEME_NAME:
+	case PROP_IS_AUTHENTICATED:
+	case PROP_IS_CANCELLED:
+		g_assert_not_reached ();
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -289,8 +294,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	priv->realm = g_strdup (g_hash_table_lookup (params, "realm"));
 
 	if (!SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params)) {
-		g_object_unref (auth);
-		auth = NULL;
+		g_clear_object (&auth);
 	}
 	soup_header_free_param_list (params);
 	return auth;

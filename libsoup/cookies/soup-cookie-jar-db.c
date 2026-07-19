@@ -454,8 +454,7 @@ try_exec:
 		if (try_create && ret == SQLITE_ERROR) {
 			try_create = FALSE;
 			try_create_table (db);
-			sqlite3_free (error);
-			error = NULL;
+			g_clear_pointer (&error, sqlite3_free);
 			goto try_exec;
 		} else {
 			g_warning ("Failed to execute query: %s", error);

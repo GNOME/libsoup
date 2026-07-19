@@ -509,8 +509,7 @@ soup_server_message_set_auth (SoupServerMessage *msg,
                 g_object_unref (msg->auth_domain);
         msg->auth_domain = domain;
 
-        if (msg->auth_user)
-                g_free (msg->auth_user);
+        g_free (msg->auth_user);
         msg->auth_user = user;
 }
 

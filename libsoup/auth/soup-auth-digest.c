@@ -181,10 +181,8 @@ soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
                 if (stale && !g_ascii_strcasecmp (stale, "TRUE") && *priv->hex_urp)
                         recompute_hex_a1 (priv);
                 else {
-                        g_free (priv->user);
-                        priv->user = NULL;
-                        g_free (priv->cnonce);
-                        priv->cnonce = NULL;
+                        g_clear_pointer (&priv->user, g_free);
+                        g_clear_pointer (&priv->cnonce, g_free);
                         memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
                         memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
                 }

@@ -408,8 +408,7 @@ socket_props_changed (SoupSession *session)
 	if (!priv->socket_props)
 		return;
 
-	soup_socket_properties_unref (priv->socket_props);
-	priv->socket_props = NULL;
+	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 	soup_session_ensure_socket_props (session);
 }
 
@@ -881,8 +880,7 @@ soup_session_set_user_agent (SoupSession *session,
 		return;
 
 	if (user_agent == NULL) {
-		g_free (priv->user_agent);
-		priv->user_agent = NULL;
+		g_clear_pointer (&priv->user_agent, g_free);
 	} else if (!*user_agent) {
 		if (g_strcmp0 (priv->user_agent, SOUP_SESSION_USER_AGENT_BASE) == 0)
 			return;
@@ -2739,8 +2737,7 @@ async_send_request_return_result (SoupMessageQueueItem *item,
 	g_signal_handlers_disconnect_matched (item->msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, item);
 
-	task = item->task;
-	item->task = NULL;
+	task = g_steal_pointer (&item->task);
 
         /* This cancellable was set for the send operation that is done now */
         g_object_unref (item->cancellable);
@@ -3322,8 +3319,7 @@ soup_session_send (SoupSession   *session,
 			stream = NULL;
 			break;
 		}
-		g_object_unref (stream);
-		stream = NULL;
+		g_clear_object (&stream);
 
 		/* If the message was requeued, loop */
 		if (item->state == SOUP_MESSAGE_RESTARTING) {

@@ -228,8 +228,7 @@ parse_one_cookie (const char *header, GUri *origin)
 			g_free (cookie->domain);
 			cookie->domain = g_steal_pointer (&new_domain);
 			if (!*cookie->domain) {
-				g_free (cookie->domain);
-				cookie->domain = NULL;
+				g_clear_pointer (&cookie->domain, g_free);
 			}
 		} else if (MATCH_NAME ("expires") && has_value) {
 			g_clear_pointer (&cookie->expires, g_date_time_unref);
@@ -262,8 +261,7 @@ parse_one_cookie (const char *header, GUri *origin)
 			g_free (cookie->path);
 			cookie->path = g_steal_pointer (&new_path);
 			if (*cookie->path != '/') {
-				g_free (cookie->path);
-				cookie->path = NULL;
+				g_clear_pointer (&cookie->path, g_free);
 			}
 		} else if (MATCH_NAME ("secure")) {
 			cookie->secure = TRUE;

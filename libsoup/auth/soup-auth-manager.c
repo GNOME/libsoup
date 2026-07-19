@@ -603,8 +603,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 
 		new_auth = record_auth_for_uri (priv, soup_message_get_uri_for_auth (msg),
 						auth, prior_auth_failed);
-		g_object_unref (auth);
-		auth = g_object_ref (new_auth);
+		g_set_object (&auth, new_auth);
 	}
 
         g_mutex_unlock (&priv->mutex);

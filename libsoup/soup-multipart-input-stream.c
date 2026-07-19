@@ -93,8 +93,7 @@ soup_multipart_input_stream_finalize (GObject *object)
 
 	g_free (priv->boundary);
 
-	if (priv->meta_buf)
-		g_clear_pointer (&priv->meta_buf, g_byte_array_unref);
+	g_clear_pointer (&priv->meta_buf, g_byte_array_unref);
 
 	G_OBJECT_CLASS (soup_multipart_input_stream_parent_class)->finalize (object);
 }

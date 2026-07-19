@@ -165,6 +165,10 @@ soup_server_connection_set_property (GObject      *object,
         case PROP_TLS_AUTH_MODE:
                 priv->tls_auth_mode = g_value_get_enum (value);
                 break;
+        case PROP_TLS_PEER_CERTIFICATE:
+        case PROP_TLS_PEER_CERTIFICATE_ERRORS:
+                g_assert_not_reached ();
+                break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
                 break;

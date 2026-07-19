@@ -436,8 +436,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, GUri *uri,
 		g_slist_free (cookies);
 
 		if (!*result) {
-			g_free (result);
-			result = NULL;
+			g_clear_pointer (&result, g_free);
 		}
 		return result;
 	} else

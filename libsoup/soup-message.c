@@ -249,6 +249,18 @@ soup_message_set_property (GObject *object, guint prop_id,
 	case PROP_IS_OPTIONS_PING:
                 soup_message_set_is_options_ping (msg, g_value_get_boolean (value));
 		break;
+	case PROP_HTTP_VERSION:
+	case PROP_STATUS_CODE:
+	case PROP_REASON_PHRASE:
+	case PROP_REQUEST_HEADERS:
+	case PROP_RESPONSE_HEADERS:
+	case PROP_TLS_PEER_CERTIFICATE:
+	case PROP_TLS_PEER_CERTIFICATE_ERRORS:
+	case PROP_TLS_PROTOCOL_VERSION:
+	case PROP_TLS_CIPHERSUITE_NAME:
+	case PROP_REMOTE_ADDRESS:
+                g_assert_not_reached ();
+                break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;

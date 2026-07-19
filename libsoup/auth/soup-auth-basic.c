@@ -62,8 +62,7 @@ soup_auth_basic_update (SoupAuth *auth, SoupMessage *msg,
 	 */
 	if (priv->token) {
 		memset (priv->token, 0, strlen (priv->token));
-		g_free (priv->token);
-		priv->token = NULL;
+		g_clear_pointer (&priv->token, g_free);
 	}
 
 	return TRUE;

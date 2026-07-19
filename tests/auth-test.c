@@ -760,7 +760,7 @@ static gboolean
 async_authenticate_cancel_idle (AsyncAuthCancelData *data)
 {
 	g_cancellable_cancel (data->cancellable);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static gboolean
@@ -1109,7 +1109,7 @@ auth_close_idle_authenticate (gpointer user_data)
 	soup_auth_authenticate (acd->auth, "user", "good-basic");
 
 	g_object_unref (acd->auth);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static gboolean
@@ -1172,7 +1172,7 @@ static gboolean
 infinite_cancel (gpointer session)
 {
 	soup_session_abort (session);
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 static gboolean

@@ -125,6 +125,9 @@ soup_body_input_stream_get_property (GObject *object, guint prop_id,
 	case PROP_ENCODING:
 		g_value_set_enum (value, priv->encoding);
 		break;
+	case PROP_CONTENT_LENGTH:
+		g_assert_not_reached ();
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;

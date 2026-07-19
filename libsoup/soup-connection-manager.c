@@ -154,8 +154,7 @@ soup_host_add_connection (SoupHost       *host,
 
         if (host->keep_alive_src) {
                 g_source_destroy (host->keep_alive_src);
-                g_source_unref (host->keep_alive_src);
-                host->keep_alive_src = NULL;
+                g_clear_pointer (&host->keep_alive_src, g_source_unref);
         }
 }
 
