@@ -37,4 +37,6 @@ void                  soup_socket_properties_set_proxy_resolver (SoupSocketPrope
 void                  soup_socket_properties_set_tls_database   (SoupSocketProperties *props,
 								 GTlsDatabase         *tlsdb);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (SoupSocketProperties, soup_socket_properties_unref)
+
 #endif /* __SOUP_SOCKET_PROPERTIES_H__ */
