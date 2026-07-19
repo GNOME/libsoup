@@ -1360,7 +1360,7 @@ static const guint32 Spbox[8][64] = {
 }
 /* Encrypt or decrypt a block of data in ECB mode */
 static void
-des (guint32 ks[16][2], unsigned char block[8])
+des (DES_KS ks, unsigned char block[8])
 {
 	guint32 left,right,work;
 	
