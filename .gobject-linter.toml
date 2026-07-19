@@ -1,0 +1,30 @@
+min_glib_version = "2.72"
+msvc_compatible = true
+
+[style]
+space_before_paren = true
+
+[rules.type_style]
+level = "ignore"
+
+[rules.include_order]
+level = "ignore"
+
+[rules.use_g_strcmp0]
+level = "ignore"
+
+[rules.g_param_spec_null_nick_blurb]
+level = "ignore"
+
+[rules.strcmp_explicit_comparison]
+level = "ignore"
+
+[rules.property_enum_convention]
+level = "ignore"
+
+[rules.g_error_leak]
+# Unfortunately too many false positives
+level = "ignore"
+
+[rules.g_source_id_not_stored]
+level = "ignore"

@@ -29,6 +29,7 @@ variables:
 
 stages:
   - prepare
+  - lint
   - build
   - coverage
   - docs
@@ -89,6 +90,19 @@ build-fedora-autobahn-image:
       python2.7 -m ensurepip;
       pip2.7 install --upgrade pip wheel;
       pip2.7 install virtualenv wsaccel==0.6.3 autobahntestsuite;
+
+gobject-linter:
+  stage: lint
+  allow_failure: true
+  image:
+    name: "ghcr.io/bilelmoussaoui/gobject-linter:latest"
+    entrypoint: [""]
+  script:
+    - gobject-linter --format gitlab-codequality > gobject-linter-codequality.json
+  artifacts:
+    expire_in: "1 week"
+    reports:
+      codequality: gobject-linter-codequality.json
 
 fedora-test:
   stage: build
