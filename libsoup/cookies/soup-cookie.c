@@ -611,21 +611,21 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  * For use with [ctor@Cookie.new] and [method@Cookie.set_max_age].
  **/
 /**
- * SOUP_COOKIE_MAX_AGE_ONE_DAY:
+ * SOUP_COOKIE_MAX_AGE_ONE_DAY: (value 86400):
  *
  * A constant corresponding to 1 day.
  *
  * For use with [ctor@Cookie.new] and [method@Cookie.set_max_age].
  **/
 /**
- * SOUP_COOKIE_MAX_AGE_ONE_WEEK:
+ * SOUP_COOKIE_MAX_AGE_ONE_WEEK: (value 604800):
  *
  * A constant corresponding to 1 week.
  *
  * For use with [ctor@Cookie.new] and [method@Cookie.set_max_age].
  **/
 /**
- * SOUP_COOKIE_MAX_AGE_ONE_YEAR:
+ * SOUP_COOKIE_MAX_AGE_ONE_YEAR: (value 31556926.08):
  *
  * A constant corresponding to 1 year.
  *
