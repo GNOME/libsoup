@@ -32,7 +32,7 @@ GType soup_cookie_get_type (void);
 #define SOUP_COOKIE_MAX_AGE_ONE_HOUR (60 * 60)
 #define SOUP_COOKIE_MAX_AGE_ONE_DAY  (SOUP_COOKIE_MAX_AGE_ONE_HOUR * 24)
 #define SOUP_COOKIE_MAX_AGE_ONE_WEEK (SOUP_COOKIE_MAX_AGE_ONE_DAY * 7)
-#define SOUP_COOKIE_MAX_AGE_ONE_YEAR (SOUP_COOKIE_MAX_AGE_ONE_DAY * 365.2422)
+#define SOUP_COOKIE_MAX_AGE_ONE_YEAR (gdouble) (SOUP_COOKIE_MAX_AGE_ONE_DAY * 365.2422)
 
 SOUP_AVAILABLE_IN_ALL
 SoupCookie *soup_cookie_new                     (const char  *name,
