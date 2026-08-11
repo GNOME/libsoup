@@ -201,9 +201,7 @@ env.set('MALLOC_CHECK_', '2')
 env.set('MALLOC_PERTURB_', '')
 env.set('LSAN_OPTIONS', 'suppressions=@0@/.gitlab-ci/leak_suppressions'.format(meson.project_source_root()))
 
-if meson.version().version_compare('>= 0.58.0')
-  meson.add_devenv(env)
-endif
+meson.add_devenv(env)
 
 if have_autobahn
    subdir('autobahn')
