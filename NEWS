@@ -1,3 +1,15 @@
+Changes in libsoup from 3.7.1 to 3.7.2:
+
+* Add support for compression dictionaries:
+  * Support the dcb and dcz encodings [Patrick Griffis]
+  * Add new `soup_message_set_compression_dictionary_hash()`, `SoupMessage::request-compression-dictionary`, and `SoupCompressionDictionaryRequest` APIs [Patrick Griffis]
+* Remove color codes from http2 debug logs [Patrick Griffis]
+* Add missing autoptr defines for `SoupMessageBody` [Patrick Griffis]
+* http2: Fix content-sniffer running while message is paused [Patrick Griffis]
+* http2: Consume buffered response body before cancel [Dominik Schnitzer]
+* http2: Fix requeuing failed messages when connection is not reusable [Pablo Saavedra]
+* soup-body-input-stream: Limit buffer read to the received content [Milan Crha]
+
 Changes in libsoup from 3.6.6 to 3.7.1:
 
 * Add support for the `zstd` content encoding [Patrick Griffis]
