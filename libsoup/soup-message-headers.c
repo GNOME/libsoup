@@ -1548,6 +1548,30 @@ soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
 	soup_message_headers_set_ranges (hdrs, &range, 1);
 }
 
+/* Parses one decimal offset from a Content-Range header, rejecting anything
+ * which isn't a plain run of digits fitting in a goffset. In particular a
+ * leading '-' must not be accepted: g_ascii_strtoull() would happily wrap it
+ * round into a large unsigned value.
+ */
+static gboolean
+parse_content_range_offset (const char *in,
+			    char      **out_end,
+			    goffset    *out)
+{
+	guint64 value;
+
+	if (!g_ascii_isdigit (*in))
+		return FALSE;
+
+	errno = 0;
+	value = g_ascii_strtoull (in, out_end, 10);
+	if (errno == ERANGE || value > G_MAXINT64)
+		return FALSE;
+
+	*out = (goffset) value;
+	return TRUE;
+}
+
 /**
  * soup_message_headers_get_content_range:
  * @hdrs: a #SoupMessageHeaders
@@ -1560,6 +1584,11 @@ soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
  * @end, and @total_length. If the total length field in the header
  * was specified as "*", then @total_length will be set to -1.
  *
+ * On success @start and @end are always non-negative, @end is not before
+ * @start, and @end is within @total_length if that was given, so they can be
+ * used directly as offsets into the response body. The out parameters are
+ * left untouched if the header cannot be parsed.
+ *
  * Returns: %TRUE if @hdrs contained a "Content-Range" header
  *   containing a byte range which could be parsed, %FALSE otherwise.
  **/
@@ -1570,7 +1599,7 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
 					goffset             *total_length)
 {
 	const char *header;
-	goffset length;
+	goffset first_pos, last_pos, length;
 	char *p;
 
 	g_return_val_if_fail (hdrs, FALSE);
@@ -1583,25 +1612,34 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
 	header += 6;
 	while (g_ascii_isspace (*header))
 		header++;
-	if (!g_ascii_isdigit (*header))
-		return FALSE;
 
-	*start = g_ascii_strtoull (header, &p, 10);
-	if (*p != '-')
+	if (!parse_content_range_offset (header, &p, &first_pos) || *p != '-')
 		return FALSE;
-	*end = g_ascii_strtoull (p + 1, &p, 10);
-	if (*p != '/')
+	if (!parse_content_range_offset (p + 1, &p, &last_pos) || *p != '/')
 		return FALSE;
 	p++;
 	if (*p == '*') {
 		length = -1;
 		p++;
-	} else
-		length = g_ascii_strtoull (p, &p, 10);
+	} else if (!parse_content_range_offset (p, &p, &length))
+		return FALSE;
 
+	if (*p != '\0')
+		return FALSE;
+
+	/* The range has to describe an actual span of the resource, otherwise
+	 * it is not something a caller can use as offsets.
+	 */
+	if (last_pos < first_pos)
+		return FALSE;
+	if (length >= 0 && last_pos >= length)
+		return FALSE;
+
+	*start = first_pos;
+	*end = last_pos;
 	if (total_length)
 		*total_length = length;
-	return *p == '\0';
+	return TRUE;
 }
 
 /**

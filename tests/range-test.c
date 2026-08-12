@@ -746,6 +746,98 @@ do_range_count_test (void)
 	}
 }
 
+/* Tests for the Content-Range parser, which a client runs on a header chosen
+ * by the server. A successful parse must yield offsets the caller can safely
+ * use against a buffer of total_length bytes.
+ */
+typedef struct {
+	const char *description;
+	const char *content_range;
+	gboolean expected_result;
+	goffset expected_start, expected_end, expected_total_length;
+} ContentRangeParsingTest;
+
+static const ContentRangeParsingTest content_range_parsing_tests[] = {
+	/* Valid. */
+	{ "simple range", "bytes 0-9/10", TRUE, 0, 9, 10 },
+	{ "partial range", "bytes 5-9/100", TRUE, 5, 9, 100 },
+	{ "single byte", "bytes 0-0/1", TRUE, 0, 0, 1 },
+	{ "final byte", "bytes 99-99/100", TRUE, 99, 99, 100 },
+	{ "unknown total length", "bytes 0-9/*", TRUE, 0, 9, -1 },
+	{ "extra space after the unit", "bytes    0-9/10", TRUE, 0, 9, 10 },
+	{ "large but representable", "bytes 0-9223372036854775805/9223372036854775806",
+	  TRUE, 0, 9223372036854775805, 9223372036854775806 },
+
+	/* Malformed. */
+	{ "no unit", "0-9/10", FALSE, 0, 0, 0 },
+	{ "unknown unit", "horses 0-9/10", FALSE, 0, 0, 0 },
+	{ "no unit separator", "bytes", FALSE, 0, 0, 0 },
+	{ "missing total length", "bytes 0-9", FALSE, 0, 0, 0 },
+	{ "missing dash", "bytes 09/10", FALSE, 0, 0, 0 },
+	{ "missing slash", "bytes 0-9 10", FALSE, 0, 0, 0 },
+	{ "trailing garbage", "bytes 0-9/10 but with more content", FALSE, 0, 0, 0 },
+	{ "space before the end", "bytes 0- 9/10", FALSE, 0, 0, 0 },
+	{ "space before the total length", "bytes 0-9/ 10", FALSE, 0, 0, 0 },
+
+	/* Values a malicious server can use to drive the parsed offsets
+	 * negative, or to make them inconsistent with each other.
+	 */
+	{ "start overflowing gint64", "bytes 9223372036854775808-9223372036854775809/9223372036854775810",
+	  FALSE, 0, 0, 0 },
+	{ "end overflowing gint64", "bytes 0-9223372036854775808/10", FALSE, 0, 0, 0 },
+	{ "total length overflowing gint64", "bytes 0-9/9223372036854775808", FALSE, 0, 0, 0 },
+	{ "all fields G_MAXUINT64", "bytes 18446744073709551615-18446744073709551615/18446744073709551615",
+	  FALSE, 0, 0, 0 },
+	{ "all fields overflowing guint64", "bytes 99999999999999999999-99999999999999999999/99999999999999999999",
+	  FALSE, 0, 0, 0 },
+	{ "negative start", "bytes -5-9/10", FALSE, 0, 0, 0 },
+	{ "negative end", "bytes 0--5/10", FALSE, 0, 0, 0 },
+	{ "negative total length", "bytes 0-9/-10", FALSE, 0, 0, 0 },
+	{ "end before start", "bytes 10-5/100", FALSE, 0, 0, 0 },
+	{ "end at the total length", "bytes 0-10/10", FALSE, 0, 0, 0 },
+	{ "end past the total length", "bytes 0-100/10", FALSE, 0, 0, 0 },
+	{ "start past the total length", "bytes 50-60/10", FALSE, 0, 0, 0 },
+};
+
+static void
+do_content_range_parsing_test (void)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS (content_range_parsing_tests); i++) {
+		const ContentRangeParsingTest *test = &content_range_parsing_tests[i];
+		SoupMessageHeaders *hdrs;
+		goffset start = -1, end = -1, total_length = -1;
+		gboolean result;
+
+		debug_printf (1, "%2u. %s: '%s'\n", i + 1, test->description,
+			      test->content_range);
+
+		hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+		soup_message_headers_replace (hdrs, "Content-Range", test->content_range);
+
+		result = soup_message_headers_get_content_range (hdrs, &start, &end,
+								 &total_length);
+		g_assert_cmpint (result, ==, test->expected_result);
+
+		if (result) {
+			g_assert_cmpint (start, ==, test->expected_start);
+			g_assert_cmpint (end, ==, test->expected_end);
+			g_assert_cmpint (total_length, ==, test->expected_total_length);
+
+			/* Whatever the server sent, these must be usable as
+			 * offsets into a buffer of total_length bytes.
+			 */
+			g_assert_cmpint (start, >=, 0);
+			g_assert_cmpint (end, >=, start);
+			if (total_length >= 0)
+				g_assert_cmpint (end, <, total_length);
+		}
+
+		soup_message_headers_unref (hdrs);
+	}
+}
+
 #ifdef HAVE_APACHE
 static void
 do_apache_range_test (void)
@@ -859,6 +951,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/ranges/libsoup", do_libsoup_range_test);
 	g_test_add_func ("/ranges/parsing", do_range_parsing_test);
 	g_test_add_func ("/ranges/count", do_range_count_test);
+	g_test_add_func ("/ranges/content-range", do_content_range_parsing_test);
 
 	ret = g_test_run ();
 
