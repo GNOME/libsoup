@@ -257,6 +257,8 @@ handle_partial_get (SoupServerMessage *msg)
                                                            &ranges, &nranges);
         if (status == SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
                 soup_server_message_set_status (msg, status, NULL);
+                soup_message_headers_set_content_range_unsatisfied (response_headers,
+                                                                   response_body->length);
                 soup_message_body_truncate (response_body);
                 return;
         } else if (status != SOUP_STATUS_PARTIAL_CONTENT)

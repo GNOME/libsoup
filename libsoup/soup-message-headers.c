@@ -1680,6 +1680,23 @@ soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
 	g_free (header);
 }
 
+/* Sets @hdrs's Content-Range header to the unsatisfied-range form,
+ * "bytes * /@total_length", which RFC 9110 §15.5.17 asks a 416 response to
+ * carry so that the client learns how long the resource actually is.
+ */
+void
+soup_message_headers_set_content_range_unsatisfied (SoupMessageHeaders *hdrs,
+						    goffset             total_length)
+{
+	char *header;
+
+	g_return_if_fail (hdrs);
+
+	header = g_strdup_printf ("bytes */%" G_GINT64_FORMAT, total_length);
+	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header, SOUP_HEADER_VALUE_TRUSTED);
+	g_free (header);
+}
+
 static gboolean
 parse_content_foo (SoupMessageHeaders *hdrs,
                    SoupHeaderName      header_name,

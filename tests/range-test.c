@@ -163,6 +163,38 @@ request_single_range_by_string (SoupSession *session, const char *uri,
 	g_object_unref (msg);
 }
 
+/* Asserts a 416 which also reports how long the resource really is, as
+ * RFC 9110 §15.5.17 asks for. Kept out of do_range_test() because it makes a
+ * claim about the response body length that other servers need not match.
+ */
+static void
+request_unsatisfiable_range (SoupSession *session, const char *uri,
+			     const char *range)
+{
+	SoupMessage *msg;
+	GBytes *body;
+	char *expected;
+
+	msg = soup_message_new ("GET", uri);
+	soup_message_headers_replace (soup_message_get_request_headers (msg), "Range", range);
+
+	debug_printf (1, "    Range: %s\n", range);
+
+	body = soup_test_session_async_send (session, msg, NULL, NULL);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+
+	expected = g_strdup_printf ("bytes */%" G_GSIZE_FORMAT,
+				    g_bytes_get_size (full_response));
+	g_assert_cmpstr (soup_message_headers_get_one (soup_message_get_response_headers (msg),
+						       "Content-Range"),
+			 ==, expected);
+	g_free (expected);
+
+	g_clear_pointer (&body, g_bytes_unref);
+	g_object_unref (msg);
+}
+
 /* Like request_single_range_by_string(), but able to check the ranges of a
  * successful 206 as well. */
 static void
@@ -764,6 +796,9 @@ static const ContentRangeParsingTest content_range_parsing_tests[] = {
 	{ "single byte", "bytes 0-0/1", TRUE, 0, 0, 1 },
 	{ "final byte", "bytes 99-99/100", TRUE, 99, 99, 100 },
 	{ "unknown total length", "bytes 0-9/*", TRUE, 0, 9, -1 },
+	/* The unsatisfied-range form a 416 carries has no range to report, so
+	 * there is nothing this function can return for it. */
+	{ "unsatisfied range", "bytes */10", FALSE, 0, 0, 0 },
 	{ "extra space after the unit", "bytes    0-9/10", TRUE, 0, 9, 10 },
 	{ "large but representable", "bytes 0-9223372036854775805/9223372036854775806",
 	  TRUE, 0, 9223372036854775805, 9223372036854775806 },
@@ -871,6 +906,7 @@ do_libsoup_only_range_test (SoupSession *session, const char *uri)
 {
 	gsize full_response_length = g_bytes_get_size (full_response);
 	GString *range;
+	char *str;
 	int i;
 
 	/* A suffix length at least as long as the body selects the whole body. */
@@ -896,6 +932,16 @@ do_libsoup_only_range_test (SoupSession *session, const char *uri)
 	request_single_range_by_string (session, uri, "bytes=9888888888888019900-",
 					SOUP_STATUS_OK);
 
+	/* A 416 reports the length of the resource, so that a client which
+	 * guessed a range wrong can work out what to ask for instead.
+	 */
+	debug_printf (1, "Requesting (unsatisfiable) past the end of the body\n");
+	str = g_strdup_printf ("bytes=%d-%d",
+			       (int) full_response_length + 1,
+			       (int) full_response_length + 100);
+	request_unsatisfiable_range (session, uri, str);
+	g_free (str);
+
 	/* More ranges than the server is willing to coalesce, which is
 	 * rejected rather than answered with the whole body.
 	 * https://gitlab.gnome.org/GNOME/libsoup/-/issues/538
@@ -904,8 +950,7 @@ do_libsoup_only_range_test (SoupSession *session, const char *uri)
 	range = g_string_new ("bytes=");
 	for (i = 0; i < MAX_RANGES + 1; i++)
 		g_string_append (range, i > 0 ? ",0-0" : "0-0");
-	request_single_range_by_string (session, uri, range->str,
-					SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+	request_unsatisfiable_range (session, uri, range->str);
 	g_string_free (range, TRUE);
 }
 
