@@ -575,6 +575,58 @@ do_hsts_get_policies_test (void)
 	g_object_unref(enforcer);
 }
 
+static void
+cancel_on_hsts_enforced_cb (SoupMessage  *msg,
+                            GCancellable *cancellable)
+{
+        g_cancellable_cancel (cancellable);
+}
+
+static void
+message_starting_cb (SoupMessage *msg,
+                     gboolean    *starting)
+{
+        *starting = TRUE;
+}
+
+/* A consumer may cancel the message from hsts-enforced and re-send the
+ * upgraded URI itself, as WebKit does so that it can report the upgrade to
+ * its clients as a redirect. The superseded message must not be sent, or the
+ * server sees the request twice.
+ */
+static void
+do_hsts_cancel_on_enforced_test (void)
+{
+        SoupSession *session = hsts_session_new (NULL);
+        SoupMessage *msg;
+        GCancellable *cancellable;
+        GBytes *body;
+        gboolean starting = FALSE;
+        GError *error = NULL;
+
+        session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+
+        cancellable = g_cancellable_new ();
+        msg = soup_message_new ("GET", "http://localhost");
+        soup_message_add_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+        g_signal_connect (msg, "hsts-enforced",
+                          G_CALLBACK (cancel_on_hsts_enforced_cb), cancellable);
+        g_signal_connect (msg, "starting",
+                          G_CALLBACK (message_starting_cb), &starting);
+
+        body = soup_session_send_and_read (session, msg, cancellable, &error);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+        g_assert_null (body);
+        g_clear_error (&error);
+
+        g_assert_false (starting);
+        g_assert_cmpuint (soup_message_get_status (msg), ==, SOUP_STATUS_NONE);
+
+        g_object_unref (msg);
+        g_object_unref (cancellable);
+        soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -622,6 +674,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/idna-addresses", do_hsts_idna_addresses_test);
 	g_test_add_func ("/hsts/get-domains", do_hsts_get_domains_test);
 	g_test_add_func ("/hsts/get-policies", do_hsts_get_policies_test);
+	g_test_add_func ("/hsts/cancel-on-enforced", do_hsts_cancel_on_enforced_test);
 
 	ret = g_test_run ();
 

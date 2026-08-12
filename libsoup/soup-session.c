@@ -1819,6 +1819,21 @@ soup_session_process_queue_item (SoupSession          *session,
 		if (item->paused)
 			return;
 
+		/* The cancellable may have been cancelled from a handler run while
+		 * the item was being queued, such as SoupHSTSEnforcer::hsts-enforced.
+		 * Nothing between request-queued and the write checks it, so check
+		 * here while the message can still be stopped.
+		 */
+		if ((item->state == SOUP_MESSAGE_STARTING ||
+		     item->state == SOUP_MESSAGE_CONNECTED ||
+		     item->state == SOUP_MESSAGE_READY) &&
+		    g_cancellable_is_cancelled (item->cancellable)) {
+			session_debug (item, "Cancelled before sending");
+			if (!item->error)
+				g_cancellable_set_error_if_cancelled (item->cancellable, &item->error);
+			item->state = SOUP_MESSAGE_FINISHING;
+		}
+
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
 			if (!soup_session_ensure_item_connection (session, item))
