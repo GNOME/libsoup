@@ -3,6 +3,8 @@
 #include "config.h"
 
 #include "test-utils.h"
+#include "soup-message-headers-private.h"
+#include "soup-misc.h"
 
 GBytes *full_response;
 int total_length;
@@ -159,6 +161,21 @@ request_single_range_by_string (SoupSession *session, const char *uri,
 
 	g_clear_pointer (&body, g_bytes_unref);
 	g_object_unref (msg);
+}
+
+/* Like request_single_range_by_string(), but able to check the ranges of a
+ * successful 206 as well. */
+static void
+request_single_range_by_string_full (SoupSession *session, const char *uri,
+				     const char *range, SoupStatus expected_status,
+				     int expected_start, int expected_end)
+{
+	SoupMessage *msg;
+
+	msg = soup_message_new ("GET", uri);
+	soup_message_headers_replace (soup_message_get_request_headers (msg), "Range", range);
+
+	do_single_range (session, msg, 0, 0, expected_status, expected_start, expected_end);
 }
 
 static void
@@ -445,6 +462,290 @@ do_range_test (SoupSession *session, const char *uri,
 					SOUP_STATUS_OK);
 }
 
+/* Tests for the Range parser itself. Unlike the tests above, these don't need
+ * a server, so they can use total lengths which would be impractical to
+ * actually serve, and they can check the exact status which the server would
+ * use rather than only the ones a client can distinguish.
+ */
+typedef struct {
+	const char *description;
+	const char *bugref;
+	const char *range;
+	goffset total_length;
+	guint expected_status;
+	int expected_n_ranges;
+	SoupRange expected_ranges[3];
+} RangeParsingTest;
+
+static const RangeParsingTest range_parsing_tests[] = {
+	/* Valid ranges against a ten byte body, as a baseline. */
+	{ "simple range", NULL,
+	  "bytes=0-4", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 4 } } },
+	{ "whole body", NULL,
+	  "bytes=0-9", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "open ended range", NULL,
+	  "bytes=5-", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 5, 9 } } },
+	{ "final byte", NULL,
+	  "bytes=9-", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 9, 9 } } },
+	{ "end past the body is clamped", NULL,
+	  "bytes=1-100", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 1, 9 } } },
+	{ "suffix range", NULL,
+	  "bytes=-5", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 5, 9 } } },
+	{ "single byte suffix range", NULL,
+	  "bytes=-1", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 9, 9 } } },
+	{ "whitespace around the ranges", NULL,
+	  "bytes \t = \t 0-4", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 4 } } },
+
+	/* Unsatisfiable and invalid ranges. */
+	{ "start past the body", NULL,
+	  "bytes=10-20", 10, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE, 0, { } },
+	{ "end before start", NULL,
+	  "bytes=10-1", 10, SOUP_STATUS_OK, 0, { } },
+	{ "zero length suffix range", NULL,
+	  "bytes=-0", 10, SOUP_STATUS_OK, 0, { } },
+	{ "trailing garbage", NULL,
+	  "bytes=0-10 but with weird trailing content", 10, SOUP_STATUS_OK, 0, { } },
+	{ "invalid range dash", NULL,
+	  "bytes=0a10", 10, SOUP_STATUS_OK, 0, { } },
+	{ "unknown range unit", NULL,
+	  "horses=0-10", 10, SOUP_STATUS_OK, 0, { } },
+	{ "missing equals", NULL,
+	  "bytes 0-10", 10, SOUP_STATUS_OK, 0, { } },
+	{ "delimiters but no ranges", NULL,
+	  "bytes=, ,,\t, ", 10, SOUP_STATUS_OK, 0, { } },
+
+	/* A suffix length at least as long as the body selects the whole body,
+	 * per RFC 9110 §14.1.2. These used to drive the range start negative,
+	 * which aborted the process at the g_assert() below the parse.
+	 */
+	{ "suffix range the length of the body", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/516",
+	  "bytes=-10", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "suffix range one longer than the body", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/516",
+	  "bytes=-11", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "suffix range much longer than the body", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/548",
+	  "bytes=-999999", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "suffix range of G_MININT", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/547",
+	  "bytes=-2147483648", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "suffix range larger than a guint32", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/547",
+	  "bytes=-4294967296", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "suffix range of G_MAXINT64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/547",
+	  "bytes=-9223372036854775807", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "suffix range of G_MININT64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/547",
+	  "bytes=-9223372036854775808", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "suffix range overflowing gint64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=-99999999999999999999", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "oversized suffix range merged with a valid range", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/548",
+	  "bytes=-999999,4-5", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+
+	/* Range starts and ends which overflow the signed goffset they are
+	 * parsed into. An overflowing start is treated like any other start
+	 * beyond the end of the body, and an overflowing end is clamped like
+	 * any other end beyond the end of the body.
+	 */
+	{ "start overflowing gint64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=9888888888888019900-", 10, SOUP_STATUS_OK, 0, { } },
+	{ "start overflowing gint64 with no dash", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=9888888888888019900", 10, SOUP_STATUS_OK, 0, { } },
+	{ "start of G_MAXINT64 + 1", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=9223372036854775808-", 10, SOUP_STATUS_OK, 0, { } },
+	{ "start overflowing guint64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=18446744073709551616-", 10, SOUP_STATUS_OK, 0, { } },
+	{ "start and end overflowing gint64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=9888888888888019900-9888888888888019901", 10, SOUP_STATUS_OK, 0, { } },
+	{ "end overflowing gint64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=0-9888888888888019900", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+	{ "end overflowing guint64", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/535",
+	  "bytes=0-18446744073709551616", 10, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 9 } } },
+
+	/* Zero length bodies. soup_message_headers_get_ranges() is public API,
+	 * so it can be called with one even though the server never does.
+	 */
+	{ "range against an empty body", NULL,
+	  "bytes=0-9", 0, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE, 0, { } },
+	{ "suffix range against an empty body", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/548",
+	  "bytes=-5", 0, SOUP_STATUS_OK, 0, { } },
+
+	/* Merging. */
+	{ "overlapping ranges are merged", NULL,
+	  "bytes=0-10,5-20", 100, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 20 } } },
+	{ "contained ranges are merged", NULL,
+	  "bytes=0-20,5-10", 100, SOUP_STATUS_PARTIAL_CONTENT, 1, { { 0, 20 } } },
+	{ "touching ranges are not merged", NULL,
+	  "bytes=0-4,5-9", 100, SOUP_STATUS_PARTIAL_CONTENT, 2, { { 0, 4 }, { 5, 9 } } },
+	{ "ranges are sorted", NULL,
+	  "bytes=20-29,0-9", 100, SOUP_STATUS_PARTIAL_CONTENT, 2, { { 0, 9 }, { 20, 29 } } },
+	{ "invalid ranges do not prevent valid ones", NULL,
+	  "bytes=0-9,50-40,20-29", 100, SOUP_STATUS_PARTIAL_CONTENT, 2, { { 0, 9 }, { 20, 29 } } },
+
+	/* The comparison function used to sort the ranges before merging them
+	 * used to truncate a goffset difference to int, which flips its sign
+	 * for bodies over 2GB and silently dropped ranges from the response.
+	 */
+	{ "ranges more than G_MAXINT apart", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/519",
+	  "bytes=0-100, 2500000000-2500000100, 4999999000-4999999100", 5000000000,
+	  SOUP_STATUS_PARTIAL_CONTENT, 3,
+	  { { 0, 100 }, { 2500000000, 2500000100 }, { 4999999000, 4999999100 } } },
+	{ "unsorted ranges more than G_MAXINT apart", "https://gitlab.gnome.org/GNOME/libsoup/-/issues/519",
+	  "bytes=4999999000-4999999100, 0-100, 2500000000-2500000100", 5000000000,
+	  SOUP_STATUS_PARTIAL_CONTENT, 3,
+	  { { 0, 100 }, { 2500000000, 2500000100 }, { 4999999000, 4999999100 } } },
+};
+
+static void
+check_parsed_ranges (const char *range,
+		     goffset     total_length,
+		     guint       expected_status,
+		     int         expected_n_ranges,
+		     const SoupRange *expected_ranges)
+{
+	SoupMessageHeaders *hdrs;
+	SoupRange *ranges = NULL;
+	int n_ranges = 0;
+	guint status;
+	int i;
+
+	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+	soup_message_headers_replace (hdrs, "Range", range);
+
+	status = soup_message_headers_get_ranges_internal (hdrs, total_length, TRUE,
+							   &ranges, &n_ranges);
+
+	g_assert_cmpuint (status, ==, expected_status);
+
+	if (status == SOUP_STATUS_PARTIAL_CONTENT) {
+		g_assert_nonnull (ranges);
+		g_assert_cmpint (n_ranges, ==, expected_n_ranges);
+
+		for (i = 0; i < n_ranges; i++) {
+			debug_printf (2, "    [%d]: %" G_GINT64_FORMAT "-%" G_GINT64_FORMAT "\n",
+				      i, ranges[i].start, ranges[i].end);
+
+			g_assert_cmpint (ranges[i].start, ==, expected_ranges[i].start);
+			g_assert_cmpint (ranges[i].end, ==, expected_ranges[i].end);
+
+			/* Whatever the input, the parsed ranges must be usable
+			 * as offsets into a buffer of total_length bytes.
+			 */
+			g_assert_cmpint (ranges[i].start, >=, 0);
+			g_assert_cmpint (ranges[i].end, >=, ranges[i].start);
+			g_assert_cmpint (ranges[i].end, <, total_length);
+		}
+	}
+
+	soup_message_headers_free_ranges (hdrs, ranges);
+	soup_message_headers_unref (hdrs);
+}
+
+static void
+do_range_parsing_test (void)
+{
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS (range_parsing_tests); i++) {
+		const RangeParsingTest *test = &range_parsing_tests[i];
+
+		debug_printf (1, "%2u. %s: '%s' against %" G_GOFFSET_FORMAT " bytes\n",
+			      i + 1, test->description, test->range, test->total_length);
+
+		if (test->bugref)
+			g_test_message ("Bug reference: %s", test->bugref);
+
+		check_parsed_ranges (test->range, test->total_length,
+				     test->expected_status, test->expected_n_ranges,
+				     test->expected_ranges);
+	}
+}
+
+/* A single Range header can list far more ranges than are reasonable to serve:
+ * the only limit on the wire is the maximum request header size. */
+static void
+do_range_count_test (void)
+{
+	struct {
+		int n_ranges;
+		gboolean identical;
+		guint expected_status;
+		int expected_n_ranges;
+	} tests[] = {
+		/* Distinct ranges, up to and then past the limit. Going past it
+		 * is rejected rather than ignored.
+		 */
+		{ 100, FALSE, SOUP_STATUS_PARTIAL_CONTENT, 100 },
+		{ MAX_RANGES, FALSE, SOUP_STATUS_PARTIAL_CONTENT, MAX_RANGES },
+		{ MAX_RANGES + 1, FALSE, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE, 0 },
+
+		/* Identical ranges, which all merge into one. This is the
+		 * shape which used to be quadratic.
+		 */
+		{ MAX_RANGES, TRUE, SOUP_STATUS_PARTIAL_CONTENT, 1 },
+		{ MAX_RANGES + 1, TRUE, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE, 0 },
+		{ 25585, TRUE, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE, 0 },
+	};
+	guint i;
+	int j;
+
+	for (i = 0; i < G_N_ELEMENTS (tests); i++) {
+		SoupMessageHeaders *hdrs;
+		SoupRange *ranges = NULL;
+		int n_ranges = 0;
+		guint status;
+		GString *range;
+
+		debug_printf (1, "%2u. %d %s ranges\n", i + 1, tests[i].n_ranges,
+			      tests[i].identical ? "identical" : "distinct");
+
+		range = g_string_new ("bytes=");
+		for (j = 0; j < tests[i].n_ranges; j++) {
+			int start = tests[i].identical ? 0 : j * 2;
+
+			if (j > 0)
+				g_string_append_c (range, ',');
+			g_string_append_printf (range, "%d-%d", start, start);
+		}
+
+		hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+		soup_message_headers_replace (hdrs, "Range", range->str);
+		g_string_free (range, TRUE);
+
+		status = soup_message_headers_get_ranges_internal (hdrs, 1000000, TRUE,
+								   &ranges, &n_ranges);
+
+		g_assert_cmpuint (status, ==, tests[i].expected_status);
+		if (status == SOUP_STATUS_PARTIAL_CONTENT)
+			g_assert_cmpint (n_ranges, ==, tests[i].expected_n_ranges);
+
+		soup_message_headers_free_ranges (hdrs, ranges);
+		soup_message_headers_unref (hdrs);
+	}
+
+	/* Callers which don't ask about satisfiability, such as the public
+	 * soup_message_headers_get_ranges(), can't be told 416, so an
+	 * over-limit header just reports no ranges to them.
+	 */
+	{
+		SoupMessageHeaders *hdrs;
+		SoupRange *ranges = NULL;
+		int n_ranges = 0;
+		GString *range;
+
+		range = g_string_new ("bytes=0-0");
+		for (j = 0; j < MAX_RANGES; j++)
+			g_string_append (range, ",0-0");
+
+		hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+		soup_message_headers_replace (hdrs, "Range", range->str);
+		g_string_free (range, TRUE);
+
+		g_assert_cmpuint (soup_message_headers_get_ranges_internal (hdrs, 1000000, FALSE,
+									    &ranges, &n_ranges),
+				  ==, SOUP_STATUS_OK);
+		g_assert_false (soup_message_headers_get_ranges (hdrs, 1000000, &ranges, &n_ranges));
+
+		soup_message_headers_free_ranges (hdrs, ranges);
+		soup_message_headers_unref (hdrs);
+	}
+}
+
 #ifdef HAVE_APACHE
 static void
 do_apache_range_test (void)
@@ -474,6 +775,49 @@ server_handler (SoupServer        *server,
 }
 
 static void
+do_libsoup_only_range_test (SoupSession *session, const char *uri)
+{
+	gsize full_response_length = g_bytes_get_size (full_response);
+	GString *range;
+	int i;
+
+	/* A suffix length at least as long as the body selects the whole body. */
+	debug_printf (1, "Requesting (suffix range the length of the body) -%d\n",
+		      (int) full_response_length);
+	request_single_range (session, uri,
+			      -((int) full_response_length), -1,
+			      SOUP_STATUS_PARTIAL_CONTENT, 0, -1);
+
+	debug_printf (1, "Requesting (suffix range longer than the body) -999999\n");
+	request_single_range_by_string_full (session, uri, "bytes=-999999",
+					     SOUP_STATUS_PARTIAL_CONTENT, 0, -1);
+
+	debug_printf (1, "Requesting (suffix range overflowing gint64) -99999999999999999999\n");
+	request_single_range_by_string_full (session, uri, "bytes=-99999999999999999999",
+					     SOUP_STATUS_PARTIAL_CONTENT, 0, -1);
+
+	/* A start which overflows gint64 is treated like any other start past
+	 * the end of the body.
+	 * https://gitlab.gnome.org/GNOME/libsoup/-/issues/535
+	 */
+	debug_printf (1, "Requesting (start overflowing gint64) 9888888888888019900-\n");
+	request_single_range_by_string (session, uri, "bytes=9888888888888019900-",
+					SOUP_STATUS_OK);
+
+	/* More ranges than the server is willing to coalesce, which is
+	 * rejected rather than answered with the whole body.
+	 * https://gitlab.gnome.org/GNOME/libsoup/-/issues/538
+	 */
+	debug_printf (1, "Requesting (more ranges than the limit)\n");
+	range = g_string_new ("bytes=");
+	for (i = 0; i < MAX_RANGES + 1; i++)
+		g_string_append (range, i > 0 ? ",0-0" : "0-0");
+	request_single_range_by_string (session, uri, range->str,
+					SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+	g_string_free (range, TRUE);
+}
+
+static void
 do_libsoup_range_test (void)
 {
 	SoupSession *session;
@@ -488,6 +832,7 @@ do_libsoup_range_test (void)
 	base_uri = soup_test_server_get_uri (server, "http", NULL);
 	base_uri_str = g_uri_to_string (base_uri);
 	do_range_test (session, base_uri_str, TRUE, TRUE);
+	do_libsoup_only_range_test (session, base_uri_str);
 	g_uri_unref (base_uri);
 	g_free (base_uri_str);
 	soup_test_server_quit_unref (server);
@@ -512,6 +857,8 @@ main (int argc, char **argv)
 	g_test_add_func ("/ranges/apache", do_apache_range_test);
 #endif
 	g_test_add_func ("/ranges/libsoup", do_libsoup_range_test);
+	g_test_add_func ("/ranges/parsing", do_range_parsing_test);
+	g_test_add_func ("/ranges/count", do_range_count_test);
 
 	ret = g_test_run ();
 

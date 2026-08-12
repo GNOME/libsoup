@@ -1226,7 +1226,12 @@ sort_ranges (gconstpointer a, gconstpointer b)
 	SoupRange *ra = (SoupRange *)a;
 	SoupRange *rb = (SoupRange *)b;
 
-	return ra->start - rb->start;
+	if (ra->start < rb->start)
+		return -1;
+	else if (ra->start > rb->start)
+		return 1;
+	else
+		return 0;
 }
 
 /* like soup_message_headers_get_ranges(), except it returns:
@@ -1270,6 +1275,17 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 	if (!range_list)
 		return SOUP_STATUS_OK;  /* invalid list */
 
+	/* Reject the header outright if it asks for more ranges than we are
+	 * willing to serve, rather than answering with the whole body: a client
+	 * asking for this many ranges wants to be told so, and RFC 9110 §14.2
+	 * allows rejecting such a header for exactly this reason.
+	 */
+	if (g_slist_length (range_list) > MAX_RANGES) {
+		soup_header_free_list (range_list);
+		return check_satisfiable ? SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE
+					 : SOUP_STATUS_OK;
+	}
+
 	/* Loop through the ranges and modify the status accordingly. Default to
 	 * status 200 (OK, ignoring the ranges). Switch to status 206 (Partial
 	 * Content) if there is at least one partially valid range. Switch to
@@ -1281,15 +1297,48 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 
 		spec = r->data;
 		if (*spec == '-') {
-			cur.start = g_ascii_strtoll (spec, &end, 10) + total_length;
+			gint64 suffix_length;
+
+			errno = 0;
+			suffix_length = g_ascii_strtoll (spec, &end, 10);
+
+			/* A suffix range asks for the last -suffix_length bytes
+			 * of the body. If the body is shorter than that then the
+			 * whole body is used, per RFC 9110 §14.1.2; without
+			 * clamping, the start would go negative and reach the
+			 * assertion below.
+			 */
+			if (errno == ERANGE || suffix_length <= -total_length)
+				cur.start = 0;
+			else
+				cur.start = total_length + suffix_length;
+
 			cur.end = total_length - 1;
 		} else {
-			cur.start = g_ascii_strtoull (spec, &end, 10);
+			guint64 value;
+
+			errno = 0;
+			value = g_ascii_strtoull (spec, &end, 10);
+			if (errno == ERANGE || value > G_MAXINT64) {
+				is_all_valid = FALSE;
+				continue;
+			}
+			cur.start = (goffset) value;
+
 			if (*end == '-')
 				end++;
-			if (*end)
-				cur.end = g_ascii_strtoull (end, &end, 10);
-			else
+			if (*end) {
+				errno = 0;
+				value = g_ascii_strtoull (end, &end, 10);
+
+				/* An end this large is clamped to the end of the
+				 * body below, like any other end past it.
+				 */
+				if (errno == ERANGE || value > G_MAXINT64)
+					cur.end = G_MAXINT64;
+				else
+					cur.end = (goffset) value;
+			} else
 				cur.end = total_length - 1;
 		}
 
@@ -1330,19 +1379,24 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
 	}
 
 	if (total_length) {
-		guint i;
+		SoupRange *data;
+		guint i, last = 0;
 
 		g_array_sort (array, sort_ranges);
-		for (i = 1; i < array->len; i++) {
-			SoupRange *cur = &((SoupRange *)array->data)[i];
-			SoupRange *prev = &((SoupRange *)array->data)[i - 1];
 
-			if (cur->start <= prev->end) {
-				prev->end = MAX (prev->end, cur->end);
-				g_array_remove_index (array, i);
-				i--;
-			}
+		/* Merge overlapping ranges into the run being built at @last.
+		 * Removing the merged elements one at a time instead made this
+		 * quadratic in the number of ranges.
+		 */
+		data = (SoupRange *)array->data;
+		for (i = 1; i < array->len; i++) {
+			if (data[i].start <= data[last].end)
+				data[last].end = MAX (data[last].end, data[i].end);
+			else
+				data[++last] = data[i];
 		}
+
+		g_array_set_size (array, last + 1);
 	}
 
 	*ranges = (SoupRange *)array->data;
@@ -1374,6 +1428,11 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  *
  * Beware that even if given a @total_length, this function does not
  * check that the ranges are satisfiable.
+ *
+ * A Range header requesting more than 200 ranges is rejected, since serving
+ * that many ranges costs far more than the request asking for them.
+ * [class@Server] answers such a request with
+ * %SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE.
  *
  * [class@Server] has built-in handling for range requests. If your
  * server handler returns a %SOUP_STATUS_OK response containing the

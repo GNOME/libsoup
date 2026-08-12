@@ -4,6 +4,7 @@
  */
 
 #include "test-utils.h"
+#include "soup-message-headers-private.h"
 
 #include <sys/resource.h>
 
@@ -81,13 +82,35 @@ server_file_callback (SoupServer        *server,
 }
 
 static void
-do_ranges_overlaps_test (ServerData *sd, gconstpointer test_data)
+request_ranges (ServerData *sd, const char *range, SoupStatus expected_status)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	GString *range;
 	GUri *uri;
+
+	session = soup_test_session_new (NULL);
+
+	uri = g_uri_parse_relative (sd->base_uri, "/file", SOUP_HTTP_URI_FLAGS, NULL);
+
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (soup_message_get_request_headers (msg), "Range", range);
+
+	soup_test_session_send_message (session, msg);
+
+	soup_test_assert_message_status (msg, expected_status);
+
+	g_object_unref (msg);
+	g_uri_unref (uri);
+
+	soup_test_session_abort_unref (session);
+}
+
+static void
+do_ranges_overlaps_test (ServerData *sd, gconstpointer test_data)
+{
+	GString *range;
 	const char *chunk = ",0,0,0,0,0,0,0,0,0,0,0";
+	int i;
 
 	g_test_bug ("428");
 
@@ -96,29 +119,27 @@ do_ranges_overlaps_test (ServerData *sd, gconstpointer test_data)
 	return;
 	#endif
 
-	range = g_string_sized_new (99 * 1024);
-	g_string_append (range, "bytes=1024");
-	while (range->len < 99 * 1024)
-		g_string_append (range, chunk);
-
-	session = soup_test_session_new (NULL);
 	server_add_handler (sd, "/file", server_file_callback, NULL, NULL);
 
-	uri = g_uri_parse_relative (sd->base_uri, "/file", SOUP_HTTP_URI_FLAGS, NULL);
-
-	msg = soup_message_new_from_uri ("GET", uri);
-	soup_message_headers_append (soup_message_get_request_headers (msg), "Range", range->str);
-
-	soup_test_session_send_message (session, msg);
-
-	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
-
-	g_object_unref (msg);
-
+	/* Requesting the same range many times over used to make the server
+	 * allocate a response proportional to the number of ranges instead of
+	 * coalescing them into one. Each "0" here is an open ended range
+	 * covering the whole body, so they all collapse into a single range.
+	 */
+	range = g_string_new ("bytes=1024");
+	for (i = 1; i < MAX_RANGES; i++)
+		g_string_append (range, ",0");
+	request_ranges (sd, range->str, SOUP_STATUS_PARTIAL_CONTENT);
 	g_string_free (range, TRUE);
-	g_uri_unref (uri);
 
-	soup_test_session_abort_unref (session);
+	/* A header listing more ranges than the server is willing to coalesce
+	 * is rejected outright. */
+	range = g_string_sized_new ((gsize)99 * 1024);
+	g_string_append (range, "bytes=1024");
+	while (range->len < (gssize)99 * 1024)
+		g_string_append (range, chunk);
+	request_ranges (sd, range->str, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+	g_string_free (range, TRUE);
 }
 
 int
