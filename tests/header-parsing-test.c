@@ -373,15 +373,7 @@ static struct RequestTest {
           -1,
           SOUP_STATUS_OK,
           "POST", "/", SOUP_HTTP_1_1,
-          { { "Content-Length", "4" } }, 0
-        },
-
-        { "Duplicate Content-Length with the same decimal value", NULL,
-          "POST / HTTP/1.1\r\nContent-Length: 04\r\nContent-Length: 4\r\n",
-          -1,
-          SOUP_STATUS_OK,
-          "POST", "/", SOUP_HTTP_1_1,
-          { { "Content-Length", "04" } }, 0
+          { { "Content-Length", "4, 4" } }, 0
         },
 
 	/************************/
@@ -528,6 +520,14 @@ static struct RequestTest {
         { "Duplicate Content-Length with different value",
           "https://gitlab.gnome.org/GNOME/libsoup/-/issues/500",
           "POST / HTTP/1.1\r\nContent-Length: 2\r\nContent-Length: 4\r\n",
+          -1,
+          SOUP_STATUS_BAD_REQUEST,
+          NULL, NULL, -1,
+          { { NULL } }, 0
+        },
+
+        { "Duplicate Content-Length with the same decimal value", NULL,
+          "POST / HTTP/1.1\r\nContent-Length: 04\r\nContent-Length: 4\r\n",
           -1,
           SOUP_STATUS_BAD_REQUEST,
           NULL, NULL, -1,
@@ -712,6 +712,19 @@ static struct ResponseTest {
 	    { NULL } }
 	},
 
+        /* web-platform-tests fetch/api/basic/header-value-combining.any.js, fixture
+         * xhr/resources/header-content-length-twice.asis, expects
+         * Headers.get("content-length") to be "0, 0".
+         */
+        { "Duplicate Content-Length with the same value",
+          "https://fetch.spec.whatwg.org/#content-length-header",
+          "HTTP/1.0 200 NANANA\r\nCONTENT-LENGTH:  0\r\ncontent-length:\t 0\r\n", -1,
+          SOUP_HTTP_1_0, SOUP_STATUS_OK, "NANANA",
+          { { "Content-Length", "0, 0" },
+            { NULL }
+          }
+        },
+
 	/********************************/
 	/*** VALID CONTINUE RESPONSES ***/
 	/********************************/
@@ -739,6 +752,13 @@ static struct ResponseTest {
 	/*************************/
 	/*** INVALID RESPONSES ***/
 	/*************************/
+
+        { "Duplicate Content-Length with different values",
+          "https://gitlab.gnome.org/GNOME/libsoup/-/issues/500",
+          "HTTP/1.1 200 ok\r\nContent-Length: 2\r\nContent-Length: 4\r\n", -1,
+          -1, 0, NULL,
+          { { NULL } }
+        },
 
 	{ "Invalid HTTP version", NULL,
 	  "HTTP/1.2 200 OK\r\nFoo: bar\r\n", -1,
@@ -1557,15 +1577,36 @@ do_append_duplicate_content_length_test (void)
         hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
         soup_message_headers_append (hdrs, "Content-Length", "42");
 
-        /* Inserting the same value doesn't generate a list */
+        /* Inserting the same value keeps both field lines, per RFC 9110 5.3 and
+         * the WHATWG Fetch Standard, but framing still uses the single value.
+         */
         soup_message_headers_append (hdrs, "Content-Length", "42");
         list_value = soup_message_headers_get_list (hdrs, "Content-Length");
-        g_assert_cmpstr (list_value, ==, "42");
+        g_assert_cmpstr (list_value, ==, "42, 42");
+        g_assert_cmpstr (soup_message_headers_get_one (hdrs, "Content-Length"), ==, "42");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 42);
+        g_assert_cmpuint (soup_message_headers_get_encoding (hdrs), ==, SOUP_ENCODING_CONTENT_LENGTH);
 
         /* Inserting a different value does nothing */
         soup_message_headers_append (hdrs, "Content-Length", "45");
         list_value = soup_message_headers_get_list (hdrs, "Content-Length");
-        g_assert_cmpstr (list_value, ==, "42");
+        g_assert_cmpstr (list_value, ==, "42, 42");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 42);
+
+        soup_message_headers_unref (hdrs);
+
+        /* Values are compared textually, not numerically */
+        hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+        soup_message_headers_append (hdrs, "Content-Length", "042");
+
+        soup_message_headers_append (hdrs, "Content-Length", "42");
+        list_value = soup_message_headers_get_list (hdrs, "Content-Length");
+        g_assert_cmpstr (list_value, ==, "042");
+
+        soup_message_headers_append (hdrs, "Content-Length", "042");
+        list_value = soup_message_headers_get_list (hdrs, "Content-Length");
+        g_assert_cmpstr (list_value, ==, "042, 042");
+        g_assert_cmpint (soup_message_headers_get_content_length (hdrs), ==, 42);
 
         soup_message_headers_unref (hdrs);
 }

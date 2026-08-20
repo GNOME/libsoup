@@ -283,31 +283,33 @@ soup_message_headers_append_common (SoupMessageHeaders    *hdrs,
         }
 
         if (name == SOUP_HEADER_CONTENT_LENGTH) {
-                /* RFC 9110 - 7.7. Content-Length
-                 * If a message is received that has a Content-Length header field value consisting of
-                 * the same decimal value as a comma-separated list (Section 5.7.1) — for example,
-                 * "Content-Length: 42, 42" — indicating that duplicate Content-Length header fields have
-                 * been generated or combined by an upstream message processor, then the recipient must either
-                 * reject the message as invalid or replace the duplicated field values with a single valid
-                 * Content-Length field containing that decimal value prior to determining the message body
-                 * length or forwarding the message.
+                /* RFC 9110 - 8.6. Content-Length
+                 * "[A] sender MUST NOT forward a message with a Content-Length header field
+                 *  value that does not match the ABNF above, with one exception: a recipient
+                 *  of a Content-Length header field value consisting of the same decimal value
+                 *  repeated as a comma-separated list (e.g, "Content-Length: 42, 42") MAY
+                 *  either reject the message as invalid or replace that invalid field value
+                 *  with a single instance of the decimal value, since this likely indicates
+                 *  that a duplicate was generated or combined by an upstream message
+                 *  processor."
+                 *
                  */
                 const char *content_length = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
                 if (content_length) {
-                        guint64 decimal_value1, decimal_value2;
                         char *end;
 
                         errno = 0;
-                        decimal_value1 = g_ascii_strtoull (content_length, &end, 10);
+                        g_ascii_strtoull (content_length, &end, 10);
                         if (*end || errno == ERANGE)
                                 return FALSE;
 
                         errno = 0;
-                        decimal_value2 = g_ascii_strtoull (value, &end, 10);
+                        g_ascii_strtoull (value, &end, 10);
                         if (*end || errno == ERANGE)
                                 return FALSE;
 
-                        return decimal_value1 == decimal_value2;
+                        if (strcmp (content_length, value) != 0)
+                                return FALSE;
                 }
         }
 
