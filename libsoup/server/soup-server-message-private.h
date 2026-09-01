@@ -40,6 +40,9 @@ void               soup_server_message_read_request        (SoupServerMessage   
 
 void               soup_server_message_set_options_ping    (SoupServerMessage        *msg,
                                                             gboolean                  is_options_ping);
+void               soup_server_message_set_websocket_extensions   (SoupServerMessage        *msg,
+                                                                   GList                    *extensions);
+GList             *soup_server_message_steal_websocket_extensions (SoupServerMessage        *msg);
 
 SoupServerMessageIO *soup_server_message_get_io_data       (SoupServerMessage        *msg);
 

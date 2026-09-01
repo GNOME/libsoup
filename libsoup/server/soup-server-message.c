@@ -59,6 +59,7 @@ struct _SoupServerMessage {
         SoupMessageHeaders *response_headers;
 
         SoupServerMessageIO *io_data;
+        GList               *websocket_extensions;
 
         gboolean                 options_ping;
 
@@ -136,6 +137,7 @@ soup_server_message_finalize (GObject *object)
         soup_message_headers_unref (msg->request_headers);
         soup_message_body_unref (msg->response_body);
         soup_message_headers_unref (msg->response_headers);
+        g_list_free_full (msg->websocket_extensions, g_object_unref);
 
         G_OBJECT_CLASS (soup_server_message_parent_class)->finalize (object);
 }
@@ -1107,6 +1109,20 @@ soup_server_message_steal_connection (SoupServerMessage *msg)
         g_object_unref (msg);
 
         return stream;
+}
+
+void
+soup_server_message_set_websocket_extensions (SoupServerMessage *msg,
+                                              GList             *extensions)
+{
+        g_clear_list (&msg->websocket_extensions, g_object_unref);
+        msg->websocket_extensions = extensions;
+}
+
+GList *
+soup_server_message_steal_websocket_extensions (SoupServerMessage *msg)
+{
+        return g_steal_pointer (&msg->websocket_extensions);
 }
 
 /**

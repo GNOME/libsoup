@@ -415,7 +415,7 @@ process_extensions (const char  *extensions,
                                      _("Server returned incorrect “%s” key"),
                                      "Sec-WebSocket-Extensions");
                         if (accepted_extensions)
-                                g_list_free_full (*accepted_extensions, g_object_unref);
+                                g_clear_list (accepted_extensions, g_object_unref);
                         g_clear_pointer (&requested_extensions, g_hash_table_destroy);
                         soup_header_free_list (extension_list);
 
@@ -434,7 +434,7 @@ process_extensions (const char  *extensions,
                                              SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
                                              _("Server requested unsupported extension"));
                         if (accepted_extensions)
-                                g_list_free_full (*accepted_extensions, g_object_unref);
+                                g_clear_list (accepted_extensions, g_object_unref);
                         g_clear_pointer (&requested_extensions, g_hash_table_destroy);
                         soup_header_free_list (extension_list);
 
@@ -450,7 +450,7 @@ process_extensions (const char  *extensions,
                                              SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
                                              _("Server requested unsupported extension"));
                         if (accepted_extensions)
-                                g_list_free_full (*accepted_extensions, g_object_unref);
+                                g_clear_list (accepted_extensions, g_object_unref);
                         g_clear_pointer (&requested_extensions, g_hash_table_destroy);
                         soup_header_free_list (extension_list);
 
@@ -479,7 +479,7 @@ process_extensions (const char  *extensions,
                                              _("Server returned a duplicated parameter in “%s” WebSocket extension header"),
                                              extension);
                                 if (accepted_extensions)
-                                        g_list_free_full (*accepted_extensions, g_object_unref);
+                                        g_clear_list (accepted_extensions, g_object_unref);
                                 else
                                         g_object_unref (websocket_extension);
                                 g_clear_pointer (&requested_extensions, g_hash_table_destroy);
@@ -495,7 +495,7 @@ process_extensions (const char  *extensions,
                                                          error)) {
                         g_clear_pointer (&params, g_hash_table_destroy);
                         if (accepted_extensions)
-                                g_list_free_full (*accepted_extensions, g_object_unref);
+                                g_clear_list (accepted_extensions, g_object_unref);
                         else
                                 g_object_unref (websocket_extension);
                         g_clear_pointer (&requested_extensions, g_hash_table_destroy);

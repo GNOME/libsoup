@@ -139,7 +139,6 @@ typedef struct {
 
 	char                         *websocket_origin;
 	char                        **websocket_protocols;
-	GList                        *websocket_extensions;
 	SoupServerWebsocketCallback   websocket_callback;
 	GDestroyNotify                websocket_destroy;
 	gpointer                      websocket_user_data;
@@ -208,7 +207,6 @@ free_handler (SoupServerHandler *handler)
 	g_free (handler->path);
 	g_free (handler->websocket_origin);
 	g_strfreev (handler->websocket_protocols);
-	g_list_free_full (handler->websocket_extensions, g_object_unref);
 	if (handler->early_destroy)
 		handler->early_destroy (handler->early_user_data);
 	if (handler->destroy)
@@ -955,12 +953,14 @@ complete_websocket_upgrade (SoupServer        *server,
 	SoupServerHandler *handler;
 	GIOStream *stream;
 	SoupWebsocketConnection *conn;
+	GList *websocket_extensions;
 
 	handler = get_handler (server, msg);
 	if (!handler || !handler->websocket_callback)
 		return;
 
 	g_object_ref (msg);
+	websocket_extensions = soup_server_message_steal_websocket_extensions (msg);
 	stream = soup_server_message_steal_connection (msg);
 	conn = SOUP_WEBSOCKET_CONNECTION (g_object_new (SOUP_TYPE_WEBSOCKET_CONNECTION,
 					  "io-stream", stream,
@@ -968,10 +968,9 @@ complete_websocket_upgrade (SoupServer        *server,
 					  "connection-type", SOUP_WEBSOCKET_CONNECTION_SERVER,
 					  "origin", soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg), SOUP_HEADER_ORIGIN),
 					  "protocol", soup_message_headers_get_one_common (soup_server_message_get_response_headers (msg), SOUP_HEADER_SEC_WEBSOCKET_PROTOCOL),
-					  "extensions", handler->websocket_extensions,
+					  "extensions", websocket_extensions,
 					  "max-total-message-size", (guint64)MAX_TOTAL_MESSAGE_SIZE_DEFAULT,
 					  NULL));
-	handler->websocket_extensions = NULL;
 	g_object_unref (stream);
 
 	(*handler->websocket_callback) (server, msg, g_uri_get_path (uri), conn,
@@ -1003,13 +1002,15 @@ got_body (SoupServer        *server,
 
 	if (handler->websocket_callback) {
 		SoupServerPrivate *priv;
+		GList *websocket_extensions = NULL;
 
 		priv = soup_server_get_instance_private (server);
 		if (soup_websocket_server_process_handshake (msg,
 							     handler->websocket_origin,
 							     handler->websocket_protocols,
 							     priv->websocket_extension_types,
-							     &handler->websocket_extensions)) {
+							     &websocket_extensions)) {
+			soup_server_message_set_websocket_extensions (msg, websocket_extensions);
 			g_signal_connect_object (msg, "wrote-informational",
 						 G_CALLBACK (complete_websocket_upgrade),
 						 server, G_CONNECT_SWAPPED);
@@ -1823,14 +1824,12 @@ soup_server_add_websocket_handler (SoupServer                   *server,
 		handler->websocket_destroy (handler->websocket_user_data);
 	g_free (handler->websocket_origin);
 	g_strfreev (handler->websocket_protocols);
-	g_list_free_full (handler->websocket_extensions, g_object_unref);
 
 	handler->websocket_callback   = callback;
 	handler->websocket_destroy    = destroy;
 	handler->websocket_user_data  = user_data;
 	handler->websocket_origin     = g_strdup (origin);
 	handler->websocket_protocols  = g_strdupv (protocols);
-	handler->websocket_extensions = NULL;
 }
 
 /**
