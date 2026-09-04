@@ -98,6 +98,7 @@ tests = [
   {'name': 'misc'},
   {'name': 'multipart'},
   {'name': 'multithread'},
+  {'name': 'proxy-auth-cache', 'parallel': false},
   {'name': 'no-ssl'},
   {'name': 'ntlm'},
   {'name': 'range', 'parallel': false},

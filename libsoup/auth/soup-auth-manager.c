@@ -54,6 +54,7 @@ typedef struct {
 	GPtrArray *auth_types;
 
 	SoupAuth *proxy_auth;
+	char *proxy_auth_host;
         GMutex mutex;
 	GHashTable *auth_hosts;
 } SoupAuthManagerPrivate;
@@ -97,6 +98,7 @@ soup_auth_manager_finalize (GObject *object)
 	g_hash_table_destroy (priv->auth_hosts);
 
 	g_clear_object (&priv->proxy_auth);
+	g_clear_pointer (&priv->proxy_auth_host, g_free);
 
         g_mutex_clear (&priv->mutex);
 
@@ -450,6 +452,38 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	return NULL;
 }
 
+static char *
+get_proxy_authority (SoupMessage *msg)
+{
+	SoupConnection *conn = soup_message_get_connection (msg);
+	GUri *proxy_uri;
+	char *authority = NULL;
+
+	if (!conn)
+		return NULL;
+
+	proxy_uri = soup_connection_get_proxy_uri (conn);
+	if (proxy_uri)
+		authority = g_strdup_printf ("%s:%d", g_uri_get_host (proxy_uri), g_uri_get_port (proxy_uri));
+
+	g_object_unref (conn);
+
+	return authority;
+}
+
+static gboolean
+proxy_auth_matches_msg (SoupAuthManagerPrivate *priv, SoupMessage *msg)
+{
+	char *authority = get_proxy_authority (msg);
+	gboolean matches;
+
+	matches = authority && priv->proxy_auth_host &&
+		  g_strcmp0 (authority, priv->proxy_auth_host) == 0;
+	g_free (authority);
+
+	return matches;
+}
+
 static SoupAuth *
 lookup_proxy_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 {
@@ -463,7 +497,13 @@ lookup_proxy_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 		return NULL;
 
-	return priv->proxy_auth;
+	/* Only reuse the cached proxy credentials for the same proxy they were
+	 * obtained from, otherwise switching proxies would leak them.
+	 */
+	if (priv->proxy_auth && proxy_auth_matches_msg (priv, msg))
+		return priv->proxy_auth;
+
+	return NULL;
 }
 
 static void
@@ -657,8 +697,9 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 			prior_auth_failed = TRUE;
 	}
 
-	if (!soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
-		auth = priv->proxy_auth ? g_object_ref (priv->proxy_auth) : NULL;
+	if (!soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE) &&
+	    priv->proxy_auth && proxy_auth_matches_msg (priv, msg))
+		auth = g_object_ref (priv->proxy_auth);
 
 	if (!auth) {
 		auth = create_auth (priv, msg);
@@ -667,8 +708,11 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 			return;
                 }
 
-		if (!soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
-			priv->proxy_auth = g_object_ref (auth);
+		if (!soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE)) {
+			g_set_object (&priv->proxy_auth, auth);
+			g_free (priv->proxy_auth_host);
+			priv->proxy_auth_host = get_proxy_authority (msg);
+		}
 	}
 
         g_mutex_unlock (&priv->mutex);
