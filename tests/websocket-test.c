@@ -23,6 +23,9 @@
 #include "soup-server-message-private.h"
 #include "soup-websocket-connection-private.h"
 #include <zlib.h>
+#ifdef G_OS_UNIX
+#include <sys/socket.h>
+#endif
 
 typedef struct {
 	GSocket *listener;
@@ -1578,6 +1581,70 @@ close_after_close_server_thread (gpointer user_data)
 	g_assert_no_error (error);
 
 	return NULL;
+}
+
+#define PING_FLOOD_COUNT 20000
+#define MAX_PENDING_PONGS_EXPECTED 64
+
+static gpointer
+ping_flood_server_thread (gpointer user_data)
+{
+	Test *test = user_data;
+	/* Unmasked empty ping frames (server -> client) */
+	GByteArray *frames = g_byte_array_new ();
+	gsize written;
+	int i;
+	GError *error = NULL;
+
+	for (i = 0; i < PING_FLOOD_COUNT; i++)
+		g_byte_array_append (frames, (const guint8 *)"\x89\x00", 2);
+
+	g_mutex_lock (&test->mutex);
+	g_mutex_unlock (&test->mutex);
+
+	g_output_stream_write_all (g_io_stream_get_output_stream (test->raw_server),
+				   frames->data, frames->len, &written, NULL, &error);
+	g_byte_array_unref (frames);
+
+	return NULL;
+}
+
+/* A ping flood from a peer that does not drain our pongs must not let the
+ * outgoing queue (and the O(n) urgent-insert walk per pong) grow without
+ * bound. See issue #528.
+ */
+static void
+test_ping_flood (Test *test,
+		 gconstpointer data)
+{
+	GThread *thread;
+	GIOStream *client_stream;
+	GSocket *socket;
+	guint pending;
+	guint idle = 0;
+
+	/* Force the client's pong writes to block by shrinking its socket send
+	 * buffer; this peer never reads, so the pongs pile up in priv->outgoing.
+	 */
+	client_stream = soup_websocket_connection_get_io_stream (test->client);
+	g_assert_true (G_IS_SOCKET_CONNECTION (client_stream));
+	socket = g_socket_connection_get_socket (G_SOCKET_CONNECTION (client_stream));
+	g_socket_set_option (socket, SOL_SOCKET, SO_SNDBUF, 2048, NULL);
+
+	g_mutex_lock (&test->mutex);
+	thread = g_thread_new ("ping-flood-thread", ping_flood_server_thread, test);
+	g_mutex_unlock (&test->mutex);
+
+	/* All ping bytes are now buffered in the socket; wait for them to be
+	 * written, then drain every ready event so the client reads all pings
+	 * and queues (or drops) the resulting pongs.
+	 */
+	g_thread_join (thread);
+	while (g_main_context_iteration (NULL, FALSE))
+		idle++;
+
+	pending = soup_websocket_connection_get_pending_pong_count_for_tests (test->client);
+	g_assert_cmpuint (pending, <=, MAX_PENDING_PONGS_EXPECTED);
 }
 
 static void
@@ -3188,6 +3255,10 @@ main (int argc,
 		    test_message_after_closing,
 		    teardown_soup_connection);
 
+	g_test_add ("/websocket/direct/ping-flood", Test, NULL,
+		    setup_half_direct_connection,
+		    test_ping_flood,
+		    teardown_direct_connection);
 	g_test_add ("/websocket/direct/close-after-close", Test, NULL,
 		    setup_half_direct_connection,
 		    test_close_after_close,

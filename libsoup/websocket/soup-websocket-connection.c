@@ -191,6 +191,12 @@ static void too_big_outgoing_payload_error_and_close (SoupWebsocketConnection *s
  */
 #define KEEPALIVE_PAYLOAD_PREFIX "libsoup-keepalive-"
 
+/* RFC 6455 5.5.3 allows an endpoint to skip responding to a ping if it is
+ * already flooded. Cap how many unsolicited pongs may sit unsent so a ping
+ * flood cannot grow priv->outgoing (and its per-insert cost) without bound.
+ */
+#define MAX_PENDING_PONGS 64
+
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupWebsocketConnection, soup_websocket_connection, G_TYPE_OBJECT)
 
 static void queue_frame (SoupWebsocketConnection *self, SoupWebsocketQueueFlags flags,
@@ -894,6 +900,24 @@ receive_close (SoupWebsocketConnection *self,
 	}
 }
 
+static guint
+count_pending_pongs (SoupWebsocketConnectionPrivate *priv)
+{
+        guint n = 0;
+        GList *l;
+
+        for (l = g_queue_peek_head_link (&priv->outgoing); l != NULL; l = l->next) {
+                Frame *frame = l->data;
+                const guint8 *bytes = g_bytes_get_data (frame->data, NULL);
+
+                /* The opcode is the low nibble of the first header byte */
+                if ((bytes[0] & 0x0f) == 0x0A)
+                        n++;
+        }
+
+        return n;
+}
+
 static void
 receive_ping (SoupWebsocketConnection *self,
                       const guint8 *data,
@@ -902,6 +926,11 @@ receive_ping (SoupWebsocketConnection *self,
         SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 
         if (!priv->suppress_pongs_for_tests) {
+                if (count_pending_pongs (priv) >= MAX_PENDING_PONGS) {
+                        g_debug ("received ping, but too many pongs are already queued; dropping");
+                        return;
+                }
+
                 /* Send back a pong with same data */
                 g_debug ("received ping, responding");
                 send_message (self, SOUP_WEBSOCKET_QUEUE_URGENT, 0x0A, data, len);
@@ -2591,4 +2620,12 @@ soup_websocket_connection_set_suppress_pongs_for_tests (SoupWebsocketConnection 
         SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 
         priv->suppress_pongs_for_tests = suppress;
+}
+
+guint
+soup_websocket_connection_get_pending_pong_count_for_tests (SoupWebsocketConnection *self)
+{
+        SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
+
+        return count_pending_pongs (priv);
 }
