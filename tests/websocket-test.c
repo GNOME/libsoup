@@ -1812,6 +1812,52 @@ test_deflate_output_limit (gconstpointer data)
 	g_object_unref (sender);
 }
 
+/* deflateBound() of a ~4 GiB payload exceeds what a GByteArray can hold. The
+ * extension must refuse it before compressing rather than truncating the bound
+ * to a guint and later growing the array past its limit. The payload data is
+ * never read, so a bogus pointer with a huge length is enough.
+ */
+static void
+test_deflate_outgoing_too_large (void)
+{
+	SoupWebsocketExtension *extension;
+	GBytes *payload;
+	GBytes *output;
+	GError *error = NULL;
+	guint8 header = 0x82;
+	static const guint8 dummy[1] = { 0 };
+
+	if (sizeof (gsize) < 8) {
+		g_test_skip ("needs a 64-bit gsize");
+		return;
+	}
+
+	extension = g_object_new (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE, NULL);
+	g_assert_true (soup_websocket_extension_configure (extension,
+							   SOUP_WEBSOCKET_CONNECTION_CLIENT,
+							   NULL, &error));
+	g_assert_no_error (error);
+
+	payload = g_bytes_new_static (dummy, (gsize)G_MAXUINT - 100);
+	output = soup_websocket_extension_process_outgoing_message (extension, &header,
+								    payload, &error);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+	g_assert_null (output);
+	/* The frame must not have been marked as compressed */
+	g_assert_cmpuint (header & 0x40, ==, 0);
+	g_clear_error (&error);
+
+	/* The extension must still be usable afterwards */
+	payload = g_bytes_new_static ("hello", 5);
+	output = soup_websocket_extension_process_outgoing_message (extension, &header,
+								    payload, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (output);
+	g_bytes_unref (output);
+
+	g_object_unref (extension);
+}
+
 static const DeflateOutputLimitTest deflate_output_below_limit = {
 	4095, 4096, FALSE
 };
@@ -3098,6 +3144,8 @@ main (int argc,
 
 	g_test_add_func ("/websocket/extension/incoming-limit-legacy-fallback",
 			 test_websocket_extension_limit_fallback);
+	g_test_add_func ("/websocket/deflate/outgoing-too-large",
+			 test_deflate_outgoing_too_large);
 	g_test_add_data_func ("/websocket/deflate/output-limit/below",
 			      &deflate_output_below_limit,
 			      test_deflate_output_limit);
