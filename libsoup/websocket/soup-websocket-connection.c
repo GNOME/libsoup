@@ -176,6 +176,16 @@ typedef struct {
  */
 #define MAX_INCOMING_PAYLOAD_SIZE ((guint64)G_MAXINT - MAX_FRAME_HEADER_SIZE - READ_BUFFER_SIZE)
 
+/* Likewise for a reassembled message and for an outgoing frame, which are
+ * also built in GByteArrays. Extensions may expand a frame's payload, so the
+ * incoming cap above does not bound these on its own.
+ */
+#define MAX_MESSAGE_SIZE ((guint64)G_MAXINT - 1)
+#define MAX_OUTGOING_PAYLOAD_SIZE ((gsize)G_MAXINT - MAX_FRAME_HEADER_SIZE)
+
+static void too_big_outgoing_payload_error_and_close (SoupWebsocketConnection *self,
+                                                      gsize                    len);
+
 /* If a pong payload begins with these bytes, we assume it is a pong from one of
  * our keepalive pings.
  */
@@ -513,6 +523,11 @@ send_message (SoupWebsocketConnection *self,
 		return;
 	}
 
+	if (length > MAX_OUTGOING_PAYLOAD_SIZE) {
+		too_big_outgoing_payload_error_and_close (self, length);
+		return;
+	}
+
 	bytes = g_byte_array_sized_new (14 + length);
 	outer = bytes->data;
 	outer[0] = 0x80 | opcode;
@@ -532,6 +547,14 @@ send_message (SoupWebsocketConnection *self,
 
 	data = g_bytes_get_data (filtered_bytes, &length);
 	buffered_amount = length;
+
+	/* Extensions may have grown the payload */
+	if (length > MAX_OUTGOING_PAYLOAD_SIZE) {
+		g_byte_array_free (bytes, TRUE);
+		g_bytes_unref (filtered_bytes);
+		too_big_outgoing_payload_error_and_close (self, length);
+		return;
+	}
 
 	/* If control message, check payload size */
 	if (opcode & 0x08) {
@@ -716,6 +739,20 @@ too_big_incoming_payload_error_and_close (SoupWebsocketConnection *self,
 		 priv->connection_type == SOUP_WEBSOCKET_CONNECTION_SERVER ? "server" : "client",
 	         payload_len, priv->max_incoming_payload_size);
 	emit_error_and_close (self, error, TRUE);
+}
+
+static void
+too_big_outgoing_payload_error_and_close (SoupWebsocketConnection *self,
+                                          gsize len)
+{
+	GError *error;
+
+	error = g_error_new_literal (SOUP_WEBSOCKET_ERROR,
+				     SOUP_WEBSOCKET_CLOSE_TOO_BIG,
+				     "WebSocket message is too large to send");
+	g_debug ("attempted to send a frame of size %" G_GSIZE_FORMAT ", but max supported size is %" G_GSIZE_FORMAT,
+	         len, MAX_OUTGOING_PAYLOAD_SIZE);
+	emit_error_and_close (self, error, FALSE);
 }
 
 static void
@@ -986,6 +1023,21 @@ process_contents (SoupWebsocketConnection *self,
 				return;
 			}
 			g_debug ("received frame %d with %d payload", (int)opcode, (int)payload_len);
+		}
+
+		/* Regardless of max-total-message-size, the reassembled message
+		 * must fit in a GByteArray. Check before allocating, since
+		 * g_byte_array_sized_new() takes a guint too.
+		 */
+		if (payload_len > MAX_MESSAGE_SIZE - (priv->message_data ? priv->message_data->len : 0)) {
+			guint64 message_size = priv->message_data ? priv->message_data->len : 0;
+
+			if (payload_len > G_MAXUINT64 - message_size)
+				message_size = G_MAXUINT64;
+			else
+				message_size += payload_len;
+			too_big_message_error_and_close (self, message_size);
+			return;
 		}
 
 		if (opcode) {

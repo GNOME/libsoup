@@ -40,6 +40,7 @@ typedef struct {
 	GIOStream *raw_server;
 
 	gboolean enable_extensions;
+	GType server_extension_type;
 	gboolean disable_deflate_in_message;
 
 	GList *initial_cookies;
@@ -179,6 +180,8 @@ got_connection (GSocket *listener,
 									   NULL, NULL));
 			extensions = g_list_prepend (extensions, extension);
 		}
+		if (test->server_extension_type)
+			extensions = g_list_prepend (extensions, g_object_new (test->server_extension_type, NULL));
 		test->server = soup_websocket_connection_new (G_IO_STREAM (conn), uri,
 							      SOUP_WEBSOCKET_CONNECTION_SERVER,
 							      NULL, NULL,
@@ -2869,6 +2872,137 @@ test_bad_length_unmasked (Test *test,
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 }
 
+#ifdef G_OS_UNIX
+#include <sys/mman.h>
+#endif
+
+/* Sending a payload larger than a GByteArray can hold. The frame is built in
+ * a GByteArray, so g_byte_array_sized_new() and g_byte_array_append() used to
+ * truncate the length while xor_with_mask() still iterated the full length,
+ * writing past the small allocation. The mapping is never read when the size
+ * is rejected up front, so MAP_NORESERVE keeps this cheap.
+ */
+static void
+test_send_over_buffer_limit (Test *test,
+                             gconstpointer unused)
+{
+#ifdef G_OS_UNIX
+	GError *error = NULL;
+	gsize length = (gsize)G_MAXINT + 1;
+	void *payload;
+
+	if (sizeof (gsize) < 8) {
+		g_test_skip ("needs a 64-bit gsize");
+		return;
+	}
+
+	payload = mmap (NULL, length, PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+	if (payload == MAP_FAILED) {
+		g_test_skip ("could not map a 2 GiB region");
+		return;
+	}
+
+	g_signal_handlers_disconnect_by_func (test->client, on_error_not_reached, NULL);
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy), &error);
+
+	soup_websocket_connection_send_binary (test->client, payload, length);
+
+	wait_for_websocket_error (&error);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+	g_clear_error (&error);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+
+	munmap (payload, length);
+#else
+	g_test_skip ("needs mmap");
+#endif
+}
+
+/* An extension that claims every data frame expands to 2 GiB. The returned
+ * GBytes points at a tiny static buffer; the connection must reject the size
+ * before it ever copies the data into the reassembly buffer.
+ */
+typedef struct {
+	SoupWebsocketExtension parent_instance;
+} ExpandingWebsocketExtension;
+
+typedef struct {
+	SoupWebsocketExtensionClass parent_class;
+} ExpandingWebsocketExtensionClass;
+
+GType expanding_websocket_extension_get_type (void);
+
+#define EXPANDING_TYPE_WEBSOCKET_EXTENSION (expanding_websocket_extension_get_type ())
+G_DEFINE_TYPE (ExpandingWebsocketExtension, expanding_websocket_extension, SOUP_TYPE_WEBSOCKET_EXTENSION)
+
+static GBytes *
+expanding_websocket_extension_process_incoming_message (SoupWebsocketExtension *extension,
+							guint8                 *header,
+							GBytes                 *payload,
+							GError                **error)
+{
+	static const guint8 dummy[1] = { 0 };
+
+	/* Leave control frames alone */
+	if (header[0] & 0x08)
+		return payload;
+
+	g_bytes_unref (payload);
+	return g_bytes_new_static (dummy, (gsize)G_MAXINT);
+}
+
+static void
+expanding_websocket_extension_class_init (ExpandingWebsocketExtensionClass *klass)
+{
+	SoupWebsocketExtensionClass *extension_class = SOUP_WEBSOCKET_EXTENSION_CLASS (klass);
+
+	extension_class->process_incoming_message = expanding_websocket_extension_process_incoming_message;
+}
+
+static void
+expanding_websocket_extension_init (ExpandingWebsocketExtension *extension)
+{
+}
+
+static void
+setup_direct_connection_with_expanding_extension (Test *test,
+						  gconstpointer data)
+{
+	test->server_extension_type = EXPANDING_TYPE_WEBSOCKET_EXTENSION;
+	setup_direct_connection (test, data);
+}
+
+static void
+test_receive_expanded_over_buffer_limit (Test *test,
+                                         gconstpointer unused)
+{
+	GError *error = NULL;
+	GBytes *received = NULL;
+
+	if (sizeof (gsize) < 8) {
+		g_test_skip ("needs a 64-bit gsize");
+		return;
+	}
+
+	g_signal_handlers_disconnect_by_func (test->server, on_error_not_reached, NULL);
+	g_signal_connect (test->server, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->server, "message", G_CALLBACK (on_binary_message), &received);
+
+	/* No configured limit: only the buffer ceiling protects us */
+	soup_websocket_connection_set_max_total_message_size (test->server, 0);
+
+	soup_websocket_connection_send_binary (test->client, "hello", 5);
+
+	wait_for_websocket_error (&error);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+	g_clear_error (&error);
+	g_assert_null (received);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+}
+
 /* A declared payload length that fits in a gsize, and so passed the old
  * overflow check, but that the GByteArray-backed incoming buffer can never
  * hold. With no configured max-incoming-payload-size the receiver used to
@@ -3275,6 +3409,14 @@ main (int argc,
 	g_test_add ("/websocket/direct/payload-over-buffer-limit", Test, NULL,
 		    setup_direct_connection,
 		    test_payload_over_buffer_limit,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/direct/send-over-buffer-limit", Test, NULL,
+		    setup_direct_connection,
+		    test_send_over_buffer_limit,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/direct/receive-expanded-over-buffer-limit", Test, NULL,
+		    setup_direct_connection_with_expanding_extension,
+		    test_receive_expanded_over_buffer_limit,
 		    teardown_direct_connection);
 	g_test_add ("/websocket/soup/bad-length-masked", Test, NULL,
 		    setup_soup_connection,
