@@ -2758,13 +2758,12 @@ test_bad_length_masked (Test *test,
 	g_assert_cmpuint (written, ==, 14);
 
 	WAIT_UNTIL (error != NULL);
-	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
 	g_clear_error (&error);
 
+	/* The receiver closes the stream immediately rather than negotiating a close */
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 	g_assert_true (close_event);
-
-	g_assert_cmpuint (soup_websocket_connection_get_close_code (test->client), ==, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
 }
 
 static gpointer
@@ -2802,7 +2801,7 @@ test_bad_length_unmasked (Test *test,
 	thread = g_thread_new ("send-bad-length-frame-thread", send_bad_length_frame_server_thread, test);
 
 	WAIT_UNTIL (error != NULL || received != NULL);
-	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_BAD_DATA);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
 	g_clear_error (&error);
 	g_assert_null (received);
 
@@ -2812,6 +2811,44 @@ test_bad_length_unmasked (Test *test,
         g_thread_join (thread);
 
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+}
+
+/* A declared payload length that fits in a gsize, and so passed the old
+ * overflow check, but that the GByteArray-backed incoming buffer can never
+ * hold. With no configured max-incoming-payload-size the receiver used to
+ * keep buffering until the array length wrapped.
+ */
+static void
+test_payload_over_buffer_limit (Test *test,
+                                gconstpointer unused)
+{
+	GError *error = NULL;
+	GIOStream *io;
+	gsize written;
+	/* Masked binary frame declaring a 2 GiB payload (10-byte header + 4-byte mask) */
+	const char frame[] = "\x82\xff\x00\x00\x00\x00\x80\x00\x00\x00\xaa\xbb\xcc\xdd";
+	gboolean close_event = FALSE;
+
+	g_signal_handlers_disconnect_by_func (test->server, on_error_not_reached, NULL);
+	g_signal_connect (test->server, "error", G_CALLBACK (on_error_copy), &error);
+	g_signal_connect (test->client, "closed", G_CALLBACK (on_close_set_flag), &close_event);
+
+	soup_websocket_connection_set_max_incoming_payload_size (test->server, 0);
+
+	io = soup_websocket_connection_get_io_stream (test->client);
+	g_output_stream_write_all (g_io_stream_get_output_stream (io),
+				   frame, sizeof (frame) - 1, &written, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpuint (written, ==, sizeof (frame) - 1);
+
+	/* The error must be reported from the header alone, without waiting for payload */
+	wait_for_websocket_error (&error);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+	g_clear_error (&error);
+
+	/* The receiver closes the stream immediately rather than negotiating a close */
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert_true (close_event);
 }
 
 int
@@ -3176,6 +3213,10 @@ main (int argc,
 	g_test_add ("/websocket/direct/bad-length-masked", Test, NULL,
 		    setup_direct_connection,
 		    test_bad_length_masked,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/direct/payload-over-buffer-limit", Test, NULL,
+		    setup_direct_connection,
+		    test_payload_over_buffer_limit,
 		    teardown_direct_connection);
 	g_test_add ("/websocket/soup/bad-length-masked", Test, NULL,
 		    setup_soup_connection,

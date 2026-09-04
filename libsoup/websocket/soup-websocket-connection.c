@@ -168,6 +168,13 @@ typedef struct {
 #define MAX_INCOMING_PAYLOAD_SIZE_DEFAULT   128 * 1024
 #define READ_BUFFER_SIZE 1024
 #define MASK_LENGTH 4
+#define MAX_FRAME_HEADER_SIZE (10 + MASK_LENGTH)
+
+/* Incoming frames are buffered in a GByteArray, which uses guint lengths and
+ * whose growth is not safe beyond G_MAXINT on all supported GLib versions.
+ * Leave room for the largest possible frame header and one extra read.
+ */
+#define MAX_INCOMING_PAYLOAD_SIZE ((guint64)G_MAXINT - MAX_FRAME_HEADER_SIZE - READ_BUFFER_SIZE)
 
 /* If a pong payload begins with these bytes, we assume it is a pong from one of
  * our keepalive pings.
@@ -1158,9 +1165,14 @@ process_frame (SoupWebsocketConnection *self)
 		break;
 	}
 
-	/* Safety valve */
-	if (priv->max_incoming_payload_size > 0 &&
-	    payload_len > priv->max_incoming_payload_size) {
+	/* Safety valve. Even with no configured limit, the frame can never
+	 * exceed what the incoming buffer can hold. Checking this before any
+	 * arithmetic on payload_len also guarantees at + payload_len cannot
+	 * overflow below.
+	 */
+	if (payload_len > MAX_INCOMING_PAYLOAD_SIZE ||
+	    (priv->max_incoming_payload_size > 0 &&
+	     payload_len > priv->max_incoming_payload_size)) {
 		too_big_incoming_payload_error_and_close (self, payload_len);
 		return FALSE;
 	}
@@ -1169,12 +1181,6 @@ process_frame (SoupWebsocketConnection *self)
 		return FALSE; /* need more data */
 
 	payload = header + at;
-
-	/* at has a maximum value of 10 + 4 = 14 */
-	if (payload_len > G_MAXSIZE - 14) {
-		bad_data_error_and_close (self);
-		return FALSE;
-	}
 
 	if (masked) {
 		mask = header + at;
