@@ -878,6 +878,7 @@ receive_pong (SoupWebsocketConnection *self,
 {
         SoupWebsocketConnectionPrivate *priv = soup_websocket_connection_get_instance_private (self);
 	GByteArray *bytes;
+	GBytes *payload;
 
 	bytes = g_byte_array_sized_new (len + 1);
 	g_byte_array_append (bytes, data, len);
@@ -898,9 +899,9 @@ receive_pong (SoupWebsocketConnection *self,
                 g_debug ("received pong message");
         }
 
-	g_signal_emit (self, signals[PONG], 0, bytes);
-	g_byte_array_unref (bytes);
-
+	payload = g_byte_array_free_to_bytes (bytes);
+	g_signal_emit (self, signals[PONG], 0, payload);
+	g_bytes_unref (payload);
 }
 
 static void
