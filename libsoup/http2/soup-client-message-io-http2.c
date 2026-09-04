@@ -813,10 +813,11 @@ on_frame_recv_callback (nghttp2_session     *session,
 
                 switch (frame->hd.type) {
                 case NGHTTP2_GOAWAY:
-                        h2_debug (io, NULL, "[RECV] GOAWAY: error=%s, last_stream_id=%d %s",
+                        h2_debug (io, NULL, "[RECV] GOAWAY: error=%s, last_stream_id=%d %.*s",
                                   nghttp2_http2_strerror (frame->goaway.error_code),
                                   frame->goaway.last_stream_id,
-                                  frame->goaway.opaque_data ? (char *)frame->goaway.opaque_data : "");
+                                  (int)frame->goaway.opaque_data_len,
+                                  frame->goaway.opaque_data ? (const char *)frame->goaway.opaque_data : "");
                         handle_goaway (io, frame->goaway.error_code, frame->goaway.last_stream_id);
                         io->is_shutdown = TRUE;
                         soup_client_message_io_http2_terminate_session (io);
