@@ -629,6 +629,26 @@ parse_connect_authority (const char *req_path)
 	return uri;
 }
 
+/* RFC 9110 defines Host as "uri-host [ ":" port ]", so it never carries a
+ * path, query, fragment or userinfo. Reject values holding characters that
+ * would let the constructed request URI be reinterpreted: "?" and "#" shift
+ * the path and query, and "@" moves the host itself, since everything before
+ * it parses as userinfo. Either way a proxy and this server would disagree
+ * about what was requested.
+ */
+static gboolean
+req_host_is_valid (const char *host)
+{
+        const char *p;
+
+        for (p = host; *p; p++) {
+                if ((guchar)*p <= ' ' || strchr ("/?#\\%@", *p))
+                        return FALSE;
+        }
+
+        return TRUE;
+}
+
 static guint
 parse_headers (SoupServerMessage *msg,
                char              *headers,
@@ -678,7 +698,7 @@ parse_headers (SoupServerMessage *msg,
 
         /* Generate correct context for request */
         req_host = soup_message_headers_get_one_common (request_headers, SOUP_HEADER_HOST);
-        if (req_host && strchr (req_host, '/')) {
+        if (req_host && !req_host_is_valid (req_host)) {
                 g_free (req_path);
                 return SOUP_STATUS_BAD_REQUEST;
         }
