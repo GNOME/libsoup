@@ -3121,6 +3121,28 @@ soup_message_set_reason_phrase (SoupMessage *msg, const char *reason_phrase)
         g_object_notify_by_pspec (G_OBJECT (msg), properties[PROP_REASON_PHRASE]);
 }
 
+/* Validates that a method string conforms to the RFC 9110 'token' specification. */
+static gboolean
+method_is_valid (const char *method)
+{
+        const char *p;
+
+        if (method == NULL || *method == '\0')
+                return FALSE;
+
+        for (p = method; *p != '\0'; p++) {
+                char c = *p;
+
+                if (g_ascii_isalnum (c))
+                        continue;
+
+	        if (strchr ("!#$%&\'*+-.^_`|~", c) == NULL)
+		        return FALSE;
+        }
+
+        return TRUE;
+}
+
 /**
  * soup_message_set_method: (attributes org.gtk.Method.set_property=method)
  * @msg: a #SoupMessage
@@ -3133,8 +3155,16 @@ soup_message_set_method (SoupMessage *msg,
                          const char  *method)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-        const char *new_method = g_intern_string (method);
+        const char *new_method;
 
+        g_return_if_fail (method != NULL);
+
+        if (!method_is_valid (method)) {
+                g_warning ("soup_message_set_method: Rejecting invalid method '%s'", method);
+                return;
+        }
+
+        new_method = g_intern_string (method);
         if (priv->method == new_method)
                 return;
 
