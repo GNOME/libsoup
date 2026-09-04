@@ -283,6 +283,7 @@ soup_websocket_extension_deflate_process_outgoing_message (SoupWebsocketExtensio
 {
         const guint8 *payload_data;
         gsize payload_length;
+        unsigned long bound;
         guint max_length;
         gboolean control;
         GByteArray *buffer;
@@ -306,11 +307,21 @@ soup_websocket_extension_deflate_process_outgoing_message (SoupWebsocketExtensio
         if (payload_length == 0)
                 return payload;
 
+        bound = deflateBound (&priv->deflater.zstream, payload_length);
+        if (bound > G_MAXUINT) {
+                g_set_error_literal (error,
+                                     SOUP_WEBSOCKET_ERROR,
+                                     SOUP_WEBSOCKET_CLOSE_TOO_BIG,
+                                     "Outgoing WebSocket message is too large to compress");
+                g_bytes_unref (payload);
+                return NULL;
+        }
+
         /* Mark the frame as compressed using reserved bit 1 (0x40) */
         header[0] |= 0x40;
 
         buffer = g_byte_array_new ();
-        max_length = deflateBound(&priv->deflater.zstream, payload_length);
+        max_length = (guint)bound;
 
         priv->deflater.zstream.next_in = (void *)payload_data;
         priv->deflater.zstream.avail_in = payload_length;
@@ -323,6 +334,17 @@ soup_websocket_extension_deflate_process_outgoing_message (SoupWebsocketExtensio
 
                 if (priv->deflater.zstream.avail_out == 0) {
                         guint write_position;
+
+                        if (buffer->len > G_MAXUINT - max_length) {
+                                deflateReset (&priv->deflater.zstream);
+                                g_byte_array_unref (buffer);
+                                g_bytes_unref (payload);
+                                g_set_error_literal (error,
+                                                     SOUP_WEBSOCKET_ERROR,
+                                                     SOUP_WEBSOCKET_CLOSE_TOO_BIG,
+                                                     "Compressed WebSocket message is too large");
+                                return NULL;
+                        }
 
                         priv->deflater.zstream.avail_out = max_length;
                         write_position = buffer->len;
