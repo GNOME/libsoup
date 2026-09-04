@@ -13,4 +13,5 @@ libsoup/server/soup-listener.c
 libsoup/server/soup-server.c
 libsoup/soup-session.c
 libsoup/soup-tld.c
+libsoup/websocket/soup-websocket-connection.c
 libsoup/websocket/soup-websocket.c
