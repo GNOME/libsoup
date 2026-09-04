@@ -597,6 +597,42 @@ test_multipart_bounds_bad_3 (void)
 }
 
 static void
+test_multipart_bounds_bad_4 (void)
+{
+        SoupMessage *msg;
+        SoupMessageHeaders *headers;
+        GInputStream *in;
+        GInputStream *next_part;
+        SoupMultipartInputStream *multipart;
+        GError *error = NULL;
+        gchar *boundary;
+        gchar *content_type;
+        gchar *raw_data;
+
+        boundary = g_new (gchar, 20001);
+        memset (boundary, 'a', 20000);
+        boundary[20000] = '\0';
+
+        msg = soup_message_new(SOUP_METHOD_POST, "http://foo/upload");
+        headers = soup_message_get_response_headers (msg);
+        content_type = g_strconcat ("multipart/form-data; boundary=\"", boundary, "\"", NULL);
+        soup_message_headers_replace (headers, "Content-Type", content_type);
+
+        raw_data = g_strconcat ("--", boundary, "\r\nContent-Type: text-plain\r\n\r\nX\r\n", NULL);
+        in = g_memory_input_stream_new_from_data (raw_data, strlen (raw_data), NULL);
+        multipart = soup_multipart_input_stream_new (msg, in);
+        g_object_unref (in);
+        next_part = soup_multipart_input_stream_next_part (multipart, NULL, &error);
+        g_assert_no_error (error);
+        g_assert_null (next_part);
+        g_object_unref (multipart);
+        g_object_unref (msg);
+        g_free (raw_data);
+        g_free (content_type);
+        g_free (boundary);
+}
+
+static void
 test_multipart_too_large (void)
 {
 	const char *raw_body =
@@ -666,6 +702,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/multipart/bounds-bad", test_multipart_bounds_bad);
 	g_test_add_func ("/multipart/bounds-bad-2", test_multipart_bounds_bad_2);
         g_test_add_func ("/multipart/bounds-bad-3", test_multipart_bounds_bad_3);
+        g_test_add_func ("/multipart/bounds-bad-4", test_multipart_bounds_bad_4);
 	g_test_add_func ("/multipart/too-large", test_multipart_too_large);
 
 	ret = g_test_run ();

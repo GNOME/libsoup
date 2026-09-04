@@ -361,7 +361,6 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
 {
 	SoupMultipartInputStreamPrivate *priv = soup_multipart_input_stream_get_instance_private (multipart);
 	guchar read_buf[RESPONSE_BLOCK_SIZE];
-	guchar *buf;
 	gboolean got_boundary = FALSE;
 	gboolean got_lf = FALSE;
 	gssize nread = 0;
@@ -383,22 +382,23 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
 		 * may get the multipart end indicator without getting a new line.
 		 */
 		if (!got_boundary &&
+		    priv->meta_buf->len >= priv->boundary_size &&
 		    !strncmp ((char *)priv->meta_buf->data,
 			      priv->boundary,
 			      priv->boundary_size)) {
 			got_boundary = TRUE;
 
 			/* Now check for possible multipart termination. */
-			buf = &read_buf[nread - 4];
-			if ((nread >= 4 && !memcmp (buf, "--\r\n", 4)) ||
-			    (nread >= 3 && !memcmp (buf + 1, "--\n", 3)) ||
-			    (nread >= 3 && !memcmp (buf + 2, "--", 2))) {
+			if ((nread >= 4 && !memcmp (read_buf + nread - 4, "--\r\n", 4)) ||
+			    (nread >= 3 && !memcmp (read_buf + nread - 3, "--\n", 3)) ||
+			    (nread >= 3 && !memcmp (read_buf + nread - 2, "--", 2))) {
 				g_byte_array_set_size (priv->meta_buf, 0);
 				return FALSE;
 			}
 		}
 
-		g_return_val_if_fail (got_lf, FALSE);
+		if (!got_lf)
+			return FALSE;
 
 		/* Discard pre-boundary lines. */
 		if (!got_boundary) {
