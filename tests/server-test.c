@@ -523,6 +523,73 @@ smuggle_auth_callback (SoupAuthDomain    *domain,
 	return FALSE;
 }
 
+/* The server builds the request URI from the Host header. A Host value that
+ * smuggles URI delimiters (here a percent-encoded "?" and "#") must be
+ * rejected rather than shifting the path or query. See issue #492.
+ */
+static void
+assert_host_header_status (GUri       *server_uri,
+			   const char *host,
+			   const char *expected_status)
+{
+	GSocketClient *client;
+	GSocketConnection *conn;
+	GInputStream *istream;
+	GOutputStream *ostream;
+	GError *error = NULL;
+	char *request;
+	char buf[1024];
+	gssize n;
+
+	client = g_socket_client_new ();
+	conn = g_socket_client_connect_to_host (client, "127.0.0.1", g_uri_get_port (server_uri), NULL, &error);
+	g_assert_no_error (error);
+	g_socket_set_timeout (g_socket_connection_get_socket (conn), 5);
+	istream = g_io_stream_get_input_stream (G_IO_STREAM (conn));
+	ostream = g_io_stream_get_output_stream (G_IO_STREAM (conn));
+
+	request = g_strdup_printf ("GET /path HTTP/1.1\r\n"
+				   "Host: %s\r\n"
+				   "\r\n", host);
+	g_output_stream_write_all (ostream, request, strlen (request), NULL, NULL, &error);
+	g_assert_no_error (error);
+
+	n = g_input_stream_read (istream, buf, sizeof (buf) - 1, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpint (n, >, 0);
+	buf[n] = '\0';
+	soup_test_assert (strstr (buf, expected_status) != NULL,
+			  "Host: %s -> expected %s, got: %.*s",
+			  host, expected_status, (int)strcspn (buf, "\r\n"), buf);
+
+	g_free (request);
+	g_io_stream_close (G_IO_STREAM (conn), NULL, NULL);
+	g_object_unref (conn);
+	g_object_unref (client);
+}
+
+static void
+do_bad_host_header_test (void)
+{
+	SoupServer *server;
+	GUri *uri;
+
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+	uri = soup_test_server_get_uri (server, "http", "127.0.0.1");
+
+	assert_host_header_status (uri, "localhost:80%3fkey=value%23", " 400 ");
+	/* Everything before "@" parses as userinfo, so the real host becomes
+	 * whatever follows it.
+	 */
+	assert_host_header_status (uri, "localhost@internal.test", " 400 ");
+	assert_host_header_status (uri, "user:pass@internal.test", " 400 ");
+	assert_host_header_status (uri, "localhost", " 200 ");
+
+	g_uri_unref (uri);
+	soup_test_server_quit_unref (server);
+}
+
 /* A client that requests "Expect: 100-continue" may still send its body
  * without waiting. If the server produces an early final response (here a 401
  * from an auth domain) without draining that body, the leftover bytes must not
@@ -1638,6 +1705,7 @@ main (int argc, char **argv)
 	g_test_add ("/server/multi/family", ServerData, NULL,
 		    NULL, do_multi_family_test, server_teardown);
 	g_test_add_func ("/server/early-response-expect-continue", do_early_response_expect_continue_test);
+	g_test_add_func ("/server/bad-host-header", do_bad_host_header_test);
 	g_test_add_func ("/server/import/gsocket", do_gsocket_import_test);
 	g_test_add_func ("/server/import/fd", do_fd_import_test);
 	g_test_add_func ("/server/accept/iostream", do_iostream_accept_test);
