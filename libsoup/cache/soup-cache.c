@@ -174,6 +174,7 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 	SoupCacheability cacheability;
 	const char *cache_control, *content_type;
 	gboolean has_max_age = FALSE;
+	gboolean permits_authorized_shared_caching = FALSE;
 
 	/* 1. The request method must be cacheable */
 	if (soup_message_get_method (msg) == SOUP_METHOD_GET)
@@ -201,6 +202,11 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 				soup_header_free_param_list (hash);
 				return SOUP_CACHE_UNCACHEABLE;
 			}
+
+			permits_authorized_shared_caching =
+				g_hash_table_lookup_extended (hash, "public", NULL, NULL) ||
+				g_hash_table_lookup_extended (hash, "must-revalidate", NULL, NULL) ||
+				g_hash_table_lookup_extended (hash, "s-maxage", NULL, NULL);
 		}
 
 		/* 2. The 'no-store' cache directive does not appear in the
@@ -224,6 +230,15 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 
 		soup_header_free_param_list (hash);
 	}
+
+	/* RFC 7234 Section 3.2: a shared cache MUST NOT store a response to
+	 * a request containing an Authorization header unless the response
+	 * explicitly allows it with public, must-revalidate or s-maxage.
+	 */
+	if (priv->cache_type == SOUP_CACHE_SHARED &&
+	    !permits_authorized_shared_caching &&
+	    soup_message_headers_get_one_common (soup_message_get_request_headers (msg), SOUP_HEADER_AUTHORIZATION))
+		return SOUP_CACHE_UNCACHEABLE;
 
 	/* Section 13.9 */
 	if ((g_uri_get_query (soup_message_get_uri (msg))) &&
