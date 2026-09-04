@@ -11,4 +11,6 @@
 void soup_websocket_connection_set_suppress_pongs_for_tests (SoupWebsocketConnection *self,
                                                              gboolean suppress);
 
+guint soup_websocket_connection_get_pending_pong_count_for_tests (SoupWebsocketConnection *self);
+
 #endif /* __SOUP_WEBSOCKET_CONNECTION_PRIVATE_H__ */
