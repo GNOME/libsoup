@@ -316,12 +316,17 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 	} else
 		buf = priv->buf->data;
 
-	/* Scan for the boundary within the range we can possibly return. */
-	if (include_boundary)
+	/* Scan for the boundary within the range we can possibly return.
+	 * If we have fewer bytes than the boundary is long there is nothing
+	 * to scan yet; the subtractions below would underflow otherwise.
+	 */
+	if (priv->buf->len < boundary_length)
+		end = NULL;
+	else if (include_boundary)
 		end = buf + MIN (priv->buf->len, length) - boundary_length;
 	else
 		end = buf + MIN (priv->buf->len - boundary_length, length);
-	for (p = buf; p <= end; p++) {
+	for (p = buf; end && p <= end; p++) {
 		if (*p == *(guint8*)boundary &&
 		    !memcmp (p, boundary, boundary_length)) {
 			if (include_boundary)
