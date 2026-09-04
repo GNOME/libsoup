@@ -15,6 +15,7 @@
 #include "soup.h"
 #include "soup-connection-auth.h"
 #include "soup-message-private.h"
+#include "soup-connection.h"
 #include "soup-message-headers-private.h"
 #include "soup-path-map.h"
 #include "soup-session-private.h"
@@ -705,6 +706,8 @@ auth_msg_starting (SoupMessage *msg, gpointer manager)
 {
         SoupAuthManagerPrivate *priv = soup_auth_manager_get_instance_private (manager);
 	SoupAuth *auth;
+	SoupConnection *conn;
+	gboolean tunnelled;
 
 	if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
 		return;
@@ -720,6 +723,20 @@ auth_msg_starting (SoupMessage *msg, gpointer manager)
 		}
 		soup_message_set_auth (msg, auth);
 		update_authorization_header (msg, auth, FALSE);
+	}
+
+	/* Proxy-Authorization must only be sent to the proxy itself, never on
+	 * a request travelling through an established CONNECT tunnel to the
+	 * origin server, which would leak the proxy credentials to the origin.
+	 */
+	conn = soup_message_get_connection (msg);
+	tunnelled = conn && soup_connection_is_tunnelled (conn);
+	g_clear_object (&conn);
+	if (tunnelled) {
+		soup_message_set_proxy_auth (msg, NULL);
+		update_authorization_header (msg, NULL, TRUE);
+		g_mutex_unlock (&priv->mutex);
+		return;
 	}
 
 	auth = lookup_proxy_auth (priv, msg);
