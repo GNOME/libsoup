@@ -184,10 +184,13 @@ static struct {
         { "data:text/plain,hello", "hello", "text/plain" },
         { "data:text/plain;charset=UTF-8,hello", "hello", "text/plain;charset=UTF-8" },
         { "data:text/plain;base64,aGVsbG8=", "hello", "text/plain" },
-        { "data:text/plain;base64,invalid=", "", "text/plain" },
+        { "data:text/plain;base64,invalid=", "\x8a\x7b\xda\x96\x27", "text/plain" },
         { "data:,", "", CONTENT_TYPE_DEFAULT },
-        { "data:.///", "./", CONTENT_TYPE_DEFAULT },
-        { "data:/.//", "./", CONTENT_TYPE_DEFAULT },
+        { "data:.///", "/.//", CONTENT_TYPE_DEFAULT },
+        { "data:/.//", "/.//", CONTENT_TYPE_DEFAULT },
+        /* Embedded NUL bytes in base64 data must not be treated as the end of the input */
+        { "data:;base64,%00%00%00", "", CONTENT_TYPE_DEFAULT },
+        { "data:;base64,aGVs%00bG8=", "hello", CONTENT_TYPE_DEFAULT },
 };
 
 static void
@@ -207,6 +210,8 @@ do_data_uri_tests (void)
 
                 g_assert_nonnull (output);
                 g_assert_cmpstr (content_type, ==, data_uri_tests[i].content_type);
+                g_assert_cmpmem (g_bytes_get_data (output, NULL), g_bytes_get_size (output),
+                                 data_uri_tests[i].output, strlen (data_uri_tests[i].output));
 
 		g_free (content_type);
 		g_bytes_unref (output);
