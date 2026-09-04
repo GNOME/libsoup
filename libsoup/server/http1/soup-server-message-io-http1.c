@@ -629,6 +629,24 @@ parse_connect_authority (const char *req_path)
 	return uri;
 }
 
+/* A Host header value only ever names an authority. Reject values carrying
+ * characters that would let the constructed request URI be reinterpreted
+ * (for example a percent-encoded "?" or "#" that shifts the path/query),
+ * which could desync path-based checks between a proxy and this server.
+ */
+static gboolean
+req_host_is_valid (const char *host)
+{
+        const char *p;
+
+        for (p = host; *p; p++) {
+                if (*p <= ' ' || strchr ("/?#\\%", *p))
+                        return FALSE;
+        }
+
+        return TRUE;
+}
+
 static guint
 parse_headers (SoupServerMessage *msg,
                char              *headers,
@@ -678,7 +696,7 @@ parse_headers (SoupServerMessage *msg,
 
         /* Generate correct context for request */
         req_host = soup_message_headers_get_one_common (request_headers, SOUP_HEADER_HOST);
-        if (req_host && strchr (req_host, '/')) {
+        if (req_host && !req_host_is_valid (req_host)) {
                 g_free (req_path);
                 return SOUP_STATUS_BAD_REQUEST;
         }

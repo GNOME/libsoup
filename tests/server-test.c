@@ -526,6 +526,55 @@ smuggle_auth_callback (SoupAuthDomain    *domain,
  * from an auth domain) without draining that body, the leftover bytes must not
  * be parsed as the next request on a kept-alive connection. See issue #539.
  */
+/* The server builds the request URI from the Host header. A Host value that
+ * smuggles URI delimiters (here a percent-encoded "?" and "#") must be
+ * rejected rather than shifting the path or query. See issue #492.
+ */
+static void
+do_bad_host_header_test (void)
+{
+	SoupServer *server;
+	GUri *uri;
+	GSocketClient *client;
+	GSocketConnection *conn;
+	GInputStream *istream;
+	GOutputStream *ostream;
+	GError *error = NULL;
+	char *request;
+	char buf[1024];
+	gssize n;
+
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+	uri = soup_test_server_get_uri (server, "http", "127.0.0.1");
+
+	client = g_socket_client_new ();
+	conn = g_socket_client_connect_to_host (client, "127.0.0.1", g_uri_get_port (uri), NULL, &error);
+	g_assert_no_error (error);
+	g_socket_set_timeout (g_socket_connection_get_socket (conn), 5);
+	istream = g_io_stream_get_input_stream (G_IO_STREAM (conn));
+	ostream = g_io_stream_get_output_stream (G_IO_STREAM (conn));
+
+	request = g_strdup ("GET /path HTTP/1.1\r\n"
+			    "Host: localhost:80%3fkey=value%23\r\n"
+			    "\r\n");
+	g_output_stream_write_all (ostream, request, strlen (request), NULL, NULL, &error);
+	g_assert_no_error (error);
+
+	n = g_input_stream_read (istream, buf, sizeof (buf) - 1, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_cmpint (n, >, 0);
+	buf[n] = '\0';
+	g_assert_nonnull (strstr (buf, " 400 "));
+
+	g_free (request);
+	g_io_stream_close (G_IO_STREAM (conn), NULL, NULL);
+	g_object_unref (conn);
+	g_object_unref (client);
+	g_uri_unref (uri);
+	soup_test_server_quit_unref (server);
+}
+
 static void
 do_early_response_expect_continue_test (void)
 {
@@ -1632,6 +1681,7 @@ main (int argc, char **argv)
 	g_test_add ("/server/multi/family", ServerData, NULL,
 		    NULL, do_multi_family_test, server_teardown);
 	g_test_add_func ("/server/early-response-expect-continue", do_early_response_expect_continue_test);
+	g_test_add_func ("/server/bad-host-header", do_bad_host_header_test);
 	g_test_add_func ("/server/import/gsocket", do_gsocket_import_test);
 	g_test_add_func ("/server/import/fd", do_fd_import_test);
 	g_test_add_func ("/server/accept/iostream", do_iostream_accept_test);
