@@ -399,9 +399,16 @@ on_pong_set_flag (SoupWebsocketConnection *ws,
                   gpointer user_data)
 {
         gboolean *flag = user_data;
+        const char *payload;
+        gsize size;
 
         g_assert_false (*flag);
         g_assert_nonnull (message);
+
+        payload = g_bytes_get_data (message, &size);
+        g_assert_cmpuint (size, >, strlen ("libsoup-keepalive-"));
+        g_assert_cmpuint (size, <=, 125);
+        g_assert_true (g_str_has_prefix (payload, "libsoup-keepalive-"));
 
         *flag = TRUE;
 }
