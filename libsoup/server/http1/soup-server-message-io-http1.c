@@ -427,6 +427,19 @@ io_write (SoupServerMessageIOHTTP1 *server_io,
                          * server did not set an error.
                          */
                         soup_server_message_set_status (msg, SOUP_STATUS_CONTINUE, NULL);
+                } else if (io->read_state == SOUP_MESSAGE_IO_STATE_BLOCKING &&
+                           !SOUP_STATUS_IS_INFORMATIONAL (status_code)) {
+                        /* The client requested "Expect: 100-continue" but the
+                         * server is sending a final response without reading
+                         * the request body. The client may already have sent
+                         * that body (RFC 9110 permits sending it without
+                         * waiting), and those undrained bytes must not be
+                         * parsed as the next request on a reused connection.
+                         * Force the connection closed, per RFC 9112.
+                         */
+                        soup_message_headers_replace_common (soup_server_message_get_response_headers (msg),
+                                                             SOUP_HEADER_CONNECTION, "close",
+                                                             SOUP_HEADER_VALUE_TRUSTED);
                 }
 
                 if (!io->write_buf->len)

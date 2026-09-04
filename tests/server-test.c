@@ -497,6 +497,115 @@ do_multi_family_test (ServerData *sd, gconstpointer test_data)
 	do_multi_test (sd, uri1, uri2);
 }
 
+static gboolean smuggled_handler_hit;
+
+static void
+smuggle_target_callback (SoupServer        *server,
+			 SoupServerMessage *msg,
+			 const char        *path,
+			 GHashTable        *query,
+			 gpointer           data)
+{
+	smuggled_handler_hit = TRUE;
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+}
+
+static gboolean
+smuggle_auth_callback (SoupAuthDomain    *domain,
+		       SoupServerMessage *msg,
+		       const char        *username,
+		       const char        *password,
+		       gpointer           user_data)
+{
+	/* Always reject, so the server sends a 401 before reading the body */
+	return FALSE;
+}
+
+/* A client that requests "Expect: 100-continue" may still send its body
+ * without waiting. If the server produces an early final response (here a 401
+ * from an auth domain) without draining that body, the leftover bytes must not
+ * be parsed as the next request on a kept-alive connection. See issue #539.
+ */
+static void
+do_early_response_expect_continue_test (void)
+{
+	SoupServer *server;
+	SoupAuthDomain *auth_domain;
+	GUri *uri;
+	GSocketClient *client;
+	GSocketConnection *conn;
+	GInputStream *istream;
+	GOutputStream *ostream;
+	GError *error = NULL;
+	char *request;
+	const char *smuggled = "GET /smuggled HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	char buf[4096];
+	gsize total = 0;
+	gssize n;
+
+	smuggled_handler_hit = FALSE;
+
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_add_handler (server, "/smuggled", smuggle_target_callback, NULL, NULL);
+	auth_domain = soup_auth_domain_basic_new ("realm", "smuggle-test",
+						  "auth-callback", smuggle_auth_callback,
+						  NULL);
+	soup_auth_domain_add_path (auth_domain, "/protected");
+	soup_server_add_auth_domain (server, auth_domain);
+	g_object_unref (auth_domain);
+
+	uri = soup_test_server_get_uri (server, "http", "127.0.0.1");
+
+	client = g_socket_client_new ();
+	conn = g_socket_client_connect_to_host (client, "127.0.0.1", g_uri_get_port (uri), NULL, &error);
+	g_assert_no_error (error);
+	/* Bound the read so the buggy behaviour (connection kept open) fails
+	 * quickly rather than hanging.
+	 */
+	g_socket_set_timeout (g_socket_connection_get_socket (conn), 5);
+	istream = g_io_stream_get_input_stream (G_IO_STREAM (conn));
+	ostream = g_io_stream_get_output_stream (G_IO_STREAM (conn));
+
+	request = g_strdup_printf ("POST /protected HTTP/1.1\r\n"
+				   "Host: localhost\r\n"
+				   "Content-Length: %zu\r\n"
+				   "Expect: 100-continue\r\n"
+				   "\r\n"
+				   "%s",
+				   strlen (smuggled), smuggled);
+	g_output_stream_write_all (ostream, request, strlen (request), NULL, NULL, &error);
+	g_assert_no_error (error);
+
+	/* Read until the server closes the connection. A conformant server
+	 * sends a single 401 and closes; the smuggled request is never run.
+	 */
+	while ((n = g_input_stream_read (istream, buf + total,
+					 sizeof (buf) - 1 - total, NULL, &error)) > 0) {
+		total += n;
+		if (total >= sizeof (buf) - 1)
+			break;
+	}
+	buf[total] = '\0';
+
+	g_assert_nonnull (strstr (buf, " 401 "));
+	/* The smuggled request must not have been dispatched, and the server
+	 * must not have produced a second response for it.
+	 */
+	g_assert_false (smuggled_handler_hit);
+	g_assert_null (strstr (buf, " 200 "));
+	/* The connection must have been closed cleanly (EOF), not left open */
+	g_assert_no_error (error);
+	g_assert_cmpint (n, ==, 0);
+	g_clear_error (&error);
+
+	g_free (request);
+	g_io_stream_close (G_IO_STREAM (conn), NULL, NULL);
+	g_object_unref (conn);
+	g_object_unref (client);
+	g_uri_unref (uri);
+	soup_test_server_quit_unref (server);
+}
+
 static void
 do_gsocket_import_test (void)
 {
@@ -1522,6 +1631,7 @@ main (int argc, char **argv)
 		    NULL, do_multi_scheme_test, server_teardown);
 	g_test_add ("/server/multi/family", ServerData, NULL,
 		    NULL, do_multi_family_test, server_teardown);
+	g_test_add_func ("/server/early-response-expect-continue", do_early_response_expect_continue_test);
 	g_test_add_func ("/server/import/gsocket", do_gsocket_import_test);
 	g_test_add_func ("/server/import/fd", do_fd_import_test);
 	g_test_add_func ("/server/accept/iostream", do_iostream_accept_test);
