@@ -47,6 +47,9 @@
  *    before it's sent. Reserved bits of the header should be changed.
  * @process_incoming_message: called to process the payload data of a message
  *    after it's received. Reserved bits of the header should be cleared.
+ * @process_incoming_message_with_limit: called to process the payload data of
+ *    a message after it's received without exceeding the requested maximum
+ *    output size. If unset, @process_incoming_message is used. Since 3.8
  *
  * The class structure for the [class@WebsocketExtension].
  */
@@ -215,4 +218,54 @@ soup_websocket_extension_process_incoming_message (SoupWebsocketExtension *exten
 		return payload;
 
 	return klass->process_incoming_message (extension, header, payload, error);
+}
+
+/**
+ * soup_websocket_extension_process_incoming_message_with_limit:
+ * @extension: a #SoupWebsocketExtension
+ * @header: (inout): the message header
+ * @payload: (transfer full): the payload data
+ * @max_output_size: the maximum size in bytes of the processed payload
+ * @error: return location for a #GError
+ *
+ * Process a message after it's received, without producing more than
+ * @max_output_size bytes of output.
+ *
+ * This behaves like [method@WebsocketExtension.process_incoming_message],
+ * but extensions that expand their input (such as `permessage-deflate`)
+ * stop and return an error with [error@WebsocketError.CLOSE_TOO_BIG]
+ * instead of producing output larger than @max_output_size. Extensions
+ * that don't implement this fall back to
+ * [method@WebsocketExtension.process_incoming_message].
+ *
+ * Returns: (transfer full): the message payload data, or %NULL in case of error
+ *
+ * Since: 3.8
+ */
+GBytes *
+soup_websocket_extension_process_incoming_message_with_limit (SoupWebsocketExtension *extension,
+                                                              guint8                 *header,
+                                                              GBytes                 *payload,
+                                                              guint64                 max_output_size,
+                                                              GError                **error)
+{
+	SoupWebsocketExtensionClass *klass;
+
+	g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
+	g_return_val_if_fail (header != NULL, NULL);
+	g_return_val_if_fail (payload != NULL, NULL);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+	klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
+	if (!klass->process_incoming_message_with_limit)
+		return soup_websocket_extension_process_incoming_message (extension,
+									  header,
+									  payload,
+									  error);
+
+	return klass->process_incoming_message_with_limit (extension,
+							   header,
+							   payload,
+							   max_output_size,
+							   error);
 }

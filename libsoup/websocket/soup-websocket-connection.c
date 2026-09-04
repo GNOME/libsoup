@@ -990,8 +990,15 @@ process_contents (SoupWebsocketConnection *self,
 		case 0x02:
 			/* Safety valve */
 			if (priv->max_total_message_size > 0 &&
-			    (priv->message_data->len + payload_len) > priv->max_total_message_size) {
-				too_big_message_error_and_close (self, (priv->message_data->len + payload_len));
+			    (priv->message_data->len > priv->max_total_message_size ||
+			     payload_len > priv->max_total_message_size - priv->message_data->len)) {
+				guint64 message_size = priv->message_data->len;
+
+				if (payload_len > G_MAXUINT64 - message_size)
+					message_size = G_MAXUINT64;
+				else
+					message_size += payload_len;
+				too_big_message_error_and_close (self, message_size);
 				return;
 			}
 			g_byte_array_append (priv->message_data, payload, payload_len);
@@ -1036,6 +1043,21 @@ process_contents (SoupWebsocketConnection *self,
 	}
 }
 
+static guint64
+get_remaining_message_size (SoupWebsocketConnectionPrivate *priv)
+{
+	if (priv->max_total_message_size == 0)
+		return G_MAXUINT64;
+
+	if (!priv->message_data)
+		return priv->max_total_message_size;
+
+	if (priv->message_data->len >= priv->max_total_message_size)
+		return 0;
+
+	return priv->max_total_message_size - priv->message_data->len;
+}
+
 static gboolean
 process_frame (SoupWebsocketConnection *self)
 {
@@ -1051,6 +1073,7 @@ process_frame (SoupWebsocketConnection *self)
 	gsize len;
 	gsize at;
 	GBytes *filtered_bytes;
+	guint64 max_output_size;
 	GList *l;
 	GError *error = NULL;
 
@@ -1165,11 +1188,16 @@ process_frame (SoupWebsocketConnection *self)
 	}
 
 	filtered_bytes = g_bytes_new_static (payload, payload_len);
+	max_output_size = get_remaining_message_size (priv);
 	for (l = priv->extensions; l != NULL; l = g_list_next (l)) {
 		SoupWebsocketExtension *extension;
 
 		extension = (SoupWebsocketExtension *)l->data;
-		filtered_bytes = soup_websocket_extension_process_incoming_message (extension, priv->incoming->data, filtered_bytes, &error);
+		filtered_bytes = soup_websocket_extension_process_incoming_message_with_limit (extension,
+											       priv->incoming->data,
+											       filtered_bytes,
+											       max_output_size,
+											       &error);
 		if (error) {
 			emit_error_and_close (self, error, FALSE);
 			return FALSE;

@@ -74,6 +74,18 @@ on_error_copy (SoupWebsocketConnection *ws,
 }
 
 static void
+on_error_copy_once (SoupWebsocketConnection *ws,
+		    GError *error,
+		    gpointer user_data)
+{
+	GError **copy = user_data;
+
+	g_assert_null (*copy);
+	*copy = g_error_copy (error);
+	g_signal_handlers_disconnect_by_func (ws, G_CALLBACK (on_error_copy_once), user_data);
+}
+
+static void
 setup_listener (Test *test)
 {
 	GSocketAddress *addr;
@@ -649,7 +661,7 @@ test_send_big_packets_soup (Test *test,
 	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->client), ==, 128 * 1024);
 	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->client), ==, 0);
 
-	/* Max total message size defaults to 0 (unlimited), but SoupServer applies its own limit by default. */
+	/* SoupServer applies its own total message size limit by default. */
 	g_assert_cmpuint (soup_websocket_connection_get_max_incoming_payload_size (test->server), ==, 128 * 1024);
 	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->server), ==, 128 * 1024);
 
@@ -756,9 +768,7 @@ test_send_exceeding_server_max_message_size (Test *test,
 	soup_websocket_connection_set_max_total_message_size (test->client, 0);
 	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->client), ==, 0);
 
-	/* Set the server message total message size manually, because its
-	 * default is different for direct connection vs. soup connection.
-	 */
+	/* The direct server connection defaults to unlimited. */
 	soup_websocket_connection_set_max_total_message_size (test->server, 128 * 1024);
 	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (test->server), ==, 128 * 1024);
 
@@ -1670,6 +1680,222 @@ send_fragments_server_thread (gpointer user_data)
 	return NULL;
 }
 
+typedef struct {
+	SoupWebsocketExtension parent_instance;
+} LegacyWebsocketExtension;
+
+typedef struct {
+	SoupWebsocketExtensionClass parent_class;
+} LegacyWebsocketExtensionClass;
+
+GType legacy_websocket_extension_get_type (void);
+
+#define LEGACY_TYPE_WEBSOCKET_EXTENSION (legacy_websocket_extension_get_type ())
+G_DEFINE_TYPE (LegacyWebsocketExtension, legacy_websocket_extension, SOUP_TYPE_WEBSOCKET_EXTENSION)
+
+static gboolean legacy_extension_processed;
+
+static GBytes *
+legacy_websocket_extension_process_incoming_message (SoupWebsocketExtension *extension,
+						     guint8                 *header,
+						     GBytes                 *payload,
+						     GError                **error)
+{
+	legacy_extension_processed = TRUE;
+
+	return payload;
+}
+
+static void
+legacy_websocket_extension_class_init (LegacyWebsocketExtensionClass *klass)
+{
+	SoupWebsocketExtensionClass *extension_class = SOUP_WEBSOCKET_EXTENSION_CLASS (klass);
+
+	extension_class->process_incoming_message = legacy_websocket_extension_process_incoming_message;
+}
+
+static void
+legacy_websocket_extension_init (LegacyWebsocketExtension *extension)
+{
+}
+
+static void
+test_websocket_extension_limit_fallback (void)
+{
+	SoupWebsocketExtension *extension;
+	GBytes *payload;
+	GBytes *output;
+	GError *error = NULL;
+	guint8 header = 0x82;
+
+	legacy_extension_processed = FALSE;
+	extension = g_object_new (LEGACY_TYPE_WEBSOCKET_EXTENSION, NULL);
+	payload = g_bytes_new_static ("x", 1);
+	output = soup_websocket_extension_process_incoming_message_with_limit (extension,
+									       &header,
+									       payload,
+									       1,
+									       &error);
+
+	g_assert_no_error (error);
+	g_assert_true (legacy_extension_processed);
+	g_assert_true (output == payload);
+
+	g_bytes_unref (output);
+	g_object_unref (extension);
+}
+
+typedef struct {
+	gsize output_size;
+	guint64 max_output_size;
+	gboolean expect_too_big;
+} DeflateOutputLimitTest;
+
+static void
+test_deflate_output_limit (gconstpointer data)
+{
+	const DeflateOutputLimitTest *config = data;
+	SoupWebsocketExtension *sender;
+	SoupWebsocketExtension *receiver;
+	GBytes *compressed;
+	GBytes *output;
+	GError *error = NULL;
+	guint8 header = 0x82;
+
+	sender = g_object_new (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE, NULL);
+	g_assert_true (soup_websocket_extension_configure (sender,
+							   SOUP_WEBSOCKET_CONNECTION_SERVER,
+							   NULL, &error));
+	g_assert_no_error (error);
+
+	receiver = g_object_new (SOUP_TYPE_WEBSOCKET_EXTENSION_DEFLATE, NULL);
+	g_assert_true (soup_websocket_extension_configure (receiver,
+							   SOUP_WEBSOCKET_CONNECTION_CLIENT,
+							   NULL, &error));
+	g_assert_no_error (error);
+
+	compressed = g_bytes_new_take (g_malloc0 (config->output_size), config->output_size);
+	compressed = soup_websocket_extension_process_outgoing_message (sender, &header,
+									compressed, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (compressed);
+	g_assert_true (header & 0x40);
+	g_assert_cmpuint (g_bytes_get_size (compressed), <, config->output_size);
+
+	output = soup_websocket_extension_process_incoming_message_with_limit (receiver,
+									       &header,
+									       compressed,
+									       config->max_output_size,
+									       &error);
+	if (config->expect_too_big) {
+		g_assert_null (output);
+		g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+		g_clear_error (&error);
+	} else {
+		g_assert_no_error (error);
+		g_assert_nonnull (output);
+		g_assert_cmpuint (g_bytes_get_size (output), ==, config->output_size);
+		g_bytes_unref (output);
+	}
+
+	g_object_unref (receiver);
+	g_object_unref (sender);
+}
+
+static const DeflateOutputLimitTest deflate_output_below_limit = {
+	4095, 4096, FALSE
+};
+static const DeflateOutputLimitTest deflate_output_at_limit = {
+	4096, 4096, FALSE
+};
+static const DeflateOutputLimitTest deflate_output_over_limit = {
+	4097, 4096, TRUE
+};
+
+typedef struct {
+	gboolean server_receives;
+	gboolean configure_limit;
+} DeflateMessageLimitTest;
+
+static void
+test_deflate_exceeds_message_limit (Test *test,
+				    gconstpointer data)
+{
+	const DeflateMessageLimitTest *config = data;
+	SoupWebsocketConnection *receiver;
+	SoupWebsocketConnection *sender;
+	GBytes *received = NULL;
+	GError *error = NULL;
+	guint8 *message;
+
+	if (config->server_receives) {
+		receiver = test->server;
+		sender = test->client;
+	} else {
+		receiver = test->client;
+		sender = test->server;
+	}
+
+	if (config->configure_limit)
+		soup_websocket_connection_set_max_total_message_size (receiver, 128 * 1024);
+
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (receiver),
+			  ==, 128 * 1024);
+
+	g_signal_connect (receiver, "error", G_CALLBACK (on_error_copy_once), &error);
+	g_signal_connect (receiver, "message", G_CALLBACK (on_binary_message), &received);
+
+	message = g_malloc0 (128 * 1024 + 1);
+	soup_websocket_connection_send_binary (sender, message, 128 * 1024 + 1);
+	g_free (message);
+
+	WAIT_UNTIL (error != NULL || received != NULL);
+	g_assert_null (received);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+	g_clear_error (&error);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (sender) == SOUP_WEBSOCKET_STATE_CLOSED);
+	g_assert_null (received);
+	g_assert_cmpuint (soup_websocket_connection_get_close_code (sender),
+			  ==, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+}
+
+static void
+test_deflate_default_unlimited_message_size (Test *test,
+					     gconstpointer data)
+{
+	const DeflateMessageLimitTest *config = data;
+	SoupWebsocketConnection *receiver;
+	SoupWebsocketConnection *sender;
+	GBytes *received = NULL;
+	guint8 *message;
+
+	if (config->server_receives) {
+		receiver = test->server;
+		sender = test->client;
+	} else {
+		receiver = test->client;
+		sender = test->server;
+	}
+
+	g_assert_false (config->configure_limit);
+	g_assert_cmpuint (soup_websocket_connection_get_max_total_message_size (receiver), ==, 0);
+	g_signal_connect (receiver, "message", G_CALLBACK (on_binary_message), &received);
+
+	message = g_malloc0 (128 * 1024 + 1);
+	soup_websocket_connection_send_binary (sender, message, 128 * 1024 + 1);
+	g_free (message);
+
+	WAIT_UNTIL (received != NULL);
+	g_assert_cmpuint (g_bytes_get_size (received), ==, 128 * 1024 + 1);
+	g_bytes_unref (received);
+}
+
+static const DeflateMessageLimitTest deflate_server_receives_configured = { TRUE, TRUE };
+static const DeflateMessageLimitTest deflate_client_receives_configured = { FALSE, TRUE };
+static const DeflateMessageLimitTest deflate_server_receives_default = { TRUE, FALSE };
+static const DeflateMessageLimitTest deflate_client_receives_default = { FALSE, FALSE };
+
 static void
 do_deflate (z_stream *zstream,
             const char *str,
@@ -1768,6 +1994,31 @@ test_receive_fragmented (Test *test,
 
 	g_thread_join (thread);
 
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
+}
+
+static void
+test_deflate_receive_fragmented_too_big (Test *test,
+					 gconstpointer data)
+{
+	GThread *thread;
+	GBytes *received = NULL;
+	GError *error = NULL;
+
+	soup_websocket_connection_set_max_total_message_size (test->client, 12);
+	g_signal_connect (test->client, "error", G_CALLBACK (on_error_copy_once), &error);
+	g_signal_connect (test->client, "message", G_CALLBACK (on_text_message), &received);
+
+	thread = g_thread_new ("deflate-fragment-too-big-thread",
+			       send_compressed_fragments_server_thread,
+			       test);
+
+	WAIT_UNTIL (error != NULL || received != NULL);
+	g_assert_null (received);
+	g_assert_error (error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_CLOSE_TOO_BIG);
+	g_clear_error (&error);
+
+	g_thread_join (thread);
 	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 }
 
@@ -2798,6 +3049,18 @@ main (int argc,
 		    test_deflate_negotiate_direct,
 		    NULL);
 
+	g_test_add_func ("/websocket/extension/incoming-limit-legacy-fallback",
+			 test_websocket_extension_limit_fallback);
+	g_test_add_data_func ("/websocket/deflate/output-limit/below",
+			      &deflate_output_below_limit,
+			      test_deflate_output_limit);
+	g_test_add_data_func ("/websocket/deflate/output-limit/exact",
+			      &deflate_output_at_limit,
+			      test_deflate_output_limit);
+	g_test_add_data_func ("/websocket/deflate/output-limit/over",
+			      &deflate_output_over_limit,
+			      test_deflate_output_limit);
+
 	g_test_add ("/websocket/direct/deflate-disabled-in-message", Test, NULL, NULL,
 		    test_deflate_disabled_in_message_direct,
 		    NULL);
@@ -2823,6 +3086,37 @@ main (int argc,
 		    test_send_server_to_client,
 		    teardown_soup_connection);
 
+	g_test_add ("/websocket/direct/deflate-configured-limit/client-to-server",
+		    Test, &deflate_server_receives_configured,
+		    setup_direct_connection_with_extensions,
+		    test_deflate_exceeds_message_limit,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/direct/deflate-configured-limit/server-to-client",
+		    Test, &deflate_client_receives_configured,
+		    setup_direct_connection_with_extensions,
+		    test_deflate_exceeds_message_limit,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/deflate-default-server-limit/client-to-server",
+		    Test, &deflate_server_receives_default,
+		    setup_soup_connection_with_extensions,
+		    test_deflate_exceeds_message_limit,
+		    teardown_soup_connection);
+	g_test_add ("/websocket/soup/deflate-configured-client-limit/server-to-client",
+		    Test, &deflate_client_receives_configured,
+		    setup_soup_connection_with_extensions,
+		    test_deflate_exceeds_message_limit,
+		    teardown_soup_connection);
+	g_test_add ("/websocket/direct/deflate-default-unlimited/client-to-server",
+		    Test, &deflate_server_receives_default,
+		    setup_direct_connection_with_extensions,
+		    test_deflate_default_unlimited_message_size,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/direct/deflate-default-unlimited/server-to-client",
+		    Test, &deflate_client_receives_default,
+		    setup_direct_connection_with_extensions,
+		    test_deflate_default_unlimited_message_size,
+		    teardown_direct_connection);
+
 	g_test_add ("/websocket/direct/deflate-send-big-packets", Test, NULL,
 		    setup_direct_connection_with_extensions,
 		    test_send_big_packets_direct,
@@ -2844,6 +3138,10 @@ main (int argc,
 	g_test_add ("/websocket/direct/deflate-receive-fragmented", Test, NULL,
 		    setup_half_direct_connection_with_extensions,
 		    test_receive_fragmented,
+		    teardown_direct_connection);
+	g_test_add ("/websocket/direct/deflate-receive-fragmented-too-big", Test, NULL,
+		    setup_half_direct_connection_with_extensions,
+		    test_deflate_receive_fragmented_too_big,
 		    teardown_direct_connection);
 	g_test_add ("/websocket/direct/deflate-receive-fragmented-error", Test, NULL,
 		    setup_half_direct_connection_with_extensions,

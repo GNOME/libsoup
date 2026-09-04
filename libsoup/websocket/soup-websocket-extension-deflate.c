@@ -359,19 +359,29 @@ soup_websocket_extension_deflate_process_outgoing_message (SoupWebsocketExtensio
         return g_byte_array_free_to_bytes (buffer);
 }
 
+static void
+inflater_reset (Inflater *inflater)
+{
+        inflateReset (&inflater->zstream);
+        inflater->uncompress_ongoing = FALSE;
+}
+
 static GBytes *
-soup_websocket_extension_deflate_process_incoming_message (SoupWebsocketExtension *extension,
-                                                           guint8                 *header,
-                                                           GBytes                 *payload,
-                                                           GError                **error)
+soup_websocket_extension_deflate_process_incoming_message_with_limit (SoupWebsocketExtension *extension,
+                                                                      guint8                 *header,
+                                                                      GBytes                 *payload,
+                                                                      guint64                 max_output_size,
+                                                                      GError                **error)
 {
         const guint8 *payload_data;
         gsize payload_length;
         gboolean fin, control, compressed;
         GByteArray *buffer;
-        gsize bytes_read, bytes_written;
+        gsize input_offset, bytes_written;
         int result;
         gboolean tail_added = FALSE;
+        gboolean using_limit_probe = FALSE;
+        guint8 limit_probe;
         SoupWebsocketExtensionDeflatePrivate *priv;
 
         priv = soup_websocket_extension_deflate_get_instance_private (SOUP_WEBSOCKET_EXTENSION_DEFLATE (extension));
@@ -394,6 +404,7 @@ soup_websocket_extension_deflate_process_incoming_message (SoupWebsocketExtensio
                                      SOUP_WEBSOCKET_ERROR,
                                      SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR,
                                      "Received a non-first frame with RSV1 flag set");
+                inflater_reset (&priv->inflater);
                 g_bytes_unref (payload);
                 return NULL;
         }
@@ -410,64 +421,122 @@ soup_websocket_extension_deflate_process_incoming_message (SoupWebsocketExtensio
 
         buffer = g_byte_array_new ();
 
-        bytes_read = 0;
-        priv->inflater.zstream.next_in = (void *)payload_data;
-        priv->inflater.zstream.avail_in = payload_length;
-
+        input_offset = 0;
+        priv->inflater.zstream.avail_in = 0;
         bytes_written = 0;
         priv->inflater.zstream.avail_out = 0;
 
-        do {
-                gsize read_remaining;
-                gsize write_remaining;
+        while (TRUE) {
+                uInt input_before, output_before;
+                uInt input_consumed, output_produced;
 
-                if (priv->inflater.zstream.avail_out == 0) {
-                        guint current_position;
+                if (priv->inflater.zstream.avail_in == 0 && input_offset < payload_length) {
+                        gsize input_length = MIN (payload_length - input_offset, G_MAXUINT);
 
-                        priv->inflater.zstream.avail_out = BUFFER_SIZE;
-                        current_position = buffer->len;
-                        g_byte_array_set_size (buffer, buffer->len + BUFFER_SIZE);
-                        priv->inflater.zstream.next_out = buffer->data + current_position;
+                        priv->inflater.zstream.next_in = (void *)(payload_data + input_offset);
+                        priv->inflater.zstream.avail_in = (uInt)input_length;
+                        input_offset += input_length;
                 }
 
-                if (priv->inflater.zstream.avail_in == 0 && !tail_added && fin) {
+                if (priv->inflater.zstream.avail_in == 0 &&
+                    input_offset == payload_length &&
+                    !tail_added && fin) {
                         /* Append 4 octets of 0x00 0x00 0xff 0xff to the tail end */
                         priv->inflater.zstream.next_in = (void *)"\x00\x00\xff\xff";
                         priv->inflater.zstream.avail_in = 4;
-                        bytes_read = 0;
                         tail_added = TRUE;
                 }
 
-                read_remaining = tail_added ? 4 : payload_length - bytes_read;
-                write_remaining = buffer->len - bytes_written;
+                if (priv->inflater.zstream.avail_out == 0) {
+                        guint output_length = BUFFER_SIZE;
+
+                        if (bytes_written >= max_output_size || buffer->len == G_MAXUINT) {
+                                priv->inflater.zstream.next_out = &limit_probe;
+                                priv->inflater.zstream.avail_out = 1;
+                                using_limit_probe = TRUE;
+                        } else {
+                                guint64 remaining = max_output_size - bytes_written;
+                                guint current_position = buffer->len;
+
+                                output_length = MIN ((guint64)output_length, remaining);
+                                output_length = MIN (output_length, G_MAXUINT - buffer->len);
+                                g_assert (output_length > 0);
+
+                                g_byte_array_set_size (buffer, buffer->len + output_length);
+                                priv->inflater.zstream.next_out = buffer->data + current_position;
+                                priv->inflater.zstream.avail_out = output_length;
+                                using_limit_probe = FALSE;
+                        }
+                }
+
+                input_before = priv->inflater.zstream.avail_in;
+                output_before = priv->inflater.zstream.avail_out;
                 result = inflate (&priv->inflater.zstream, tail_added ? Z_FINISH : Z_NO_FLUSH);
-                bytes_read += read_remaining - priv->inflater.zstream.avail_in;
-                bytes_written += write_remaining - priv->inflater.zstream.avail_out;
+                input_consumed = input_before - priv->inflater.zstream.avail_in;
+                output_produced = output_before - priv->inflater.zstream.avail_out;
+
+                if (using_limit_probe && output_produced > 0)
+                        goto output_too_large;
+
+                bytes_written += output_produced;
+
                 if (!tail_added && result == Z_STREAM_END) {
                         /* Received a block with BFINAL set to 1. Reset decompression state. */
                         result = inflateReset (&priv->inflater.zstream);
                 }
 
-                if ((!fin && bytes_read == payload_length) || (fin && tail_added && bytes_read == 4))
+                if (result != Z_OK && result != Z_BUF_ERROR)
+                        goto invalid_data;
+
+                if (priv->inflater.zstream.avail_in == 0 &&
+                    input_offset == payload_length &&
+                    ((!fin && !tail_added) || (fin && tail_added)) &&
+                    priv->inflater.zstream.avail_out > 0)
                         break;
-        } while (result == Z_OK || result == Z_BUF_ERROR);
 
-        g_bytes_unref (payload);
-
-        if (result != Z_OK && result != Z_BUF_ERROR) {
-                priv->inflater.uncompress_ongoing = FALSE;
-                g_set_error_literal (error,
-                                     SOUP_WEBSOCKET_ERROR,
-                                     SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR,
-                                     "Failed to uncompress incoming frame");
-                g_byte_array_unref (buffer);
-
-                return NULL;
+                if (input_consumed == 0 && output_produced == 0)
+                        goto invalid_data;
         }
 
+        g_bytes_unref (payload);
         g_byte_array_set_size (buffer, bytes_written);
 
         return g_byte_array_free_to_bytes (buffer);
+
+output_too_large:
+        inflater_reset (&priv->inflater);
+        g_bytes_unref (payload);
+        g_byte_array_unref (buffer);
+        g_set_error_literal (error,
+                             SOUP_WEBSOCKET_ERROR,
+                             SOUP_WEBSOCKET_CLOSE_TOO_BIG,
+                             "Decompressed WebSocket message exceeds configured maximum size");
+
+        return NULL;
+
+invalid_data:
+        inflater_reset (&priv->inflater);
+        g_bytes_unref (payload);
+        g_byte_array_unref (buffer);
+        g_set_error_literal (error,
+                             SOUP_WEBSOCKET_ERROR,
+                             SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR,
+                             "Failed to uncompress incoming frame");
+
+        return NULL;
+}
+
+static GBytes *
+soup_websocket_extension_deflate_process_incoming_message (SoupWebsocketExtension *extension,
+                                                           guint8                 *header,
+                                                           GBytes                 *payload,
+                                                           GError                **error)
+{
+        return soup_websocket_extension_deflate_process_incoming_message_with_limit (extension,
+                                                                                     header,
+                                                                                     payload,
+                                                                                     G_MAXUINT64,
+                                                                                     error);
 }
 
 static void
@@ -483,6 +552,7 @@ soup_websocket_extension_deflate_class_init (SoupWebsocketExtensionDeflateClass 
         extension_class->get_response_params = soup_websocket_extension_deflate_get_response_params;
         extension_class->process_outgoing_message = soup_websocket_extension_deflate_process_outgoing_message;
         extension_class->process_incoming_message = soup_websocket_extension_deflate_process_incoming_message;
+        extension_class->process_incoming_message_with_limit = soup_websocket_extension_deflate_process_incoming_message_with_limit;
 
         object_class->finalize = soup_websocket_extension_deflate_finalize;
 }

@@ -55,8 +55,14 @@ struct _SoupWebsocketExtensionClass {
 					       GBytes                     *payload,
                                                GError                    **error);
 
+	GBytes  *(* process_incoming_message_with_limit) (SoupWebsocketExtension *extension,
+	                                                  guint8                 *header,
+	                                                  GBytes                 *payload,
+	                                                  guint64                 max_output_size,
+	                                                  GError                **error);
+
         /* <private> */
-	gpointer padding[6];
+	gpointer padding[5];
 };
 
 SOUP_AVAILABLE_IN_ALL
@@ -80,5 +86,11 @@ GBytes                  *soup_websocket_extension_process_incoming_message (Soup
 									    guint8                     *header,
 									    GBytes                     *payload,
 									    GError                    **error);
+SOUP_AVAILABLE_IN_3_8
+GBytes                  *soup_websocket_extension_process_incoming_message_with_limit (SoupWebsocketExtension *extension,
+											       guint8                 *header,
+											       GBytes                 *payload,
+											       guint64                 max_output_size,
+											       GError                **error);
 
 G_END_DECLS
