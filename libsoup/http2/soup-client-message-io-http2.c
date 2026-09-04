@@ -1868,8 +1868,6 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
 		return FALSE;
 	}
 
-	g_object_ref (msg);
-
 	while (progress && get_io_data (msg) == io && !data->paused && !data->error && data->state < state)
                 progress = io_run (data, cancellable, &my_error);
 
@@ -1883,7 +1881,6 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
 
 	if (data->error) {
                 g_propagate_error (error, g_steal_pointer (&data->error));
-		g_object_unref (msg);
 		return FALSE;
         }
 
@@ -1891,13 +1888,11 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
 		g_set_error_literal (error, G_IO_ERROR,
 				     G_IO_ERROR_CANCELLED,
 				     _("Operation was cancelled"));
-		g_object_unref (msg);
 		return FALSE;
 	}
 
 	done = data->state >= state;
 
-	g_object_unref (msg);
 	return done;
 }
 
@@ -1908,13 +1903,20 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
                                              GError              **error)
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
-        SoupHTTP2MessageData *data = get_data_for_message (io, msg);
+        SoupHTTP2MessageData *data;
         GError *my_error = NULL;
 
-        if (io_run_until (io, msg, STATE_READ_DATA, cancellable, &my_error))
-                return TRUE;
+        /* Running I/O may complete or cancel the message */
+        g_object_ref (msg);
 
-        if (get_io_data (msg) == io) {
+        if (io_run_until (io, msg, STATE_READ_DATA, cancellable, &my_error)) {
+                g_object_unref (msg);
+                return TRUE;
+        }
+
+        /* The message data may have been freed while running I/O */
+        data = get_data_for_message (io, msg);
+        if (data && get_io_data (msg) == io) {
                 if (soup_http2_message_data_can_be_restarted (data, my_error))
                         data->item->state = SOUP_MESSAGE_RESTARTING;
                 else
@@ -1924,6 +1926,7 @@ soup_client_message_io_http2_run_until_read (SoupClientMessageIO  *iface,
         }
 
         g_propagate_error (error, my_error);
+        g_object_unref (msg);
 
         return FALSE;
 }
