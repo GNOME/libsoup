@@ -632,6 +632,59 @@ test_multipart_bounds_bad_4 (void)
         g_free (boundary);
 }
 
+/* A part body shorter than the boundary. soup_filter_input_stream_read_until()
+ * used to compute buf->len - boundary_length unsigned, wrapping and scanning
+ * far past the buffered data. Only detectable under ASan/valgrind.
+ */
+static void
+test_multipart_short_body (void)
+{
+        SoupMessage *msg;
+        SoupMessageHeaders *headers;
+        GInputStream *in;
+        GInputStream *part;
+        SoupMultipartInputStream *multipart;
+        GError *error = NULL;
+        char boundary[61];
+        char *content_type;
+        char *raw_data;
+        char buffer[4096];
+        gssize nread;
+
+        memset (boundary, 'A', sizeof (boundary) - 1);
+        boundary[sizeof (boundary) - 1] = '\0';
+
+        msg = soup_message_new (SOUP_METHOD_GET, "http://foo/multipart");
+        headers = soup_message_get_response_headers (msg);
+        content_type = g_strconcat ("multipart/x-mixed-replace; boundary=", boundary, NULL);
+        soup_message_headers_replace (headers, "Content-Type", content_type);
+
+        /* One part whose body is a single byte, then EOF without a closing boundary */
+        raw_data = g_strconcat ("--", boundary, "\r\nContent-Type: text/plain\r\n\r\nX", NULL);
+        in = g_memory_input_stream_new_from_data (raw_data, strlen (raw_data), NULL);
+        multipart = soup_multipart_input_stream_new (msg, in);
+        g_object_unref (in);
+
+        part = soup_multipart_input_stream_next_part (multipart, NULL, &error);
+        g_assert_no_error (error);
+        g_assert_nonnull (part);
+
+        nread = g_input_stream_read (part, buffer, sizeof (buffer), NULL, &error);
+        g_assert_no_error (error);
+        g_assert_cmpint (nread, ==, 1);
+        g_assert_cmpint (buffer[0], ==, 'X');
+
+        nread = g_input_stream_read (part, buffer, sizeof (buffer), NULL, &error);
+        g_assert_no_error (error);
+        g_assert_cmpint (nread, ==, 0);
+
+        g_object_unref (part);
+        g_object_unref (multipart);
+        g_object_unref (msg);
+        g_free (raw_data);
+        g_free (content_type);
+}
+
 static void
 test_multipart_too_large (void)
 {
@@ -703,6 +756,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/multipart/bounds-bad-2", test_multipart_bounds_bad_2);
         g_test_add_func ("/multipart/bounds-bad-3", test_multipart_bounds_bad_3);
         g_test_add_func ("/multipart/bounds-bad-4", test_multipart_bounds_bad_4);
+        g_test_add_func ("/multipart/short-body", test_multipart_short_body);
 	g_test_add_func ("/multipart/too-large", test_multipart_too_large);
 
 	ret = g_test_run ();
