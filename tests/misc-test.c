@@ -103,6 +103,27 @@ server_callback (SoupServer        *server,
 	}
 }
 
+static void
+do_method_injection_test (void)
+{
+        SoupMessage *msg;
+
+        g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                               "soup_message_set_method: Rejecting invalid method*");
+        msg = soup_message_new_from_uri ("GET / HTTP/1.1\r\nX-Injected: evil", base_uri);
+        g_assert_cmpstr (soup_message_get_method (msg), ==, SOUP_METHOD_GET);
+        g_test_assert_expected_messages ();
+        g_object_unref (msg);
+
+        g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+                               "soup_message_set_method: Rejecting invalid method*");
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
+        soup_message_set_method (msg, "POST /evil HTTP/1.1\r\nHost: attacker\r\n\r\nGET");
+        g_assert_cmpstr (soup_message_get_method (msg), ==, SOUP_METHOD_GET);
+        g_test_assert_expected_messages ();
+        g_object_unref (msg);
+}
+
 /* Host header handling: client must be able to override the default
  * value, server must be able to recognize different Host values.
  */
@@ -1181,6 +1202,7 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/misc/bigheader", do_host_big_header);
 	g_test_add_func ("/misc/host", do_host_test);
+	g_test_add_func ("/misc/method-injection", do_method_injection_test);
 	g_test_add_func ("/misc/callback-unref/msg", do_callback_unref_test);
 	g_test_add_func ("/misc/msg-reuse", do_msg_reuse_test);
 	g_test_add_func ("/misc/early-abort/msg", do_early_abort_test);

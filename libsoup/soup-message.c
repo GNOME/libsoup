@@ -3133,8 +3133,16 @@ soup_message_set_method (SoupMessage *msg,
                          const char  *method)
 {
         SoupMessagePrivate *priv = soup_message_get_instance_private (msg);
-        const char *new_method = g_intern_string (method);
+        const char *new_method;
 
+        g_return_if_fail (method != NULL);
+
+        if (strpbrk (method, " \t\r\n:") != NULL) {
+                g_warning ("soup_message_set_method: Rejecting invalid method '%s'", method);
+                method = SOUP_METHOD_GET;
+        }
+
+        new_method = g_intern_string (method);
         if (priv->method == new_method)
                 return;
 
