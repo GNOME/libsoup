@@ -206,5 +206,10 @@ void                soup_message_set_compression_dictionary_hash (SoupMessage *m
                                                                   GBytes      *hash);
 SOUP_AVAILABLE_IN_3_8
 GBytes             *soup_message_get_compression_dictionary_hash (SoupMessage *msg);
+SOUP_AVAILABLE_IN_3_8
+void                soup_message_set_compression_dictionary_id   (SoupMessage *msg,
+                                                                  const char  *id);
+SOUP_AVAILABLE_IN_3_8
+const char         *soup_message_get_compression_dictionary_id   (SoupMessage *msg);
 
 G_END_DECLS

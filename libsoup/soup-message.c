@@ -102,6 +102,7 @@ typedef struct {
         SoupMessageMetrics *metrics;
 
         GBytes *compression_dictionary_hash;
+        char *compression_dictionary_id;
         SoupCompressionDictionaryRequest *compression_dictionary_request;
 } SoupMessagePrivate;
 
@@ -214,6 +215,7 @@ soup_message_finalize (GObject *object)
         g_clear_object (&priv->tls_client_certificate);
 
         g_clear_pointer (&priv->compression_dictionary_hash, g_bytes_unref);
+        g_clear_pointer (&priv->compression_dictionary_id, g_free);
         g_clear_object (&priv->compression_dictionary_request);
 
 	soup_message_headers_unref (priv->request_headers);
@@ -3463,10 +3465,14 @@ soup_message_get_force_http1 (SoupMessage *msg)
  * [signal@Message::request-compression-dictionary] signal is emitted so the
  * caller can supply the actual dictionary bytes.
  *
+ * If the dictionary was registered with an identifier, set it with
+ * [method@Message.set_compression_dictionary_id] so that a `Dictionary-ID`
+ * header accompanies `Available-Dictionary`.
+ *
  * The hash does not survive redirects: a dictionary is chosen for a specific
- * request URL, so when @msg is redirected the hash and the `Available-Dictionary`
- * header are cleared. It is the caller's responsibility to select and set a new
- * dictionary appropriate for the redirect target, if any.
+ * request URL, so when @msg is redirected the hash, the id and both headers are
+ * cleared. It is the caller's responsibility to select and set a new dictionary
+ * appropriate for the redirect target, if any.
  *
  * Since: 3.8
  */
@@ -3505,6 +3511,67 @@ soup_message_get_compression_dictionary_hash (SoupMessage *msg)
 
         priv = soup_message_get_instance_private (msg);
         return priv->compression_dictionary_hash;
+}
+
+/**
+ * soup_message_set_compression_dictionary_id:
+ * @msg: a #SoupMessage
+ * @id: (nullable): the dictionary identifier, or %NULL to unset
+ *
+ * Sets the identifier of the shared dictionary advertised for Compression
+ * Dictionary Transport (RFC 9842).
+ *
+ * @id is the value the server gave in the `id` parameter of the
+ * `Use-As-Dictionary` response header that registered the dictionary. It is
+ * sent as a `Dictionary-ID` header alongside `Available-Dictionary`, and only
+ * when a hash has been set with
+ * [method@Message.set_compression_dictionary_hash] and that header is sent, so
+ * it can never be emitted on its own.
+ *
+ * @id must consist of printable ASCII so that it can be serialized as an
+ * RFC 9651 string; anything else is dropped rather than sent malformed.
+ *
+ * Like the hash, the id does not survive redirects.
+ *
+ * Since: 3.8
+ */
+void
+soup_message_set_compression_dictionary_id (SoupMessage *msg,
+                                            const char  *id)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+        priv = soup_message_get_instance_private (msg);
+
+        if (!g_strcmp0 (priv->compression_dictionary_id, id))
+                return;
+
+        g_free (priv->compression_dictionary_id);
+        priv->compression_dictionary_id = g_strdup (id);
+}
+
+/**
+ * soup_message_get_compression_dictionary_id:
+ * @msg: a #SoupMessage
+ *
+ * Gets the identifier of the shared dictionary previously set with
+ * [method@Message.set_compression_dictionary_id].
+ *
+ * Returns: (nullable) (transfer none): the dictionary identifier, or %NULL
+ *
+ * Since: 3.8
+ */
+const char *
+soup_message_get_compression_dictionary_id (SoupMessage *msg)
+{
+        SoupMessagePrivate *priv;
+
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+        priv = soup_message_get_instance_private (msg);
+        return priv->compression_dictionary_id;
 }
 
 void

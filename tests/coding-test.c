@@ -673,6 +673,32 @@ dcb_bad_hash_server_callback (SoupServer        *server,
 }
 
 static void
+dcb_redirect_server_callback (SoupServer        *server,
+                              SoupServerMessage *msg,
+                              const char        *path,
+                              GHashTable        *query,
+                              gpointer           user_data)
+{
+        soup_server_message_set_redirect (msg, SOUP_STATUS_FOUND, "/dcb-redirect-target");
+}
+
+static void
+dcb_redirect_target_server_callback (SoupServer        *server,
+                                     SoupServerMessage *msg,
+                                     const char        *path,
+                                     GHashTable        *query,
+                                     gpointer           user_data)
+{
+        SoupMessageBody *response_body = soup_server_message_get_response_body (msg);
+
+        soup_message_headers_append (soup_server_message_get_response_headers (msg),
+                                     "Content-Type", "text/plain");
+        soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+        soup_message_body_append (response_body, SOUP_MEMORY_STATIC, "redirected", strlen ("redirected"));
+        soup_message_body_complete (response_body);
+}
+
+static void
 do_coding_test_dcb (gconstpointer test_data)
 {
         SoupSession *session;
@@ -762,12 +788,152 @@ do_coding_test_dcb_accept_encoding (gconstpointer test_data)
         g_signal_connect (msg, "request-compression-dictionary",
                           G_CALLBACK (on_request_compression_dictionary), NULL);
 
+        soup_message_set_compression_dictionary_id (msg, "id1");
+
         /* Trigger header population by queuing then cancelling */
         body = soup_session_send_and_read (session, msg, NULL, NULL);
         g_clear_pointer (&body, g_bytes_unref);
         accept = soup_message_headers_get_one (soup_message_get_request_headers (msg), "Accept-Encoding");
         g_assert_nonnull (accept);
         g_assert_true (strstr (accept, "dcb") == NULL);
+
+        /* Dictionary-ID is meaningless without Available-Dictionary, so neither is sent. */
+        g_assert_null (soup_message_headers_get_one (soup_message_get_request_headers (msg), "Available-Dictionary"));
+        g_assert_null (soup_message_headers_get_one (soup_message_get_request_headers (msg), "Dictionary-ID"));
+
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+}
+
+/* Sends a request over TLS with @hash_set and @id, and returns the value of the
+ * Dictionary-ID request header that reached the wire, or NULL if none was sent.
+ */
+static char *
+dictionary_id_header_for_request (gboolean hash_set, const char *id)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        GBytes *body;
+        GUri *uri;
+        char *result;
+
+        session = soup_test_session_new (NULL);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        uri = g_uri_parse_relative (h2_base_uri, "/dcb", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        if (hash_set) {
+                GBytes *dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+                soup_message_set_compression_dictionary_hash (msg, dict);
+                g_bytes_unref (dict);
+                g_signal_connect (msg, "request-compression-dictionary",
+                                  G_CALLBACK (on_request_compression_dictionary_async), NULL);
+        }
+        soup_message_set_compression_dictionary_id (msg, id);
+
+        body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_clear_pointer (&body, g_bytes_unref);
+
+        result = g_strdup (soup_message_headers_get_one (soup_message_get_request_headers (msg), "Dictionary-ID"));
+
+        g_object_unref (msg);
+        soup_test_session_abort_unref (session);
+
+        return result;
+}
+
+static void
+do_coding_test_dcb_dictionary_id (gconstpointer test_data)
+{
+        char *dictionary_id;
+
+        if (!tls_available) {
+                g_test_skip ("TLS not available");
+                return;
+        }
+
+        dictionary_id = dictionary_id_header_for_request (TRUE, "dictionary-1");
+        g_assert_cmpstr (dictionary_id, ==, "\"dictionary-1\"");
+        g_free (dictionary_id);
+}
+
+static void
+do_coding_test_dcb_dictionary_id_escaping (gconstpointer test_data)
+{
+        char *dictionary_id;
+
+        if (!tls_available) {
+                g_test_skip ("TLS not available");
+                return;
+        }
+
+        /* https://www.rfc-editor.org/rfc/rfc9651#name-serializing-a-string */
+        dictionary_id = dictionary_id_header_for_request (TRUE, "a\"b\\c");
+        g_assert_cmpstr (dictionary_id, ==, "\"a\\\"b\\\\c\"");
+        g_free (dictionary_id);
+
+        /* An id that cannot be serialized is dropped rather than sent malformed. */
+        dictionary_id = dictionary_id_header_for_request (TRUE, "line\nbreak");
+        g_assert_null (dictionary_id);
+}
+
+static void
+do_coding_test_dcb_dictionary_id_without_hash (gconstpointer test_data)
+{
+        char *dictionary_id;
+
+        if (!tls_available) {
+                g_test_skip ("TLS not available");
+                return;
+        }
+
+        /* Without a dictionary to identify there is nothing for the header to refer to. */
+        dictionary_id = dictionary_id_header_for_request (FALSE, "dictionary-1");
+        g_assert_null (dictionary_id);
+}
+
+static void
+do_coding_test_dcb_dictionary_redirect (gconstpointer test_data)
+{
+        SoupSession *session;
+        SoupMessage *msg;
+        SoupMessageHeaders *request_headers;
+        GBytes *dict;
+        GBytes *body;
+        GUri *uri;
+
+        if (!tls_available) {
+                g_test_skip ("TLS not available");
+                return;
+        }
+
+        session = soup_test_session_new (NULL);
+        soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+
+        uri = g_uri_parse_relative (h2_base_uri, "/dcb-redirect", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri ("GET", uri);
+        g_uri_unref (uri);
+
+        dict = compute_sha256_hash (dcb_dictionary, dcb_dictionary_size);
+        soup_message_set_compression_dictionary_hash (msg, dict);
+        g_bytes_unref (dict);
+        soup_message_set_compression_dictionary_id (msg, "dictionary-1");
+
+        body = soup_test_session_async_send (session, msg, NULL, NULL);
+        g_clear_pointer (&body, g_bytes_unref);
+
+        soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+        /* The dictionary was chosen for the pre-redirect URL, so it and both of the
+         * headers it produces are dropped rather than carried to the new origin.
+         */
+        g_assert_null (soup_message_get_compression_dictionary_hash (msg));
+        g_assert_null (soup_message_get_compression_dictionary_id (msg));
+        request_headers = soup_message_get_request_headers (msg);
+        g_assert_null (soup_message_headers_get_one (request_headers, "Available-Dictionary"));
+        g_assert_null (soup_message_headers_get_one (request_headers, "Dictionary-ID"));
 
         g_object_unref (msg);
         soup_test_session_abort_unref (session);
@@ -1233,6 +1399,8 @@ main (int argc, char **argv)
 #if WITH_BROTLI_ENC
 		soup_server_add_handler (h2_server, "/dcb", dcb_server_callback, NULL, NULL);
 		soup_server_add_handler (h2_server, "/dcb-large", dcb_server_callback, NULL, NULL);
+		soup_server_add_handler (h2_server, "/dcb-redirect", dcb_redirect_server_callback, NULL, NULL);
+		soup_server_add_handler (h2_server, "/dcb-redirect-target", dcb_redirect_target_server_callback, NULL, NULL);
 #endif
 #if WITH_ZSTD_ENC
 		soup_server_add_handler (h2_server, "/dcz", dcz_server_callback, NULL, NULL);
@@ -1291,6 +1459,13 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/coding/message/dcb/hash-mismatch", NULL, do_coding_test_dcb_hash_mismatch);
 	g_test_add_data_func ("/coding/message/dcb/accept-encoding-http-only",
 	                      NULL, do_coding_test_dcb_accept_encoding);
+	g_test_add_data_func ("/coding/message/dcb/dictionary-id", NULL, do_coding_test_dcb_dictionary_id);
+	g_test_add_data_func ("/coding/message/dcb/dictionary-id/escaping",
+	                      NULL, do_coding_test_dcb_dictionary_id_escaping);
+	g_test_add_data_func ("/coding/message/dcb/dictionary-id/without-hash",
+	                      NULL, do_coding_test_dcb_dictionary_id_without_hash);
+	g_test_add_data_func ("/coding/message/dcb/dictionary-id/redirect",
+	                      NULL, do_coding_test_dcb_dictionary_redirect);
 #endif
 #if WITH_ZSTD_ENC
 	g_test_add_data_func ("/coding/message/dcz", NULL, do_coding_test_dcz);
