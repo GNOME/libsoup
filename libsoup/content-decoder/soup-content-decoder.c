@@ -365,6 +365,30 @@ bytes_to_available_dictionary_header (GBytes *hash)
         return result;
 }
 
+/* Serializes @id as an RFC 9651 string, or returns NULL if it holds a character
+ * a string cannot carry. https://www.rfc-editor.org/rfc/rfc9651#name-serializing-a-string
+ */
+static char *
+id_to_dictionary_id_header (const char *id)
+{
+        GString *result = g_string_new ("\"");
+
+        for (const char *p = id; *p; p++) {
+                guchar c = (guchar)*p;
+
+                if (c < 0x20 || c > 0x7e) {
+                        g_string_free (result, TRUE);
+                        return NULL;
+                }
+                if (c == '"' || c == '\\')
+                        g_string_append_c (result, '\\');
+                g_string_append_c (result, c);
+        }
+
+        g_string_append_c (result, '"');
+        return g_string_free (result, FALSE);
+}
+
 static void
 soup_content_decoder_attach (SoupSessionFeature *feature,
 		              SoupSession        *session)
@@ -418,6 +442,19 @@ soup_content_decoder_request_queued (SoupSessionFeature *feature,
 #endif
 				soup_message_headers_append (request_headers, "Available-Dictionary", avail_dict);
 				g_free (avail_dict);
+
+				/* Dictionary-ID is only meaningful next to Available-Dictionary,
+				 * so it is written here rather than by the caller.
+				 */
+				const char *dict_id = soup_message_get_compression_dictionary_id (msg);
+				if (dict_id) {
+					char *dict_id_value = id_to_dictionary_id_header (dict_id);
+					if (dict_id_value) {
+						soup_message_headers_append (request_headers, "Dictionary-ID", dict_id_value);
+						g_free (dict_id_value);
+					} else
+						g_debug ("content-decoder: Dropping unserializable compression dictionary id");
+				}
 			}
 		}
 #endif

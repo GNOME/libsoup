@@ -1237,10 +1237,12 @@ soup_session_redirect_message (SoupSession *session,
         }
 
         /* The compression dictionary was chosen for the previous request URL and must not be
-         * carried over to the redirect target (it is origin-sensitive). Drop the hash and the
-         * Available-Dictionary header; the caller may set a new dictionary for the new URL. */
+         * carried over to the redirect target (it is origin-sensitive). Drop the hash, the id and
+         * both headers; the caller may set a new dictionary for the new URL. */
         soup_message_set_compression_dictionary_hash (msg, NULL);
+        soup_message_set_compression_dictionary_id (msg, NULL);
         soup_message_headers_remove (soup_message_get_request_headers (msg), "Available-Dictionary");
+        soup_message_headers_remove (soup_message_get_request_headers (msg), "Dictionary-ID");
 
         soup_message_set_request_host_from_uri (msg, new_uri);
 	soup_message_set_uri (msg, new_uri);
