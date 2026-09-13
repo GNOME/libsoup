@@ -108,15 +108,15 @@ do_method_injection_test (void)
 {
         SoupMessage *msg;
 
-        g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
-                               "soup_message_set_method: Rejecting invalid method*");
+        g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
+                               "*assertion*method_is_valid*failed*");
         msg = soup_message_new_from_uri ("GET / HTTP/1.1\r\nX-Injected: evil", base_uri);
         g_assert_null (soup_message_get_method (msg));
         g_test_assert_expected_messages ();
         g_object_unref (msg);
 
-        g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
-                               "soup_message_set_method: Rejecting invalid method*");
+        g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
+                               "*assertion*method_is_valid*failed*");
         msg = soup_message_new_from_uri (SOUP_METHOD_GET, base_uri);
         soup_message_set_method (msg, "POST /evil HTTP/1.1\r\nHost: attacker\r\n\r\nGET");
         g_assert_cmpstr (soup_message_get_method (msg), ==, SOUP_METHOD_GET);
