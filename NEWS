@@ -1,3 +1,33 @@
+Changes in libsoup from 3.7.2 to 3.7.3:
+
+* Add `soup_message_set_compression_dictionary_id()` and `soup_message_get_compression_dictionary_id()` to send the `Dictionary-ID` header alongside `Available-Dictionary` [Patrick Griffis]
+* Add `soup_websocket_extension_process_incoming_message_with_limit()` so extensions can bound how much they decompress [Zayd Rajab]
+* Harden WebSocket handling:
+    * Bound decompressed message size during inflation (CVE-2026-15709) [Zayd Rajab]
+    * Reject oversized control frames (CVE-2026-15711) [Zayd Rajab]
+    * Cap incoming frame payloads, message reassembly, and outgoing frames at what the underlying buffer can hold [Patrick Griffis]
+    * Bound outgoing permessage-deflate buffer growth [Patrick Griffis]
+    * Cap the number of queued unsolicited pongs [Patrick Griffis]
+    * Emit `SoupWebsocketConnection::pong` with a `GBytes`, as declared [Patrick Griffis]
+    * Store accepted WebSocket extensions per message rather than per handler [Felix Nilsson]
+* Harden authentication and caching:
+    * Do not send `Proxy-Authorization` through an established CONNECT tunnel (CVE-2026-66339) [Patrick Griffis]
+    * Scope cached proxy credentials to the proxy they came from (CVE-2026-12547) [Patrick Griffis]
+    * Reject caching authenticated responses in shared caches (CVE-2026-15713) [Milan Crha]
+* Tighten HTTP parsing and validation:
+    * Reject CRLF injection in the HTTP method (CVE-2026-3633) [Milan Crha, Patrick Griffis]
+    * Fix `Range` parsing overflows and coalescing cost, and validate `Content-Range` when parsing it [Patrick Griffis]
+    * Keep duplicate `Content-Length` headers when they are identical [Patrick Griffis]
+    * Fix an out-of-bounds read in case of an excessively long multipart boundary [Mike Gorse]
+    * Do not treat base64 data URI content as a NUL-terminated string [Patrick Griffis]
+* http2:
+    * Never send more body bytes than nghttp2 requested (CVE-2026-85534) [Patrick Griffis]
+    * Keep the message alive across `io_run_until()` in `run_until_read()` [Patrick Griffis]
+    * Do not assume that `GOAWAY` opaque data is NUL-terminated [Mike Gorse]
+* server: Report the resource length in 416 responses [Patrick Griffis]
+* session: Do not send a message cancelled while being queued [Patrick Griffis]
+* cookie: Annotate constants' values [Maximiliano Sandoval]
+
 Changes in libsoup from 3.7.1 to 3.7.2:
 
 * Add support for compression dictionaries:
