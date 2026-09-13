@@ -107,13 +107,21 @@ static void
 do_method_injection_test (void)
 {
         SoupMessage *msg;
+        char *uri_string;
 
         g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
                                "*assertion*method_is_valid*failed*");
         msg = soup_message_new_from_uri ("GET / HTTP/1.1\r\nX-Injected: evil", base_uri);
-        g_assert_null (soup_message_get_method (msg));
+        g_assert_null (msg);
         g_test_assert_expected_messages ();
-        g_object_unref (msg);
+
+        uri_string = g_uri_to_string (base_uri);
+        g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
+                               "*assertion*method_is_valid*failed*");
+        msg = soup_message_new ("GET / HTTP/1.1\r\nX-Injected: evil", uri_string);
+        g_assert_null (msg);
+        g_test_assert_expected_messages ();
+        g_free (uri_string);
 
         g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
                                "*assertion*method_is_valid*failed*");

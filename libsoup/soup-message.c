@@ -1006,6 +1006,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 }
 
 
+static gboolean method_is_valid (const char *method);
+
 /**
  * soup_message_new:
  * @method: the HTTP method for the created request
@@ -1022,7 +1024,7 @@ soup_message_new (const char *method, const char *uri_string)
 	SoupMessage *msg;
 	GUri *uri;
 
-	g_return_val_if_fail (method != NULL, NULL);
+	g_return_val_if_fail (method_is_valid (method), NULL);
 	g_return_val_if_fail (uri_string != NULL, NULL);
 
 	uri = g_uri_parse (uri_string, SOUP_HTTP_URI_FLAGS, NULL);
@@ -1051,7 +1053,7 @@ soup_message_new (const char *method, const char *uri_string)
 SoupMessage *
 soup_message_new_from_uri (const char *method, GUri *uri)
 {
-        g_return_val_if_fail (method != NULL, NULL);
+        g_return_val_if_fail (method_is_valid (method), NULL);
         g_return_val_if_fail (soup_uri_is_valid (uri), NULL);
 
 	return g_object_new (SOUP_TYPE_MESSAGE,
