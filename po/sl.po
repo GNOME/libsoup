@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues/\n"
-"POT-Creation-Date: 2026-04-14 07:18+0000\n"
-"PO-Revision-Date: 2026-04-14 11:44+0200\n"
+"POT-Creation-Date: 2026-09-13 21:47+0000\n"
+"PO-Revision-Date: 2026-09-15 09:49+0200\n"
 "Last-Translator: Martin Srebotnjak <miles@filmsi.net>\n"
 "Language-Team: Slovenian <gnome-si@googlegroups.com>\n"
 "Language: sl\n"
@@ -34,56 +34,56 @@ msgstr "Ustvarjanje predpomnilnika vira je spodletelo"
 msgid "Output buffer is too small"
 msgstr "Odvodni medpomnilnik je premajhen."
 
-#: libsoup/http1/soup-body-input-stream.c:157
-#: libsoup/http1/soup-body-input-stream.c:195
-#: libsoup/http1/soup-body-input-stream.c:256
-#: libsoup/http1/soup-body-input-stream.c:276
-#: libsoup/http1/soup-message-io-data.c:77
-#: libsoup/http2/soup-client-message-io-http2.c:483
-#: libsoup/server/http2/soup-server-message-io-http2.c:466
+#: libsoup/http1/soup-body-input-stream.c:160
+#: libsoup/http1/soup-body-input-stream.c:198
+#: libsoup/http1/soup-body-input-stream.c:261
+#: libsoup/http1/soup-body-input-stream.c:281
+#: libsoup/http1/soup-message-io-data.c:76
+#: libsoup/http2/soup-client-message-io-http2.c:477
+#: libsoup/server/http2/soup-server-message-io-http2.c:512
 msgid "Connection terminated unexpectedly"
 msgstr "Povezava je nepričakovano končana"
 
-#: libsoup/http1/soup-body-input-stream.c:212
+#: libsoup/http1/soup-body-input-stream.c:217
 msgid "Invalid chunk size"
 msgstr "Neveljavna velikost kosa"
 
-#: libsoup/http1/soup-body-input-stream.c:221
+#: libsoup/http1/soup-body-input-stream.c:226
 msgid "Too large chunk"
 msgstr "Prevelik kos"
 
-#: libsoup/http1/soup-body-input-stream.c:523
+#: libsoup/http1/soup-body-input-stream.c:528
 msgid "Invalid seek request"
 msgstr "Neveljavna zahteva iskanja"
 
-#: libsoup/http1/soup-body-input-stream.c:551
+#: libsoup/http1/soup-body-input-stream.c:556
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Ni mogoče porezati SoupBodyInputStream"
 
-#: libsoup/http1/soup-client-message-io-http1.c:322
-#: libsoup/http1/soup-client-message-io-http1.c:776
-#: libsoup/http2/soup-body-input-stream-http2.c:245
-#: libsoup/server/http1/soup-server-message-io-http1.c:417
-#: libsoup/server/http1/soup-server-message-io-http1.c:911
+#: libsoup/http1/soup-client-message-io-http1.c:320
+#: libsoup/http1/soup-client-message-io-http1.c:774
+#: libsoup/http2/soup-body-input-stream-http2.c:242
+#: libsoup/server/http1/soup-server-message-io-http1.c:418
+#: libsoup/server/http1/soup-server-message-io-http1.c:912
 msgid "Operation would block"
 msgstr "Opravilo bi zaustavilo delovanje"
 
-#: libsoup/http1/soup-client-message-io-http1.c:463
+#: libsoup/http1/soup-client-message-io-http1.c:461
 msgid "Could not parse HTTP response"
 msgstr "Odziva HTTP ni mogoče razčleniti"
 
-#: libsoup/http1/soup-client-message-io-http1.c:486
+#: libsoup/http1/soup-client-message-io-http1.c:484
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neprepoznano kodiranje odziva HTTP"
 
-#: libsoup/http1/soup-client-message-io-http1.c:735
-#: libsoup/http1/soup-client-message-io-http1.c:761
-#: libsoup/http2/soup-client-message-io-http2.c:1791
-#: libsoup/http2/soup-client-message-io-http2.c:1817
+#: libsoup/http1/soup-client-message-io-http1.c:733
+#: libsoup/http1/soup-client-message-io-http1.c:759
+#: libsoup/http2/soup-client-message-io-http2.c:1876
+#: libsoup/http2/soup-client-message-io-http2.c:1899
 msgid "Operation was cancelled"
 msgstr "Opravilo je preklicano."
 
-#: libsoup/http1/soup-message-io-data.c:105
+#: libsoup/http1/soup-message-io-data.c:104
 msgid "Header too big"
 msgstr "Glava je prevelika"
 
@@ -95,32 +95,32 @@ msgstr "Ni mogoče uvoziti obstoječega vtiča:"
 msgid "Can’t import unconnected socket"
 msgstr "Ni mogoče uvoziti nepovezanega vtiča"
 
-#: libsoup/server/soup-server.c:1239
+#: libsoup/server/soup-server.c:1238
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Ni mogoče ustvariti strežnika TLS brez ustreznega potrdila TLS."
 
-#: libsoup/soup-session.c:1134
+#: libsoup/soup-session.c:1132
 msgid "Location header is missing or empty in response headers"
 msgstr "Manjkajo podatki trenutnega mesta v glavi odziva"
 
-#: libsoup/soup-session.c:1148
+#: libsoup/soup-session.c:1146
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
 msgstr "Neveljaven naslov URI »%s« med podatki trenutnega mesta v glavi odziva"
 
-#: libsoup/soup-session.c:1168
+#: libsoup/soup-session.c:1166
 msgid "Too many redirects"
 msgstr "Zaznanih je preveč preusmeritev"
 
-#: libsoup/soup-session.c:1173
+#: libsoup/soup-session.c:1171
 msgid "Message was restarted too many times"
 msgstr "Sporočilo je bilo začeto prevečkrat"
 
-#: libsoup/soup-session.c:3122 libsoup/soup-session.c:3275
+#: libsoup/soup-session.c:3148 libsoup/soup-session.c:3301
 msgid "Message is already in session queue"
 msgstr "Sporočilo je že v vrsti za pošiljanje"
 
-#: libsoup/soup-session.c:3756
+#: libsoup/soup-session.c:3781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Strežnik ne podpira zahteve overitve WebSocket"
 
@@ -143,6 +143,10 @@ msgstr "Ime gostitelja je brez osnovne domene"
 #: libsoup/soup-tld.c:175
 msgid "Not enough domains"
 msgstr "Ni dovolj domen"
+
+#: libsoup/websocket/soup-websocket-connection.c:760
+msgid "WebSocket message is too large to send"
+msgstr "Sporočilo WebSocket je preveliko za pošiljanje"
 
 #: libsoup/websocket/soup-websocket.c:391
 #: libsoup/websocket/soup-websocket.c:435
