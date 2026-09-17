@@ -1566,6 +1566,8 @@ do_chunked_test (ServerData *sd, gconstpointer test_data)
                 { "Content-Length and Transfer-Encoding", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n", "HTTP/1.1 200 OK" },
                 { "Content-Length and Transfer-Encoding with keep alive connection", "Content-Length: 4\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n0\r\n\r\n", "HTTP/1.1 200 OK" },
                 { "Request Entity Too Large", "Transfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n8000000000000001\r\n\r\n\r\n", "HTTP/1.1 413 Request Entity Too Large" },
+                { "Leading whitespace in chunk-size", "Transfer-Encoding: chunked\r\n\r\n 5\r\nhello\r\n0\r\n\r\n", "HTTP/1.1 400 Bad Request" },
+                { "Plus-prefixed chunk-size", "Transfer-Encoding: chunked\r\n\r\n+5\r\nhello\r\n0\r\n\r\n", "HTTP/1.1 400 Bad Request" },
         };
 
         sd->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);

@@ -209,6 +209,19 @@ again:
                 if (boundary)
                         *boundary = '\0';
 
+                /* RFC 9112 defines chunk-size as 1*HEXDIG. g_ascii_strtoull()
+                 * also skips leading whitespace and accepts a sign, which would
+                 * create a request-smuggling differential with strict
+                 * intermediaries, so require a leading hex digit. */
+                if (!g_ascii_isxdigit (metabuf[0])) {
+                        if (error && *error == NULL) {
+                                g_set_error_literal (error, G_IO_ERROR,
+                                                     G_IO_ERROR_INVALID_ARGUMENT,
+                                                     _("Invalid chunk size"));
+                        }
+                        return -1;
+                }
+
                 chunk_size = g_ascii_strtoull (metabuf, &end, 16);
                 if (*end) {
                         if (error && *error == NULL) {
