@@ -7,11 +7,13 @@
 #include "soup-cookie-jar-db.h"
 #include <glib/gstdio.h>
 #include <stdint.h>
+#include <sqlite3.h>
 
 // This is hardcoded to match sqlite but in theory could change some day.
 // https://sqlite.org/limits.html
 #define SQLITE_PAGE_SIZE 4096ULL
-#define SQLITE_MAX_PAGE_COUNT (G_MAXUINT32 - 1)
+// SQLite's default max_page_count is a build-time default that varies between
+// SQLite versions, so it is queried at runtime; see sqlite_default_max_page_count().
 
 static SoupServer *server;
 static GUri *first_party_uri, *third_party_uri;
@@ -1140,13 +1142,34 @@ typedef struct {
 	guint64 size_expected;
 } CookiePersistenceMaxSizeValuesTestData;
 
+// Query SQLite's default max_page_count (the ceiling soup_cookie_jar_db clamps
+// to). It is a build-time SQLite default that differs across versions, so read
+// it from the running SQLite rather than hardcoding it.
+static guint64
+sqlite_default_max_page_count (void)
+{
+	sqlite3 *db = NULL;
+	sqlite3_stmt *stmt = NULL;
+	guint64 max_page_count = 0;
+
+	g_assert_cmpint (sqlite3_open (":memory:", &db), ==, SQLITE_OK);
+	g_assert_cmpint (sqlite3_prepare_v2 (db, "PRAGMA max_page_count;", -1, &stmt, NULL), ==, SQLITE_OK);
+	g_assert_cmpint (sqlite3_step (stmt), ==, SQLITE_ROW);
+	max_page_count = (guint64) sqlite3_column_int64 (stmt, 0);
+	sqlite3_finalize (stmt);
+	sqlite3_close (db);
+
+	return max_page_count;
+}
+
 static const CookiePersistenceMaxSizeValuesTestData cookie_persistence_max_size_values_test_cases[] = {
 	// Page size aligned to match exactly
 	{ 10 * SQLITE_PAGE_SIZE, 10 * SQLITE_PAGE_SIZE },
 	// Not aligned to page size to force size truncation
 	{ 10 * SQLITE_PAGE_SIZE + 100, 10 * SQLITE_PAGE_SIZE },
-	// Exceeding max database supported size (maximum size, rounded down)
-	{ G_MAXUINT64, SQLITE_MAX_PAGE_COUNT * SQLITE_PAGE_SIZE },
+	// Exceeding max database supported size clamps to max_page_count * page_size;
+	// expected is derived at runtime (size_expected here is a placeholder)
+	{ G_MAXUINT64, 0 },
 	// Unlimited
 	{ 0, 0 },
 };
@@ -1158,6 +1181,13 @@ do_cookies_persistence_db_max_size_values_test (gconstpointer user_data)
 	SoupCookieJarDB *jar;
 	GFileIOStream *cookies_file_stream = NULL;
 	GError *error = NULL;
+	guint64 size_expected = test_data->size_expected;
+
+	// The overflow case clamps to SQLite's max_page_count, a build-time SQLite
+	// default that varies by version; derive the expected size from the running
+	// SQLite instead of a hardcoded constant.
+	if (test_data->size_requested == G_MAXUINT64)
+		size_expected = sqlite_default_max_page_count () * SQLITE_PAGE_SIZE;
 
 	GFile *cookies_file = g_file_new_tmp ("cookies.sqlite.XXXXXX", &cookies_file_stream, &error);
 
@@ -1174,7 +1204,7 @@ do_cookies_persistence_db_max_size_values_test (gconstpointer user_data)
 	jar = g_object_new (SOUP_TYPE_COOKIE_JAR_DB, "filename", cookies_file_path,
 		               "max-size", test_data->size_requested, NULL);
 
-	g_assert_cmpuint (soup_cookie_jar_db_get_max_size (jar), ==, test_data->size_expected);
+	g_assert_cmpuint (soup_cookie_jar_db_get_max_size (jar), ==, size_expected);
 
 	g_object_unref (jar);
 	g_file_delete (cookies_file, NULL, &error);
