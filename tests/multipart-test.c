@@ -633,6 +633,46 @@ test_multipart_bounds_bad_4 (void)
 }
 
 static void
+test_multipart_unbounded_header_growth (void)
+{
+        SoupMessage *msg;
+        SoupMessageHeaders *headers;
+        GInputStream *in;
+        GInputStream *next_part;
+        SoupMultipartInputStream *multipart;
+        GError *error = NULL;
+        GString *raw_data;
+        gsize fill_line_count = 2000;
+        gsize ii;
+
+        raw_data = g_string_new ("--cut-here\r\n");
+        for (ii = 0; ii < fill_line_count; ii++) {
+                g_string_append (raw_data, "X-Fill: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n");
+        }
+
+        g_test_message ("feeding %" G_GSIZE_FORMAT " bytes of unterminated part headers",
+                        raw_data->len);
+
+        msg = soup_message_new (SOUP_METHOD_GET, "http://foo/upload");
+        headers = soup_message_get_response_headers (msg);
+        soup_message_headers_replace (headers, "Content-Type", "multipart/x-mixed-replace; boundary=cut-here");
+
+        in = g_memory_input_stream_new_from_data (raw_data->str, raw_data->len, NULL);
+        multipart = soup_multipart_input_stream_new (msg, in);
+        g_object_unref (in);
+
+        next_part = soup_multipart_input_stream_next_part (multipart, NULL, &error);
+
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
+        g_assert_null (next_part);
+        g_clear_error (&error);
+
+        g_object_unref (multipart);
+        g_object_unref (msg);
+        g_string_free (raw_data, TRUE);
+}
+
+static void
 test_multipart_too_large (void)
 {
 	const char *raw_body =
@@ -704,6 +744,7 @@ main (int argc, char **argv)
         g_test_add_func ("/multipart/bounds-bad-3", test_multipart_bounds_bad_3);
         g_test_add_func ("/multipart/bounds-bad-4", test_multipart_bounds_bad_4);
 	g_test_add_func ("/multipart/too-large", test_multipart_too_large);
+	g_test_add_func ("/multipart/unbounded-header-growth", test_multipart_unbounded_header_growth);
 
 	ret = g_test_run ();
 
