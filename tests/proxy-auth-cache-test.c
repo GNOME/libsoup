@@ -149,6 +149,189 @@ do_proxy_switch_no_credential_leak (void)
 	soup_test_server_quit_unref (second);
 }
 
+/* A cross-origin redirect to a host reached directly must not carry the
+ * proxy's Proxy-Authorization credentials to that host.
+ */
+
+static gboolean direct_target_saw_authorization;
+static gboolean direct_target_hit;
+static char *redirect_location;
+
+static void
+proxy_with_redirect_cb (SoupServer        *server,
+			SoupServerMessage *msg,
+			const char        *path,
+			GHashTable        *query,
+			gpointer           user_data)
+{
+	SoupMessageHeaders *req = soup_server_message_get_request_headers (msg);
+
+	if (!soup_message_headers_get_one (req, "Proxy-Authorization")) {
+		soup_server_message_set_status (msg, SOUP_STATUS_PROXY_UNAUTHORIZED, NULL);
+		soup_message_headers_append (soup_server_message_get_response_headers (msg),
+					     "Proxy-Authenticate", "Basic realm=\"proxy\"");
+		return;
+	}
+
+	soup_server_message_set_status (msg, SOUP_STATUS_MOVED_TEMPORARILY, NULL);
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
+				     "Location", redirect_location);
+}
+
+static void
+direct_target_cb (SoupServer        *server,
+		  SoupServerMessage *msg,
+		  const char        *path,
+		  GHashTable        *query,
+		  gpointer           user_data)
+{
+	SoupMessageHeaders *req = soup_server_message_get_request_headers (msg);
+
+	direct_target_hit = TRUE;
+	if (soup_message_headers_get_one (req, "Proxy-Authorization"))
+		direct_target_saw_authorization = TRUE;
+
+	soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+	soup_server_message_set_response (msg, "text/plain", SOUP_MEMORY_STATIC, "ok", 2);
+}
+
+static void
+do_proxy_redirect_to_direct_no_credential_leak (void)
+{
+	SoupServer *proxy, *direct_target;
+	GUri *proxy_uri, *direct_uri;
+	char *proxy_str, *direct_str, *direct_authority;
+	GProxyResolver *resolver;
+	SoupSession *session;
+	SoupMessage *msg;
+	GBytes *body;
+	GError *error = NULL;
+	const char *ignore_hosts[2];
+
+	proxy = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_add_handler (proxy, NULL, proxy_with_redirect_cb, NULL, NULL);
+	proxy_uri = soup_test_server_get_uri (proxy, "http", "127.0.0.1");
+	proxy_str = g_uri_to_string (proxy_uri);
+
+	direct_target = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_add_handler (direct_target, NULL, direct_target_cb, NULL, NULL);
+	direct_uri = soup_test_server_get_uri (direct_target, "http", "127.0.0.1");
+	direct_str = g_uri_to_string (direct_uri);
+	redirect_location = g_strconcat (direct_str, "target", NULL);
+
+	direct_authority = g_strdup_printf ("127.0.0.1:%d", g_uri_get_port (direct_uri));
+	ignore_hosts[0] = direct_authority;
+	ignore_hosts[1] = NULL;
+
+	/* Only the redirect target is reached directly; the initial
+	 * cross-origin request still goes through the proxy.
+	 */
+	resolver = g_simple_proxy_resolver_new (proxy_str, (char **) ignore_hosts);
+	session = soup_test_session_new ("proxy-resolver", resolver, NULL);
+
+	msg = soup_message_new (SOUP_METHOD_GET, "http://origin.test/start");
+	g_signal_connect (msg, "authenticate", G_CALLBACK (authenticate_cb), NULL);
+	body = soup_test_session_async_send (session, msg, NULL, &error);
+
+	g_assert_no_error (error);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+	g_assert_true (direct_target_hit);
+	g_assert_false (direct_target_saw_authorization);
+
+	g_clear_pointer (&body, g_bytes_unref);
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+	g_object_unref (resolver);
+	g_free (proxy_str);
+	g_free (direct_str);
+	g_free (direct_authority);
+	g_free (redirect_location);
+	g_uri_unref (proxy_uri);
+	g_uri_unref (direct_uri);
+	soup_test_server_quit_unref (proxy);
+	soup_test_server_quit_unref (direct_target);
+}
+
+/* A redirect that stays behind the same proxy must still carry
+ * Proxy-Authorization to it.
+ */
+
+static gboolean same_proxy_target_saw_authorization;
+static gboolean same_proxy_target_hit;
+
+static void
+proxy_with_redirect_same_proxy_cb (SoupServer        *server,
+				   SoupServerMessage *msg,
+				   const char        *path,
+				   GHashTable        *query,
+				   gpointer           user_data)
+{
+	SoupMessageHeaders *req = soup_server_message_get_request_headers (msg);
+
+	if (!soup_message_headers_get_one (req, "Proxy-Authorization")) {
+		soup_server_message_set_status (msg, SOUP_STATUS_PROXY_UNAUTHORIZED, NULL);
+		soup_message_headers_append (soup_server_message_get_response_headers (msg),
+					     "Proxy-Authenticate", "Basic realm=\"proxy\"");
+		return;
+	}
+
+	if (!g_strcmp0 (path, "/target")) {
+		same_proxy_target_hit = TRUE;
+		if (soup_message_headers_get_one (req, "Proxy-Authorization"))
+			same_proxy_target_saw_authorization = TRUE;
+		soup_server_message_set_status (msg, SOUP_STATUS_OK, NULL);
+		soup_server_message_set_response (msg, "text/plain", SOUP_MEMORY_STATIC, "ok", 2);
+		return;
+	}
+
+	soup_server_message_set_status (msg, SOUP_STATUS_MOVED_TEMPORARILY, NULL);
+	soup_message_headers_append (soup_server_message_get_response_headers (msg),
+				     "Location", "http://other.test/target");
+}
+
+static void
+do_proxy_redirect_same_proxy_keeps_credentials (void)
+{
+	SoupServer *proxy;
+	GUri *proxy_uri;
+	char *proxy_str;
+	GProxyResolver *resolver;
+	SoupSession *session;
+	SoupMessage *msg;
+	GBytes *body;
+	GError *error = NULL;
+
+	proxy = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_add_handler (proxy, NULL, proxy_with_redirect_same_proxy_cb, NULL, NULL);
+	proxy_uri = soup_test_server_get_uri (proxy, "http", "127.0.0.1");
+	proxy_str = g_uri_to_string (proxy_uri);
+
+	/* No ignore_hosts: origin.test and the redirect target other.test are
+	 * both reached through this same proxy.
+	 */
+	resolver = g_simple_proxy_resolver_new (proxy_str, NULL);
+	session = soup_test_session_new ("proxy-resolver", resolver, NULL);
+
+	msg = soup_message_new (SOUP_METHOD_GET, "http://origin.test/start");
+	g_signal_connect (msg, "authenticate", G_CALLBACK (authenticate_cb), NULL);
+	body = soup_test_session_async_send (session, msg, NULL, &error);
+
+	g_assert_no_error (error);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+	g_assert_true (same_proxy_target_hit);
+	g_assert_true (same_proxy_target_saw_authorization);
+
+	g_clear_pointer (&body, g_bytes_unref);
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+	g_object_unref (resolver);
+	g_free (proxy_str);
+	g_uri_unref (proxy_uri);
+	soup_test_server_quit_unref (proxy);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -158,6 +341,10 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/proxy-auth-cache/switch-no-credential-leak",
 			 do_proxy_switch_no_credential_leak);
+	g_test_add_func ("/proxy-auth-cache/redirect-to-direct-no-credential-leak",
+			 do_proxy_redirect_to_direct_no_credential_leak);
+	g_test_add_func ("/proxy-auth-cache/redirect-same-proxy-keeps-credentials",
+			 do_proxy_redirect_same_proxy_keeps_credentials);
 
 	ret = g_test_run ();
 

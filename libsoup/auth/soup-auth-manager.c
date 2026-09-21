@@ -489,9 +489,11 @@ lookup_proxy_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 {
 	SoupAuth *auth;
 
-	/* If the message already has a ready auth, use that instead */
+	/* If the message already has a ready auth, use that instead, but only
+	 * if it is still for the proxy this connection actually goes through.
+	 */
 	auth = soup_message_get_proxy_auth (msg);
-	if (auth && soup_auth_is_ready (auth, msg))
+	if (auth && soup_auth_is_ready (auth, msg) && proxy_auth_matches_msg (priv, msg))
 		return auth;
 
 	if (soup_message_query_flags (msg, SOUP_MESSAGE_DO_NOT_USE_AUTH_CACHE))
