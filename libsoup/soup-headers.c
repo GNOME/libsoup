@@ -39,7 +39,8 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 {
 	const char *headers_start;
 	char *headers_copy, *name, *name_end, *value, *value_end;
-	char *eol, *sol, *p;
+	char *p;
+	char *src, *dst;
 	gsize copy_len;
 	gboolean success = FALSE;
 
@@ -115,28 +116,29 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 			*value == '\r' || *value == '\n'))
 			value++;
 
-		/* Collapse continuation lines */
-		while ((eol = strchr (value, '\n'))) {
-			/* find start of next line */
-			sol = eol + 1;
-			while (*sol == ' ' || *sol == '\t')
-				sol++;
-
-			/* back up over trailing whitespace on current line */
-			while (eol[-1] == ' ' || eol[-1] == '\t' || eol[-1] == '\r')
-				eol--;
-
-			/* Delete all but one SP */
-			*eol = ' ';
-			memmove (eol + 1, sol, strlen (sol) + 1);
+		/* Collapse continuation lines in a single linear pass, and clip
+		 * trailing whitespace at the same time.
+		 */
+		src = value;
+		dst = value;
+		while (*src) {
+			if (*src == '\n') {
+				src++;
+				while (*src == ' ' || *src == '\t')
+					src++;
+				while (dst > value &&
+				       (dst[-1] == ' ' || dst[-1] == '\t' || dst[-1] == '\r'))
+					dst--;
+				if (dst > value)
+					*dst++ = ' ';
+				continue;
+			}
+			*dst++ = *src++;
 		}
-
-		/* clip trailing whitespace */
-		eol = strchr (value, '\0');
-		while (eol > value &&
-		       (eol[-1] == ' ' || eol[-1] == '\t' || eol[-1] == '\r'))
-			eol--;
-		*eol = '\0';
+		while (dst > value &&
+		       (dst[-1] == ' ' || dst[-1] == '\t' || dst[-1] == '\r'))
+			dst--;
+		*dst = '\0';
 
 		/* convert (illegal) '\r's to spaces */
 		for (p = strchr (value, '\r'); p; p = strchr (p, '\r'))
