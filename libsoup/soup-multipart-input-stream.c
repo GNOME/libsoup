@@ -9,6 +9,7 @@
 #include <config.h>
 #endif
 
+#include <glib/gi18n-lib.h>
 #include <string.h>
 
 #include "soup-body-input-stream.h"
@@ -19,6 +20,7 @@
 #include "soup-multipart-input-stream.h"
 
 #define RESPONSE_BLOCK_SIZE 8192
+#define MULTIPART_HEADER_SIZE_LIMIT (100 * 1024)
 
 /**
  * SoupMultipartInputStream:
@@ -404,6 +406,14 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
 		if (!got_boundary) {
 			g_byte_array_set_size (priv->meta_buf, 0);
 			continue;
+		}
+
+		if (priv->meta_buf->len > MULTIPART_HEADER_SIZE_LIMIT) {
+			g_set_error_literal (error, G_IO_ERROR,
+					     G_IO_ERROR_PARTIAL_INPUT,
+					     _("Header too big"));
+			g_byte_array_set_size (priv->meta_buf, 0);
+			return FALSE;
 		}
 
 		if (nread == 1 &&
