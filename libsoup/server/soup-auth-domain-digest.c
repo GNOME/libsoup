@@ -44,10 +44,19 @@ struct _SoupAuthDomainDigest {
 };
 
 typedef struct {
+	gint64 issue_time;
+	guint64 max_nc;
+} SoupDigestNonceInfo;
+
+#define SOUP_DIGEST_NONCE_LIFETIME (300 * G_USEC_PER_SEC)
+
+typedef struct {
 	SoupAuthDomainDigestAuthCallback auth_callback;
 	gpointer auth_data;
 	GDestroyNotify auth_dnotify;
 
+	GMutex nonce_lock;
+	GHashTable *nonces;
 } SoupAuthDomainDigestPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
@@ -55,6 +64,11 @@ G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthDomainDigest, soup_auth_domain_digest,
 static void
 soup_auth_domain_digest_init (SoupAuthDomainDigest *digest)
 {
+	SoupAuthDomainDigestPrivate *priv =
+		soup_auth_domain_digest_get_instance_private (digest);
+
+	g_mutex_init (&priv->nonce_lock);
+	priv->nonces = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
 static void
@@ -65,6 +79,9 @@ soup_auth_domain_digest_finalize (GObject *object)
 
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
+
+	g_hash_table_destroy (priv->nonces);
+	g_mutex_clear (&priv->nonce_lock);
 
 	G_OBJECT_CLASS (soup_auth_domain_digest_parent_class)->finalize (object);
 }
@@ -207,11 +224,15 @@ check_hex_urp (SoupAuthDomain    *domain,
 	       const char        *username,
 	       const char        *hex_urp)
 {
+	SoupAuthDomainDigestPrivate *priv =
+		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (domain));
 	const char *uri, *qop, *realm, *msg_username;
 	const char *nonce, *nc, *cnonce, *response;
 	char hex_a1[33], computed_response[33];
 	int nonce_count;
 	GUri *dig_uri, *req_uri;
+	SoupDigestNonceInfo *nonce_info;
+	gboolean accept;
 
 	msg_username = g_hash_table_lookup (params, "username");
 	if (!msg_username || strcmp (msg_username, username) != 0)
@@ -272,6 +293,16 @@ check_hex_urp (SoupAuthDomain    *domain,
 	if (!response)
 		return FALSE;
 
+	g_mutex_lock (&priv->nonce_lock);
+
+	nonce_info = g_hash_table_lookup (priv->nonces, nonce);
+	if (!nonce_info ||
+	    g_get_monotonic_time () - nonce_info->issue_time > SOUP_DIGEST_NONCE_LIFETIME ||
+	    (guint64) nonce_count <= nonce_info->max_nc) {
+		g_mutex_unlock (&priv->nonce_lock);
+		return FALSE;
+	}
+
 	soup_auth_digest_compute_hex_a1 (hex_urp,
 					 SOUP_AUTH_DIGEST_ALGORITHM_MD5,
 					 nonce, cnonce, hex_a1);
@@ -281,7 +312,14 @@ check_hex_urp (SoupAuthDomain    *domain,
 					   SOUP_AUTH_DIGEST_QOP_AUTH,
 					   nonce, cnonce, nonce_count,
 					   computed_response);
-	return strcmp (response, computed_response) == 0;
+
+	accept = strcmp (response, computed_response) == 0;
+	if (accept)
+		nonce_info->max_nc = nonce_count;
+
+	g_mutex_unlock (&priv->nonce_lock);
+
+	return accept;
 }
 
 static char *
@@ -330,19 +368,52 @@ soup_auth_domain_digest_accepts (SoupAuthDomain    *domain,
 	return ret_user;
 }
 
+static void
+prune_expired_nonces (SoupAuthDomainDigestPrivate *priv,
+		      gint64                       now)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+	SoupDigestNonceInfo *nonce_info;
+
+	g_hash_table_iter_init (&iter, priv->nonces);
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+		nonce_info = value;
+		if (now - nonce_info->issue_time > SOUP_DIGEST_NONCE_LIFETIME)
+			g_hash_table_iter_remove (&iter);
+	}
+}
+
 static char *
 soup_auth_domain_digest_challenge (SoupAuthDomain    *domain,
 				   SoupServerMessage *msg)
 {
+	SoupAuthDomainDigestPrivate *priv =
+		soup_auth_domain_digest_get_instance_private (SOUP_AUTH_DOMAIN_DIGEST (domain));
 	GString *str;
+	char *nonce;
+	SoupDigestNonceInfo *nonce_info;
+	gint64 now;
+
+	now = g_get_monotonic_time ();
+	nonce = g_strdup_printf ("%lu%" G_GINT64_FORMAT, (unsigned long) msg, now);
+
+	nonce_info = g_new (SoupDigestNonceInfo, 1);
+	nonce_info->issue_time = now;
+	nonce_info->max_nc = 0;
+
+	g_mutex_lock (&priv->nonce_lock);
+	prune_expired_nonces (priv, now);
+	g_hash_table_replace (priv->nonces, g_strdup (nonce), nonce_info);
+	g_mutex_unlock (&priv->nonce_lock);
 
 	str = g_string_new ("Digest ");
 	soup_header_g_string_append_param_quoted (str, "realm", soup_auth_domain_get_realm (domain));
-	g_string_append_printf (str, ", nonce=\"%lu%lu\"", 
-				(unsigned long) msg,
-				(unsigned long) time (0));
+	g_string_append_printf (str, ", nonce=\"%s\"", nonce);
 	g_string_append_printf (str, ", qop=\"auth\"");
 	g_string_append_printf (str, ", algorithm=MD5");
+
+	g_free (nonce);
 
 	return g_string_free (str, FALSE);
 }

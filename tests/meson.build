@@ -88,6 +88,7 @@ tests = [
   {'name': 'continue'},
   {'name': 'cookies'},
   {'name': 'date'},
+  {'name': 'digest-nonce-replay'},
   {'name': 'forms'},
   {'name': 'header-parsing'},
   {'name': 'http2', 'slow': true},
