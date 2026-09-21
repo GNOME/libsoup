@@ -2726,6 +2726,26 @@ soup_session_class_init (SoupSessionClass *session_class)
 }
 
 
+/* Maximum size of an intermediate response body we're willing to buffer
+ * in memory while waiting to requeue a message (redirect or auth retry).
+ */
+#define SOUP_SESSION_MAX_REQUEUE_BODY_SIZE (8 * 1024 * 1024)
+
+static gpointer
+requeue_body_realloc (gpointer data, gsize size)
+{
+	if (size > SOUP_SESSION_MAX_REQUEUE_BODY_SIZE)
+		return NULL;
+
+	return g_realloc (data, size);
+}
+
+static GOutputStream *
+requeue_body_ostream_new (void)
+{
+	return g_memory_output_stream_new (NULL, 0, requeue_body_realloc, g_free);
+}
+
 static gboolean
 expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
 {
@@ -2869,7 +2889,7 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 		GOutputStream *ostream;
 
 		/* Gather the current message body... */
-		ostream = g_memory_output_stream_new_resizable ();
+		ostream = requeue_body_ostream_new ();
 		g_object_set_data_full (G_OBJECT (item->task), "SoupSession:ostream",
 					ostream, g_object_unref);
 
@@ -3332,7 +3352,7 @@ soup_session_send (SoupSession   *session,
 
 		/* Gather the current message body... */
                 session_debug (item, "Reading response stream");
-		ostream = g_memory_output_stream_new_resizable ();
+		ostream = requeue_body_ostream_new ();
 		if (g_output_stream_splice (ostream, stream,
 					    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
 					    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
