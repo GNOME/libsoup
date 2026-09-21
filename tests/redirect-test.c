@@ -5,6 +5,9 @@
 
 #include "test-utils.h"
 
+/* Larger than SOUP_SESSION_MAX_REQUEUE_BODY_SIZE in soup-session.c */
+#define LARGE_BODY_SIZE ((gsize) 9 * 1024 * 1024)
+
 GUri *base_uri;
 char *server2_uri;
 SoupSession *async_session;
@@ -211,6 +214,42 @@ do_async_msg_api_test (gconstpointer test)
 }
 
 static void
+do_large_body_before_redirect_test (void)
+{
+	GUri *uri;
+	SoupMessage *msg;
+	GInputStream *stream;
+	GError *error = NULL;
+	SoupSession *session;
+
+	g_test_bug ("PSIRTSUPT-8039");
+
+	/* Use a fresh, un-queued session so this test doesn't depend on
+	 * queue state left behind by earlier tests in this file.
+	 */
+	session = soup_test_session_new (NULL);
+
+	uri = g_uri_parse_relative (base_uri, "/redirect-large-body",
+				    SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	g_uri_unref (uri);
+
+	stream = soup_session_send (session, msg, NULL, &error);
+
+	/* The intermediate 302 response body must not be buffered without
+	 * bound while libsoup waits to requeue the message; a server
+	 * attaching an oversized body to a redirect/auth-retry response
+	 * should cause the request to fail.
+	 */
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_NO_SPACE);
+	g_assert_null (stream);
+
+	g_clear_error (&error);
+	g_clear_object (&msg);
+	soup_test_session_abort_unref (session);
+}
+
+static void
 server_callback (SoupServer        *server,
 		 SoupServerMessage *msg,
 		 const char        *path,
@@ -263,6 +302,17 @@ server_callback (SoupServer        *server,
 		soup_message_headers_replace (response_headers,
 					      "Location",
 					      server2_uri);
+		return;
+	} else if (!strcmp (path, "/redirect-large-body")) {
+		gsize size = LARGE_BODY_SIZE;
+		char *body = g_malloc (size);
+
+		memset (body, 'A', size);
+		soup_server_message_set_status (msg, SOUP_STATUS_FOUND, NULL);
+		soup_message_headers_replace (response_headers, "Location", "/");
+		soup_server_message_set_response (msg, "text/plain",
+						  SOUP_MEMORY_COPY, body, size);
+		g_free (body);
 		return;
 	} else if (!strcmp (path, "/")) {
 		SoupMessageBody *request_body;
@@ -359,6 +409,9 @@ main (int argc, char **argv)
 		g_test_add_data_func (path, &tests[n], do_async_msg_api_test);
 		g_free (path);
 	}
+
+	g_test_add_func ("/redirect/large-body-before-redirect",
+			 do_large_body_before_redirect_test);
 
 	ret = g_test_run ();
 
