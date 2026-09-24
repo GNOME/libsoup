@@ -1481,7 +1481,7 @@ soup_http2_message_data_close (SoupHTTP2MessageData *data)
                 g_clear_object (&data->body_istream);
         }
 
-        if (data->data_source_cancellable_id) {
+        if (data->data_source_message_cancellable) {
                 g_cancellable_disconnect (data->data_source_message_cancellable, data->data_source_cancellable_id);
                 data->data_source_cancellable_id = 0;
                 g_clear_object (&data->data_source_message_cancellable);
