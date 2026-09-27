@@ -17,7 +17,7 @@
 #include <windows.h>
 
 HMODULE soup_dll;
-#else
+#elif defined (HAVE_DLFCN_H)
 #include <dlfcn.h>
 #endif
 
@@ -26,8 +26,11 @@ soup2_is_loaded (void)
 {
 	gboolean result = FALSE;
 
-	/* Skip on PE/COFF, as it doesn't have a flat symbol namespace */
-#ifndef G_OS_WIN32
+	/* Skip on PE/COFF, as it doesn't have a flat symbol namespace,
+	 * and on platforms without dlopen() support (e.g. static-only
+	 * toolchains).
+	 */
+#if !defined (G_OS_WIN32) && defined (HAVE_DLFCN_H)
 	gpointer handle;
 	gpointer func;
 
