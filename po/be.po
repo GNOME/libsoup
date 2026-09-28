@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libsoup/issues/\n"
-"POT-Creation-Date: 2026-05-07 08:05+0000\n"
-"PO-Revision-Date: 2026-05-15 00:51+0300\n"
+"POT-Creation-Date: 2026-09-25 16:33+0000\n"
+"PO-Revision-Date: 2026-09-29 00:23+0300\n"
 "Last-Translator: Yuras Shumovich <shumovichy@gmail.com>\n"
 "Language-Team: Belarusian\n"
 "Language: be_BY\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"X-Generator: Poedit 3.8\n"
+"X-Generator: Poedit 3.9\n"
 "X-Project-Style: gnome\n"
 "X-Crowdin-Project: 98e6872775a91bf27122ff608b6db605\n"
 "X-Crowdin-Project-ID: 2\n"
@@ -33,58 +33,58 @@ msgstr "Не ўдалося цалкам размясціць рэсурс у к
 msgid "Output buffer is too small"
 msgstr "Выхадны буфер занадта малы"
 
-#: libsoup/http1/soup-body-input-stream.c:157
-#: libsoup/http1/soup-body-input-stream.c:195
-#: libsoup/http1/soup-body-input-stream.c:256
-#: libsoup/http1/soup-body-input-stream.c:276
-#: libsoup/http1/soup-message-io-data.c:77
-#: libsoup/http2/soup-client-message-io-http2.c:483
-#: libsoup/server/http2/soup-server-message-io-http2.c:466
+#: libsoup/http1/soup-body-input-stream.c:160
+#: libsoup/http1/soup-body-input-stream.c:198
+#: libsoup/http1/soup-body-input-stream.c:261
+#: libsoup/http1/soup-body-input-stream.c:281
+#: libsoup/http1/soup-message-io-data.c:76
+#: libsoup/http2/soup-client-message-io-http2.c:477
+#: libsoup/server/http2/soup-server-message-io-http2.c:512
 msgid "Connection terminated unexpectedly"
 msgstr "Злучэнне нечакана перарвалася"
 
 # чанка?
-#: libsoup/http1/soup-body-input-stream.c:212
+#: libsoup/http1/soup-body-input-stream.c:217
 msgid "Invalid chunk size"
 msgstr "Няправільны памер блока"
 
 # чанк?
-#: libsoup/http1/soup-body-input-stream.c:221
+#: libsoup/http1/soup-body-input-stream.c:226
 msgid "Too large chunk"
 msgstr "Памер блока занадта вялікі"
 
-#: libsoup/http1/soup-body-input-stream.c:523
+#: libsoup/http1/soup-body-input-stream.c:528
 msgid "Invalid seek request"
-msgstr "Хібны запыт на пошук"
+msgstr "Няправільны запыт пераходу"
 
-#: libsoup/http1/soup-body-input-stream.c:551
+#: libsoup/http1/soup-body-input-stream.c:556
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Немагчыма абрэзаць SoupBodyInputStream"
 
-#: libsoup/http1/soup-client-message-io-http1.c:322
-#: libsoup/http1/soup-client-message-io-http1.c:776
-#: libsoup/http2/soup-body-input-stream-http2.c:245
-#: libsoup/server/http1/soup-server-message-io-http1.c:417
-#: libsoup/server/http1/soup-server-message-io-http1.c:911
+#: libsoup/http1/soup-client-message-io-http1.c:320
+#: libsoup/http1/soup-client-message-io-http1.c:774
+#: libsoup/http2/soup-body-input-stream-http2.c:242
+#: libsoup/server/http1/soup-server-message-io-http1.c:418
+#: libsoup/server/http1/soup-server-message-io-http1.c:945
 msgid "Operation would block"
 msgstr "Аперацыя заблакавана"
 
-#: libsoup/http1/soup-client-message-io-http1.c:463
+#: libsoup/http1/soup-client-message-io-http1.c:461
 msgid "Could not parse HTTP response"
 msgstr "Не ўдалося разабраць адказ HTTP"
 
-#: libsoup/http1/soup-client-message-io-http1.c:486
+#: libsoup/http1/soup-client-message-io-http1.c:484
 msgid "Unrecognized HTTP response encoding"
 msgstr "Невядомае кадаванне адказу HTTP"
 
-#: libsoup/http1/soup-client-message-io-http1.c:735
-#: libsoup/http1/soup-client-message-io-http1.c:761
-#: libsoup/http2/soup-client-message-io-http2.c:1792
-#: libsoup/http2/soup-client-message-io-http2.c:1818
+#: libsoup/http1/soup-client-message-io-http1.c:733
+#: libsoup/http1/soup-client-message-io-http1.c:759
+#: libsoup/http2/soup-client-message-io-http2.c:1876
+#: libsoup/http2/soup-client-message-io-http2.c:1899
 msgid "Operation was cancelled"
 msgstr "Аперацыя скасавана"
 
-#: libsoup/http1/soup-message-io-data.c:105
+#: libsoup/http1/soup-message-io-data.c:104
 msgid "Header too big"
 msgstr "Загаловак занадта вялікі"
 
@@ -96,33 +96,33 @@ msgstr "Не ўдалося імпартаваць існы сокет: "
 msgid "Can’t import unconnected socket"
 msgstr "Нельга імпартаваць непадлучаны сокет"
 
-#: libsoup/server/soup-server.c:1239
+#: libsoup/server/soup-server.c:1238
 msgid "Can’t create a TLS server without a TLS certificate"
 msgstr "Нельга стварыць сервер TLS без сертыфіката TLS"
 
-#: libsoup/soup-session.c:1134
+#: libsoup/soup-session.c:1132
 msgid "Location header is missing or empty in response headers"
 msgstr ""
 "Загаловак месцазнаходжання адсутнічае або не пазначаны ў загалоўках адказаў"
 
-#: libsoup/soup-session.c:1148
+#: libsoup/soup-session.c:1146
 #, c-format
 msgid "Invalid URI “%s” in Location response header"
-msgstr "Хібны URI «%s» у загалоўку адказу ад месцазнаходжання"
+msgstr "Няправільны URI «%s» у загалоўку адказу Location"
 
-#: libsoup/soup-session.c:1168
+#: libsoup/soup-session.c:1166
 msgid "Too many redirects"
 msgstr "Занадта шмат перанакіраванняў"
 
-#: libsoup/soup-session.c:1173
+#: libsoup/soup-session.c:1171
 msgid "Message was restarted too many times"
 msgstr "Паведамленне перазапускалася занадта шмат разоў"
 
-#: libsoup/soup-session.c:3122 libsoup/soup-session.c:3275
+#: libsoup/soup-session.c:3148 libsoup/soup-session.c:3301
 msgid "Message is already in session queue"
 msgstr "Паведамленне ўжо ў чарзе сеанса"
 
-#: libsoup/soup-session.c:3756
+#: libsoup/soup-session.c:3781
 msgid "The server did not accept the WebSocket handshake."
 msgstr "Сервер не ўхваліў вітанне WebSocket."
 
@@ -132,7 +132,7 @@ msgstr "Не даступна ніводнага спіса публічных �
 
 #: libsoup/soup-tld.c:139 libsoup/soup-tld.c:155
 msgid "Invalid hostname"
-msgstr "Хібная назва хоста"
+msgstr "Няправільная назва хоста"
 
 #: libsoup/soup-tld.c:146
 msgid "Hostname is an IP address"
@@ -146,6 +146,10 @@ msgstr "Назва хоста не мае базавага дамена"
 msgid "Not enough domains"
 msgstr "Недастаткова даменаў"
 
+#: libsoup/websocket/soup-websocket-connection.c:760
+msgid "WebSocket message is too large to send"
+msgstr "Паведамленне WebSocket занадта вялікае для адпраўкі"
+
 #: libsoup/websocket/soup-websocket.c:391
 #: libsoup/websocket/soup-websocket.c:435
 #: libsoup/websocket/soup-websocket.c:451
@@ -156,7 +160,7 @@ msgstr "Запытанае серверам пашырэнне не падтры
 #: libsoup/websocket/soup-websocket.c:606
 #, c-format
 msgid "Incorrect WebSocket “%s” header"
-msgstr "Хібны загаловак WebSocket «%s»"
+msgstr "Няправільны загаловак WebSocket «%s»"
 
 #: libsoup/websocket/soup-websocket.c:415
 #: libsoup/websocket/soup-websocket.c:870
@@ -187,7 +191,7 @@ msgstr "Версія WebSocket не падтрымліваецца"
 
 #: libsoup/websocket/soup-websocket.c:596
 msgid "Invalid WebSocket key"
-msgstr "Хібны ключ WebSocket"
+msgstr "Няправільны ключ WebSocket"
 
 #: libsoup/websocket/soup-websocket.c:615
 msgid "Unsupported WebSocket subprotocol"
