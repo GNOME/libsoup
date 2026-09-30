@@ -1,3 +1,23 @@
+Changes in libsoup from 3.7.3 to 3.8.0:
+
+* Harden authentication:
+    * Check `nonce` validity in Digest authentication (CVE-2026-3099) [Milan Crha]
+    * Do not send cached proxy credentials after a redirect to a different origin [Milan Crha]
+* Harden multipart handling:
+    * Fix an out-of-bounds read when less data than the boundary is buffered (CVE-2026-66337) [Patrick Griffis]
+    * Limit the length of part headers [Milan Crha]
+    * Fix a leak of the current part's headers [Patrick Griffis]
+* Prevent request smuggling in the server:
+    * Close the connection after an early response to `Expect: 100-continue` [Patrick Griffis]
+    * Reject `Host` headers containing URI delimiters [Patrick Griffis]
+    * Require chunk-size to begin with a hex digit [Samuel Dainard]
+* http2:
+    * Fix skipping over multiple buffered chunks of a response body [Milan Crha]
+    * Fix a `GCancellable` leak [Michael Catanzaro]
+* Fix the build on platforms without `dlfcn.h` [Yegor Yefremov]
+* Update Belarusian translation [Vasil Pupkin]
+* Update Slovenian translation [Martin]
+
 Changes in libsoup from 3.7.2 to 3.7.3:
 
 * Add `soup_message_set_compression_dictionary_id()` and `soup_message_get_compression_dictionary_id()` to send the `Dictionary-ID` header alongside `Available-Dictionary` [Patrick Griffis]
