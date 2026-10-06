@@ -734,7 +734,10 @@ long_password_test_authenticate (SoupMessage *msg,
 		memcpy (password + i * 10000, tmp, 10000);
 	}
 	memcpy (password + l - 1 - 10000, tmp, 10000);
-        
+	/* g_malloc() does not zero memory and the copies above stop at
+	 * l - 2, so terminate the string. */
+	password[l - 1] = '\0';
+
 	soup_auth_authenticate (auth, "alice", password);
 
 	g_free (password);
