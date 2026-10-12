@@ -18,6 +18,9 @@ void           soup_body_input_stream_http2_add_data   (SoupBodyInputStreamHttp2
 
 void           soup_body_input_stream_http2_complete   (SoupBodyInputStreamHttp2 *stream);
 
+void           soup_body_input_stream_http2_set_error  (SoupBodyInputStreamHttp2 *stream,
+                                                        const GError             *error);
+
 /* This is only used for tests */
 gboolean       soup_body_input_stream_http2_is_blocked (SoupBodyInputStreamHttp2 *stream);
 

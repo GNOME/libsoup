@@ -151,16 +151,42 @@ read_stream_to_bytes_sync (GInputStream *stream)
         return bytes;
 }
 
+typedef struct {
+        gboolean done;
+        GError *error;
+} ReadStreamData;
+
 static void
-stream_splice_async_finished_cb (GObject *source, GAsyncResult *result, gpointer user_data)
+read_stream_async_finished_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-        GError *error = NULL;
-        GBytes **bytes_out = user_data;
+        ReadStreamData *data = user_data;
 
-        g_output_stream_splice_finish (G_OUTPUT_STREAM (source), result, &error);
-        g_assert_no_error (error);
+        g_output_stream_splice_finish (G_OUTPUT_STREAM (source), result, &data->error);
+        data->done = TRUE;
+}
 
-        *bytes_out = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (source));
+static GBytes *
+read_stream_to_bytes_async (GInputStream  *stream,
+                            GError       **error)
+{
+        GOutputStream *out = g_memory_output_stream_new_resizable ();
+        ReadStreamData data = { FALSE, NULL };
+        GBytes *bytes = NULL;
+
+        g_output_stream_splice_async (out, stream,
+                                      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+                                      G_PRIORITY_DEFAULT, NULL,
+                                      read_stream_async_finished_cb, &data);
+        while (!data.done)
+                g_main_context_iteration (g_main_context_get_thread_default (), TRUE);
+
+        if (data.error)
+                g_propagate_error (error, data.error);
+        else
+                bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (out));
+        g_object_unref (out);
+
+        return bytes;
 }
 
 static void
@@ -170,23 +196,16 @@ on_send_complete_async (GObject *source, GAsyncResult *res, gpointer user_data)
         GError *error = NULL;
         GInputStream *stream;
         GBytes **bytes_out = user_data;
-        GOutputStream *out;
 
         stream = soup_session_send_finish (session, res, &error);
 
         g_assert_no_error (error);
         g_assert_nonnull (stream);
 
-        out = g_memory_output_stream_new_resizable ();
-        g_output_stream_splice_async (out, stream,
-                                      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-                                      G_PRIORITY_DEFAULT, NULL,
-                                      stream_splice_async_finished_cb, user_data);
-        while (!*bytes_out)
-                g_main_context_iteration (g_main_context_get_thread_default (), TRUE);
+        *bytes_out = read_stream_to_bytes_async (stream, &error);
+        g_assert_no_error (error);
 
         g_object_unref (stream);
-        g_object_unref (out);
 }
 
 static void
@@ -775,6 +794,70 @@ do_flow_control_close_buffered_body_test (Test *test, gconstpointer data)
         g_object_unref (closed_msg);
         g_uri_unref (followup_uri);
         g_uri_unref (closed_uri);
+}
+
+/* Requests /large with a stream window of half its size and waits until
+ * the window is full, so the server can't send more until we read */
+static GInputStream *
+send_large_and_fill_stream_window (SoupSession  *session,
+                                   SoupMessage **msg_out)
+{
+        static WindowSize window_size = { -1, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) / 2 };
+        GUri *uri;
+        SoupMessage *msg;
+        GInputStream *response_stream = NULL;
+
+        uri = g_uri_parse_relative (base_uri, "/large", SOUP_HTTP_URI_FLAGS, NULL);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        g_uri_unref (uri);
+        g_signal_connect (msg, "network-event",
+                          G_CALLBACK (flow_control_message_network_event),
+                          &window_size);
+        soup_session_send_async (session, msg, G_PRIORITY_DEFAULT, NULL,
+                                 on_send_for_buffer_test, &response_stream);
+        while (!response_stream)
+                g_main_context_iteration (g_main_context_default (), TRUE);
+
+        while (soup_body_input_stream_http2_get_buffer_size (get_body_stream_from_response (response_stream)) < (gsize)window_size.stream)
+                g_main_context_iteration (g_main_context_default (), TRUE);
+
+        *msg_out = msg;
+        return response_stream;
+}
+
+static gboolean
+set_flag_cb (gboolean *flag)
+{
+        *flag = TRUE;
+        return G_SOURCE_REMOVE;
+}
+
+static void
+do_flow_control_timeout_test (Test *test, gconstpointer data)
+{
+        SoupMessage *msg;
+        GInputStream *response_stream;
+        GBytes *response;
+        GError *error = NULL;
+        gboolean waited = FALSE;
+
+        soup_session_set_timeout (test->session, 1);
+        response_stream = send_large_and_fill_stream_window (test->session, &msg);
+
+        /* The server can't send the rest of the body until we consume what it
+         * already sent, so a reader slower than the timeout must not make the
+         * connection time out. */
+        g_timeout_add (1500, (GSourceFunc)set_flag_cb, &waited);
+        while (!waited)
+                g_main_context_iteration (g_main_context_default (), TRUE);
+
+        response = read_stream_to_bytes_async (response_stream, &error);
+        g_assert_no_error (error);
+        g_assert_cmpuint (g_bytes_get_size (response), ==, (LARGE_N_CHARS * LARGE_CHARS_REPEAT) + 1);
+
+        g_bytes_unref (response);
+        g_object_unref (response_stream);
+        g_object_unref (msg);
 }
 
 static void
@@ -1432,6 +1515,44 @@ do_timeout_test (Test *test, gconstpointer data)
 }
 
 static void
+do_timeout_while_reading_body_test (Test *test, gconstpointer data)
+{
+        GUri *uri;
+        SoupMessage *msg, *timeout_msg;
+        GInputStream *response_stream;
+        GBytes *response;
+        GError *error = NULL;
+
+        soup_session_set_timeout (test->session, 1);
+        response_stream = send_large_and_fill_stream_window (test->session, &msg);
+
+        /* The server doesn't respond to this one in time, so the connection
+         * times out while the first response body is partially received. */
+        uri = g_uri_parse_relative (base_uri, "/timeout", SOUP_HTTP_URI_FLAGS, NULL);
+        timeout_msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        g_uri_unref (uri);
+        response = soup_test_session_async_send (test->session, timeout_msg, NULL, &error);
+        g_assert_null (response);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT);
+        g_clear_error (&error);
+
+        /* The rest of the body will never arrive, reading it must fail instead of blocking forever */
+        response = read_stream_to_bytes_async (response_stream, &error);
+        g_assert_null (response);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT);
+        g_clear_error (&error);
+
+        g_object_unref (response_stream);
+
+        /* Let the failed connection finish closing */
+        while (g_main_context_pending (NULL))
+                g_main_context_iteration (NULL, FALSE);
+
+        g_object_unref (timeout_msg);
+        g_object_unref (msg);
+}
+
+static void
 do_connection_closed_test (Test *test, gconstpointer data)
 {
         GUri *uri;
@@ -1782,6 +1903,10 @@ main (int argc, char **argv)
                     setup_session,
                     do_flow_control_close_buffered_body_test,
                     teardown_session);
+        g_test_add ("/http2/flow-control/timeout", Test, NULL,
+                    setup_session,
+                    do_flow_control_timeout_test,
+                    teardown_session);
         g_test_add ("/http2/connections", Test, NULL,
                     setup_session,
                     do_connections_test,
@@ -1855,6 +1980,10 @@ main (int argc, char **argv)
         g_test_add ("/http2/timeout", Test, NULL,
                     setup_session,
                     do_timeout_test,
+                    teardown_session);
+        g_test_add ("/http2/timeout/reading-body", Test, NULL,
+                    setup_session,
+                    do_timeout_while_reading_body_test,
                     teardown_session);
         g_test_add ("/http2/connection-closed", Test, NULL,
                     setup_session,

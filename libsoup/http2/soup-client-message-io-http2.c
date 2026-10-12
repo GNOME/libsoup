@@ -62,6 +62,7 @@ typedef struct {
         GSource *read_source;
         GSource *write_source;
         GSource *write_idle_source;
+        gboolean sent_frame_since_read;
 
         GHashTable *messages;
         GHashTable *closed_messages;
@@ -196,12 +197,22 @@ static void
 set_io_error (SoupClientMessageIOHTTP2 *io,
               GError                   *error)
 {
+        GHashTableIter iter;
+        SoupHTTP2MessageData *data;
+
         h2_debug (io, NULL, "[SESSION] IO error: %s", error->message);
 
         if (!io->error)
                 io->error = error;
         else
                 g_error_free (error);
+
+        /* Response bodies being read won't receive any more data */
+        g_hash_table_iter_init (&iter, io->messages);
+        while (g_hash_table_iter_next (&iter, NULL, (gpointer *)&data)) {
+                if (data->body_istream)
+                        soup_body_input_stream_http2_set_error (SOUP_BODY_INPUT_STREAM_HTTP2 (data->body_istream), io->error);
+        }
 
         if (io->close_task && !io->goaway_sent) {
                 g_task_return_boolean (io->close_task, TRUE);
@@ -484,12 +495,47 @@ io_read (SoupClientMessageIOHTTP2  *io,
         return ret > 0;
 }
 
+/* Whether every stream that is still receiving a response is blocked on
+ * flow control, so the peer cannot send anything until the application
+ * consumes the data we have already buffered. */
+static gboolean
+io_is_blocked_by_flow_control (SoupClientMessageIOHTTP2 *io)
+{
+        GHashTableIter iter;
+        SoupHTTP2MessageData *data;
+        gboolean connection_window_open;
+        gboolean blocked = FALSE;
+
+        connection_window_open = nghttp2_session_get_local_window_size (io->session) > 0;
+
+        g_hash_table_iter_init (&iter, io->messages);
+        while (g_hash_table_iter_next (&iter, NULL, (gpointer *)&data)) {
+                /* Nothing else to receive for this stream */
+                if (data->state >= STATE_READ_DONE ||
+                    nghttp2_session_get_stream_remote_close (io->session, data->stream_id) != 0)
+                        continue;
+
+                /* Response headers are not subject to flow control */
+                if (data->state < STATE_READ_DATA_START)
+                        return FALSE;
+
+                if (connection_window_open &&
+                    nghttp2_session_get_stream_local_window_size (io->session, data->stream_id) > 0)
+                        return FALSE;
+
+                blocked = TRUE;
+        }
+
+        return blocked;
+}
+
 static gboolean
 io_read_ready (GObject                  *stream,
                SoupClientMessageIOHTTP2 *io)
 {
         GError *error = NULL;
         gboolean progress = TRUE;
+        gboolean keep_waiting;
         SoupConnection *conn;
 
         if (io->error) {
@@ -507,7 +553,22 @@ io_read_ready (GObject                  *stream,
         while (progress && nghttp2_session_want_read (io->session))
                 progress = io_read (io, FALSE, NULL, &error);
 
-        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+        keep_waiting = g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK);
+
+        /* The socket timeout counts from the last time the read source was
+         * dispatched, but that is only time spent waiting for the peer if
+         * it could have sent us something all along. It can't while every
+         * stream is blocked on flow control, and it hasn't had the whole
+         * period to respond to a request or WINDOW_UPDATE sent meanwhile. */
+        if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
+            (io->sent_frame_since_read || io_is_blocked_by_flow_control (io))) {
+                h2_debug (io, NULL, "[SESSION] Ignoring read timeout, not waiting for the peer");
+                keep_waiting = TRUE;
+        }
+
+        io->sent_frame_since_read = FALSE;
+
+        if (keep_waiting) {
                 g_error_free (error);
                 if (conn) {
                         soup_connection_set_in_use (conn, FALSE);
@@ -1013,6 +1074,8 @@ on_frame_send_callback (nghttp2_session     *session,
                           frame->hd.stream_id, soup_http2_headers_category_to_string (frame->headers.cat),
                           (frame->hd.flags & NGHTTP2_FLAG_END_HEADERS) ? 1 : 0);
 
+                io->sent_frame_since_read = TRUE;
+
                 if (!data) {
                         /* This can happen in case of cancellation */
                         io->in_callback--;
@@ -1081,6 +1144,7 @@ on_frame_send_callback (nghttp2_session     *session,
                 break;
         case NGHTTP2_WINDOW_UPDATE:
                 h2_debug (io, data, "[SEND] [WINDOW_UPDATE] stream_id=%u increment=%d", frame->hd.stream_id, frame->window_update.window_size_increment);
+                io->sent_frame_since_read = TRUE;
                 break;
         default:
                 h2_debug (io, data, "[SEND] [%s] stream_id=%u", soup_http2_frame_type_to_string (frame->hd.type), frame->hd.stream_id);
@@ -2010,6 +2074,7 @@ soup_client_message_io_http2_set_owner (SoupClientMessageIOHTTP2 *io,
         if (!io->async)
                 return;
 
+        io->sent_frame_since_read = FALSE;
         io->read_source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (io->istream), NULL);
         g_source_set_static_name (io->read_source, "Soup HTTP/2 read source");
         g_source_set_priority (io->read_source, G_PRIORITY_DEFAULT);
