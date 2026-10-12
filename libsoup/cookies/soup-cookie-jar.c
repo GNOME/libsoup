@@ -898,8 +898,19 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 static gboolean
 allow_cookies_for_request (SoupMessage *msg)
 {
-        /* Do not send cookies to a HTTP proxy for a HTTPS request */
-        return soup_message_get_method (msg) != SOUP_METHOD_CONNECT || !soup_connection_is_tunnelled (soup_message_get_connection (msg));
+        SoupConnection *conn;
+        gboolean tunnelled;
+
+        if (soup_message_get_method (msg) != SOUP_METHOD_CONNECT)
+                return TRUE;
+
+        /* Do not send cookies to a HTTP proxy for a HTTPS request.
+         * soup_message_get_connection() returns a new reference. */
+        conn = soup_message_get_connection (msg);
+        tunnelled = conn && soup_connection_is_tunnelled (conn);
+        g_clear_object (&conn);
+
+        return !tunnelled;
 }
 
 static void

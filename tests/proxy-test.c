@@ -1,6 +1,8 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
+#include "soup-connection.h"
+#include "soup-message-private.h"
 
 #include <gio/gio.h>
 
@@ -420,6 +422,31 @@ connect_message_wrote_headers_cb (SoupMessage *msg, guint *counter)
                 g_assert_nonnull (soup_message_headers_get_one (hdrs, "Cookie"));
 }
 
+typedef struct {
+        SoupConnection *conn;
+        gboolean seen;
+} TunnelConnection;
+
+static void
+connect_message_starting_cb (SoupMessage *msg, TunnelConnection *tunnel)
+{
+        if (soup_message_get_method (msg) != SOUP_METHOD_CONNECT || tunnel->seen)
+                return;
+
+        tunnel->conn = soup_message_get_connection (msg);
+        if (tunnel->conn) {
+                tunnel->seen = TRUE;
+                g_object_add_weak_pointer (G_OBJECT (tunnel->conn), (gpointer *)&tunnel->conn);
+                g_object_unref (tunnel->conn);
+        }
+}
+
+static void
+request_queued_conn_cb (SoupSession *session, SoupMessage *msg, TunnelConnection *tunnel)
+{
+        g_signal_connect (msg, "starting", G_CALLBACK (connect_message_starting_cb), tunnel);
+}
+
 static void
 request_queued_cb (SoupSession *session, SoupMessage *msg, guint *counter)
 {
@@ -433,12 +460,15 @@ do_proxy_secure_cookies_test (void)
         SoupMessage *msg;
         SoupCookieJar *jar;
         guint counter = 0;
+        TunnelConnection tunnel = { NULL, FALSE };
+        gboolean tunnel_leaked;
 
         SOUP_TEST_SKIP_IF_NO_APACHE;
         SOUP_TEST_SKIP_IF_NO_TLS;
 
         session = soup_test_session_new ("proxy-resolver", proxy_resolvers[SIMPLE_PROXY], NULL);
         g_signal_connect (session, "request-queued", G_CALLBACK (request_queued_cb), &counter);
+        g_signal_connect (session, "request-queued", G_CALLBACK (request_queued_conn_cb), &tunnel);
 
         soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
         jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));
@@ -448,8 +478,15 @@ do_proxy_secure_cookies_test (void)
         soup_test_session_send_message (session, msg);
         soup_test_assert_message_status (msg, SOUP_STATUS_OK);
         g_assert_cmpuint (counter, ==, 2);
+        g_object_unref (msg);
 
+        /* The cookie jar must not leak a reference to the tunnel connection */
+        g_assert_true (tunnel.seen);
         soup_test_session_abort_unref (session);
+        tunnel_leaked = tunnel.conn != NULL;
+        if (tunnel_leaked)
+                g_object_remove_weak_pointer (G_OBJECT (tunnel.conn), (gpointer *)&tunnel.conn);
+        g_assert_false (tunnel_leaked);
 }
 
 int
