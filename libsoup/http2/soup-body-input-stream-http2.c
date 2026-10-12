@@ -47,6 +47,7 @@ typedef struct {
         gsize len;
         gsize pos;
         gboolean completed;
+        GError *error;
         GCancellable *need_more_data_cancellable;
 } SoupBodyInputStreamHttp2Private;
 
@@ -201,6 +202,11 @@ retry:
         if (bytes_read > 0)
                 g_signal_emit (memory_stream, signals[READ_DATA], 0, (guint64)bytes_read);
 
+        if (bytes_read == 0 && priv->error) {
+                g_propagate_error (error, g_error_copy (priv->error));
+                return -1;
+        }
+
         /* When doing blocking reads we must always request more data. */
         if (blocking && have_more_data_coming (memory_stream) && bytes_read == 0) {
                 GError *read_error = NULL;
@@ -258,6 +264,19 @@ soup_body_input_stream_http2_complete (SoupBodyInputStreamHttp2 *stream)
                 g_cancellable_cancel (priv->need_more_data_cancellable);
                 g_clear_object (&priv->need_more_data_cancellable);
         }
+}
+
+void
+soup_body_input_stream_http2_set_error (SoupBodyInputStreamHttp2 *stream,
+                                        const GError             *error)
+{
+        SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
+
+        if (priv->completed)
+                return;
+
+        priv->error = g_error_copy (error);
+        soup_body_input_stream_http2_complete (stream);
 }
 
 static gssize
@@ -414,6 +433,7 @@ soup_body_input_stream_http2_finalize (GObject *object)
         SoupBodyInputStreamHttp2Private *priv = soup_body_input_stream_http2_get_instance_private (stream);
 
         g_queue_free_full (priv->chunks, (GDestroyNotify)g_bytes_unref);
+        g_clear_error (&priv->error);
 
         G_OBJECT_CLASS (soup_body_input_stream_http2_parent_class)->finalize (object);
 }
