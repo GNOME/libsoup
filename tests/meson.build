@@ -148,6 +148,7 @@ if brotlidec_dep.found() or libzstd_dep.found()
       compressed_data_files += [
         'compressed-data/compressed.zst',
         'compressed-data/corrupt.zst',
+        'compressed-data/multiframe.zst',
       ]
     endif
     install_data(compressed_data_files,
