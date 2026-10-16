@@ -42,6 +42,7 @@ struct _SoupZstdDecompressor
 	GError *last_error;
 	GBytes *dictionary;
 	SoupDictionaryHeader header;
+	gboolean frame_complete;
 };
 
 static void soup_zstd_decompressor_iface_init (GConverterIface *iface);
@@ -129,6 +130,16 @@ soup_zstd_decompressor_convert (GConverter      *converter,
 		}
 	}
 
+	if (available_in == 0 && self->frame_complete) {
+		*bytes_read = inbuf_size;
+		*bytes_written = 0;
+		if (flags & G_CONVERTER_INPUT_AT_END)
+			return G_CONVERTER_FINISHED;
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT,
+		                     "SoupZstdDecompressorError: More input required");
+		return G_CONVERTER_ERROR;
+	}
+
 	input.src = next_in;
 	input.size = available_in;
 	input.pos = 0;
@@ -141,6 +152,7 @@ soup_zstd_decompressor_convert (GConverter      *converter,
 
 	*bytes_read = (inbuf_size - available_in) + input.pos;
 	*bytes_written = output.pos;
+	self->frame_complete = result == 0;
 
 	/* As per API docs: If any data was either produced or consumed, and then an error happens, then only
 	 * the successful conversion is reported and the error is returned on the next call. */
@@ -150,7 +162,7 @@ soup_zstd_decompressor_convert (GConverter      *converter,
 			                               "SoupZstdDecompressorError: %s",
 			                               ZSTD_getErrorName (result));
 		}
-		if (result == 0)
+		if (result == 0 && input.pos == input.size && (flags & G_CONVERTER_INPUT_AT_END))
 			return G_CONVERTER_FINISHED;
 		return G_CONVERTER_CONVERTED;
 	}
@@ -183,6 +195,7 @@ soup_zstd_decompressor_reset (GConverter *converter)
 	}
 	g_clear_error (&self->last_error);
 	soup_dictionary_header_init (&self->header);
+	self->frame_complete = FALSE;
 }
 
 static void
