@@ -296,6 +296,8 @@ if have_apache
     message('Apache HTTP/2 module directory: ' + apache_modules_dirs[3])
     cdata.set('IF_HAVE_MOD_HTTP2', apache_modules_dirs[3] != '' ? '' : '#')
     cdata.set('APACHE_HTTP2_MODULE_DIR', apache_modules_dirs[3])
+    # httpd 2.4.69 dropped RFC 2069 Digest support, so it rejects "AuthDigestQop none"
+    cdata.set('IF_HAVE_RFC2069_DIGEST', apache_httpd2_version.version_compare('<2.4.69') ? '' : '#')
     cdata.set('HAVE_APACHE', have_apache)
   else
     message('Failed to locate necessary Apache modules for full test coverage')

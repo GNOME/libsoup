@@ -282,8 +282,8 @@ Alias /Digest .
   AuthUserFile ./htdigest
   AuthDigestDomain /Digest/realm3
   Require valid-user
-  # test RFC2069-style Digest
-  AuthDigestQop none
+  # test RFC2069-style Digest, where httpd still supports it (before 2.4.69)
+  @IF_HAVE_RFC2069_DIGEST@AuthDigestQop none
 </Location>
 
 <Location /client-cert>
