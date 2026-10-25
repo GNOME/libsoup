@@ -549,16 +549,15 @@ soup_logger_set_id (SoupLogger *logger, gpointer object)
 {
 	SoupLoggerPrivate *priv = soup_logger_get_instance_private (logger);
 	gpointer klass = G_OBJECT_GET_CLASS (object);
-	gpointer id;
+	guint id;
 
         g_mutex_lock (&priv->mutex);
-	id = g_hash_table_lookup (priv->ids, klass);
-	id = (char *)id + 1;
-	g_hash_table_insert (priv->ids, klass, id);
+	id = GPOINTER_TO_UINT (g_hash_table_lookup (priv->ids, klass)) + 1;
+	g_hash_table_insert (priv->ids, klass, GUINT_TO_POINTER (id));
         g_mutex_unlock (&priv->mutex);
 
-	g_object_set_qdata (object, priv->tag, id);
-	return GPOINTER_TO_UINT (id);
+	g_object_set_qdata (object, priv->tag, GUINT_TO_POINTER (id));
+	return id;
 }
 
 static void
@@ -589,8 +588,10 @@ soup_logger_print_lines (SoupLogger *logger, SoupLoggerLogLevel level, char dire
 		} else
 			printf ("%c %s\n", direction, line);
 
+		if (!end)
+			break;
 		line = end + 1;
-	} while (end && *line);
+	} while (*line);
 }
 
 static void soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
