@@ -1,3 +1,14 @@
+Changes in libsoup from 3.8.0 to 3.8.1:
+
+* Limit the size of intermediate (redirect and auth) response bodies [Milan Crha]
+* http2: Fix stalls when the reader is slower than the session timeout, and propagate connection errors to response body streams [Patrick Griffis]
+* zstd: Support multiple concatenated frames, which previously truncated responses [Patrick Griffis]
+* cookie-jar: Fix a `SoupConnection` leak when using an HTTP proxy [Safeer]
+* logger: Fix undefined behavior found by UBSan [Patrick Griffis]
+* build: Require brotli >= 1.1.0 for brotli support [Chun-wei Fan]
+* Fix building the tests on Windows and update README.msvc [Chun-wei Fan]
+* Update Romanian translation [Antonio Marin]
+
 Changes in libsoup from 3.7.3 to 3.8.0:
 
 * Harden authentication:
