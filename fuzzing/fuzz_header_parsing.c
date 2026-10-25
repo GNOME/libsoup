@@ -4,16 +4,15 @@ int
 LLVMFuzzerTestOneInput (const unsigned char *data, size_t size)
 {
         GHashTable *elements;
-
-        // We only accept NUL terminated strings
-        if (!size || data[size - 1] != '\0')
-                return 0;
+        char *str;
 
         fuzz_set_logging_func ();
 
-        elements = soup_header_parse_param_list((char*)data);
+        str = g_strndup ((const char*)data, size);
+        elements = soup_header_parse_param_list(str);
 
         g_hash_table_unref(elements);
+        g_free (str);
 
         return 0;
 }
