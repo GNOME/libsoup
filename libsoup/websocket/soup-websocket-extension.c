@@ -233,8 +233,8 @@ soup_websocket_extension_process_incoming_message (SoupWebsocketExtension *exten
  *
  * This behaves like [method@WebsocketExtension.process_incoming_message],
  * but extensions that expand their input (such as `permessage-deflate`)
- * stop and return an error with [error@WebsocketError.CLOSE_TOO_BIG]
- * instead of producing output larger than @max_output_size. Extensions
+ * stop and return a [error@WebsocketError] error with the code
+ * [enum@WebsocketCloseCode.TOO_BIG] instead of producing output larger than @max_output_size. Extensions
  * that don't implement this fall back to
  * [method@WebsocketExtension.process_incoming_message].
  *
