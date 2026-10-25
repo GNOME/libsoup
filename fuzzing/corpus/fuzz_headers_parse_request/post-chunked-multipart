@@ -1,0 +1,6 @@
+POST /upload HTTP/1.1
+Host: example.org
+Transfer-Encoding: chunked
+Content-Type: multipart/form-data; boundary=xyz
+Expect: 100-continue
+

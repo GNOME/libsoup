@@ -1,0 +1,4 @@
+GET /index.html?q=1 HTTP/1.1
+Host: example.org
+Cookie: a=b
+

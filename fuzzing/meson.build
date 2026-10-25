@@ -10,6 +10,11 @@ fuzz_targets = [
   'fuzz_headers_parse_response',
 ]
 
+# Seed inputs are in corpus/<target>/, except the content sniffer's, which are the test suite's sample files.
+seed_dirs = {
+  'fuzz_content_sniffer': join_paths(meson.project_source_root(), 'tests', 'resources'),
+}
+
 fuzzing_args = '-fsanitize=fuzzer'
 have_fuzzing = cc.has_argument(fuzzing_args)
 fuzzing_feature = get_option('fuzzing')
@@ -30,6 +35,16 @@ if have_fuzzing and (fuzzing_feature.enabled() or fuzzing_feature.auto())
     dict_file = join_paths(meson.current_source_dir(), target + '.dict')
     if fs.exists(dict_file)
       extra_args += '-dict=' + dict_file
+    endif
+
+    # libFuzzer adds the inputs it finds to the first corpus directory, so that one is in the build tree
+    seed_dir = seed_dirs.get(target, join_paths(meson.current_source_dir(), 'corpus', target))
+    if fs.is_dir(seed_dir)
+      extra_args += [
+        '-create_missing_dirs=1',
+        join_paths(meson.current_build_dir(), target + '-corpus'),
+        seed_dir,
+      ]
     endif
 
     test(target, exe,

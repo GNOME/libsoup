@@ -1,0 +1,4 @@
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Digest realm="r", qop="auth,auth-int", nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", algorithm=SHA-256
+Content-Length: 0
+
