@@ -1,0 +1,1 @@
+realm="example", qop="auth,auth-int", nonce="abc", charset=UTF-8

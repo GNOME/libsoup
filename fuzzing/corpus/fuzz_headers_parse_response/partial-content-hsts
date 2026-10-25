@@ -1,0 +1,4 @@
+HTTP/1.0 206 Partial Content
+Content-Range: bytes 0-99/1000
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+

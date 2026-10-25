@@ -1,0 +1,4 @@
+GET http://example.org/ HTTP/1.0
+Proxy-Authorization: Basic dXNlcjpwYXNz
+Range: bytes=0-99,200-
+
