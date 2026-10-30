@@ -16,24 +16,24 @@ G_DECLARE_FINAL_TYPE (SoupMultipartInputStream, soup_multipart_input_stream, SOU
 
 SOUP_AVAILABLE_IN_ALL
 SoupMultipartInputStream *soup_multipart_input_stream_new              (SoupMessage               *msg,
-							                GInputStream              *base_stream);
+                                                                        GInputStream              *base_stream);
 
 SOUP_AVAILABLE_IN_ALL
 GInputStream             *soup_multipart_input_stream_next_part        (SoupMultipartInputStream  *multipart,
-									GCancellable	          *cancellable,
-									GError                   **error);
+                                                                        GCancellable              *cancellable,
+                                                                        GError                   **error);
 
 SOUP_AVAILABLE_IN_ALL
 void                      soup_multipart_input_stream_next_part_async  (SoupMultipartInputStream  *multipart,
-									int                        io_priority,
-								        GCancellable              *cancellable,
-								        GAsyncReadyCallback        callback,
-								        gpointer                   data);
+                                                                        int                        io_priority,
+                                                                        GCancellable              *cancellable,
+                                                                        GAsyncReadyCallback        callback,
+                                                                        gpointer                   data);
 
 SOUP_AVAILABLE_IN_ALL
 GInputStream             *soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream  *multipart,
-									GAsyncResult              *result,
-									GError                   **error);
+                                                                        GAsyncResult              *result,
+                                                                        GError                   **error);
 
 SOUP_AVAILABLE_IN_ALL
 SoupMessageHeaders       *soup_multipart_input_stream_get_headers      (SoupMultipartInputStream  *multipart);

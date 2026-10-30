@@ -13,24 +13,24 @@
 G_BEGIN_DECLS
 
 /* Non-default-GMainContext operations */
-void               soup_add_completion	     (GMainContext *async_context,
-					      GSourceFunc   function,
-					      gpointer      data);
+void               soup_add_completion       (GMainContext *async_context,
+                                              GSourceFunc   function,
+                                              gpointer      data);
 GSource           *soup_add_completion_reffed (GMainContext   *async_context,
                                                GSourceFunc     function,
                                                gpointer        data,
                                                GDestroyNotify  dnotify);
 GSource           *soup_add_timeout          (GMainContext *async_context,
-					      guint         interval,
-					      GSourceFunc   function,
-					      gpointer      data);
+                                              guint         interval,
+                                              GSourceFunc   function,
+                                              gpointer      data);
 GMainContext      *soup_thread_default_context (void);
 
 /* Misc utils */
 
 guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
-					      gconstpointer v2);
+                                              gconstpointer v2);
 
 /* character classes */
 
@@ -51,27 +51,27 @@ extern const char soup_char_attributes[];
  * safe or idempotent...
  */
 #define SOUP_METHOD_IS_SAFE(method) ((method) == SOUP_METHOD_GET || \
-				     (method) == SOUP_METHOD_HEAD || \
-				     (method) == SOUP_METHOD_OPTIONS || \
-				     (method) == SOUP_METHOD_PROPFIND || \
-				     (method) == SOUP_METHOD_TRACE)
+                                     (method) == SOUP_METHOD_HEAD || \
+                                     (method) == SOUP_METHOD_OPTIONS || \
+                                     (method) == SOUP_METHOD_PROPFIND || \
+                                     (method) == SOUP_METHOD_TRACE)
 
 #define SOUP_METHOD_IS_IDEMPOTENT(method) ((method) == SOUP_METHOD_GET || \
-					   (method) == SOUP_METHOD_HEAD || \
-					   (method) == SOUP_METHOD_OPTIONS || \
-					   (method) == SOUP_METHOD_PROPFIND || \
-					   (method) == SOUP_METHOD_TRACE || \
-					   (method) == SOUP_METHOD_PUT || \
-					   (method) == SOUP_METHOD_DELETE)
+                                           (method) == SOUP_METHOD_HEAD || \
+                                           (method) == SOUP_METHOD_OPTIONS || \
+                                           (method) == SOUP_METHOD_PROPFIND || \
+                                           (method) == SOUP_METHOD_TRACE || \
+                                           (method) == SOUP_METHOD_PUT || \
+                                           (method) == SOUP_METHOD_DELETE)
 
 guint soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
-						goffset              total_length,
-						gboolean             check_satisfiable,
-						SoupRange          **ranges,
-						int                 *length);
+                                                goffset              total_length,
+                                                gboolean             check_satisfiable,
+                                                SoupRange          **ranges,
+                                                int                 *length);
 
 gboolean           soup_host_matches_host    (const gchar *host,
-					      const gchar *compare_with);
+                                              const gchar *compare_with);
 
 gchar *soup_get_accept_languages_from_system (void);
 

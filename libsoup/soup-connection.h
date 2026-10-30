@@ -16,35 +16,35 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (SoupConnection, soup_connection, SOUP, CONNECTION, GObject)
 
 typedef enum {
-	SOUP_CONNECTION_NEW,
-	SOUP_CONNECTION_CONNECTING,
-	SOUP_CONNECTION_IDLE,
-	SOUP_CONNECTION_IN_USE,
-	SOUP_CONNECTION_DISCONNECTED
+        SOUP_CONNECTION_NEW,
+        SOUP_CONNECTION_CONNECTING,
+        SOUP_CONNECTION_IDLE,
+        SOUP_CONNECTION_IN_USE,
+        SOUP_CONNECTION_DISCONNECTED
 } SoupConnectionState;
 
 void            soup_connection_connect_async    (SoupConnection       *conn,
-						  int                   io_priority,
-						  GCancellable         *cancellable,
-						  GAsyncReadyCallback   callback,
-						  gpointer              user_data);
+                                                  int                   io_priority,
+                                                  GCancellable         *cancellable,
+                                                  GAsyncReadyCallback   callback,
+                                                  gpointer              user_data);
 gboolean        soup_connection_connect_finish   (SoupConnection       *conn,
-						  GAsyncResult         *result,
-						  GError              **error);
+                                                  GAsyncResult         *result,
+                                                  GError              **error);
 gboolean        soup_connection_connect          (SoupConnection       *conn,
-						  GCancellable         *cancellable,
-						  GError              **error);
+                                                  GCancellable         *cancellable,
+                                                  GError              **error);
 void            soup_connection_tunnel_handshake_async  (SoupConnection     *conn,
-							 int                 io_priority,
-							 GCancellable       *cancellable,
-							 GAsyncReadyCallback callback,
-							 gpointer            user_data);
+                                                         int                 io_priority,
+                                                         GCancellable       *cancellable,
+                                                         GAsyncReadyCallback callback,
+                                                         gpointer            user_data);
 gboolean        soup_connection_tunnel_handshake_finish (SoupConnection *conn,
-							 GAsyncResult   *result,
-							 GError        **error);
+                                                         GAsyncResult   *result,
+                                                         GError        **error);
 gboolean        soup_connection_tunnel_handshake        (SoupConnection *conn,
-							 GCancellable   *cancellable,
-							 GError        **error);
+                                                         GCancellable   *cancellable,
+                                                         GError        **error);
 void            soup_connection_disconnect     (SoupConnection   *conn);
 
 GSocket        *soup_connection_get_socket     (SoupConnection   *conn);

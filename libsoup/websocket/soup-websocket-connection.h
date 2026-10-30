@@ -31,11 +31,11 @@ G_DECLARE_FINAL_TYPE (SoupWebsocketConnection, soup_websocket_connection, SOUP, 
 
 SOUP_AVAILABLE_IN_ALL
 SoupWebsocketConnection *soup_websocket_connection_new (GIOStream                    *stream,
-							GUri                         *uri,
-							SoupWebsocketConnectionType   type,
-							const char                   *origin,
-							const char                   *protocol,
-							GList                        *extensions);
+                                                        GUri                         *uri,
+                                                        SoupWebsocketConnectionType   type,
+                                                        const char                   *origin,
+                                                        const char                   *protocol,
+                                                        GList                        *extensions);
 
 SOUP_AVAILABLE_IN_ALL
 GIOStream *         soup_websocket_connection_get_io_stream  (SoupWebsocketConnection *self);
@@ -66,20 +66,20 @@ const char *        soup_websocket_connection_get_close_data (SoupWebsocketConne
 
 SOUP_AVAILABLE_IN_ALL
 void                soup_websocket_connection_send_text      (SoupWebsocketConnection *self,
-							      const char *text);
+                                                              const char *text);
 SOUP_AVAILABLE_IN_ALL
 void                soup_websocket_connection_send_binary    (SoupWebsocketConnection *self,
-							      gconstpointer data,
-							      gsize length);
+                                                              gconstpointer data,
+                                                              gsize length);
 SOUP_AVAILABLE_IN_ALL
 void                soup_websocket_connection_send_message   (SoupWebsocketConnection *self,
-							      SoupWebsocketDataType type,
-							      GBytes *message);
+                                                              SoupWebsocketDataType type,
+                                                              GBytes *message);
 
 SOUP_AVAILABLE_IN_ALL
 void                soup_websocket_connection_close          (SoupWebsocketConnection *self,
-							      gushort code,
-							      const char *data);
+                                                              gushort code,
+                                                              const char *data);
 
 SOUP_AVAILABLE_IN_ALL
 guint64             soup_websocket_connection_get_max_incoming_payload_size (SoupWebsocketConnection *self);

@@ -26,24 +26,24 @@
  */
 
 enum {
-	PROP_0,
+        PROP_0,
 
-	PROP_AUTH_CALLBACK,
-	PROP_AUTH_DATA,
+        PROP_AUTH_CALLBACK,
+        PROP_AUTH_DATA,
 
-	LAST_PROPERTY
+        LAST_PROPERTY
 };
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 struct _SoupAuthDomainBasic {
-	SoupAuthDomain parent;
+        SoupAuthDomain parent;
 };
 
 typedef struct {
-	SoupAuthDomainBasicAuthCallback auth_callback;
-	gpointer auth_data;
-	GDestroyNotify auth_dnotify;
+        SoupAuthDomainBasicAuthCallback auth_callback;
+        gpointer auth_data;
+        GDestroyNotify auth_dnotify;
 } SoupAuthDomainBasicPrivate;
 
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
@@ -56,57 +56,57 @@ soup_auth_domain_basic_init (SoupAuthDomainBasic *basic)
 static void
 soup_auth_domain_basic_finalize (GObject *object)
 {
-	SoupAuthDomainBasicPrivate *priv =
-		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
+        SoupAuthDomainBasicPrivate *priv =
+                soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
 
-	if (priv->auth_dnotify)
-		priv->auth_dnotify (priv->auth_data);
+        if (priv->auth_dnotify)
+                priv->auth_dnotify (priv->auth_data);
 
-	G_OBJECT_CLASS (soup_auth_domain_basic_parent_class)->finalize (object);
+        G_OBJECT_CLASS (soup_auth_domain_basic_parent_class)->finalize (object);
 }
 
 static void
 soup_auth_domain_basic_set_property (GObject *object, guint prop_id,
-				     const GValue *value, GParamSpec *pspec)
+                                     const GValue *value, GParamSpec *pspec)
 {
-	SoupAuthDomainBasicPrivate *priv =
-		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
+        SoupAuthDomainBasicPrivate *priv =
+                soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
 
-	switch (prop_id) {
-	case PROP_AUTH_CALLBACK:
-		priv->auth_callback = g_value_get_pointer (value);
-		break;
-	case PROP_AUTH_DATA:
-		if (priv->auth_dnotify) {
-			priv->auth_dnotify (priv->auth_data);
-			priv->auth_dnotify = NULL;
-		}
-		priv->auth_data = g_value_get_pointer (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        switch (prop_id) {
+        case PROP_AUTH_CALLBACK:
+                priv->auth_callback = g_value_get_pointer (value);
+                break;
+        case PROP_AUTH_DATA:
+                if (priv->auth_dnotify) {
+                        priv->auth_dnotify (priv->auth_data);
+                        priv->auth_dnotify = NULL;
+                }
+                priv->auth_data = g_value_get_pointer (value);
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 static void
 soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
-				     GValue *value, GParamSpec *pspec)
+                                     GValue *value, GParamSpec *pspec)
 {
-	SoupAuthDomainBasicPrivate *priv =
-		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
+        SoupAuthDomainBasicPrivate *priv =
+                soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (object));
 
-	switch (prop_id) {
-	case PROP_AUTH_CALLBACK:
-		g_value_set_pointer (value, priv->auth_callback);
-		break;
-	case PROP_AUTH_DATA:
-		g_value_set_pointer (value, priv->auth_data);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        switch (prop_id) {
+        case PROP_AUTH_CALLBACK:
+                g_value_set_pointer (value, priv->auth_callback);
+                break;
+        case PROP_AUTH_DATA:
+                g_value_set_pointer (value, priv->auth_data);
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 /**
@@ -125,17 +125,17 @@ soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
 SoupAuthDomain *
 soup_auth_domain_basic_new (const char *optname1, ...)
 {
-	SoupAuthDomain *domain;
-	va_list ap;
+        SoupAuthDomain *domain;
+        va_list ap;
 
-	va_start (ap, optname1);
-	domain = (SoupAuthDomain *)g_object_new_valist (SOUP_TYPE_AUTH_DOMAIN_BASIC,
-							optname1, ap);
-	va_end (ap);
+        va_start (ap, optname1);
+        domain = (SoupAuthDomain *)g_object_new_valist (SOUP_TYPE_AUTH_DOMAIN_BASIC,
+                                                        optname1, ap);
+        va_end (ap);
 
-	g_return_val_if_fail (soup_auth_domain_get_realm (domain) != NULL, NULL);
+        g_return_val_if_fail (soup_auth_domain_get_realm (domain) != NULL, NULL);
 
-	return domain;
+        return domain;
 }
 
 /**
@@ -187,162 +187,162 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  **/
 void
 soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
-					  SoupAuthDomainBasicAuthCallback callback,
-					  gpointer        user_data,
-					  GDestroyNotify  dnotify)
+                                          SoupAuthDomainBasicAuthCallback callback,
+                                          gpointer        user_data,
+                                          GDestroyNotify  dnotify)
 {
-	SoupAuthDomainBasicPrivate *priv =
-		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (domain));
+        SoupAuthDomainBasicPrivate *priv =
+                soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (domain));
 
-	if (priv->auth_dnotify)
-		priv->auth_dnotify (priv->auth_data);
+        if (priv->auth_dnotify)
+                priv->auth_dnotify (priv->auth_data);
 
-	priv->auth_callback = callback;
-	priv->auth_data = user_data;
-	priv->auth_dnotify = dnotify;
+        priv->auth_callback = callback;
+        priv->auth_data = user_data;
+        priv->auth_dnotify = dnotify;
 
-	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_AUTH_CALLBACK]);
-	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_AUTH_DATA]);
+        g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_AUTH_CALLBACK]);
+        g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_AUTH_DATA]);
 }
 
 static void
 pw_free (char *pw)
 {
-	memset (pw, 0, strlen (pw));
-	g_free (pw);
+        memset (pw, 0, strlen (pw));
+        g_free (pw);
 }
 
 static gboolean
 parse_basic (const char *header,
-	     char      **username,
-	     char      **password)
+             char      **username,
+             char      **password)
 {
-	char *decoded, *colon;
-	gsize len, plen;
+        char *decoded, *colon;
+        gsize len, plen;
 
-	if (!header || (strncmp (header, "Basic ", 6) != 0))
-		return FALSE;
+        if (!header || (strncmp (header, "Basic ", 6) != 0))
+                return FALSE;
 
-	decoded = (char *)g_base64_decode (header + 6, &len);
-	if (!decoded)
-		return FALSE;
+        decoded = (char *)g_base64_decode (header + 6, &len);
+        if (!decoded)
+                return FALSE;
 
-	colon = memchr (decoded, ':', len);
-	if (!colon) {
-		pw_free (decoded);
-		return FALSE;
-	}
-	*colon = '\0';
-	plen = len - (colon - decoded) - 1;
+        colon = memchr (decoded, ':', len);
+        if (!colon) {
+                pw_free (decoded);
+                return FALSE;
+        }
+        *colon = '\0';
+        plen = len - (colon - decoded) - 1;
 
-	*password = g_strndup (colon + 1, plen);
-	memset (colon + 1, 0, plen);
-	*username = decoded;
-	return TRUE;
+        *password = g_strndup (colon + 1, plen);
+        memset (colon + 1, 0, plen);
+        *username = decoded;
+        return TRUE;
 }
 
 static char *
 soup_auth_domain_basic_accepts (SoupAuthDomain    *domain,
-				SoupServerMessage *msg,
-				const char        *header)
+                                SoupServerMessage *msg,
+                                const char        *header)
 {
-	SoupAuthDomainBasicPrivate *priv =
-		soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (domain));
-	char *username, *password;
-	gboolean ok = FALSE;
+        SoupAuthDomainBasicPrivate *priv =
+                soup_auth_domain_basic_get_instance_private (SOUP_AUTH_DOMAIN_BASIC (domain));
+        char *username, *password;
+        gboolean ok = FALSE;
 
-	if (!parse_basic (header, &username, &password))
-		return NULL;
+        if (!parse_basic (header, &username, &password))
+                return NULL;
 
-	if (priv->auth_callback) {
-		ok = priv->auth_callback (domain, msg, username, password,
-					  priv->auth_data);
-	} else {
-		ok = soup_auth_domain_try_generic_auth_callback (
-			domain, msg, username);
-	}
+        if (priv->auth_callback) {
+                ok = priv->auth_callback (domain, msg, username, password,
+                                          priv->auth_data);
+        } else {
+                ok = soup_auth_domain_try_generic_auth_callback (
+                        domain, msg, username);
+        }
 
-	pw_free (password);
+        pw_free (password);
 
-	if (ok)
-		return username;
-	else {
-		g_free (username);
-		return NULL;
-	}
+        if (ok)
+                return username;
+        else {
+                g_free (username);
+                return NULL;
+        }
 }
 
 static char *
 soup_auth_domain_basic_challenge (SoupAuthDomain    *domain,
-				  SoupServerMessage *msg)
+                                  SoupServerMessage *msg)
 {
-	GString *challenge;
+        GString *challenge;
 
-	challenge = g_string_new ("Basic ");
-	soup_header_g_string_append_param (challenge, "realm", soup_auth_domain_get_realm (domain));
-	return g_string_free (challenge, FALSE);
+        challenge = g_string_new ("Basic ");
+        soup_header_g_string_append_param (challenge, "realm", soup_auth_domain_get_realm (domain));
+        return g_string_free (challenge, FALSE);
 }
 
 static gboolean
 soup_auth_domain_basic_check_password (SoupAuthDomain    *domain,
-				       SoupServerMessage *msg,
-				       const char        *username,
-				       const char        *password)
+                                       SoupServerMessage *msg,
+                                       const char        *username,
+                                       const char        *password)
 {
-	const char *header;
-	char *msg_username, *msg_password;
-	gboolean ok;
+        const char *header;
+        char *msg_username, *msg_password;
+        gboolean ok;
 
-	header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
+        header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
                                                       SOUP_HEADER_AUTHORIZATION);
-	if (!parse_basic (header, &msg_username, &msg_password))
-		return FALSE;
+        if (!parse_basic (header, &msg_username, &msg_password))
+                return FALSE;
 
-	ok = (!strcmp (username, msg_username) &&
-	      !strcmp (password, msg_password));
-	g_free (msg_username);
-	pw_free (msg_password);
+        ok = (!strcmp (username, msg_username) &&
+              !strcmp (password, msg_password));
+        g_free (msg_username);
+        pw_free (msg_password);
 
-	return ok;
+        return ok;
 }
 
 static void
 soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 {
-	SoupAuthDomainClass *auth_domain_class =
-		SOUP_AUTH_DOMAIN_CLASS (basic_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (basic_class);
+        SoupAuthDomainClass *auth_domain_class =
+                SOUP_AUTH_DOMAIN_CLASS (basic_class);
+        GObjectClass *object_class = G_OBJECT_CLASS (basic_class);
 
-	auth_domain_class->accepts        = soup_auth_domain_basic_accepts;
-	auth_domain_class->challenge      = soup_auth_domain_basic_challenge;
-	auth_domain_class->check_password = soup_auth_domain_basic_check_password;
+        auth_domain_class->accepts        = soup_auth_domain_basic_accepts;
+        auth_domain_class->challenge      = soup_auth_domain_basic_challenge;
+        auth_domain_class->check_password = soup_auth_domain_basic_check_password;
 
-	object_class->finalize     = soup_auth_domain_basic_finalize;
-	object_class->set_property = soup_auth_domain_basic_set_property;
-	object_class->get_property = soup_auth_domain_basic_get_property;
+        object_class->finalize     = soup_auth_domain_basic_finalize;
+        object_class->set_property = soup_auth_domain_basic_set_property;
+        object_class->get_property = soup_auth_domain_basic_get_property;
 
-	/**
-	 * SoupAuthDomainBasic:auth-callback: (type SoupAuthDomainBasicAuthCallback) (attributes org.gtk.Property.set=soup_auth_domain_basic_set_auth_callback)
-	 *
-	 * The [callback@AuthDomainBasicAuthCallback].
-	 */
+        /**
+         * SoupAuthDomainBasic:auth-callback: (type SoupAuthDomainBasicAuthCallback) (attributes org.gtk.Property.set=soup_auth_domain_basic_set_auth_callback)
+         *
+         * The [callback@AuthDomainBasicAuthCallback].
+         */
         properties[PROP_AUTH_CALLBACK] =
-		g_param_spec_pointer ("auth-callback",
-				      "Authentication callback",
-				      "Password-checking callback",
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuthDomainBasic:auth-data:
-	 *
-	 * The data to pass to the [callback@AuthDomainBasicAuthCallback].
-	 */
+                g_param_spec_pointer ("auth-callback",
+                                      "Authentication callback",
+                                      "Password-checking callback",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuthDomainBasic:auth-data:
+         *
+         * The data to pass to the [callback@AuthDomainBasicAuthCallback].
+         */
         properties[PROP_AUTH_DATA] =
-		g_param_spec_pointer ("auth-data",
-				      "Authentication callback data",
-				      "Data to pass to authentication callback",
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
+                g_param_spec_pointer ("auth-data",
+                                      "Authentication callback data",
+                                      "Data to pass to authentication callback",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }

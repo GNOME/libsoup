@@ -25,7 +25,7 @@ typedef enum {
         LARGE = 1 << 3,
         EMPTY = 1 << 4,
         NO_CONTENT_TYPE = 1 << 5,
-	NULL_STREAM = 1 << 6,
+        NULL_STREAM = 1 << 6,
 } RequestTestFlags;
 
 static void
@@ -60,13 +60,13 @@ setup_request_body (PutTestData     *ptd,
 
         ptd->nwrote = 0;
         check = g_checksum_new (G_CHECKSUM_MD5);
-	if (flags & NULL_STREAM) {
-		ptd->bytes = NULL;
-		ptd->stream = NULL;
-		ptd->content_type = NULL;
+        if (flags & NULL_STREAM) {
+                ptd->bytes = NULL;
+                ptd->stream = NULL;
+                ptd->content_type = NULL;
 
-		return check;
-	}
+                return check;
+        }
 
         if (flags & LARGE) {
                 static const unsigned int large_size = 1000000;
@@ -168,26 +168,26 @@ do_request_test (gconstpointer data)
         soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
 
         metrics = soup_message_get_metrics (msg);
-	if (flags & NULL_STREAM) {
-		g_assert_cmpint (ptd.nwrote, ==, 0);
-		g_assert_cmpstr (soup_message_headers_get_one (request_headers, "Content-Length"), ==, "0");
+        if (flags & NULL_STREAM) {
+                g_assert_cmpint (ptd.nwrote, ==, 0);
+                g_assert_cmpstr (soup_message_headers_get_one (request_headers, "Content-Length"), ==, "0");
                 g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, 0);
                 g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, 0);
-	} else {
-		g_assert_cmpint (g_bytes_get_size (ptd.bytes), ==, ptd.nwrote);
+        } else {
+                g_assert_cmpint (g_bytes_get_size (ptd.bytes), ==, ptd.nwrote);
                 if (flags & BYTES) {
                         g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), ==, ptd.nwrote);
                 } else {
                         g_assert_cmpuint (soup_message_metrics_get_request_body_bytes_sent (metrics), >, ptd.nwrote);
                 }
                 g_assert_cmpuint (soup_message_metrics_get_request_body_size (metrics), ==, ptd.nwrote);
-	}
+        }
 
         server_md5 = soup_message_headers_get_one (soup_message_get_response_headers (msg),
                                                    "Content-MD5");
         g_assert_cmpstr (client_md5, ==, server_md5);
 
-	g_clear_pointer (&ptd.bytes, g_bytes_unref);
+        g_clear_pointer (&ptd.bytes, g_bytes_unref);
         g_clear_object (&ptd.stream);
         g_object_unref (msg);
         g_checksum_free (check);
@@ -196,9 +196,9 @@ do_request_test (gconstpointer data)
 
 static void
 server_callback (SoupServer        *server,
-		 SoupServerMessage *msg,
+                 SoupServerMessage *msg,
                  const char        *path,
-		 GHashTable        *query,
+                 GHashTable        *query,
                  gpointer           data)
 {
         SoupMessageBody *md5_body;
@@ -251,7 +251,7 @@ main (int argc, char **argv)
         g_test_add_data_func ("/request-body/sync/empty", GINT_TO_POINTER (BYTES | EMPTY), do_request_test);
         g_test_add_data_func ("/request-body/sync/no-content-type-stream", GINT_TO_POINTER (NO_CONTENT_TYPE), do_request_test);
         g_test_add_data_func ("/request-body/sync/no-content-type-bytes", GINT_TO_POINTER (BYTES | NO_CONTENT_TYPE), do_request_test);
-	g_test_add_data_func ("/request-body/sync/null", GINT_TO_POINTER (NULL_STREAM), do_request_test);
+        g_test_add_data_func ("/request-body/sync/null", GINT_TO_POINTER (NULL_STREAM), do_request_test);
         g_test_add_data_func ("/request-body/async/stream", GINT_TO_POINTER (ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/bytes", GINT_TO_POINTER (BYTES | ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/restart-stream", GINT_TO_POINTER (RESTART | ASYNC), do_request_test);
@@ -260,7 +260,7 @@ main (int argc, char **argv)
         g_test_add_data_func ("/request-body/async/empty", GINT_TO_POINTER (BYTES | EMPTY | ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/no-content-type-stream", GINT_TO_POINTER (NO_CONTENT_TYPE | ASYNC), do_request_test);
         g_test_add_data_func ("/request-body/async/no-content-type-bytes", GINT_TO_POINTER (BYTES | NO_CONTENT_TYPE | ASYNC), do_request_test);
-	g_test_add_data_func ("/request-body/async/null", GINT_TO_POINTER (NULL_STREAM | ASYNC), do_request_test);
+        g_test_add_data_func ("/request-body/async/null", GINT_TO_POINTER (NULL_STREAM | ASYNC), do_request_test);
 
         ret = g_test_run ();
 

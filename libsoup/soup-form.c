@@ -36,23 +36,23 @@
 static gboolean
 form_decode (char *part)
 {
-	unsigned char *s, *d;
+        unsigned char *s, *d;
 
-	s = d = (unsigned char *)part;
-	do {
-		if (*s == '%') {
-			if (!g_ascii_isxdigit (s[1]) ||
-			    !g_ascii_isxdigit (s[2]))
-				return FALSE;
-			*d++ = HEXCHAR (s);
-			s += 2;
-		} else if (*s == '+')
-			*d++ = ' ';
-		else
-			*d++ = *s;
-	} while (*s++);
+        s = d = (unsigned char *)part;
+        do {
+                if (*s == '%') {
+                        if (!g_ascii_isxdigit (s[1]) ||
+                            !g_ascii_isxdigit (s[2]))
+                                return FALSE;
+                        *d++ = HEXCHAR (s);
+                        s += 2;
+                } else if (*s == '+')
+                        *d++ = ' ';
+                else
+                        *d++ = *s;
+        } while (*s++);
 
-	return TRUE;
+        return TRUE;
 }
 
 /**
@@ -70,31 +70,31 @@ form_decode (char *part)
 GHashTable *
 soup_form_decode (const char *encoded_form)
 {
-	GHashTable *form_data_set;
-	char **pairs, *eq, *name, *value;
-	int i;
+        GHashTable *form_data_set;
+        char **pairs, *eq, *name, *value;
+        int i;
 
-	form_data_set = g_hash_table_new_full (g_str_hash, g_str_equal,
-					       g_free, NULL);
-	pairs = g_strsplit (encoded_form, "&", -1);
-	for (i = 0; pairs[i]; i++) {
-		name = pairs[i];
-		eq = strchr (name, '=');
-		if (eq) {
-			*eq = '\0';
-			value = eq + 1;
-		} else
-			value = NULL;
-		if (!value || !form_decode (name) || !form_decode (value)) {
-			g_free (name);
-			continue;
-		}
+        form_data_set = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                               g_free, NULL);
+        pairs = g_strsplit (encoded_form, "&", -1);
+        for (i = 0; pairs[i]; i++) {
+                name = pairs[i];
+                eq = strchr (name, '=');
+                if (eq) {
+                        *eq = '\0';
+                        value = eq + 1;
+                } else
+                        value = NULL;
+                if (!value || !form_decode (name) || !form_decode (value)) {
+                        g_free (name);
+                        continue;
+                }
 
-		g_hash_table_replace (form_data_set, name, value);
-	}
-	g_free (pairs);
+                g_hash_table_replace (form_data_set, name, value);
+        }
+        g_free (pairs);
 
-	return form_data_set;
+        return form_data_set;
 }
 
 /**
@@ -132,97 +132,97 @@ soup_form_decode (const char *encoded_form)
  */
 GHashTable *
 soup_form_decode_multipart (SoupMultipart *multipart,
-			    const char    *file_control_name,
-			    char         **filename,
-			    char         **content_type,
-			    GBytes       **file)
+                            const char    *file_control_name,
+                            char         **filename,
+                            char         **content_type,
+                            GBytes       **file)
 {
-	GHashTable *form_data_set, *params;
-	SoupMessageHeaders *part_headers;
-	GBytes *part_body;
-	char *disposition, *name;
-	int i;
+        GHashTable *form_data_set, *params;
+        SoupMessageHeaders *part_headers;
+        GBytes *part_body;
+        char *disposition, *name;
+        int i;
 
-	g_return_val_if_fail (multipart != NULL, NULL);
+        g_return_val_if_fail (multipart != NULL, NULL);
 
-	if (filename)
-		*filename = NULL;
-	if (content_type)
-		*content_type = NULL;
-	if (file)
-		*file = NULL;
+        if (filename)
+                *filename = NULL;
+        if (content_type)
+                *content_type = NULL;
+        if (file)
+                *file = NULL;
 
-	form_data_set = g_hash_table_new_full (g_str_hash, g_str_equal,
-					       g_free, g_free);
-	for (i = 0; i < soup_multipart_get_length (multipart); i++) {
-		soup_multipart_get_part (multipart, i, &part_headers, &part_body);
-		if (!soup_message_headers_get_content_disposition (
-			    part_headers, &disposition, &params))
-			continue;
-		name = g_hash_table_lookup (params, "name");
-		if (g_ascii_strcasecmp (disposition, "form-data") != 0 ||
-		    !name) {
-			g_free (disposition);
-			g_hash_table_destroy (params);
-			continue;
-		}
+        form_data_set = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                               g_free, g_free);
+        for (i = 0; i < soup_multipart_get_length (multipart); i++) {
+                soup_multipart_get_part (multipart, i, &part_headers, &part_body);
+                if (!soup_message_headers_get_content_disposition (
+                            part_headers, &disposition, &params))
+                        continue;
+                name = g_hash_table_lookup (params, "name");
+                if (g_ascii_strcasecmp (disposition, "form-data") != 0 ||
+                    !name) {
+                        g_free (disposition);
+                        g_hash_table_destroy (params);
+                        continue;
+                }
 
-		if (file_control_name && !strcmp (name, file_control_name)) {
-			if (filename) {
-				g_free (*filename);
-				*filename = g_strdup (g_hash_table_lookup (params, "filename"));
-			}
-			if (content_type) {
-				g_free (*content_type);
-				*content_type = g_strdup (soup_message_headers_get_content_type (part_headers, NULL));
-			}
-			if (file) {
-				g_clear_pointer (file, g_bytes_unref);
-				*file = g_bytes_ref (part_body);
-			}
-		} else {
-			g_hash_table_insert (form_data_set,
-					     g_strdup (name),
-					     g_strndup (g_bytes_get_data (part_body, NULL),
-							g_bytes_get_size (part_body)));
-		}
+                if (file_control_name && !strcmp (name, file_control_name)) {
+                        if (filename) {
+                                g_free (*filename);
+                                *filename = g_strdup (g_hash_table_lookup (params, "filename"));
+                        }
+                        if (content_type) {
+                                g_free (*content_type);
+                                *content_type = g_strdup (soup_message_headers_get_content_type (part_headers, NULL));
+                        }
+                        if (file) {
+                                g_clear_pointer (file, g_bytes_unref);
+                                *file = g_bytes_ref (part_body);
+                        }
+                } else {
+                        g_hash_table_insert (form_data_set,
+                                             g_strdup (name),
+                                             g_strndup (g_bytes_get_data (part_body, NULL),
+                                                        g_bytes_get_size (part_body)));
+                }
 
-		g_free (disposition);
-		g_hash_table_destroy (params);
-	}
+                g_free (disposition);
+                g_hash_table_destroy (params);
+        }
 
-	soup_multipart_free (multipart);
-	return form_data_set;
+        soup_multipart_free (multipart);
+        return form_data_set;
 }
 
 static void
 append_form_encoded (GString *str, const char *in)
 {
-	const unsigned char *s = (const unsigned char *)in;
+        const unsigned char *s = (const unsigned char *)in;
 
-	while (*s) {
-		if (*s == ' ') {
-			g_string_append_c (str, '+');
-			s++;
-		} else if (!g_ascii_isalnum (*s) && (*s != '-') && (*s != '_')
-			   && (*s != '.'))
-			g_string_append_printf (str, "%%%02X", (int)*s++);
-		else
-			g_string_append_c (str, *s++);
-	}
+        while (*s) {
+                if (*s == ' ') {
+                        g_string_append_c (str, '+');
+                        s++;
+                } else if (!g_ascii_isalnum (*s) && (*s != '-') && (*s != '_')
+                           && (*s != '.'))
+                        g_string_append_printf (str, "%%%02X", (int)*s++);
+                else
+                        g_string_append_c (str, *s++);
+        }
 }
 
 static void
 encode_pair (GString *str, const char *name, const char *value)
 {
-	g_return_if_fail (name != NULL);
-	g_return_if_fail (value != NULL);
+        g_return_if_fail (name != NULL);
+        g_return_if_fail (value != NULL);
 
-	if (str->len)
-		g_string_append_c (str, '&');
-	append_form_encoded (str, name);
-	g_string_append_c (str, '=');
-	append_form_encoded (str, value);
+        if (str->len)
+                g_string_append_c (str, '&');
+        append_form_encoded (str, name);
+        g_string_append_c (str, '=');
+        append_form_encoded (str, value);
 }
 
 /**
@@ -248,14 +248,14 @@ encode_pair (GString *str, const char *name, const char *value)
 char *
 soup_form_encode (const char *first_field, ...)
 {
-	va_list args;
-	char *encoded;
+        va_list args;
+        char *encoded;
 
-	va_start (args, first_field);
-	encoded = soup_form_encode_valist (first_field, args);
-	va_end (args);
+        va_start (args, first_field);
+        encoded = soup_form_encode_valist (first_field, args);
+        va_end (args);
 
-	return encoded;
+        return encoded;
 }
 
 /**
@@ -280,20 +280,20 @@ soup_form_encode (const char *first_field, ...)
 char *
 soup_form_encode_hash (GHashTable *form_data_set)
 {
-	GString *str = g_string_new (NULL);
-	GHashTableIter iter;
-	gpointer name, value;
+        GString *str = g_string_new (NULL);
+        GHashTableIter iter;
+        gpointer name, value;
 
-	g_hash_table_iter_init (&iter, form_data_set);
-	while (g_hash_table_iter_next (&iter, &name, &value))
-		encode_pair (str, name, value);
-	return g_string_free (str, FALSE);
+        g_hash_table_iter_init (&iter, form_data_set);
+        while (g_hash_table_iter_next (&iter, &name, &value))
+                encode_pair (str, name, value);
+        return g_string_free (str, FALSE);
 }
 
 static void
 datalist_encode_foreach (GQuark key_id, gpointer value, gpointer str)
 {
-	encode_pair (str, g_quark_to_string (key_id), value);
+        encode_pair (str, g_quark_to_string (key_id), value);
 }
 
 /**
@@ -314,10 +314,10 @@ datalist_encode_foreach (GQuark key_id, gpointer value, gpointer str)
 char *
 soup_form_encode_datalist (GData **form_data_set)
 {
-	GString *str = g_string_new (NULL);
+        GString *str = g_string_new (NULL);
 
-	g_datalist_foreach (form_data_set, datalist_encode_foreach, str);
-	return g_string_free (str, FALSE);
+        g_datalist_foreach (form_data_set, datalist_encode_foreach, str);
+        return g_string_free (str, FALSE);
 }
 
 /**
@@ -337,18 +337,18 @@ soup_form_encode_datalist (GData **form_data_set)
 char *
 soup_form_encode_valist (const char *first_field, va_list args)
 {
-	GString *str = g_string_new (NULL);
-	const char *name, *value;
+        GString *str = g_string_new (NULL);
+        const char *name, *value;
 
-	name = first_field;
-	value = va_arg (args, const char *);
-	while (name && value) {
-		encode_pair (str, name, value);
+        name = first_field;
+        value = va_arg (args, const char *);
+        while (name && value) {
+                encode_pair (str, name, value);
 
-		name = va_arg (args, const char *);
-		if (name)
-			value = va_arg (args, const char *);
-	}
+                name = va_arg (args, const char *);
+                if (name)
+                        value = va_arg (args, const char *);
+        }
 
-	return g_string_free (str, FALSE);
+        return g_string_free (str, FALSE);
 }

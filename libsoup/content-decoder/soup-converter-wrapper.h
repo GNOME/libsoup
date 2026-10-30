@@ -13,6 +13,6 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (SoupConverterWrapper, soup_converter_wrapper, SOUP, CONVERTER_WRAPPER, GObject)
 
 GConverter *soup_converter_wrapper_new (GConverter  *base_converter,
-					SoupMessage *msg);
+                                        SoupMessage *msg);
 
 G_END_DECLS

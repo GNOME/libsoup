@@ -35,68 +35,68 @@ SOUP_AVAILABLE_IN_ALL
 GQuark soup_websocket_error_quark (void) G_GNUC_CONST;
 
 typedef enum {
-	SOUP_WEBSOCKET_ERROR_FAILED,
-	SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
-	SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
-	SOUP_WEBSOCKET_ERROR_BAD_ORIGIN,
+        SOUP_WEBSOCKET_ERROR_FAILED,
+        SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET,
+        SOUP_WEBSOCKET_ERROR_BAD_HANDSHAKE,
+        SOUP_WEBSOCKET_ERROR_BAD_ORIGIN,
 } SoupWebsocketError;
 
 typedef enum {
-	SOUP_WEBSOCKET_CONNECTION_UNKNOWN,
-	SOUP_WEBSOCKET_CONNECTION_CLIENT,
-	SOUP_WEBSOCKET_CONNECTION_SERVER
+        SOUP_WEBSOCKET_CONNECTION_UNKNOWN,
+        SOUP_WEBSOCKET_CONNECTION_CLIENT,
+        SOUP_WEBSOCKET_CONNECTION_SERVER
 } SoupWebsocketConnectionType;
 
 typedef enum {
-	SOUP_WEBSOCKET_DATA_TEXT = 0x01,
-	SOUP_WEBSOCKET_DATA_BINARY = 0x02,
+        SOUP_WEBSOCKET_DATA_TEXT = 0x01,
+        SOUP_WEBSOCKET_DATA_BINARY = 0x02,
 } SoupWebsocketDataType;
 
 typedef enum {
-	SOUP_WEBSOCKET_CLOSE_NORMAL = 1000,
-	SOUP_WEBSOCKET_CLOSE_GOING_AWAY = 1001,
-	SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR = 1002,
-	SOUP_WEBSOCKET_CLOSE_UNSUPPORTED_DATA = 1003,
-	SOUP_WEBSOCKET_CLOSE_NO_STATUS = 1005,
-	SOUP_WEBSOCKET_CLOSE_ABNORMAL = 1006,
-	SOUP_WEBSOCKET_CLOSE_BAD_DATA = 1007,
-	SOUP_WEBSOCKET_CLOSE_POLICY_VIOLATION = 1008,
-	SOUP_WEBSOCKET_CLOSE_TOO_BIG = 1009,
-	SOUP_WEBSOCKET_CLOSE_NO_EXTENSION = 1010,
-	SOUP_WEBSOCKET_CLOSE_SERVER_ERROR = 1011,
-	SOUP_WEBSOCKET_CLOSE_TLS_HANDSHAKE = 1015,
+        SOUP_WEBSOCKET_CLOSE_NORMAL = 1000,
+        SOUP_WEBSOCKET_CLOSE_GOING_AWAY = 1001,
+        SOUP_WEBSOCKET_CLOSE_PROTOCOL_ERROR = 1002,
+        SOUP_WEBSOCKET_CLOSE_UNSUPPORTED_DATA = 1003,
+        SOUP_WEBSOCKET_CLOSE_NO_STATUS = 1005,
+        SOUP_WEBSOCKET_CLOSE_ABNORMAL = 1006,
+        SOUP_WEBSOCKET_CLOSE_BAD_DATA = 1007,
+        SOUP_WEBSOCKET_CLOSE_POLICY_VIOLATION = 1008,
+        SOUP_WEBSOCKET_CLOSE_TOO_BIG = 1009,
+        SOUP_WEBSOCKET_CLOSE_NO_EXTENSION = 1010,
+        SOUP_WEBSOCKET_CLOSE_SERVER_ERROR = 1011,
+        SOUP_WEBSOCKET_CLOSE_TLS_HANDSHAKE = 1015,
 } SoupWebsocketCloseCode;
 
 typedef enum {
-	SOUP_WEBSOCKET_STATE_OPEN = 1,
-	SOUP_WEBSOCKET_STATE_CLOSING = 2,
-	SOUP_WEBSOCKET_STATE_CLOSED = 3,
+        SOUP_WEBSOCKET_STATE_OPEN = 1,
+        SOUP_WEBSOCKET_STATE_CLOSING = 2,
+        SOUP_WEBSOCKET_STATE_CLOSED = 3,
 } SoupWebsocketState;
 
 SOUP_AVAILABLE_IN_ALL
 void     soup_websocket_client_prepare_handshake (SoupMessage *msg,
-						  const char  *origin,
-						  char       **protocols,
-						  GPtrArray   *supported_extensions);
+                                                  const char  *origin,
+                                                  char       **protocols,
+                                                  GPtrArray   *supported_extensions);
 
 SOUP_AVAILABLE_IN_ALL
 gboolean soup_websocket_client_verify_handshake  (SoupMessage *msg,
-						  GPtrArray   *supported_extensions,
-						  GList      **accepted_extensions,
-						  GError     **error);
+                                                  GPtrArray   *supported_extensions,
+                                                  GList      **accepted_extensions,
+                                                  GError     **error);
 
 SOUP_AVAILABLE_IN_ALL
 gboolean soup_websocket_server_check_handshake   (SoupServerMessage *msg,
-						  const char        *origin,
-						  char             **protocols,
-						  GPtrArray         *supported_extensions,
-						  GError           **error);
+                                                  const char        *origin,
+                                                  char             **protocols,
+                                                  GPtrArray         *supported_extensions,
+                                                  GError           **error);
 
 SOUP_AVAILABLE_IN_ALL
 gboolean soup_websocket_server_process_handshake (SoupServerMessage *msg,
-						  const char        *expected_origin,
-						  char             **protocols,
-						  GPtrArray         *supported_extensions,
-						  GList            **accepted_extensions);
+                                                  const char        *expected_origin,
+                                                  char             **protocols,
+                                                  GPtrArray         *supported_extensions,
+                                                  GList            **accepted_extensions);
 
 G_END_DECLS

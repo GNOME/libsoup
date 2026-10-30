@@ -8,5 +8,5 @@
 #include "soup-auth-domain.h"
 
 gboolean    soup_auth_domain_try_generic_auth_callback (SoupAuthDomain    *domain,
-							SoupServerMessage *msg,
-							const char        *username);
+                                                        SoupServerMessage *msg,
+                                                        const char        *username);

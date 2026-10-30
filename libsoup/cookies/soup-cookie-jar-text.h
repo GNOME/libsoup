@@ -15,7 +15,7 @@ G_DECLARE_FINAL_TYPE (SoupCookieJarText, soup_cookie_jar_text, SOUP, COOKIE_JAR_
 
 SOUP_AVAILABLE_IN_ALL
 SoupCookieJar *soup_cookie_jar_text_new (const char *filename,
-					 gboolean    read_only);
+                                         gboolean    read_only);
 
 G_END_DECLS
 

@@ -79,21 +79,21 @@ soup_websocket_extension_class_init (SoupWebsocketExtensionClass *auth_class)
  */
 gboolean
 soup_websocket_extension_configure (SoupWebsocketExtension     *extension,
-				    SoupWebsocketConnectionType connection_type,
-				    GHashTable                 *params,
-				    GError                    **error)
+                                    SoupWebsocketConnectionType connection_type,
+                                    GHashTable                 *params,
+                                    GError                    **error)
 {
-	SoupWebsocketExtensionClass *klass;
+        SoupWebsocketExtensionClass *klass;
 
-	g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), FALSE);
-	g_return_val_if_fail (connection_type != SOUP_WEBSOCKET_CONNECTION_UNKNOWN, FALSE);
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+        g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), FALSE);
+        g_return_val_if_fail (connection_type != SOUP_WEBSOCKET_CONNECTION_UNKNOWN, FALSE);
+        g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-	klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
-	if (!klass->configure)
-		return TRUE;
+        klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
+        if (!klass->configure)
+                return TRUE;
 
-	return klass->configure (extension, connection_type, params, error);
+        return klass->configure (extension, connection_type, params, error);
 }
 
 /**
@@ -110,11 +110,11 @@ soup_websocket_extension_configure (SoupWebsocketExtension     *extension,
 char *
 soup_websocket_extension_get_request_params (SoupWebsocketExtension *extension)
 {
-	SoupWebsocketExtensionClass *klass;
+        SoupWebsocketExtensionClass *klass;
 
         g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
 
-	klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
+        klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
         if (!klass->get_request_params)
                 return NULL;
 
@@ -135,15 +135,15 @@ soup_websocket_extension_get_request_params (SoupWebsocketExtension *extension)
 char *
 soup_websocket_extension_get_response_params (SoupWebsocketExtension *extension)
 {
-	SoupWebsocketExtensionClass *klass;
+        SoupWebsocketExtensionClass *klass;
 
-	g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
+        g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
 
-	klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
-	if (!klass->get_response_params)
-		return NULL;
+        klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
+        if (!klass->get_response_params)
+                return NULL;
 
-	return klass->get_response_params (extension);
+        return klass->get_response_params (extension);
 }
 
 /**
@@ -165,22 +165,22 @@ soup_websocket_extension_get_response_params (SoupWebsocketExtension *extension)
  */
 GBytes *
 soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension *extension,
-						   guint8                 *header,
-						   GBytes                 *payload,
-						   GError                **error)
+                                                   guint8                 *header,
+                                                   GBytes                 *payload,
+                                                   GError                **error)
 {
-	SoupWebsocketExtensionClass *klass;
+        SoupWebsocketExtensionClass *klass;
 
         g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
-	g_return_val_if_fail (header != NULL, NULL);
-	g_return_val_if_fail (payload != NULL, NULL);
-	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+        g_return_val_if_fail (header != NULL, NULL);
+        g_return_val_if_fail (payload != NULL, NULL);
+        g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
         klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
-	if (!klass->process_outgoing_message)
-		return payload;
+        if (!klass->process_outgoing_message)
+                return payload;
 
-	return klass->process_outgoing_message (extension, header, payload, error);
+        return klass->process_outgoing_message (extension, header, payload, error);
 }
 
 /**
@@ -202,22 +202,22 @@ soup_websocket_extension_process_outgoing_message (SoupWebsocketExtension *exten
  */
 GBytes *
 soup_websocket_extension_process_incoming_message (SoupWebsocketExtension *extension,
-						   guint8                 *header,
-						   GBytes                 *payload,
-						   GError                **error)
+                                                   guint8                 *header,
+                                                   GBytes                 *payload,
+                                                   GError                **error)
 {
-	SoupWebsocketExtensionClass *klass;
+        SoupWebsocketExtensionClass *klass;
 
         g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
-	g_return_val_if_fail (header != NULL, NULL);
-	g_return_val_if_fail (payload != NULL, NULL);
-	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+        g_return_val_if_fail (header != NULL, NULL);
+        g_return_val_if_fail (payload != NULL, NULL);
+        g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
         klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
-	if (!klass->process_incoming_message)
-		return payload;
+        if (!klass->process_incoming_message)
+                return payload;
 
-	return klass->process_incoming_message (extension, header, payload, error);
+        return klass->process_incoming_message (extension, header, payload, error);
 }
 
 /**
@@ -249,23 +249,23 @@ soup_websocket_extension_process_incoming_message_with_limit (SoupWebsocketExten
                                                               guint64                 max_output_size,
                                                               GError                **error)
 {
-	SoupWebsocketExtensionClass *klass;
+        SoupWebsocketExtensionClass *klass;
 
-	g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
-	g_return_val_if_fail (header != NULL, NULL);
-	g_return_val_if_fail (payload != NULL, NULL);
-	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+        g_return_val_if_fail (SOUP_IS_WEBSOCKET_EXTENSION (extension), NULL);
+        g_return_val_if_fail (header != NULL, NULL);
+        g_return_val_if_fail (payload != NULL, NULL);
+        g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-	klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
-	if (!klass->process_incoming_message_with_limit)
-		return soup_websocket_extension_process_incoming_message (extension,
-									  header,
-									  payload,
-									  error);
+        klass = SOUP_WEBSOCKET_EXTENSION_GET_CLASS (extension);
+        if (!klass->process_incoming_message_with_limit)
+                return soup_websocket_extension_process_incoming_message (extension,
+                                                                          header,
+                                                                          payload,
+                                                                          error);
 
-	return klass->process_incoming_message_with_limit (extension,
-							   header,
-							   payload,
-							   max_output_size,
-							   error);
+        return klass->process_incoming_message_with_limit (extension,
+                                                           header,
+                                                           payload,
+                                                           max_output_size,
+                                                           error);
 }

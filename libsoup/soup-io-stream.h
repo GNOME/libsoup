@@ -13,7 +13,7 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (SoupIOStream, soup_io_stream, SOUP, IO_STREAM, GIOStream)
 
 GIOStream *soup_io_stream_new (GIOStream *base_iostream,
-			       gboolean   close_on_dispose);
+                               gboolean   close_on_dispose);
 
 GIOStream *soup_io_stream_get_base_iostream (SoupIOStream *stream);
 

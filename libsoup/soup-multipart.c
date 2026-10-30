@@ -35,38 +35,38 @@
  **/
 
 struct _SoupMultipart {
-	char *mime_type, *boundary;
-	GPtrArray *headers, *bodies;
+        char *mime_type, *boundary;
+        GPtrArray *headers, *bodies;
 };
 
 static SoupMultipart *
 soup_multipart_new_internal (char *mime_type, char *boundary)
 {
-	SoupMultipart *multipart;
+        SoupMultipart *multipart;
 
-	multipart = g_slice_new (SoupMultipart);
-	multipart->mime_type = mime_type;
-	multipart->boundary = boundary;
-	multipart->headers = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_message_headers_unref);
-	multipart->bodies = g_ptr_array_new_with_free_func ((GDestroyNotify)g_bytes_unref);
+        multipart = g_slice_new (SoupMultipart);
+        multipart->mime_type = mime_type;
+        multipart->boundary = boundary;
+        multipart->headers = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_message_headers_unref);
+        multipart->bodies = g_ptr_array_new_with_free_func ((GDestroyNotify)g_bytes_unref);
 
-	return multipart;
+        return multipart;
 }
 
 static char *
 generate_boundary (void)
 {
-	guint32 data[2];
+        guint32 data[2];
 
-	data[0] = g_random_int ();
-	data[1] = g_random_int ();
+        data[0] = g_random_int ();
+        data[1] = g_random_int ();
 
-	/* The maximum boundary string length is 69 characters, and a
-	 * stringified SHA256 checksum is 64 bytes long.
-	 */
-	return g_compute_checksum_for_data (G_CHECKSUM_SHA256,
-					    (const guchar *)&data,
-					    sizeof (data));
+        /* The maximum boundary string length is 69 characters, and a
+         * stringified SHA256 checksum is 64 bytes long.
+         */
+        return g_compute_checksum_for_data (G_CHECKSUM_SHA256,
+                                            (const guchar *)&data,
+                                            sizeof (data));
 }
 
 /**
@@ -85,34 +85,34 @@ generate_boundary (void)
 SoupMultipart *
 soup_multipart_new (const char *mime_type)
 {
-	return soup_multipart_new_internal (g_strdup (mime_type),
-					    generate_boundary ());
+        return soup_multipart_new_internal (g_strdup (mime_type),
+                                            generate_boundary ());
 }
 
 static const char *
 find_boundary (const char *start, const char *end,
-	       const char *boundary, int boundary_len)
+               const char *boundary, int boundary_len)
 {
-	const char *b;
+        const char *b;
 
-	for (b = memchr (start, '-', end - start);
-	     b && b + boundary_len + 4 < end;
-	     b = memchr (b + 2, '-', end - (b + 2))) {
-		/* Check for "--boundary" */
-		if (b[1] != '-' ||
-		    memcmp (b + 2, boundary, boundary_len) != 0)
-			continue;
+        for (b = memchr (start, '-', end - start);
+             b && b + boundary_len + 4 < end;
+             b = memchr (b + 2, '-', end - (b + 2))) {
+                /* Check for "--boundary" */
+                if (b[1] != '-' ||
+                    memcmp (b + 2, boundary, boundary_len) != 0)
+                        continue;
 
-		/* Check that it's at start of line */
-		if (!(b == start || (b - start >= 2 && b[-1] == '\n' && b[-2] == '\r')))
-			continue;
+                /* Check that it's at start of line */
+                if (!(b == start || (b - start >= 2 && b[-1] == '\n' && b[-2] == '\r')))
+                        continue;
 
-		/* Check for "--" or "\r\n" after boundary */
-		if ((b[boundary_len + 2] == '-' && b[boundary_len + 3] == '-') ||
-		    (b[boundary_len + 2] == '\r' && b[boundary_len + 3] == '\n'))
-			return b;
-	}
-	return NULL;
+                /* Check for "--" or "\r\n" after boundary */
+                if ((b[boundary_len + 2] == '-' && b[boundary_len + 3] == '-') ||
+                    (b[boundary_len + 2] == '\r' && b[boundary_len + 3] == '\n'))
+                        return b;
+        }
+        return NULL;
 }
 
 /**
@@ -127,90 +127,90 @@ find_boundary (const char *start, const char *end,
  **/
 SoupMultipart *
 soup_multipart_new_from_message (SoupMessageHeaders *headers,
-				 GBytes             *body)
+                                 GBytes             *body)
 {
-	SoupMultipart *multipart;
-	const char *content_type, *boundary;
-	GHashTable *params;
-	int boundary_len;
-	const char *start, *split, *end, *body_end;
-	SoupMessageHeaders *part_headers;
-	GBytes *part_body;
+        SoupMultipart *multipart;
+        const char *content_type, *boundary;
+        GHashTable *params;
+        int boundary_len;
+        const char *start, *split, *end, *body_end;
+        SoupMessageHeaders *part_headers;
+        GBytes *part_body;
 
-	content_type = soup_message_headers_get_content_type (headers, &params);
-	if (!content_type)
-		return NULL;
+        content_type = soup_message_headers_get_content_type (headers, &params);
+        if (!content_type)
+                return NULL;
 
-	boundary = g_hash_table_lookup (params, "boundary");
-	if (strncmp (content_type, "multipart/", 10) != 0 || !boundary) {
-		g_hash_table_destroy (params);
-		return NULL;
-	}
+        boundary = g_hash_table_lookup (params, "boundary");
+        if (strncmp (content_type, "multipart/", 10) != 0 || !boundary) {
+                g_hash_table_destroy (params);
+                return NULL;
+        }
 
-	multipart = soup_multipart_new_internal (
-		g_strdup (content_type), g_strdup (boundary));
-	g_hash_table_destroy (params);
+        multipart = soup_multipart_new_internal (
+                g_strdup (content_type), g_strdup (boundary));
+        g_hash_table_destroy (params);
 
         gsize body_size;
         const char *body_data = g_bytes_get_data (body, &body_size);
-	body_end = body_data + body_size;
-	boundary = multipart->boundary;
-	boundary_len = strlen (boundary);
+        body_end = body_data + body_size;
+        boundary = multipart->boundary;
+        boundary_len = strlen (boundary);
 
-	/* skip preamble */
-	start = find_boundary (body_data, body_end,
-			       boundary, boundary_len);
-	if (!start) {
-		soup_multipart_free (multipart);
-		return NULL;
-	}
+        /* skip preamble */
+        start = find_boundary (body_data, body_end,
+                               boundary, boundary_len);
+        if (!start) {
+                soup_multipart_free (multipart);
+                return NULL;
+        }
 
-	while (start[2 + boundary_len] != '-') {
-		end = find_boundary (start + 2 + boundary_len, body_end,
-				     boundary, boundary_len);
-		if (!end) {
-			soup_multipart_free (multipart);
-			return NULL;
-		}
+        while (start[2 + boundary_len] != '-') {
+                end = find_boundary (start + 2 + boundary_len, body_end,
+                                     boundary, boundary_len);
+                if (!end) {
+                        soup_multipart_free (multipart);
+                        return NULL;
+                }
 
-		split = g_strstr_len (start, body_end - start, "\r\n\r\n");
-		if (!split || split > end) {
-			soup_multipart_free (multipart);
-			return NULL;
-		}
-		split += 4;
+                split = g_strstr_len (start, body_end - start, "\r\n\r\n");
+                if (!split || split > end) {
+                        soup_multipart_free (multipart);
+                        return NULL;
+                }
+                split += 4;
 
-		/* @start points to the start of the boundary line
-		 * preceding this part, and @split points to the end
-		 * of the headers / start of the body.
-		 *
-		 * We tell soup_headers_parse() to start parsing at
-		 * @start, because it skips the first line of the
-		 * input anyway (expecting it to be either a
-		 * Request-Line or Status-Line).
-		 */
-		part_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
-		g_ptr_array_add (multipart->headers, part_headers);
-		if (!soup_headers_parse (start, split - 2 - start,
-					 part_headers)) {
-			soup_multipart_free (multipart);
-			return NULL;
-		}
+                /* @start points to the start of the boundary line
+                 * preceding this part, and @split points to the end
+                 * of the headers / start of the body.
+                 *
+                 * We tell soup_headers_parse() to start parsing at
+                 * @start, because it skips the first line of the
+                 * input anyway (expecting it to be either a
+                 * Request-Line or Status-Line).
+                 */
+                part_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+                g_ptr_array_add (multipart->headers, part_headers);
+                if (!soup_headers_parse (start, split - 2 - start,
+                                         part_headers)) {
+                        soup_multipart_free (multipart);
+                        return NULL;
+                }
 
-		/* @split, as previously mentioned, points to the
-		 * start of the body, and @end points to the start of
-		 * the following boundary line, which is to say 2 bytes
-		 * after the end of the body.
-		 */
-		part_body = g_bytes_new_from_bytes (body, // FIXME
-						    split - body_data,
-						    end - 2 >= split ? end - 2 - split : 0);
-		g_ptr_array_add (multipart->bodies, part_body);
+                /* @split, as previously mentioned, points to the
+                 * start of the body, and @end points to the start of
+                 * the following boundary line, which is to say 2 bytes
+                 * after the end of the body.
+                 */
+                part_body = g_bytes_new_from_bytes (body, // FIXME
+                                                    split - body_data,
+                                                    end - 2 >= split ? end - 2 - split : 0);
+                g_ptr_array_add (multipart->bodies, part_body);
 
-		start = end;
-	}
+                start = end;
+        }
 
-	return multipart;
+        return multipart;
 }
 
 /**
@@ -224,7 +224,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 int
 soup_multipart_get_length (SoupMultipart *multipart)
 {
-	return multipart->bodies->len;
+        return multipart->bodies->len;
 }
 
 /**
@@ -243,13 +243,13 @@ soup_multipart_get_length (SoupMultipart *multipart)
  **/
 gboolean
 soup_multipart_get_part (SoupMultipart *multipart, int part,
-			 SoupMessageHeaders **headers, GBytes **body)
+                         SoupMessageHeaders **headers, GBytes **body)
 {
-	if (part < 0 || part >= multipart->bodies->len)
-		return FALSE;
-	*headers = multipart->headers->pdata[part];
-	*body = multipart->bodies->pdata[part];
-	return TRUE;
+        if (part < 0 || part >= multipart->bodies->len)
+                return FALSE;
+        *headers = multipart->headers->pdata[part];
+        *body = multipart->bodies->pdata[part];
+        return TRUE;
 }
 
 /**
@@ -266,42 +266,42 @@ soup_multipart_get_part (SoupMultipart *multipart, int part,
  **/
 void
 soup_multipart_append_part (SoupMultipart      *multipart,
-			    SoupMessageHeaders *headers,
-			    GBytes         *body)
+                            SoupMessageHeaders *headers,
+                            GBytes         *body)
 {
-	SoupMessageHeaders *headers_copy;
-	SoupMessageHeadersIter iter;
-	const char *name, *value;
+        SoupMessageHeaders *headers_copy;
+        SoupMessageHeadersIter iter;
+        const char *name, *value;
 
-	/* Copying @headers is annoying, but the alternatives seem
-	 * worse:
-	 *
-	 * 1) We don't want to use g_boxed_copy, because
-	 *    SoupMessageHeaders actually implements that as just a
-	 *    ref, which would be confusing since SoupMessageHeaders
-	 *    is mutable and the caller might modify @headers after
-	 *    appending it.
-	 *
-	 * 2) We can't change SoupMessageHeaders to not just do a ref
-	 *    from g_boxed_copy, because that would break language
-	 *    bindings (which need to be able to hold a ref on
-	 *    soup_message_get_request_headers (msg), but don't want
+        /* Copying @headers is annoying, but the alternatives seem
+         * worse:
+         *
+         * 1) We don't want to use g_boxed_copy, because
+         *    SoupMessageHeaders actually implements that as just a
+         *    ref, which would be confusing since SoupMessageHeaders
+         *    is mutable and the caller might modify @headers after
+         *    appending it.
+         *
+         * 2) We can't change SoupMessageHeaders to not just do a ref
+         *    from g_boxed_copy, because that would break language
+         *    bindings (which need to be able to hold a ref on
+         *    soup_message_get_request_headers (msg), but don't want
          *    to duplicate it).
-	 *
-	 * 3) We don't want to steal the reference to @headers,
-	 *    because then we'd have to either also steal the
-	 *    reference to @body (which would be inconsistent with
-	 *    other GBytes methods), or NOT steal the reference to
-	 *    @body, in which case there'd be inconsistency just
-	 *    between the two arguments of this method!
-	 */
-	headers_copy = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
-	soup_message_headers_iter_init (&iter, headers);
-	while (soup_message_headers_iter_next (&iter, &name, &value))
-		soup_message_headers_append (headers_copy, name, value);
+         *
+         * 3) We don't want to steal the reference to @headers,
+         *    because then we'd have to either also steal the
+         *    reference to @body (which would be inconsistent with
+         *    other GBytes methods), or NOT steal the reference to
+         *    @body, in which case there'd be inconsistency just
+         *    between the two arguments of this method!
+         */
+        headers_copy = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+        soup_message_headers_iter_init (&iter, headers);
+        while (soup_message_headers_iter_next (&iter, &name, &value))
+                soup_message_headers_append (headers_copy, name, value);
 
-	g_ptr_array_add (multipart->headers, headers_copy);
-	g_ptr_array_add (multipart->bodies, g_bytes_ref (body));
+        g_ptr_array_add (multipart->headers, headers_copy);
+        g_ptr_array_add (multipart->bodies, g_bytes_ref (body));
 }
 
 /**
@@ -316,14 +316,14 @@ soup_multipart_append_part (SoupMultipart      *multipart,
  **/
 void
 soup_multipart_append_form_string (SoupMultipart *multipart,
-				   const char *control_name, const char *data)
+                                   const char *control_name, const char *data)
 {
-	GBytes *body;
+        GBytes *body;
 
-	body = g_bytes_new (data, strlen (data));
-	soup_multipart_append_form_file (multipart, control_name,
-					 NULL, NULL, body);
-	g_bytes_unref (body);
+        body = g_bytes_new (data, strlen (data));
+        soup_multipart_append_form_file (multipart, control_name,
+                                         NULL, NULL, body);
+        g_bytes_unref (body);
 }
 
 /**
@@ -340,30 +340,30 @@ soup_multipart_append_form_string (SoupMultipart *multipart,
  **/
 void
 soup_multipart_append_form_file (SoupMultipart *multipart,
-				 const char *control_name, const char *filename,
-				 const char *content_type, GBytes *body)
+                                 const char *control_name, const char *filename,
+                                 const char *content_type, GBytes *body)
 {
-	SoupMessageHeaders *headers;
-	GString *disposition;
+        SoupMessageHeaders *headers;
+        GString *disposition;
 
-	headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
-	disposition = g_string_new ("form-data; ");
-	soup_header_g_string_append_param_quoted (disposition, "name", control_name);
-	if (filename) {
-		g_string_append (disposition, "; ");
-		soup_header_g_string_append_param_quoted (disposition, "filename", filename);
-	}
-	soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_DISPOSITION,
+        headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+        disposition = g_string_new ("form-data; ");
+        soup_header_g_string_append_param_quoted (disposition, "name", control_name);
+        if (filename) {
+                g_string_append (disposition, "; ");
+                soup_header_g_string_append_param_quoted (disposition, "filename", filename);
+        }
+        soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_DISPOSITION,
                                             disposition->str, SOUP_HEADER_VALUE_UNTRUSTED);
-	g_string_free (disposition, TRUE);
+        g_string_free (disposition, TRUE);
 
-	if (content_type) {
-		soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_TYPE,
+        if (content_type) {
+                soup_message_headers_append_common (headers, SOUP_HEADER_CONTENT_TYPE,
                                                     content_type, SOUP_HEADER_VALUE_UNTRUSTED);
-	}
+        }
 
-	g_ptr_array_add (multipart->headers, headers);
-	g_ptr_array_add (multipart->bodies, g_bytes_ref (body));
+        g_ptr_array_add (multipart->headers, headers);
+        g_ptr_array_add (multipart->bodies, g_bytes_ref (body));
 }
 
 /**
@@ -376,54 +376,54 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
  **/
 void
 soup_multipart_to_message (SoupMultipart      *multipart,
-			   SoupMessageHeaders *dest_headers,
-			   GBytes            **dest_body)
+                           SoupMessageHeaders *dest_headers,
+                           GBytes            **dest_body)
 {
-	SoupMessageHeaders *part_headers;
-	GBytes *part_body;
-	SoupMessageHeadersIter iter;
-	const char *name, *value;
-	GString *str;
-	GHashTable *params;
-	guint i;
+        SoupMessageHeaders *part_headers;
+        GBytes *part_body;
+        SoupMessageHeadersIter iter;
+        const char *name, *value;
+        GString *str;
+        GHashTable *params;
+        guint i;
 
-	params = g_hash_table_new (g_str_hash, g_str_equal);
-	g_hash_table_insert (params, "boundary", multipart->boundary);
-	soup_message_headers_set_content_type (dest_headers,
-					       multipart->mime_type,
-					       params);
-	g_hash_table_destroy (params);
+        params = g_hash_table_new (g_str_hash, g_str_equal);
+        g_hash_table_insert (params, "boundary", multipart->boundary);
+        soup_message_headers_set_content_type (dest_headers,
+                                               multipart->mime_type,
+                                               params);
+        g_hash_table_destroy (params);
 
-	str = g_string_new (NULL);
+        str = g_string_new (NULL);
 
-	for (i = 0; i < multipart->bodies->len; i++) {
-		part_headers = multipart->headers->pdata[i];
-		part_body = multipart->bodies->pdata[i];
+        for (i = 0; i < multipart->bodies->len; i++) {
+                part_headers = multipart->headers->pdata[i];
+                part_body = multipart->bodies->pdata[i];
 
-		if (i > 0)
-			g_string_append (str, "\r\n");
-		g_string_append (str, "--");
-		g_string_append (str, multipart->boundary);
-		g_string_append (str, "\r\n");
-		soup_message_headers_iter_init (&iter, part_headers);
-		while (soup_message_headers_iter_next (&iter, &name, &value))
-			g_string_append_printf (str, "%s: %s\r\n", name, value);
-		g_string_append (str, "\r\n");
-		g_string_append_len (str,
-				     g_bytes_get_data (part_body, NULL),
-				     g_bytes_get_size (part_body));
-	}
+                if (i > 0)
+                        g_string_append (str, "\r\n");
+                g_string_append (str, "--");
+                g_string_append (str, multipart->boundary);
+                g_string_append (str, "\r\n");
+                soup_message_headers_iter_init (&iter, part_headers);
+                while (soup_message_headers_iter_next (&iter, &name, &value))
+                        g_string_append_printf (str, "%s: %s\r\n", name, value);
+                g_string_append (str, "\r\n");
+                g_string_append_len (str,
+                                     g_bytes_get_data (part_body, NULL),
+                                     g_bytes_get_size (part_body));
+        }
 
-	g_string_append (str, "\r\n--");
-	g_string_append (str, multipart->boundary);
-	g_string_append (str, "--\r\n");
+        g_string_append (str, "\r\n--");
+        g_string_append (str, multipart->boundary);
+        g_string_append (str, "--\r\n");
 
-	/* (The "\r\n" after the close-delimiter seems wrong according
-	 * to my reading of RFCs 2046 and 2616, but that's what
-	 * everyone else does.)
-	 */
+        /* (The "\r\n" after the close-delimiter seems wrong according
+         * to my reading of RFCs 2046 and 2616, but that's what
+         * everyone else does.)
+         */
 
-	*dest_body = g_string_free_to_bytes (str);
+        *dest_body = g_string_free_to_bytes (str);
 }
 
 /**
@@ -435,28 +435,28 @@ soup_multipart_to_message (SoupMultipart      *multipart,
 void
 soup_multipart_free (SoupMultipart *multipart)
 {
-	g_free (multipart->mime_type);
-	g_free (multipart->boundary);
-	g_ptr_array_free (multipart->headers, TRUE);
-	g_ptr_array_free (multipart->bodies, TRUE);
+        g_free (multipart->mime_type);
+        g_free (multipart->boundary);
+        g_ptr_array_free (multipart->headers, TRUE);
+        g_ptr_array_free (multipart->bodies, TRUE);
 
-	g_slice_free (SoupMultipart, multipart);
+        g_slice_free (SoupMultipart, multipart);
 }
 
 static SoupMultipart *
 soup_multipart_copy (SoupMultipart *multipart)
 {
-	SoupMultipart *copy;
-	guint i;
+        SoupMultipart *copy;
+        guint i;
 
-	copy = soup_multipart_new_internal (g_strdup (multipart->mime_type),
-					    g_strdup (multipart->boundary));
-	for (i = 0; i < multipart->bodies->len; i++) {
-		soup_multipart_append_part (copy,
-					    multipart->headers->pdata[i],
-					    multipart->bodies->pdata[i]);
-	}
-	return copy;
+        copy = soup_multipart_new_internal (g_strdup (multipart->mime_type),
+                                            g_strdup (multipart->boundary));
+        for (i = 0; i < multipart->bodies->len; i++) {
+                soup_multipart_append_part (copy,
+                                            multipart->headers->pdata[i],
+                                            multipart->bodies->pdata[i]);
+        }
+        return copy;
 }
 
 G_DEFINE_BOXED_TYPE (SoupMultipart, soup_multipart, soup_multipart_copy, soup_multipart_free)

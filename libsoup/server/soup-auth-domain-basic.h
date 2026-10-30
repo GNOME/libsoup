@@ -15,18 +15,18 @@ G_DECLARE_FINAL_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP, AUTH_DO
 
 SOUP_AVAILABLE_IN_ALL
 SoupAuthDomain *soup_auth_domain_basic_new (const char *optname1,
-					    ...) G_GNUC_NULL_TERMINATED;
+                                            ...) G_GNUC_NULL_TERMINATED;
 
-typedef	gboolean (*SoupAuthDomainBasicAuthCallback) (SoupAuthDomain    *domain,
-						     SoupServerMessage *msg,
-						     const char        *username,
-						     const char        *password,
-						     gpointer           user_data);
+typedef gboolean (*SoupAuthDomainBasicAuthCallback) (SoupAuthDomain    *domain,
+                                                     SoupServerMessage *msg,
+                                                     const char        *username,
+                                                     const char        *password,
+                                                     gpointer           user_data);
 
 SOUP_AVAILABLE_IN_ALL
 void      soup_auth_domain_basic_set_auth_callback  (SoupAuthDomain *domain,
-						     SoupAuthDomainBasicAuthCallback callback,
-						     gpointer        user_data,
-						     GDestroyNotify  dnotify);
+                                                     SoupAuthDomainBasicAuthCallback callback,
+                                                     gpointer        user_data,
+                                                     GDestroyNotify  dnotify);
 
 G_END_DECLS

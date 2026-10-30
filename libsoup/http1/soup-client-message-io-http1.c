@@ -1121,10 +1121,10 @@ soup_client_message_io_http1_is_open (SoupClientMessageIO *iface)
          */
         g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM (io->istream),
                                                   &buffer, sizeof (buffer),
-	                                          NULL, &error);
+                                                  NULL, &error);
         if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
                 g_clear_error (&error);
-		return FALSE;
+                return FALSE;
         }
 
         g_error_free (error);
@@ -1153,7 +1153,7 @@ static GCancellable *
 soup_client_message_io_http1_get_cancellable (SoupClientMessageIO *iface,
                                           SoupMessage         *msg)
 {
-	SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
+        SoupClientMessageIOHTTP1 *io = (SoupClientMessageIOHTTP1 *)iface;
 
         return io->msg_io ? io->msg_io->item->cancellable : NULL;
 }

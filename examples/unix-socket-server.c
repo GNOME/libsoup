@@ -33,51 +33,51 @@ server_callback (SoupServer        *server,
 int
 main (int argc, char **argv)
 {
-	GSocket *listen_socket;
-	GSocketAddress *listen_address;
-	SoupServer *server;
-	GMainLoop *loop;
-	GError *error = NULL;
+        GSocket *listen_socket;
+        GSocketAddress *listen_address;
+        SoupServer *server;
+        GMainLoop *loop;
+        GError *error = NULL;
 
-	/* Remove an existing socket */
-	g_unlink (SOCKET_PATH);
+        /* Remove an existing socket */
+        g_unlink (SOCKET_PATH);
 
-	/* Create a server that uses a unix socket */
-	listen_socket = g_socket_new (G_SOCKET_FAMILY_UNIX,
-				      G_SOCKET_TYPE_STREAM,
-				      G_SOCKET_PROTOCOL_DEFAULT,
-				      &error);
-	if (listen_socket == NULL) {
-		g_printerr ("Unable to create unix socket: %s\n", error->message);
-		g_error_free (error);
-		return 1;
-	}
-	listen_address = g_unix_socket_address_new (SOCKET_PATH);
-	if (!g_socket_bind (listen_socket, listen_address, TRUE, &error)) {
-		g_printerr ("Unable to bind unix socket to %s: %s\n", SOCKET_PATH, error->message);
-		g_error_free (error);
-		return 1;
-	}
-	g_object_unref (listen_address);
-	if (!g_socket_listen (listen_socket, &error)) {
-		g_printerr ("Unable to listen on unix socket: %s\n", error->message);
-		g_error_free (error);
-		return 1;
-	}
-	server = soup_server_new ("server-header", "unix-socket-server", NULL);
+        /* Create a server that uses a unix socket */
+        listen_socket = g_socket_new (G_SOCKET_FAMILY_UNIX,
+                                      G_SOCKET_TYPE_STREAM,
+                                      G_SOCKET_PROTOCOL_DEFAULT,
+                                      &error);
+        if (listen_socket == NULL) {
+                g_printerr ("Unable to create unix socket: %s\n", error->message);
+                g_error_free (error);
+                return 1;
+        }
+        listen_address = g_unix_socket_address_new (SOCKET_PATH);
+        if (!g_socket_bind (listen_socket, listen_address, TRUE, &error)) {
+                g_printerr ("Unable to bind unix socket to %s: %s\n", SOCKET_PATH, error->message);
+                g_error_free (error);
+                return 1;
+        }
+        g_object_unref (listen_address);
+        if (!g_socket_listen (listen_socket, &error)) {
+                g_printerr ("Unable to listen on unix socket: %s\n", error->message);
+                g_error_free (error);
+                return 1;
+        }
+        server = soup_server_new ("server-header", "unix-socket-server", NULL);
         soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 
-	if (!soup_server_listen_socket (server, listen_socket, 0, &error)) {
-		g_printerr ("Unable to listen on unix socket: %s\n", error->message);
-		g_error_free (error);
-		return 1;
-	}
-	g_object_unref (listen_socket);
+        if (!soup_server_listen_socket (server, listen_socket, 0, &error)) {
+                g_printerr ("Unable to listen on unix socket: %s\n", error->message);
+                g_error_free (error);
+                return 1;
+        }
+        g_object_unref (listen_socket);
 
-	loop = g_main_loop_new (NULL, TRUE);
-	g_main_loop_run (loop);
+        loop = g_main_loop_new (NULL, TRUE);
+        g_main_loop_run (loop);
 
-	g_object_unref (server);
+        g_object_unref (server);
 
-	return 0;
+        return 0;
 }

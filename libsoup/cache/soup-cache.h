@@ -31,29 +31,29 @@ SOUP_AVAILABLE_IN_ALL
 G_DECLARE_DERIVABLE_TYPE (SoupCache, soup_cache, SOUP, CACHE, GObject)
 
 typedef enum {
-	SOUP_CACHE_CACHEABLE = (1 << 0),
-	SOUP_CACHE_UNCACHEABLE = (1 << 1),
-	SOUP_CACHE_INVALIDATES = (1 << 2),
-	SOUP_CACHE_VALIDATES = (1 << 3)
+        SOUP_CACHE_CACHEABLE = (1 << 0),
+        SOUP_CACHE_UNCACHEABLE = (1 << 1),
+        SOUP_CACHE_INVALIDATES = (1 << 2),
+        SOUP_CACHE_VALIDATES = (1 << 3)
 } SoupCacheability;
 
 typedef enum {
-	SOUP_CACHE_SINGLE_USER,
-	SOUP_CACHE_SHARED
+        SOUP_CACHE_SINGLE_USER,
+        SOUP_CACHE_SHARED
 } SoupCacheType;
 
 struct _SoupCacheClass {
-	GObjectClass parent_class;
+        GObjectClass parent_class;
 
-	/* methods */
-	SoupCacheability (*get_cacheability) (SoupCache   *cache,
-					      SoupMessage *msg);
+        /* methods */
+        SoupCacheability (*get_cacheability) (SoupCache   *cache,
+                                              SoupMessage *msg);
         gpointer padding[4];
 };
 
 SOUP_AVAILABLE_IN_ALL
 SoupCache *soup_cache_new          (const char    *cache_dir,
-				    SoupCacheType  cache_type);
+                                    SoupCacheType  cache_type);
 SOUP_AVAILABLE_IN_ALL
 void       soup_cache_flush        (SoupCache     *cache);
 SOUP_AVAILABLE_IN_ALL
@@ -66,7 +66,7 @@ void       soup_cache_load         (SoupCache     *cache);
 
 SOUP_AVAILABLE_IN_ALL
 void       soup_cache_set_max_size (SoupCache     *cache,
-				    guint          max_size);
+                                    guint          max_size);
 SOUP_AVAILABLE_IN_ALL
 guint      soup_cache_get_max_size (SoupCache     *cache);
 

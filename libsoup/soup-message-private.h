@@ -15,20 +15,20 @@
 #include "soup-session.h"
 
 void             soup_message_set_status       (SoupMessage      *msg,
-						guint             status_code,
-						const char       *reason_phrase);
+                                                guint             status_code,
+                                                const char       *reason_phrase);
 void             soup_message_cleanup_response (SoupMessage      *msg);
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
-					      GString          *headers,
-					      SoupEncoding     *encoding,
-					      gpointer          user_data);
+                                              GString          *headers,
+                                              SoupEncoding     *encoding,
+                                              gpointer          user_data);
 typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
-					      char             *headers,
-					      guint             header_len,
-					      SoupEncoding     *encoding,
-					      gpointer          user_data,
-					      GError          **error);
+                                              char             *headers,
+                                              guint             header_len,
+                                              SoupEncoding     *encoding,
+                                              gpointer          user_data,
+                                              GError          **error);
 
 void soup_message_send_item (SoupMessage              *msg,
                              SoupMessageQueueItem     *item,
@@ -37,16 +37,16 @@ void soup_message_send_item (SoupMessage              *msg,
 
 /* Auth handling */
 void           soup_message_set_auth       (SoupMessage *msg,
-					    SoupAuth    *auth);
+                                            SoupAuth    *auth);
 SoupAuth      *soup_message_get_auth       (SoupMessage *msg);
 void           soup_message_set_proxy_auth (SoupMessage *msg,
-					    SoupAuth    *auth);
+                                            SoupAuth    *auth);
 SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 GUri          *soup_message_get_uri_for_auth (SoupMessage *msg);
 
 /* I/O */
 void       soup_message_io_run         (SoupMessage *msg,
-					gboolean     blocking);
+                                        gboolean     blocking);
 void       soup_message_io_finished    (SoupMessage *msg);
 void       soup_message_io_pause       (SoupMessage *msg);
 void       soup_message_io_unpause     (SoupMessage *msg);
@@ -62,7 +62,7 @@ gboolean soup_message_io_run_until_read        (SoupMessage        *msg,
                                                 GCancellable       *cancellable,
                                                 GError            **error);
 void     soup_message_io_run_until_read_async  (SoupMessage        *msg,
-						int                 io_priority,
+                                                int                 io_priority,
                                                 GCancellable       *cancellable,
                                                 GAsyncReadyCallback callback,
                                                 gpointer            user_data);
@@ -71,13 +71,13 @@ gboolean soup_message_io_run_until_read_finish (SoupMessage        *msg,
                                                 GError            **error);
 
 GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
-						    GError      **error);
+                                                    GError      **error);
 
 GCancellable *soup_message_io_get_cancellable  (SoupMessage *msg);
 
 void soup_message_wrote_headers     (SoupMessage *msg);
 void soup_message_wrote_body_data   (SoupMessage *msg,
-				     gsize        chunk_size);
+                                     gsize        chunk_size);
 void soup_message_wrote_body        (SoupMessage *msg);
 void soup_message_got_informational (SoupMessage *msg);
 void soup_message_got_headers       (SoupMessage *msg);
@@ -85,24 +85,24 @@ void soup_message_got_body_data     (SoupMessage *msg,
                                      gsize        chunk_size);
 void soup_message_got_body          (SoupMessage *msg);
 void soup_message_content_sniffed   (SoupMessage *msg,
-				     const char  *content_type,
-				     GHashTable  *params);
+                                     const char  *content_type,
+                                     GHashTable  *params);
 void soup_message_starting          (SoupMessage *msg);
 void soup_message_restarted         (SoupMessage *msg);
 void soup_message_finished          (SoupMessage *msg);
 gboolean soup_message_authenticate  (SoupMessage *msg,
-				     SoupAuth    *auth,
-				     gboolean     retrying);
+                                     SoupAuth    *auth,
+                                     gboolean     retrying);
 void soup_message_hsts_enforced     (SoupMessage *msg);
 
 gboolean soup_message_disables_feature (SoupMessage *msg,
-					gpointer     feature);
+                                        gpointer     feature);
 
 GList *soup_message_get_disabled_features (SoupMessage *msg);
 
 SoupConnection *soup_message_get_connection (SoupMessage    *msg);
 void            soup_message_set_connection (SoupMessage    *msg,
-					     SoupConnection *conn);
+                                             SoupConnection *conn);
 void            soup_message_transfer_connection (SoupMessage *preconnect_msg,
                                                   SoupMessage *msg);
 void            soup_message_set_is_preconnect   (SoupMessage *msg,
@@ -113,7 +113,7 @@ gboolean        soup_message_has_pending_tls_cert_pass_request (SoupMessage *msg
 SoupClientMessageIO *soup_message_get_io_data (SoupMessage             *msg);
 
 void                soup_message_set_content_sniffer    (SoupMessage        *msg,
-							 SoupContentSniffer *sniffer);
+                                                         SoupContentSniffer *sniffer);
 gboolean            soup_message_has_content_sniffer    (SoupMessage        *msg);
 gboolean            soup_message_try_sniff_content      (SoupMessage        *msg,
                                                          GInputStream       *stream,
@@ -126,7 +126,7 @@ void                soup_message_set_reason_phrase       (SoupMessage        *ms
                                                           const char         *reason_phrase);
 
 void                soup_message_set_http_version        (SoupMessage       *msg,
-						          SoupHTTPVersion    version);
+                                                          SoupHTTPVersion    version);
 
 typedef enum {
         SOUP_MESSAGE_METRICS_FETCH_START,

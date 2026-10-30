@@ -15,13 +15,13 @@ G_BEGIN_DECLS
 G_DECLARE_INTERFACE (SoupCompressionDictionaryDecoder, soup_compression_dictionary_decoder, SOUP, COMPRESSION_DICTIONARY_DECODER, GObject)
 
 struct _SoupCompressionDictionaryDecoderInterface {
-	GTypeInterface parent_iface;
+        GTypeInterface parent_iface;
 
-	void (*set_dictionary) (SoupCompressionDictionaryDecoder *decoder,
-				GBytes                           *dictionary);
+        void (*set_dictionary) (SoupCompressionDictionaryDecoder *decoder,
+                                GBytes                           *dictionary);
 };
 
 void soup_compression_dictionary_decoder_set_dictionary (SoupCompressionDictionaryDecoder *decoder,
-							 GBytes                           *dictionary);
+                                                         GBytes                           *dictionary);
 
 G_END_DECLS

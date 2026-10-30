@@ -83,7 +83,7 @@ h2_debug (SoupServerMessageIOHTTP2 *io,
           const char               *format,
           ...)
 {
-	va_list args;
+        va_list args;
         char *message;
         SoupServerConnection *conn;
 

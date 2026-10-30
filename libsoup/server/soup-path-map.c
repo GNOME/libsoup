@@ -21,14 +21,14 @@
  */
 
 typedef struct {
-	char     *path;
-	int       len;
-	gpointer  data;
+        char     *path;
+        int       len;
+        gpointer  data;
 } SoupPathMapping;
 
 struct SoupPathMap {
-	GArray *mappings;
-	GDestroyNotify free_func;
+        GArray *mappings;
+        GDestroyNotify free_func;
 };
 
 /**
@@ -43,13 +43,13 @@ struct SoupPathMap {
 SoupPathMap *
 soup_path_map_new (GDestroyNotify data_free_func)
 {
-	SoupPathMap *map;
+        SoupPathMap *map;
 
-	map = g_slice_new0 (SoupPathMap);
-	map->mappings = g_array_new (FALSE, FALSE, sizeof (SoupPathMapping));
-	map->free_func = data_free_func;
+        map = g_slice_new0 (SoupPathMap);
+        map->mappings = g_array_new (FALSE, FALSE, sizeof (SoupPathMapping));
+        map->free_func = data_free_func;
 
-	return map;
+        return map;
 }
 
 /**
@@ -61,17 +61,17 @@ soup_path_map_new (GDestroyNotify data_free_func)
 void
 soup_path_map_free (SoupPathMap *map)
 {
-	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
-	guint i;
+        SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
+        guint i;
 
-	for (i = 0; i < map->mappings->len; i++) {
-		g_free (mappings[i].path);
-		if (map->free_func)
-			map->free_func (mappings[i].data);
-	}
-	g_array_free (map->mappings, TRUE);
-	
-	g_slice_free (SoupPathMap, map);
+        for (i = 0; i < map->mappings->len; i++) {
+                g_free (mappings[i].path);
+                if (map->free_func)
+                        map->free_func (mappings[i].data);
+        }
+        g_array_free (map->mappings, TRUE);
+        
+        g_slice_free (SoupPathMap, map);
 }
 
 /* Scan @map looking for @path or one of its ancestors.
@@ -82,37 +82,37 @@ soup_path_map_free (SoupPathMap *map)
 static gboolean
 mapping_lookup (SoupPathMap *map, const char *path, int *match, int *insert)
 {
-	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
-	guint i;
-	int path_len;
-	gboolean exact = FALSE;
+        SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
+        guint i;
+        int path_len;
+        gboolean exact = FALSE;
 
-	*match = -1;
+        *match = -1;
 
-	path_len = strcspn (path, "?");
-	for (i = 0; i < map->mappings->len; i++) {
-		if (mappings[i].len > path_len)
-			continue;
+        path_len = strcspn (path, "?");
+        for (i = 0; i < map->mappings->len; i++) {
+                if (mappings[i].len > path_len)
+                        continue;
 
-		if (insert && mappings[i].len < path_len) {
-			*insert = i;
-			/* Clear insert so we don't try to set it again */
-			insert = NULL;
-		}
+                if (insert && mappings[i].len < path_len) {
+                        *insert = i;
+                        /* Clear insert so we don't try to set it again */
+                        insert = NULL;
+                }
 
-		if (!strncmp (mappings[i].path, path, mappings[i].len)) {
-			*match = i;
-			if (path_len == mappings[i].len)
-				exact = TRUE;
-			if (!insert)
-				return exact;
-		}
-	}
+                if (!strncmp (mappings[i].path, path, mappings[i].len)) {
+                        *match = i;
+                        if (path_len == mappings[i].len)
+                                exact = TRUE;
+                        if (!insert)
+                                return exact;
+                }
+        }
 
-	if (insert)
-		*insert = i;
-	return exact;
-}	
+        if (insert)
+                *insert = i;
+        return exact;
+}       
 
 /**
  * soup_path_map_add:
@@ -126,21 +126,21 @@ mapping_lookup (SoupPathMap *map, const char *path, int *match, int *insert)
 void
 soup_path_map_add (SoupPathMap *map, const char *path, gpointer data)
 {
-	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
-	int match, insert;
+        SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
+        int match, insert;
 
-	if (mapping_lookup (map, path, &match, &insert)) {
-		if (map->free_func)
-			map->free_func (mappings[match].data);
-		mappings[match].data = data;
-	} else {
-		SoupPathMapping mapping;
+        if (mapping_lookup (map, path, &match, &insert)) {
+                if (map->free_func)
+                        map->free_func (mappings[match].data);
+                mappings[match].data = data;
+        } else {
+                SoupPathMapping mapping;
 
-		mapping.path = g_strdup (path);
-		mapping.len = strlen (path);
-		mapping.data = data;
-		g_array_insert_val (map->mappings, insert, mapping);
-	}
+                mapping.path = g_strdup (path);
+                mapping.len = strlen (path);
+                mapping.data = data;
+                g_array_insert_val (map->mappings, insert, mapping);
+        }
 }
 
 /**
@@ -154,16 +154,16 @@ soup_path_map_add (SoupPathMap *map, const char *path, gpointer data)
 void
 soup_path_map_remove (SoupPathMap *map, const char *path)
 {
-	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
-	int match;
+        SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
+        int match;
 
-	if (!mapping_lookup (map, path, &match, NULL))
-		return;
+        if (!mapping_lookup (map, path, &match, NULL))
+                return;
 
-	if (map->free_func)
-		map->free_func (mappings[match].data);
-	g_free (mappings[match].path);
-	g_array_remove_index (map->mappings, match);
+        if (map->free_func)
+                map->free_func (mappings[match].data);
+        g_free (mappings[match].path);
+        g_array_remove_index (map->mappings, match);
 }
 
 /**
@@ -181,12 +181,12 @@ soup_path_map_remove (SoupPathMap *map, const char *path)
 gpointer
 soup_path_map_lookup (SoupPathMap *map, const char *path)
 {
-	SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
-	int match;
+        SoupPathMapping *mappings = (SoupPathMapping *)map->mappings->data;
+        int match;
 
-	mapping_lookup (map, path, &match, NULL);
-	if (match == -1)
-		return NULL;
-	else
-		return mappings[match].data;
+        mapping_lookup (map, path, &match, NULL);
+        if (match == -1)
+                return NULL;
+        else
+                return mappings[match].data;
 }

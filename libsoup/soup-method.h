@@ -26,10 +26,10 @@ G_BEGIN_DECLS
  * most useful in [class@Server] handlers. Eg:
  * 
  * <informalexample><programlisting>
- * 	if (soup_message_get_method (msg) != SOUP_METHOD_GET &amp;&amp; soup_message_get_method (msg) != SOUP_METHOD_HEAD) {
- * 		soup_message_set_status (msg, SOUP_METHOD_NOT_IMPLEMENTED);
- * 		return;
- * 	}
+ *      if (soup_message_get_method (msg) != SOUP_METHOD_GET &amp;&amp; soup_message_get_method (msg) != SOUP_METHOD_HEAD) {
+ *              soup_message_set_status (msg, SOUP_METHOD_NOT_IMPLEMENTED);
+ *              return;
+ *      }
  * </programlisting></informalexample>
  **/
 

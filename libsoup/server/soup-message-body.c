@@ -49,11 +49,11 @@
  **/
 
 typedef struct {
-	SoupMessageBody body;
-	GSList *chunks, *last;
-	GBytes *flattened;
-	gboolean accumulate;
-	goffset base_offset;
+        SoupMessageBody body;
+        GSList *chunks, *last;
+        GBytes *flattened;
+        gboolean accumulate;
+        goffset base_offset;
 } SoupMessageBodyPrivate;
 
 /**
@@ -69,12 +69,12 @@ typedef struct {
 SoupMessageBody *
 soup_message_body_new (void)
 {
-	SoupMessageBodyPrivate *priv;
+        SoupMessageBodyPrivate *priv;
 
-	priv = g_atomic_rc_box_new0 (SoupMessageBodyPrivate);
-	priv->accumulate = TRUE;
+        priv = g_atomic_rc_box_new0 (SoupMessageBodyPrivate);
+        priv->accumulate = TRUE;
 
-	return (SoupMessageBody *)priv;
+        return (SoupMessageBody *)priv;
 }
 
 /**
@@ -98,11 +98,11 @@ soup_message_body_new (void)
  **/
 void
 soup_message_body_set_accumulate (SoupMessageBody *body,
-				  gboolean         accumulate)
+                                  gboolean         accumulate)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	priv->accumulate = accumulate;
+        priv->accumulate = accumulate;
 }
 
 /**
@@ -118,25 +118,25 @@ soup_message_body_set_accumulate (SoupMessageBody *body,
 gboolean
 soup_message_body_get_accumulate (SoupMessageBody *body)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	return priv->accumulate;
+        return priv->accumulate;
 }
 
 static void
 append_buffer (SoupMessageBody *body, GBytes *buffer)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	if (priv->last) {
-		priv->last = g_slist_append (priv->last, buffer);
-		priv->last = priv->last->next;
-	} else
-		priv->chunks = priv->last = g_slist_append (NULL, buffer);
+        if (priv->last) {
+                priv->last = g_slist_append (priv->last, buffer);
+                priv->last = priv->last->next;
+        } else
+                priv->chunks = priv->last = g_slist_append (NULL, buffer);
 
         g_clear_pointer (&priv->flattened, g_bytes_unref);
         body->data = NULL;
-	body->length += g_bytes_get_size (buffer);
+        body->length += g_bytes_get_size (buffer);
 }
 
 /**
@@ -150,7 +150,7 @@ append_buffer (SoupMessageBody *body, GBytes *buffer)
  **/
 void
 soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
-			  gconstpointer data, gsize length)
+                          gconstpointer data, gsize length)
 {
         GBytes *bytes;
         if (length > 0) {
@@ -162,8 +162,8 @@ soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
                         bytes = g_bytes_new (data, length);
                 append_buffer (body, g_steal_pointer (&bytes));
         }
-	else if (use == SOUP_MEMORY_TAKE)
-		g_free ((gpointer)data);
+        else if (use == SOUP_MEMORY_TAKE)
+                g_free ((gpointer)data);
 }
 
 /**
@@ -180,9 +180,9 @@ soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
  **/
 void
 soup_message_body_append_take (SoupMessageBody *body,
-			       guchar *data, gsize length)
+                               guchar *data, gsize length)
 {
-	soup_message_body_append(body, SOUP_MEMORY_TAKE, data, length);
+        soup_message_body_append(body, SOUP_MEMORY_TAKE, data, length);
 }
 
 /**
@@ -195,8 +195,8 @@ soup_message_body_append_take (SoupMessageBody *body,
 void
 soup_message_body_append_bytes (SoupMessageBody *body, GBytes *buffer)
 {
-	g_return_if_fail (g_bytes_get_size (buffer) > 0);
-	append_buffer (body, g_bytes_ref (buffer));
+        g_return_if_fail (g_bytes_get_size (buffer) > 0);
+        append_buffer (body, g_bytes_ref (buffer));
 }
 
 /**
@@ -208,14 +208,14 @@ soup_message_body_append_bytes (SoupMessageBody *body, GBytes *buffer)
 void
 soup_message_body_truncate (SoupMessageBody *body)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	g_slist_free_full (priv->chunks, (GDestroyNotify)g_bytes_unref);
-	priv->chunks = priv->last = NULL;
-	priv->base_offset = 0;
+        g_slist_free_full (priv->chunks, (GDestroyNotify)g_bytes_unref);
+        priv->chunks = priv->last = NULL;
+        priv->base_offset = 0;
         g_clear_pointer (&priv->flattened, g_bytes_unref);
         body->data = NULL;
-	body->length = 0;
+        body->length = 0;
 }
 
 /**
@@ -229,7 +229,7 @@ soup_message_body_truncate (SoupMessageBody *body)
 void
 soup_message_body_complete (SoupMessageBody *body)
 {
-	append_buffer (body, g_bytes_new_static (NULL, 0));
+        append_buffer (body, g_bytes_new_static (NULL, 0));
 }
 
 /**
@@ -248,31 +248,31 @@ soup_message_body_complete (SoupMessageBody *body)
 GBytes *
 soup_message_body_flatten (SoupMessageBody *body)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	g_return_val_if_fail (priv->accumulate == TRUE, NULL);
+        g_return_val_if_fail (priv->accumulate == TRUE, NULL);
 
-	if (!priv->flattened) {
+        if (!priv->flattened) {
 #if GLIB_SIZEOF_SIZE_T < 8
-		g_return_val_if_fail (body->length < G_MAXSIZE, NULL);
+                g_return_val_if_fail (body->length < G_MAXSIZE, NULL);
 #endif
 
                 GByteArray *array = g_byte_array_sized_new (body->length + 1);
-		for (GSList *iter = priv->chunks; iter; iter = iter->next) {
-			GBytes *chunk = iter->data;
+                for (GSList *iter = priv->chunks; iter; iter = iter->next) {
+                        GBytes *chunk = iter->data;
                         gsize chunk_size;
                         const guchar *chunk_data = g_bytes_get_data (chunk, &chunk_size);
                         g_byte_array_append (array, chunk_data, chunk_size);
-		}
+                }
                 // NUL terminate the array but don't reflect that in the length
                 g_byte_array_append (array, (guchar*)"\0", 1);
                 array->len -= 1;
 
-		priv->flattened = g_byte_array_free_to_bytes (array);
+                priv->flattened = g_byte_array_free_to_bytes (array);
                 body->data = g_bytes_get_data (priv->flattened, NULL);
-	}
+        }
 
-	return g_bytes_ref (priv->flattened);
+        return g_bytes_ref (priv->flattened);
 }
 
 /**
@@ -302,23 +302,23 @@ soup_message_body_flatten (SoupMessageBody *body)
 GBytes *
 soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
-	GSList *iter;
-	GBytes *chunk = NULL;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        GSList *iter;
+        GBytes *chunk = NULL;
 
-	offset -= priv->base_offset;
-	for (iter = priv->chunks; iter; iter = iter->next) {
-		chunk = iter->data;
+        offset -= priv->base_offset;
+        for (iter = priv->chunks; iter; iter = iter->next) {
+                chunk = iter->data;
                 gsize chunk_length = g_bytes_get_size (chunk);
 
-		if (offset < chunk_length || offset == 0)
-			break;
+                if (offset < chunk_length || offset == 0)
+                        break;
 
-		offset -= chunk_length;
-	}
+                offset -= chunk_length;
+        }
 
-	if (!iter)
-		return NULL;
+        if (!iter)
+                return NULL;
 
         return g_bytes_new_from_bytes (chunk, offset, g_bytes_get_size (chunk) - offset);
 }
@@ -341,12 +341,12 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 void
 soup_message_body_got_chunk (SoupMessageBody *body, GBytes *chunk)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	if (!priv->accumulate)
-		return;
+        if (!priv->accumulate)
+                return;
 
-	soup_message_body_append_bytes (body, chunk);
+        soup_message_body_append_bytes (body, chunk);
 }
 
 /**
@@ -367,22 +367,22 @@ soup_message_body_got_chunk (SoupMessageBody *body, GBytes *chunk)
 void
 soup_message_body_wrote_chunk (SoupMessageBody *body, GBytes *chunk)
 {
-	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
-	GBytes *chunk2;
+        SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+        GBytes *chunk2;
 
-	if (priv->accumulate)
-		return;
+        if (priv->accumulate)
+                return;
 
-	chunk2 = priv->chunks->data;
-	g_return_if_fail (g_bytes_get_size (chunk) == g_bytes_get_size (chunk2));
-	g_return_if_fail (chunk == chunk2);
+        chunk2 = priv->chunks->data;
+        g_return_if_fail (g_bytes_get_size (chunk) == g_bytes_get_size (chunk2));
+        g_return_if_fail (chunk == chunk2);
 
-	priv->chunks = g_slist_remove (priv->chunks, chunk2);
-	if (!priv->chunks)
-		priv->last = NULL;
+        priv->chunks = g_slist_remove (priv->chunks, chunk2);
+        if (!priv->chunks)
+                priv->last = NULL;
 
-	priv->base_offset += g_bytes_get_size (chunk2);
-	g_bytes_unref (chunk2);
+        priv->base_offset += g_bytes_get_size (chunk2);
+        g_bytes_unref (chunk2);
 }
 
 /**
@@ -398,7 +398,7 @@ soup_message_body_ref (SoupMessageBody *body)
 {
         g_atomic_rc_box_acquire (body);
 
-	return body;
+        return body;
 }
 
 /**

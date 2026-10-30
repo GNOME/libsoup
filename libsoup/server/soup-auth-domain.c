@@ -39,32 +39,32 @@
  **/
 
 enum {
-	PROP_0,
+        PROP_0,
 
-	PROP_REALM,
-	PROP_PROXY,
-	PROP_FILTER,
-	PROP_FILTER_DATA,
-	PROP_GENERIC_AUTH_CALLBACK,
-	PROP_GENERIC_AUTH_DATA,
+        PROP_REALM,
+        PROP_PROXY,
+        PROP_FILTER,
+        PROP_FILTER_DATA,
+        PROP_GENERIC_AUTH_CALLBACK,
+        PROP_GENERIC_AUTH_DATA,
 
-	LAST_PROPERTY
+        LAST_PROPERTY
 };
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
 
 typedef struct {
-	char *realm;
-	gboolean proxy;
-	SoupPathMap *paths;
+        char *realm;
+        gboolean proxy;
+        SoupPathMap *paths;
 
-	SoupAuthDomainFilter filter;
-	gpointer filter_data;
-	GDestroyNotify filter_dnotify;
+        SoupAuthDomainFilter filter;
+        gpointer filter_data;
+        GDestroyNotify filter_dnotify;
 
-	SoupAuthDomainGenericAuthCallback auth_callback;
-	gpointer auth_data;
-	GDestroyNotify auth_dnotify;
+        SoupAuthDomainGenericAuthCallback auth_callback;
+        gpointer auth_data;
+        GDestroyNotify auth_dnotify;
 
 } SoupAuthDomainPrivate;
 
@@ -73,178 +73,178 @@ G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupAuthDomain, soup_auth_domain, G_TYPE_OB
 static void
 soup_auth_domain_init (SoupAuthDomain *domain)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
-	priv->paths = soup_path_map_new (NULL);
+        priv->paths = soup_path_map_new (NULL);
 }
 
 static void
 soup_auth_domain_finalize (GObject *object)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (SOUP_AUTH_DOMAIN (object));
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (SOUP_AUTH_DOMAIN (object));
 
-	g_free (priv->realm);
-	soup_path_map_free (priv->paths);
+        g_free (priv->realm);
+        soup_path_map_free (priv->paths);
 
-	if (priv->filter_dnotify)
-		priv->filter_dnotify (priv->filter_data);
-	if (priv->auth_dnotify)
-		priv->auth_dnotify (priv->auth_data);
+        if (priv->filter_dnotify)
+                priv->filter_dnotify (priv->filter_data);
+        if (priv->auth_dnotify)
+                priv->auth_dnotify (priv->auth_data);
 
-	G_OBJECT_CLASS (soup_auth_domain_parent_class)->finalize (object);
+        G_OBJECT_CLASS (soup_auth_domain_parent_class)->finalize (object);
 }
 
 static void
 soup_auth_domain_set_property (GObject *object, guint prop_id,
-			       const GValue *value, GParamSpec *pspec)
+                               const GValue *value, GParamSpec *pspec)
 {
-	SoupAuthDomain *auth_domain = SOUP_AUTH_DOMAIN (object);
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (auth_domain);
+        SoupAuthDomain *auth_domain = SOUP_AUTH_DOMAIN (object);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (auth_domain);
 
-	switch (prop_id) {
-	case PROP_REALM:
-		g_free (priv->realm);
-		priv->realm = g_value_dup_string (value);
-		break;
-	case PROP_PROXY:
-		priv->proxy = g_value_get_boolean (value);
-		break;
-	case PROP_FILTER:
-		priv->filter = g_value_get_pointer (value);
-		break;
-	case PROP_FILTER_DATA:
-		if (priv->filter_dnotify) {
-			priv->filter_dnotify (priv->filter_data);
-			priv->filter_dnotify = NULL;
-		}
-		priv->filter_data = g_value_get_pointer (value);
-		break;
-	case PROP_GENERIC_AUTH_CALLBACK:
-		priv->auth_callback = g_value_get_pointer (value);
-		break;
-	case PROP_GENERIC_AUTH_DATA:
-		if (priv->auth_dnotify) {
-			priv->auth_dnotify (priv->auth_data);
-			priv->auth_dnotify = NULL;
-		}
-		priv->auth_data = g_value_get_pointer (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        switch (prop_id) {
+        case PROP_REALM:
+                g_free (priv->realm);
+                priv->realm = g_value_dup_string (value);
+                break;
+        case PROP_PROXY:
+                priv->proxy = g_value_get_boolean (value);
+                break;
+        case PROP_FILTER:
+                priv->filter = g_value_get_pointer (value);
+                break;
+        case PROP_FILTER_DATA:
+                if (priv->filter_dnotify) {
+                        priv->filter_dnotify (priv->filter_data);
+                        priv->filter_dnotify = NULL;
+                }
+                priv->filter_data = g_value_get_pointer (value);
+                break;
+        case PROP_GENERIC_AUTH_CALLBACK:
+                priv->auth_callback = g_value_get_pointer (value);
+                break;
+        case PROP_GENERIC_AUTH_DATA:
+                if (priv->auth_dnotify) {
+                        priv->auth_dnotify (priv->auth_data);
+                        priv->auth_dnotify = NULL;
+                }
+                priv->auth_data = g_value_get_pointer (value);
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 static void
 soup_auth_domain_get_property (GObject *object, guint prop_id,
-			       GValue *value, GParamSpec *pspec)
+                               GValue *value, GParamSpec *pspec)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (SOUP_AUTH_DOMAIN (object));
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (SOUP_AUTH_DOMAIN (object));
 
-	switch (prop_id) {
-	case PROP_REALM:
-		g_value_set_string (value, priv->realm);
-		break;
-	case PROP_PROXY:
-		g_value_set_boolean (value, priv->proxy);
-		break;
-	case PROP_FILTER:
-		g_value_set_pointer (value, priv->filter);
-		break;
-	case PROP_FILTER_DATA:
-		g_value_set_pointer (value, priv->filter_data);
-		break;
-	case PROP_GENERIC_AUTH_CALLBACK:
-		g_value_set_pointer (value, priv->auth_callback);
-		break;
-	case PROP_GENERIC_AUTH_DATA:
-		g_value_set_pointer (value, priv->auth_data);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        switch (prop_id) {
+        case PROP_REALM:
+                g_value_set_string (value, priv->realm);
+                break;
+        case PROP_PROXY:
+                g_value_set_boolean (value, priv->proxy);
+                break;
+        case PROP_FILTER:
+                g_value_set_pointer (value, priv->filter);
+                break;
+        case PROP_FILTER_DATA:
+                g_value_set_pointer (value, priv->filter_data);
+                break;
+        case PROP_GENERIC_AUTH_CALLBACK:
+                g_value_set_pointer (value, priv->auth_callback);
+                break;
+        case PROP_GENERIC_AUTH_DATA:
+                g_value_set_pointer (value, priv->auth_data);
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 static void
 soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (auth_domain_class);
+        GObjectClass *object_class = G_OBJECT_CLASS (auth_domain_class);
 
-	object_class->finalize = soup_auth_domain_finalize;
-	object_class->set_property = soup_auth_domain_set_property;
-	object_class->get_property = soup_auth_domain_get_property;
+        object_class->finalize = soup_auth_domain_finalize;
+        object_class->set_property = soup_auth_domain_set_property;
+        object_class->get_property = soup_auth_domain_get_property;
 
-	/**
-	 * SoupAuthDomain:realm: (attributes org.gtk.Property.get=soup_auth_domain_get_realm)
-	 *
-	 * The realm of this auth domain.
-	 */
+        /**
+         * SoupAuthDomain:realm: (attributes org.gtk.Property.get=soup_auth_domain_get_realm)
+         *
+         * The realm of this auth domain.
+         */
         properties[PROP_REALM] =
-		g_param_spec_string ("realm",
-				     "Realm",
-				     "The realm of this auth domain",
-				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				     G_PARAM_STATIC_STRINGS);
+                g_param_spec_string ("realm",
+                                     "Realm",
+                                     "The realm of this auth domain",
+                                     NULL,
+                                     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_STATIC_STRINGS);
 
-	/**
-	 * SoupAuthDomain:proxy:
-	 *
-	 * Whether or not this is a proxy auth domain.
-	 */
+        /**
+         * SoupAuthDomain:proxy:
+         *
+         * Whether or not this is a proxy auth domain.
+         */
         properties[PROP_PROXY] =
-		g_param_spec_boolean ("proxy",
-				      "Proxy",
-				      "Whether or not this is a proxy auth domain",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				      G_PARAM_STATIC_STRINGS);
+                g_param_spec_boolean ("proxy",
+                                      "Proxy",
+                                      "Whether or not this is a proxy auth domain",
+                                      FALSE,
+                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                      G_PARAM_STATIC_STRINGS);
 
-	/**
-	 * SoupAuthDomain:filter: (type SoupAuthDomainFilter) (attributes org.gtk.Property.set=soup_auth_domain_set_filter)
-	 *
-	 * The [callback@AuthDomainFilter] for the domain.
-	 */
+        /**
+         * SoupAuthDomain:filter: (type SoupAuthDomainFilter) (attributes org.gtk.Property.set=soup_auth_domain_set_filter)
+         *
+         * The [callback@AuthDomainFilter] for the domain.
+         */
         properties[PROP_FILTER] =
-		g_param_spec_pointer ("filter",
-				      "Filter",
-				      "A filter for deciding whether or not to require authentication",
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuthDomain:filter-data:
-	 *
-	 * Data to pass to the [callback@AuthDomainFilter].
-	 **/
+                g_param_spec_pointer ("filter",
+                                      "Filter",
+                                      "A filter for deciding whether or not to require authentication",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuthDomain:filter-data:
+         *
+         * Data to pass to the [callback@AuthDomainFilter].
+         **/
         properties[PROP_FILTER_DATA] =
-		g_param_spec_pointer ("filter-data",
-				      "Filter data",
-				      "Data to pass to filter",
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback) (attributes org.gtk.Property.set=soup_auth_domain_set_generic_auth_callback)
-	 *
-	 * The [callback@AuthDomainGenericAuthCallback].
-	 **/
+                g_param_spec_pointer ("filter-data",
+                                      "Filter data",
+                                      "Data to pass to filter",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuthDomain:generic-auth-callback: (type SoupAuthDomainGenericAuthCallback) (attributes org.gtk.Property.set=soup_auth_domain_set_generic_auth_callback)
+         *
+         * The [callback@AuthDomainGenericAuthCallback].
+         **/
         properties[PROP_GENERIC_AUTH_CALLBACK] =
-		g_param_spec_pointer ("generic-auth-callback",
-				      "Generic authentication callback",
-				      "An authentication callback that can be used with any SoupAuthDomain subclass",
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuthDomain:generic-auth-data:
-	 *
+                g_param_spec_pointer ("generic-auth-callback",
+                                      "Generic authentication callback",
+                                      "An authentication callback that can be used with any SoupAuthDomain subclass",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuthDomain:generic-auth-data:
+         *
          * The data to pass to the [callback@AuthDomainGenericAuthCallback].
-	 **/
+         **/
         properties[PROP_GENERIC_AUTH_DATA] =
-		g_param_spec_pointer ("generic-auth-data",
-				      "Authentication callback data",
-				      "Data to pass to auth callback",
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
+                g_param_spec_pointer ("generic-auth-data",
+                                      "Authentication callback data",
+                                      "Data to pass to auth callback",
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
@@ -263,13 +263,13 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 void
 soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
-	/* "" should not match "*" */
-	if (!*path)
-		path = "/";
+        /* "" should not match "*" */
+        if (!*path)
+                path = "/";
 
-	soup_path_map_add (priv->paths, path, GINT_TO_POINTER (TRUE));
+        soup_path_map_add (priv->paths, path, GINT_TO_POINTER (TRUE));
 }
 
 /**
@@ -293,13 +293,13 @@ soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
 void
 soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
-	/* "" should not match "*" */
-	if (!*path)
-		path = "/";
+        /* "" should not match "*" */
+        if (!*path)
+                path = "/";
 
-	soup_path_map_add (priv->paths, path, GINT_TO_POINTER (FALSE));
+        soup_path_map_add (priv->paths, path, GINT_TO_POINTER (FALSE));
 }
 
 /**
@@ -351,21 +351,21 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
  **/
 void
 soup_auth_domain_set_filter (SoupAuthDomain *domain,
-			     SoupAuthDomainFilter filter,
-			     gpointer        filter_data,
-			     GDestroyNotify  dnotify)
+                             SoupAuthDomainFilter filter,
+                             gpointer        filter_data,
+                             GDestroyNotify  dnotify)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
-	if (priv->filter_dnotify)
-		priv->filter_dnotify (priv->filter_data);
+        if (priv->filter_dnotify)
+                priv->filter_dnotify (priv->filter_data);
 
-	priv->filter = filter;
-	priv->filter_data = filter_data;
-	priv->filter_dnotify = dnotify;
+        priv->filter = filter;
+        priv->filter_data = filter_data;
+        priv->filter_dnotify = dnotify;
 
-	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_FILTER]);
-	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_FILTER_DATA]);
+        g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_FILTER]);
+        g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_FILTER_DATA]);
 }
 
 /**
@@ -379,9 +379,9 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
 const char *
 soup_auth_domain_get_realm (SoupAuthDomain *domain)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
-	return priv->realm;
+        return priv->realm;
 }
 
 /**
@@ -429,34 +429,34 @@ soup_auth_domain_get_realm (SoupAuthDomain *domain)
  **/
 void
 soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
-					    SoupAuthDomainGenericAuthCallback auth_callback,
-					    gpointer        auth_data,
-					    GDestroyNotify  dnotify)
+                                            SoupAuthDomainGenericAuthCallback auth_callback,
+                                            gpointer        auth_data,
+                                            GDestroyNotify  dnotify)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
-	if (priv->auth_dnotify)
-		priv->auth_dnotify (priv->auth_data);
+        if (priv->auth_dnotify)
+                priv->auth_dnotify (priv->auth_data);
 
-	priv->auth_callback = auth_callback;
-	priv->auth_data = auth_data;
-	priv->auth_dnotify = dnotify;
+        priv->auth_callback = auth_callback;
+        priv->auth_data = auth_data;
+        priv->auth_dnotify = dnotify;
 
-	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_GENERIC_AUTH_CALLBACK]);
-	g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_GENERIC_AUTH_DATA]);
+        g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_GENERIC_AUTH_CALLBACK]);
+        g_object_notify_by_pspec (G_OBJECT (domain), properties[PROP_GENERIC_AUTH_DATA]);
 }
 
 gboolean
 soup_auth_domain_try_generic_auth_callback (SoupAuthDomain    *domain,
-					    SoupServerMessage *msg,
-					    const char        *username)
+                                            SoupServerMessage *msg,
+                                            const char        *username)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
 
-	if (priv->auth_callback)
-		return priv->auth_callback (domain, msg, username, priv->auth_data);
-	else
-		return FALSE;
+        if (priv->auth_callback)
+                return priv->auth_callback (domain, msg, username, priv->auth_data);
+        else
+                return FALSE;
 }
 
 /**
@@ -476,13 +476,13 @@ soup_auth_domain_try_generic_auth_callback (SoupAuthDomain    *domain,
  **/
 gboolean
 soup_auth_domain_check_password (SoupAuthDomain    *domain,
-				 SoupServerMessage *msg,
-				 const char        *username,
-				 const char        *password)
+                                 SoupServerMessage *msg,
+                                 const char        *username,
+                                 const char        *password)
 {
-	return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->check_password (domain, msg,
-								    username,
-								    password);
+        return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->check_password (domain, msg,
+                                                                    username,
+                                                                    password);
 }
 
 /**
@@ -503,21 +503,21 @@ soup_auth_domain_check_password (SoupAuthDomain    *domain,
  **/
 gboolean
 soup_auth_domain_covers (SoupAuthDomain    *domain,
-			 SoupServerMessage *msg)
+                         SoupServerMessage *msg)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
-	const char *path;
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        const char *path;
 
-	if (!priv->proxy) {
-		path = g_uri_get_path (soup_server_message_get_uri (msg));
-		if (!soup_path_map_lookup (priv->paths, path))
-			return FALSE;
-	}
+        if (!priv->proxy) {
+                path = g_uri_get_path (soup_server_message_get_uri (msg));
+                if (!soup_path_map_lookup (priv->paths, path))
+                        return FALSE;
+        }
 
-	if (priv->filter && !priv->filter (domain, msg, priv->filter_data))
-		return FALSE;
-	else
-		return TRUE;
+        if (priv->filter && !priv->filter (domain, msg, priv->filter_data))
+                return FALSE;
+        else
+                return TRUE;
 }
 
 /**
@@ -539,18 +539,18 @@ soup_auth_domain_covers (SoupAuthDomain    *domain,
  **/
 char *
 soup_auth_domain_accepts (SoupAuthDomain    *domain,
-			  SoupServerMessage *msg)
+                          SoupServerMessage *msg)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
-	const char *header;
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        const char *header;
 
-	header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
+        header = soup_message_headers_get_one_common (soup_server_message_get_request_headers (msg),
                                                       priv->proxy ?
                                                       SOUP_HEADER_PROXY_AUTHORIZATION :
                                                       SOUP_HEADER_AUTHORIZATION);
-	if (!header)
-		return NULL;
-	return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->accepts (domain, msg, header);
+        if (!header)
+                return NULL;
+        return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->accepts (domain, msg, header);
 }
 
 /**
@@ -567,20 +567,20 @@ soup_auth_domain_accepts (SoupAuthDomain    *domain,
  **/
 void
 soup_auth_domain_challenge (SoupAuthDomain    *domain,
-			    SoupServerMessage *msg)
+                            SoupServerMessage *msg)
 {
-	SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
-	char *challenge;
+        SoupAuthDomainPrivate *priv = soup_auth_domain_get_instance_private (domain);
+        char *challenge;
 
-	challenge = SOUP_AUTH_DOMAIN_GET_CLASS (domain)->challenge (domain, msg);
-	soup_server_message_set_status (msg, priv->proxy ?
-					SOUP_STATUS_PROXY_UNAUTHORIZED :
-					SOUP_STATUS_UNAUTHORIZED,
-					NULL);
-	soup_message_headers_append_common (soup_server_message_get_response_headers (msg),
+        challenge = SOUP_AUTH_DOMAIN_GET_CLASS (domain)->challenge (domain, msg);
+        soup_server_message_set_status (msg, priv->proxy ?
+                                        SOUP_STATUS_PROXY_UNAUTHORIZED :
+                                        SOUP_STATUS_UNAUTHORIZED,
+                                        NULL);
+        soup_message_headers_append_common (soup_server_message_get_response_headers (msg),
                                             priv->proxy ?
                                             SOUP_HEADER_PROXY_AUTHENTICATE :
                                             SOUP_HEADER_WWW_AUTHENTICATE,
                                             challenge, SOUP_HEADER_VALUE_UNTRUSTED);
-	g_free (challenge);
+        g_free (challenge);
 }

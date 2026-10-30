@@ -13,26 +13,26 @@ G_BEGIN_DECLS
 G_DECLARE_DERIVABLE_TYPE (SoupConnectionAuth, soup_connection_auth, SOUP, CONNECTION_AUTH, SoupAuth)
 
 struct _SoupConnectionAuthClass {
-	SoupAuthClass parent_class;
+        SoupAuthClass parent_class;
 
-	gpointer  (*create_connection_state)      (SoupConnectionAuth *auth);
-	void      (*free_connection_state)        (SoupConnectionAuth *auth,
-						   gpointer            conn);
+        gpointer  (*create_connection_state)      (SoupConnectionAuth *auth);
+        void      (*free_connection_state)        (SoupConnectionAuth *auth,
+                                                   gpointer            conn);
 
-	gboolean  (*update_connection)            (SoupConnectionAuth *auth,
-						   SoupMessage        *msg,
-						   const char         *auth_header,
-						   gpointer            conn);
-	char     *(*get_connection_authorization) (SoupConnectionAuth *auth,
-						   SoupMessage        *msg,
-						   gpointer            conn);
-	gboolean  (*is_connection_ready)          (SoupConnectionAuth *auth,
-						   SoupMessage        *msg,
-						   gpointer            conn);
+        gboolean  (*update_connection)            (SoupConnectionAuth *auth,
+                                                   SoupMessage        *msg,
+                                                   const char         *auth_header,
+                                                   gpointer            conn);
+        char     *(*get_connection_authorization) (SoupConnectionAuth *auth,
+                                                   SoupMessage        *msg,
+                                                   gpointer            conn);
+        gboolean  (*is_connection_ready)          (SoupConnectionAuth *auth,
+                                                   SoupMessage        *msg,
+                                                   gpointer            conn);
 };
 
 
-gpointer	soup_connection_auth_get_connection_state_for_message
-						(SoupConnectionAuth *auth,
-						 SoupMessage        *msg);
+gpointer        soup_connection_auth_get_connection_state_for_message
+                                                (SoupConnectionAuth *auth,
+                                                 SoupMessage        *msg);
 G_END_DECLS

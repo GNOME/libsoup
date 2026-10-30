@@ -24,8 +24,8 @@
 G_BEGIN_DECLS
 
 typedef enum {
-	SOUP_DATE_HTTP = 1,
-	SOUP_DATE_COOKIE,
+        SOUP_DATE_HTTP = 1,
+        SOUP_DATE_COOKIE,
 } SoupDateFormat;
 
 SOUP_AVAILABLE_IN_ALL

@@ -138,9 +138,9 @@ h2_debug (SoupClientMessageIOHTTP2   *io,
         if (g_log_writer_default_would_drop (G_LOG_LEVEL_DEBUG, G_LOG_DOMAIN))
                 return;
 
-	va_start (args, format);
-	message = g_strdup_vprintf (format, args);
-	va_end (args);
+        va_start (args, format);
+        message = g_strdup_vprintf (format, args);
+        va_end (args);
 
         if (data)
                 stream_id = data->stream_id;
@@ -160,10 +160,10 @@ get_io_data (SoupMessage *msg)
 static int
 get_data_io_priority (SoupHTTP2MessageData *data)
 {
-	if (!data->item->task)
-		return G_PRIORITY_DEFAULT;
+        if (!data->item->task)
+                return G_PRIORITY_DEFAULT;
 
-	return g_task_get_priority (data->item->task);
+        return g_task_get_priority (data->item->task);
 }
 
 static void
@@ -1714,8 +1714,8 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
 {
         SoupClientMessageIOHTTP2 *io = (SoupClientMessageIOHTTP2 *)iface;
         SoupHTTP2MessageData *data;
-	SoupMessageIOCompletionFn completion_cb;
-	gpointer completion_data;
+        SoupMessageIOCompletionFn completion_cb;
+        gpointer completion_data;
         SoupMessageIOCompletion completion;
         gboolean is_closed;
         SoupConnection *conn;
@@ -1731,10 +1731,10 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
         if (completion == SOUP_MESSAGE_IO_INTERRUPTED)
                 soup_http2_message_data_consume_buffered_body (data);
 
-	completion_cb = data->completion_cb;
-	completion_data = data->completion_data;
+        completion_cb = data->completion_cb;
+        completion_data = data->completion_data;
 
-	g_object_ref (msg);
+        g_object_ref (msg);
 
         is_closed = nghttp2_session_get_stream_user_data (io->session, data->stream_id) == NULL;
         nghttp2_session_set_stream_user_data (io->session, data->stream_id, NULL);
@@ -1760,10 +1760,10 @@ soup_client_message_io_http2_finished (SoupClientMessageIO *iface,
                         g_warn_if_reached ();
         }
 
-	if (completion_cb)
-		completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_COMPLETE, completion_data);
+        if (completion_cb)
+                completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_COMPLETE, completion_data);
 
-	g_object_unref (msg);
+        g_object_unref (msg);
 
         if (io->is_shutdown)
                 soup_client_message_io_http2_terminate_session (io);
@@ -1866,8 +1866,8 @@ static void
 client_stream_eof (SoupClientInputStream *stream,
                    gpointer               user_data)
 {
-	SoupMessage *msg = user_data;
-	SoupClientMessageIOHTTP2 *io = get_io_data (msg);
+        SoupMessage *msg = user_data;
+        SoupClientMessageIOHTTP2 *io = get_io_data (msg);
 
         if (!io) {
                 g_warn_if_reached ();
@@ -1929,19 +1929,19 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
               GError                  **error)
 {
         SoupHTTP2MessageData *data = get_data_for_message (io, msg);
-	gboolean progress = TRUE, done;
-	GError *my_error = NULL;
+        gboolean progress = TRUE, done;
+        GError *my_error = NULL;
 
-	if (g_cancellable_set_error_if_cancelled (cancellable, error))
-		return FALSE;
-	else if (!io) {
-		g_set_error_literal (error, G_IO_ERROR,
-				     G_IO_ERROR_CANCELLED,
-				     _("Operation was cancelled"));
-		return FALSE;
-	}
+        if (g_cancellable_set_error_if_cancelled (cancellable, error))
+                return FALSE;
+        else if (!io) {
+                g_set_error_literal (error, G_IO_ERROR,
+                                     G_IO_ERROR_CANCELLED,
+                                     _("Operation was cancelled"));
+                return FALSE;
+        }
 
-	while (progress && get_io_data (msg) == io && !data->paused && !data->error && data->state < state)
+        while (progress && get_io_data (msg) == io && !data->paused && !data->error && data->state < state)
                 progress = io_run (data, cancellable, &my_error);
 
         if (my_error) {
@@ -1952,21 +1952,21 @@ io_run_until (SoupClientMessageIOHTTP2 *io,
         if (io->error && !data->error)
                 data->error = g_error_copy (io->error);
 
-	if (data->error) {
+        if (data->error) {
                 g_propagate_error (error, g_steal_pointer (&data->error));
-		return FALSE;
+                return FALSE;
         }
 
         if (get_io_data (msg) != io) {
-		g_set_error_literal (error, G_IO_ERROR,
-				     G_IO_ERROR_CANCELLED,
-				     _("Operation was cancelled"));
-		return FALSE;
-	}
+                g_set_error_literal (error, G_IO_ERROR,
+                                     G_IO_ERROR_CANCELLED,
+                                     _("Operation was cancelled"));
+                return FALSE;
+        }
 
-	done = data->state >= state;
+        done = data->state >= state;
 
-	return done;
+        return done;
 }
 
 static gboolean
@@ -2031,7 +2031,7 @@ soup_client_message_io_http2_skip (SoupClientMessageIO *iface,
 static void
 soup_client_message_io_http2_run (SoupClientMessageIO *iface,
                                   SoupMessage         *msg,
-		                  gboolean             blocking)
+                                  gboolean             blocking)
 {
         g_assert_not_reached ();
 }

@@ -25,28 +25,28 @@ struct _SoupConnection {
 };
 
 typedef struct {
-	GIOStream *connection;
-	GSocketConnectable *remote_connectable;
-	GIOStream *iostream;
-	SoupSocketProperties *socket_props;
+        GIOStream *connection;
+        GSocketConnectable *remote_connectable;
+        GIOStream *iostream;
+        SoupSocketProperties *socket_props;
         guint64 id;
         GSocketAddress *remote_address;
         guint8 force_http_version;
 
-	GUri *proxy_uri;
-	gboolean ssl;
+        GUri *proxy_uri;
+        gboolean ssl;
 
-	SoupMessage *proxy_msg;
+        SoupMessage *proxy_msg;
         SoupClientMessageIO *io_data;
-	SoupConnectionState state;
-	time_t       unused_timeout;
-	GSource     *idle_timeout_src;
+        SoupConnectionState state;
+        time_t       unused_timeout;
+        GSource     *idle_timeout_src;
         guint        in_use;
         SoupHTTPVersion http_version;
 
         GTlsCertificate *tls_client_cert;
 
-	GCancellable *cancellable;
+        GCancellable *cancellable;
         GThread *owner;
 
         int window_size;
@@ -56,33 +56,33 @@ typedef struct {
 G_DEFINE_FINAL_TYPE_WITH_PRIVATE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 
 enum {
-	EVENT,
-	ACCEPT_CERTIFICATE,
+        EVENT,
+        ACCEPT_CERTIFICATE,
         REQUEST_CERTIFICATE,
         REQUEST_CERTIFICATE_PASSWORD,
-	DISCONNECTED,
-	LAST_SIGNAL
+        DISCONNECTED,
+        LAST_SIGNAL
 };
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
 enum {
-	PROP_0,
+        PROP_0,
 
         PROP_ID,
-	PROP_REMOTE_CONNECTABLE,
+        PROP_REMOTE_CONNECTABLE,
         PROP_REMOTE_ADDRESS,
-	PROP_SOCKET_PROPERTIES,
-	PROP_STATE,
-	PROP_SSL,
-	PROP_TLS_CERTIFICATE,
-	PROP_TLS_CERTIFICATE_ERRORS,
+        PROP_SOCKET_PROPERTIES,
+        PROP_STATE,
+        PROP_SSL,
+        PROP_TLS_CERTIFICATE,
+        PROP_TLS_CERTIFICATE_ERRORS,
         PROP_TLS_PROTOCOL_VERSION,
         PROP_TLS_CIPHERSUITE_NAME,
         PROP_FORCE_HTTP_VERSION,
         PROP_CONTEXT,
 
-	LAST_PROPERTY
+        LAST_PROPERTY
 };
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
@@ -112,68 +112,68 @@ soup_connection_init (SoupConnection *conn)
 static void
 soup_connection_finalize (GObject *object)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
-	g_clear_pointer (&priv->proxy_uri, g_uri_unref);
-	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
+        g_clear_pointer (&priv->proxy_uri, g_uri_unref);
+        g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
         g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
-	g_clear_object (&priv->remote_connectable);
+        g_clear_object (&priv->remote_connectable);
         g_clear_object (&priv->remote_address);
-	g_clear_object (&priv->proxy_msg);
+        g_clear_object (&priv->proxy_msg);
 
-	if (priv->cancellable) {
-		g_warning ("Disposing connection %p during connect", object);
-		g_object_unref (priv->cancellable);
-	}
+        if (priv->cancellable) {
+                g_warning ("Disposing connection %p during connect", object);
+                g_object_unref (priv->cancellable);
+        }
 
-	if (priv->connection) {
-		g_warning ("Disposing connection %p while still connected", object);
-		g_io_stream_close (priv->connection, NULL, NULL);
-		g_object_unref (priv->connection);
-	}
+        if (priv->connection) {
+                g_warning ("Disposing connection %p while still connected", object);
+                g_io_stream_close (priv->connection, NULL, NULL);
+                g_object_unref (priv->connection);
+        }
 
-	g_clear_object (&priv->iostream);
+        g_clear_object (&priv->iostream);
         g_clear_object (&priv->tls_client_cert);
 
-	G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
+        G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
 }
 
 static void
 soup_connection_dispose (GObject *object)
 {
-	SoupConnection *conn = SOUP_CONNECTION (object);
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnection *conn = SOUP_CONNECTION (object);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         if (priv->idle_timeout_src) {
                 g_source_destroy (priv->idle_timeout_src);
                 g_clear_pointer (&priv->idle_timeout_src, g_source_unref);
         }
 
-	G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
+        G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
 }
 
 static void
 soup_connection_set_property (GObject *object, guint prop_id,
-			      const GValue *value, GParamSpec *pspec)
+                              const GValue *value, GParamSpec *pspec)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
-	switch (prop_id) {
-	case PROP_REMOTE_CONNECTABLE:
-		priv->remote_connectable = g_value_dup_object (value);
-		break;
-	case PROP_SOCKET_PROPERTIES:
-		priv->socket_props = g_value_dup_boxed (value);
-		break;
-	case PROP_SSL:
-		priv->ssl = g_value_get_boolean (value);
-		break;
-	case PROP_ID:
-		priv->id = g_value_get_uint64 (value);
-		break;
-	case PROP_FORCE_HTTP_VERSION:
-		priv->force_http_version = g_value_get_uchar (value);
-		break;
+        switch (prop_id) {
+        case PROP_REMOTE_CONNECTABLE:
+                priv->remote_connectable = g_value_dup_object (value);
+                break;
+        case PROP_SOCKET_PROPERTIES:
+                priv->socket_props = g_value_dup_boxed (value);
+                break;
+        case PROP_SSL:
+                priv->ssl = g_value_get_boolean (value);
+                break;
+        case PROP_ID:
+                priv->id = g_value_get_uint64 (value);
+                break;
+        case PROP_FORCE_HTTP_VERSION:
+                priv->force_http_version = g_value_get_uchar (value);
+                break;
         case PROP_CONTEXT:
                 priv->idle_timeout_src = g_timeout_source_new (0);
                 g_source_set_ready_time (priv->idle_timeout_src, -1);
@@ -181,93 +181,93 @@ soup_connection_set_property (GObject *object, guint prop_id,
                 g_source_set_callback (priv->idle_timeout_src, idle_timeout, object, NULL);
                 g_source_attach (priv->idle_timeout_src, g_value_get_pointer (value));
                 break;
-	case PROP_REMOTE_ADDRESS:
-	case PROP_STATE:
-	case PROP_TLS_CERTIFICATE:
-	case PROP_TLS_CERTIFICATE_ERRORS:
-	case PROP_TLS_PROTOCOL_VERSION:
-	case PROP_TLS_CIPHERSUITE_NAME:
-		g_assert_not_reached ();
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        case PROP_REMOTE_ADDRESS:
+        case PROP_STATE:
+        case PROP_TLS_CERTIFICATE:
+        case PROP_TLS_CERTIFICATE_ERRORS:
+        case PROP_TLS_PROTOCOL_VERSION:
+        case PROP_TLS_CIPHERSUITE_NAME:
+                g_assert_not_reached ();
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 static void
 soup_connection_get_property (GObject *object, guint prop_id,
-			      GValue *value, GParamSpec *pspec)
+                              GValue *value, GParamSpec *pspec)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (SOUP_CONNECTION (object));
 
-	switch (prop_id) {
-	case PROP_REMOTE_CONNECTABLE:
-		g_value_set_object (value, priv->remote_connectable);
-		break;
+        switch (prop_id) {
+        case PROP_REMOTE_CONNECTABLE:
+                g_value_set_object (value, priv->remote_connectable);
+                break;
         case PROP_REMOTE_ADDRESS:
                 g_value_set_object (value, priv->remote_address);
-	        break;
-	case PROP_SOCKET_PROPERTIES:
-		g_value_set_boxed (value, priv->socket_props);
-		break;
-	case PROP_STATE:
-		g_value_set_enum (value, g_atomic_int_get (&priv->state));
-		break;
-	case PROP_SSL:
-		g_value_set_boolean (value, priv->ssl);
-		break;
-	case PROP_ID:
-		g_value_set_uint64 (value, priv->id);
-		break;
-	case PROP_TLS_CERTIFICATE:
-		g_value_set_object (value, soup_connection_get_tls_certificate (SOUP_CONNECTION (object)));
-		break;
-	case PROP_TLS_CERTIFICATE_ERRORS:
-		g_value_set_flags (value, soup_connection_get_tls_certificate_errors (SOUP_CONNECTION (object)));
-		break;
+                break;
+        case PROP_SOCKET_PROPERTIES:
+                g_value_set_boxed (value, priv->socket_props);
+                break;
+        case PROP_STATE:
+                g_value_set_enum (value, g_atomic_int_get (&priv->state));
+                break;
+        case PROP_SSL:
+                g_value_set_boolean (value, priv->ssl);
+                break;
+        case PROP_ID:
+                g_value_set_uint64 (value, priv->id);
+                break;
+        case PROP_TLS_CERTIFICATE:
+                g_value_set_object (value, soup_connection_get_tls_certificate (SOUP_CONNECTION (object)));
+                break;
+        case PROP_TLS_CERTIFICATE_ERRORS:
+                g_value_set_flags (value, soup_connection_get_tls_certificate_errors (SOUP_CONNECTION (object)));
+                break;
         case PROP_TLS_PROTOCOL_VERSION:
                 g_value_set_enum (value, soup_connection_get_tls_protocol_version (SOUP_CONNECTION (object)));
                 break;
         case PROP_TLS_CIPHERSUITE_NAME:
                 g_value_set_string (value, soup_connection_get_tls_ciphersuite_name (SOUP_CONNECTION (object)));
                 break;
-	case PROP_FORCE_HTTP_VERSION:
-		g_value_set_uchar (value, priv->force_http_version);
-		break;
-	case PROP_CONTEXT:
-		g_assert_not_reached ();
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        case PROP_FORCE_HTTP_VERSION:
+                g_value_set_uchar (value, priv->force_http_version);
+                break;
+        case PROP_CONTEXT:
+                g_assert_not_reached ();
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 static void
 soup_connection_class_init (SoupConnectionClass *connection_class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (connection_class);
+        GObjectClass *object_class = G_OBJECT_CLASS (connection_class);
 
-	/* virtual method override */
-	object_class->dispose = soup_connection_dispose;
-	object_class->finalize = soup_connection_finalize;
-	object_class->set_property = soup_connection_set_property;
-	object_class->get_property = soup_connection_get_property;
+        /* virtual method override */
+        object_class->dispose = soup_connection_dispose;
+        object_class->finalize = soup_connection_finalize;
+        object_class->set_property = soup_connection_set_property;
+        object_class->get_property = soup_connection_get_property;
 
-	/* signals */
-	signals[EVENT] =
-		g_signal_new ("event",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0,
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 2,
-			      G_TYPE_SOCKET_CLIENT_EVENT,
-			      G_TYPE_IO_STREAM);
-	signals[ACCEPT_CERTIFICATE] =
-		g_signal_new ("accept-certificate",
+        /* signals */
+        signals[EVENT] =
+                g_signal_new ("event",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_FIRST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 2,
+                              G_TYPE_SOCKET_CLIENT_EVENT,
+                              G_TYPE_IO_STREAM);
+        signals[ACCEPT_CERTIFICATE] =
+                g_signal_new ("accept-certificate",
                               G_OBJECT_CLASS_TYPE (object_class),
                               G_SIGNAL_RUN_LAST,
                               0,
@@ -296,16 +296,16 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                               G_TYPE_BOOLEAN, 2,
                               G_TYPE_TLS_PASSWORD,
                               G_TYPE_TASK);
-	signals[DISCONNECTED] =
-		g_signal_new ("disconnected",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0,
-			      NULL, NULL,
-			      NULL,
-			      G_TYPE_NONE, 0);
+        signals[DISCONNECTED] =
+                g_signal_new ("disconnected",
+                              G_OBJECT_CLASS_TYPE (object_class),
+                              G_SIGNAL_RUN_FIRST,
+                              0,
+                              NULL, NULL,
+                              NULL,
+                              G_TYPE_NONE, 0);
 
-	/* properties */
+        /* properties */
         properties[PROP_REMOTE_CONNECTABLE] =
                 g_param_spec_object ("remote-connectable",
                                      "Remote Connectable",
@@ -321,40 +321,40 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
                                      G_PARAM_READABLE |
                                      G_PARAM_STATIC_STRINGS);
         properties[PROP_SOCKET_PROPERTIES] =
-		g_param_spec_boxed ("socket-properties",
-				    "Socket properties",
-				    "Socket properties",
-				    SOUP_TYPE_SOCKET_PROPERTIES,
-				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
-				    G_PARAM_STATIC_STRINGS);
+                g_param_spec_boxed ("socket-properties",
+                                    "Socket properties",
+                                    "Socket properties",
+                                    SOUP_TYPE_SOCKET_PROPERTIES,
+                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                                    G_PARAM_STATIC_STRINGS);
         properties[PROP_STATE] =
-		g_param_spec_enum ("state",
-				   "Connection state",
-				   "Current state of connection",
-				   SOUP_TYPE_CONNECTION_STATE,
+                g_param_spec_enum ("state",
+                                   "Connection state",
+                                   "Current state of connection",
+                                   SOUP_TYPE_CONNECTION_STATE,
                                    SOUP_CONNECTION_NEW,
-				   G_PARAM_READABLE |
-				   G_PARAM_STATIC_STRINGS);
+                                   G_PARAM_READABLE |
+                                   G_PARAM_STATIC_STRINGS);
         properties[PROP_SSL] =
-		g_param_spec_boolean ("ssl",
-				      "Connection uses TLS",
-				      "Whether the connection should use TLS",
-				      FALSE,G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
+                g_param_spec_boolean ("ssl",
+                                      "Connection uses TLS",
+                                      "Whether the connection should use TLS",
+                                      FALSE,G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
         properties[PROP_ID] =
-		g_param_spec_uint64 ("id",
+                g_param_spec_uint64 ("id",
                                      "Connection Identifier",
                                      "Unique identifier for the connection",
                                      0, G_MAXUINT64,
                                      0, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
                                      G_PARAM_STATIC_STRINGS);
         properties[PROP_TLS_CERTIFICATE] =
-		g_param_spec_object ("tls-certificate",
+                g_param_spec_object ("tls-certificate",
                                      "TLS Certificate",
                                      "The TLS certificate associated with the connection",
                                      G_TYPE_TLS_CERTIFICATE,
                                      G_PARAM_READABLE |
-	                             G_PARAM_STATIC_STRINGS);
+                                     G_PARAM_STATIC_STRINGS);
         properties[PROP_TLS_CERTIFICATE_ERRORS] =
                 g_param_spec_flags ("tls-certificate-errors",
                                     "TLS Certificate Errors",
@@ -396,28 +396,28 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 
 static void
 soup_connection_event (SoupConnection      *conn,
-		       GSocketClientEvent   event,
-		       GIOStream           *connection)
+                       GSocketClientEvent   event,
+                       GIOStream           *connection)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	g_signal_emit (conn, signals[EVENT], 0,
-		       event, connection ? connection : priv->connection);
+        g_signal_emit (conn, signals[EVENT], 0,
+                       event, connection ? connection : priv->connection);
 }
 
 static gboolean
 idle_timeout (gpointer conn)
 {
-	soup_connection_disconnect (conn);
-	return G_SOURCE_REMOVE;
+        soup_connection_disconnect (conn);
+        return G_SOURCE_REMOVE;
 }
 
 static void
 start_idle_timer (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	if (priv->socket_props->idle_timeout == 0)
+        if (priv->socket_props->idle_timeout == 0)
                 return;
 
         if (g_source_get_ready_time (priv->idle_timeout_src) >= 0)
@@ -447,22 +447,22 @@ static void
 proxy_msg_got_body (SoupMessage    *msg,
                     SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
-		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
+        if (SOUP_STATUS_IS_SUCCESSFUL (soup_message_get_status (msg))) {
+                soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
 
-		/* We're now effectively no longer proxying */
-		g_clear_pointer (&priv->proxy_uri, g_uri_unref);
+                /* We're now effectively no longer proxying */
+                g_clear_pointer (&priv->proxy_uri, g_uri_unref);
                 g_signal_handlers_disconnect_by_func (priv->proxy_msg, proxy_msg_got_body, conn);
                 g_clear_object (&priv->proxy_msg);
-	}
+        }
 }
 
 static void
 clear_proxy_msg (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         if (!priv->proxy_msg)
                 return;
@@ -475,13 +475,13 @@ static void
 set_proxy_msg (SoupConnection *conn,
                SoupMessage    *msg)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         g_assert (priv->http_version != SOUP_HTTP_2_0);
 
         clear_proxy_msg (conn);
-	priv->proxy_msg = g_object_ref (msg);
-	g_signal_connect_object (msg, "got-body",
+        priv->proxy_msg = g_object_ref (msg);
+        g_signal_connect_object (msg, "got-body",
                                  G_CALLBACK (proxy_msg_got_body),
                                  conn, 0);
 
@@ -490,16 +490,16 @@ set_proxy_msg (SoupConnection *conn,
 
 static void
 soup_connection_set_connection (SoupConnection *conn,
-				GIOStream      *connection)
+                                GIOStream      *connection)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
         g_clear_pointer (&priv->io_data, soup_client_message_io_destroy);
 
-	g_clear_object (&priv->connection);
-	priv->connection = connection;
-	g_clear_object (&priv->iostream);
-	priv->iostream = soup_io_stream_new (G_IO_STREAM (priv->connection), FALSE);
+        g_clear_object (&priv->connection);
+        priv->connection = connection;
+        g_clear_object (&priv->iostream);
+        priv->iostream = soup_io_stream_new (G_IO_STREAM (priv->connection), FALSE);
 }
 
 static void
@@ -521,16 +521,16 @@ soup_connection_create_io_data (SoupConnection *conn)
 
 static void
 re_emit_socket_event (GSocketClient       *client,
-		      GSocketClientEvent   event,
-		      GSocketConnectable  *connectable,
-		      GIOStream           *connection,
-		      SoupConnection      *conn)
+                      GSocketClientEvent   event,
+                      GSocketConnectable  *connectable,
+                      GIOStream           *connection,
+                      SoupConnection      *conn)
 {
-	/* We handle COMPLETE ourselves */
-	if (event == G_SOCKET_CLIENT_COMPLETE)
-		return;
+        /* We handle COMPLETE ourselves */
+        if (event == G_SOCKET_CLIENT_COMPLETE)
+                return;
 
-	soup_connection_event (conn, event, connection);
+        soup_connection_event (conn, event, connection);
 }
 
 static GSocketClient *
@@ -566,17 +566,17 @@ tls_connection_accept_certificate (SoupConnection      *conn,
                                    GTlsCertificate     *tls_certificate,
                                    GTlsCertificateFlags tls_errors)
 {
-	gboolean accept = FALSE;
+        gboolean accept = FALSE;
 
         g_signal_emit (conn, signals[ACCEPT_CERTIFICATE], 0,
-		       tls_certificate, tls_errors, &accept);
+                       tls_certificate, tls_errors, &accept);
         return accept;
 }
 
 static void
 tls_connection_peer_certificate_changed (SoupConnection *conn)
 {
-	g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_TLS_CERTIFICATE]);
+        g_object_notify_by_pspec (G_OBJECT (conn), properties[PROP_TLS_CERTIFICATE]);
 }
 
 static void
@@ -648,21 +648,21 @@ new_tls_connection (SoupConnection    *conn,
         if (!tls_connection)
                 return NULL;
 
-	if (!priv->socket_props->tlsdb_use_default)
-		g_tls_connection_set_database (G_TLS_CONNECTION (tls_connection), priv->socket_props->tlsdb);
+        if (!priv->socket_props->tlsdb_use_default)
+                g_tls_connection_set_database (G_TLS_CONNECTION (tls_connection), priv->socket_props->tlsdb);
 
-	g_signal_connect_object (tls_connection, "accept-certificate",
-				 G_CALLBACK (tls_connection_accept_certificate),
-				 conn, G_CONNECT_SWAPPED);
-	g_signal_connect_object (tls_connection, "notify::peer-certificate",
-				 G_CALLBACK (tls_connection_peer_certificate_changed),
-				 conn, G_CONNECT_SWAPPED);
+        g_signal_connect_object (tls_connection, "accept-certificate",
+                                 G_CALLBACK (tls_connection_accept_certificate),
+                                 conn, G_CONNECT_SWAPPED);
+        g_signal_connect_object (tls_connection, "notify::peer-certificate",
+                                 G_CALLBACK (tls_connection_peer_certificate_changed),
+                                 conn, G_CONNECT_SWAPPED);
         g_signal_connect_object (tls_connection, "notify::protocol-version",
-				 G_CALLBACK (tls_connection_protocol_version_changed),
-				 conn, G_CONNECT_SWAPPED);
+                                 G_CALLBACK (tls_connection_protocol_version_changed),
+                                 conn, G_CONNECT_SWAPPED);
         g_signal_connect_object (tls_connection, "notify::ciphersuite-name",
-				 G_CALLBACK (tls_connection_ciphersuite_name_changed),
-				 conn, G_CONNECT_SWAPPED);
+                                 G_CALLBACK (tls_connection_ciphersuite_name_changed),
+                                 conn, G_CONNECT_SWAPPED);
 
         return tls_connection;
 }
@@ -774,14 +774,14 @@ connect_async_ready_cb (GSocketClient *client,
 
         connection = g_socket_client_connect_finish (client, result, &error);
         if (!connection) {
-		g_clear_object (&priv->cancellable);
+                g_clear_object (&priv->cancellable);
                 g_task_return_error (task, error);
                 g_object_unref (task);
                 return;
         }
 
         if (!soup_connection_connected (conn, connection, &error)) {
-		g_clear_object (&priv->cancellable);
+                g_clear_object (&priv->cancellable);
                 g_task_return_error (task, error);
                 g_object_unref (task);
                 g_object_unref (connection);
@@ -845,8 +845,8 @@ soup_connection_connect_finish (SoupConnection  *conn,
 
 gboolean
 soup_connection_connect (SoupConnection  *conn,
-			 GCancellable    *cancellable,
-			 GError         **error)
+                         GCancellable    *cancellable,
+                         GError         **error)
 {
         SoupConnectionPrivate *priv;
         GSocketClient *client;
@@ -896,12 +896,12 @@ soup_connection_connect (SoupConnection  *conn,
 gboolean
 soup_connection_is_tunnelled (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv;
+        SoupConnectionPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-	priv = soup_connection_get_instance_private (conn);
+        g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+        priv = soup_connection_get_instance_private (conn);
 
-	return priv->ssl && priv->proxy_uri != NULL;
+        return priv->ssl && priv->proxy_uri != NULL;
 }
 
 static void
@@ -954,7 +954,7 @@ soup_connection_tunnel_handshake_async (SoupConnection     *conn,
 
         tls_connection = new_tls_connection (conn, G_SOCKET_CONNECTION (priv->connection), &error);
         if (!tls_connection) {
-		g_clear_object (&priv->cancellable);
+                g_clear_object (&priv->cancellable);
                 g_task_return_error (task, error);
                 g_object_unref (task);
                 return;
@@ -1125,21 +1125,21 @@ soup_connection_steal_iostream (SoupConnection *conn)
 GUri *
 soup_connection_get_proxy_uri (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
+        g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
 
-	return priv->proxy_uri;
+        return priv->proxy_uri;
 }
 
 gboolean
 soup_connection_is_via_proxy (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+        g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return priv->proxy_uri != NULL;
+        return priv->proxy_uri != NULL;
 }
 
 gboolean
@@ -1150,11 +1150,11 @@ soup_connection_is_idle_open (SoupConnection *conn)
         if (g_atomic_int_get (&priv->state) != SOUP_CONNECTION_IDLE)
                 return FALSE;
 
-	if (!g_socket_is_connected (soup_connection_get_socket (conn)))
-		return FALSE;
+        if (!g_socket_is_connected (soup_connection_get_socket (conn)))
+                return FALSE;
 
-	if (priv->unused_timeout && priv->unused_timeout < time (NULL))
-		return FALSE;
+        if (priv->unused_timeout && priv->unused_timeout < time (NULL))
+                return FALSE;
 
         return soup_client_message_io_is_open (priv->io_data);
 }
@@ -1162,9 +1162,9 @@ soup_connection_is_idle_open (SoupConnection *conn)
 SoupConnectionState
 soup_connection_get_state (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
+        SoupConnectionPrivate *priv = soup_connection_get_instance_private (conn);
 
-	return g_atomic_int_get (&priv->state);
+        return g_atomic_int_get (&priv->state);
 }
 
 void
@@ -1242,31 +1242,31 @@ soup_connection_get_io_data (SoupConnection *conn)
 GTlsCertificate *
 soup_connection_get_tls_certificate (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv;
+        SoupConnectionPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
+        g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
 
-	priv = soup_connection_get_instance_private (conn);
+        priv = soup_connection_get_instance_private (conn);
 
-	if (!G_IS_TLS_CONNECTION (priv->connection))
-		return NULL;
+        if (!G_IS_TLS_CONNECTION (priv->connection))
+                return NULL;
 
-	return g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (priv->connection));
+        return g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (priv->connection));
 }
 
 GTlsCertificateFlags
 soup_connection_get_tls_certificate_errors (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv;
+        SoupConnectionPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), 0);
+        g_return_val_if_fail (SOUP_IS_CONNECTION (conn), 0);
 
-	priv = soup_connection_get_instance_private (conn);
+        priv = soup_connection_get_instance_private (conn);
 
-	if (!G_IS_TLS_CONNECTION (priv->connection))
-		return 0;
+        if (!G_IS_TLS_CONNECTION (priv->connection))
+                return 0;
 
-	return g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->connection));
+        return g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->connection));
 }
 
 GTlsProtocolVersion

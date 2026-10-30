@@ -14,7 +14,7 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (SoupClientInputStream, soup_client_input_stream, SOUP, CLIENT_INPUT_STREAM, SoupFilterInputStream)
 
 GInputStream *soup_client_input_stream_new (GInputStream *base_stream,
-					    SoupMessage  *msg);
+                                            SoupMessage  *msg);
 
 G_END_DECLS
 

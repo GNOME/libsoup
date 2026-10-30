@@ -15,12 +15,12 @@ G_DECLARE_FINAL_TYPE (SoupCookieJarDB, soup_cookie_jar_db, SOUP, COOKIE_JAR_DB, 
 
 SOUP_AVAILABLE_IN_ALL
 SoupCookieJar *soup_cookie_jar_db_new (const char *filename,
-				       gboolean    read_only);
+                                       gboolean    read_only);
 
 SOUP_AVAILABLE_IN_3_8
 SoupCookieJar *soup_cookie_jar_db_new_with_error (const char *filename,
-						  gboolean    read_only,
-					          GError    **error);
+                                                  gboolean    read_only,
+                                                  GError    **error);
 
 SOUP_AVAILABLE_IN_3_8
 gboolean soup_cookie_jar_db_set_max_size (SoupCookieJarDB *jar, guint64 max_size, GError **error);

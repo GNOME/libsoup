@@ -27,11 +27,11 @@ typedef struct {
         SoupServerMessage *msg;
 
         GBytes  *write_chunk;
-	goffset  write_body_offset;
+        goffset  write_body_offset;
 
         GSource *unpause_source;
 
-	GMainContext *async_context;
+        GMainContext *async_context;
 } SoupMessageIOHTTP1;
 
 typedef struct {
@@ -110,19 +110,19 @@ soup_server_message_io_http1_finished (SoupServerMessageIO *iface,
         SoupMessageIOCompletion completion;
         SoupServerConnection *conn;
 
-	completion_cb = io->msg_io->base.completion_cb;
+        completion_cb = io->msg_io->base.completion_cb;
         completion_data = io->msg_io->base.completion_data;
 
         if ((io->msg_io->base.read_state >= SOUP_MESSAGE_IO_STATE_FINISHING &&
              io->msg_io->base.write_state >= SOUP_MESSAGE_IO_STATE_FINISHING))
                 completion = SOUP_MESSAGE_IO_COMPLETE;
         else
-		completion = SOUP_MESSAGE_IO_INTERRUPTED;
+                completion = SOUP_MESSAGE_IO_INTERRUPTED;
 
         g_object_ref (msg);
         g_clear_pointer (&io->msg_io, soup_message_io_http1_free);
         conn = soup_server_message_get_connection (msg);
-	if (completion_cb) {
+        if (completion_cb) {
                 completion_cb (G_OBJECT (msg), completion, completion_data);
                 if (soup_server_connection_is_connected (conn)) {
                         io->msg_io = soup_message_io_http1_new (soup_server_message_new (conn));
@@ -147,15 +147,15 @@ soup_server_message_io_http1_steal (SoupServerMessageIO *iface)
         SoupServerMessageIOHTTP1 *io = (SoupServerMessageIOHTTP1 *)iface;
         SoupServerMessage *msg;
         SoupMessageIOCompletionFn completion_cb;
-	gpointer completion_data;
-	GIOStream *iostream;
+        gpointer completion_data;
+        GIOStream *iostream;
 
         if (!io->iostream)
                 return NULL;
 
         iostream = g_object_ref (io->iostream);
         completion_cb = io->msg_io->base.completion_cb;
-	completion_data = io->msg_io->base.completion_data;
+        completion_data = io->msg_io->base.completion_data;
 
         msg = io->msg_io->msg;
         g_object_ref (msg);
@@ -164,7 +164,7 @@ soup_server_message_io_http1_steal (SoupServerMessageIO *iface)
                 completion_cb (G_OBJECT (msg), SOUP_MESSAGE_IO_STOLEN, completion_data);
         g_object_unref (msg);
 
-	return iostream;
+        return iostream;
 }
 
 static void
@@ -226,13 +226,13 @@ handle_partial_get (SoupServerMessage *msg)
         int nranges;
         GBytes *full_response;
         guint status;
-	SoupMessageHeaders *request_headers;
-	SoupMessageHeaders *response_headers;
-	SoupMessageBody *response_body;
+        SoupMessageHeaders *request_headers;
+        SoupMessageHeaders *response_headers;
+        SoupMessageBody *response_body;
 
-	request_headers = soup_server_message_get_request_headers (msg);
-	response_headers = soup_server_message_get_response_headers (msg);
-	response_body = soup_server_message_get_response_body (msg);
+        request_headers = soup_server_message_get_request_headers (msg);
+        response_headers = soup_server_message_get_response_headers (msg);
+        response_body = soup_server_message_get_response_body (msg);
 
         /* Make sure the message is set up right for us to return a
          * partial response; it has to be a GET, the status must be
@@ -339,25 +339,25 @@ write_headers (SoupServerMessage  *msg,
         SoupEncoding claimed_encoding;
         SoupMessageHeadersIter iter;
         const char *name, *value;
-	guint status_code;
-	const char *reason_phrase;
-	const char *method;
-	SoupMessageHeaders *response_headers;
+        guint status_code;
+        const char *reason_phrase;
+        const char *method;
+        SoupMessageHeaders *response_headers;
 
         if (soup_server_message_get_status (msg) == 0)
                 soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
 
         handle_partial_get (msg);
 
-	status_code = soup_server_message_get_status (msg);
+        status_code = soup_server_message_get_status (msg);
         reason_phrase = soup_server_message_get_reason_phrase (msg);
 
         g_string_append_printf (headers, "HTTP/1.%c %d %s\r\n",
-				soup_server_message_get_http_version (msg) == SOUP_HTTP_1_0 ? '0' : '1',
-				status_code, reason_phrase);
+                                soup_server_message_get_http_version (msg) == SOUP_HTTP_1_0 ? '0' : '1',
+                                status_code, reason_phrase);
 
-	method = soup_server_message_get_method (msg);
-	response_headers = soup_server_message_get_response_headers (msg);
+        method = soup_server_message_get_method (msg);
+        response_headers = soup_server_message_get_response_headers (msg);
         claimed_encoding = soup_message_headers_get_encoding (response_headers);
         if ((method == SOUP_METHOD_HEAD ||
              status_code  == SOUP_STATUS_NO_CONTENT ||
@@ -403,10 +403,10 @@ io_write (SoupServerMessageIOHTTP1 *server_io,
           GError                  **error)
 {
         SoupServerMessage *msg = server_io->msg_io->msg;
-	SoupMessageIOData *io = &server_io->msg_io->base;
+        SoupMessageIOData *io = &server_io->msg_io->base;
         GBytes *chunk;
         gssize nwrote;
-	guint status_code;
+        guint status_code;
 
         if (io->async_error) {
                 g_propagate_error (error, io->async_error);
@@ -421,7 +421,7 @@ io_write (SoupServerMessageIOHTTP1 *server_io,
 
         switch (io->write_state) {
         case SOUP_MESSAGE_IO_STATE_HEADERS:
-		status_code = soup_server_message_get_status (msg);
+                status_code = soup_server_message_get_status (msg);
                 if (io->read_state == SOUP_MESSAGE_IO_STATE_BLOCKING && status_code == 0) {
                         /* Client requested "Expect: 100-continue", and
                          * server did not set an error.
@@ -459,7 +459,7 @@ io_write (SoupServerMessageIOHTTP1 *server_io,
                 io->written = 0;
                 g_string_truncate (io->write_buf, 0);
 
-		status_code = soup_server_message_get_status (msg);
+                status_code = soup_server_message_get_status (msg);
                 if (SOUP_STATUS_IS_INFORMATIONAL (status_code)) {
                         if (status_code == SOUP_STATUS_CONTINUE) {
                                 /* Stop and wait for the body now */
@@ -558,7 +558,7 @@ io_write (SoupServerMessageIOHTTP1 *server_io,
                 }
 
                 soup_message_body_wrote_chunk (soup_server_message_get_response_body (msg),
-					       server_io->msg_io->write_chunk);
+                                               server_io->msg_io->write_chunk);
                 server_io->msg_io->write_body_offset += g_bytes_get_size (server_io->msg_io->write_chunk);
                 g_clear_pointer (&server_io->msg_io->write_chunk, g_bytes_unref);
 
@@ -605,12 +605,12 @@ io_write (SoupServerMessageIOHTTP1 *server_io,
 static GUri *
 parse_connect_authority (const char *req_path)
 {
-	GUri *uri;
-	char *fake_uri;
+        GUri *uri;
+        char *fake_uri;
 
-	fake_uri = g_strdup_printf ("http://%s", req_path);
-	uri = g_uri_parse (fake_uri, SOUP_HTTP_URI_FLAGS, NULL);
-	g_free (fake_uri);
+        fake_uri = g_strdup_printf ("http://%s", req_path);
+        uri = g_uri_parse (fake_uri, SOUP_HTTP_URI_FLAGS, NULL);
+        g_free (fake_uri);
 
         if (!uri)
                 return NULL;
@@ -626,7 +626,7 @@ parse_connect_authority (const char *req_path)
                 return NULL;
         }
 
-	return uri;
+        return uri;
 }
 
 /* RFC 9110 defines Host as "uri-host [ ":" port ]", so it never carries a
@@ -658,13 +658,13 @@ parse_headers (SoupServerMessage *msg,
 {
         char *req_method, *req_path, *url;
         SoupHTTPVersion version;
-	SoupServerConnection *conn;
+        SoupServerConnection *conn;
         const char *req_host;
         guint status;
         GUri *uri;
-	SoupMessageHeaders *request_headers;
+        SoupMessageHeaders *request_headers;
 
-	request_headers = soup_server_message_get_request_headers (msg);
+        request_headers = soup_server_message_get_request_headers (msg);
 
         status = soup_headers_parse_request (headers, headers_len,
                                              request_headers,
@@ -674,8 +674,8 @@ parse_headers (SoupServerMessage *msg,
         if (!SOUP_STATUS_IS_SUCCESSFUL (status))
                 return status;
 
-	soup_server_message_set_method (msg, req_method);
-	soup_server_message_set_http_version (msg, version);
+        soup_server_message_set_method (msg, req_method);
+        soup_server_message_set_http_version (msg, version);
         g_free (req_method);
 
         /* Handle request body encoding */
@@ -703,31 +703,31 @@ parse_headers (SoupServerMessage *msg,
                 return SOUP_STATUS_BAD_REQUEST;
         }
 
-	conn = soup_server_message_get_connection (msg);
+        conn = soup_server_message_get_connection (msg);
 
-	if (!strcmp (req_path, "*") && req_host) {
-		/* Eg, "OPTIONS * HTTP/1.1" */
-		url = g_strdup_printf ("%s://%s/",
-				       soup_server_connection_is_ssl (conn) ? "https" : "http",
-				       req_host);
-		uri = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, NULL);
+        if (!strcmp (req_path, "*") && req_host) {
+                /* Eg, "OPTIONS * HTTP/1.1" */
+                url = g_strdup_printf ("%s://%s/",
+                                       soup_server_connection_is_ssl (conn) ? "https" : "http",
+                                       req_host);
+                uri = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, NULL);
                 soup_server_message_set_options_ping (msg, TRUE);
-		g_free (url);
-	} else if (soup_server_message_get_method (msg) == SOUP_METHOD_CONNECT) {
-		/* Authority */
-		uri = parse_connect_authority (req_path);
-	} else if (*req_path != '/') {
-		/* Absolute URI */
-		uri = g_uri_parse (req_path, SOUP_HTTP_URI_FLAGS, NULL);
-	} else if (req_host) {
-		url = g_strdup_printf ("%s://%s%s",
-				       soup_server_connection_is_ssl (conn) ? "https" : "http",
-				       req_host, req_path);
-		uri = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, NULL);
-		g_free (url);
-	} else if (soup_server_message_get_http_version (msg) == SOUP_HTTP_1_0) {
-		/* No Host header, no AbsoluteUri */
-		GInetSocketAddress *addr = G_INET_SOCKET_ADDRESS (soup_server_connection_get_local_address (conn));
+                g_free (url);
+        } else if (soup_server_message_get_method (msg) == SOUP_METHOD_CONNECT) {
+                /* Authority */
+                uri = parse_connect_authority (req_path);
+        } else if (*req_path != '/') {
+                /* Absolute URI */
+                uri = g_uri_parse (req_path, SOUP_HTTP_URI_FLAGS, NULL);
+        } else if (req_host) {
+                url = g_strdup_printf ("%s://%s%s",
+                                       soup_server_connection_is_ssl (conn) ? "https" : "http",
+                                       req_host, req_path);
+                uri = g_uri_parse (url, SOUP_HTTP_URI_FLAGS, NULL);
+                g_free (url);
+        } else if (soup_server_message_get_http_version (msg) == SOUP_HTTP_1_0) {
+                /* No Host header, no AbsoluteUri */
+                GInetSocketAddress *addr = G_INET_SOCKET_ADDRESS (soup_server_connection_get_local_address (conn));
                 GInetAddress *inet_addr = g_inet_socket_address_get_address (addr);
                 char *local_ip = g_inet_address_to_string (inet_addr);
                 int port = g_inet_socket_address_get_port (addr);
@@ -737,19 +737,19 @@ parse_headers (SoupServerMessage *msg,
                 uri = g_uri_build (SOUP_HTTP_URI_FLAGS,
                                    soup_server_connection_is_ssl (conn) ? "https" : "http",
                                    NULL, local_ip, port, req_path, NULL, NULL);
-		g_free (local_ip);
-	} else
-		uri = NULL;
+                g_free (local_ip);
+        } else
+                uri = NULL;
 
-	g_free (req_path);
+        g_free (req_path);
 
-	if (!uri || !g_uri_get_host (uri)) {
-		if (uri)
-			g_uri_unref (uri);
-		return SOUP_STATUS_BAD_REQUEST;
-	}
+        if (!uri || !g_uri_get_host (uri)) {
+                if (uri)
+                        g_uri_unref (uri);
+                return SOUP_STATUS_BAD_REQUEST;
+        }
 
-	soup_server_message_set_uri (msg, uri);
+        soup_server_message_set_uri (msg, uri);
         g_uri_unref (uri);
 
         return SOUP_STATUS_OK;
@@ -766,10 +766,10 @@ io_read (SoupServerMessageIOHTTP1 *server_io,
          GError                  **error)
 {
         SoupServerMessage *msg = server_io->msg_io->msg;
-	SoupMessageIOData *io = &server_io->msg_io->base;
+        SoupMessageIOData *io = &server_io->msg_io->base;
         gssize nread;
         guint status;
-	SoupMessageHeaders *request_headers;
+        SoupMessageHeaders *request_headers;
         gboolean succeeded;
         gboolean is_first_read;
 
@@ -785,7 +785,7 @@ io_read (SoupServerMessageIOHTTP1 *server_io,
                         if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT))
                                 soup_server_message_set_status (msg, SOUP_STATUS_BAD_REQUEST, NULL);
                         return FALSE;
-		}
+                }
 
                 status = parse_headers (msg,
                                         (char *)io->read_header_buf->data,
@@ -794,7 +794,7 @@ io_read (SoupServerMessageIOHTTP1 *server_io,
                                         error);
                 g_byte_array_set_size (io->read_header_buf, 0);
 
-		request_headers = soup_server_message_get_request_headers (msg);
+                request_headers = soup_server_message_get_request_headers (msg);
 
                 if (status != SOUP_STATUS_OK) {
                         /* Either we couldn't parse the headers, or they
@@ -849,9 +849,9 @@ io_read (SoupServerMessageIOHTTP1 *server_io,
                                                 FALSE,
                                                 NULL, error);
                 if (nread > 0) {
-			SoupMessageBody *request_body;
+                        SoupMessageBody *request_body;
 
-			request_body = soup_server_message_get_request_body (msg);
+                        request_body = soup_server_message_get_request_body (msg);
                         if (request_body) {
                                 GBytes *bytes = g_bytes_new (buf, nread);
                                 soup_message_body_got_chunk (request_body, bytes);
@@ -905,7 +905,7 @@ io_run_until (SoupServerMessageIOHTTP1 *server_io,
               GError                  **error)
 {
         SoupServerMessage *msg = server_io->msg_io->msg;
-	SoupMessageIOData *io = &server_io->msg_io->base;
+        SoupMessageIOData *io = &server_io->msg_io->base;
         gboolean progress = TRUE, done;
         GError *my_error = NULL;
 
@@ -931,7 +931,7 @@ io_run_until (SoupServerMessageIOHTTP1 *server_io,
                 return FALSE;
         }
 
-	if (soup_server_message_get_io_data (msg) != (SoupServerMessageIO *)server_io) {
+        if (soup_server_message_get_io_data (msg) != (SoupServerMessageIO *)server_io) {
                 g_object_unref (msg);
                 return FALSE;
         }
@@ -963,7 +963,7 @@ static void
 io_run (SoupServerMessageIOHTTP1 *server_io)
 {
         SoupServerMessage *msg = server_io->msg_io->msg;
-	SoupMessageIOData *io = &server_io->msg_io->base;
+        SoupMessageIOData *io = &server_io->msg_io->base;
         gboolean success;
         GError *error = NULL;
 
@@ -998,15 +998,15 @@ io_run (SoupServerMessageIOHTTP1 *server_io)
                                                                  server_io->istream,
                                                                  server_io->ostream,
                                                                  NULL,
-								 (SoupMessageIOSourceFunc)io_run_ready,
-								 NULL);
+                                                                 (SoupMessageIOSourceFunc)io_run_ready,
+                                                                 NULL);
                 g_source_attach (io->io_source, server_io->msg_io->async_context);
         } else if (soup_server_message_get_io_data (msg) == (SoupServerMessageIO *)server_io) {
-		soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, error ? error->message : NULL);
-		soup_server_message_finish (msg);
-	}
-	g_object_unref (msg);
-	g_clear_error (&error);
+                soup_server_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, error ? error->message : NULL);
+                soup_server_message_finish (msg);
+        }
+        g_object_unref (msg);
+        g_clear_error (&error);
 }
 
 static void
@@ -1035,26 +1035,26 @@ soup_server_message_io_http1_pause (SoupServerMessageIO *iface,
 
         g_assert (io->msg_io && io->msg_io->msg == msg);
 
-	if (io->msg_io->unpause_source) {
+        if (io->msg_io->unpause_source) {
                 g_source_destroy (io->msg_io->unpause_source);
                 g_clear_pointer (&io->msg_io->unpause_source, g_source_unref);
-	}
+        }
 
-	soup_message_io_data_pause (&io->msg_io->base);
+        soup_message_io_data_pause (&io->msg_io->base);
 }
 
 static gboolean
 io_unpause_internal (SoupServerMessageIOHTTP1 *io)
 {
-	g_assert (io != NULL && io->msg_io != NULL);
+        g_assert (io != NULL && io->msg_io != NULL);
 
-	g_clear_pointer (&io->msg_io->unpause_source, g_source_unref);
-	soup_message_io_data_unpause (&io->msg_io->base);
+        g_clear_pointer (&io->msg_io->unpause_source, g_source_unref);
+        soup_message_io_data_unpause (&io->msg_io->base);
         if (io->msg_io->base.io_source)
-		return FALSE;
+                return FALSE;
 
         io_run (io);
-	return FALSE;
+        return FALSE;
 }
 
 static void
@@ -1066,7 +1066,7 @@ soup_server_message_io_http1_unpause (SoupServerMessageIO *iface,
         g_assert (io->msg_io && io->msg_io->msg == msg);
 
         if (!io->msg_io->unpause_source) {
-	        io->msg_io->unpause_source = soup_add_completion_reffed (io->msg_io->async_context,
+                io->msg_io->unpause_source = soup_add_completion_reffed (io->msg_io->async_context,
                                                                          (GSourceFunc)io_unpause_internal,
                                                                          io, NULL);
         }
@@ -1080,7 +1080,7 @@ soup_server_message_io_http1_is_paused (SoupServerMessageIO *iface,
 
         g_assert (io->msg_io && io->msg_io->msg == msg);
 
-	return io->msg_io->base.paused;
+        return io->msg_io->base.paused;
 }
 
 static const SoupServerMessageIOFuncs io_funcs = {

@@ -41,10 +41,10 @@
  **/
 
 struct _SoupHSTSPolicy {
-	char                 *domain;
-	unsigned long         max_age;
-	GDateTime            *expires;
-	gboolean              include_subdomains;
+        char                 *domain;
+        unsigned long         max_age;
+        GDateTime            *expires;
+        gboolean              include_subdomains;
 };
 
 G_DEFINE_BOXED_TYPE (SoupHSTSPolicy, soup_hsts_policy, soup_hsts_policy_copy, soup_hsts_policy_free)
@@ -60,15 +60,15 @@ G_DEFINE_BOXED_TYPE (SoupHSTSPolicy, soup_hsts_policy, soup_hsts_policy_copy, so
 SoupHSTSPolicy *
 soup_hsts_policy_copy (SoupHSTSPolicy *policy)
 {
-	SoupHSTSPolicy *copy = g_slice_new0 (SoupHSTSPolicy);
+        SoupHSTSPolicy *copy = g_slice_new0 (SoupHSTSPolicy);
 
-	copy->domain = g_strdup (policy->domain);
-	copy->max_age = policy->max_age;
-	copy->expires = policy->expires ?
-		g_date_time_ref (policy->expires) : NULL;
-	copy->include_subdomains = policy->include_subdomains;
+        copy->domain = g_strdup (policy->domain);
+        copy->max_age = policy->max_age;
+        copy->expires = policy->expires ?
+                g_date_time_ref (policy->expires) : NULL;
+        copy->include_subdomains = policy->include_subdomains;
 
-	return copy;
+        return copy;
 }
 
 /**
@@ -83,27 +83,27 @@ soup_hsts_policy_copy (SoupHSTSPolicy *policy)
 gboolean
 soup_hsts_policy_equal (SoupHSTSPolicy *policy1, SoupHSTSPolicy *policy2)
 {
-	g_return_val_if_fail (policy1, FALSE);
-	g_return_val_if_fail (policy2, FALSE);
+        g_return_val_if_fail (policy1, FALSE);
+        g_return_val_if_fail (policy2, FALSE);
 
-	if (strcmp (policy1->domain, policy2->domain))
-		return FALSE;
+        if (strcmp (policy1->domain, policy2->domain))
+                return FALSE;
 
-	if (policy1->include_subdomains != policy2->include_subdomains)
-		return FALSE;
+        if (policy1->include_subdomains != policy2->include_subdomains)
+                return FALSE;
 
-	if (policy1->max_age != policy2->max_age)
-		return FALSE;
+        if (policy1->max_age != policy2->max_age)
+                return FALSE;
 
-	if ((policy1->expires && !policy2->expires) ||
-	    (!policy1->expires && policy2->expires))
-		return FALSE;
+        if ((policy1->expires && !policy2->expires) ||
+            (!policy1->expires && policy2->expires))
+                return FALSE;
 
-	if (policy1->expires && policy2->expires &&
-	    !g_date_time_equal (policy1->expires, policy2->expires))
-		return FALSE;
+        if (policy1->expires && policy2->expires &&
+            !g_date_time_equal (policy1->expires, policy2->expires))
+                return FALSE;
 
-	return TRUE;
+        return TRUE;
 }
 
 /*
@@ -113,8 +113,8 @@ soup_hsts_policy_equal (SoupHSTSPolicy *policy1, SoupHSTSPolicy *policy2)
 static gboolean
 is_hostname_valid (const char *hostname)
 {
-	/* IP addresses are not valid hostnames, only domain names are. */
-	return hostname && !g_hostname_is_ip_address (hostname);
+        /* IP addresses are not valid hostnames, only domain names are. */
+        return hostname && !g_hostname_is_ip_address (hostname);
 }
 
 /**
@@ -139,24 +139,24 @@ is_hostname_valid (const char *hostname)
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new (const char *domain,
-		      unsigned long max_age,
-		      gboolean include_subdomains)
+                      unsigned long max_age,
+                      gboolean include_subdomains)
 {
-	GDateTime *expires;
+        GDateTime *expires;
         SoupHSTSPolicy *policy;
 
-	if (max_age == SOUP_HSTS_POLICY_MAX_AGE_PAST) {
-		/* Use a date way in the past, to protect against
-		 * clock skew.
-		 */
+        if (max_age == SOUP_HSTS_POLICY_MAX_AGE_PAST) {
+                /* Use a date way in the past, to protect against
+                 * clock skew.
+                 */
                 expires = g_date_time_new_from_unix_utc (0);
-	} else {
+        } else {
                 GDateTime *now = g_date_time_new_now_utc ();
                 expires = g_date_time_add_seconds (now, max_age);
                 g_date_time_unref (now);
         }
 
-	policy = soup_hsts_policy_new_full (domain, max_age, expires, include_subdomains);
+        policy = soup_hsts_policy_new_full (domain, max_age, expires, include_subdomains);
 
         g_date_time_unref (expires);
 
@@ -179,31 +179,31 @@ soup_hsts_policy_new (const char *domain,
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_full (const char *domain,
-			   unsigned long max_age,
-			   GDateTime *expires,
-			   gboolean include_subdomains)
+                           unsigned long max_age,
+                           GDateTime *expires,
+                           gboolean include_subdomains)
 {
-	SoupHSTSPolicy *policy;
+        SoupHSTSPolicy *policy;
 
-	g_return_val_if_fail (is_hostname_valid (domain), NULL);
+        g_return_val_if_fail (is_hostname_valid (domain), NULL);
 
-	policy = g_slice_new0 (SoupHSTSPolicy);
+        policy = g_slice_new0 (SoupHSTSPolicy);
 
-	if (g_hostname_is_ascii_encoded (domain)) {
-		policy->domain = g_hostname_to_unicode (domain);
-		if (!policy->domain) {
-			g_slice_free (SoupHSTSPolicy, policy);
-			return NULL;
-		}
-	} else {
-		policy->domain = g_strdup (domain);
-	}
+        if (g_hostname_is_ascii_encoded (domain)) {
+                policy->domain = g_hostname_to_unicode (domain);
+                if (!policy->domain) {
+                        g_slice_free (SoupHSTSPolicy, policy);
+                        return NULL;
+                }
+        } else {
+                policy->domain = g_strdup (domain);
+        }
 
-	policy->max_age = max_age;
-	policy->expires = expires ? g_date_time_ref (expires) : NULL;
-	policy->include_subdomains = include_subdomains;
+        policy->max_age = max_age;
+        policy->expires = expires ? g_date_time_ref (expires) : NULL;
+        policy->include_subdomains = include_subdomains;
 
-	return policy;
+        return policy;
 }
 
 /**
@@ -229,13 +229,13 @@ soup_hsts_policy_new_full (const char *domain,
  **/
 SoupHSTSPolicy *
 soup_hsts_policy_new_session_policy (const char *domain,
-				     gboolean include_subdomains)
+                                     gboolean include_subdomains)
 {
-	SoupHSTSPolicy *policy;
+        SoupHSTSPolicy *policy;
 
-	policy = soup_hsts_policy_new_full (domain, 0, NULL, include_subdomains);
+        policy = soup_hsts_policy_new_full (domain, 0, NULL, include_subdomains);
 
-	return policy;
+        return policy;
 }
 
 /**
@@ -251,53 +251,53 @@ soup_hsts_policy_new_session_policy (const char *domain,
 SoupHSTSPolicy *
 soup_hsts_policy_new_from_response (SoupMessage *msg)
 {
-	SoupMessageHeadersIter iter;
-	const char *name, *value;
+        SoupMessageHeadersIter iter;
+        const char *name, *value;
 
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
-	while (soup_message_headers_iter_next (&iter, &name, &value)) {
-		GUri *uri;
-		GHashTable *params;
-		const char *max_age_str;
-		char *endptr;
-		unsigned long max_age;
-		gboolean include_subdomains;
-		gpointer include_subdomains_value = NULL;
-		SoupHSTSPolicy *policy = NULL;
+        soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
+        while (soup_message_headers_iter_next (&iter, &name, &value)) {
+                GUri *uri;
+                GHashTable *params;
+                const char *max_age_str;
+                char *endptr;
+                unsigned long max_age;
+                gboolean include_subdomains;
+                gpointer include_subdomains_value = NULL;
+                SoupHSTSPolicy *policy = NULL;
 
-		if (g_ascii_strcasecmp (name, "Strict-Transport-Security") != 0)
-			continue;
+                if (g_ascii_strcasecmp (name, "Strict-Transport-Security") != 0)
+                        continue;
 
-		uri = soup_message_get_uri (msg);
+                uri = soup_message_get_uri (msg);
 
-		params = soup_header_parse_semi_param_list_strict (value);
+                params = soup_header_parse_semi_param_list_strict (value);
 
-		if (!params)
-			return NULL;
+                if (!params)
+                        return NULL;
 
-		max_age_str = g_hash_table_lookup (params, "max-age");
+                max_age_str = g_hash_table_lookup (params, "max-age");
 
-		if (!max_age_str)
-			goto out;
-		max_age = strtoul (max_age_str, &endptr, 10);
-		if (*endptr != '\0')
-			goto out;
+                if (!max_age_str)
+                        goto out;
+                max_age = strtoul (max_age_str, &endptr, 10);
+                if (*endptr != '\0')
+                        goto out;
 
-		include_subdomains = g_hash_table_lookup_extended (params, "includeSubDomains", NULL,
-								   &include_subdomains_value);
-		/* includeSubdomains shouldn't have a value. */
-		if (include_subdomains_value)
-			goto out;
+                include_subdomains = g_hash_table_lookup_extended (params, "includeSubDomains", NULL,
+                                                                   &include_subdomains_value);
+                /* includeSubdomains shouldn't have a value. */
+                if (include_subdomains_value)
+                        goto out;
 
-		policy = soup_hsts_policy_new (g_uri_get_host (uri), max_age, include_subdomains);
-	out:
-		soup_header_free_param_list (params);
-		return policy;
-	}
+                policy = soup_hsts_policy_new (g_uri_get_host (uri), max_age, include_subdomains);
+        out:
+                soup_header_free_param_list (params);
+                return policy;
+        }
 
-	return NULL;
+        return NULL;
 }
 
 /**
@@ -311,9 +311,9 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 const char *
 soup_hsts_policy_get_domain (SoupHSTSPolicy *policy)
 {
-	g_return_val_if_fail (policy != NULL, NULL);
+        g_return_val_if_fail (policy != NULL, NULL);
 
-	return policy->domain;
+        return policy->domain;
 }
 
 /**
@@ -329,9 +329,9 @@ soup_hsts_policy_get_domain (SoupHSTSPolicy *policy)
 gboolean
 soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
 {
-	g_return_val_if_fail (policy != NULL, TRUE);
+        g_return_val_if_fail (policy != NULL, TRUE);
 
-	return policy->expires && soup_date_time_is_past (policy->expires);
+        return policy->expires && soup_date_time_is_past (policy->expires);
 }
 
 /**
@@ -345,9 +345,9 @@ soup_hsts_policy_is_expired (SoupHSTSPolicy *policy)
 gboolean
 soup_hsts_policy_includes_subdomains (SoupHSTSPolicy *policy)
 {
-	g_return_val_if_fail (policy != NULL, FALSE);
+        g_return_val_if_fail (policy != NULL, FALSE);
 
-	return policy->include_subdomains;
+        return policy->include_subdomains;
 }
 
 /**
@@ -363,9 +363,9 @@ soup_hsts_policy_includes_subdomains (SoupHSTSPolicy *policy)
 gboolean
 soup_hsts_policy_is_session_policy (SoupHSTSPolicy *policy)
 {
-	g_return_val_if_fail (policy != NULL, FALSE);
+        g_return_val_if_fail (policy != NULL, FALSE);
 
-	return !policy->expires;
+        return !policy->expires;
 }
 
 /**
@@ -409,9 +409,9 @@ soup_hsts_policy_get_max_age (SoupHSTSPolicy *policy)
 void
 soup_hsts_policy_free (SoupHSTSPolicy *policy)
 {
-	g_return_if_fail (policy != NULL);
+        g_return_if_fail (policy != NULL);
 
-	g_free (policy->domain);
-	g_clear_pointer (&policy->expires, g_date_time_unref);
-	g_slice_free (SoupHSTSPolicy, policy);
+        g_free (policy->domain);
+        g_clear_pointer (&policy->expires, g_date_time_unref);
+        g_slice_free (SoupHSTSPolicy, policy);
 }

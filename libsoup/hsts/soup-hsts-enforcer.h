@@ -29,41 +29,41 @@ G_DECLARE_DERIVABLE_TYPE (SoupHSTSEnforcer, soup_hsts_enforcer, SOUP, HSTS_ENFOR
  * Class structure for [class@HSTSEnforcer].
  **/
 struct _SoupHSTSEnforcerClass {
-	GObjectClass parent_class;
+        GObjectClass parent_class;
 
-	gboolean (*is_persistent) (SoupHSTSEnforcer *hsts_enforcer);
-	gboolean (*has_valid_policy) (SoupHSTSEnforcer *hsts_enforcer, const char *domain);
+        gboolean (*is_persistent) (SoupHSTSEnforcer *hsts_enforcer);
+        gboolean (*has_valid_policy) (SoupHSTSEnforcer *hsts_enforcer, const char *domain);
 
-	/* signals */
-	void (*changed) (SoupHSTSEnforcer *enforcer,
-			 SoupHSTSPolicy	  *old_policy,
-			 SoupHSTSPolicy	  *new_policy);
+        /* signals */
+        void (*changed) (SoupHSTSEnforcer *enforcer,
+                         SoupHSTSPolicy   *old_policy,
+                         SoupHSTSPolicy   *new_policy);
 
         /* <private> */
-	gpointer padding[4];
+        gpointer padding[4];
 };
 
 SOUP_AVAILABLE_IN_ALL
-SoupHSTSEnforcer *soup_hsts_enforcer_new			   (void);
+SoupHSTSEnforcer *soup_hsts_enforcer_new                           (void);
 SOUP_AVAILABLE_IN_ALL
-gboolean	  soup_hsts_enforcer_is_persistent		   (SoupHSTSEnforcer *hsts_enforcer);
+gboolean          soup_hsts_enforcer_is_persistent                 (SoupHSTSEnforcer *hsts_enforcer);
 SOUP_AVAILABLE_IN_ALL
-gboolean	  soup_hsts_enforcer_has_valid_policy		   (SoupHSTSEnforcer *hsts_enforcer,
-								    const char	     *domain);
+gboolean          soup_hsts_enforcer_has_valid_policy              (SoupHSTSEnforcer *hsts_enforcer,
+                                                                    const char       *domain);
 SOUP_AVAILABLE_IN_ALL
-void		  soup_hsts_enforcer_set_session_policy		   (SoupHSTSEnforcer *hsts_enforcer,
-								    const char	     *domain,
-								    gboolean	      include_subdomains);
+void              soup_hsts_enforcer_set_session_policy            (SoupHSTSEnforcer *hsts_enforcer,
+                                                                    const char       *domain,
+                                                                    gboolean          include_subdomains);
 SOUP_AVAILABLE_IN_ALL
-void		  soup_hsts_enforcer_set_policy			   (SoupHSTSEnforcer *hsts_enforcer,
-								    SoupHSTSPolicy   *policy);
+void              soup_hsts_enforcer_set_policy                    (SoupHSTSEnforcer *hsts_enforcer,
+                                                                    SoupHSTSPolicy   *policy);
 
 SOUP_AVAILABLE_IN_ALL
 GList            *soup_hsts_enforcer_get_domains                   (SoupHSTSEnforcer *hsts_enforcer,
-								    gboolean          session_policies);
+                                                                    gboolean          session_policies);
 
 SOUP_AVAILABLE_IN_ALL
 GList            *soup_hsts_enforcer_get_policies                  (SoupHSTSEnforcer *hsts_enforcer,
-								    gboolean          session_policies);
+                                                                    gboolean          session_policies);
 
 G_END_DECLS

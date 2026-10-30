@@ -15,35 +15,35 @@ G_DEFINE_INTERFACE (SoupContentProcessor, soup_content_processor, G_TYPE_OBJECT)
 
 static GInputStream *
 soup_content_processor_real_wrap_input (SoupContentProcessor *processor,
-					GInputStream *base_stream,
-					SoupMessage *msg,
-					GError **error)
+                                        GInputStream *base_stream,
+                                        SoupMessage *msg,
+                                        GError **error)
 {
-	g_return_val_if_reached (NULL);
+        g_return_val_if_reached (NULL);
 }
 
 static void
 soup_content_processor_default_init (SoupContentProcessorInterface *interface)
 {
-	interface->processing_stage = SOUP_STAGE_INVALID;
-	interface->wrap_input = soup_content_processor_real_wrap_input;
+        interface->processing_stage = SOUP_STAGE_INVALID;
+        interface->wrap_input = soup_content_processor_real_wrap_input;
 }
 
 GInputStream *
 soup_content_processor_wrap_input (SoupContentProcessor *processor,
-				   GInputStream *base_stream,
-				   SoupMessage *msg,
-				   GError **error)
+                                   GInputStream *base_stream,
+                                   SoupMessage *msg,
+                                   GError **error)
 {
-	g_return_val_if_fail (SOUP_IS_CONTENT_PROCESSOR (processor), NULL);
+        g_return_val_if_fail (SOUP_IS_CONTENT_PROCESSOR (processor), NULL);
 
-	return SOUP_CONTENT_PROCESSOR_GET_IFACE (processor)->wrap_input (processor, base_stream, msg, error);
+        return SOUP_CONTENT_PROCESSOR_GET_IFACE (processor)->wrap_input (processor, base_stream, msg, error);
 }
 
 SoupProcessingStage
 soup_content_processor_get_processing_stage (SoupContentProcessor *processor)
 {
-	g_return_val_if_fail (SOUP_IS_CONTENT_PROCESSOR (processor), SOUP_STAGE_INVALID);
+        g_return_val_if_fail (SOUP_IS_CONTENT_PROCESSOR (processor), SOUP_STAGE_INVALID);
 
-	return SOUP_CONTENT_PROCESSOR_GET_IFACE (processor)->processing_stage;
+        return SOUP_CONTENT_PROCESSOR_GET_IFACE (processor)->processing_stage;
 }

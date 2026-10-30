@@ -18,7 +18,7 @@
 #include "soup.h"
 
 static const char *soup_tld_get_base_domain_internal (const char *hostname,
-						      GError    **error);
+                                                      GError    **error);
 
 /**
  * soup_tld_get_base_domain:
@@ -47,20 +47,20 @@ static const char *soup_tld_get_base_domain_internal (const char *hostname,
 const char *
 soup_tld_get_base_domain (const char *hostname, GError **error)
 {
-	g_return_val_if_fail (hostname, NULL);
+        g_return_val_if_fail (hostname, NULL);
 
-	return soup_tld_get_base_domain_internal (hostname, error);
+        return soup_tld_get_base_domain_internal (hostname, error);
 }
 
 static psl_ctx_t *
 soup_psl_context (void)
 {
-	static psl_ctx_t *psl = NULL;
+        static psl_ctx_t *psl = NULL;
 
-	if (!psl)
-		psl = psl_latest (NULL);
+        if (!psl)
+                psl = psl_latest (NULL);
 
-	return psl;
+        return psl;
 }
 
 /**
@@ -79,16 +79,16 @@ soup_psl_context (void)
 gboolean
 soup_tld_domain_is_public_suffix (const char *domain)
 {
-	const psl_ctx_t* psl = soup_psl_context ();
+        const psl_ctx_t* psl = soup_psl_context ();
 
-	g_return_val_if_fail (domain, FALSE);
+        g_return_val_if_fail (domain, FALSE);
 
-	if (!psl) {
-		g_warning ("soup-tld: There is no public-suffix data available.");
-		return FALSE;
-	}
+        if (!psl) {
+                g_warning ("soup-tld: There is no public-suffix data available.");
+                return FALSE;
+        }
 
-	return psl_is_public_suffix2 (psl, domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE);
+        return psl_is_public_suffix2 (psl, domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE);
 }
 
 /**
@@ -119,62 +119,62 @@ G_DEFINE_QUARK (soup-tld-error-quark, soup_tld_error)
 static const char *
 soup_tld_get_base_domain_internal (const char *hostname, GError **error)
 {
-	char *utf8_hostname = NULL;
-	const psl_ctx_t* psl = soup_psl_context ();
-	const char *registrable_domain, *unregistrable_domain;
+        char *utf8_hostname = NULL;
+        const psl_ctx_t* psl = soup_psl_context ();
+        const char *registrable_domain, *unregistrable_domain;
 
-	if (!psl) {
-		g_set_error_literal (error, SOUP_TLD_ERROR,
-				     SOUP_TLD_ERROR_NO_PSL_DATA,
-				     _("No public-suffix list available."));
-		return NULL;
-	}
+        if (!psl) {
+                g_set_error_literal (error, SOUP_TLD_ERROR,
+                                     SOUP_TLD_ERROR_NO_PSL_DATA,
+                                     _("No public-suffix list available."));
+                return NULL;
+        }
 
-	/* Valid hostnames neither start with a dot nor have more than one
-	 * dot together.
-	 */
-	if (*hostname == '.') {
-		g_set_error_literal (error, SOUP_TLD_ERROR,
-				     SOUP_TLD_ERROR_INVALID_HOSTNAME,
-				     _("Invalid hostname"));
-		return NULL;
-	}
+        /* Valid hostnames neither start with a dot nor have more than one
+         * dot together.
+         */
+        if (*hostname == '.') {
+                g_set_error_literal (error, SOUP_TLD_ERROR,
+                                     SOUP_TLD_ERROR_INVALID_HOSTNAME,
+                                     _("Invalid hostname"));
+                return NULL;
+        }
 
-	if (g_hostname_is_ip_address (hostname)) {
-		g_set_error_literal (error, SOUP_TLD_ERROR,
-				     SOUP_TLD_ERROR_IS_IP_ADDRESS,
-				     _("Hostname is an IP address"));
-		return NULL;
-	}
+        if (g_hostname_is_ip_address (hostname)) {
+                g_set_error_literal (error, SOUP_TLD_ERROR,
+                                     SOUP_TLD_ERROR_IS_IP_ADDRESS,
+                                     _("Hostname is an IP address"));
+                return NULL;
+        }
 
-	if (g_hostname_is_ascii_encoded (hostname)) {
-		utf8_hostname = g_hostname_to_unicode (hostname);
-		if (!utf8_hostname) {
-			g_set_error_literal (error, SOUP_TLD_ERROR,
-					     SOUP_TLD_ERROR_INVALID_HOSTNAME,
-					     _("Invalid hostname"));
-			return NULL;
-		}
-		g_free (utf8_hostname);
-	}
+        if (g_hostname_is_ascii_encoded (hostname)) {
+                utf8_hostname = g_hostname_to_unicode (hostname);
+                if (!utf8_hostname) {
+                        g_set_error_literal (error, SOUP_TLD_ERROR,
+                                             SOUP_TLD_ERROR_INVALID_HOSTNAME,
+                                             _("Invalid hostname"));
+                        return NULL;
+                }
+                g_free (utf8_hostname);
+        }
 
-	/* Fetch the domain portion of the hostname and check whether
-	 * it's a public domain. */
-	unregistrable_domain = psl_unregistrable_domain (psl, hostname);
-	if (!psl_is_public_suffix2 (psl, unregistrable_domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE)) {
-		g_set_error_literal (error, SOUP_TLD_ERROR,
-				     SOUP_TLD_ERROR_NO_BASE_DOMAIN,
-				     _("Hostname has no base domain"));
-		return NULL;
-	}
+        /* Fetch the domain portion of the hostname and check whether
+         * it's a public domain. */
+        unregistrable_domain = psl_unregistrable_domain (psl, hostname);
+        if (!psl_is_public_suffix2 (psl, unregistrable_domain, PSL_TYPE_ANY | PSL_TYPE_NO_STAR_RULE)) {
+                g_set_error_literal (error, SOUP_TLD_ERROR,
+                                     SOUP_TLD_ERROR_NO_BASE_DOMAIN,
+                                     _("Hostname has no base domain"));
+                return NULL;
+        }
 
-	registrable_domain = psl_registrable_domain (psl, hostname);
-	if (!registrable_domain) {
-		g_set_error_literal (error, SOUP_TLD_ERROR,
-				     SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS,
-				     _("Not enough domains"));
-		return NULL;
-	}
+        registrable_domain = psl_registrable_domain (psl, hostname);
+        if (!registrable_domain) {
+                g_set_error_literal (error, SOUP_TLD_ERROR,
+                                     SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS,
+                                     _("Not enough domains"));
+                return NULL;
+        }
 
-	return registrable_domain;
+        return registrable_domain;
 }

@@ -14,11 +14,11 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (SoupContentSnifferStream, soup_content_sniffer_stream, SOUP, CONTENT_SNIFFER_STREAM, GFilterInputStream)
 
 gboolean      soup_content_sniffer_stream_is_ready (SoupContentSnifferStream  *sniffer,
-						    gboolean                   blocking,
-						    GCancellable              *cancellable,
-						    GError                   **error);
+                                                    gboolean                   blocking,
+                                                    GCancellable              *cancellable,
+                                                    GError                   **error);
 const char   *soup_content_sniffer_stream_sniff    (SoupContentSnifferStream  *sniffer,
-						    GHashTable               **params);
+                                                    GHashTable               **params);
 
 
 G_END_DECLS

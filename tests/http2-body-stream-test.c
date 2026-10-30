@@ -32,10 +32,10 @@ do_large_data_test (void)
         guint8 *memory_chunk = g_try_new (guint8, CHUNK_SIZE);
         guint8 *trash_buffer = g_try_new (guint8, CHUNK_SIZE);
 
-	if (memory_chunk == NULL || trash_buffer == NULL) {
-		g_test_skip ("large memory allocation failed");
-		goto out;
-	}
+        if (memory_chunk == NULL || trash_buffer == NULL) {
+                g_test_skip ("large memory allocation failed");
+                goto out;
+        }
 
         /* We can add unlimited data and as long as its read the data will
          * be freed, so this should work fine even though its reading GB of data */
@@ -211,19 +211,19 @@ do_skip_async_test (void)
 int
 main (int argc, char **argv)
 {
-	int ret;
+        int ret;
 
-	test_init (argc, argv, NULL);
+        test_init (argc, argv, NULL);
 
-	g_test_add_func ("/body_stream/large_data", do_large_data_test);
+        g_test_add_func ("/body_stream/large_data", do_large_data_test);
         g_test_add_func ("/body_stream/multiple_chunks", do_multiple_chunk_test);
         g_test_add_func ("/body_stream/skip_async", do_skip_async_test);
         g_test_add_func ("/body_stream/skip_multiple_chunks", do_skip_multiple_chunks_test);
         g_test_add_func ("/body_stream/blocking_read_no_stackoverflow", do_blocking_read_no_stackoverflow_test);
 
-	ret = g_test_run ();
+        ret = g_test_run ();
 
         test_cleanup ();
 
-	return ret;
+        return ret;
 }

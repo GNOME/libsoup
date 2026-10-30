@@ -325,7 +325,7 @@ soup_connection_list_disconnect_all (GList *conns)
 
                 soup_connection_disconnect (conn);
                 g_object_unref (conn);
-	}
+        }
         g_list_free (conns);
 }
 

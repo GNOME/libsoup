@@ -1008,19 +1008,19 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
                         *((CK_BBOOL *) pTemplate[i].pValue) = obj.object_class == CKO_PRIVATE_KEY ? CK_TRUE : CK_FALSE;
                         pTemplate[i].ulValueLen = sizeof(CK_BBOOL);
                 }
-		else if (CKA_CERTIFICATE_CATEGORY == pTemplate[i].type)
-		{
-			CK_ULONG t;
-			if (pTemplate[i].ulValueLen < sizeof(CK_ULONG))
-				return CKR_BUFFER_TOO_SMALL;
+                else if (CKA_CERTIFICATE_CATEGORY == pTemplate[i].type)
+                {
+                        CK_ULONG t;
+                        if (pTemplate[i].ulValueLen < sizeof(CK_ULONG))
+                                return CKR_BUFFER_TOO_SMALL;
 
                         if (obj.object_class == CKO_CERTIFICATE)
                                 t = CK_CERTIFICATE_CATEGORY_AUTHORITY;
                         else
                                 t = CK_CERTIFICATE_CATEGORY_UNSPECIFIED;
 
-			memcpy(pTemplate[i].pValue, &t, sizeof(CK_ULONG));
-		}
+                        memcpy(pTemplate[i].pValue, &t, sizeof(CK_ULONG));
+                }
                 else if (CKA_SUBJECT == pTemplate[i].type)
                 {
                         int status;
@@ -1087,17 +1087,17 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
                 {
                         CK_CERTIFICATE_TYPE ret = CKC_X_509;
 
-			if (pTemplate[i].ulValueLen != sizeof(CK_CERTIFICATE_TYPE))
-				return CKR_ARGUMENTS_BAD;
+                        if (pTemplate[i].ulValueLen != sizeof(CK_CERTIFICATE_TYPE))
+                                return CKR_ARGUMENTS_BAD;
 
                         /* TODO: Test both TRUE and FALSE */
-			memcpy(pTemplate[i].pValue, &ret, sizeof(CK_CERTIFICATE_TYPE));
+                        memcpy(pTemplate[i].pValue, &ret, sizeof(CK_CERTIFICATE_TYPE));
                 }
-		else if (CKA_KEY_TYPE == pTemplate[i].type)
-		{
-			CK_KEY_TYPE t;
-			if (pTemplate[i].ulValueLen != sizeof(CK_KEY_TYPE))
-				return CKR_ARGUMENTS_BAD;
+                else if (CKA_KEY_TYPE == pTemplate[i].type)
+                {
+                        CK_KEY_TYPE t;
+                        if (pTemplate[i].ulValueLen != sizeof(CK_KEY_TYPE))
+                                return CKR_ARGUMENTS_BAD;
 
                         if (obj.object_class != CKO_PRIVATE_KEY)
                                 return CKR_ARGUMENTS_BAD;
@@ -1121,20 +1121,20 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
                                         return CKR_ATTRIBUTE_TYPE_INVALID;
                         }
 
-			memcpy(pTemplate[i].pValue, &t, sizeof(CK_KEY_TYPE));
-		}
-		else if (CKA_ALWAYS_AUTHENTICATE == pTemplate[i].type)
-		{
+                        memcpy(pTemplate[i].pValue, &t, sizeof(CK_KEY_TYPE));
+                }
+                else if (CKA_ALWAYS_AUTHENTICATE == pTemplate[i].type)
+                {
                         CK_BBOOL ret = CK_TRUE;
 
-			if (pTemplate[i].ulValueLen != sizeof(CK_BBOOL))
-				return CKR_ARGUMENTS_BAD;
+                        if (pTemplate[i].ulValueLen != sizeof(CK_BBOOL))
+                                return CKR_ARGUMENTS_BAD;
 
                         /* TODO: Test both TRUE and FALSE */
-			memcpy(pTemplate[i].pValue, &ret, sizeof(CK_BBOOL));
-		}
-		else if (CKA_MODULUS == pTemplate[i].type && obj.object_class == CKO_PRIVATE_KEY)
-		{
+                        memcpy(pTemplate[i].pValue, &ret, sizeof(CK_BBOOL));
+                }
+                else if (CKA_MODULUS == pTemplate[i].type && obj.object_class == CKO_PRIVATE_KEY)
+                {
                         /* Hardcode RSA for now */
                         gnutls_datum_t modulus;
                         int status = gnutls_privkey_export_rsa_raw (obj.key, &modulus, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -1153,15 +1153,15 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)(CK_SESSION_HANDLE hSession, CK_OB
                                 gnutls_free(modulus.data);
                                 pTemplate[i].ulValueLen = modulus.size;
                         }
-		}
+                }
                 else if (CKA_SIGN == pTemplate[i].type && obj.object_class == CKO_PRIVATE_KEY) /* Any key type in future */
                 {
                         CK_BBOOL ret = CK_TRUE;
 
-			if (pTemplate[i].ulValueLen != sizeof(CK_BBOOL))
-				return CKR_ARGUMENTS_BAD;
+                        if (pTemplate[i].ulValueLen != sizeof(CK_BBOOL))
+                                return CKR_ARGUMENTS_BAD;
 
-			memcpy(pTemplate[i].pValue, &ret, sizeof(CK_BBOOL));
+                        memcpy(pTemplate[i].pValue, &ret, sizeof(CK_BBOOL));
                 }
                 else
                 {

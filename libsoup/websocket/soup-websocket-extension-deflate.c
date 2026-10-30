@@ -54,7 +54,7 @@ typedef struct {
 } Params;
 
 struct _SoupWebsocketExtensionDeflate {
-	SoupWebsocketExtension parent;
+        SoupWebsocketExtension parent;
 };
 
 typedef struct {
@@ -88,10 +88,10 @@ soup_websocket_extension_deflate_finalize (GObject *object)
 {
         SoupWebsocketExtensionDeflatePrivate *priv = soup_websocket_extension_deflate_get_instance_private (SOUP_WEBSOCKET_EXTENSION_DEFLATE (object));
 
-	if (priv->enabled) {
-		deflateEnd (&priv->deflater.zstream);
-		inflateEnd (&priv->inflater.zstream);
-	}
+        if (priv->enabled) {
+                deflateEnd (&priv->deflater.zstream);
+                inflateEnd (&priv->inflater.zstream);
+        }
 
         G_OBJECT_CLASS (soup_websocket_extension_deflate_parent_class)->finalize (object);
 }
@@ -226,9 +226,9 @@ soup_websocket_extension_deflate_configure (SoupWebsocketExtension     *extensio
                 return TRUE;
 
         if (inflateInit2 (&priv->inflater.zstream, -inflater_max_window_bits) != Z_OK) {
-		deflateEnd (&priv->deflater.zstream);
+                deflateEnd (&priv->deflater.zstream);
                 return TRUE;
-	}
+        }
 
         priv->enabled = TRUE;
 
@@ -248,8 +248,8 @@ soup_websocket_extension_deflate_get_response_params (SoupWebsocketExtension *ex
         SoupWebsocketExtensionDeflatePrivate *priv;
 
         priv = soup_websocket_extension_deflate_get_instance_private (SOUP_WEBSOCKET_EXTENSION_DEFLATE (extension));
-	if (!priv->enabled)
-		return NULL;
+        if (!priv->enabled)
+                return NULL;
 
         if (priv->params.flags == 0)
                 return NULL;
@@ -263,7 +263,7 @@ soup_websocket_extension_deflate_get_response_params (SoupWebsocketExtension *ex
         if (priv->params.flags & PARAM_SERVER_MAX_WINDOW_BITS)
                 g_string_append_printf (params, "; server_max_window_bits=%u", priv->params.server_max_window_bits);
         if (priv->params.flags & PARAM_CLIENT_MAX_WINDOW_BITS)
-		g_string_append_printf (params, "; client_max_window_bits=%u", priv->params.client_max_window_bits);
+                g_string_append_printf (params, "; client_max_window_bits=%u", priv->params.client_max_window_bits);
 
         return g_string_free (params, FALSE);
 }

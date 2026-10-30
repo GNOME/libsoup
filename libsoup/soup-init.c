@@ -24,40 +24,40 @@ HMODULE soup_dll;
 static gboolean
 soup2_is_loaded (void)
 {
-	gboolean result = FALSE;
+        gboolean result = FALSE;
 
-	/* Skip on PE/COFF, as it doesn't have a flat symbol namespace,
-	 * and on platforms without dlopen() support (e.g. static-only
-	 * toolchains).
-	 */
+        /* Skip on PE/COFF, as it doesn't have a flat symbol namespace,
+         * and on platforms without dlopen() support (e.g. static-only
+         * toolchains).
+         */
 #if !defined (G_OS_WIN32) && defined (HAVE_DLFCN_H)
-	gpointer handle;
-	gpointer func;
+        gpointer handle;
+        gpointer func;
 
-	handle = dlopen (NULL, RTLD_LAZY | RTLD_GLOBAL);
-	if (handle != NULL) {
-		func = dlsym (handle, "soup_uri_new");
-		result = (func != NULL);
-		dlclose (handle);
-	}
+        handle = dlopen (NULL, RTLD_LAZY | RTLD_GLOBAL);
+        if (handle != NULL) {
+                func = dlsym (handle, "soup_uri_new");
+                result = (func != NULL);
+                dlclose (handle);
+        }
 #endif
-	return result;
+        return result;
 }
 
 static void
 soup_init (void)
 {
 #ifdef G_OS_WIN32
-	char *basedir = g_win32_get_package_installation_directory_of_module (soup_dll);
-	char *localedir = g_build_filename (basedir, "share", "locale", NULL);
-	bindtextdomain (GETTEXT_PACKAGE, localedir);
-	g_free (localedir);
-	g_free (basedir);
+        char *basedir = g_win32_get_package_installation_directory_of_module (soup_dll);
+        char *localedir = g_build_filename (basedir, "share", "locale", NULL);
+        bindtextdomain (GETTEXT_PACKAGE, localedir);
+        g_free (localedir);
+        g_free (basedir);
 #else
-	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+        bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 #endif
 #ifdef HAVE_BIND_TEXTDOMAIN_CODESET
-	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 #endif
 
         if (soup2_is_loaded ())
@@ -75,21 +75,21 @@ DllMain (HINSTANCE hinstDLL,
          DWORD     fdwReason,
          LPVOID    lpvReserved)
 {
-	switch (fdwReason) {
-	case DLL_PROCESS_ATTACH:
-		soup_dll = hinstDLL;
+        switch (fdwReason) {
+        case DLL_PROCESS_ATTACH:
+                soup_dll = hinstDLL;
 
-		soup_init ();
-		break;
+                soup_init ();
+                break;
 
-	case DLL_THREAD_DETACH:
+        case DLL_THREAD_DETACH:
 
-	default:
-		/* do nothing */
-		;
-	}
+        default:
+                /* do nothing */
+                ;
+        }
 
-	return TRUE;
+        return TRUE;
 }
 
 #elif defined (G_HAS_CONSTRUCTORS)
@@ -102,7 +102,7 @@ G_DEFINE_CONSTRUCTOR(soup_init_ctor)
 static void
 soup_init_ctor (void)
 {
-	soup_init ();
+        soup_init ();
 }
 
 #else

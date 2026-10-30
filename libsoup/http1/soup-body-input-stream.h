@@ -16,7 +16,7 @@ G_DECLARE_FINAL_TYPE (SoupBodyInputStream, soup_body_input_stream, SOUP, BODY_IN
 
 
 GInputStream *soup_body_input_stream_new (GInputStream *base_stream,
-					  SoupEncoding  encoding,
-					  goffset       content_length);
+                                          SoupEncoding  encoding,
+                                          goffset       content_length);
 
 G_END_DECLS

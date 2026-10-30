@@ -638,10 +638,10 @@ static void
 read_until_end_for_buffer_test (GObject *object, GAsyncResult *result, gpointer user_data)
 {
         gboolean *finished = user_data;
-	gssize nread;
+        gssize nread;
         static char buffer[10240];
 
-	nread = g_input_stream_read_finish (G_INPUT_STREAM (object), result, NULL);
+        nread = g_input_stream_read_finish (G_INPUT_STREAM (object), result, NULL);
         if (nread > 0) {
                 g_input_stream_read_async (G_INPUT_STREAM (object), buffer, sizeof (buffer), G_PRIORITY_DEFAULT, NULL, read_until_end_for_buffer_test, user_data);
                 return;
@@ -654,9 +654,9 @@ read_until_end_for_buffer_test (GObject *object, GAsyncResult *result, gpointer 
 static void
 on_read_for_buffer_test (GObject *object, GAsyncResult *result, gpointer user_data)
 {
-	gssize *nread = user_data;
+        gssize *nread = user_data;
 
-	*nread = g_input_stream_read_finish (G_INPUT_STREAM (object), result, NULL);
+        *nread = g_input_stream_read_finish (G_INPUT_STREAM (object), result, NULL);
         g_assert_cmpint (*nread, >, 0);
 }
 
@@ -1573,25 +1573,25 @@ do_connection_closed_test (Test *test, gconstpointer data)
 static void
 do_broken_pseudo_header_test (Test *test, gconstpointer data)
 {
-	char *path;
-	SoupMessage *msg;
-	GUri *uri;
-	GBytes *body = NULL;
-	GError *error = NULL;
+        char *path;
+        SoupMessage *msg;
+        GUri *uri;
+        GBytes *body = NULL;
+        GError *error = NULL;
 
-	uri = g_uri_parse_relative (base_uri, "/ag", SOUP_HTTP_URI_FLAGS, NULL);
+        uri = g_uri_parse_relative (base_uri, "/ag", SOUP_HTTP_URI_FLAGS, NULL);
 
-	/* an ugly cheat to construct a broken URI, which can be sent from other libs */
-	path = (char *) g_uri_get_path (uri);
-	path[1] = '%';
+        /* an ugly cheat to construct a broken URI, which can be sent from other libs */
+        path = (char *) g_uri_get_path (uri);
+        path[1] = '%';
 
-	msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
-	body = soup_test_session_async_send (test->session, msg, NULL, &error);
-	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
-	g_assert_null (body);
-	g_clear_error (&error);
-	g_object_unref (msg);
-	g_uri_unref (uri);
+        msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+        body = soup_test_session_async_send (test->session, msg, NULL, &error);
+        g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
+        g_assert_null (body);
+        g_clear_error (&error);
+        g_object_unref (msg);
+        g_uri_unref (uri);
 }
 
 static void
@@ -1803,9 +1803,9 @@ main (int argc, char **argv)
 {
         SoupServer *server;
         SoupAuthDomain *auth;
-	int ret;
+        int ret;
 
-	test_init (argc, argv, NULL);
+        test_init (argc, argv, NULL);
 
         if (!tls_available)
                 return 0;
@@ -1998,12 +1998,12 @@ main (int argc, char **argv)
                     do_server_disconnect_on_got_headers_test,
                     teardown_session);
 
-	ret = g_test_run ();
+        ret = g_test_run ();
 
         g_uri_unref (base_uri);
         soup_test_server_quit_unref (server);
 
         test_cleanup ();
 
-	return ret;
+        return ret;
 }

@@ -4,20 +4,20 @@
 #include "soup-uri-utils-private.h"
 
 static struct {
-	const char *one, *two;
+        const char *one, *two;
         gboolean equal;
         GUriFlags flags_one, flags_two;
 } eq_tests[] = {
-	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7Bfoo%7D", TRUE,
+        { "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7Bfoo%7D", TRUE,
           SOUP_HTTP_URI_FLAGS, SOUP_HTTP_URI_FLAGS },
-	{ "http://example.com", "http://example.com/", TRUE,
+        { "http://example.com", "http://example.com/", TRUE,
           SOUP_HTTP_URI_FLAGS, SOUP_HTTP_URI_FLAGS },
-	/* From RFC 2616 */
-	{ "http://abc.com:80/~smith/home.html", "http://abc.com:80/~smith/home.html", TRUE,
+        /* From RFC 2616 */
+        { "http://abc.com:80/~smith/home.html", "http://abc.com:80/~smith/home.html", TRUE,
           SOUP_HTTP_URI_FLAGS, SOUP_HTTP_URI_FLAGS },
-	{ "http://abc.com:80/~smith/home.html", "http://ABC.com/%7Esmith/home.html", TRUE,
+        { "http://abc.com:80/~smith/home.html", "http://ABC.com/%7Esmith/home.html", TRUE,
           SOUP_HTTP_URI_FLAGS, SOUP_HTTP_URI_FLAGS },
-	{ "http://abc.com:80/~smith/home.html", "http://ABC.com:/%7esmith/home.html", TRUE,
+        { "http://abc.com:80/~smith/home.html", "http://ABC.com:/%7esmith/home.html", TRUE,
           SOUP_HTTP_URI_FLAGS, SOUP_HTTP_URI_FLAGS },
         /* Test flags affecting comparisons */
         { "http://example.com/%2F", "http://example.com/%2F", FALSE,
@@ -32,19 +32,19 @@ static int num_eq_tests = G_N_ELEMENTS(eq_tests);
 static void
 do_equality_tests (void)
 {
-	GUri *uri1, *uri2;
-	int i;
+        GUri *uri1, *uri2;
+        int i;
 
-	for (i = 0; i < num_eq_tests; i++) {
-		uri1 = g_uri_parse (eq_tests[i].one, eq_tests[i].flags_one, NULL);
-		uri2 = g_uri_parse (eq_tests[i].two, eq_tests[i].flags_two, NULL);
+        for (i = 0; i < num_eq_tests; i++) {
+                uri1 = g_uri_parse (eq_tests[i].one, eq_tests[i].flags_one, NULL);
+                uri2 = g_uri_parse (eq_tests[i].two, eq_tests[i].flags_two, NULL);
 
-		debug_printf (1, "<%s> %c= <%s>\n", eq_tests[i].one, eq_tests[i].equal ? '=' : '!', eq_tests[i].two);
+                debug_printf (1, "<%s> %c= <%s>\n", eq_tests[i].one, eq_tests[i].equal ? '=' : '!', eq_tests[i].two);
                 g_assert_cmpint (soup_uri_equal (uri1, uri2), ==, eq_tests[i].equal);
 
-		g_uri_unref (uri1);
-		g_uri_unref (uri2);
-	}
+                g_uri_unref (uri1);
+                g_uri_unref (uri2);
+        }
 }
 
 static void
@@ -174,7 +174,7 @@ do_valid_tests (void)
 #define CONTENT_TYPE_DEFAULT "text/plain;charset=US-ASCII"
 
 static struct {
-	const char *input;
+        const char *input;
         const char *output;
         const char *content_type;
 } data_uri_tests[] = {
@@ -196,9 +196,9 @@ static struct {
 static void
 do_data_uri_tests (void)
 {
-	int i;
+        int i;
 
-	for (i = 0; i < G_N_ELEMENTS (data_uri_tests); i++) {
+        for (i = 0; i < G_N_ELEMENTS (data_uri_tests); i++) {
                 char *content_type = NULL;
                 GBytes *output = soup_uri_decode_data_uri (data_uri_tests[i].input, &content_type);
 
@@ -213,9 +213,9 @@ do_data_uri_tests (void)
                 g_assert_cmpmem (g_bytes_get_data (output, NULL), g_bytes_get_size (output),
                                  data_uri_tests[i].output, strlen (data_uri_tests[i].output));
 
-		g_free (content_type);
-		g_bytes_unref (output);
-	}
+                g_free (content_type);
+                g_bytes_unref (output);
+        }
 }
 
 static struct {
@@ -248,18 +248,18 @@ do_path_and_query_tests (void)
 int
 main (int argc, char **argv)
 {
-	int ret;
+        int ret;
 
-	test_init (argc, argv, NULL);
+        test_init (argc, argv, NULL);
 
-	g_test_add_func ("/uri/equality", do_equality_tests);
-	g_test_add_func ("/uri/copy", do_copy_tests);
+        g_test_add_func ("/uri/equality", do_equality_tests);
+        g_test_add_func ("/uri/copy", do_copy_tests);
         g_test_add_func ("/uri/valid", do_valid_tests);
         g_test_add_func ("/data", do_data_uri_tests);
         g_test_add_func ("/path_and_query", do_path_and_query_tests);
 
-	ret = g_test_run ();
+        ret = g_test_run ();
 
-	test_cleanup ();
-	return ret;
+        test_cleanup ();
+        return ret;
 }

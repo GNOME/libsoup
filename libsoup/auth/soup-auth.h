@@ -15,42 +15,42 @@ SOUP_AVAILABLE_IN_ALL
 G_DECLARE_DERIVABLE_TYPE (SoupAuth, soup_auth, SOUP, AUTH, GObject)
 
 struct _SoupAuthClass {
-	GObjectClass parent_class;
+        GObjectClass parent_class;
 
-	const char  *scheme_name;
-	guint        strength;
+        const char  *scheme_name;
+        guint        strength;
 
-	gboolean     (*update)               (SoupAuth      *auth,
-					      SoupMessage   *msg,
-					      GHashTable    *auth_header);
+        gboolean     (*update)               (SoupAuth      *auth,
+                                              SoupMessage   *msg,
+                                              GHashTable    *auth_header);
 
-	GSList *     (*get_protection_space) (SoupAuth      *auth,
-					      GUri          *source_uri);
+        GSList *     (*get_protection_space) (SoupAuth      *auth,
+                                              GUri          *source_uri);
 
-	void         (*authenticate)         (SoupAuth      *auth,
-					      const char    *username,
-					      const char    *password);
-	gboolean     (*is_authenticated)     (SoupAuth      *auth);
+        void         (*authenticate)         (SoupAuth      *auth,
+                                              const char    *username,
+                                              const char    *password);
+        gboolean     (*is_authenticated)     (SoupAuth      *auth);
 
-	char *       (*get_authorization)    (SoupAuth      *auth,
-					      SoupMessage   *msg);
+        char *       (*get_authorization)    (SoupAuth      *auth,
+                                              SoupMessage   *msg);
 
-	gboolean     (*is_ready)             (SoupAuth      *auth,
-					      SoupMessage   *msg);
+        gboolean     (*is_ready)             (SoupAuth      *auth,
+                                              SoupMessage   *msg);
 
-	gboolean     (*can_authenticate)     (SoupAuth      *auth);
+        gboolean     (*can_authenticate)     (SoupAuth      *auth);
 
-	gpointer padding[6];
+        gpointer padding[6];
 };
 
 SOUP_AVAILABLE_IN_ALL
 SoupAuth   *soup_auth_new                   (GType          type,
-					     SoupMessage   *msg,
-					     const char    *auth_header);
+                                             SoupMessage   *msg,
+                                             const char    *auth_header);
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_auth_update                (SoupAuth      *auth,
-					     SoupMessage   *msg,
-					     const char    *auth_header);
+                                             SoupMessage   *msg,
+                                             const char    *auth_header);
 
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_auth_is_for_proxy          (SoupAuth      *auth);
@@ -65,8 +65,8 @@ char       *soup_auth_get_info              (SoupAuth      *auth);
 
 SOUP_AVAILABLE_IN_ALL
 void        soup_auth_authenticate          (SoupAuth      *auth,
-					     const char    *username,
-					     const char    *password);
+                                             const char    *username,
+                                             const char    *password);
 
 SOUP_AVAILABLE_IN_ALL
 void        soup_auth_cancel                (SoupAuth      *auth);
@@ -79,20 +79,20 @@ gboolean    soup_auth_is_cancelled          (SoupAuth      *auth);
 
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_auth_is_ready              (SoupAuth      *auth,
-					     SoupMessage   *msg);
+                                             SoupMessage   *msg);
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_auth_can_authenticate      (SoupAuth      *auth);
 
 SOUP_AVAILABLE_IN_ALL
 char       *soup_auth_get_authorization     (SoupAuth      *auth, 
-					     SoupMessage   *msg);
+                                             SoupMessage   *msg);
 
 SOUP_AVAILABLE_IN_ALL
 GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
-					     GUri          *source_uri);
+                                             GUri          *source_uri);
 SOUP_AVAILABLE_IN_ALL
 void        soup_auth_free_protection_space (SoupAuth      *auth,
-					     GSList        *space);
+                                             GSList        *space);
 
 SOUP_AVAILABLE_IN_ALL
 gboolean    soup_auth_negotiate_supported   (void);

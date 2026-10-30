@@ -45,30 +45,30 @@ G_DEFINE_INTERFACE (SoupSessionFeature, soup_session_feature, G_TYPE_OBJECT)
 
 void
 soup_session_feature_attach (SoupSessionFeature *feature,
-			     SoupSession        *session)
+                             SoupSession        *session)
 {
-	SoupSessionFeatureInterface *iface;
+        SoupSessionFeatureInterface *iface;
 
-	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
-	g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
+        g_return_if_fail (SOUP_IS_SESSION (session));
 
-	iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
-	if (iface->attach)
-		iface->attach (feature, session);
+        iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
+        if (iface->attach)
+                iface->attach (feature, session);
 }
 
 void
 soup_session_feature_detach (SoupSessionFeature *feature,
-			     SoupSession        *session)
+                             SoupSession        *session)
 {
-	SoupSessionFeatureInterface *iface;
+        SoupSessionFeatureInterface *iface;
 
-	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
-	g_return_if_fail (SOUP_IS_SESSION (session));
+        g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
+        g_return_if_fail (SOUP_IS_SESSION (session));
 
-	iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
-	if (iface->detach)
-		iface->detach (feature, session);
+        iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
+        if (iface->detach)
+                iface->detach (feature, session);
 }
 
 static void
@@ -78,34 +78,34 @@ soup_session_feature_default_init (SoupSessionFeatureInterface *iface)
 
 void
 soup_session_feature_request_queued (SoupSessionFeature *feature,
-				     SoupMessage        *msg)
+                                     SoupMessage        *msg)
 {
-	SoupSessionFeatureInterface *iface;
+        SoupSessionFeatureInterface *iface;
 
-	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+        g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	if (soup_message_disables_feature (msg, feature))
+        if (soup_message_disables_feature (msg, feature))
                 return;
 
-	iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
-	if (iface->request_queued)
-		iface->request_queued (feature, msg);
+        iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
+        if (iface->request_queued)
+                iface->request_queued (feature, msg);
 }
 
 void
 soup_session_feature_request_unqueued (SoupSessionFeature *feature,
-				       SoupMessage        *msg)
+                                       SoupMessage        *msg)
 {
-	SoupSessionFeatureInterface *iface;
+        SoupSessionFeatureInterface *iface;
 
-	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+        g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
+        g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	if (soup_message_disables_feature (msg, feature))
+        if (soup_message_disables_feature (msg, feature))
                 return;
 
-	iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
+        iface = SOUP_SESSION_FEATURE_GET_IFACE (feature);
         if (iface->request_unqueued)
                 iface->request_unqueued (feature, msg);
 }
@@ -125,15 +125,15 @@ soup_session_feature_request_unqueued (SoupSessionFeature *feature,
  */
 gboolean
 soup_session_feature_add_feature (SoupSessionFeature *feature,
-				  GType               type)
+                                  GType               type)
 {
-	SoupSessionFeatureInterface *feature_iface =
+        SoupSessionFeatureInterface *feature_iface =
               SOUP_SESSION_FEATURE_GET_IFACE (feature);
 
-	if (feature_iface->add_feature)
-		return feature_iface->add_feature (feature, type);
-	else
-		return FALSE;
+        if (feature_iface->add_feature)
+                return feature_iface->add_feature (feature, type);
+        else
+                return FALSE;
 }
 
 /**
@@ -150,15 +150,15 @@ soup_session_feature_add_feature (SoupSessionFeature *feature,
  */
 gboolean
 soup_session_feature_remove_feature (SoupSessionFeature *feature,
-				     GType               type)
+                                     GType               type)
 {
-	SoupSessionFeatureInterface *feature_iface =
+        SoupSessionFeatureInterface *feature_iface =
               SOUP_SESSION_FEATURE_GET_IFACE (feature);
 
-	if (feature_iface->remove_feature)
-		return feature_iface->remove_feature (feature, type);
-	else
-		return FALSE;
+        if (feature_iface->remove_feature)
+                return feature_iface->remove_feature (feature, type);
+        else
+                return FALSE;
 }
 
 /**
@@ -174,13 +174,13 @@ soup_session_feature_remove_feature (SoupSessionFeature *feature,
  */
 gboolean
 soup_session_feature_has_feature (SoupSessionFeature *feature,
-				  GType               type)
+                                  GType               type)
 {
-	SoupSessionFeatureInterface *feature_iface =
+        SoupSessionFeatureInterface *feature_iface =
               SOUP_SESSION_FEATURE_GET_IFACE (feature);
 
-	if (feature_iface->has_feature)
-		return feature_iface->has_feature (feature, type);
-	else
-		return FALSE;
+        if (feature_iface->has_feature)
+                return feature_iface->has_feature (feature, type);
+        else
+                return FALSE;
 }

@@ -15,16 +15,16 @@
 G_BEGIN_DECLS
 
 void     soup_session_requeue_message       (SoupSession *session,
-					     SoupMessage *msg);
+                                             SoupMessage *msg);
 void     soup_session_pause_message         (SoupSession *session,
-					     SoupMessage *msg);
+                                             SoupMessage *msg);
 void     soup_session_unpause_message       (SoupSession *session,
-					     SoupMessage *msg);
+                                             SoupMessage *msg);
 void     soup_session_cancel_message        (SoupSession *session,
-					     SoupMessage *msg);
+                                             SoupMessage *msg);
 
 SoupMessage *soup_session_get_original_message_for_authentication (SoupSession *session,
-								   SoupMessage *msg);
+                                                                   SoupMessage *msg);
 
 GInputStream *soup_session_setup_message_body_input_stream (SoupSession        *session,
                                                             SoupMessage        *msg,
@@ -32,7 +32,7 @@ GInputStream *soup_session_setup_message_body_input_stream (SoupSession        *
                                                             SoupProcessingStage start_at_stage);
 
 GSList       *soup_session_get_features                    (SoupSession        *session,
-							    GType               feature_type);
+                                                            GType               feature_type);
 
 gboolean soup_session_steal_preconnection (SoupSession          *session,
                                            SoupMessageQueueItem *item,

@@ -25,21 +25,21 @@
 G_BEGIN_DECLS
 
 typedef struct {
-	gboolean consumed;
-	gsize filled;
-	guint8 buffer[40];
+        gboolean consumed;
+        gsize filled;
+        guint8 buffer[40];
 } SoupDictionaryHeader;
 
 void soup_dictionary_header_init (SoupDictionaryHeader *header);
 gboolean soup_dictionary_header_consume (SoupDictionaryHeader  *header,
-					 const guint8          *magic,
-					 gsize                  magic_size,
-					 GBytes                *dictionary,
-					 const guint8         **next_in,
-					 gsize                 *available_in,
-					 gsize                  header_size,
-					 const char            *invalid_magic_error,
-					 const char            *hash_mismatch_error,
-					 GError               **error);
+                                         const guint8          *magic,
+                                         gsize                  magic_size,
+                                         GBytes                *dictionary,
+                                         const guint8         **next_in,
+                                         gsize                 *available_in,
+                                         gsize                  header_size,
+                                         const char            *invalid_magic_error,
+                                         const char            *hash_mismatch_error,
+                                         GError               **error);
 
 G_END_DECLS

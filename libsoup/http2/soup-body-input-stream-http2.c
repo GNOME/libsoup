@@ -419,7 +419,7 @@ soup_body_input_stream_http2_dispose (GObject *object)
 
         priv->completed = TRUE;
         if (priv->need_more_data_cancellable) {
-		g_cancellable_cancel (priv->need_more_data_cancellable);
+                g_cancellable_cancel (priv->need_more_data_cancellable);
                 g_clear_object (&priv->need_more_data_cancellable);
         }
 

@@ -42,21 +42,21 @@ typedef struct {
 } SoupCommonHeader;
 
 typedef struct {
-	char *name;
-	char *value;
+        char *name;
+        char *value;
 } SoupUncommonHeader;
 
 struct _SoupMessageHeaders {
         GArray *common_headers;
         GHashTable *common_concat;
-	GArray *uncommon_headers;
-	GHashTable *uncommon_concat;
-	SoupMessageHeadersType type;
+        GArray *uncommon_headers;
+        GHashTable *uncommon_concat;
+        SoupMessageHeadersType type;
 
-	SoupEncoding encoding;
-	goffset content_length;
-	SoupExpectation expectations;
-	char *content_type;
+        SoupEncoding encoding;
+        goffset content_length;
+        SoupExpectation expectations;
+        char *content_type;
 };
 
 /**
@@ -74,13 +74,13 @@ struct _SoupMessageHeaders {
 SoupMessageHeaders *
 soup_message_headers_new (SoupMessageHeadersType type)
 {
-	SoupMessageHeaders *hdrs;
+        SoupMessageHeaders *hdrs;
 
-	hdrs = g_atomic_rc_box_new0 (SoupMessageHeaders);
-	hdrs->type = type;
-	hdrs->encoding = -1;
+        hdrs = g_atomic_rc_box_new0 (SoupMessageHeaders);
+        hdrs->type = type;
+        hdrs->encoding = -1;
 
-	return hdrs;
+        return hdrs;
 }
 
 /**
@@ -94,9 +94,9 @@ soup_message_headers_new (SoupMessageHeadersType type)
 SoupMessageHeaders *
 soup_message_headers_ref (SoupMessageHeaders *hdrs)
 {
-	g_atomic_rc_box_acquire (hdrs);
+        g_atomic_rc_box_acquire (hdrs);
 
-	return hdrs;
+        return hdrs;
 }
 
 static void
@@ -139,9 +139,9 @@ G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_head
 SoupMessageHeadersType
 soup_message_headers_get_headers_type (SoupMessageHeaders *hdrs)
 {
-	g_return_val_if_fail (hdrs, 0);
+        g_return_val_if_fail (hdrs, 0);
 
-	return hdrs->type;
+        return hdrs->type;
 }
 
 static void
@@ -192,9 +192,9 @@ soup_message_headers_set (SoupMessageHeaders *hdrs,
 void
 soup_message_headers_clear (SoupMessageHeaders *hdrs)
 {
-	guint i;
+        guint i;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
         if (hdrs->common_headers) {
                 SoupCommonHeader *hdr_array_common = (SoupCommonHeader *)hdrs->common_headers->data;
@@ -219,8 +219,8 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
                 g_array_set_size (hdrs->uncommon_headers, 0);
         }
 
-	if (hdrs->uncommon_concat)
-		g_hash_table_remove_all (hdrs->uncommon_concat);
+        if (hdrs->uncommon_concat)
+                g_hash_table_remove_all (hdrs->uncommon_concat);
 
         hdrs->encoding = -1;
         hdrs->content_length = 0;
@@ -237,20 +237,20 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
 void
 soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs)
 {
-	/* RFC 2616 14.10 */
-	const char *connection;
-	GSList *tokens, *t;
+        /* RFC 2616 14.10 */
+        const char *connection;
+        GSList *tokens, *t;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	connection = soup_message_headers_get_list_common (hdrs, SOUP_HEADER_CONNECTION);
-	if (!connection)
-		return;
+        connection = soup_message_headers_get_list_common (hdrs, SOUP_HEADER_CONNECTION);
+        if (!connection)
+                return;
 
-	tokens = soup_header_parse_list (connection);
-	for (t = tokens; t; t = t->next)
-		soup_message_headers_remove (hdrs, t->data);
-	soup_header_free_list (tokens);
+        tokens = soup_header_parse_list (connection);
+        for (t = tokens; t; t = t->next)
+                soup_message_headers_remove (hdrs, t->data);
+        soup_header_free_list (tokens);
 }
 
 static inline gboolean is_valid_header_name (const char *name)
@@ -333,19 +333,19 @@ soup_message_headers_append_common (SoupMessageHeaders    *hdrs,
 
 static gboolean
 soup_message_headers_append_internal (SoupMessageHeaders *hdrs,
-			              const char *name, const char *value)
+                                      const char *name, const char *value)
 {
-	SoupUncommonHeader header;
+        SoupUncommonHeader header;
         SoupHeaderName header_name;
 
-	g_return_val_if_fail (hdrs, FALSE);
-	g_return_val_if_fail (name != NULL, FALSE);
-	g_return_val_if_fail (value != NULL, FALSE);
+        g_return_val_if_fail (hdrs, FALSE);
+        g_return_val_if_fail (name != NULL, FALSE);
+        g_return_val_if_fail (value != NULL, FALSE);
 
-	if (!is_valid_header_name (name)) {
-		g_warning ("soup_message_headers_append: Rejecting bad name '%s'", name);
-		return FALSE;
-	}
+        if (!is_valid_header_name (name)) {
+                g_warning ("soup_message_headers_append: Rejecting bad name '%s'", name);
+                return FALSE;
+        }
 
         header_name = soup_header_name_from_string (name);
         if (header_name != SOUP_HEADER_UNKNOWN)
@@ -359,11 +359,11 @@ soup_message_headers_append_internal (SoupMessageHeaders *hdrs,
         if (!hdrs->uncommon_headers)
                 hdrs->uncommon_headers = g_array_sized_new (FALSE, FALSE, sizeof (SoupUncommonHeader), 6);
 
-	header.name = g_strdup (name);
-	header.value = g_strdup (value);
-	g_array_append_val (hdrs->uncommon_headers, header);
-	if (hdrs->uncommon_concat)
-		g_hash_table_remove (hdrs->uncommon_concat, header.name);
+        header.name = g_strdup (name);
+        header.value = g_strdup (value);
+        g_array_append_val (hdrs->uncommon_headers, header);
+        if (hdrs->uncommon_concat)
+                g_hash_table_remove (hdrs->uncommon_concat, header.name);
         return TRUE;
 }
 
@@ -384,9 +384,9 @@ soup_message_headers_append_internal (SoupMessageHeaders *hdrs,
  **/
 void
 soup_message_headers_append (SoupMessageHeaders *hdrs,
-			     const char *name, const char *value)
+                             const char *name, const char *value)
 {
-	soup_message_headers_append_internal (hdrs, name, value);
+        soup_message_headers_append_internal (hdrs, name, value);
 }
 
 /*
@@ -433,12 +433,12 @@ soup_message_headers_replace_common (SoupMessageHeaders    *hdrs,
  **/
 void
 soup_message_headers_replace (SoupMessageHeaders *hdrs,
-			      const char *name, const char *value)
+                              const char *name, const char *value)
 {
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	soup_message_headers_remove (hdrs, name);
-	soup_message_headers_append (hdrs, name, value);
+        soup_message_headers_remove (hdrs, name);
+        soup_message_headers_append (hdrs, name, value);
 }
 
 static int
@@ -464,15 +464,15 @@ find_uncommon_header (GArray     *array,
                       int         nth)
 {
         SoupUncommonHeader *hdr_array = (SoupUncommonHeader *)array->data;
-	int i;
+        int i;
 
-	for (i = 0; i < array->len; i++) {
+        for (i = 0; i < array->len; i++) {
                 if (g_ascii_strcasecmp (hdr_array[i].name, name) == 0) {
-			if (nth-- == 0)
-				return i;
-		}
-	}
-	return -1;
+                        if (nth-- == 0)
+                                return i;
+                }
+        }
+        return -1;
 }
 
 static int
@@ -498,15 +498,15 @@ find_last_uncommon_header (GArray     *array,
                            int         nth)
 {
         SoupUncommonHeader *hdr_array = (SoupUncommonHeader *)array->data;
-	int i;
+        int i;
 
-	for (i = array->len - 1; i >= 0; i--) {
+        for (i = array->len - 1; i >= 0; i--) {
                 if (g_ascii_strcasecmp (hdr_array[i].name, name) == 0) {
-			if (nth-- == 0)
-				return i;
-		}
-	}
-	return -1;
+                        if (nth-- == 0)
+                                return i;
+                }
+        }
+        return -1;
 }
 
 void
@@ -515,7 +515,7 @@ soup_message_headers_remove_common (SoupMessageHeaders *hdrs,
 {
         int index;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
         if (hdrs->common_headers) {
                 while ((index = find_common_header (hdrs->common_headers, name, 0)) != -1) {
@@ -546,11 +546,11 @@ soup_message_headers_remove_common (SoupMessageHeaders *hdrs,
 void
 soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
 {
-	int index;
+        int index;
         SoupHeaderName header_name;
 
-	g_return_if_fail (hdrs);
-	g_return_if_fail (name != NULL);
+        g_return_if_fail (hdrs);
+        g_return_if_fail (name != NULL);
 
         header_name = soup_header_name_from_string (name);
         if (header_name != SOUP_HEADER_UNKNOWN) {
@@ -570,8 +570,8 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
                 }
         }
 
-	if (hdrs->uncommon_concat)
-		g_hash_table_remove (hdrs->uncommon_concat, name);
+        if (hdrs->uncommon_concat)
+                g_hash_table_remove (hdrs->uncommon_concat, name);
 }
 
 const char *
@@ -612,11 +612,11 @@ const char *
 soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
 {
         SoupUncommonHeader *hdr_array;
-	int index;
+        int index;
         SoupHeaderName header_name;
 
-	g_return_val_if_fail (hdrs, NULL);
-	g_return_val_if_fail (name != NULL, NULL);
+        g_return_val_if_fail (hdrs, NULL);
+        g_return_val_if_fail (name != NULL, NULL);
 
         header_name = soup_header_name_from_string (name);
         if (header_name != SOUP_HEADER_UNKNOWN)
@@ -626,9 +626,9 @@ soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
                 return NULL;
 
         hdr_array = (SoupUncommonHeader *)hdrs->uncommon_headers->data;
-	index = find_last_uncommon_header (hdrs->uncommon_headers, name, 0);
+        index = find_last_uncommon_header (hdrs->uncommon_headers, name, 0);
 
-	return (index == -1) ? NULL : hdr_array[index].value;
+        return (index == -1) ? NULL : hdr_array[index].value;
 }
 
 gboolean
@@ -660,14 +660,14 @@ soup_message_headers_header_contains_common (SoupMessageHeaders *hdrs,
 gboolean
 soup_message_headers_header_contains (SoupMessageHeaders *hdrs, const char *name, const char *token)
 {
-	const char *value;
+        const char *value;
 
-	g_return_val_if_fail (hdrs, FALSE);
+        g_return_val_if_fail (hdrs, FALSE);
 
-	value = soup_message_headers_get_list (hdrs, name);
-	if (!value)
-		return FALSE;
-	return soup_header_contains (value, token);
+        value = soup_message_headers_get_list (hdrs, name);
+        if (!value)
+                return FALSE;
+        return soup_header_contains (value, token);
 }
 
 gboolean
@@ -698,11 +698,11 @@ soup_message_headers_header_equals (SoupMessageHeaders *hdrs, const char *name, 
 {
         const char *internal_value;
 
-	g_return_val_if_fail (hdrs, FALSE);
+        g_return_val_if_fail (hdrs, FALSE);
 
         internal_value = soup_message_headers_get_list (hdrs, name);
-	if (!internal_value)
-		return FALSE;
+        if (!internal_value)
+                return FALSE;
         return !g_ascii_strcasecmp (internal_value, value);
 }
 
@@ -715,7 +715,7 @@ soup_message_headers_get_list_common (SoupMessageHeaders *hdrs,
         char *value;
         int index, i;
 
-	g_return_val_if_fail (hdrs, NULL);
+        g_return_val_if_fail (hdrs, NULL);
 
         if (!hdrs->common_headers)
                 return NULL;
@@ -773,13 +773,13 @@ const char *
 soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
 {
         SoupUncommonHeader *hdr_array;
-	GString *concat;
-	char *value;
-	int index, i;
+        GString *concat;
+        char *value;
+        int index, i;
         SoupHeaderName header_name;
 
-	g_return_val_if_fail (hdrs, NULL);
-	g_return_val_if_fail (name != NULL, NULL);
+        g_return_val_if_fail (hdrs, NULL);
+        g_return_val_if_fail (name != NULL, NULL);
 
         header_name = soup_header_name_from_string (name);
         if (header_name != SOUP_HEADER_UNKNOWN)
@@ -788,34 +788,34 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
         if (!hdrs->uncommon_headers)
                 return NULL;
 
-	if (hdrs->uncommon_concat) {
-		value = g_hash_table_lookup (hdrs->uncommon_concat, name);
-		if (value)
-			return value;
-	}
+        if (hdrs->uncommon_concat) {
+                value = g_hash_table_lookup (hdrs->uncommon_concat, name);
+                if (value)
+                        return value;
+        }
 
-	index = find_uncommon_header (hdrs->uncommon_headers, name, 0);
-	if (index == -1)
-		return NULL;
+        index = find_uncommon_header (hdrs->uncommon_headers, name, 0);
+        if (index == -1)
+                return NULL;
 
         hdr_array = (SoupUncommonHeader *)hdrs->uncommon_headers->data;
         if (find_uncommon_header (hdrs->uncommon_headers, name, 1) == -1)
-		return hdr_array[index].value;
+                return hdr_array[index].value;
 
-	concat = g_string_new (NULL);
-	for (i = 0; (index = find_uncommon_header (hdrs->uncommon_headers, name, i)) != -1; i++) {
-		if (i != 0)
-			g_string_append (concat, ", ");
-		g_string_append (concat, hdr_array[index].value);
-	}
-	value = g_string_free (concat, FALSE);
+        concat = g_string_new (NULL);
+        for (i = 0; (index = find_uncommon_header (hdrs->uncommon_headers, name, i)) != -1; i++) {
+                if (i != 0)
+                        g_string_append (concat, ", ");
+                g_string_append (concat, hdr_array[index].value);
+        }
+        value = g_string_free (concat, FALSE);
 
-	if (!hdrs->uncommon_concat)
-		hdrs->uncommon_concat = g_hash_table_new_full (soup_str_case_hash,
+        if (!hdrs->uncommon_concat)
+                hdrs->uncommon_concat = g_hash_table_new_full (soup_str_case_hash,
                                                                soup_str_case_equal,
                                                                g_free, g_free);
-	g_hash_table_insert (hdrs->uncommon_concat, g_strdup (name), value);
-	return value;
+        g_hash_table_insert (hdrs->uncommon_concat, g_strdup (name), value);
+        return value;
 }
 
 /**
@@ -830,9 +830,9 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
  **/
 
 typedef struct {
-	SoupMessageHeaders *hdrs;
+        SoupMessageHeaders *hdrs;
         int index_common;
-	int index_uncommon;
+        int index_uncommon;
 } SoupMessageHeadersIterReal;
 
 /**
@@ -844,13 +844,13 @@ typedef struct {
  **/
 void
 soup_message_headers_iter_init (SoupMessageHeadersIter *iter,
-				SoupMessageHeaders *hdrs)
+                                SoupMessageHeaders *hdrs)
 {
-	SoupMessageHeadersIterReal *real = (SoupMessageHeadersIterReal *)iter;
+        SoupMessageHeadersIterReal *real = (SoupMessageHeadersIterReal *)iter;
 
-	real->hdrs = hdrs;
+        real->hdrs = hdrs;
         real->index_common = 0;
-	real->index_uncommon = 0;
+        real->index_uncommon = 0;
 }
 
 /**
@@ -873,11 +873,11 @@ soup_message_headers_iter_init (SoupMessageHeadersIter *iter,
  **/
 gboolean
 soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
-				const char **name, const char **value)
+                                const char **name, const char **value)
 {
-	SoupMessageHeadersIterReal *real = (SoupMessageHeadersIterReal *)iter;
+        SoupMessageHeadersIterReal *real = (SoupMessageHeadersIterReal *)iter;
 
-	g_return_val_if_fail (iter, FALSE);
+        g_return_val_if_fail (iter, FALSE);
 
         if (real->hdrs->common_headers &&
             real->index_common < real->hdrs->common_headers->len) {
@@ -932,12 +932,12 @@ soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
  **/
 void
 soup_message_headers_foreach (SoupMessageHeaders           *hdrs,
-			      SoupMessageHeadersForeachFunc func,
-			      gpointer                      user_data)
+                              SoupMessageHeadersForeachFunc func,
+                              gpointer                      user_data)
 {
-	guint i;
+        guint i;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
         if (hdrs->common_headers) {
                 SoupCommonHeader *hdr_array = (SoupCommonHeader *)hdrs->common_headers->data;
@@ -1009,10 +1009,10 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
 {
         const char *transfer_encoding;
 
-	g_return_val_if_fail (hdrs, SOUP_ENCODING_UNRECOGNIZED);
+        g_return_val_if_fail (hdrs, SOUP_ENCODING_UNRECOGNIZED);
 
-	if (hdrs->encoding != -1)
-		return hdrs->encoding;
+        if (hdrs->encoding != -1)
+                return hdrs->encoding;
 
         /* Transfer-Encoding is checked first because it overrides the Content-Length */
         transfer_encoding = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
@@ -1043,7 +1043,7 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
                         SOUP_ENCODING_EOF : SOUP_ENCODING_NONE;
         }
 
-	return hdrs->encoding;
+        return hdrs->encoding;
 }
 
 /**
@@ -1058,36 +1058,36 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
  **/
 void
 soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
-				   SoupEncoding        encoding)
+                                   SoupEncoding        encoding)
 {
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	if (encoding == hdrs->encoding)
-		return;
+        if (encoding == hdrs->encoding)
+                return;
 
-	switch (encoding) {
-	case SOUP_ENCODING_NONE:
-	case SOUP_ENCODING_EOF:
-		soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
-		soup_message_headers_remove_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
-		break;
+        switch (encoding) {
+        case SOUP_ENCODING_NONE:
+        case SOUP_ENCODING_EOF:
+                soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
+                soup_message_headers_remove_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
+                break;
 
-	case SOUP_ENCODING_CONTENT_LENGTH:
-		soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
+        case SOUP_ENCODING_CONTENT_LENGTH:
+                soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
                 if (soup_message_headers_update_content_length_encoding (hdrs))
                         return;
-		break;
+                break;
 
-	case SOUP_ENCODING_CHUNKED:
-		soup_message_headers_remove_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
-		soup_message_headers_replace_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING, "chunked", SOUP_HEADER_VALUE_TRUSTED);
-		break;
+        case SOUP_ENCODING_CHUNKED:
+                soup_message_headers_remove_common (hdrs, SOUP_HEADER_CONTENT_LENGTH);
+                soup_message_headers_replace_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING, "chunked", SOUP_HEADER_VALUE_TRUSTED);
+                break;
 
-	default:
-		g_return_if_reached ();
-	}
+        default:
+                g_return_if_reached ();
+        }
 
-	hdrs->encoding = encoding;
+        hdrs->encoding = encoding;
 }
 
 /**
@@ -1104,15 +1104,15 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
 goffset
 soup_message_headers_get_content_length (SoupMessageHeaders *hdrs)
 {
-	SoupEncoding encoding;
+        SoupEncoding encoding;
 
-	g_return_val_if_fail (hdrs, 0);
+        g_return_val_if_fail (hdrs, 0);
 
-	encoding = soup_message_headers_get_encoding (hdrs);
-	if (encoding == SOUP_ENCODING_CONTENT_LENGTH)
-		return hdrs->content_length;
-	else
-		return 0;
+        encoding = soup_message_headers_get_encoding (hdrs);
+        if (encoding == SOUP_ENCODING_CONTENT_LENGTH)
+                return hdrs->content_length;
+        else
+                return 0;
 }
 
 /**
@@ -1134,16 +1134,16 @@ soup_message_headers_get_content_length (SoupMessageHeaders *hdrs)
  **/
 void
 soup_message_headers_set_content_length (SoupMessageHeaders *hdrs,
-					 goffset             content_length)
+                                         goffset             content_length)
 {
-	char length[128];
+        char length[128];
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	g_snprintf (length, sizeof (length), "%" G_GUINT64_FORMAT,
-		    content_length);
-	soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
-	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_LENGTH, length, SOUP_HEADER_VALUE_TRUSTED);
+        g_snprintf (length, sizeof (length), "%" G_GUINT64_FORMAT,
+                    content_length);
+        soup_message_headers_remove_common (hdrs, SOUP_HEADER_TRANSFER_ENCODING);
+        soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_LENGTH, length, SOUP_HEADER_VALUE_TRUSTED);
 }
 
 /**
@@ -1168,9 +1168,9 @@ soup_message_headers_set_content_length (SoupMessageHeaders *hdrs,
 SoupExpectation
 soup_message_headers_get_expectations (SoupMessageHeaders *hdrs)
 {
-	g_return_val_if_fail (hdrs, SOUP_EXPECTATION_UNRECOGNIZED);
+        g_return_val_if_fail (hdrs, SOUP_EXPECTATION_UNRECOGNIZED);
 
-	return hdrs->expectations;
+        return hdrs->expectations;
 }
 
 /**
@@ -1191,14 +1191,14 @@ soup_message_headers_get_expectations (SoupMessageHeaders *hdrs)
  **/
 void
 soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
-				       SoupExpectation     expectations)
+                                       SoupExpectation     expectations)
 {
-	g_return_if_fail ((expectations & ~SOUP_EXPECTATION_CONTINUE) == 0);
+        g_return_if_fail ((expectations & ~SOUP_EXPECTATION_CONTINUE) == 0);
 
-	if (expectations & SOUP_EXPECTATION_CONTINUE)
-		soup_message_headers_replace_common (hdrs, SOUP_HEADER_EXPECT, "100-continue", SOUP_HEADER_VALUE_TRUSTED);
-	else
-		soup_message_headers_remove_common (hdrs, SOUP_HEADER_EXPECT);
+        if (expectations & SOUP_EXPECTATION_CONTINUE)
+                soup_message_headers_replace_common (hdrs, SOUP_HEADER_EXPECT, "100-continue", SOUP_HEADER_VALUE_TRUSTED);
+        else
+                soup_message_headers_remove_common (hdrs, SOUP_HEADER_EXPECT);
 }
 
 /**
@@ -1225,15 +1225,15 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
 static int
 sort_ranges (gconstpointer a, gconstpointer b)
 {
-	SoupRange *ra = (SoupRange *)a;
-	SoupRange *rb = (SoupRange *)b;
+        SoupRange *ra = (SoupRange *)a;
+        SoupRange *rb = (SoupRange *)b;
 
-	if (ra->start < rb->start)
-		return -1;
-	else if (ra->start > rb->start)
-		return 1;
-	else
-		return 0;
+        if (ra->start < rb->start)
+                return -1;
+        else if (ra->start > rb->start)
+                return 1;
+        else
+                return 0;
 }
 
 /* like soup_message_headers_get_ranges(), except it returns:
@@ -1250,162 +1250,162 @@ sort_ranges (gconstpointer a, gconstpointer b)
  */
 guint
 soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
-					  goffset              total_length,
-					  gboolean             check_satisfiable,
-					  SoupRange          **ranges,
-					  int                 *length)
+                                          goffset              total_length,
+                                          gboolean             check_satisfiable,
+                                          SoupRange          **ranges,
+                                          int                 *length)
 {
-	const char *range = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_RANGE);
-	GSList *range_list, *r;
-	GArray *array;
-	char *spec, *end;
-	guint status = SOUP_STATUS_OK;
-	gboolean is_all_valid = TRUE;
+        const char *range = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_RANGE);
+        GSList *range_list, *r;
+        GArray *array;
+        char *spec, *end;
+        guint status = SOUP_STATUS_OK;
+        gboolean is_all_valid = TRUE;
 
-	if (!range || strncmp (range, "bytes", 5) != 0)
-		return SOUP_STATUS_OK;  /* invalid header or unknown range unit */
+        if (!range || strncmp (range, "bytes", 5) != 0)
+                return SOUP_STATUS_OK;  /* invalid header or unknown range unit */
 
-	range += 5;
-	while (g_ascii_isspace (*range))
-		range++;
-	if (*range++ != '=')
-		return SOUP_STATUS_OK;  /* invalid header */
-	while (g_ascii_isspace (*range))
-		range++;
+        range += 5;
+        while (g_ascii_isspace (*range))
+                range++;
+        if (*range++ != '=')
+                return SOUP_STATUS_OK;  /* invalid header */
+        while (g_ascii_isspace (*range))
+                range++;
 
-	range_list = soup_header_parse_list (range);
-	if (!range_list)
-		return SOUP_STATUS_OK;  /* invalid list */
+        range_list = soup_header_parse_list (range);
+        if (!range_list)
+                return SOUP_STATUS_OK;  /* invalid list */
 
-	/* Reject the header outright if it asks for more ranges than we are
-	 * willing to serve, rather than answering with the whole body: a client
-	 * asking for this many ranges wants to be told so, and RFC 9110 §14.2
-	 * allows rejecting such a header for exactly this reason.
-	 */
-	if (g_slist_length (range_list) > MAX_RANGES) {
-		soup_header_free_list (range_list);
-		return check_satisfiable ? SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE
-					 : SOUP_STATUS_OK;
-	}
+        /* Reject the header outright if it asks for more ranges than we are
+         * willing to serve, rather than answering with the whole body: a client
+         * asking for this many ranges wants to be told so, and RFC 9110 §14.2
+         * allows rejecting such a header for exactly this reason.
+         */
+        if (g_slist_length (range_list) > MAX_RANGES) {
+                soup_header_free_list (range_list);
+                return check_satisfiable ? SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE
+                                         : SOUP_STATUS_OK;
+        }
 
-	/* Loop through the ranges and modify the status accordingly. Default to
-	 * status 200 (OK, ignoring the ranges). Switch to status 206 (Partial
-	 * Content) if there is at least one partially valid range. Switch to
-	 * status 416 (Range Not Satisfiable) if there are no partially valid
-	 * ranges at all. */
-	array = g_array_new (FALSE, FALSE, sizeof (SoupRange));
-	for (r = range_list; r; r = r->next) {
-		SoupRange cur;
+        /* Loop through the ranges and modify the status accordingly. Default to
+         * status 200 (OK, ignoring the ranges). Switch to status 206 (Partial
+         * Content) if there is at least one partially valid range. Switch to
+         * status 416 (Range Not Satisfiable) if there are no partially valid
+         * ranges at all. */
+        array = g_array_new (FALSE, FALSE, sizeof (SoupRange));
+        for (r = range_list; r; r = r->next) {
+                SoupRange cur;
 
-		spec = r->data;
-		if (*spec == '-') {
-			gint64 suffix_length;
+                spec = r->data;
+                if (*spec == '-') {
+                        gint64 suffix_length;
 
-			errno = 0;
-			suffix_length = g_ascii_strtoll (spec, &end, 10);
+                        errno = 0;
+                        suffix_length = g_ascii_strtoll (spec, &end, 10);
 
-			/* A suffix range asks for the last -suffix_length bytes
-			 * of the body. If the body is shorter than that then the
-			 * whole body is used, per RFC 9110 §14.1.2; without
-			 * clamping, the start would go negative and reach the
-			 * assertion below.
-			 */
-			if (errno == ERANGE || suffix_length <= -total_length)
-				cur.start = 0;
-			else
-				cur.start = total_length + suffix_length;
+                        /* A suffix range asks for the last -suffix_length bytes
+                         * of the body. If the body is shorter than that then the
+                         * whole body is used, per RFC 9110 §14.1.2; without
+                         * clamping, the start would go negative and reach the
+                         * assertion below.
+                         */
+                        if (errno == ERANGE || suffix_length <= -total_length)
+                                cur.start = 0;
+                        else
+                                cur.start = total_length + suffix_length;
 
-			cur.end = total_length - 1;
-		} else {
-			guint64 value;
+                        cur.end = total_length - 1;
+                } else {
+                        guint64 value;
 
-			errno = 0;
-			value = g_ascii_strtoull (spec, &end, 10);
-			if (errno == ERANGE || value > G_MAXINT64) {
-				is_all_valid = FALSE;
-				continue;
-			}
-			cur.start = (goffset) value;
+                        errno = 0;
+                        value = g_ascii_strtoull (spec, &end, 10);
+                        if (errno == ERANGE || value > G_MAXINT64) {
+                                is_all_valid = FALSE;
+                                continue;
+                        }
+                        cur.start = (goffset) value;
 
-			if (*end == '-')
-				end++;
-			if (*end) {
-				errno = 0;
-				value = g_ascii_strtoull (end, &end, 10);
+                        if (*end == '-')
+                                end++;
+                        if (*end) {
+                                errno = 0;
+                                value = g_ascii_strtoull (end, &end, 10);
 
-				/* An end this large is clamped to the end of the
-				 * body below, like any other end past it.
-				 */
-				if (errno == ERANGE || value > G_MAXINT64)
-					cur.end = G_MAXINT64;
-				else
-					cur.end = (goffset) value;
-			} else
-				cur.end = total_length - 1;
-		}
+                                /* An end this large is clamped to the end of the
+                                 * body below, like any other end past it.
+                                 */
+                                if (errno == ERANGE || value > G_MAXINT64)
+                                        cur.end = G_MAXINT64;
+                                else
+                                        cur.end = (goffset) value;
+                        } else
+                                cur.end = total_length - 1;
+                }
 
-		if (*end) {
-			/* Junk after the range */
-			is_all_valid = FALSE;
-			continue;
-		}
+                if (*end) {
+                        /* Junk after the range */
+                        is_all_valid = FALSE;
+                        continue;
+                }
 
-		if (cur.end < cur.start) {
-			is_all_valid = FALSE;
-			continue;
-		}
+                if (cur.end < cur.start) {
+                        is_all_valid = FALSE;
+                        continue;
+                }
 
-		g_assert (cur.start >= 0);
-		if (cur.end >= total_length)
-			cur.end = total_length - 1;
+                g_assert (cur.start >= 0);
+                if (cur.end >= total_length)
+                        cur.end = total_length - 1;
 
-		if (cur.start >= total_length) {
-			/* Range is valid, but unsatisfiable */
-			continue;
-		}
+                if (cur.start >= total_length) {
+                        /* Range is valid, but unsatisfiable */
+                        continue;
+                }
 
-		/* We have at least one (at least partially) satisfiable range */
-		g_array_append_val (array, cur);
-		status = SOUP_STATUS_PARTIAL_CONTENT;
-	}
-	soup_header_free_list (range_list);
+                /* We have at least one (at least partially) satisfiable range */
+                g_array_append_val (array, cur);
+                status = SOUP_STATUS_PARTIAL_CONTENT;
+        }
+        soup_header_free_list (range_list);
 
-	if (status != SOUP_STATUS_PARTIAL_CONTENT) {
-		g_assert (status == SOUP_STATUS_OK);
+        if (status != SOUP_STATUS_PARTIAL_CONTENT) {
+                g_assert (status == SOUP_STATUS_OK);
 
-		if (is_all_valid && check_satisfiable)
-			status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
+                if (is_all_valid && check_satisfiable)
+                        status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
 
-		g_array_free (array, TRUE);
-		return status;
-	}
+                g_array_free (array, TRUE);
+                return status;
+        }
 
-	if (total_length) {
-		SoupRange *data;
-		guint i, last = 0;
+        if (total_length) {
+                SoupRange *data;
+                guint i, last = 0;
 
-		g_array_sort (array, sort_ranges);
+                g_array_sort (array, sort_ranges);
 
-		/* Merge overlapping ranges into the run being built at @last.
-		 * Removing the merged elements one at a time instead made this
-		 * quadratic in the number of ranges.
-		 */
-		data = (SoupRange *)array->data;
-		for (i = 1; i < array->len; i++) {
-			if (data[i].start <= data[last].end)
-				data[last].end = MAX (data[last].end, data[i].end);
-			else
-				data[++last] = data[i];
-		}
+                /* Merge overlapping ranges into the run being built at @last.
+                 * Removing the merged elements one at a time instead made this
+                 * quadratic in the number of ranges.
+                 */
+                data = (SoupRange *)array->data;
+                for (i = 1; i < array->len; i++) {
+                        if (data[i].start <= data[last].end)
+                                data[last].end = MAX (data[last].end, data[i].end);
+                        else
+                                data[++last] = data[i];
+                }
 
-		g_array_set_size (array, last + 1);
-	}
+                g_array_set_size (array, last + 1);
+        }
 
-	*ranges = (SoupRange *)array->data;
-	*length = array->len;
+        *ranges = (SoupRange *)array->data;
+        *length = array->len;
 
-	g_array_free (array, FALSE);
-	return SOUP_STATUS_PARTIAL_CONTENT;
+        g_array_free (array, FALSE);
+        return SOUP_STATUS_PARTIAL_CONTENT;
 }
 
 /**
@@ -1456,16 +1456,16 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  **/
 gboolean
 soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
-				 goffset              total_length,
-				 SoupRange          **ranges,
-				 int                 *length)
+                                 goffset              total_length,
+                                 SoupRange          **ranges,
+                                 int                 *length)
 {
-	guint status;
+        guint status;
 
-	g_return_val_if_fail (hdrs, FALSE);
+        g_return_val_if_fail (hdrs, FALSE);
 
-	status = soup_message_headers_get_ranges_internal (hdrs, total_length, FALSE, ranges, length);
-	return status == SOUP_STATUS_PARTIAL_CONTENT;
+        status = soup_message_headers_get_ranges_internal (hdrs, total_length, FALSE, ranges, length);
+        return status == SOUP_STATUS_PARTIAL_CONTENT;
 }
 
 /**
@@ -1477,9 +1477,9 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
  **/
 void
 soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
-				  SoupRange           *ranges)
+                                  SoupRange           *ranges)
 {
-	g_free (ranges);
+        g_free (ranges);
 }
 
 /**
@@ -1495,32 +1495,32 @@ soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
  **/
 void
 soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
-				 SoupRange           *ranges,
-				 int                  length)
+                                 SoupRange           *ranges,
+                                 int                  length)
 {
-	GString *header;
-	int i;
+        GString *header;
+        int i;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	header = g_string_new ("bytes=");
-	for (i = 0; i < length; i++) {
-		if (i > 0)
-			g_string_append_c (header, ',');
-		if (ranges[i].end >= 0) {
-			g_string_append_printf (header, "%" G_GINT64_FORMAT "-%" G_GINT64_FORMAT,
-						ranges[i].start, ranges[i].end);
-		} else if (ranges[i].start >= 0) {
-			g_string_append_printf (header,"%" G_GINT64_FORMAT "-",
-						ranges[i].start);
-		} else {
-			g_string_append_printf (header, "%" G_GINT64_FORMAT,
-						ranges[i].start);
-		}
-	}
+        header = g_string_new ("bytes=");
+        for (i = 0; i < length; i++) {
+                if (i > 0)
+                        g_string_append_c (header, ',');
+                if (ranges[i].end >= 0) {
+                        g_string_append_printf (header, "%" G_GINT64_FORMAT "-%" G_GINT64_FORMAT,
+                                                ranges[i].start, ranges[i].end);
+                } else if (ranges[i].start >= 0) {
+                        g_string_append_printf (header,"%" G_GINT64_FORMAT "-",
+                                                ranges[i].start);
+                } else {
+                        g_string_append_printf (header, "%" G_GINT64_FORMAT,
+                                                ranges[i].start);
+                }
+        }
 
-	soup_message_headers_replace_common (hdrs, SOUP_HEADER_RANGE, header->str, SOUP_HEADER_VALUE_TRUSTED);
-	g_string_free (header, TRUE);
+        soup_message_headers_replace_common (hdrs, SOUP_HEADER_RANGE, header->str, SOUP_HEADER_VALUE_TRUSTED);
+        g_string_free (header, TRUE);
 }
 
 /**
@@ -1538,16 +1538,16 @@ soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
  **/
 void
 soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
-				goffset              start,
-				goffset              end)
+                                goffset              start,
+                                goffset              end)
 {
-	SoupRange range;
+        SoupRange range;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	range.start = start;
-	range.end = end;
-	soup_message_headers_set_ranges (hdrs, &range, 1);
+        range.start = start;
+        range.end = end;
+        soup_message_headers_set_ranges (hdrs, &range, 1);
 }
 
 /* Parses one decimal offset from a Content-Range header, rejecting anything
@@ -1557,21 +1557,21 @@ soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
  */
 static gboolean
 parse_content_range_offset (const char *in,
-			    char      **out_end,
-			    goffset    *out)
+                            char      **out_end,
+                            goffset    *out)
 {
-	guint64 value;
+        guint64 value;
 
-	if (!g_ascii_isdigit (*in))
-		return FALSE;
+        if (!g_ascii_isdigit (*in))
+                return FALSE;
 
-	errno = 0;
-	value = g_ascii_strtoull (in, out_end, 10);
-	if (errno == ERANGE || value > G_MAXINT64)
-		return FALSE;
+        errno = 0;
+        value = g_ascii_strtoull (in, out_end, 10);
+        if (errno == ERANGE || value > G_MAXINT64)
+                return FALSE;
 
-	*out = (goffset) value;
-	return TRUE;
+        *out = (goffset) value;
+        return TRUE;
 }
 
 /**
@@ -1596,52 +1596,52 @@ parse_content_range_offset (const char *in,
  **/
 gboolean
 soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
-					goffset             *start,
-					goffset             *end,
-					goffset             *total_length)
+                                        goffset             *start,
+                                        goffset             *end,
+                                        goffset             *total_length)
 {
-	const char *header;
-	goffset first_pos, last_pos, length;
-	char *p;
+        const char *header;
+        goffset first_pos, last_pos, length;
+        char *p;
 
-	g_return_val_if_fail (hdrs, FALSE);
+        g_return_val_if_fail (hdrs, FALSE);
 
         header = soup_message_headers_get_one_common (hdrs, SOUP_HEADER_CONTENT_RANGE);
 
-	if (!header || strncmp (header, "bytes ", 6) != 0)
-		return FALSE;
+        if (!header || strncmp (header, "bytes ", 6) != 0)
+                return FALSE;
 
-	header += 6;
-	while (g_ascii_isspace (*header))
-		header++;
+        header += 6;
+        while (g_ascii_isspace (*header))
+                header++;
 
-	if (!parse_content_range_offset (header, &p, &first_pos) || *p != '-')
-		return FALSE;
-	if (!parse_content_range_offset (p + 1, &p, &last_pos) || *p != '/')
-		return FALSE;
-	p++;
-	if (*p == '*') {
-		length = -1;
-		p++;
-	} else if (!parse_content_range_offset (p, &p, &length))
-		return FALSE;
+        if (!parse_content_range_offset (header, &p, &first_pos) || *p != '-')
+                return FALSE;
+        if (!parse_content_range_offset (p + 1, &p, &last_pos) || *p != '/')
+                return FALSE;
+        p++;
+        if (*p == '*') {
+                length = -1;
+                p++;
+        } else if (!parse_content_range_offset (p, &p, &length))
+                return FALSE;
 
-	if (*p != '\0')
-		return FALSE;
+        if (*p != '\0')
+                return FALSE;
 
-	/* The range has to describe an actual span of the resource, otherwise
-	 * it is not something a caller can use as offsets.
-	 */
-	if (last_pos < first_pos)
-		return FALSE;
-	if (length >= 0 && last_pos >= length)
-		return FALSE;
+        /* The range has to describe an actual span of the resource, otherwise
+         * it is not something a caller can use as offsets.
+         */
+        if (last_pos < first_pos)
+                return FALSE;
+        if (length >= 0 && last_pos >= length)
+                return FALSE;
 
-	*start = first_pos;
-	*end = last_pos;
-	if (total_length)
-		*total_length = length;
-	return TRUE;
+        *start = first_pos;
+        *end = last_pos;
+        if (total_length)
+                *total_length = length;
+        return TRUE;
 }
 
 /**
@@ -1662,24 +1662,24 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
  **/
 void
 soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
-					goffset              start,
-					goffset              end,
-					goffset              total_length)
+                                        goffset              start,
+                                        goffset              end,
+                                        goffset              total_length)
 {
-	char *header;
+        char *header;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	if (total_length >= 0) {
-		header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
-					  G_GINT64_FORMAT "/%" G_GINT64_FORMAT,
-					  start, end, total_length);
-	} else {
-		header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
-					  G_GINT64_FORMAT "/*", start, end);
-	}
-	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header, SOUP_HEADER_VALUE_TRUSTED);
-	g_free (header);
+        if (total_length >= 0) {
+                header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
+                                          G_GINT64_FORMAT "/%" G_GINT64_FORMAT,
+                                          start, end, total_length);
+        } else {
+                header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
+                                          G_GINT64_FORMAT "/*", start, end);
+        }
+        soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header, SOUP_HEADER_VALUE_TRUSTED);
+        g_free (header);
 }
 
 /* Sets @hdrs's Content-Range header to the unsatisfied-range form,
@@ -1688,30 +1688,30 @@ soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
  */
 void
 soup_message_headers_set_content_range_unsatisfied (SoupMessageHeaders *hdrs,
-						    goffset             total_length)
+                                                    goffset             total_length)
 {
-	char *header;
+        char *header;
 
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	header = g_strdup_printf ("bytes */%" G_GINT64_FORMAT, total_length);
-	soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header, SOUP_HEADER_VALUE_TRUSTED);
-	g_free (header);
+        header = g_strdup_printf ("bytes */%" G_GINT64_FORMAT, total_length);
+        soup_message_headers_replace_common (hdrs, SOUP_HEADER_CONTENT_RANGE, header, SOUP_HEADER_VALUE_TRUSTED);
+        g_free (header);
 }
 
 static gboolean
 parse_content_foo (SoupMessageHeaders *hdrs,
                    SoupHeaderName      header_name,
-		   char              **foo,
+                   char              **foo,
                    GHashTable        **params)
 {
-	const char *header;
-	char *semi;
+        const char *header;
+        char *semi;
         char *equal;
 
-	header = soup_message_headers_get_one_common (hdrs, header_name);
-	if (!header)
-		return FALSE;
+        header = soup_message_headers_get_one_common (hdrs, header_name);
+        if (!header)
+                return FALSE;
 
         /* Some websites send an invalid disposition that only contains parameters;
          * We can be flexible about handling these by detecting if the first word
@@ -1739,16 +1739,16 @@ parse_content_foo (SoupMessageHeaders *hdrs,
                         semi++;
         }
 
-	if (!params)
-		return TRUE;
+        if (!params)
+                return TRUE;
 
-	if (!semi) {
-		*params = soup_header_parse_semi_param_list ("");
-		return TRUE;
-	}
+        if (!semi) {
+                *params = soup_header_parse_semi_param_list ("");
+                return TRUE;
+        }
 
-	*params = soup_header_parse_semi_param_list (semi);
-	return TRUE;
+        *params = soup_header_parse_semi_param_list (semi);
+        return TRUE;
 }
 
 static inline gboolean
@@ -1794,29 +1794,29 @@ sanitize_filename (const char *value)
 static void
 set_content_foo (SoupMessageHeaders *hdrs,
                  SoupHeaderName      header_name,
-		 const char         *foo,
+                 const char         *foo,
                  GHashTable         *params)
 {
-	GString *str;
-	GHashTableIter iter;
-	gpointer key, value;
+        GString *str;
+        GHashTableIter iter;
+        gpointer key, value;
 
-	str = g_string_new (foo);
-	if (params) {
-		g_hash_table_iter_init (&iter, params);
-		while (g_hash_table_iter_next (&iter, &key, &value)) {
+        str = g_string_new (foo);
+        if (params) {
+                g_hash_table_iter_init (&iter, params);
+                while (g_hash_table_iter_next (&iter, &key, &value)) {
                         char *filename = NULL;
 
-			g_string_append (str, "; ");
+                        g_string_append (str, "; ");
                         if (g_strcmp0 (key, "filename") == 0)
                                 filename = sanitize_filename (value);
-			soup_header_g_string_append_param (str, key, filename ? filename : value);
+                        soup_header_g_string_append_param (str, key, filename ? filename : value);
                         g_free (filename);
-		}
-	}
+                }
+        }
 
-	soup_message_headers_replace_common (hdrs, header_name, str->str, SOUP_HEADER_VALUE_UNTRUSTED);
-	g_string_free (str, TRUE);
+        soup_message_headers_replace_common (hdrs, header_name, str->str, SOUP_HEADER_VALUE_UNTRUSTED);
+        g_string_free (str, TRUE);
 }
 
 /**
@@ -1838,16 +1838,16 @@ set_content_foo (SoupMessageHeaders *hdrs,
  **/
 const char *
 soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
-				       GHashTable         **params)
+                                       GHashTable         **params)
 {
-	g_return_val_if_fail (hdrs, NULL);
+        g_return_val_if_fail (hdrs, NULL);
 
-	if (!hdrs->content_type)
-		return NULL;
+        if (!hdrs->content_type)
+                return NULL;
 
-	if (params)
-		parse_content_foo (hdrs, SOUP_HEADER_CONTENT_TYPE, NULL, params);
-	return hdrs->content_type;
+        if (params)
+                parse_content_foo (hdrs, SOUP_HEADER_CONTENT_TYPE, NULL, params);
+        return hdrs->content_type;
 }
 
 /**
@@ -1862,12 +1862,12 @@ soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
  **/
 void
 soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
-				       const char          *content_type,
-				       GHashTable          *params)
+                                       const char          *content_type,
+                                       GHashTable          *params)
 {
-	g_return_if_fail (hdrs);
+        g_return_if_fail (hdrs);
 
-	set_content_foo (hdrs, SOUP_HEADER_CONTENT_TYPE, content_type, params);
+        set_content_foo (hdrs, SOUP_HEADER_CONTENT_TYPE, content_type, params);
 }
 
 /**
@@ -1902,20 +1902,20 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
  **/
 gboolean
 soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
-					      char               **disposition,
-					      GHashTable         **params)
+                                              char               **disposition,
+                                              GHashTable         **params)
 {
-	gpointer orig_key, orig_value;
+        gpointer orig_key, orig_value;
 
-	g_return_val_if_fail (hdrs, FALSE);
+        g_return_val_if_fail (hdrs, FALSE);
 
-	if (!parse_content_foo (hdrs, SOUP_HEADER_CONTENT_DISPOSITION,
-				disposition, params))
-		return FALSE;
+        if (!parse_content_foo (hdrs, SOUP_HEADER_CONTENT_DISPOSITION,
+                                disposition, params))
+                return FALSE;
 
-	/* If there is a filename parameter, make sure it contains only valid characters */
-	if (params && g_hash_table_lookup_extended (*params, "filename",
-						    &orig_key, &orig_value)) {
+        /* If there is a filename parameter, make sure it contains only valid characters */
+        if (params && g_hash_table_lookup_extended (*params, "filename",
+                                                    &orig_key, &orig_value)) {
                 if (orig_value) {
                         char *filename = sanitize_filename (orig_value);
 
@@ -1925,8 +1925,8 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
                         /* filename with no value isn't valid. */
                         g_hash_table_remove (*params, "filename");
                 }
-	}
-	return TRUE;
+        }
+        return TRUE;
 }
 
 /**
@@ -1943,11 +1943,11 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
  **/
 void
 soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,
-					      const char          *disposition,
-					      GHashTable          *params)
+                                              const char          *disposition,
+                                              GHashTable          *params)
 {
-	g_return_if_fail (hdrs && disposition);
+        g_return_if_fail (hdrs && disposition);
 
-	set_content_foo (hdrs, SOUP_HEADER_CONTENT_DISPOSITION, disposition, params);
+        set_content_foo (hdrs, SOUP_HEADER_CONTENT_DISPOSITION, disposition, params);
 }
 

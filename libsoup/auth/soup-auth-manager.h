@@ -16,8 +16,8 @@ G_DECLARE_FINAL_TYPE (SoupAuthManager, soup_auth_manager, SOUP, AUTH_MANAGER, GO
 
 SOUP_AVAILABLE_IN_ALL
 void  soup_auth_manager_use_auth (SoupAuthManager *manager,
-				  GUri            *uri,
-				  SoupAuth        *auth);
+                                  GUri            *uri,
+                                  SoupAuth        *auth);
 
 SOUP_AVAILABLE_IN_ALL
 void soup_auth_manager_clear_cached_credentials (SoupAuthManager *manager);

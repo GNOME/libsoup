@@ -14,7 +14,7 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (SoupBodyOutputStream, soup_body_output_stream, SOUP, BODY_OUTPUT_STREAM, GFilterOutputStream)
 
 GOutputStream *soup_body_output_stream_new (GOutputStream *base_stream,
-					    SoupEncoding   encoding,
-					    goffset        content_length);
+                                            SoupEncoding   encoding,
+                                            goffset        content_length);
 
 G_END_DECLS

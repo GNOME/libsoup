@@ -40,10 +40,10 @@ soup_compression_dictionary_decoder_default_init (SoupCompressionDictionaryDecod
  */
 void
 soup_compression_dictionary_decoder_set_dictionary (SoupCompressionDictionaryDecoder *decoder,
-						    GBytes                           *dictionary)
+                                                    GBytes                           *dictionary)
 {
-	g_return_if_fail (SOUP_IS_COMPRESSION_DICTIONARY_DECODER (decoder));
-	g_return_if_fail (dictionary != NULL);
+        g_return_if_fail (SOUP_IS_COMPRESSION_DICTIONARY_DECODER (decoder));
+        g_return_if_fail (dictionary != NULL);
 
-	SOUP_COMPRESSION_DICTIONARY_DECODER_GET_IFACE (decoder)->set_dictionary (decoder, dictionary);
+        SOUP_COMPRESSION_DICTIONARY_DECODER_GET_IFACE (decoder)->set_dictionary (decoder, dictionary);
 }

@@ -43,24 +43,24 @@ soup_scheme_default_port (const char *scheme)
 {
         if (!g_strcmp0 (scheme, "http") ||
             !g_strcmp0 (scheme, "ws"))
-		return 80;
-	else if (!g_strcmp0 (scheme, "https") ||
+                return 80;
+        else if (!g_strcmp0 (scheme, "https") ||
                  !g_strcmp0 (scheme, "wss"))
-		return 443;
-	else if (!g_strcmp0 (scheme, "ftp"))
-		return 21;
-	else
-		return -1;
+                return 443;
+        else if (!g_strcmp0 (scheme, "ftp"))
+                return 21;
+        else
+                return -1;
 }
 
 static inline gboolean
 parts_equal (const char *one, const char *two, gboolean insensitive)
 {
-	if (!one && !two)
-		return TRUE;
-	if (!one || !two)
-		return FALSE;
-	return insensitive ? !g_ascii_strcasecmp (one, two) : !strcmp (one, two);
+        if (!one && !two)
+                return TRUE;
+        if (!one || !two)
+                return FALSE;
+        return insensitive ? !g_ascii_strcasecmp (one, two) : !strcmp (one, two);
 }
 
 static inline gboolean
@@ -71,7 +71,7 @@ path_equal (const char *one, const char *two)
         if (two[0] == '\0')
                 two = "/";
 
-	return !strcmp (one, two);
+        return !strcmp (one, two);
 }
 
 static gboolean
@@ -97,18 +97,18 @@ flags_equal (GUriFlags flags1, GUriFlags flags2)
 gboolean
 soup_uri_equal (GUri *uri1, GUri *uri2)
 {
-     	g_return_val_if_fail (uri1 != NULL, FALSE);
-	g_return_val_if_fail (uri2 != NULL, FALSE);
+        g_return_val_if_fail (uri1 != NULL, FALSE);
+        g_return_val_if_fail (uri2 != NULL, FALSE);
 
-       	if (!flags_equal (g_uri_get_flags (uri1), g_uri_get_flags (uri2))                  ||
+        if (!flags_equal (g_uri_get_flags (uri1), g_uri_get_flags (uri2))                  ||
             g_strcmp0 (g_uri_get_scheme (uri1), g_uri_get_scheme (uri2))                   ||
-	    g_uri_get_port (uri1) != g_uri_get_port (uri2)                                 ||
-	    !parts_equal (g_uri_get_user (uri1), g_uri_get_user (uri2), FALSE)             ||
-	    !parts_equal (g_uri_get_password (uri1), g_uri_get_password (uri2), FALSE)     ||
-	    !parts_equal (g_uri_get_host (uri1), g_uri_get_host (uri2), TRUE)              ||
-	    !path_equal (g_uri_get_path (uri1), g_uri_get_path (uri2))                     ||
-	    !parts_equal (g_uri_get_query (uri1), g_uri_get_query (uri2), FALSE)           ||
-	    !parts_equal (g_uri_get_fragment (uri1), g_uri_get_fragment (uri2), FALSE)) {
+            g_uri_get_port (uri1) != g_uri_get_port (uri2)                                 ||
+            !parts_equal (g_uri_get_user (uri1), g_uri_get_user (uri2), FALSE)             ||
+            !parts_equal (g_uri_get_password (uri1), g_uri_get_password (uri2), FALSE)     ||
+            !parts_equal (g_uri_get_host (uri1), g_uri_get_host (uri2), TRUE)              ||
+            !path_equal (g_uri_get_path (uri1), g_uri_get_path (uri2))                     ||
+            !parts_equal (g_uri_get_query (uri1), g_uri_get_query (uri2), FALSE)           ||
+            !parts_equal (g_uri_get_fragment (uri1), g_uri_get_fragment (uri2), FALSE)) {
                 return FALSE;
             }
 
@@ -128,7 +128,7 @@ soup_uri_get_path_and_query (GUri *uri)
 {
         const char *query;
 
-	g_return_val_if_fail (uri != NULL, NULL);
+        g_return_val_if_fail (uri != NULL, NULL);
 
         query = g_uri_get_query (uri);
 
@@ -188,18 +188,18 @@ soup_uri_copy_host (GUri *uri)
 guint
 soup_uri_host_hash (gconstpointer key)
 {
-	GUri *uri = (GUri*)key;
+        GUri *uri = (GUri*)key;
         const char *host;
 
-	g_return_val_if_fail (uri != NULL, 0);
+        g_return_val_if_fail (uri != NULL, 0);
 
         host = g_uri_get_host (uri);
 
-	g_return_val_if_fail (host != NULL, 0);
+        g_return_val_if_fail (host != NULL, 0);
 
-	return soup_str_case_hash (g_uri_get_scheme (uri)) +
+        return soup_str_case_hash (g_uri_get_scheme (uri)) +
                g_uri_get_port (uri) +
-	       soup_str_case_hash (host);
+               soup_str_case_hash (host);
 }
 
 /**
@@ -214,26 +214,26 @@ soup_uri_host_hash (gconstpointer key)
 gboolean
 soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 {
-	GUri *one = (GUri*)v1;
-	GUri *two = (GUri*)v2;
+        GUri *one = (GUri*)v1;
+        GUri *two = (GUri*)v2;
         const char *one_host, *two_host;
 
-	g_return_val_if_fail (one != NULL && two != NULL, one == two);
+        g_return_val_if_fail (one != NULL && two != NULL, one == two);
 
         one_host = g_uri_get_host (one);
         two_host = g_uri_get_host (two);
 
-	g_return_val_if_fail (one_host != NULL && two_host != NULL, one_host == two_host);
+        g_return_val_if_fail (one_host != NULL && two_host != NULL, one_host == two_host);
 
         if (one == two)
                 return TRUE;
-	if (g_strcmp0 (g_uri_get_scheme (one), g_uri_get_scheme (two)) != 0)
-		return FALSE;
+        if (g_strcmp0 (g_uri_get_scheme (one), g_uri_get_scheme (two)) != 0)
+                return FALSE;
 
-	if (g_uri_get_port (one) != g_uri_get_port (two))
-		return FALSE;
+        if (g_uri_get_port (one) != g_uri_get_port (two))
+                return FALSE;
 
-	return g_ascii_strcasecmp (one_host, two_host) == 0;
+        return g_ascii_strcasecmp (one_host, two_host) == 0;
 }
 
 static gboolean

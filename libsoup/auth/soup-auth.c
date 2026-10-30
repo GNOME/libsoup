@@ -32,24 +32,24 @@
 
 typedef struct {
         char *realm;
-	char *authority;
-	gboolean proxy;
-	gboolean cancelled;
+        char *authority;
+        gboolean proxy;
+        gboolean cancelled;
 } SoupAuthPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (SoupAuth, soup_auth, G_TYPE_OBJECT)
 
 enum {
-	PROP_0,
+        PROP_0,
 
-	PROP_SCHEME_NAME,
-	PROP_REALM,
-	PROP_AUTHORITY,
-	PROP_IS_FOR_PROXY,
-	PROP_IS_AUTHENTICATED,
-	PROP_IS_CANCELLED,
+        PROP_SCHEME_NAME,
+        PROP_REALM,
+        PROP_AUTHORITY,
+        PROP_IS_FOR_PROXY,
+        PROP_IS_AUTHENTICATED,
+        PROP_IS_CANCELLED,
 
-	LAST_PROPERTY
+        LAST_PROPERTY
 };
 
 static GParamSpec *properties[LAST_PROPERTY] = { NULL, };
@@ -62,180 +62,180 @@ soup_auth_init (SoupAuth *auth)
 static void
 soup_auth_dispose (GObject *object)
 {
-	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuth *auth = SOUP_AUTH (object);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	if (!priv->cancelled && !soup_auth_is_authenticated (auth))
-		soup_auth_cancel (auth);
+        if (!priv->cancelled && !soup_auth_is_authenticated (auth))
+                soup_auth_cancel (auth);
 
-	G_OBJECT_CLASS (soup_auth_parent_class)->dispose (object);
+        G_OBJECT_CLASS (soup_auth_parent_class)->dispose (object);
 }
 
 static void
 soup_auth_finalize (GObject *object)
 {
-	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuth *auth = SOUP_AUTH (object);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	g_free (priv->realm);
-	g_free (priv->authority);
+        g_free (priv->realm);
+        g_free (priv->authority);
 
-	G_OBJECT_CLASS (soup_auth_parent_class)->finalize (object);
+        G_OBJECT_CLASS (soup_auth_parent_class)->finalize (object);
 }
 
 static void
 soup_auth_set_property (GObject *object, guint prop_id,
-			const GValue *value, GParamSpec *pspec)
+                        const GValue *value, GParamSpec *pspec)
 {
-	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuth *auth = SOUP_AUTH (object);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	switch (prop_id) {
-	case PROP_REALM:
-		g_free (priv->realm);
-		priv->realm = g_value_dup_string (value);
-		break;
-	case PROP_AUTHORITY:
-		g_free (priv->authority);
-		priv->authority = g_value_dup_string (value);
-		break;
-	case PROP_IS_FOR_PROXY:
-		priv->proxy = g_value_get_boolean (value);
-		break;
-	case PROP_SCHEME_NAME:
-	case PROP_IS_AUTHENTICATED:
-	case PROP_IS_CANCELLED:
-		g_assert_not_reached ();
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        switch (prop_id) {
+        case PROP_REALM:
+                g_free (priv->realm);
+                priv->realm = g_value_dup_string (value);
+                break;
+        case PROP_AUTHORITY:
+                g_free (priv->authority);
+                priv->authority = g_value_dup_string (value);
+                break;
+        case PROP_IS_FOR_PROXY:
+                priv->proxy = g_value_get_boolean (value);
+                break;
+        case PROP_SCHEME_NAME:
+        case PROP_IS_AUTHENTICATED:
+        case PROP_IS_CANCELLED:
+                g_assert_not_reached ();
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 static void
 soup_auth_get_property (GObject *object, guint prop_id,
-			GValue *value, GParamSpec *pspec)
+                        GValue *value, GParamSpec *pspec)
 {
-	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuth *auth = SOUP_AUTH (object);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	switch (prop_id) {
-	case PROP_SCHEME_NAME:
-		g_value_set_string (value, soup_auth_get_scheme_name (auth));
-		break;
-	case PROP_REALM:
-		g_value_set_string (value, soup_auth_get_realm (auth));
-		break;
-	case PROP_AUTHORITY:
-		g_value_set_string (value, soup_auth_get_authority (auth));
-		break;
-	case PROP_IS_FOR_PROXY:
-		g_value_set_boolean (value, priv->proxy);
-		break;
-	case PROP_IS_AUTHENTICATED:
-		g_value_set_boolean (value, soup_auth_is_authenticated (auth));
-		break;
-	case PROP_IS_CANCELLED:
-		g_value_set_boolean (value, priv->cancelled);
+        switch (prop_id) {
+        case PROP_SCHEME_NAME:
+                g_value_set_string (value, soup_auth_get_scheme_name (auth));
                 break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+        case PROP_REALM:
+                g_value_set_string (value, soup_auth_get_realm (auth));
+                break;
+        case PROP_AUTHORITY:
+                g_value_set_string (value, soup_auth_get_authority (auth));
+                break;
+        case PROP_IS_FOR_PROXY:
+                g_value_set_boolean (value, priv->proxy);
+                break;
+        case PROP_IS_AUTHENTICATED:
+                g_value_set_boolean (value, soup_auth_is_authenticated (auth));
+                break;
+        case PROP_IS_CANCELLED:
+                g_value_set_boolean (value, priv->cancelled);
+                break;
+        default:
+                G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+                break;
+        }
 }
 
 static gboolean
 auth_can_authenticate (SoupAuth *auth)
 {
-	return TRUE;
+        return TRUE;
 }
 
 static void
 soup_auth_class_init (SoupAuthClass *auth_class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (auth_class);
+        GObjectClass *object_class = G_OBJECT_CLASS (auth_class);
 
-	auth_class->can_authenticate = auth_can_authenticate;
+        auth_class->can_authenticate = auth_can_authenticate;
 
-	object_class->dispose = soup_auth_dispose;
-	object_class->finalize     = soup_auth_finalize;
-	object_class->set_property = soup_auth_set_property;
-	object_class->get_property = soup_auth_get_property;
+        object_class->dispose = soup_auth_dispose;
+        object_class->finalize     = soup_auth_finalize;
+        object_class->set_property = soup_auth_set_property;
+        object_class->get_property = soup_auth_get_property;
 
-	/* properties */
-	/**
+        /* properties */
+        /**
          * SoupAuth:scheme-name: (attributes org.gtk.Property.get=soup_auth_get_scheme_name)
          *
          * The authentication scheme name.
-	 **/
+         **/
         properties[PROP_SCHEME_NAME] =
-		g_param_spec_string ("scheme-name",
-				     "Scheme name",
-				     "Authentication scheme name",
-				     NULL,
-				     G_PARAM_READABLE |
-				     G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuth:realm: (attributes org.gtk.Property.get=soup_auth_get_realm)
-	 *
-	 * The authentication realm.
-	 **/
+                g_param_spec_string ("scheme-name",
+                                     "Scheme name",
+                                     "Authentication scheme name",
+                                     NULL,
+                                     G_PARAM_READABLE |
+                                     G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuth:realm: (attributes org.gtk.Property.get=soup_auth_get_realm)
+         *
+         * The authentication realm.
+         **/
         properties[PROP_REALM] =
-		g_param_spec_string ("realm",
-				     "Realm",
-				     "Authentication realm",
-				     NULL,
-				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuth:authority: (attributes org.gtk.Property.get=soup_auth_get_authority)
-	 *
-	 * The authority (host:port) being authenticated to.
-	 **/
+                g_param_spec_string ("realm",
+                                     "Realm",
+                                     "Authentication realm",
+                                     NULL,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuth:authority: (attributes org.gtk.Property.get=soup_auth_get_authority)
+         *
+         * The authority (host:port) being authenticated to.
+         **/
         properties[PROP_AUTHORITY] =
-		g_param_spec_string ("authority",
-				     "Authority",
-				     "Authentication authority",
-				     NULL,
-				     G_PARAM_READWRITE |
-				     G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuth:is-for-proxy: (attributes org.gtk.Property.get=soup_auth_is_for_proxy)
-	 *
-	 * Whether or not the auth is for a proxy server.
-	 **/
+                g_param_spec_string ("authority",
+                                     "Authority",
+                                     "Authentication authority",
+                                     NULL,
+                                     G_PARAM_READWRITE |
+                                     G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuth:is-for-proxy: (attributes org.gtk.Property.get=soup_auth_is_for_proxy)
+         *
+         * Whether or not the auth is for a proxy server.
+         **/
         properties[PROP_IS_FOR_PROXY] =
-		g_param_spec_boolean ("is-for-proxy",
-				      "For Proxy",
-				      "Whether or not the auth is for a proxy server",
-				      FALSE,
-				      G_PARAM_READWRITE |
-				      G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuth:is-authenticated: (attributes org.gtk.Property.get=soup_auth_is_authenticated)
-	 *
-	 * Whether or not the auth has been authenticated.
-	 **/
+                g_param_spec_boolean ("is-for-proxy",
+                                      "For Proxy",
+                                      "Whether or not the auth is for a proxy server",
+                                      FALSE,
+                                      G_PARAM_READWRITE |
+                                      G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuth:is-authenticated: (attributes org.gtk.Property.get=soup_auth_is_authenticated)
+         *
+         * Whether or not the auth has been authenticated.
+         **/
         properties[PROP_IS_AUTHENTICATED] =
-		g_param_spec_boolean ("is-authenticated",
-				      "Authenticated",
-				      "Whether or not the auth is authenticated",
-				      FALSE,
-				      G_PARAM_READABLE |
-				      G_PARAM_STATIC_STRINGS);
-	/**
-	 * SoupAuth:is-cancelled: (attributes org.gtk.Property.get=soup_auth_is_cancelled)
-	 *
-	 * Whether or not the auth has been cancelled.
-	 **/
+                g_param_spec_boolean ("is-authenticated",
+                                      "Authenticated",
+                                      "Whether or not the auth is authenticated",
+                                      FALSE,
+                                      G_PARAM_READABLE |
+                                      G_PARAM_STATIC_STRINGS);
+        /**
+         * SoupAuth:is-cancelled: (attributes org.gtk.Property.get=soup_auth_is_cancelled)
+         *
+         * Whether or not the auth has been cancelled.
+         **/
         properties[PROP_IS_CANCELLED] =
-		g_param_spec_boolean ("is-cancelled",
-				      "Cancelled",
-				      "Whether or not the auth is cancelled",
-				      FALSE,
-				      G_PARAM_READABLE |
-				      G_PARAM_STATIC_STRINGS);
+                g_param_spec_boolean ("is-cancelled",
+                                      "Cancelled",
+                                      "Whether or not the auth is cancelled",
+                                      FALSE,
+                                      G_PARAM_READABLE |
+                                      G_PARAM_STATIC_STRINGS);
 
         g_object_class_install_properties (object_class, LAST_PROPERTY, properties);
 }
@@ -258,46 +258,46 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 SoupAuth *
 soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 {
-	SoupAuth *auth;
-	GHashTable *params;
-	const char *scheme;
-	GUri *uri;
-	char *authority;
+        SoupAuth *auth;
+        GHashTable *params;
+        const char *scheme;
+        GUri *uri;
+        char *authority;
 
-	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-	g_return_val_if_fail (auth_header != NULL, NULL);
+        g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+        g_return_val_if_fail (auth_header != NULL, NULL);
 
-	uri = soup_message_get_uri_for_auth (msg);
-	if (!uri)
-		return NULL;
+        uri = soup_message_get_uri_for_auth (msg);
+        if (!uri)
+                return NULL;
 
-	authority = g_strdup_printf ("%s:%d", g_uri_get_host (uri), g_uri_get_port (uri));
-	auth = g_object_new (type,
-			     "is-for-proxy", (soup_message_get_status (msg) == SOUP_STATUS_PROXY_UNAUTHORIZED),
-			     "authority", authority,
-			     NULL);
-	g_free (authority);
+        authority = g_strdup_printf ("%s:%d", g_uri_get_host (uri), g_uri_get_port (uri));
+        auth = g_object_new (type,
+                             "is-for-proxy", (soup_message_get_status (msg) == SOUP_STATUS_PROXY_UNAUTHORIZED),
+                             "authority", authority,
+                             NULL);
+        g_free (authority);
 
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	scheme = soup_auth_get_scheme_name (auth);
-	if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0) {
-		g_object_unref (auth);
-		return NULL;
-	}
+        scheme = soup_auth_get_scheme_name (auth);
+        if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0) {
+                g_object_unref (auth);
+                return NULL;
+        }
 
-	params = soup_header_parse_param_list (auth_header + strlen (scheme));
-	if (!params)
-		params = g_hash_table_new (NULL, NULL);
+        params = soup_header_parse_param_list (auth_header + strlen (scheme));
+        if (!params)
+                params = g_hash_table_new (NULL, NULL);
 
-	priv->realm = g_strdup (g_hash_table_lookup (params, "realm"));
+        priv->realm = g_strdup (g_hash_table_lookup (params, "realm"));
 
-	if (!SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params)) {
-		g_clear_object (&auth);
-	}
-	soup_header_free_param_list (params);
-	return auth;
+        if (!SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params)) {
+                g_clear_object (&auth);
+        }
+        soup_header_free_param_list (params);
+        return auth;
 }
 
 /**
@@ -318,38 +318,38 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 gboolean
 soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 {
-	GHashTable *params;
-	const char *scheme, *realm;
-	gboolean was_authenticated, success;
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        GHashTable *params;
+        const char *scheme, *realm;
+        gboolean was_authenticated, success;
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
-	g_return_val_if_fail (auth_header != NULL, FALSE);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+        g_return_val_if_fail (auth_header != NULL, FALSE);
 
-	if (priv->cancelled)
-		return FALSE;
+        if (priv->cancelled)
+                return FALSE;
 
-	scheme = soup_auth_get_scheme_name (auth);
-	if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0)
-		return FALSE;
+        scheme = soup_auth_get_scheme_name (auth);
+        if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0)
+                return FALSE;
 
-	params = soup_header_parse_param_list (auth_header + strlen (scheme));
-	if (!params)
-		params = g_hash_table_new (NULL, NULL);
+        params = soup_header_parse_param_list (auth_header + strlen (scheme));
+        if (!params)
+                params = g_hash_table_new (NULL, NULL);
 
-	realm = g_hash_table_lookup (params, "realm");
-	if (realm && priv->realm && strcmp (realm, priv->realm) != 0) {
-		soup_header_free_param_list (params);
-		return FALSE;
-	}
+        realm = g_hash_table_lookup (params, "realm");
+        if (realm && priv->realm && strcmp (realm, priv->realm) != 0) {
+                soup_header_free_param_list (params);
+                return FALSE;
+        }
 
-	was_authenticated = soup_auth_is_authenticated (auth);
-	success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
-	if (was_authenticated != soup_auth_is_authenticated (auth))
-		g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
-	soup_header_free_param_list (params);
-	return success;
+        was_authenticated = soup_auth_is_authenticated (auth);
+        success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
+        if (was_authenticated != soup_auth_is_authenticated (auth))
+                g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
+        soup_header_free_param_list (params);
+        return success;
 }
 
 /**
@@ -366,21 +366,21 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 void
 soup_auth_authenticate (SoupAuth *auth, const char *username, const char *password)
 {
-	SoupAuthPrivate *priv;
-	gboolean was_authenticated;
+        SoupAuthPrivate *priv;
+        gboolean was_authenticated;
 
-	g_return_if_fail (SOUP_IS_AUTH (auth));
-	g_return_if_fail (username != NULL);
-	g_return_if_fail (password != NULL);
+        g_return_if_fail (SOUP_IS_AUTH (auth));
+        g_return_if_fail (username != NULL);
+        g_return_if_fail (password != NULL);
 
-	priv = soup_auth_get_instance_private (auth);
-	if (priv->cancelled)
-		return;
+        priv = soup_auth_get_instance_private (auth);
+        if (priv->cancelled)
+                return;
 
-	was_authenticated = soup_auth_is_authenticated (auth);
-	SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
-	if (was_authenticated != soup_auth_is_authenticated (auth))
-		g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
+        was_authenticated = soup_auth_is_authenticated (auth);
+        SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
+        if (was_authenticated != soup_auth_is_authenticated (auth))
+                g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_AUTHENTICATED]);
 }
 
 /**
@@ -396,16 +396,16 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
 void
 soup_auth_cancel (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv;
+        SoupAuthPrivate *priv;
 
-	g_return_if_fail (SOUP_IS_AUTH (auth));
+        g_return_if_fail (SOUP_IS_AUTH (auth));
 
-	priv = soup_auth_get_instance_private (auth);
-	if (priv->cancelled)
-		return;
+        priv = soup_auth_get_instance_private (auth);
+        if (priv->cancelled)
+                return;
 
-	priv->cancelled = TRUE;
-	g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_CANCELLED]);
+        priv->cancelled = TRUE;
+        g_object_notify_by_pspec (G_OBJECT (auth), properties[PROP_IS_CANCELLED]);
 }
 
 /**
@@ -420,11 +420,11 @@ soup_auth_cancel (SoupAuth *auth)
 gboolean
 soup_auth_is_for_proxy (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
 
-	return priv->proxy;
+        return priv->proxy;
 }
 
 /**
@@ -439,9 +439,9 @@ soup_auth_is_for_proxy (SoupAuth *auth)
 const char *
 soup_auth_get_scheme_name (SoupAuth *auth)
 {
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return SOUP_AUTH_GET_CLASS (auth)->scheme_name;
+        return SOUP_AUTH_GET_CLASS (auth)->scheme_name;
 }
 
 /**
@@ -455,11 +455,11 @@ soup_auth_get_scheme_name (SoupAuth *auth)
 const char *
 soup_auth_get_authority (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return priv->authority;
+        return priv->authority;
 }
 
 /**
@@ -477,11 +477,11 @@ soup_auth_get_authority (SoupAuth *auth)
 const char *
 soup_auth_get_realm (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return priv->realm;
+        return priv->realm;
 }
 
 /**
@@ -500,17 +500,17 @@ soup_auth_get_realm (SoupAuth *auth)
 char *
 soup_auth_get_info (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
+        SoupAuthPrivate *priv = soup_auth_get_instance_private (auth);
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	if (SOUP_IS_CONNECTION_AUTH (auth))
-		return g_strdup (SOUP_AUTH_GET_CLASS (auth)->scheme_name);
-	else {
-		return g_strdup_printf ("%s:%s",
-					SOUP_AUTH_GET_CLASS (auth)->scheme_name,
-					priv->realm);
-	}
+        if (SOUP_IS_CONNECTION_AUTH (auth))
+                return g_strdup (SOUP_AUTH_GET_CLASS (auth)->scheme_name);
+        else {
+                return g_strdup_printf ("%s:%s",
+                                        SOUP_AUTH_GET_CLASS (auth)->scheme_name,
+                                        priv->realm);
+        }
 }
 
 /**
@@ -524,15 +524,15 @@ soup_auth_get_info (SoupAuth *auth)
 gboolean
 soup_auth_is_authenticated (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv;
+        SoupAuthPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
 
-	priv = soup_auth_get_instance_private (auth);
-	if (priv->cancelled)
-		return FALSE;
+        priv = soup_auth_get_instance_private (auth);
+        if (priv->cancelled)
+                return FALSE;
 
-	return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
+        return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
 }
 
 /**
@@ -546,12 +546,12 @@ soup_auth_is_authenticated (SoupAuth *auth)
 gboolean
 soup_auth_is_cancelled (SoupAuth *auth)
 {
- 	SoupAuthPrivate *priv;
+        SoupAuthPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
 
-	priv = soup_auth_get_instance_private (auth);
-	return priv->cancelled;
+        priv = soup_auth_get_instance_private (auth);
+        return priv->cancelled;
 }
 
 /**
@@ -569,10 +569,10 @@ soup_auth_is_cancelled (SoupAuth *auth)
 char *
 soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
-	g_return_val_if_fail (msg != NULL, NULL);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+        g_return_val_if_fail (msg != NULL, NULL);
 
-	return SOUP_AUTH_GET_CLASS (auth)->get_authorization (auth, msg);
+        return SOUP_AUTH_GET_CLASS (auth)->get_authorization (auth, msg);
 }
 
 /**
@@ -591,21 +591,21 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
  **/
 gboolean
 soup_auth_is_ready (SoupAuth    *auth,
-		    SoupMessage *msg)
+                    SoupMessage *msg)
 {
-	SoupAuthPrivate *priv;
+        SoupAuthPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), TRUE);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
+        g_return_val_if_fail (SOUP_IS_MESSAGE (msg), TRUE);
 
-	priv = soup_auth_get_instance_private (auth);
-	if (priv->cancelled)
-		return FALSE;
+        priv = soup_auth_get_instance_private (auth);
+        if (priv->cancelled)
+                return FALSE;
 
-	if (SOUP_AUTH_GET_CLASS (auth)->is_ready)
-		return SOUP_AUTH_GET_CLASS (auth)->is_ready (auth, msg);
-	else
-		return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
+        if (SOUP_AUTH_GET_CLASS (auth)->is_ready)
+                return SOUP_AUTH_GET_CLASS (auth)->is_ready (auth, msg);
+        else
+                return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
 }
 
 /**
@@ -621,15 +621,15 @@ soup_auth_is_ready (SoupAuth    *auth,
 gboolean
 soup_auth_can_authenticate (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv;
+        SoupAuthPrivate *priv;
 
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
 
-	priv = soup_auth_get_instance_private (auth);
-	if (priv->cancelled)
-		return FALSE;
+        priv = soup_auth_get_instance_private (auth);
+        if (priv->cancelled)
+                return FALSE;
 
-	return SOUP_AUTH_GET_CLASS (auth)->can_authenticate (auth);
+        return SOUP_AUTH_GET_CLASS (auth)->can_authenticate (auth);
 }
 
 /**
@@ -650,11 +650,11 @@ soup_auth_can_authenticate (SoupAuth *auth)
 GSList *
 soup_auth_get_protection_space (SoupAuth *auth, GUri *source_uri)
 {
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+        g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
         g_return_val_if_fail (soup_uri_is_valid (source_uri), NULL);
 
         GUri *source_uri_normalized = soup_uri_copy_with_normalized_flags (source_uri);
-	GSList *ret = SOUP_AUTH_GET_CLASS (auth)->get_protection_space (auth, source_uri_normalized);
+        GSList *ret = SOUP_AUTH_GET_CLASS (auth)->get_protection_space (auth, source_uri_normalized);
         g_uri_unref (source_uri_normalized);
         return ret;
 }
@@ -669,5 +669,5 @@ soup_auth_get_protection_space (SoupAuth *auth, GUri *source_uri)
 void
 soup_auth_free_protection_space (SoupAuth *auth, GSList *space)
 {
-	g_slist_free_full (space, g_free);
+        g_slist_free_full (space, g_free);
 }
