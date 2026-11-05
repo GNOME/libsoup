@@ -106,7 +106,15 @@ server_callback (SoupServer        *server,
 	}
 
 	/* Content-Type matches the "real" format, not the sent format */
-	if (g_str_has_suffix (path, ".gz")) {
+	if (soup_header_contains (options, "content-type-gzip")) {
+		soup_message_headers_append (response_headers,
+					     "Content-Type",
+					     "application/gzip");
+	} else if (soup_header_contains (options, "content-type-x-gzip")) {
+		soup_message_headers_append (response_headers,
+					     "Content-Type",
+					     "application/x-gzip");
+	} else if (g_str_has_suffix (path, ".gz")) {
 		soup_message_headers_append (response_headers,
 					     "Content-Type",
 					     "application/gzip");
@@ -246,6 +254,31 @@ do_coding_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 	body = soup_session_send_and_read (data->session, data->msg, NULL, NULL);
 	check_response (data, "gzip", "text/plain", body);
 	g_bytes_unref (body);
+}
+
+static void
+check_gzip_content_type (CodingTestData *data, const char *option, const char *content_type)
+{
+	GBytes *body;
+
+	soup_message_headers_append (soup_message_get_request_headers (data->msg),
+				     "X-Test-Options", option);
+
+	body = soup_session_send_and_read (data->session, data->msg, NULL, NULL);
+	check_response (data, "gzip", content_type, body);
+	g_bytes_unref (body);
+}
+
+static void
+do_coding_test_gzip_content_type_gzip (CodingTestData *data, gconstpointer test_data)
+{
+	check_gzip_content_type (data, "content-type-gzip", "application/gzip");
+}
+
+static void
+do_coding_test_gzip_content_type_x_gzip (CodingTestData *data, gconstpointer test_data)
+{
+	check_gzip_content_type (data, "content-type-x-gzip", "application/x-gzip");
 }
 
 static void
@@ -1425,6 +1458,12 @@ main (int argc, char **argv)
 	g_test_add ("/coding/message/gzip/with-junk", CodingTestData,
 		    GINT_TO_POINTER (CODING_TEST_DEFAULT),
 		    setup_coding_test, do_coding_test_gzip_with_junk, teardown_coding_test);
+	g_test_add ("/coding/message/gzip/content-type-gzip", CodingTestData,
+		    GINT_TO_POINTER (CODING_TEST_DEFAULT),
+		    setup_coding_test, do_coding_test_gzip_content_type_gzip, teardown_coding_test);
+	g_test_add ("/coding/message/gzip/content-type-x-gzip", CodingTestData,
+		    GINT_TO_POINTER (CODING_TEST_DEFAULT),
+		    setup_coding_test, do_coding_test_gzip_content_type_x_gzip, teardown_coding_test);
 	g_test_add ("/coding/message/gzip/bad-server", CodingTestData,
 		    GINT_TO_POINTER (CODING_TEST_DEFAULT),
 		    setup_coding_test, do_coding_test_gzip_bad_server, teardown_coding_test);

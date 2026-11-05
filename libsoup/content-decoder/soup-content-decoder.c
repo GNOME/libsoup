@@ -173,17 +173,6 @@ soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMess
 	if (!header)
 		return NULL;
 
-	/* Workaround for an apache bug (bgo 613361) */
-	if (!g_ascii_strcasecmp (header, "gzip") ||
-	    !g_ascii_strcasecmp (header, "x-gzip")) {
-		const char *content_type = soup_message_headers_get_content_type (soup_message_get_response_headers (msg), NULL);
-
-		if (content_type &&
-		    (!g_ascii_strcasecmp (content_type, "application/gzip") ||
-		     !g_ascii_strcasecmp (content_type, "application/x-gzip")))
-			return NULL;
-	}
-
 	/* OK, really, no one is ever going to use more than one
 	 * encoding, but we'll be robust.
 	 */
