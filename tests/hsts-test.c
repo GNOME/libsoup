@@ -435,6 +435,23 @@ do_hsts_ip_address_test (void)
 }
 
 static void
+do_hsts_ip_address_from_response_test (void)
+{
+	const char *uris[] = { "https://127.0.0.1/", "https://[::1]/", NULL };
+
+	/* A host that is an IP address must not be noted as a known
+	 * HSTS host, so no policy is created for it. */
+	for (int i = 0; uris[i]; i++) {
+		SoupMessage *msg = soup_message_new ("GET", uris[i]);
+
+		soup_message_headers_append (soup_message_get_response_headers (msg),
+					     "Strict-Transport-Security", "max-age=31536000");
+		g_assert_null (soup_hsts_policy_new_from_response (msg));
+		g_object_unref (msg);
+	}
+}
+
+static void
 do_hsts_utf8_address_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
@@ -669,6 +686,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
 	g_test_add_func ("/hsts/optional-quotations", do_hsts_optional_quotations_test);
 	g_test_add_func ("/hsts/ip-address", do_hsts_ip_address_test);
+	g_test_add_func ("/hsts/ip-address-from-response", do_hsts_ip_address_from_response_test);
 	g_test_add_func ("/hsts/utf8-address", do_hsts_utf8_address_test);
 	g_test_add_func ("/hsts/session-policy", do_hsts_session_policy_test);
 	g_test_add_func ("/hsts/idna-addresses", do_hsts_idna_addresses_test);

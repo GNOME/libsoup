@@ -256,6 +256,11 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
+	/* RFC 6797 8.1.1: an IP address must not be noted as a
+	 * Known HSTS Host. */
+	if (g_hostname_is_ip_address (g_uri_get_host (soup_message_get_uri (msg))))
+		return NULL;
+
 	soup_message_headers_iter_init (&iter, soup_message_get_response_headers (msg));
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		GUri *uri;
