@@ -4,6 +4,7 @@
 #include <glib/gstdio.h>
 
 #include <stdio.h>
+#include <sqlite3.h>
 #include "soup-uri-utils-private.h"
 
 #define DB_FILE "hsts-db.sqlite"
@@ -228,6 +229,29 @@ do_hsts_db_huge_max_age_test (void)
 	g_remove (DB_FILE);
 }
 
+static void
+do_hsts_db_huge_expiry_test (void)
+{
+	sqlite3 *db;
+	SoupSession *session;
+
+	/* A stored expiry beyond what GDateTime can represent must
+	 * still load as a persistent, valid policy. */
+	g_remove (DB_FILE);
+	g_assert_cmpint (sqlite3_open (DB_FILE, &db), ==, SQLITE_OK);
+	g_assert_cmpint (sqlite3_exec (db,
+				       "CREATE TABLE soup_hsts_policies (id INTEGER PRIMARY KEY, host TEXT UNIQUE, max_age INTEGER, expiry INTEGER, include_subdomains INTEGER);"
+				       "INSERT INTO soup_hsts_policies VALUES (NULL, 'localhost', 999999999999, 999999999999999, 0);",
+				       NULL, NULL, NULL), ==, SQLITE_OK);
+	sqlite3_close (db);
+
+	session = hsts_db_session_new ();
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+	soup_test_session_abort_unref (session);
+
+	g_remove (DB_FILE);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -252,6 +276,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts-db/large-max-age", do_hsts_db_large_max_age_test);
 	g_test_add_func ("/hsts-db/century", do_hsts_db_century_test);
 	g_test_add_func ("/hsts-db/huge-max-age", do_hsts_db_huge_max_age_test);
+	g_test_add_func ("/hsts-db/huge-expiry", do_hsts_db_huge_expiry_test);
 
 	ret = g_test_run ();
 

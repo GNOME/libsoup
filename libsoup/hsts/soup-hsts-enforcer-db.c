@@ -17,6 +17,7 @@
 
 #include "soup-hsts-enforcer-db.h"
 #include "soup.h"
+#include "soup-date-utils-private.h"
 
 /**
  * SoupHSTSEnforcerDB:
@@ -160,7 +161,9 @@ query_all_callback (void *data, int argc, char **argv, char **colname)
 	if (now >= expire_time)
 		return 0;
 
-	expires = g_date_time_new_from_unix_utc (expire_time);
+	/* Clamp dates GDateTime can't represent, otherwise the policy
+	 * would end up without an expiration date, as a session policy. */
+	expires = g_date_time_new_from_unix_utc (MIN (expire_time, SOUP_DATE_TIME_MAX_UNIX));
 	max_age = strtoul (argv[COL_MAX_AGE], NULL, 10);
 	include_subdomains = (g_strcmp0 (argv[COL_SUBDOMAINS], "1") == 0);
 
