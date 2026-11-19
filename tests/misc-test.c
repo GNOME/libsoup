@@ -834,6 +834,18 @@ do_connection_id_test (void)
         soup_test_session_abort_unref (session);
 }
 
+static gboolean
+socket_address_equal (GSocketAddress *a,
+                      GSocketAddress *b)
+{
+        if (!G_IS_INET_SOCKET_ADDRESS (a) || !G_IS_INET_SOCKET_ADDRESS (b))
+                return FALSE;
+
+        return g_inet_address_equal (g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (a)),
+                                     g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (b))) &&
+                g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (a)) == g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (b));
+}
+
 static void
 do_remote_address_test (void)
 {
@@ -865,7 +877,7 @@ do_remote_address_test (void)
         body = soup_test_session_async_send (session, msg2, NULL, NULL);
         g_assert_nonnull (soup_message_get_remote_address (msg2));
         g_assert_cmpuint (soup_message_get_connection_id (msg1), !=, soup_message_get_connection_id (msg2));
-        g_assert_true (soup_message_get_remote_address (msg1) == soup_message_get_remote_address (msg2));
+        g_assert_true (socket_address_equal (soup_message_get_remote_address (msg1), soup_message_get_remote_address (msg2)));
         g_bytes_unref (body);
         g_object_unref (msg2);
 

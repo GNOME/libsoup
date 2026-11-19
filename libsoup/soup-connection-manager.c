@@ -35,7 +35,6 @@ typedef struct {
         GUri *uri;
         GMutex *mutex;
         GHashTable *owner_map;
-        GNetworkAddress *addr;
 
         GList *conns;
         guint  num_conns;
@@ -65,12 +64,6 @@ soup_host_new (GUri         *uri,
         } else
                 host->uri = g_uri_ref (uri);
 
-        host->addr = g_object_new (G_TYPE_NETWORK_ADDRESS,
-                                   "hostname", g_uri_get_host (host->uri),
-                                   "port", g_uri_get_port (host->uri),
-                                   "scheme", g_uri_get_scheme (host->uri),
-                                   NULL);
-
         host->context = context;
 
         g_hash_table_insert (host->owner_map, host->uri, host);
@@ -89,7 +82,6 @@ soup_host_free (SoupHost *host)
         }
 
         g_uri_unref (host->uri);
-        g_object_unref (host->addr);
         g_free (host);
 }
 
@@ -494,8 +486,19 @@ soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
                 break;
         }
 
-        /* Create a new connection */
-        remote_connectable = manager->remote_connectable ? manager->remote_connectable : G_SOCKET_CONNECTABLE (host->addr);
+        /* Create a new connection. Each connection gets its own
+         * GNetworkAddress: connections to the same host can be
+         * enumerated from different threads at once, and
+         * GNetworkAddress is not thread safe (see glib#1033).
+         */
+        if (manager->remote_connectable)
+                remote_connectable = g_object_ref (manager->remote_connectable);
+        else
+                remote_connectable = g_object_new (G_TYPE_NETWORK_ADDRESS,
+                                                   "hostname", g_uri_get_host (host->uri),
+                                                   "port", g_uri_get_port (host->uri),
+                                                   "scheme", g_uri_get_scheme (host->uri),
+                                                   NULL);
         socket_props = soup_session_ensure_socket_props (item->session);
         conn = g_object_new (SOUP_TYPE_CONNECTION,
                              "id", ++manager->last_connection_id,
@@ -505,6 +508,7 @@ soup_connection_manager_get_connection_locked (SoupConnectionManager *manager,
                              "socket-properties", socket_props,
                              "force-http-version", force_http_version,
                              NULL);
+        g_object_unref (remote_connectable);
 
         g_signal_connect (conn, "disconnected",
                           G_CALLBACK (connection_disconnected),
