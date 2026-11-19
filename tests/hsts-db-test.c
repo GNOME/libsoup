@@ -56,6 +56,11 @@ server_callback  (SoupServer        *server,
 			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=631138519");
+		} else if (strcmp (path, "/century") == 0) {
+			/* Expires after 2106, when Unix time no longer fits in 32 bits. */
+			soup_message_headers_append (response_headers,
+						     "Strict-Transport-Security",
+						     "max-age=3155760000");
 		}
 	}
 }
@@ -187,6 +192,21 @@ do_hsts_db_large_max_age_test (void)
 	g_remove (DB_FILE);
 }
 
+static void
+do_hsts_db_century_test (void)
+{
+	SoupSession *session = hsts_db_session_new ();
+	session_get_uri (session, "https://localhost/century", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+	soup_test_session_abort_unref (session);
+
+	session = hsts_db_session_new ();
+	session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+	soup_test_session_abort_unref (session);
+
+	g_remove (DB_FILE);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -209,6 +229,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts-db/basic", do_hsts_db_persistency_test);
 	g_test_add_func ("/hsts-db/subdomains", do_hsts_db_subdomains_test);
 	g_test_add_func ("/hsts-db/large-max-age", do_hsts_db_large_max_age_test);
+	g_test_add_func ("/hsts-db/century", do_hsts_db_century_test);
 
 	ret = g_test_run ();
 

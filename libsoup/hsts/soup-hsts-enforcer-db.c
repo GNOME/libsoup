@@ -127,7 +127,7 @@ soup_hsts_enforcer_db_new (const char *filename)
 
 #define QUERY_ALL "SELECT id, host, max_age, expiry, include_subdomains FROM soup_hsts_policies;"
 #define CREATE_TABLE "CREATE TABLE soup_hsts_policies (id INTEGER PRIMARY KEY, host TEXT UNIQUE, max_age INTEGER, expiry INTEGER, include_subdomains INTEGER)"
-#define QUERY_INSERT "INSERT OR REPLACE INTO soup_hsts_policies VALUES((SELECT id FROM soup_hsts_policies WHERE host=%Q), %Q, %lu, %lu, %u);"
+#define QUERY_INSERT "INSERT OR REPLACE INTO soup_hsts_policies VALUES((SELECT id FROM soup_hsts_policies WHERE host=%Q), %Q, %lu, %lld, %u);"
 #define QUERY_DELETE "DELETE FROM soup_hsts_policies WHERE host=%Q;"
 
 enum {
@@ -146,7 +146,7 @@ query_all_callback (void *data, int argc, char **argv, char **colname)
 	SoupHSTSEnforcer *hsts_enforcer = SOUP_HSTS_ENFORCER (data);
 
 	char *host;
-	gulong expire_time;
+	gint64 expire_time;
 	unsigned long max_age;
 	time_t now;
 	GDateTime *expires;
@@ -155,7 +155,7 @@ query_all_callback (void *data, int argc, char **argv, char **colname)
 	now = time (NULL);
 
 	host = argv[COL_HOST];
-	expire_time = strtoul (argv[COL_EXPIRY], NULL, 10);
+	expire_time = g_ascii_strtoll (argv[COL_EXPIRY], NULL, 10);
 
 	if (now >= expire_time)
 		return 0;
@@ -275,14 +275,14 @@ soup_hsts_enforcer_db_changed (SoupHSTSEnforcer *hsts_enforcer,
 
 	/* Insert the new policy or update the existing one. */
 	if (new_policy && soup_hsts_policy_get_expires (new_policy)) {
-		gulong expires;
+		gint64 expires;
 
-		expires = (gulong)g_date_time_to_unix (soup_hsts_policy_get_expires (new_policy));
+		expires = g_date_time_to_unix (soup_hsts_policy_get_expires (new_policy));
 		query = sqlite3_mprintf (QUERY_INSERT,
 					 soup_hsts_policy_get_domain (new_policy),
 					 soup_hsts_policy_get_domain (new_policy),
 					 soup_hsts_policy_get_max_age (new_policy),
-					 expires,
+					 (long long)expires,
 					 soup_hsts_policy_includes_subdomains (new_policy));
 		g_assert (query);
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
