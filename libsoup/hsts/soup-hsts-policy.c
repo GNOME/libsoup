@@ -279,7 +279,9 @@ soup_hsts_policy_new_from_response (SoupMessage *msg)
 
 		max_age_str = g_hash_table_lookup (params, "max-age");
 
-		if (!max_age_str)
+		/* max-age is 1*DIGIT, so don't let strtoul() accept
+		 * an empty string, a sign or leading whitespace. */
+		if (!max_age_str || !g_ascii_isdigit (*max_age_str))
 			goto out;
 		max_age = strtoul (max_age_str, &endptr, 10);
 		if (*endptr != '\0')

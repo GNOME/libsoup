@@ -77,6 +77,18 @@ server_callback  (SoupServer        *server,
 			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=foo");
+		} else if (strcmp (path, "/empty-max-age") == 0) {
+			soup_message_headers_append (response_headers,
+						     "Strict-Transport-Security",
+						     "max-age=");
+		} else if (strcmp (path, "/negative-max-age") == 0) {
+			soup_message_headers_append (response_headers,
+						     "Strict-Transport-Security",
+						     "max-age=-1");
+		} else if (strcmp (path, "/signed-max-age") == 0) {
+			soup_message_headers_append (response_headers,
+						     "Strict-Transport-Security",
+						     "max-age=+3600");
 		} else if (strcmp (path, "/extra-values-0") == 0) {
 			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
@@ -374,6 +386,33 @@ do_hsts_invalid_values_test (void)
 }
 
 static void
+do_hsts_invalid_max_age_test (void)
+{
+	/* max-age must be 1*DIGIT, anything else makes the header invalid. */
+	const char *paths[] = { "/empty-max-age", "/negative-max-age", "/signed-max-age", NULL };
+
+	for (int i = 0; paths[i]; i++) {
+		char *uri = g_strconcat ("https://localhost", paths[i], NULL);
+		SoupSession *session;
+
+		/* It must not modify an existing policy... */
+		session = hsts_session_new (NULL);
+		session_get_uri (session, "https://localhost/long-lasting", SOUP_STATUS_OK, FALSE);
+		session_get_uri (session, uri, SOUP_STATUS_OK, FALSE);
+		session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+		soup_test_session_abort_unref (session);
+
+		/* ...nor add a new one. */
+		session = hsts_session_new (NULL);
+		session_get_uri (session, uri, SOUP_STATUS_OK, FALSE);
+		session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
+		soup_test_session_abort_unref (session);
+
+		g_free (uri);
+	}
+}
+
+static void
 do_hsts_extra_values_test (void)
 {
 	int i;
@@ -664,6 +703,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/insecure-sts", do_hsts_insecure_sts_test);
 	g_test_add_func ("/hsts/missing-values", do_hsts_missing_values_test);
 	g_test_add_func ("/hsts/invalid-values", do_hsts_invalid_values_test);
+	g_test_add_func ("/hsts/invalid-max-age", do_hsts_invalid_max_age_test);
 	g_test_add_func ("/hsts/extra-values", do_hsts_extra_values_test);
 	g_test_add_func ("/hsts/duplicated-directives", do_hsts_duplicated_directives_test);
 	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
