@@ -612,7 +612,9 @@ soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
 
 	if (g_hostname_is_ascii_encoded (domain)) {
 		canonicalized = g_hostname_to_unicode (domain);
-		g_return_val_if_fail (canonicalized, FALSE);
+		/* Not valid punycode, so there can't be a policy for it. */
+		if (!canonicalized)
+			return FALSE;
 	}
 
 	retval = SOUP_HSTS_ENFORCER_GET_CLASS (hsts_enforcer)->has_valid_policy (hsts_enforcer,

@@ -498,6 +498,10 @@ do_hsts_idna_addresses_test (void)
 
 	g_assert_true (soup_hsts_enforcer_has_valid_policy (enforcer, "xn--1caqm.com"));
 
+	/* A domain that is not valid punycode has no policy. */
+	g_assert_false (soup_hsts_enforcer_has_valid_policy (enforcer, "xn--zz"));
+	g_assert_false (soup_hsts_enforcer_has_valid_policy (enforcer, "xn--zz.com"));
+
 	g_signal_connect (enforcer, "changed", G_CALLBACK (on_idna_test_enforcer_changed), NULL);
 
 	soup_hsts_enforcer_set_session_policy (enforcer, "xn--1caqm.com", TRUE);
