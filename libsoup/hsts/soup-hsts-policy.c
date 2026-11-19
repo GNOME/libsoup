@@ -152,7 +152,17 @@ soup_hsts_policy_new (const char *domain,
                 expires = g_date_time_new_from_unix_utc (0);
 	} else {
                 GDateTime *now = g_date_time_new_now_utc ();
-                expires = g_date_time_add_seconds (now, max_age);
+
+                /* A max-age too large for GDateTime to represent is
+                 * clamped to the latest representable date. Otherwise
+                 * the policy would end up without an expiration date,
+                 * that is, as a session policy.
+                 */
+                if ((guint64)max_age > (guint64)(SOUP_DATE_TIME_MAX_UNIX - g_date_time_to_unix (now)))
+                        expires = g_date_time_new_from_unix_utc (SOUP_DATE_TIME_MAX_UNIX);
+                else
+                        expires = g_date_time_add_seconds (now, max_age);
+
                 g_date_time_unref (now);
         }
 

@@ -56,6 +56,15 @@ server_callback  (SoupServer        *server,
 			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
 						     "max-age=0");
+		} else if (strcmp (path, "/huge-max-age") == 0) {
+			/* Too far in the future to be represented by a GDateTime. */
+			soup_message_headers_append (response_headers,
+						     "Strict-Transport-Security",
+						     "max-age=999999999999");
+		} else if (strcmp (path, "/ulong-max-max-age") == 0) {
+			soup_message_headers_append (response_headers,
+						     "Strict-Transport-Security",
+						     "max-age=18446744073709551615");
 		} else if (strcmp (path, "/subdomains") == 0) {
 			soup_message_headers_append (response_headers,
 						     "Strict-Transport-Security",
@@ -406,6 +415,40 @@ do_hsts_case_insensitive_header_test (void)
 }
 
 static void
+do_hsts_huge_max_age_test (void)
+{
+	const char *paths[] = { "/huge-max-age", "/ulong-max-max-age", NULL };
+
+	for (int i = 0; paths[i]; i++) {
+		SoupHSTSEnforcer *enforcer = soup_hsts_enforcer_new ();
+		SoupSession *session = hsts_session_new (enforcer);
+		char *uri = g_strconcat ("https://localhost", paths[i], NULL);
+		GList *policies;
+		SoupHSTSPolicy *policy;
+
+		session_get_uri (session, uri, SOUP_STATUS_OK, FALSE);
+		session_get_uri (session, "http://localhost", SOUP_STATUS_OK, TRUE);
+
+		/* A max-age that is too large to represent must not turn
+		 * the policy into a session policy. */
+		policies = soup_hsts_enforcer_get_policies (enforcer, FALSE);
+		g_assert_cmpint (g_list_length (policies), ==, 1);
+		policy = policies->data;
+		g_assert_false (soup_hsts_policy_is_session_policy (policy));
+		g_assert_false (soup_hsts_policy_is_expired (policy));
+		g_list_free_full (policies, (GDestroyNotify)soup_hsts_policy_free);
+
+		/* And the host must still be able to delete it. */
+		session_get_uri (session, "https://localhost/delete", SOUP_STATUS_OK, FALSE);
+		session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
+
+		g_free (uri);
+		soup_test_session_abort_unref (session);
+		g_object_unref (enforcer);
+	}
+}
+
+static void
 do_hsts_case_insensitive_directives_test (void)
 {
 	SoupSession *session = hsts_session_new (NULL);
@@ -668,6 +711,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/duplicated-directives", do_hsts_duplicated_directives_test);
 	g_test_add_func ("/hsts/case-insensitive-directives", do_hsts_case_insensitive_directives_test);
 	g_test_add_func ("/hsts/optional-quotations", do_hsts_optional_quotations_test);
+	g_test_add_func ("/hsts/huge-max-age", do_hsts_huge_max_age_test);
 	g_test_add_func ("/hsts/ip-address", do_hsts_ip_address_test);
 	g_test_add_func ("/hsts/utf8-address", do_hsts_utf8_address_test);
 	g_test_add_func ("/hsts/session-policy", do_hsts_session_policy_test);

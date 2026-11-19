@@ -25,6 +25,9 @@ G_BEGIN_DECLS
 
 gboolean        soup_date_time_is_past          (GDateTime      *date);
 
+/* The latest date GDateTime can represent, 9999-12-31T23:59:59Z, as Unix time. */
+#define SOUP_DATE_TIME_MAX_UNIX G_GINT64_CONSTANT (253402300799)
+
 G_END_DECLS
 
 
