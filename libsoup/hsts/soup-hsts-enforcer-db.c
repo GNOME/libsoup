@@ -127,8 +127,9 @@ soup_hsts_enforcer_db_new (const char *filename)
 
 #define QUERY_ALL "SELECT id, host, max_age, expiry, include_subdomains FROM soup_hsts_policies;"
 #define CREATE_TABLE "CREATE TABLE soup_hsts_policies (id INTEGER PRIMARY KEY, host TEXT UNIQUE, max_age INTEGER, expiry INTEGER, include_subdomains INTEGER)"
-#define QUERY_INSERT "INSERT OR REPLACE INTO soup_hsts_policies VALUES((SELECT id FROM soup_hsts_policies WHERE host=%Q), %Q, %lu, %lu, %u);"
-#define QUERY_DELETE "DELETE FROM soup_hsts_policies WHERE host=%Q;"
+/* Host names are compared case-insensitively, as the enforcer does. */
+#define QUERY_INSERT "INSERT OR REPLACE INTO soup_hsts_policies VALUES((SELECT id FROM soup_hsts_policies WHERE host=%Q COLLATE NOCASE), %Q, %lu, %lu, %u);"
+#define QUERY_DELETE "DELETE FROM soup_hsts_policies WHERE host=%Q COLLATE NOCASE;"
 
 enum {
 	COL_ID,

@@ -187,6 +187,27 @@ do_hsts_db_large_max_age_test (void)
 	g_remove (DB_FILE);
 }
 
+static void
+do_hsts_db_host_case_test (void)
+{
+	SoupSession *session = hsts_db_session_new ();
+
+	/* Host names are case-insensitive, so the policy noted for
+	 * "localhost" is updated and then deleted by "LOCALHOST". */
+	session_get_uri (session, "https://localhost/subdomains", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "https://LOCALHOST/long-lasting", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "https://LOCALHOST/delete", SOUP_STATUS_OK, FALSE);
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
+	soup_test_session_abort_unref (session);
+
+	/* The deleted policy must not come back from the database. */
+	session = hsts_db_session_new ();
+	session_get_uri (session, "http://localhost", SOUP_STATUS_MOVED_PERMANENTLY, FALSE);
+	soup_test_session_abort_unref (session);
+
+	g_remove (DB_FILE);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -209,6 +230,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts-db/basic", do_hsts_db_persistency_test);
 	g_test_add_func ("/hsts-db/subdomains", do_hsts_db_subdomains_test);
 	g_test_add_func ("/hsts-db/large-max-age", do_hsts_db_large_max_age_test);
+	g_test_add_func ("/hsts-db/host-case", do_hsts_db_host_case_test);
 
 	ret = g_test_run ();
 
