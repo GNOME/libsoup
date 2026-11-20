@@ -604,6 +604,7 @@ gboolean
 soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
 				     const char *domain)
 {
+        SoupHSTSEnforcerPrivate *priv = soup_hsts_enforcer_get_instance_private (hsts_enforcer);
 	char *canonicalized = NULL;
 	gboolean retval;
 
@@ -615,8 +616,10 @@ soup_hsts_enforcer_has_valid_policy (SoupHSTSEnforcer *hsts_enforcer,
 		g_return_val_if_fail (canonicalized, FALSE);
 	}
 
+        g_rec_mutex_lock (&priv->mutex);
 	retval = SOUP_HSTS_ENFORCER_GET_CLASS (hsts_enforcer)->has_valid_policy (hsts_enforcer,
 										 canonicalized ? canonicalized : domain);
+        g_rec_mutex_unlock (&priv->mutex);
 
 	g_free (canonicalized);
 
@@ -652,9 +655,11 @@ soup_hsts_enforcer_get_domains (SoupHSTSEnforcer *hsts_enforcer,
 
 	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), NULL);
 
+        g_rec_mutex_lock (&priv->mutex);
 	g_hash_table_foreach (priv->host_policies, add_domain_to_list, &domains);
 	if (session_policies)
 		g_hash_table_foreach (priv->session_policies, add_domain_to_list, &domains);
+        g_rec_mutex_unlock (&priv->mutex);
 
 	return domains;
 }
@@ -688,9 +693,11 @@ soup_hsts_enforcer_get_policies (SoupHSTSEnforcer *hsts_enforcer,
 
 	g_return_val_if_fail (SOUP_IS_HSTS_ENFORCER (hsts_enforcer), NULL);
 
+        g_rec_mutex_lock (&priv->mutex);
 	g_hash_table_foreach (priv->host_policies, add_policy_to_list, &policies);
 	if (session_policies)
 		g_hash_table_foreach (priv->session_policies, add_policy_to_list, &policies);
+        g_rec_mutex_unlock (&priv->mutex);
 
 	return policies;
 }

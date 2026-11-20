@@ -575,6 +575,128 @@ do_hsts_get_policies_test (void)
 	g_object_unref(enforcer);
 }
 
+#define THREADS_N_DOMAINS 512
+
+typedef struct {
+	SoupHSTSEnforcer *enforcer;
+	char *domains[THREADS_N_DOMAINS];
+	gint stop;
+} ThreadsTest;
+
+static gpointer
+threads_writer (gpointer user_data)
+{
+	ThreadsTest *test = user_data;
+	gint64 end = g_get_monotonic_time () + G_USEC_PER_SEC;
+	guint i = 0;
+
+	/* Add and remove policies, so that the hash tables are resized. */
+	while (g_get_monotonic_time () < end) {
+		const char *domain = test->domains[g_random_int_range (0, THREADS_N_DOMAINS)];
+		SoupHSTSPolicy *policy;
+
+		switch (i++ % 3) {
+		case 0:
+			policy = soup_hsts_policy_new (domain, 3600, FALSE);
+			break;
+		case 1:
+			policy = soup_hsts_policy_new (domain, SOUP_HSTS_POLICY_MAX_AGE_PAST, FALSE);
+			break;
+		default:
+			policy = soup_hsts_policy_new_session_policy (domain, TRUE);
+			break;
+		}
+		soup_hsts_enforcer_set_policy (test->enforcer, policy);
+		soup_hsts_policy_free (policy);
+	}
+
+	g_atomic_int_set (&test->stop, 1);
+	return NULL;
+}
+
+static gpointer
+threads_reader (gpointer user_data)
+{
+	ThreadsTest *test = user_data;
+	guint i = 0;
+
+	while (!g_atomic_int_get (&test->stop)) {
+		switch (i++ % 3) {
+		case 0:
+			g_list_free_full (soup_hsts_enforcer_get_policies (test->enforcer, TRUE),
+					  (GDestroyNotify)soup_hsts_policy_free);
+			break;
+		case 1:
+			g_list_free_full (soup_hsts_enforcer_get_domains (test->enforcer, TRUE), g_free);
+			break;
+		default:
+			soup_hsts_enforcer_has_valid_policy (test->enforcer,
+							     test->domains[i % THREADS_N_DOMAINS]);
+			break;
+		}
+	}
+
+	return NULL;
+}
+
+/* The policies are modified from the threads sending messages, so the
+ * public getters must be safe to call while that happens. */
+static void
+do_hsts_threads_test (void)
+{
+	ThreadsTest test = { 0 };
+	GThread *threads[3];
+
+	test.enforcer = soup_hsts_enforcer_new ();
+	for (guint i = 0; i < THREADS_N_DOMAINS; i++)
+		test.domains[i] = g_strdup_printf ("host%u.example.com", i);
+
+	threads[0] = g_thread_new ("writer", threads_writer, &test);
+	threads[1] = g_thread_new ("reader", threads_reader, &test);
+	threads[2] = g_thread_new ("reader", threads_reader, &test);
+	for (guint i = 0; i < G_N_ELEMENTS (threads); i++)
+		g_thread_join (threads[i]);
+
+	for (guint i = 0; i < THREADS_N_DOMAINS; i++)
+		g_free (test.domains[i]);
+	g_object_unref (test.enforcer);
+}
+
+static void
+getters_from_changed_cb (SoupHSTSEnforcer *enforcer,
+			 SoupHSTSPolicy   *old_policy,
+			 SoupHSTSPolicy   *new_policy,
+			 guint            *n_changes)
+{
+	g_list_free_full (soup_hsts_enforcer_get_policies (enforcer, TRUE),
+			  (GDestroyNotify)soup_hsts_policy_free);
+	g_list_free_full (soup_hsts_enforcer_get_domains (enforcer, TRUE), g_free);
+	soup_hsts_enforcer_has_valid_policy (enforcer, "gnome.org");
+	(*n_changes)++;
+}
+
+/* ::changed handlers may read the policies. */
+static void
+do_hsts_getters_from_changed_test (void)
+{
+	SoupHSTSEnforcer *enforcer = soup_hsts_enforcer_new ();
+	SoupHSTSPolicy *policy;
+	guint n_changes = 0;
+
+	g_signal_connect (enforcer, "changed", G_CALLBACK (getters_from_changed_cb), &n_changes);
+
+	policy = soup_hsts_policy_new ("gnome.org", 3600, FALSE);
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	policy = soup_hsts_policy_new ("gnome.org", SOUP_HSTS_POLICY_MAX_AGE_PAST, FALSE);
+	soup_hsts_enforcer_set_policy (enforcer, policy);
+	soup_hsts_policy_free (policy);
+
+	g_assert_cmpuint (n_changes, ==, 2);
+	g_object_unref (enforcer);
+}
+
 static void
 cancel_on_hsts_enforced_cb (SoupMessage  *msg,
                             GCancellable *cancellable)
@@ -675,6 +797,8 @@ main (int argc, char **argv)
 	g_test_add_func ("/hsts/get-domains", do_hsts_get_domains_test);
 	g_test_add_func ("/hsts/get-policies", do_hsts_get_policies_test);
 	g_test_add_func ("/hsts/cancel-on-enforced", do_hsts_cancel_on_enforced_test);
+	g_test_add_func ("/hsts/threads", do_hsts_threads_test);
+	g_test_add_func ("/hsts/getters-from-changed", do_hsts_getters_from_changed_test);
 
 	ret = g_test_run ();
 
